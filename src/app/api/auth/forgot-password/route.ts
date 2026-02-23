@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Call Frappe's password reset method
+
     await axios.post(`${FRAPPE_URL}/api/method/frappe.core.doctype.user.user.reset_password`, {
       user: email,
     });
