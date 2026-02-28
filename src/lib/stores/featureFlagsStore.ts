@@ -28,6 +28,10 @@ export interface FeatureFlags {
   attendance: boolean;
   /** Fees nav item */
   fees: boolean;
+  /** Sales Orders nav item */
+  sales_orders: boolean;
+  /** Sales Invoices nav item */
+  invoices: boolean;
   /** Global search bar in the header/topbar */
   topbar_search: boolean;
   /** Notification bell icon in the header */
@@ -48,6 +52,8 @@ export const DEFAULT_FLAGS: FeatureFlags = {
   classes: true,
   attendance: true,
   fees: true,
+  sales_orders: true,
+  invoices: true,
   topbar_search: true,
   topbar_notifications: true,
   topbar_profile: true,

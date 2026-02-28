@@ -20,6 +20,24 @@ export async function getClasses(params?: PaginationParams): Promise<FrappeListR
   return data;
 }
 
+// ── Batch counts per program (for Classes overview) ──
+export async function getBatchCountsByProgram(company?: string): Promise<Record<string, number>> {
+  const filters: string[][] = [["group_based_on", "=", "Batch"]];
+  if (company) filters.push(["custom_branch", "=", company]);
+  const query = new URLSearchParams({
+    fields: JSON.stringify(["program", "count(name) as cnt"]),
+    filters: JSON.stringify(filters),
+    group_by: "program",
+    limit_page_length: "100",
+  });
+  const { data } = await apiClient.get(`/resource/Student Group?${query}`);
+  const counts: Record<string, number> = {};
+  for (const row of data.data ?? []) {
+    if (row.program) counts[row.program] = row.cnt ?? 0;
+  }
+  return counts;
+}
+
 // ── Create Class ──
 export async function createClass(classData: Partial<ClassLevel>): Promise<FrappeSingleResponse<ClassLevel>> {
   const { data } = await apiClient.post("/resource/Program", classData);

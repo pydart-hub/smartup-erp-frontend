@@ -52,6 +52,29 @@ export async function getAttendanceReport(params: AttendanceReportParams): Promi
   return data.message;
 }
 
+// ── Class-wise (Student Group) Attendance Summary ──
+export interface ClassAttendanceSummary {
+  student_group: string;
+  status: string;
+  cnt: number;
+}
+
+export async function getClassWiseAttendance(date: string, params?: {
+  custom_branch?: string;
+}): Promise<FrappeListResponse<ClassAttendanceSummary>> {
+  const filters: string[][] = [["date", "=", date]];
+  if (params?.custom_branch) filters.push(["custom_branch", "=", params.custom_branch]);
+
+  const query = new URLSearchParams({
+    filters: JSON.stringify(filters),
+    fields: JSON.stringify(["student_group", "status", "count(name) as cnt"]),
+    group_by: "student_group,status",
+    limit_page_length: "0",
+  });
+  const { data } = await apiClient.get(`/resource/Student Attendance?${query.toString()}`);
+  return data;
+}
+
 // ── Absentee Count for Today ──
 export async function getTodayAbsenteeCount(studentGroup?: string): Promise<number> {
   const today = new Date().toISOString().split("T")[0];

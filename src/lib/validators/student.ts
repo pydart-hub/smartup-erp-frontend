@@ -7,7 +7,7 @@ export const studentSchema = z.object({
   last_name: z.string().optional(),
   date_of_birth: z.string().min(1, "Date of birth is required"),
   gender: z.enum(["Male", "Female", "Other"], { message: "Gender is required" }),
-  blood_group: z.string().optional(),
+  blood_group: z.enum(["", "A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"]).optional(),
   student_email_id: z.union([z.string().email("Invalid email"), z.literal("")]).optional(),
   student_mobile_number: z.string().optional(),
 
@@ -21,9 +21,10 @@ export const studentSchema = z.object({
 
   // Step 3 — Guardian
   guardian_name: z.string().min(1, "Guardian name is required"),
-  guardian_email: z.union([z.string().email("Invalid email"), z.literal("")]).optional(),
+  guardian_email: z.string().email("Guardian email is required for parent login"),
   guardian_mobile: z.string().min(10, "Valid mobile number required"),
   guardian_relation: z.string().min(1, "Relation is required"),
+  guardian_password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
 export type StudentFormValues = z.infer<typeof studentSchema>;

@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
+import type { FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
@@ -18,6 +19,7 @@ import {
   Mail,
   Loader2,
   AlertCircle,
+  Lock,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Button } from "@/components/ui/Button";
@@ -26,6 +28,7 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { studentSchema, type StudentFormValues } from "@/lib/validators/student";
 import { admitStudent, getAcademicYears, getBranches, getStudentGroups, getNextSrrId } from "@/lib/api/enrollment";
 import { toast } from "sonner";
+import { useAuth } from "@/lib/hooks/useAuth";
 
 // ── Reusable styled select wrapper ──────────────────────────────
 function SelectField({
@@ -49,12 +52,13 @@ const selectCls =
 
 const STEPS = [
   { id: 1, label: "Student Info", icon: User },
-  { id: 2, label: "Academic", icon: School },
-  { id: 3, label: "Guardian", icon: Users },
+  { id: 2, label: "Guardian", icon: Users },
+  { id: 3, label: "Academic", icon: School },
 ];
 
 export default function NewStudentPage() {
   const router = useRouter();
+  const { defaultCompany, allowedCompanies } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
 
   const {
@@ -70,6 +74,7 @@ export default function NewStudentPage() {
       enrollment_date: new Date().toISOString().split("T")[0],
       gender: "Male",
       academic_year: "2025-2026",
+      custom_branch: defaultCompany || "",
     },
   });
 
@@ -159,7 +164,7 @@ export default function NewStudentPage() {
     try {
       const matchedGroup = studentGroups.find((g) => g.batch === data.student_batch_name);
 
-      await admitStudent({
+      const result = await admitStudent({
         first_name: data.first_name,
         middle_name: data.middle_name,
         last_name: data.last_name,
@@ -179,15 +184,36 @@ export default function NewStudentPage() {
         guardian_email: data.guardian_email,
         guardian_mobile: data.guardian_mobile,
         guardian_relation: data.guardian_relation,
+        guardian_password: data.guardian_password,
       });
 
-      toast.success("Student admitted successfully!");
+      const soMsg = result.salesOrder
+        ? ` Sales Order ${result.salesOrder} created.`
+        : "";
+      toast.success(`Student admitted successfully!${soMsg}`);
       router.push("/dashboard/branch-manager/students");
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message
-        ?? (err as Error)?.message
-        ?? "Failed to create student";
+      // Frappe validation errors (HTTP 417) encode the real message in
+      // `_server_messages` as a JSON-encoded array of {message} objects.
+      const data = (err as { response?: { data?: Record<string, unknown> } })?.response?.data;
+      let msg = "Failed to create student";
+      if (data) {
+        if (typeof data._server_messages === "string") {
+          try {
+            const parsed: { message: string }[] = JSON.parse(data._server_messages as string);
+            msg = parsed.map((m) => m.message).join(" ") || msg;
+          } catch {
+            msg = String(data._server_messages);
+          }
+        } else if (typeof data.message === "string") {
+          msg = data.message;
+        } else if (typeof data.exception === "string") {
+          // Strip Python traceback prefix: "frappe.exceptions.ValidationError: ..."
+          msg = (data.exception as string).split("\n")[0].replace(/^.*?:\s*/, "");
+        }
+      } else {
+        msg = (err as Error)?.message ?? msg;
+      }
       toast.error(msg);
     }
   }
@@ -195,10 +221,31 @@ export default function NewStudentPage() {
   async function nextStep() {
     const fieldsToValidate: Record<number, (keyof StudentFormValues)[]> = {
       1: ["first_name", "date_of_birth", "gender"],
-      2: ["custom_branch", "program", "academic_year", "enrollment_date"],
+      2: ["guardian_name", "guardian_mobile", "guardian_relation", "guardian_email", "guardian_password"],
     };
     const isValid = await trigger(fieldsToValidate[currentStep] ?? []);
     if (isValid) setCurrentStep((prev) => Math.min(prev + 1, 3));
+  }
+
+  // Navigate to the step that contains the failing field so the user can see the error
+  function handleFormError(formErrors: FieldErrors<StudentFormValues>) {
+    const step1Keys: (keyof StudentFormValues)[] = [
+      "first_name", "date_of_birth", "gender",
+      "middle_name", "last_name", "blood_group",
+      "student_email_id", "student_mobile_number",
+    ];
+    const step2Keys: (keyof StudentFormValues)[] = [
+      "guardian_name", "guardian_mobile", "guardian_relation", "guardian_email", "guardian_password",
+    ];
+    const errorKeys = Object.keys(formErrors) as (keyof StudentFormValues)[];
+    if (errorKeys.some((k) => step1Keys.includes(k))) {
+      setCurrentStep(1);
+      toast.error("Please fix the errors in Student Info (Step 1)");
+    } else if (errorKeys.some((k) => step2Keys.includes(k))) {
+      setCurrentStep(2);
+      toast.error("Please fix the errors in Guardian Info (Step 2)");
+    }
+    // Academic field errors are on Step 3 (currently visible) — show inline
   }
 
   function prevStep() {
@@ -260,7 +307,7 @@ export default function NewStudentPage() {
       </div>
 
       {/* Form */}
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form onSubmit={handleSubmit(onSubmit, handleFormError)}>
         <Card>
           <CardContent className="p-6">
             <AnimatePresence mode="wait">
@@ -304,7 +351,23 @@ export default function NewStudentPage() {
                       </select>
                       {errors.gender && <p className="text-xs text-error">{errors.gender.message}</p>}
                     </div>
-                    <Input label="Blood Group" placeholder="O+" {...register("blood_group")} />
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-sm font-medium text-text-secondary">Blood Group</label>
+                      <select
+                        className="h-10 rounded-[10px] border border-border-input bg-surface px-3 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        {...register("blood_group")}
+                      >
+                        <option value="">Select</option>
+                        <option value="A+">A+</option>
+                        <option value="A-">A-</option>
+                        <option value="B+">B+</option>
+                        <option value="B-">B-</option>
+                        <option value="O+">O+</option>
+                        <option value="O-">O-</option>
+                        <option value="AB+">AB+</option>
+                        <option value="AB-">AB-</option>
+                      </select>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -326,10 +389,70 @@ export default function NewStudentPage() {
                 </motion.div>
               )}
 
-              {/* Step 2: Academic Details */}
+              {/* Step 2: Guardian Details */}
               {currentStep === 2 && (
                 <motion.div
                   key="step2"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="space-y-5"
+                >
+                  <div>
+                    <h3 className="text-lg font-semibold text-text-primary">Guardian / Parent Details</h3>
+                    <p className="text-sm text-text-secondary mt-0.5">Primary guardian information</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Input label="Guardian Name *" placeholder="Full name" error={errors.guardian_name?.message} {...register("guardian_name")} />
+                    <SelectField label="Relation" required error={errors.guardian_relation?.message}>
+                      <select className={selectCls} {...register("guardian_relation")}>
+                        <option value="">Select relation</option>
+                        <option value="Father">Father</option>
+                        <option value="Mother">Mother</option>
+                        <option value="Guardian">Guardian</option>
+                        <option value="Sibling">Sibling</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </SelectField>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Input
+                      label="Guardian Mobile *"
+                      placeholder="+91 9876543210"
+                      leftIcon={<Phone className="h-4 w-4" />}
+                      error={errors.guardian_mobile?.message}
+                      {...register("guardian_mobile")}
+                    />
+                    <Input
+                      label="Guardian Email *"
+                      type="email"
+                      placeholder="guardian@email.com"
+                      leftIcon={<Mail className="h-4 w-4" />}
+                      error={errors.guardian_email?.message}
+                      {...register("guardian_email")}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Input
+                      label="Parent Login Password *"
+                      type="password"
+                      placeholder="Min 8 characters"
+                      leftIcon={<Lock className="h-4 w-4" />}
+                      error={errors.guardian_password?.message}
+                      hint="This will be used to create a parent login account"
+                      {...register("guardian_password")}
+                    />
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Step 3: Academic Details */}
+              {currentStep === 3 && (
+                <motion.div
+                  key="step3"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
@@ -344,7 +467,10 @@ export default function NewStudentPage() {
                     <SelectField label="Branch" required error={errors.custom_branch?.message}>
                       <select className={selectCls} {...register("custom_branch")}>
                         <option value="">Select branch</option>
-                        {branches.map((b) => (
+                        {(allowedCompanies.length > 0
+                          ? branches.filter((b) => allowedCompanies.includes(b.name))
+                          : branches
+                        ).map((b) => (
                           <option key={b.name} value={b.name}>{b.name}</option>
                         ))}
                       </select>
@@ -444,64 +570,18 @@ export default function NewStudentPage() {
                       </p>
                     </div>
                   )}
-                </motion.div>
-              )}
-
-              {/* Step 3: Guardian Details */}
-              {currentStep === 3 && (
-                <motion.div
-                  key="step3"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  className="space-y-5"
-                >
-                  <div>
-                    <h3 className="text-lg font-semibold text-text-primary">Guardian / Parent Details</h3>
-                    <p className="text-sm text-text-secondary mt-0.5">Primary guardian information</p>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Input label="Guardian Name *" placeholder="Full name" error={errors.guardian_name?.message} {...register("guardian_name")} />
-                    <SelectField label="Relation" required error={errors.guardian_relation?.message}>
-                      <select className={selectCls} {...register("guardian_relation")}>
-                        <option value="">Select relation</option>
-                        <option value="Father">Father</option>
-                        <option value="Mother">Mother</option>
-                        <option value="Guardian">Guardian</option>
-                        <option value="Sibling">Sibling</option>
-                        <option value="Other">Other</option>
-                      </select>
-                    </SelectField>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Input
-                      label="Guardian Mobile *"
-                      placeholder="+91 9876543210"
-                      leftIcon={<Phone className="h-4 w-4" />}
-                      error={errors.guardian_mobile?.message}
-                      {...register("guardian_mobile")}
-                    />
-                    <Input
-                      label="Guardian Email"
-                      type="email"
-                      placeholder="guardian@email.com"
-                      leftIcon={<Mail className="h-4 w-4" />}
-                      error={errors.guardian_email?.message}
-                      {...register("guardian_email")}
-                    />
-                  </div>
 
                   {/* Admission summary */}
                   <div className="bg-app-bg rounded-[10px] p-4 border border-border-light text-sm space-y-1.5 text-text-secondary">
                     <p className="font-semibold text-text-primary mb-2">Admission Summary</p>
-                    <p><span className="text-text-tertiary w-32 inline-block">Branch:</span> {watch("custom_branch") || "—"}</p>
-                    <p><span className="text-text-tertiary w-32 inline-block">Class:</span> {watch("program") || "—"}</p>
-                    <p><span className="text-text-tertiary w-32 inline-block">Academic Year:</span> {watch("academic_year") || "—"}</p>
-                    <p><span className="text-text-tertiary w-32 inline-block">SRR ID:</span> {watch("custom_srr_id") || "—"}</p>
-                    <p><span className="text-text-tertiary w-32 inline-block">Batch:</span> {watch("student_batch_name") || "Auto-assign"}</p>
-                    <p><span className="text-text-tertiary w-32 inline-block">Enrollment Date:</span> {watch("enrollment_date") || "—"}</p>
+                    <p><span className="text-text-tertiary w-36 inline-block">Student:</span> {[watch("first_name"), watch("middle_name"), watch("last_name")].filter(Boolean).join(" ") || "—"}</p>
+                    <p><span className="text-text-tertiary w-36 inline-block">Guardian:</span> {watch("guardian_name") || "—"}{watch("guardian_relation") ? ` (${watch("guardian_relation")})` : ""}</p>
+                    <p><span className="text-text-tertiary w-36 inline-block">Branch:</span> {watch("custom_branch") || "—"}</p>
+                    <p><span className="text-text-tertiary w-36 inline-block">Class:</span> {watch("program") || "—"}</p>
+                    <p><span className="text-text-tertiary w-36 inline-block">Academic Year:</span> {watch("academic_year") || "—"}</p>
+                    <p><span className="text-text-tertiary w-36 inline-block">SRR ID:</span> {watch("custom_srr_id") || "—"}</p>
+                    <p><span className="text-text-tertiary w-36 inline-block">Batch:</span> {watch("student_batch_name") || "Auto-assign"}</p>
+                    <p><span className="text-text-tertiary w-36 inline-block">Enrollment Date:</span> {watch("enrollment_date") || "—"}</p>
                   </div>
                 </motion.div>
               )}

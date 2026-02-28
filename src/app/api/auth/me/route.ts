@@ -19,6 +19,12 @@ export async function GET(request: NextRequest) {
         full_name: sessionData.full_name,
         roles: sessionData.roles || [],
         role_profile_name: sessionData.roles?.[0] || null,
+        allowed_companies: sessionData.allowed_companies || [],
+        default_company: sessionData.default_company || "",
+        instructor_name: sessionData.instructor_name || undefined,
+        instructor_display_name: sessionData.instructor_display_name || undefined,
+        allowed_batches: sessionData.allowed_batches || undefined,
+        default_batch: sessionData.default_batch || undefined,
       },
     });
   } catch {

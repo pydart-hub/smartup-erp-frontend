@@ -9,6 +9,12 @@
  */
 
 import apiClient from "./client";
+import {
+  getTuitionFeeItem,
+  createSalesOrder,
+  submitSalesOrder,
+} from "./sales";
+import type { SalesOrderFormData } from "@/lib/types/sales";
 import type {
   ProgramEnrollment,
   ProgramEnrollmentFormData,
@@ -255,6 +261,42 @@ export async function getBranches(): Promise<{ name: string; abbr: string }[]> {
 }
 
 /**
+ * Returns a Map<batchCode, enrolledCount> for ALL submitted Program Enrollments.
+ * Used by the dashboard batch overview to show current vs max capacity.
+ * When `company` is provided, only counts enrollments whose student_batch_name
+ * belongs to Student Groups with that custom_branch.
+ */
+export async function getBatchEnrollmentCounts(company?: string): Promise<Map<string, number>> {
+  // If company is provided, first get the Student Group names for that branch
+  // so we can filter enrollment counts to only relevant batches.
+  let allowedBatches: Set<string> | null = null;
+  if (company) {
+    const { data: sgRes } = await apiClient.get(
+      `/resource/Student Group?fields=["name"]&filters=${JSON.stringify([
+        ["group_based_on", "=", "Batch"],
+        ["custom_branch", "=", company],
+      ])}&limit_page_length=0`
+    );
+    allowedBatches = new Set(
+      (sgRes.data as { name: string }[]).map((sg) => sg.name)
+    );
+  }
+
+  const { data } = await apiClient.get(
+    `/resource/Program Enrollment?fields=["student_batch_name"]&filters=${JSON.stringify([["docstatus", "=", "1"]])}&limit_page_length=0`
+  );
+  const countMap = new Map<string, number>();
+  (data.data as { student_batch_name: string }[]).forEach((pe) => {
+    if (pe.student_batch_name) {
+      // If we have a branch filter, only count batches that belong to this branch
+      if (allowedBatches && !allowedBatches.has(pe.student_batch_name)) return;
+      countMap.set(pe.student_batch_name, (countMap.get(pe.student_batch_name) ?? 0) + 1);
+    }
+  });
+  return countMap;
+}
+
+/**
  * Full admission flow: creates Guardian + Student + Program Enrollment
  * + adds student to the right Student Group (batch).
  *
@@ -281,10 +323,15 @@ export async function admitStudent(form: {
   enrollment_date: string;
   // Guardian
   guardian_name: string;
-  guardian_email?: string;
+  guardian_email: string;
   guardian_mobile: string;
   guardian_relation: string;
-}): Promise<{ student: { name: string; student_name: string }; programEnrollment: ProgramEnrollment }> {
+  guardian_password: string;
+}): Promise<{
+  student: { name: string; student_name: string };
+  programEnrollment: ProgramEnrollment;
+  salesOrder?: string;
+}> {
 
   // Step 1 — Create Guardian
   const { data: guardianRes } = await apiClient.post("/resource/Guardian", {
@@ -293,6 +340,31 @@ export async function admitStudent(form: {
     mobile_number: form.guardian_mobile,
   });
   const guardianName: string = guardianRes.data.name;
+
+  // Step 1.5 — Create Frappe User with "Parent" role for guardian login
+  try {
+    const parentUserRes = await fetch("/api/auth/create-parent-user", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        email: form.guardian_email,
+        full_name: form.guardian_name,
+        password: form.guardian_password,
+      }),
+    });
+    if (!parentUserRes.ok) {
+      const errBody = await parentUserRes.json().catch(() => ({}));
+      console.warn(
+        "[admitStudent] Parent user creation returned error:",
+        parentUserRes.status,
+        errBody
+      );
+    }
+  } catch (userError) {
+    // Non-blocking — guardian + student flow continues even if user creation fails
+    console.warn("[admitStudent] Parent user creation failed (non-blocking):", userError);
+  }
 
   // Step 2 — Create Student (linked to guardian)
   const srrId = form.custom_srr_id || await getNextSrrId(form.custom_branch);
@@ -303,27 +375,33 @@ export async function admitStudent(form: {
     .replace(/[^a-z0-9]/g, "");
   const autoEmail = `${namePart}${srrId}@dummy.com`;
 
-  const { data: studentRes } = await apiClient.post("/resource/Student", {
+  // Build the student payload — strip undefined/empty-string optionals to avoid
+  // Frappe treating them as invalid Select values.
+  const studentPayload: Record<string, unknown> = {
     first_name: form.first_name,
-    middle_name: form.middle_name,
-    last_name: form.last_name,
+    last_name: form.last_name || undefined,
     date_of_birth: form.date_of_birth,
     gender: form.gender,
-    blood_group: form.blood_group,
     student_email_id: form.student_email_id || autoEmail,
-    student_mobile_number: form.student_mobile_number,
     joining_date: form.joining_date || form.enrollment_date,
     custom_branch: form.custom_branch,
     custom_srr_id: srrId,
     enabled: 1,
+    // Frappe REST API requires the child-table doctype field on every row.
     guardians: [
       {
+        doctype: "Student Guardians",
         guardian: guardianName,
         guardian_name: form.guardian_name,
         relation: form.guardian_relation,
       },
     ],
-  });
+  };
+  if (form.middle_name) studentPayload.middle_name = form.middle_name;
+  if (form.blood_group) studentPayload.blood_group = form.blood_group;
+  if (form.student_mobile_number) studentPayload.student_mobile_number = form.student_mobile_number;
+
+  const { data: studentRes } = await apiClient.post("/resource/Student", studentPayload);
   const student = studentRes.data as { name: string; student_name: string };
 
   // Step 3 — Create & Submit Program Enrollment
@@ -340,5 +418,44 @@ export async function admitStudent(form: {
     await addStudentToGroup(form.studentGroupName, student.name, student.student_name);
   }
 
-  return { student, programEnrollment };
+  // Step 5 — Auto-create Sales Order for tuition fee
+  // Frappe's Student after_insert hook auto-creates a Customer linked to the
+  // Student (visible in _server_messages). We read it back and use it for the SO.
+  let salesOrderName: string | undefined;
+  try {
+    // 5a. Read back the Student to get the auto-created customer
+    const { data: freshStudent } = await apiClient.get(
+      `/resource/Student/${encodeURIComponent(student.name)}?fields=["customer"]`
+    );
+    const customerName: string | undefined = freshStudent.data?.customer;
+    if (!customerName) throw new Error("No customer linked to student");
+
+    // 5b. Resolve the tuition fee item for this program
+    const tuitionItem = await getTuitionFeeItem(form.program);
+    if (!tuitionItem) {
+      console.warn(`[admitStudent] No tuition fee item found for program "${form.program}" — skipping SO creation`);
+    } else {
+      const today = new Date().toISOString().split("T")[0];
+
+      // 5c. Create Sales Order (rate 0 → Frappe auto-fills from Item Price)
+      const soPayload: SalesOrderFormData = {
+        customer: customerName,
+        company: form.custom_branch,
+        transaction_date: form.enrollment_date || today,
+        delivery_date: form.enrollment_date || today,
+        order_type: "Sales",
+        items: [{ item_code: tuitionItem.item_code, qty: 1, rate: 0 }],
+      };
+      const soRes = await createSalesOrder(soPayload);
+      salesOrderName = soRes.data.name;
+
+      // 5d. Submit the Sales Order
+      await submitSalesOrder(salesOrderName);
+    }
+  } catch (soError) {
+    // Non-blocking — student + enrollment are already created
+    console.warn("[admitStudent] Auto Sales Order creation failed (non-blocking):", soError);
+  }
+
+  return { student, programEnrollment, salesOrder: salesOrderName };
 }

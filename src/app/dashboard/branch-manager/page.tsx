@@ -1,7 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
 import {
   GraduationCap,
   Users,
@@ -11,6 +12,7 @@ import {
   School,
   CalendarDays,
   FileText,
+  TrendingUp,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { StatsCard } from "@/components/dashboard/StatsCard";
@@ -20,14 +22,12 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useFeatureFlagsStore } from "@/lib/stores/featureFlagsStore";
-
-// Placeholder data — replace with real API calls
-const stats = {
-  totalStudents: 342,
-  activeBatches: 12,
-  todayAttendance: "89%",
-  pendingFees: "₹4,52,000",
-};
+import { getStudentCount, getStudents } from "@/lib/api/students";
+import { getStudentGroups, getBatchEnrollmentCounts } from "@/lib/api/enrollment";
+import { getAttendance } from "@/lib/api/attendance";
+import { getEmployeeAttendance } from "@/lib/api/employees";
+import { getSalesStats } from "@/lib/api/sales";
+import { formatCurrency } from "@/lib/utils/formatters";
 
 const quickActions = [
   {
@@ -60,22 +60,6 @@ const quickActions = [
   },
 ];
 
-const recentActivities: ActivityItem[] = [
-  { id: "1", type: "student_added", message: "Arjun Menon admitted to Class 10 - Batch A", timestamp: "2026-02-23T10:30:00" },
-  { id: "2", type: "fee_collected", message: "₹15,000 fee collected from Priya Sharma", timestamp: "2026-02-23T09:45:00" },
-  { id: "3", type: "attendance_marked", message: "Attendance marked for Class 12 - Batch B", timestamp: "2026-02-23T09:15:00" },
-  { id: "4", type: "batch_created", message: "Class 11 - Batch C created (capacity: 60)", timestamp: "2026-02-22T16:00:00" },
-  { id: "5", type: "student_added", message: "Meera Das admitted to Class 9 - Batch A", timestamp: "2026-02-22T14:20:00" },
-];
-
-const batchOverview = [
-  { class: "Class 8", batches: [{ name: "A", strength: 58, max: 60 }, { name: "B", strength: 42, max: 60 }] },
-  { class: "Class 9", batches: [{ name: "A", strength: 60, max: 60 }, { name: "B", strength: 55, max: 60 }] },
-  { class: "Class 10", batches: [{ name: "A", strength: 52, max: 60 }, { name: "B", strength: 35, max: 60 }] },
-  { class: "Class 11", batches: [{ name: "A", strength: 60, max: 60 }, { name: "B", strength: 60, max: 60 }, { name: "C", strength: 20, max: 60 }] },
-  { class: "Class 12", batches: [{ name: "A", strength: 57, max: 60 }] },
-];
-
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -90,8 +74,121 @@ const itemVariants = {
 };
 
 export default function BranchManagerDashboard() {
-  const { user } = useAuth();
+  const { user, defaultCompany } = useAuth();
   const { flags } = useFeatureFlagsStore();
+  const today = new Date().toISOString().split("T")[0];
+
+  // ── Real Frappe API queries (filtered by branch) ───────────
+  const { data: studentCount, isLoading: loadingStudents } = useQuery({
+    queryKey: ["dashboard-student-count", defaultCompany],
+    queryFn: () =>
+      getStudentCount(
+        defaultCompany ? [["custom_branch", "=", defaultCompany]] : undefined
+      ),
+    staleTime: 60_000,
+  });
+
+  const { data: studentGroupsRes, isLoading: loadingGroups } = useQuery({
+    queryKey: ["dashboard-student-groups", defaultCompany],
+    queryFn: () =>
+      getStudentGroups({
+        limit_page_length: 500,
+        ...(defaultCompany ? { custom_branch: defaultCompany } : {}),
+      }),
+    staleTime: 60_000,
+  });
+
+  const { data: todayAttendanceRes, isLoading: loadingAttendance } = useQuery({
+    queryKey: ["dashboard-attendance-today", today, defaultCompany],
+    queryFn: () =>
+      getAttendance(today, defaultCompany ? { custom_branch: defaultCompany } : undefined),
+    staleTime: 300_000,
+  });
+
+  const { data: staffAttendanceRes, isLoading: loadingStaffAttendance } = useQuery({
+    queryKey: ["dashboard-staff-attendance-today", today, defaultCompany],
+    queryFn: () =>
+      getEmployeeAttendance({
+        date: today,
+        ...(defaultCompany ? { company: defaultCompany } : {}),
+      }),
+    staleTime: 300_000,
+  });
+
+  const { data: salesStats, isLoading: loadingSales } = useQuery({
+    queryKey: ["dashboard-sales-stats", defaultCompany],
+    queryFn: () => getSalesStats(defaultCompany || undefined),
+    staleTime: 300_000,
+  });
+
+  const { data: recentStudentsRes, isLoading: loadingRecent } = useQuery({
+    queryKey: ["dashboard-recent-students", defaultCompany],
+    queryFn: () =>
+      getStudents({
+        order_by: "creation desc",
+        limit_page_length: 5,
+        ...(defaultCompany ? { custom_branch: defaultCompany } : {}),
+      }),
+    staleTime: 60_000,
+  });
+
+  const { data: batchEnrollmentCounts } = useQuery({
+    queryKey: ["dashboard-batch-enrollment-counts", defaultCompany],
+    queryFn: () => getBatchEnrollmentCounts(defaultCompany || undefined),
+    staleTime: 60_000,
+  });
+
+  // ── Derived stats ────────────────────────────────────────
+  const allGroups = studentGroupsRes?.data ?? [];
+  const activeBatches = allGroups.filter((g) => !g.disabled).length;
+
+  const todayRecords = todayAttendanceRes?.data ?? [];
+  const todayPresent = todayRecords.filter((a) => a.status === "Present").length;
+  const todayTotal = todayRecords.length;
+  const studentAttendanceLabel = todayTotal > 0
+    ? `${todayPresent}/${todayTotal}`
+    : "Not marked";
+
+  const staffRecords = staffAttendanceRes?.data ?? [];
+  const staffPresent = staffRecords.filter((a) => a.status === "Present").length;
+  const staffTotal = staffRecords.length;
+  const staffAttendanceLabel = staffTotal > 0
+    ? `${staffPresent}/${staffTotal}`
+    : "Not marked";
+
+  const outstandingFees = salesStats?.total_outstanding ?? 0;
+  const collectionRate = salesStats?.collection_rate ?? 0;
+
+  // ── Recent students as activity items ─────────────────────
+  const recentActivities: ActivityItem[] = useMemo(
+    () =>
+      (recentStudentsRes?.data ?? []).map((s) => ({
+        id: s.name,
+        type: "student_added" as const,
+        message: `${s.student_name} admitted${
+          s.custom_branch ? ` to ${s.custom_branch.replace("Smart Up ", "")}` : ""
+        }`,
+        timestamp: s.creation ?? new Date().toISOString(),
+      })),
+    [recentStudentsRes]
+  );
+
+  // ── Group student groups by program for batch overview ──────────
+  const batchOverview = useMemo(() => {
+    const groups = allGroups.filter((g) => !g.disabled && g.program);
+    const byProgram = new Map<string, typeof groups>();
+    groups.forEach((g) => {
+      const prog = g.program!;
+      if (!byProgram.has(prog)) byProgram.set(prog, []);
+      byProgram.get(prog)!.push(g);
+    });
+    return Array.from(byProgram.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([program, groupList]) => ({
+        program,
+        groups: groupList.sort((a, b) => a.name.localeCompare(b.name)),
+      }));
+  }, [allGroups]);
 
   if (!flags.overview) return null;
 
@@ -126,30 +223,38 @@ export default function BranchManagerDashboard() {
       <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
           title="Total Students"
-          value={stats.totalStudents}
+          value={loadingStudents ? "…" : (studentCount ?? 0)}
           icon={<GraduationCap className="h-5 w-5" />}
           color="primary"
-          trend={{ value: 12, label: "this month" }}
+          loading={loadingStudents}
+          href="/dashboard/branch-manager/students"
         />
         <StatsCard
-          title="Active Batches"
-          value={stats.activeBatches}
-          icon={<Users className="h-5 w-5" />}
-          color="secondary"
-        />
-        <StatsCard
-          title="Today's Attendance"
-          value={stats.todayAttendance}
+          title="Student Attendance"
+          value={loadingAttendance ? "…" : studentAttendanceLabel}
           icon={<ClipboardCheck className="h-5 w-5" />}
           color="info"
-          trend={{ value: 3, label: "vs yesterday" }}
+          loading={loadingAttendance}
+          trend={todayTotal > 0 ? { value: Math.round((todayPresent / todayTotal) * 100), label: "present" } : undefined}
+          href="/dashboard/branch-manager/attendance"
         />
         <StatsCard
-          title="Pending Fees"
-          value={stats.pendingFees}
+          title="Staff Attendance"
+          value={loadingStaffAttendance ? "…" : staffAttendanceLabel}
+          icon={<Users className="h-5 w-5" />}
+          color="secondary"
+          loading={loadingStaffAttendance}
+          trend={staffTotal > 0 ? { value: Math.round((staffPresent / staffTotal) * 100), label: "present" } : undefined}
+          href="/dashboard/branch-manager/employee-attendance"
+        />
+        <StatsCard
+          title="Outstanding Fees"
+          value={loadingSales ? "…" : formatCurrency(outstandingFees)}
           icon={<IndianRupee className="h-5 w-5" />}
           color="warning"
-          trend={{ value: -8, label: "this week" }}
+          trend={collectionRate > 0 ? { value: Math.round(collectionRate), label: "collected" } : undefined}
+          loading={loadingSales}
+          href="/dashboard/branch-manager/fees"
         />
       </motion.div>
 
@@ -175,65 +280,121 @@ export default function BranchManagerDashboard() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>Batch Overview</CardTitle>
-                  <Badge variant="outline" className="text-xs">
-                    {batchOverview.reduce((acc, c) => acc + c.batches.length, 0)} batches
-                  </Badge>
+                  <Badge variant="outline" className="text-xs">{activeBatches} batches</Badge>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {batchOverview.map((classItem) => (
-                    <div key={classItem.class}>
-                      <div className="flex items-center gap-2 mb-2">
-                        <School className="h-4 w-4 text-text-tertiary" />
-                        <span className="text-sm font-semibold text-text-primary">
-                          {classItem.class}
-                        </span>
+                {loadingGroups ? (
+                  <div className="space-y-4 animate-pulse">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i}>
+                        <div className="h-4 w-32 bg-border-light rounded mb-3" />
+                        <div className="grid grid-cols-3 gap-2 ml-6">
+                          {[1, 2, 3].map((j) => <div key={j} className="h-20 bg-border-light rounded-[10px]" />)}
+                        </div>
                       </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 ml-6">
-                        {classItem.batches.map((batch) => {
-                          const percentage = (batch.strength / batch.max) * 100;
-                          const isFull = batch.strength >= batch.max;
-                          return (
-                            <div
-                              key={`${classItem.class}-${batch.name}`}
-                              className="bg-app-bg rounded-[10px] p-3 border border-border-light"
-                            >
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-semibold text-text-primary">
-                                  Batch {batch.name}
-                                </span>
-                                {isFull ? (
-                                  <Badge variant="error" className="text-[10px] px-1.5 py-0">Full</Badge>
-                                ) : (
-                                  <Badge variant="success" className="text-[10px] px-1.5 py-0">Open</Badge>
-                                )}
+                    ))}
+                  </div>
+                ) : batchOverview.length === 0 ? (
+                  <p className="text-sm text-text-tertiary text-center py-8">No batches found</p>
+                ) : (
+                  <div className="space-y-5">
+                    {batchOverview.map(({ program, groups }) => (
+                      <div key={program}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <School className="h-4 w-4 text-text-tertiary" />
+                          <span className="text-sm font-semibold text-text-primary">{program}</span>
+                          <span className="text-xs text-text-tertiary">({groups.length} batch{groups.length !== 1 ? "es" : ""})</span>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 ml-6">
+                          {groups.map((group) => {
+                            const enrolled = batchEnrollmentCounts?.get(group.name) ?? 0;
+                            const maxStr = group.max_strength ?? 60;
+                            const pct = maxStr > 0 ? Math.min((enrolled / maxStr) * 100, 100) : 0;
+                            const isFull = enrolled >= maxStr;
+                            return (
+                              <div key={group.name} className="bg-app-bg rounded-[10px] p-3 border border-border-light">
+                                <div className="flex items-center justify-between mb-1.5">
+                                  <span className="text-xs font-semibold text-text-primary truncate max-w-[80px]" title={group.name}>
+                                    {group.name}
+                                  </span>
+                                  {isFull
+                                    ? <Badge variant="error" className="text-[10px] px-1.5 py-0 shrink-0">Full</Badge>
+                                    : <Badge variant="success" className="text-[10px] px-1.5 py-0 shrink-0">Open</Badge>}
+                                </div>
+                                <div className="text-xs text-text-secondary mb-1.5">{enrolled}/{maxStr} students</div>
+                                <div className="w-full h-1.5 bg-border-light rounded-full overflow-hidden">
+                                  <motion.div
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${pct}%` }}
+                                    transition={{ duration: 0.8, ease: "easeOut" }}
+                                    className={`h-full rounded-full ${
+                                      isFull ? "bg-error" : pct > 80 ? "bg-warning" : "bg-primary"
+                                    }`}
+                                  />
+                                </div>
                               </div>
-                              <div className="text-xs text-text-secondary mb-1.5">
-                                {batch.strength}/{batch.max} students
-                              </div>
-                              {/* Capacity bar */}
-                              <div className="w-full h-1.5 bg-border-light rounded-full overflow-hidden">
-                                <motion.div
-                                  initial={{ width: 0 }}
-                                  animate={{ width: `${percentage}%` }}
-                                  transition={{ duration: 0.8, ease: "easeOut" }}
-                                  className={`h-full rounded-full ${
-                                    isFull
-                                      ? "bg-error"
-                                      : percentage > 80
-                                      ? "bg-warning"
-                                      : "bg-primary"
-                                  }`}
-                                />
-                              </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Fee Collection Summary */}
+          <motion.div variants={itemVariants}>
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Fee Collection Summary</CardTitle>
+                  <TrendingUp className="h-4 w-4 text-text-tertiary" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                {loadingSales ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 animate-pulse">
+                    {[1, 2, 3, 4].map((i) => <div key={i} className="h-14 bg-border-light rounded-[10px]" />)}
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                      <div className="text-center">
+                        <p className="text-xs text-text-tertiary mb-1">Total Orders</p>
+                        <p className="text-xl font-bold text-text-primary">{salesStats?.total_orders ?? 0}</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs text-text-tertiary mb-1">Total Invoiced</p>
+                        <p className="text-xl font-bold text-text-primary">{formatCurrency(salesStats?.total_invoiced ?? 0)}</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs text-text-tertiary mb-1">Outstanding</p>
+                        <p className="text-xl font-bold text-warning">{formatCurrency(outstandingFees)}</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs text-text-tertiary mb-1">Collection Rate</p>
+                        <p className="text-xl font-bold text-success">{Math.round(collectionRate)}%</p>
                       </div>
                     </div>
-                  ))}
-                </div>
+                    <div className="mt-4">
+                      <div className="flex justify-between text-xs text-text-tertiary mb-1">
+                        <span>Collection Progress</span>
+                        <span>{Math.round(collectionRate)}%</span>
+                      </div>
+                      <div className="w-full h-2 bg-border-light rounded-full overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.min(collectionRate, 100)}%` }}
+                          transition={{ duration: 1, ease: "easeOut" }}
+                          className="h-full rounded-full bg-success"
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
           </motion.div>
@@ -243,10 +404,10 @@ export default function BranchManagerDashboard() {
         <motion.div variants={itemVariants}>
           <Card className="h-fit">
             <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
+              <CardTitle>Recently Admitted</CardTitle>
             </CardHeader>
             <CardContent>
-              <RecentActivity activities={recentActivities} />
+              <RecentActivity activities={recentActivities} loading={loadingRecent} />
             </CardContent>
           </Card>
         </motion.div>

@@ -2,11 +2,15 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 const ROLE_DASHBOARD_MAP: Record<string, string> = {
+  "Director": "/dashboard/director",
+  "Management": "/dashboard/director",
   "Branch Manager": "/dashboard/branch-manager",
+  "Instructor": "/dashboard/instructor",
   "Batch Coordinator": "/dashboard/batch-coordinator",
   "Teacher": "/dashboard/teacher",
   "Accountant": "/dashboard/accountant",
   "Administrator": "/dashboard/admin",
+  "Parent": "/dashboard/parent",
 };
 
 const PUBLIC_PATHS = ["/auth/login", "/auth/forgot-password", "/api/", "/toggle"];
@@ -48,15 +52,33 @@ export function middleware(request: NextRequest) {
     );
     const roles: string[] = sessionData.roles || [];
 
-    // If visiting root, redirect to correct dashboard
-    if (pathname === "/" || pathname === "/dashboard") {
-      for (const [role, route] of Object.entries(ROLE_DASHBOARD_MAP)) {
-        if (roles.includes(role)) {
-          return NextResponse.redirect(new URL(route, request.url));
-        }
+    // Determine the user's primary role and correct dashboard route
+    let primaryRoute = "/dashboard/branch-manager"; // fallback
+    for (const [role, route] of Object.entries(ROLE_DASHBOARD_MAP)) {
+      if (roles.includes(role)) {
+        primaryRoute = route;
+        break;
       }
-      // Default fallback
-      return NextResponse.redirect(new URL("/dashboard/branch-manager", request.url));
+    }
+
+    // If visiting root or /dashboard, redirect to correct dashboard
+    if (pathname === "/" || pathname === "/dashboard") {
+      return NextResponse.redirect(new URL(primaryRoute, request.url));
+    }
+
+    // ── Role-based route protection ──
+    // Instructors can only access /dashboard/instructor/*
+    if (roles.includes("Instructor") && !roles.includes("Branch Manager") && !roles.includes("Administrator")) {
+      if (pathname.startsWith("/dashboard/") && !pathname.startsWith("/dashboard/instructor")) {
+        return NextResponse.redirect(new URL("/dashboard/instructor", request.url));
+      }
+    }
+
+    // Parents can only access /dashboard/parent/*
+    if (roles.includes("Parent") && !roles.includes("Branch Manager") && !roles.includes("Administrator")) {
+      if (pathname.startsWith("/dashboard/") && !pathname.startsWith("/dashboard/parent")) {
+        return NextResponse.redirect(new URL("/dashboard/parent", request.url));
+      }
     }
   } catch {
     // Invalid session — clear and redirect to login

@@ -1,12 +1,13 @@
 "use client";
 
 import React from "react";
-import { Menu, Bell, Search, LogOut, ChevronDown } from "lucide-react";
+import { Menu, Search, LogOut, ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useUIStore } from "@/lib/stores/uiStore";
 import { useFeatureFlagsStore } from "@/lib/stores/featureFlagsStore";
 import { getInitials } from "@/lib/utils/formatters";
+import { NotificationDropdown } from "@/components/layout/NotificationDropdown";
 
 export function Topbar() {
   const { user, role, logout } = useAuth();
@@ -54,10 +55,7 @@ export function Topbar() {
       <div className="flex items-center gap-2">
         {/* Notification Bell */}
         {flags.topbar_notifications && (
-          <button className="w-10 h-10 rounded-[10px] flex items-center justify-center text-text-secondary hover:bg-app-bg transition-colors relative">
-            <Bell className="h-5 w-5" />
-            <span className="absolute top-2 right-2 w-2 h-2 bg-error rounded-full" />
-          </button>
+          <NotificationDropdown />
         )}
 
         {/* User Menu */}

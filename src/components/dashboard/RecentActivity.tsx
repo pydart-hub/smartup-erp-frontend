@@ -6,7 +6,7 @@ import { formatDate } from "@/lib/utils/formatters";
 import { Badge } from "@/components/ui/Badge";
 import { UserPlus, Users, IndianRupee, ClipboardCheck } from "lucide-react";
 
-interface ActivityItem {
+export interface ActivityItem {
   id: string;
   type: "student_added" | "batch_created" | "fee_collected" | "attendance_marked";
   message: string;
@@ -77,5 +77,3 @@ export function RecentActivity({ activities, loading }: RecentActivityProps) {
     </div>
   );
 }
-
-export type { ActivityItem };

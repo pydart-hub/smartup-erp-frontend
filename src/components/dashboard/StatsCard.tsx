@@ -1,9 +1,10 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils/cn";
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, ArrowRight } from "lucide-react";
 
 interface StatsCardProps {
   title: string;
@@ -12,6 +13,8 @@ interface StatsCardProps {
   trend?: { value: number; label: string };
   color?: "primary" | "secondary" | "success" | "warning" | "error" | "info";
   loading?: boolean;
+  /** When provided, the card becomes a clickable link */
+  href?: string;
 }
 
 const colorMap = {
@@ -47,7 +50,7 @@ const colorMap = {
   },
 };
 
-export function StatsCard({ title, value, icon, trend, color = "primary", loading }: StatsCardProps) {
+export function StatsCard({ title, value, icon, trend, color = "primary", loading, href }: StatsCardProps) {
   const colors = colorMap[color];
 
   if (loading) {
@@ -64,43 +67,53 @@ export function StatsCard({ title, value, icon, trend, color = "primary", loadin
     );
   }
 
+  const card = (
+    <div className={cn(
+      "bg-surface rounded-[14px] border border-border-light shadow-card p-5 border-t-[3px] transition-shadow hover:shadow-card-hover",
+      href && "cursor-pointer group",
+      colors.border
+    )}>
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-sm font-medium text-text-secondary">{title}</p>
+          <p className="text-2xl font-bold text-text-primary mt-1">{value}</p>
+          {trend && (
+            <div className="flex items-center gap-1 mt-2">
+              {trend.value > 0 ? (
+                <TrendingUp className="h-3.5 w-3.5 text-success" />
+              ) : trend.value < 0 ? (
+                <TrendingDown className="h-3.5 w-3.5 text-error" />
+              ) : (
+                <Minus className="h-3.5 w-3.5 text-text-tertiary" />
+              )}
+              <span className={cn(
+                "text-xs font-medium",
+                trend.value > 0 ? "text-success" : trend.value < 0 ? "text-error" : "text-text-tertiary"
+              )}>
+                {trend.value > 0 && "+"}{trend.value}%
+              </span>
+              <span className="text-xs text-text-tertiary">{trend.label}</span>
+            </div>
+          )}
+        </div>
+        <div className="flex flex-col items-end gap-2">
+          <div className={cn("w-11 h-11 rounded-[10px] flex items-center justify-center", colors.bg)}>
+            <div className={colors.text}>{icon}</div>
+          </div>
+          {href && (
+            <ArrowRight className="h-3.5 w-3.5 text-text-tertiary opacity-0 group-hover:opacity-100 transition-opacity" />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <motion.div
       whileHover={{ y: -2 }}
       transition={{ type: "spring", stiffness: 300, damping: 20 }}
     >
-      <div className={cn(
-        "bg-surface rounded-[14px] border border-border-light shadow-card p-5 border-t-[3px] transition-shadow hover:shadow-card-hover",
-        colors.border
-      )}>
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-sm font-medium text-text-secondary">{title}</p>
-            <p className="text-2xl font-bold text-text-primary mt-1">{value}</p>
-            {trend && (
-              <div className="flex items-center gap-1 mt-2">
-                {trend.value > 0 ? (
-                  <TrendingUp className="h-3.5 w-3.5 text-success" />
-                ) : trend.value < 0 ? (
-                  <TrendingDown className="h-3.5 w-3.5 text-error" />
-                ) : (
-                  <Minus className="h-3.5 w-3.5 text-text-tertiary" />
-                )}
-                <span className={cn(
-                  "text-xs font-medium",
-                  trend.value > 0 ? "text-success" : trend.value < 0 ? "text-error" : "text-text-tertiary"
-                )}>
-                  {trend.value > 0 && "+"}{trend.value}%
-                </span>
-                <span className="text-xs text-text-tertiary">{trend.label}</span>
-              </div>
-            )}
-          </div>
-          <div className={cn("w-11 h-11 rounded-[10px] flex items-center justify-center", colors.bg)}>
-            <div className={colors.text}>{icon}</div>
-          </div>
-        </div>
-      </div>
+      {href ? <Link href={href}>{card}</Link> : card}
     </motion.div>
   );
 }

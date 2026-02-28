@@ -44,6 +44,7 @@ export interface BatchStudent {
   student: string;
   student_name?: string;
   batch_roll_number?: number;
+  group_roll_number?: number;
   active?: 0 | 1;
 }
 

@@ -18,6 +18,7 @@ import { getStudents } from "@/lib/api/students";
 import apiClient from "@/lib/api/client";
 import type { Student } from "@/lib/types/student";
 import { useFeatureFlagsStore } from "@/lib/stores/featureFlagsStore";
+import { useAuth } from "@/lib/hooks/useAuth";
 
 const PAGE_SIZE = 25;
 
@@ -67,6 +68,7 @@ async function fetchEnrollmentMap(
 
 export default function StudentsPage() {
   const { flags } = useFeatureFlagsStore();
+  const { defaultCompany } = useAuth();
   if (!flags.students) return null;
 
   const [searchInput, setSearchInput] = useState("");
@@ -83,9 +85,9 @@ export default function StudentsPage() {
   // Reset page when filter changes
   useEffect(() => { setPage(0); }, [statusFilter]);
 
-  // ── Query 1: students ──────────────────────────────────────
+  // ── Query 1: students (filtered by branch) ──────────────────
   const { data: studentsRes, isLoading, isError, error } = useQuery({
-    queryKey: ["students", search, statusFilter, page],
+    queryKey: ["students", search, statusFilter, page, defaultCompany],
     queryFn: () =>
       getStudents({
         search: search || undefined,
@@ -93,6 +95,7 @@ export default function StudentsPage() {
         limit_start: page * PAGE_SIZE,
         limit_page_length: PAGE_SIZE,
         order_by: "student_name asc",
+        ...(defaultCompany ? { custom_branch: defaultCompany } : {}),
       }),
     staleTime: 30_000,
   });

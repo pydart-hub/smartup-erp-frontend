@@ -6,6 +6,8 @@ import { Topbar } from "@/components/layout/Topbar";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import { useFeatureFlagsStore } from "@/lib/stores/featureFlagsStore";
+import { useAuthStore } from "@/lib/stores/authStore";
+import { PARENT_NAV, INSTRUCTOR_NAV, DIRECTOR_NAV } from "@/lib/utils/constants";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,12 +25,27 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const { flags } = useFeatureFlagsStore();
+  const { role, isInstructor: storeIsInstructor } = useAuthStore();
+  const isParent = role === "Parent";
+  const isInstructor = storeIsInstructor || role === "Instructor";
+  const isDirector = role === "Director" || role === "Management";
+
+  // Determine sidebar nav items based on role
+  const sidebarNav = isDirector
+    ? DIRECTOR_NAV
+    : isParent
+      ? PARENT_NAV
+      : isInstructor
+        ? INSTRUCTOR_NAV
+        : undefined;
 
   return (
     <QueryClientProvider client={queryClient}>
       <div className="flex h-screen overflow-hidden bg-app-bg">
-        {/* Sidebar */}
-        {flags.sidebar && <Sidebar />}
+        {/* Sidebar – use role-specific nav items */}
+        {(isDirector || isParent || isInstructor || flags.sidebar) && (
+          <Sidebar navItems={sidebarNav} />
+        )}
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col overflow-hidden">

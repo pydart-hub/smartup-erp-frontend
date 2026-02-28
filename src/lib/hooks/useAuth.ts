@@ -9,7 +9,13 @@ import type { LoginCredentials } from "@/lib/types/user";
 
 export function useAuth() {
   const router = useRouter();
-  const { user, isAuthenticated, isLoading, role, setUser, setLoading, clearAuth } = useAuthStore();
+  const {
+    user, isAuthenticated, isLoading, role,
+    allowedCompanies, defaultCompany,
+    isInstructor, instructorName, instructorDisplayName,
+    allowedBatches, defaultBatch,
+    setUser, setLoading, clearAuth,
+  } = useAuthStore();
 
   // Check session on mount
   useEffect(() => {
@@ -33,8 +39,9 @@ export function useAuth() {
   async function login(credentials: LoginCredentials) {
     const loggedUser = await apiLogin(credentials);
     setUser(loggedUser);
-    // Redirect to role-specific dashboard
-    const primaryRole = loggedUser.roles?.[0] || loggedUser.role_profile_name || "";
+    // Redirect to role-specific dashboard — pick the best app role, not just roles[0]
+    const APP_ROLES = ["Director", "Management", "Branch Manager", "Administrator", "Instructor", "Batch Coordinator", "Teacher", "Accountant", "Parent"];
+    const primaryRole = APP_ROLES.find((r) => loggedUser.roles?.includes(r)) || loggedUser.role_profile_name || "";
     const dashboardRoute = ROLE_DASHBOARD_MAP[primaryRole] || "/dashboard/branch-manager";
     router.push(dashboardRoute);
     return loggedUser;
@@ -55,6 +62,13 @@ export function useAuth() {
     isAuthenticated,
     isLoading,
     role,
+    allowedCompanies,
+    defaultCompany,
+    isInstructor,
+    instructorName,
+    instructorDisplayName,
+    allowedBatches,
+    defaultBatch,
     login,
     logout,
     getDashboardRoute,

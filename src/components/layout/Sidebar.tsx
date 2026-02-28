@@ -10,10 +10,17 @@ import {
   School,
   Users,
   ClipboardCheck,
+  ClipboardList,
+  ClipboardEdit,
+  CalendarDays,
   IndianRupee,
+  ShoppingCart,
+  FileText,
   ChevronLeft,
   ChevronRight,
   X,
+  UserCheck,
+  BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useUIStore } from "@/lib/stores/uiStore";
@@ -21,7 +28,7 @@ import { BRANCH_MANAGER_NAV, type NavItem } from "@/lib/utils/constants";
 import { useFeatureFlagsStore } from "@/lib/stores/featureFlagsStore";
 import type { FeatureFlags } from "@/lib/stores/featureFlagsStore";
 
-// Map nav href → feature flag key
+// Map nav href → feature flag key (only branch-manager items have feature flags)
 const NAV_FLAG_MAP: Record<string, keyof FeatureFlags> = {
   "/dashboard/branch-manager": "overview",
   "/dashboard/branch-manager/students": "students",
@@ -29,6 +36,8 @@ const NAV_FLAG_MAP: Record<string, keyof FeatureFlags> = {
   "/dashboard/branch-manager/batches": "batches",
   "/dashboard/branch-manager/attendance": "attendance",
   "/dashboard/branch-manager/fees": "fees",
+  "/dashboard/branch-manager/sales-orders": "sales_orders",
+  "/dashboard/branch-manager/invoices": "invoices",
 };
 
 const iconMap: Record<string, React.ElementType> = {
@@ -37,7 +46,14 @@ const iconMap: Record<string, React.ElementType> = {
   School,
   Users,
   ClipboardCheck,
+  ClipboardList,
   IndianRupee,
+  ShoppingCart,
+  FileText,
+  UserCheck,
+  BookOpen,
+  ClipboardEdit,
+  CalendarDays,
 };
 
 interface SidebarProps {
@@ -54,6 +70,9 @@ export function Sidebar({ navItems = BRANCH_MANAGER_NAV }: SidebarProps) {
     const flagKey = NAV_FLAG_MAP[item.href];
     return flagKey ? flags[flagKey] : true;
   });
+
+  // Logo link: first nav item's href (works for any role)
+  const homeHref = navItems[0]?.href ?? "/dashboard/branch-manager";
 
   return (
     <>
@@ -88,7 +107,7 @@ export function Sidebar({ navItems = BRANCH_MANAGER_NAV }: SidebarProps) {
           sidebarCollapsed ? "justify-center" : "justify-between"
         )}>
           {!sidebarCollapsed && (
-            <Link href="/dashboard/branch-manager" className="flex items-center gap-2.5">
+            <Link href={homeHref} className="flex items-center gap-2.5">
               <div className="w-9 h-9 bg-primary rounded-[10px] flex items-center justify-center">
                 <GraduationCap className="h-5 w-5 text-white" />
               </div>

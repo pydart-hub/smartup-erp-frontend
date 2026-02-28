@@ -27,12 +27,18 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
-    if (error.response?.status === 401 || error.response?.status === 403) {
-      // Session expired — redirect to login
-      if (typeof window !== "undefined") {
+    if (error.response?.status === 401) {
+      // Session truly expired or missing — redirect to login.
+      // Guard: only redirect if not already on the login page to avoid loops.
+      if (
+        typeof window !== "undefined" &&
+        !window.location.pathname.startsWith("/auth/login")
+      ) {
         window.location.href = "/auth/login?session=expired";
       }
     }
+    // 403 = authenticated but lacking permission for this resource.
+    // Don't redirect — let the calling page handle it (show error, toast, etc.).
     return Promise.reject(error);
   }
 );

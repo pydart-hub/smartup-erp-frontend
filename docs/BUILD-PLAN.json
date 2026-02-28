@@ -1,0 +1,1242 @@
+{
+  "_meta": {
+    "generated": "2026-02-24",
+    "project": "SmartUp ERP Frontend",
+    "backend": "Frappe Cloud (ERPNext 15.85 + Education 15.5.3)",
+    "backend_url": "https://smartup.m.frappe.cloud",
+    "framework": "Next.js 16.1.6 (App Router, TypeScript, Turbopack)",
+    "scope": "Phase 1 — Pending features to complete"
+  },
+
+  "frappe_instance_snapshot": {
+    "total_students": 2541,
+    "total_student_groups": 68,
+    "total_attendance_records": 189,
+    "total_sales_orders": 2483,
+    "total_payment_entries": 7352,
+    "total_fee_records": 0,
+    "total_fee_structures": 18,
+    "total_fee_categories": 23,
+    "total_fee_schedules": 0,
+    "academic_years": ["2025-2026", "2026-27"],
+    "companies": [
+      { "name": "Smart Up", "abbr": "SU" },
+      { "name": "Smart Up Chamber", "abbr": "SU CHM" },
+      { "name": "Smart Up Chullickal", "abbr": "SU CHL" },
+      { "name": "Smart Up Eraveli", "abbr": "SU ERV" },
+      { "name": "Smart Up Fortkochi", "abbr": "SU FKO" },
+      { "name": "Smart Up GCC", "abbr": "SU GCC" },
+      { "name": "Smart Up Kacheripady", "abbr": "SU KCH" },
+      { "name": "Smart Up MLA Road", "abbr": "SU MLA" },
+      { "name": "Smart Up Moolamkuzhi", "abbr": "SU MMK" },
+      { "name": "Smart Up Palluruthy", "abbr": "SU PLR" }
+    ],
+    "student_batch_names": [
+      "CHL-25", "THP-25", "CHM-25", "FKO-25", "MMK-25",
+      "PLR-25", "ERV-25", "KCH-25", "MLA-25", "VYT-25", "GCC-25"
+    ],
+    "programs": [
+      { "name": "5th Grade", "abbreviation": "5th" },
+      { "name": "6th Grade", "abbreviation": "6th" },
+      { "name": "7th Grade", "abbreviation": "7th" },
+      { "name": "8th Grade", "abbreviation": "8th" },
+      { "name": "8th Grade 1 to 1", "abbreviation": "8th 1-1" },
+      { "name": "9th Grade", "abbreviation": "9th" },
+      { "name": "9th Grade 1 to 1", "abbreviation": "9th 1-1" },
+      { "name": "10th Grade", "abbreviation": "10th" },
+      { "name": "10th Grade 1 to 1", "abbreviation": "10th 1-1" },
+      { "name": "11th Commerce", "abbreviation": "11co" },
+      { "name": "11th Commerce 1 to 1", "abbreviation": "11co 1-1" },
+      { "name": "11th Science", "abbreviation": "11sc" },
+      { "name": "11th Science 1 to 1", "abbreviation": "11sc 1-1" },
+      { "name": "12th Commerce", "abbreviation": "12co" },
+      { "name": "12th Commerce 1 to 1", "abbreviation": "12co 1-1" },
+      { "name": "12th Science", "abbreviation": "12sc" },
+      { "name": "12th Science 1 to 1", "abbreviation": "12sc 1-1" },
+      { "name": "12th Science 1 to M", "abbreviation": "12sc 1-M" }
+    ],
+    "fee_structures": [
+      { "name": "FST-5th Grade-2025-2026", "program": "5th Grade", "amount": 9100 },
+      { "name": "FST-6th Grade-2025-2026", "program": "6th Grade", "amount": 10300 },
+      { "name": "FST-7th Grade-2025-2026", "program": "7th Grade", "amount": 11500 },
+      { "name": "FST-8th Grade-2025-2026", "program": "8th Grade", "amount": 12700 },
+      { "name": "FST-8th Grade 1 to 1-2025-2026", "program": "8th Grade 1 to 1", "amount": 120000 },
+      { "name": "FST-9th Grade-2025-2026", "program": "9th Grade", "amount": 13900 },
+      { "name": "FST-9th Grade 1 to 1-2025-2026", "program": "9th Grade 1 to 1", "amount": 127500 },
+      { "name": "FST-10th Grade-2025-2026", "program": "10th Grade", "amount": 15100 },
+      { "name": "FST-10th Grade 1 to 1-2025-2026", "program": "10th Grade 1 to 1", "amount": 135000 },
+      { "name": "FST-11th Commerce-2025-2026", "program": "11th Commerce", "amount": 27600 },
+      { "name": "FST-11th Commerce 1 to 1-2025-2026", "program": "11th Commerce 1 to 1", "amount": 150000 },
+      { "name": "FST-11th Science-2025-2026", "program": "11th Science", "amount": 27600 },
+      { "name": "FST-11th Science 1 to 1-2025-2026", "program": "11th Science 1 to 1", "amount": 150000 },
+      { "name": "FST-12th Commerce-2025-2026", "program": "12th Commerce", "amount": 30800 },
+      { "name": "FST-12th Commerce 1 to 1-2025-2026", "program": "12th Commerce 1 to 1", "amount": 150000 },
+      { "name": "FST-12th Science-2025-2026", "program": "12th Science", "amount": 30800 },
+      { "name": "FST-12th Science 1 to 1-2025-2026", "program": "12th Science 1 to 1", "amount": 150000 },
+      { "name": "FST-12th Science 1 to M-2025-2026", "program": "12th Science 1 to M", "amount": 120000 }
+    ]
+  },
+
+  "completed_modules": {
+    "authentication": {
+      "status": "DONE",
+      "pages": ["/auth/login", "/auth/forgot-password"],
+      "api": "src/lib/api/auth.ts",
+      "notes": "Cookie-based auth, httpOnly smartup_session, proxy auto-injects token"
+    },
+    "student_admission": {
+      "status": "DONE",
+      "pages": [
+        "/dashboard/branch-manager/students (list)",
+        "/dashboard/branch-manager/students/new (admission wizard)",
+        "/dashboard/branch-manager/students/[id] (view)",
+        "/dashboard/branch-manager/students/[id]/edit"
+      ],
+      "api": ["src/lib/api/students.ts", "src/lib/api/enrollment.ts"],
+      "notes": "Full CRUD. Admission creates Guardian → Student → Program Enrollment → Student Group membership → Auto Sales Order. Blood group is enum dropdown."
+    },
+    "sales_module": {
+      "status": "DONE",
+      "pages": [
+        "/dashboard/branch-manager/sales-orders (list)",
+        "/dashboard/branch-manager/sales-orders/[id] (detail)",
+        "/dashboard/branch-manager/sales-orders/new (create)",
+        "/dashboard/branch-manager/invoices (list)",
+        "/dashboard/branch-manager/invoices/[id] (detail)",
+        "/dashboard/branch-manager/invoices/new (create)"
+      ],
+      "api": "src/lib/api/sales.ts",
+      "notes": "Full CRUD + submit/cancel. Auto-SO on admission. Rate auto-fills from Item Price table."
+    },
+    "proxy": {
+      "status": "DONE",
+      "file": "src/app/api/proxy/[...path]/route.ts",
+      "notes": "Native fetch (not axios) to avoid Expect header. Debug logging for non-200."
+    }
+  },
+
+  "pending_modules": [
+    {
+      "id": "M1",
+      "module": "Classes (Programs) — Wire to Real API",
+      "priority": "HIGH",
+      "build_order": 1,
+      "description": "Replace mock data in classes page with live Frappe Program data. The API layer (batches.ts → getClasses, createClass) already exists.",
+      "current_state": {
+        "page": "src/app/dashboard/branch-manager/classes/page.tsx",
+        "status": "MOCK — hardcoded 5 classes with fake course/student counts",
+        "api_ready": true,
+        "api_file": "src/lib/api/batches.ts",
+        "api_functions": ["getClasses()", "createClass()"],
+        "types_file": "src/lib/types/batch.ts",
+        "types": ["ClassLevel", "CourseLinkItem"],
+        "validator_file": "src/lib/validators/batch.ts",
+        "validator": "classSchema"
+      },
+      "frappe_doctype": {
+        "name": "Program",
+        "api_endpoint": "/api/resource/Program",
+        "key_fields": {
+          "name": { "type": "Data", "required": true, "description": "Program doc ID, e.g. '10th Grade'" },
+          "program_name": { "type": "Data", "required": false, "description": "Display name (often same as name)" },
+          "program_abbreviation": { "type": "Data", "required": false, "description": "Short code e.g. '10th', '11co 1-1'" },
+          "department": { "type": "Link → Department", "required": false }
+        },
+        "child_tables": {
+          "courses": {
+            "doctype": "Program Course",
+            "parentfield": "courses",
+            "fields": ["course (Link → Course)", "course_name (Data)", "required (Check 0/1)"]
+          }
+        },
+        "live_data_count": 18,
+        "sample_records": [
+          "5th Grade", "6th Grade", "7th Grade", "8th Grade", "9th Grade",
+          "10th Grade", "10th Grade 1 to 1", "11th Commerce", "11th Science",
+          "12th Commerce", "12th Science", "12th Science 1 to M"
+        ]
+      },
+      "steps": [
+        {
+          "step": 1,
+          "action": "Wire classes page to useQuery",
+          "file": "src/app/dashboard/branch-manager/classes/page.tsx",
+          "details": [
+            "Import { useQuery } from '@tanstack/react-query'",
+            "Import { getClasses } from '@/lib/api/batches'",
+            "Remove mockClasses array",
+            "Add: const { data, isLoading, error } = useQuery({ queryKey: ['classes'], queryFn: () => getClasses({ limit_page_length: 50 }) })",
+            "Extract classes from data?.data ?? []",
+            "Add loading skeleton (use Skeleton component)",
+            "Add error state display"
+          ]
+        },
+        {
+          "step": 2,
+          "action": "Compute batch count and student count per program from Student Groups",
+          "file": "src/app/dashboard/branch-manager/classes/page.tsx",
+          "details": [
+            "Import { getBatches } from '@/lib/api/batches'",
+            "Add second query: useQuery({ queryKey: ['student-groups'], queryFn: () => getBatches({ limit_page_length: 200 }) })",
+            "For each Program, count Student Groups where program === cls.name (batch count)",
+            "Sum students array lengths from those groups for student count",
+            "OR use /api/method/frappe.client.get_count with filters for simpler approach"
+          ]
+        },
+        {
+          "step": 3,
+          "action": "Add 'Create Class' modal / page (optional — classes are usually managed in ERPNext)",
+          "file": "src/app/dashboard/branch-manager/classes/page.tsx",
+          "details": [
+            "Programs are typically set up once in ERPNext, not frequently created",
+            "Consider making this read-only for now (remove the Add Class button)",
+            "If needed: dialog with program_name + department fields, call createClass()"
+          ]
+        }
+      ],
+      "frappe_api_calls": [
+        {
+          "label": "List all Programs",
+          "method": "GET",
+          "endpoint": "/api/resource/Program",
+          "params": {
+            "fields": "[\"name\",\"program_name\",\"program_abbreviation\",\"department\"]",
+            "limit_page_length": "50",
+            "order_by": "name"
+          },
+          "response_shape": "{ data: ClassLevel[] }"
+        },
+        {
+          "label": "Get student count per program",
+          "method": "GET",
+          "endpoint": "/api/method/frappe.client.get_count",
+          "params": {
+            "doctype": "Student",
+            "filters": "[[\"custom_branch\",\"=\",\"<branch>\"]]"
+          },
+          "notes": "Use per-program filter or aggregate from Student Group data"
+        }
+      ]
+    },
+
+    {
+      "id": "M2",
+      "module": "Batches (Student Groups) — Wire to Real API + Create Batch Page",
+      "priority": "HIGH",
+      "build_order": 2,
+      "description": "Replace mock data with live Student Group data. Build the missing /batches/new page. API layer is fully ready.",
+      "current_state": {
+        "page": "src/app/dashboard/branch-manager/batches/page.tsx",
+        "status": "MOCK — 10 hardcoded batches with fake instructor names",
+        "dead_links": ["/dashboard/branch-manager/batches/new"],
+        "api_ready": true,
+        "api_file": "src/lib/api/batches.ts",
+        "api_functions": ["getBatches()", "getBatch()", "createBatch()", "updateBatch()", "autoAssignToBatch()", "getSchedules()"],
+        "types_file": "src/lib/types/batch.ts",
+        "types": ["Batch", "BatchFormData", "BatchStudent", "BatchInstructor", "CourseSchedule"],
+        "validator_file": "src/lib/validators/batch.ts",
+        "validator": "batchSchema"
+      },
+      "frappe_doctype": {
+        "name": "Student Group",
+        "api_endpoint": "/api/resource/Student Group",
+        "key_fields": {
+          "name": { "type": "Data", "required": true, "description": "Auto-named e.g. 'CHL-10th-25-1'" },
+          "student_group_name": { "type": "Data", "required": true, "description": "Display name (same as name)" },
+          "group_based_on": { "type": "Select", "required": true, "options": ["Batch", "Course", "Activity"], "note": "Always 'Batch' for SmartUp" },
+          "academic_year": { "type": "Link → Academic Year", "required": true, "sample": "2025-2026" },
+          "program": { "type": "Link → Program", "required": false, "description": "E.g. '10th Grade'" },
+          "batch": { "type": "Link → Student Batch Name", "required": false, "description": "E.g. 'CHL-25'" },
+          "max_strength": { "type": "Int", "required": false, "default": 0 },
+          "custom_branch": { "type": "Link → Company", "required": false, "description": "Branch company e.g. 'Smart Up Chullickal'" },
+          "disabled": { "type": "Check", "default": 0 }
+        },
+        "child_tables": {
+          "students": {
+            "doctype": "Student Group Student",
+            "parentfield": "students",
+            "fields": [
+              "student (Link → Student, required)",
+              "student_name (Data, read_only)",
+              "group_roll_number (Int)",
+              "active (Check, default 1)"
+            ]
+          },
+          "instructors": {
+            "doctype": "Student Group Instructor",
+            "parentfield": "instructors",
+            "fields": [
+              "instructor (Link → Instructor)",
+              "instructor_name (Data, read_only)"
+            ]
+          }
+        },
+        "live_data_count": 68,
+        "naming_convention": "{BRANCH_ABBR}-{PROG_ABBR}-{YY}-{SEQ} e.g. CHL-10th-25-1",
+        "sample_records": [
+          "CHL-10th-25-1", "CHL-11co-25-1", "CHL-12sc-25-1",
+          "CHM-10th-25-1", "GCC-25 (student-named groups for 1-to-1)"
+        ]
+      },
+      "steps": [
+        {
+          "step": 1,
+          "action": "Wire batches list page to useQuery",
+          "file": "src/app/dashboard/branch-manager/batches/page.tsx",
+          "details": [
+            "Import { useQuery } from '@tanstack/react-query'",
+            "Import { getBatches } from '@/lib/api/batches'",
+            "Import { useAuth } from '@/lib/hooks/useAuth' (to get user's branch)",
+            "Remove mockBatches array",
+            "Add: const { data, isLoading } = useQuery({ queryKey: ['batches', branch], queryFn: () => getBatches({ custom_branch: branch, limit_page_length: 200 }) })",
+            "Group results by program field instead of hardcoded 'program'",
+            "Show actual student count from students child table length (need to fetch individual batch for counts, or use count API)",
+            "Add loading skeleton states",
+            "instructor data may be empty — show 'No instructor' placeholder"
+          ]
+        },
+        {
+          "step": 2,
+          "action": "Create /batches/new page",
+          "file": "src/app/dashboard/branch-manager/batches/new/page.tsx",
+          "details": [
+            "Form fields: student_group_name (auto-generate from branch+program+year pattern), program (select from programs), batch (select from Student Batch Names), academic_year (select), max_strength (number input, default 60), custom_branch (auto-filled from logged-in user's branch)",
+            "Use React Hook Form + zodResolver(batchSchema)",
+            "Auto-generate name: {BRANCH_ABBR}-{PROG_ABBR}-{YY}-{NEXT_SEQ}",
+            "Call createBatch() on submit",
+            "Redirect to batch list on success",
+            "Load Programs via getPrograms() from enrollment.ts",
+            "Load Student Batch Names via getStudentBatchNames() from enrollment.ts",
+            "Load Academic Years via getAcademicYears() from enrollment.ts"
+          ]
+        },
+        {
+          "step": 3,
+          "action": "Create /batches/[id] detail page (optional)",
+          "file": "src/app/dashboard/branch-manager/batches/[id]/page.tsx",
+          "details": [
+            "Show batch info: name, program, branch, academic year, strength",
+            "List all students in the batch (from students child table)",
+            "Enable removing a student from the batch",
+            "Show instructors if any",
+            "Link to each student's profile page"
+          ]
+        }
+      ],
+      "frappe_api_calls": [
+        {
+          "label": "List batches for a branch",
+          "method": "GET",
+          "endpoint": "/api/resource/Student Group",
+          "params": {
+            "filters": "[[\"group_based_on\",\"=\",\"Batch\"],[\"custom_branch\",\"=\",\"Smart Up Chullickal\"]]",
+            "fields": "[\"name\",\"student_group_name\",\"academic_year\",\"program\",\"batch\",\"max_strength\",\"custom_branch\",\"disabled\"]",
+            "limit_page_length": "200"
+          }
+        },
+        {
+          "label": "Get single batch with students",
+          "method": "GET",
+          "endpoint": "/api/resource/Student Group/{name}",
+          "response_includes": "students (child table), instructors (child table)"
+        },
+        {
+          "label": "Create batch",
+          "method": "POST",
+          "endpoint": "/api/resource/Student Group",
+          "payload": {
+            "student_group_name": "CHL-10th-25-2",
+            "group_based_on": "Batch",
+            "academic_year": "2025-2026",
+            "program": "10th Grade",
+            "batch": "CHL-25",
+            "max_strength": 60,
+            "custom_branch": "Smart Up Chullickal"
+          }
+        },
+        {
+          "label": "Student Batch Names (for dropdown)",
+          "method": "GET",
+          "endpoint": "/api/resource/Student Batch Name",
+          "params": { "limit_page_length": "100" }
+        },
+        {
+          "label": "Programs (for dropdown)",
+          "method": "GET",
+          "endpoint": "/api/resource/Program",
+          "params": { "fields": "[\"name\",\"program_abbreviation\"]", "limit_page_length": "50" }
+        },
+        {
+          "label": "Academic Years (for dropdown)",
+          "method": "GET",
+          "endpoint": "/api/resource/Academic Year",
+          "params": { "limit_page_length": "20", "order_by": "year_start_date desc" }
+        }
+      ]
+    },
+
+    {
+      "id": "M3",
+      "module": "Attendance — Wire to Real API + Batch Selector + Report View",
+      "priority": "HIGH",
+      "build_order": 3,
+      "description": "Replace mock student list with real batch students. Wire save to Frappe bulk attendance API. Add attendance report view.",
+      "current_state": {
+        "page": "src/app/dashboard/branch-manager/attendance/page.tsx",
+        "status": "MOCK — 10 fake students, save does nothing (toast only)",
+        "api_ready": true,
+        "api_file": "src/lib/api/attendance.ts",
+        "api_functions": [
+          "getAttendance(date, params)",
+          "markAttendance(record)",
+          "updateAttendance(id, updates)",
+          "bulkMarkAttendance(payload)",
+          "getAttendanceReport(params)",
+          "getTodayAbsenteeCount(studentGroup)"
+        ],
+        "types_file": "src/lib/types/attendance.ts",
+        "types": ["AttendanceRecord", "AttendanceSummary", "BulkAttendancePayload", "AttendanceReportParams"]
+      },
+      "frappe_doctype": {
+        "name": "Student Attendance",
+        "api_endpoint": "/api/resource/Student Attendance",
+        "naming_series": "EDU-ATT-.YYYY.-",
+        "key_fields": {
+          "name": { "type": "Data", "auto": true, "sample": "EDU-ATT-2026-00001" },
+          "student": { "type": "Link → Student", "required": true },
+          "student_name": { "type": "Data", "read_only": true },
+          "student_mobile_number": { "type": "Data", "read_only": true },
+          "date": { "type": "Date", "required": true },
+          "status": { "type": "Select", "required": true, "options": ["Present", "Absent", "Late"] },
+          "student_group": { "type": "Link → Student Group" },
+          "course_schedule": { "type": "Link → Course Schedule" },
+          "custom_branch": { "type": "Link → Company" },
+          "link_nvfk": { "type": "Link → Program", "description": "Auto-linked program" }
+        },
+        "child_tables": "None",
+        "live_data_count": 189,
+        "workflow_notes": "Student Attendance is NOT submittable in Frappe Education. It saves directly (docstatus stays 0).",
+        "bulk_api": {
+          "method": "POST",
+          "endpoint": "/api/method/education.api.mark_attendance",
+          "payload": {
+            "student_group": "CHL-10th-25-1",
+            "date": "2026-02-24",
+            "students_present": ["STU-SU CHL-25-001", "STU-SU CHL-25-002"],
+            "students_absent": ["STU-SU CHL-25-003"]
+          },
+          "notes": "This whitelisted method creates/updates attendance records for the entire group at once"
+        }
+      },
+      "steps": [
+        {
+          "step": 1,
+          "action": "Replace static batch dropdown with live Student Groups",
+          "file": "src/app/dashboard/branch-manager/attendance/page.tsx",
+          "details": [
+            "Import { useQuery } from '@tanstack/react-query'",
+            "Import { getBatches } from '@/lib/api/batches'",
+            "Import { getBatch } from '@/lib/api/batches'",
+            "Query all batches for the user's branch: useQuery({ queryKey: ['batches-for-attendance', branch], queryFn: () => getBatches({ custom_branch: branch }) })",
+            "Populate <select> with real batch names",
+            "Default to first batch in list"
+          ]
+        },
+        {
+          "step": 2,
+          "action": "Load students from selected batch",
+          "file": "src/app/dashboard/branch-manager/attendance/page.tsx",
+          "details": [
+            "When selectedBatch changes, fetch the batch detail: useQuery({ queryKey: ['batch-detail', selectedBatch], queryFn: () => getBatch(selectedBatch), enabled: !!selectedBatch })",
+            "Extract students from response.data.students child table",
+            "Initialize attendance state from these students",
+            "Remove mockStudentsInBatch array entirely"
+          ]
+        },
+        {
+          "step": 3,
+          "action": "Load existing attendance for selected date",
+          "file": "src/app/dashboard/branch-manager/attendance/page.tsx",
+          "details": [
+            "Import { getAttendance } from '@/lib/api/attendance'",
+            "When date or batch changes, query: useQuery({ queryKey: ['attendance', selectedBatch, selectedDate], queryFn: () => getAttendance(selectedDate, { student_group: selectedBatch }) })",
+            "Pre-fill attendance state with existing records (so edits show prior data)",
+            "If no existing records, default all to 'Present'"
+          ]
+        },
+        {
+          "step": 4,
+          "action": "Wire save button to Frappe bulk attendance API",
+          "file": "src/app/dashboard/branch-manager/attendance/page.tsx",
+          "details": [
+            "Import { bulkMarkAttendance } from '@/lib/api/attendance'",
+            "Import { useMutation, useQueryClient } from '@tanstack/react-query'",
+            "Create mutation: useMutation({ mutationFn: bulkMarkAttendance, onSuccess: () => { queryClient.invalidateQueries(['attendance']); toast.success(...) } })",
+            "Build payload from attendance state:",
+            "  students_present = IDs where status === 'Present'",
+            "  students_absent = IDs where status === 'Absent'",
+            "  students_late = IDs where status === 'Late' (optional, may need to mark absent then update)",
+            "Note: Frappe's bulk API may not support 'Late' — check response. If not, mark individually via markAttendance()."
+          ]
+        },
+        {
+          "step": 5,
+          "action": "Add Attendance Report tab/view",
+          "file": "src/app/dashboard/branch-manager/attendance/page.tsx (or new report page)",
+          "details": [
+            "Add a tab/toggle: 'Mark Attendance' vs 'View Report'",
+            "Report view: date range picker (from_date, to_date), optional batch filter",
+            "Call getAttendanceReport({ student_group, from_date, to_date })",
+            "Display table: Student Name | Total Days | Present | Absent | Late | Attendance %",
+            "Color-code: green ≥90%, yellow 75-90%, red <75%"
+          ]
+        }
+      ],
+      "frappe_api_calls": [
+        {
+          "label": "List batches for dropdown",
+          "method": "GET",
+          "endpoint": "/api/resource/Student Group",
+          "params": {
+            "filters": "[[\"group_based_on\",\"=\",\"Batch\"],[\"custom_branch\",\"=\",\"Smart Up Chullickal\"]]",
+            "fields": "[\"name\",\"student_group_name\",\"program\"]",
+            "limit_page_length": "200"
+          }
+        },
+        {
+          "label": "Get batch students",
+          "method": "GET",
+          "endpoint": "/api/resource/Student Group/{name}",
+          "response_includes": "students child table with student ID, student_name, active flag"
+        },
+        {
+          "label": "Get existing attendance for date",
+          "method": "GET",
+          "endpoint": "/api/resource/Student Attendance",
+          "params": {
+            "filters": "[[\"date\",\"=\",\"2026-02-24\"],[\"student_group\",\"=\",\"CHL-10th-25-1\"]]",
+            "fields": "[\"name\",\"student\",\"student_name\",\"date\",\"status\",\"student_group\"]",
+            "limit_page_length": "0"
+          }
+        },
+        {
+          "label": "Bulk mark attendance",
+          "method": "POST",
+          "endpoint": "/api/method/education.api.mark_attendance",
+          "payload": {
+            "student_group": "CHL-10th-25-1",
+            "date": "2026-02-24",
+            "students_present": ["STU-SU CHL-25-001"],
+            "students_absent": ["STU-SU CHL-25-003"]
+          }
+        },
+        {
+          "label": "Attendance report",
+          "method": "GET",
+          "endpoint": "/api/method/education.api.get_attendance_report",
+          "params": {
+            "student_group": "CHL-10th-25-1",
+            "from_date": "2026-01-01",
+            "to_date": "2026-02-24"
+          },
+          "notes": "Returns summary per student: total_days, present, absent, percentage"
+        },
+        {
+          "label": "Today's absentee count (for dashboard)",
+          "method": "GET",
+          "endpoint": "/api/method/frappe.client.get_count",
+          "params": {
+            "doctype": "Student Attendance",
+            "filters": "[[\"date\",\"=\",\"2026-02-24\"],[\"status\",\"=\",\"Absent\"]]"
+          }
+        }
+      ]
+    },
+
+    {
+      "id": "M4",
+      "module": "Fee Management — Wire Dashboard + Build Structure & Payments Pages",
+      "priority": "HIGH",
+      "build_order": 4,
+      "description": "Wire fee dashboard to real summary API. Build missing /fees/structure and /fees/payments pages. API layer is fully ready.",
+      "current_state": {
+        "page": "src/app/dashboard/branch-manager/fees/page.tsx",
+        "status": "MOCK — hardcoded stats (₹28.5L total, ₹4.5L pending), fake student list",
+        "dead_links": [
+          "/dashboard/branch-manager/fees/structure",
+          "/dashboard/branch-manager/fees/payments"
+        ],
+        "api_ready": true,
+        "api_file": "src/lib/api/fees.ts",
+        "api_functions": [
+          "getFeeCategories()",
+          "createFeeCategory()",
+          "getFeeStructures(params)",
+          "getFeeStructure(name)",
+          "createFeeStructure(structure)",
+          "getFeeRecords(params)",
+          "createFeeRecord(fee)",
+          "getFeeRecord(id)",
+          "createPayment(payment)",
+          "getPayments(params)",
+          "getFeeReportSummary()",
+          "getStudentFeeReport(studentId)"
+        ],
+        "types_file": "src/lib/types/fee.ts",
+        "types": [
+          "FeeCategory", "FeeComponent", "FeeStructure", "FeeRecord", "FeeRecordFormData",
+          "PaymentEntry", "PaymentFormData", "FeeReportSummary", "StudentFeeReport"
+        ],
+        "validator_file": "src/lib/validators/fee.ts",
+        "validators": ["feeStructureSchema", "paymentSchema"]
+      },
+      "frappe_doctypes": {
+        "fee_structure": {
+          "name": "Fee Structure",
+          "api_endpoint": "/api/resource/Fee Structure",
+          "naming_pattern": "FST-{program}-{academic_year}",
+          "key_fields": {
+            "name": { "type": "Data", "auto": true },
+            "program": { "type": "Link → Program", "required": true },
+            "academic_year": { "type": "Link → Academic Year", "required": true },
+            "academic_term": { "type": "Link → Academic Term" },
+            "total_amount": { "type": "Currency", "read_only": true, "computed": "sum(components.amount)" },
+            "receivable_account": { "type": "Link → Account", "required": true, "sample": "Debtors - SU" },
+            "company": { "type": "Link → Company" },
+            "docstatus": { "type": "Int", "description": "0=Draft, 1=Submitted. Must be submitted to use." }
+          },
+          "child_tables": {
+            "components": {
+              "doctype": "Fee Component",
+              "parentfield": "components",
+              "fields": [
+                "fees_category (Link → Fee Category, required)",
+                "description (Data)",
+                "amount (Currency, required)",
+                "item (Link → Item)",
+                "discount (Percent, default 0)",
+                "total (Currency, computed)"
+              ]
+            }
+          },
+          "live_data_count": 18,
+          "all_submitted": true
+        },
+        "fees_record": {
+          "name": "Fees",
+          "api_endpoint": "/api/resource/Fees",
+          "naming_series": "EDU-FEE-.YYYY.-",
+          "key_fields": {
+            "student": { "type": "Link → Student", "required": true },
+            "program_enrollment": { "type": "Link → Program Enrollment", "required": true, "note": "Must be submitted (docstatus=1)" },
+            "fee_structure": { "type": "Link → Fee Structure", "required": true },
+            "company": { "type": "Link → Company", "required": true },
+            "posting_date": { "type": "Date", "required": true },
+            "due_date": { "type": "Date", "required": true },
+            "grand_total": { "type": "Currency", "read_only": true },
+            "outstanding_amount": { "type": "Currency", "read_only": true },
+            "program": { "type": "Link → Program" },
+            "academic_year": { "type": "Link → Academic Year" },
+            "docstatus": { "type": "Int" }
+          },
+          "child_tables": {
+            "components": {
+              "doctype": "Fee Component",
+              "parentfield": "components",
+              "note": "Auto-copied from Fee Structure on save"
+            }
+          },
+          "live_data_count": 0,
+          "notes": "No fee records exist yet — they need to be created per student using Fee Structure"
+        },
+        "fee_category": {
+          "name": "Fee Category",
+          "api_endpoint": "/api/resource/Fee Category",
+          "key_fields": {
+            "name": { "type": "Data", "required": true, "description": "Category name e.g. '10th Tuition Fee'" },
+            "description": { "type": "Text" }
+          },
+          "live_data_count": 23,
+          "sample_records": ["5th Tuition Fee", "10th Tuition Fee", "11co 1 to 1 Tuition Fee", "8th 1 to 1 Tuition Fee"]
+        },
+        "payment_entry": {
+          "name": "Payment Entry",
+          "api_endpoint": "/api/resource/Payment Entry",
+          "key_fields": {
+            "payment_type": { "type": "Select", "options": ["Pay", "Receive", "Internal Transfer"], "for_fees": "Receive" },
+            "party_type": { "type": "Link", "for_fees": "Student" },
+            "party": { "type": "Dynamic Link", "description": "Student ID" },
+            "paid_amount": { "type": "Currency", "required": true },
+            "mode_of_payment": { "type": "Link → Mode of Payment", "required": true },
+            "posting_date": { "type": "Date" },
+            "reference_no": { "type": "Data" },
+            "remarks": { "type": "Text" }
+          },
+          "live_data_count": 7352,
+          "notes": "Payment Entry is a core ERPNext doctype (not Education module). Requires proper accounting setup. The party_type for fee collection should be 'Student' or 'Customer'."
+        }
+      },
+      "steps": [
+        {
+          "step": 1,
+          "action": "Wire fee dashboard stats to real API",
+          "file": "src/app/dashboard/branch-manager/fees/page.tsx",
+          "details": [
+            "Import { useQuery } from '@tanstack/react-query'",
+            "Import { getFeeReportSummary } from '@/lib/api/fees'",
+            "Remove hardcoded feeStats object",
+            "Add: const { data: summary, isLoading } = useQuery({ queryKey: ['fee-summary'], queryFn: getFeeReportSummary })",
+            "Wire stats cards to summary.total_fees, summary.total_collected, summary.total_pending, summary.collection_rate",
+            "Note: Since total fee records = 0, stats will show zeros until fee records are created"
+          ]
+        },
+        {
+          "step": 2,
+          "action": "Wire pending fees list to real fee records",
+          "file": "src/app/dashboard/branch-manager/fees/page.tsx",
+          "details": [
+            "Import { getFeeRecords } from '@/lib/api/fees'",
+            "Query pending: useQuery({ queryKey: ['pending-fees'], queryFn: () => getFeeRecords({ pending_only: true, limit_page_length: 20, order_by: 'due_date asc' }) })",
+            "Remove hardcoded pendingFees array",
+            "Map results to the existing table format"
+          ]
+        },
+        {
+          "step": 3,
+          "action": "Wire recent payments to real API",
+          "file": "src/app/dashboard/branch-manager/fees/page.tsx",
+          "details": [
+            "Import { getPayments } from '@/lib/api/fees'",
+            "Query: useQuery({ queryKey: ['recent-payments'], queryFn: () => getPayments({ limit_page_length: 10 }) })",
+            "Remove hardcoded recentPayments array"
+          ]
+        },
+        {
+          "step": 4,
+          "action": "Build /fees/structure page — list & create fee structures",
+          "file": "src/app/dashboard/branch-manager/fees/structure/page.tsx",
+          "details": [
+            "LIST VIEW:",
+            "  Query: getFeeStructures() — shows all 18 existing structures",
+            "  Display: table with program, academic year, total amount, status (submitted/draft)",
+            "  Each row links to detail view or is expandable to show components",
+            "CREATE VIEW (dialog or separate section):",
+            "  Form: program (select), academic_year (select), receivable_account (text or select), company (select)",
+            "  Components: dynamic list of { fees_category (select from Fee Categories), amount (number) }",
+            "  Use feeStructureSchema validator",
+            "  Call createFeeStructure() on submit",
+            "  After create, need to submit: PUT /api/resource/Fee Structure/{name} { docstatus: 1 }",
+            "NOTE: Fee Structures are already created for all 18 programs — this page mostly displays existing ones"
+          ]
+        },
+        {
+          "step": 5,
+          "action": "Build /fees/payments page — record fee payments",
+          "file": "src/app/dashboard/branch-manager/fees/payments/page.tsx",
+          "details": [
+            "SEARCH/SELECT: Student search autocomplete (use searchStudents from students.ts)",
+            "Once student selected, show their fee records (getFeeRecords({ student }))",
+            "FEE RECORD CREATION: If no fee record exists for the student, offer to create one:",
+            "  Auto-fill: student, program_enrollment (from latest enrollment), fee_structure (based on program), company (branch), posting_date (today), due_date",
+            "  Call createFeeRecord()",
+            "PAYMENT: Select fee record, enter amount, mode of payment, reference number",
+            "  Call createPayment()",
+            "  Use paymentSchema validator",
+            "PAYMENT MODES: Cash, Bank Transfer, UPI, Cheque, Card (from PAYMENT_MODES constant)",
+            "PAYMENT HISTORY: Show recent payments table at bottom"
+          ]
+        },
+        {
+          "step": 6,
+          "action": "Generate fee records in bulk (optional utility)",
+          "details": [
+            "Since 0 fee records exist but 18 fee structures are defined,",
+            "consider a utility to batch-create fee records for all enrolled students",
+            "For each student with a submitted Program Enrollment:",
+            "  Look up the Fee Structure matching their program + academic year",
+            "  Create a Fees record: { student, program_enrollment, fee_structure, company, posting_date, due_date }",
+            "This is typically done via Frappe's Fee Schedule mechanism (but none exist yet)"
+          ]
+        }
+      ],
+      "frappe_api_calls": [
+        {
+          "label": "Fee summary (dashboard stats)",
+          "method": "GET",
+          "endpoint": "/api/method/frappe.client.get_list",
+          "params": {
+            "doctype": "Fees",
+            "fields": "[\"sum(grand_total) as total\"]",
+            "limit_page_length": "1"
+          }
+        },
+        {
+          "label": "List fee structures",
+          "method": "GET",
+          "endpoint": "/api/resource/Fee Structure",
+          "params": {
+            "fields": "[\"name\",\"program\",\"academic_year\",\"total_amount\",\"company\",\"docstatus\"]",
+            "limit_page_length": "50"
+          }
+        },
+        {
+          "label": "Get fee structure detail",
+          "method": "GET",
+          "endpoint": "/api/resource/Fee Structure/{name}",
+          "response_includes": "components child table with fees_category, amount, item, discount, total"
+        },
+        {
+          "label": "Create fee structure",
+          "method": "POST",
+          "endpoint": "/api/resource/Fee Structure",
+          "payload": {
+            "program": "10th Grade",
+            "academic_year": "2025-2026",
+            "receivable_account": "Debtors - SU",
+            "company": "Smart Up Chullickal",
+            "components": [
+              { "doctype": "Fee Component", "fees_category": "10th Tuition Fee", "amount": 15100 }
+            ]
+          },
+          "post_action": "Submit: PUT /api/resource/Fee Structure/{name} { docstatus: 1 }"
+        },
+        {
+          "label": "List fee records for student",
+          "method": "GET",
+          "endpoint": "/api/resource/Fees",
+          "params": {
+            "filters": "[[\"student\",\"=\",\"STU-SU CHL-25-001\"]]",
+            "fields": "[\"name\",\"student\",\"student_name\",\"program\",\"grand_total\",\"outstanding_amount\",\"due_date\",\"docstatus\"]"
+          }
+        },
+        {
+          "label": "Create fee record for student",
+          "method": "POST",
+          "endpoint": "/api/resource/Fees",
+          "payload": {
+            "student": "STU-SU CHL-25-001",
+            "program_enrollment": "EDU-PENR-00001",
+            "fee_structure": "FST-10th Grade-2025-2026",
+            "company": "Smart Up Chullickal",
+            "posting_date": "2026-02-24",
+            "due_date": "2026-03-24"
+          },
+          "notes": "Components auto-copied from Fee Structure on save"
+        },
+        {
+          "label": "Create payment entry",
+          "method": "POST",
+          "endpoint": "/api/resource/Payment Entry",
+          "payload": {
+            "payment_type": "Receive",
+            "party_type": "Student",
+            "party": "STU-SU CHL-25-001",
+            "paid_amount": 5000,
+            "mode_of_payment": "Cash",
+            "reference_no": "REC-001"
+          },
+          "notes": "Payment Entry requires proper accounting setup (accounts, cost center). May need additional fields: paid_to, received_amount, etc."
+        },
+        {
+          "label": "List payments for student",
+          "method": "GET",
+          "endpoint": "/api/resource/Payment Entry",
+          "params": {
+            "filters": "[[\"payment_type\",\"=\",\"Receive\"],[\"party\",\"=\",\"STU-SU CHL-25-001\"]]"
+          }
+        },
+        {
+          "label": "Fee categories (for dropdowns)",
+          "method": "GET",
+          "endpoint": "/api/resource/Fee Category",
+          "params": { "limit_page_length": "0" }
+        }
+      ]
+    },
+
+    {
+      "id": "M5",
+      "module": "Dashboard — Wire Stats to Real API",
+      "priority": "MEDIUM",
+      "build_order": 5,
+      "description": "Replace hardcoded dashboard numbers with live API calls. Wire batch overview and recent activity.",
+      "current_state": {
+        "page": "src/app/dashboard/branch-manager/page.tsx",
+        "status": "MOCK — hardcoded stats (342 students, 12 batches, 89% attendance, ₹4.52L pending), fake activities, fake batch overview",
+        "api_ready": "partial — individual APIs exist but no unified dashboard endpoint"
+      },
+      "steps": [
+        {
+          "step": 1,
+          "action": "Wire four stats cards to real counts",
+          "file": "src/app/dashboard/branch-manager/page.tsx",
+          "details": [
+            "Import APIs: getStudentCount from students.ts, getTodayAbsenteeCount from attendance.ts, getFeeReportSummary from fees.ts",
+            "Remove hardcoded stats object",
+            "Parallel queries:",
+            "  useQuery({ queryKey: ['dashboard-student-count', branch], queryFn: () => getStudentCount([['custom_branch','=',branch],['enabled','=','1']]) })",
+            "  useQuery({ queryKey: ['dashboard-batch-count'], queryFn: batchCountFn }) — use frappe.client.get_count for Student Group with branch filter",
+            "  useQuery({ queryKey: ['dashboard-attendance'], queryFn: todayAttendanceFn }) — compute: (total - absent) / total * 100",
+            "  useQuery({ queryKey: ['dashboard-fee-summary'], queryFn: getFeeReportSummary })",
+            "Display loading skeletons while fetching"
+          ]
+        },
+        {
+          "step": 2,
+          "action": "Wire batch overview section",
+          "file": "src/app/dashboard/branch-manager/page.tsx",
+          "details": [
+            "Import { getBatches } from '@/lib/api/batches'",
+            "Query batches for the branch",
+            "Group by program, show strength count per batch",
+            "Remove hardcoded batchOverview array"
+          ]
+        },
+        {
+          "step": 3,
+          "action": "Wire recent activity (stretch goal)",
+          "file": "src/app/dashboard/branch-manager/page.tsx",
+          "details": [
+            "Frappe has an Activity Log doctype, but it may not be easily mapped",
+            "Alternative: query recent Student creations, recent Attendance marks, recent Payments",
+            "Merge and sort by creation date",
+            "Or: keep as placeholder until a custom Frappe API is built for activity feed"
+          ]
+        }
+      ],
+      "frappe_api_calls": [
+        {
+          "label": "Active student count for branch",
+          "method": "GET",
+          "endpoint": "/api/method/frappe.client.get_count",
+          "params": {
+            "doctype": "Student",
+            "filters": "[[\"enabled\",\"=\",1],[\"custom_branch\",\"=\",\"Smart Up Chullickal\"]]"
+          }
+        },
+        {
+          "label": "Batch count for branch",
+          "method": "GET",
+          "endpoint": "/api/method/frappe.client.get_count",
+          "params": {
+            "doctype": "Student Group",
+            "filters": "[[\"group_based_on\",\"=\",\"Batch\"],[\"custom_branch\",\"=\",\"Smart Up Chullickal\"],[\"disabled\",\"=\",0]]"
+          }
+        },
+        {
+          "label": "Today's attendance stats",
+          "method": "GET",
+          "endpoint": "/api/method/frappe.client.get_count",
+          "params": {
+            "doctype": "Student Attendance",
+            "filters": "[[\"date\",\"=\",\"2026-02-24\"],[\"status\",\"=\",\"Present\"],[\"custom_branch\",\"=\",\"Smart Up Chullickal\"]]"
+          },
+          "notes": "Also get absent count to compute percentage"
+        },
+        {
+          "label": "Pending fees total",
+          "method": "GET",
+          "endpoint": "/api/method/frappe.client.get_list",
+          "params": {
+            "doctype": "Fees",
+            "filters": "[[\"outstanding_amount\",\">\",0]]",
+            "fields": "[\"sum(outstanding_amount) as total\"]"
+          }
+        },
+        {
+          "label": "Recent students (for activity)",
+          "method": "GET",
+          "endpoint": "/api/resource/Student",
+          "params": {
+            "fields": "[\"name\",\"student_name\",\"creation\",\"custom_branch\"]",
+            "order_by": "creation desc",
+            "limit_page_length": "5"
+          }
+        }
+      ]
+    },
+
+    {
+      "id": "M6",
+      "module": "Branch & User Management (Phase 1 requirement — currently missing)",
+      "priority": "LOW",
+      "build_order": 6,
+      "description": "Phase 1 specifies branch management and user role assignment. Currently only auth login/logout exists. No branch management UI or user CRUD.",
+      "current_state": {
+        "pages": "None — no UI exists for managing branches or users",
+        "api_ready": false,
+        "notes": "Branches are managed as Companies in ERPNext. User accounts are managed via Frappe User doctype. No frontend API layer exists for these."
+      },
+      "frappe_doctypes": {
+        "company": {
+          "name": "Company",
+          "api_endpoint": "/api/resource/Company",
+          "key_fields": {
+            "name": { "type": "Data", "sample": "Smart Up Chullickal" },
+            "abbr": { "type": "Data", "sample": "SU CHL" },
+            "country": { "type": "Link → Country" },
+            "default_currency": { "type": "Link → Currency" }
+          },
+          "live_data_count": 10,
+          "notes": "Read-only in frontend — branches are configured by admin in ERPNext"
+        },
+        "user": {
+          "name": "User",
+          "api_endpoint": "/api/resource/User",
+          "key_fields": {
+            "name": { "type": "Data", "description": "Email (user ID)" },
+            "first_name": { "type": "Data" },
+            "last_name": { "type": "Data" },
+            "enabled": { "type": "Check" },
+            "roles": { "child_table": "Has Role", "fields": ["role"] }
+          },
+          "notes": "User creation requires System Manager role. May not be accessible via API key auth."
+        }
+      },
+      "steps": [
+        {
+          "step": 1,
+          "action": "Decide scope — likely read-only for Phase 1",
+          "details": [
+            "Branch list is static (10 companies) — show a settings/info page",
+            "User management may require higher Frappe permissions",
+            "Consider: just show current user's branch info on dashboard",
+            "Full user CRUD may be deferred to Phase 2"
+          ]
+        },
+        {
+          "step": 2,
+          "action": "Create branch info component (if needed)",
+          "details": [
+            "Show branch name, abbreviation, total students, total batches",
+            "Data already available from existing APIs",
+            "Can be a card on the dashboard page"
+          ]
+        }
+      ]
+    }
+  ],
+
+  "build_order_summary": [
+    {
+      "order": 1,
+      "module_id": "M1",
+      "module": "Classes (Programs) page",
+      "effort": "Small (2-3 hours)",
+      "files_to_edit": ["src/app/dashboard/branch-manager/classes/page.tsx"],
+      "files_to_create": [],
+      "api_changes": "None — already built",
+      "blocking_issues": "None",
+      "prerequisites": "None"
+    },
+    {
+      "order": 2,
+      "module_id": "M2",
+      "module": "Batches (Student Groups) — wire list + create page",
+      "effort": "Medium (4-6 hours)",
+      "files_to_edit": ["src/app/dashboard/branch-manager/batches/page.tsx"],
+      "files_to_create": [
+        "src/app/dashboard/branch-manager/batches/new/page.tsx",
+        "src/app/dashboard/branch-manager/batches/[id]/page.tsx (optional)"
+      ],
+      "api_changes": "None — already built",
+      "blocking_issues": "None",
+      "prerequisites": "M1 (Programs data needed for batch dropdowns)"
+    },
+    {
+      "order": 3,
+      "module_id": "M3",
+      "module": "Attendance — wire list + save + report",
+      "effort": "Medium-Large (5-8 hours)",
+      "files_to_edit": ["src/app/dashboard/branch-manager/attendance/page.tsx"],
+      "files_to_create": [],
+      "api_changes": "None — already built",
+      "blocking_issues": "Need to verify education.api.mark_attendance handles Late status",
+      "prerequisites": "M2 (batch dropdown uses same Student Group data)"
+    },
+    {
+      "order": 4,
+      "module_id": "M4",
+      "module": "Fee Management — dashboard + structure + payments pages",
+      "effort": "Large (8-12 hours)",
+      "files_to_edit": ["src/app/dashboard/branch-manager/fees/page.tsx"],
+      "files_to_create": [
+        "src/app/dashboard/branch-manager/fees/structure/page.tsx",
+        "src/app/dashboard/branch-manager/fees/payments/page.tsx"
+      ],
+      "api_changes": "May need to add: submitFeeStructure(), submitFeeRecord() helper functions",
+      "blocking_issues": "0 fee records exist. Need to batch-create or test with manual creation. Payment Entry requires accounting setup.",
+      "prerequisites": "M2 (student enrollment data for fee record creation)"
+    },
+    {
+      "order": 5,
+      "module_id": "M5",
+      "module": "Dashboard — wire stats to real API",
+      "effort": "Small-Medium (3-4 hours)",
+      "files_to_edit": ["src/app/dashboard/branch-manager/page.tsx"],
+      "files_to_create": [],
+      "api_changes": "May need helper: getDashboardStats() that fetches all counts in parallel",
+      "blocking_issues": "Fee stats will show zeros until M4 creates fee records",
+      "prerequisites": "M1-M4 should be done first so all stats are meaningful"
+    },
+    {
+      "order": 6,
+      "module_id": "M6",
+      "module": "Branch & User Management (minimal)",
+      "effort": "Small (1-2 hours) if read-only",
+      "files_to_edit": [],
+      "files_to_create": ["Settings page or branch info card (optional)"],
+      "api_changes": "Add src/lib/api/users.ts if CRUD is needed",
+      "blocking_issues": "Frappe permission model may restrict user management via API key",
+      "prerequisites": "None"
+    }
+  ],
+
+  "shared_patterns": {
+    "data_fetching": {
+      "library": "@tanstack/react-query v5",
+      "pattern": "useQuery({ queryKey: [...], queryFn: async () => { const res = await apiFunction(); return res.data ?? res; } })",
+      "mutation_pattern": "useMutation({ mutationFn: apiFunction, onSuccess: () => { queryClient.invalidateQueries({ queryKey: [...] }); toast.success('...'); }, onError: (err) => toast.error(err.message) })",
+      "notes": "All API functions go through /api/proxy/[...path] which injects auth token"
+    },
+    "form_handling": {
+      "library": "react-hook-form v7 + @hookform/resolvers + zod v4",
+      "pattern": "const form = useForm<FormType>({ resolver: zodResolver(schema) as any })",
+      "zod_v4_notes": "Use 'message:' not 'required_error:'. Cast zodResolver() with 'as any' for z.coerce.number() fields.",
+      "submit": "handleSubmit wraps mutation.mutate(data)"
+    },
+    "loading_states": {
+      "skeleton": "Use <Skeleton /> component from src/components/ui/Skeleton.tsx",
+      "pattern": "if (isLoading) return <div className='space-y-4'><Skeleton className='h-10 w-full' /><Skeleton className='h-10 w-full' /></div>"
+    },
+    "error_handling": {
+      "api_errors": "Frappe returns { exc_type, _server_messages } — parse _server_messages JSON array for user-friendly message",
+      "frappe_417": "Frappe uses HTTP 417 for ValidationError — not HTTP Expect header issue",
+      "child_table_doctype": "Always include 'doctype' field on child table rows when POSTing"
+    },
+    "styling": {
+      "framework": "Tailwind CSS with custom design tokens",
+      "animations": "framer-motion for page transitions and staggered lists",
+      "cards": "Use Card, CardHeader, CardTitle, CardContent from src/components/ui/Card.tsx",
+      "badges": "Use Badge from src/components/ui/Badge.tsx",
+      "buttons": "Use Button from src/components/ui/Button.tsx"
+    },
+    "feature_flags": {
+      "store": "src/lib/stores/featureFlagsStore.ts",
+      "pattern": "const { flags } = useFeatureFlagsStore(); if (!flags.moduleName) return null;",
+      "toggle_page": "/toggle — dev-only page to flip flags"
+    }
+  },
+
+  "known_gotchas": [
+    {
+      "issue": "Frappe child tables require 'doctype' field",
+      "context": "When POSTing docs with child tables (e.g. Student with guardians, Fee Structure with components)",
+      "solution": "Always include { doctype: 'ChildTableDoctype', ...otherFields } on every child row"
+    },
+    {
+      "issue": "Frappe 417 = ValidationError, not HTTP Expect header",
+      "context": "Frappe returns HTTP 417 for validation errors. The proxy was initially changed to fix a perceived HTTP issue, but 417 was actually Frappe's validation error.",
+      "solution": "Parse the response body for _server_messages to get the actual validation error"
+    },
+    {
+      "issue": "Blood group is a Frappe Select field",
+      "context": "Only accepts exact values: '', 'A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'",
+      "solution": "Use dropdown with exact values, validate with z.enum()"
+    },
+    {
+      "issue": "Program abbreviation hyphens vs full words",
+      "context": "Programs use '10th 1-1' but item codes use '10th 1 to 1 Tuition Fee'",
+      "solution": "getTuitionFeeItem() normalizes: replace '1-1' → '1 to 1', '1-M' → '1 to M'"
+    },
+    {
+      "issue": "Frappe auto-creates Customer on Student insert",
+      "context": "Student after_insert hook creates a linked Customer. Don't create a second one.",
+      "solution": "Read back student.customer field after creation instead of calling createCustomer"
+    },
+    {
+      "issue": "Item list queries need stock_uom not uom",
+      "context": "Frappe rejects 'uom' in Item list field queries",
+      "solution": "Use 'stock_uom' field name"
+    },
+    {
+      "issue": "delivery_date required by SO validate hook",
+      "context": "Schema says reqd=0 but Sales Order validate() requires it",
+      "solution": "Always include delivery_date in Sales Order payload"
+    },
+    {
+      "issue": "Fee Structure must be submitted before use",
+      "context": "Fee records reference Fee Structure — it must be docstatus=1",
+      "solution": "After creating, PUT { docstatus: 1 } to submit. All 18 existing structures are already submitted."
+    },
+    {
+      "issue": "Program Enrollment must be submitted for Fees",
+      "context": "Fee record requires a submitted Program Enrollment (docstatus=1)",
+      "solution": "The admitStudent() flow already submits the enrollment (draft → submit)"
+    },
+    {
+      "issue": "GCC branch uses student-named Student Groups",
+      "context": "GCC 1-to-1 students have groups named after students (e.g. 'ADAM YOOSUF') instead of standard CHL-prog-YY-seq pattern",
+      "solution": "Filter by group_based_on='Batch' and custom_branch to handle both patterns"
+    },
+    {
+      "issue": "max_strength = 0 means unlimited in Frappe",
+      "context": "Most Student Groups have max_strength=0",
+      "solution": "Treat 0 as 'unlimited' in UI, or use MAX_BATCH_CAPACITY constant (60) as fallback"
+    }
+  ],
+
+  "frappe_api_reference": {
+    "base_url": "https://smartup.m.frappe.cloud/api",
+    "auth": "Token-based: Authorization: token {api_key}:{api_secret}",
+    "endpoints": {
+      "list": {
+        "method": "GET",
+        "pattern": "/resource/{DocType}",
+        "params": ["fields (JSON array)", "filters (JSON array of arrays)", "limit_page_length", "limit_start", "order_by", "or_filters"],
+        "example": "/resource/Student?fields=[\"name\",\"student_name\"]&filters=[[\"enabled\",\"=\",1]]&limit_page_length=50"
+      },
+      "get": {
+        "method": "GET",
+        "pattern": "/resource/{DocType}/{name}",
+        "returns": "Full document with all fields and child tables"
+      },
+      "create": {
+        "method": "POST",
+        "pattern": "/resource/{DocType}",
+        "body": "JSON object with field values",
+        "notes": "Child tables must include 'doctype' field on each row"
+      },
+      "update": {
+        "method": "PUT",
+        "pattern": "/resource/{DocType}/{name}",
+        "body": "JSON object with fields to update"
+      },
+      "delete": {
+        "method": "DELETE",
+        "pattern": "/resource/{DocType}/{name}"
+      },
+      "submit": {
+        "method": "PUT",
+        "pattern": "/resource/{DocType}/{name}",
+        "body": "{ \"docstatus\": 1 }"
+      },
+      "cancel": {
+        "method": "PUT",
+        "pattern": "/resource/{DocType}/{name}",
+        "body": "{ \"docstatus\": 2 }"
+      },
+      "count": {
+        "method": "GET",
+        "pattern": "/method/frappe.client.get_count",
+        "params": ["doctype", "filters"],
+        "returns": "{ message: number }"
+      },
+      "rpc": {
+        "method": "POST",
+        "pattern": "/method/{dotted.path.to.method}",
+        "example": "/method/education.api.mark_attendance"
+      }
+    }
+  }
+}

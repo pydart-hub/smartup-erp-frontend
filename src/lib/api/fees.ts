@@ -112,29 +112,45 @@ export async function createPayment(payment: PaymentFormData): Promise<FrappeSin
 
 export async function getPayments(params?: {
   student?: string;
+  company?: string;
   from_date?: string;
   to_date?: string;
 } & PaginationParams): Promise<FrappeListResponse<PaymentEntry>> {
-  const filters: string[][] = [["payment_type", "=", "Receive"]];
+  // Note: Payment Entries in this system use party_type = "Customer" (not "Student")
+  const filters: string[][] = [["payment_type", "=", "Receive"], ["party_type", "=", "Customer"]];
   if (params?.student) filters.push(["party", "=", params.student]);
+  if (params?.company) filters.push(["company", "=", params.company]);
   if (params?.from_date) filters.push(["posting_date", ">=", params.from_date]);
   if (params?.to_date) filters.push(["posting_date", "<=", params.to_date]);
-  const searchParams = new URLSearchParams({ filters: JSON.stringify(filters) });
+  const searchParams = new URLSearchParams({
+    filters: JSON.stringify(filters),
+    fields: JSON.stringify(["name", "party", "party_name", "paid_amount", "mode_of_payment", "posting_date", "reference_no"]),
+    order_by: "posting_date desc",
+  });
   if (params?.limit_page_length) searchParams.set("limit_page_length", String(params.limit_page_length));
   const { data } = await apiClient.get(`/resource/Payment Entry?${searchParams.toString()}`);
   return data;
 }
 
 // ── Reports ──
-export async function getFeeReportSummary(): Promise<FeeReportSummary> {
-  const [totalRes, collectedRes, pendingRes] = await Promise.all([
-    apiClient.get(`/method/frappe.client.get_list?doctype=Fees&fields=["sum(grand_total) as total"]&limit_page_length=1`),
-    apiClient.get(`/method/frappe.client.get_list?doctype=Fees&fields=["sum(grand_total - outstanding_amount) as total"]&limit_page_length=1`),
-    apiClient.get(`/method/frappe.client.get_list?doctype=Fees&filters=[["outstanding_amount",">",0]]&fields=["sum(outstanding_amount) as total"]&limit_page_length=1`),
-  ]);
-  const totalFees = totalRes.data.message?.[0]?.total || 0;
-  const totalCollected = collectedRes.data.message?.[0]?.total || 0;
-  const totalPending = pendingRes.data.message?.[0]?.total || 0;
+/**
+ * Compute fee summary from Sales Invoice data.
+ * The Fees doctype is not used at this school — fees are tracked via Sales Invoices.
+ * Only submitted invoices (docstatus = 1) are counted.
+ */
+export async function getFeeReportSummary(company?: string): Promise<FeeReportSummary> {
+  const filters: string[][] = [["docstatus", "=", "1"]];
+  if (company) filters.push(["company", "=", company]);
+  const query = new URLSearchParams({
+    fields: JSON.stringify(["sum(grand_total) as invoiced", "sum(outstanding_amount) as outstanding"]),
+    limit_page_length: "1",
+    filters: JSON.stringify(filters),
+  });
+  const { data } = await apiClient.get(`/resource/Sales Invoice?${query}`);
+  const row = data.data?.[0] ?? {};
+  const totalFees = row.invoiced ?? 0;
+  const totalPending = row.outstanding ?? 0;
+  const totalCollected = totalFees - totalPending;
   return {
     total_fees: totalFees,
     total_collected: totalCollected,
