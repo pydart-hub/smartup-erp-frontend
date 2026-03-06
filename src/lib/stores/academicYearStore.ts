@@ -16,7 +16,7 @@ interface AcademicYearStore {
 export const useAcademicYearStore = create<AcademicYearStore>()(
   persist(
     (set) => ({
-      selectedYear: "2025-2026",
+      selectedYear: "2026-2027",
       setSelectedYear: (year) => set({ selectedYear: year }),
     }),
     { name: "smartup-academic-year" },

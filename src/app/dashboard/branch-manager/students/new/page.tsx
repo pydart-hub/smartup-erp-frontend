@@ -24,6 +24,8 @@ import {
   Banknote,
   Wifi,
   Tag,
+  Send,
+  HandCoins,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Button } from "@/components/ui/Button";
@@ -36,6 +38,8 @@ import type { FeeConfigEntry, PaymentOptionSummary } from "@/lib/types/fee";
 import { getAllPaymentOptions } from "@/lib/utils/feeSchedule";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/hooks/useAuth";
+import PostAdmissionPayment from "@/components/payments/PostAdmissionPayment";
+import type { InvoiceForPayment } from "@/components/payments/PostAdmissionPayment";
 
 // ── Reusable styled select wrapper ──────────────────────────────
 function SelectField({
@@ -74,6 +78,20 @@ export default function NewStudentPage() {
   const router = useRouter();
   const { defaultCompany, allowedCompanies } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
+  const [paymentAction, setPaymentAction] = useState<"pay_now" | "send_to_parent" | null>(null);
+
+  // Post-admission payment dialog state
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [admissionResult, setAdmissionResult] = useState<{
+    studentName: string;
+    customerName: string;
+    guardianName: string;
+    guardianEmail: string;
+    guardianPhone: string;
+    mode: "Cash" | "Online";
+    salesOrderName?: string;
+    invoices: InvoiceForPayment[];
+  } | null>(null);
 
   const {
     register,
@@ -169,11 +187,10 @@ export default function NewStudentPage() {
 
   const studentGroups = useMemo(() => studentGroupsRes?.data ?? [], [studentGroupsRes]);
 
-  const batchOptions = useMemo(() => {
-    const seen = new Set<string>();
-    return studentGroups
-      .filter((g) => g.batch && !seen.has(g.batch!) && seen.add(g.batch!))
-      .map((g) => g.batch!);
+  // Show Student Groups directly (not de-duplicated batch codes) so the
+  // branch manager selects the correct group when multiple groups share a batch.
+  const groupOptions = useMemo(() => {
+    return studentGroups.filter((g) => g.name);
   }, [studentGroups]);
 
   // ── Fee structure lookup ──────────────────────────────────────
@@ -182,13 +199,18 @@ export default function NewStudentPage() {
   const selectedAcademicYear = watch("academic_year");
   const selectedModeOfPayment = watch("custom_mode_of_payment");
 
-  // Fee Structure program names may differ from Student Group program names
-  // e.g. Student Group uses "11th Science State" but Fee Structure uses "11th State"
+  // Reset payment action when mode of payment changes
+  const prevModeRef = useRef(selectedModeOfPayment);
+  useEffect(() => {
+    if (prevModeRef.current !== selectedModeOfPayment) {
+      prevModeRef.current = selectedModeOfPayment;
+      setPaymentAction(null);
+    }
+  }, [selectedModeOfPayment]);
+
+  // Fee Structure program names match the Program doctype names exactly
   const feeProgram = useMemo(() => {
-    if (!selectedProgram) return "";
-    // Strip "Science " when it appears between the class number and board
-    // "11th Science State" → "11th State", "11th Science CBSE" stays as-is (exists in both)
-    return selectedProgram.replace(/^(\d+th) Science (State)$/i, "$1 $2");
+    return selectedProgram ?? "";
   }, [selectedProgram]);
 
   // Fetch all submitted fee structures for the selected branch + program
@@ -275,20 +297,34 @@ export default function NewStudentPage() {
   // ── Submit ────────────────────────────────────────────────────
   async function onSubmit(data: StudentFormValues) {
     try {
-      const matchedGroup = studentGroups.find((g) => g.batch === data.student_batch_name);
+      // student_batch_name now stores the Student Group name directly
+      const selectedGroupName = data.student_batch_name || undefined;
+      const matchedGroup = selectedGroupName
+        ? studentGroups.find((g) => g.name === selectedGroupName)
+        : undefined;
+
+      // Split full_name into first_name + last_name
+      const nameParts = data.full_name.trim().split(/\s+/);
+      const firstName = nameParts.length > 1 ? nameParts.slice(0, -1).join(" ") : nameParts[0];
+      const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : undefined;
+
+      // Look up branch abbreviation for unique email generation
+      const branchObj = branches.find((b) => b.name === data.custom_branch);
 
       const result = await admitStudent({
-        first_name: data.full_name,
+        first_name: firstName,
+        last_name: lastName,
         date_of_birth: data.date_of_birth,
         gender: data.gender,
         blood_group: data.blood_group,
         student_email_id: data.student_email_id,
         student_mobile_number: data.student_mobile_number,
         custom_branch: data.custom_branch,
+        custom_branch_abbr: (branchObj as { abbr?: string })?.abbr,
         custom_srr_id: data.custom_srr_id,
         program: data.program,
         academic_year: data.academic_year,
-        student_batch_name: data.student_batch_name,
+        student_batch_name: matchedGroup?.batch,
         enrollment_date: data.enrollment_date,
         studentGroupName: matchedGroup?.name,
         guardian_name: data.guardian_name,
@@ -318,40 +354,67 @@ export default function NewStudentPage() {
         }
       }
 
-      router.push("/dashboard/branch-manager/students");
-    } catch (err: unknown) {
-      // Frappe validation errors (HTTP 417) encode the real message in
-      // `_server_messages` as a JSON-encoded array of {message} objects.
-      const data = (err as { response?: { data?: Record<string, unknown> } })?.response?.data;
-      let msg = "Failed to create student";
-      // Check for our own typed errors thrown inside admitStudent
-      if ((err as { __type?: string }).__type === "duplicate_email") {
-        msg = (err as Error).message;
-      } else if (data) {
-        // Handle DuplicateEntryError specifically
-        if (String(data.exc_type) === "DuplicateEntryError" ||
-            String(data.exception ?? "").includes("DuplicateEntryError")) {
-          msg = "A student with this SRR ID already exists at this branch. Please use a different SRR ID.";
-        } else if (String(data.exc_type) === "UniqueValidationError" ||
-            String(data.exception ?? "").includes("UniqueValidationError")) {
-          msg = "A student with this email address already exists. Please use a different email.";
-        } else if (typeof data._server_messages === "string") {
-          try {
-            const parsed: { message: string }[] = JSON.parse(data._server_messages as string);
-            msg = parsed.map((m) => m.message).join(" ") || msg;
-          } catch {
-            msg = String(data._server_messages);
+      // ── Post-admission payment flow ──
+      const hasInvoices = (result.invoices?.length ?? 0) > 0;
+      const wantsAction = paymentAction === "pay_now" || paymentAction === "send_to_parent";
+
+      if (wantsAction && hasInvoices && selectedOption) {
+        // Build invoice list for the payment dialog
+        const invoicesForPayment: InvoiceForPayment[] = (result.invoices ?? []).map(
+          (invId, idx) => {
+            const scheduleItem = selectedOption.schedule[idx];
+            return {
+              invoiceId: invId,
+              label: scheduleItem?.label ?? `Instalment ${idx + 1}`,
+              amount: scheduleItem?.amount ?? 0,
+              dueDate: scheduleItem?.dueDate ?? new Date().toISOString().split("T")[0],
+            };
           }
-        } else if (typeof data.message === "string") {
-          msg = data.message;
-        } else if (typeof data.exception === "string") {
-          // Strip Python traceback prefix: "frappe.exceptions.ValidationError: ..."
-          msg = (data.exception as string).split("\n")[0].replace(/^.*?:\s*/, "");
+        );
+
+        // Read back customer from Frappe (stored on SO)
+        let customerName = "";
+        if (result.salesOrder) {
+          try {
+            const soRes = await fetch(
+              `/api/proxy/resource/Sales Order/${encodeURIComponent(result.salesOrder)}?fields=["customer"]`,
+              { credentials: "include" }
+            );
+            if (soRes.ok) {
+              const soData = await soRes.json();
+              customerName = soData.data?.customer ?? "";
+            }
+          } catch { /* fall through */ }
         }
+
+        setAdmissionResult({
+          studentName: result.student.student_name,
+          customerName,
+          guardianName: data.guardian_name,
+          guardianEmail: data.guardian_email,
+          guardianPhone: data.guardian_mobile,
+          mode: data.custom_mode_of_payment,
+          salesOrderName: result.salesOrder,
+          invoices: invoicesForPayment,
+        });
+        setShowPaymentDialog(true);
       } else {
-        msg = (err as Error)?.message ?? msg;
+        router.push("/dashboard/branch-manager/students");
       }
+    } catch (err: unknown) {
+      // The new admitStudent function throws errors with __type and stages info
+      const typedErr = err as { __type?: string; stages?: unknown[]; student?: unknown; warnings?: string[]; message?: string };
+      const msg = (err as Error)?.message || "Failed to create student";
+
+      // Show main error
       toast.error(msg);
+
+      // If the error includes warnings (partial success), show them too
+      if (typedErr.warnings?.length) {
+        for (const w of typedErr.warnings) {
+          toast.warning(w, { duration: 8000 });
+        }
+      }
     }
   }
 
@@ -530,7 +593,7 @@ export default function NewStudentPage() {
                     />
                     <Input
                       label="Mobile Number"
-                      placeholder="+91 9876543210"
+                      placeholder="9876543210"
                       leftIcon={<Phone className="h-4 w-4" />}
                       {...register("student_mobile_number")}
                     />
@@ -567,7 +630,7 @@ export default function NewStudentPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Input
                       label="Guardian Mobile *"
-                      placeholder="+91 9876543210"
+                      placeholder="9876543210"
                       leftIcon={<Phone className="h-4 w-4" />}
                       error={errors.guardian_mobile?.message}
                       {...register("guardian_mobile")}
@@ -677,16 +740,15 @@ export default function NewStudentPage() {
                   </div>
 
                   {selectedBranch && selectedProgram && (
-                    <SelectField label="Batch (optional — auto-assign if empty)">
+                    <SelectField label="Batch (optional)">
                       <select className={selectCls} {...register("student_batch_name")}>
-                        <option value="">Auto-assign to available batch</option>
-                        {batchOptions.map((b) => {
-                          const group = studentGroups.find((g) => g.batch === b);
-                          const count = group?.students?.length ?? "—";
-                          const max = group?.max_strength ?? 60;
+                        <option value="">No batch — assign later</option>
+                        {groupOptions.map((g) => {
+                          const count = g.students?.length ?? "—";
+                          const max = g.max_strength ?? 60;
                           return (
-                            <option key={b} value={b}>
-                              {b} ({count}/{max} students)
+                            <option key={g.name} value={g.name}>
+                              {g.name} ({count}/{max} students)
                             </option>
                           );
                         })}
@@ -967,6 +1029,104 @@ export default function NewStudentPage() {
                     </div>
                   )}
 
+                  {/* Payment Action (sub-options under mode of payment) */}
+                  {selectedModeOfPayment && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-text-secondary">
+                        {selectedModeOfPayment === "Online" ? "Payment Action" : "When to collect?"} *
+                      </label>
+                      <div className="grid grid-cols-2 gap-3">
+                        {selectedModeOfPayment === "Online" ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => setPaymentAction("pay_now")}
+                              className={`relative flex flex-col items-center gap-2 p-4 rounded-[12px] border-2 transition-all text-center ${
+                                paymentAction === "pay_now"
+                                  ? "border-success bg-success/5"
+                                  : "border-border-input bg-surface hover:border-border-input/80"
+                              }`}
+                            >
+                              <HandCoins className={`h-5 w-5 ${paymentAction === "pay_now" ? "text-success" : "text-text-tertiary"}`} />
+                              <span className={`text-sm font-semibold ${paymentAction === "pay_now" ? "text-success" : "text-text-secondary"}`}>
+                                Pay Now
+                              </span>
+                              <span className="text-xs text-text-tertiary">Parent is present — collect immediately</span>
+                              {paymentAction === "pay_now" && (
+                                <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-success flex items-center justify-center">
+                                  <Check className="h-3 w-3 text-white" />
+                                </div>
+                              )}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setPaymentAction("send_to_parent")}
+                              className={`relative flex flex-col items-center gap-2 p-4 rounded-[12px] border-2 transition-all text-center ${
+                                paymentAction === "send_to_parent"
+                                  ? "border-info bg-info/5"
+                                  : "border-border-input bg-surface hover:border-border-input/80"
+                              }`}
+                            >
+                              <Send className={`h-5 w-5 ${paymentAction === "send_to_parent" ? "text-info" : "text-text-tertiary"}`} />
+                              <span className={`text-sm font-semibold ${paymentAction === "send_to_parent" ? "text-info" : "text-text-secondary"}`}>
+                                Send to Parent
+                              </span>
+                              <span className="text-xs text-text-tertiary">Email payment link to parent</span>
+                              {paymentAction === "send_to_parent" && (
+                                <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-info flex items-center justify-center">
+                                  <Check className="h-3 w-3 text-white" />
+                                </div>
+                              )}
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => setPaymentAction("pay_now")}
+                              className={`relative flex flex-col items-center gap-2 p-4 rounded-[12px] border-2 transition-all text-center ${
+                                paymentAction === "pay_now"
+                                  ? "border-success bg-success/5"
+                                  : "border-border-input bg-surface hover:border-border-input/80"
+                              }`}
+                            >
+                              <HandCoins className={`h-5 w-5 ${paymentAction === "pay_now" ? "text-success" : "text-text-tertiary"}`} />
+                              <span className={`text-sm font-semibold ${paymentAction === "pay_now" ? "text-success" : "text-text-secondary"}`}>
+                                Pay Now
+                              </span>
+                              <span className="text-xs text-text-tertiary">Collect cash at counter now</span>
+                              {paymentAction === "pay_now" && (
+                                <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-success flex items-center justify-center">
+                                  <Check className="h-3 w-3 text-white" />
+                                </div>
+                              )}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setPaymentAction("send_to_parent")}
+                              className={`relative flex flex-col items-center gap-2 p-4 rounded-[12px] border-2 transition-all text-center ${
+                                paymentAction === "send_to_parent"
+                                  ? "border-info bg-info/5"
+                                  : "border-border-input bg-surface hover:border-border-input/80"
+                              }`}
+                            >
+                              <Calendar className={`h-5 w-5 ${paymentAction === "send_to_parent" ? "text-info" : "text-text-tertiary"}`} />
+                              <span className={`text-sm font-semibold ${paymentAction === "send_to_parent" ? "text-info" : "text-text-secondary"}`}>
+                                Pay Later
+                              </span>
+                              <span className="text-xs text-text-tertiary">Record payment from SO page</span>
+                              {paymentAction === "send_to_parent" && (
+                                <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-info flex items-center justify-center">
+                                  <Check className="h-3 w-3 text-white" />
+                                </div>
+                              )}
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Admission summary */}
                   <div className="bg-app-bg rounded-[10px] p-4 border border-border-light text-sm space-y-1.5 text-text-secondary">
                     <p className="font-semibold text-text-primary mb-2">Admission Summary</p>
@@ -976,7 +1136,7 @@ export default function NewStudentPage() {
                     <p><span className="text-text-tertiary w-36 inline-block">Class:</span> {watch("program") || "—"}</p>
                     <p><span className="text-text-tertiary w-36 inline-block">Academic Year:</span> {watch("academic_year") || "—"}</p>
                     <p><span className="text-text-tertiary w-36 inline-block">SRR ID:</span> {watch("custom_srr_id") || "—"}</p>
-                    <p><span className="text-text-tertiary w-36 inline-block">Batch:</span> {watch("student_batch_name") || "Auto-assign"}</p>
+                    <p><span className="text-text-tertiary w-36 inline-block">Batch:</span> {watch("student_batch_name") || "Not assigned"}</p>
                     <p><span className="text-text-tertiary w-36 inline-block">Enrollment Date:</span> {watch("enrollment_date") || "—"}</p>
                     <p><span className="text-text-tertiary w-36 inline-block">Fee Plan:</span> {selectedPlan || "—"}</p>
                     <p>
@@ -984,6 +1144,15 @@ export default function NewStudentPage() {
                       {selectedInstalments ? (selectedInstalments === "1" ? "One-Time" : `${selectedInstalments} Instalments`) : "—"}
                     </p>
                     <p><span className="text-text-tertiary w-36 inline-block">Payment Mode:</span> {selectedModeOfPayment || "—"}</p>
+                    <p>
+                      <span className="text-text-tertiary w-36 inline-block">Payment Action:</span>
+                      {paymentAction === "pay_now"
+                        ? selectedModeOfPayment === "Online" ? "Pay Now (Razorpay)" : "Pay Now (Cash)"
+                        : paymentAction === "send_to_parent"
+                          ? selectedModeOfPayment === "Online" ? "Send Request to Parent" : "Pay Later"
+                          : "—"
+                      }
+                    </p>
                     {selectedOption && (
                       <p><span className="text-text-tertiary w-36 inline-block">Total Fee:</span> <span className="font-semibold text-primary">₹{selectedOption.total.toLocaleString("en-IN")}</span></p>
                     )}
@@ -1022,6 +1191,27 @@ export default function NewStudentPage() {
           </CardContent>
         </Card>
       </form>
+
+      {/* Post-Admission Payment Dialog */}
+      {admissionResult && (
+        <PostAdmissionPayment
+          open={showPaymentDialog}
+          onClose={() => {
+            setShowPaymentDialog(false);
+            setAdmissionResult(null);
+            router.push("/dashboard/branch-manager/students");
+          }}
+          studentName={admissionResult.studentName}
+          customerName={admissionResult.customerName}
+          guardianName={admissionResult.guardianName}
+          guardianEmail={admissionResult.guardianEmail}
+          guardianPhone={admissionResult.guardianPhone}
+          mode={admissionResult.mode}
+          action={paymentAction || "send_to_parent"}
+          invoices={admissionResult.invoices}
+          salesOrderName={admissionResult.salesOrderName}
+        />
+      )}
     </motion.div>
   );
 }

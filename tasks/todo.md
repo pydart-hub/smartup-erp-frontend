@@ -1,6 +1,47 @@
 # SmartUp ERP — Task Tracker
 
-## Current: E2E Admission-Fee-Payment Test (2026-03-06)
+## Current: Student Admission Bug Fix Sprint (2026-03-07)
+
+### 18 Bugs Found, 15 Fixed
+
+#### CRITICAL
+- [x] Bug #1: PE 409 Conflict kills entire admission flow → `createProgramEnrollment()` now handles 409 + recovers existing PE
+- [x] Bug #2: Invoice overbilling (all invoices use same so_detail qty=1) → SO now uses qty=numInstalments, rate=perInstalmentRate
+
+#### HIGH
+- [x] Bug #3: No rollback — orphaned records on partial failure → Stage-based error tracking with warnings for partial success
+- [x] Bug #4: `getBatchEnrollmentCounts()` compares SG names vs batch codes → Fixed to use `sg.batch` not `sg.name`
+- [x] Bug #5: Invoice submission failure silently reported as success → Separate `drafts` array in response
+
+#### MEDIUM
+- [x] Bug #6: Mixed client-side fetch() and proxy in admitStudent → Kept fetch for Next.js API routes (correct usage)
+- [x] Bug #7: "Auto-assign batch" label misleading → Changed to "No batch — assign later"
+- [x] Bug #8: full_name → first_name with no last name splitting → Now splits on last space
+- [x] Bug #9: Batch dropdown deduplicates by code, wrong group selected → Now shows Student Group names directly
+- [x] Bug #11: getItemPriceRate falls back to 0 → admitStudent warns when rate=0
+- [x] Bug #13: Auto-generated email collision across branches → Includes branch abbreviation in email
+- [x] Bug #14: Mobile placeholder "+91 9876543210" vs 10-digit validation → Fixed to "9876543210"
+- [x] Bug #16: create-invoices doesn't verify SO is submitted → Added docstatus check
+
+#### LOW / DEFERRED
+- [ ] Bug #10: createProgramEnrollment sends non-Frappe field student_group_name (handled gracefully)
+- [ ] Bug #12: SRR ID race condition under concurrent admissions (needs server-side unique constraint)
+- [ ] Bug #15: custom_mode_of_payment default value TypeScript hack (kept as-is, cleanest option)
+- [ ] Bug #17: Fee Structure lookup uses transformed program name (edge case)
+- [ ] Bug #18: Plaintext password in parent welcome email (needs password reset flow)
+
+### Files Modified
+1. `src/lib/api/enrollment.ts` — createProgramEnrollment 409 fix, admitStudent full rewrite, getBatch/getEnrolled fixes
+2. `src/app/api/admission/create-invoices/route.ts` — SO docstatus check, submission failure tracking
+3. `src/app/dashboard/branch-manager/students/new/page.tsx` — batch dropdown, name split, mobile placeholders, error handling
+4. `src/lib/validators/student.ts` — (reviewed, kept as-is)
+
+### TypeScript Verification
+- `npx tsc --noEmit` ✅ (only pre-existing razorpay type error remains)
+
+---
+
+## Previous: E2E Admission-Fee-Payment Test (2026-03-06)
 
 ### Test Results — Full Pipeline
 - [x] BM login (branchmanager@gmail.com) ✅

@@ -1,5 +1,68 @@
 # Lessons Learned
 
+## Frappe Email System — Complete Workflow & SMTP Quota Fix
+- **Date**: 2026-03-06 (updated 2026-03-06)
+
+### How Frappe Email Works
+1. **Email Accounts**: Frappe stores SMTP configs in `Email Account` doctype. Each has `enable_outgoing`, `default_outgoing`, `smtp_server`, `smtp_port`, `auth_method` (Basic = App Password).
+2. **Email Queue**: All emails go through `Email Queue` doctype. Status: `Not Sent` → `Sent` or `Error`. Frappe scheduler processes the queue periodically.
+3. **`send_welcome_email`**: When a User is created via API with `send_welcome_email: 1` (default), `User.after_insert()` calls `send_welcome_mail_to_user()` which uses `frappe.sendmail(now=True)` — sending **synchronously** through SMTP, NOT through the queue.
+4. **Student.validate_user()**: When a Student is created with `student_email_id` and no matching User exists, Frappe auto-creates a User via `validate_user()` hook. This triggers the synchronous welcome email. If SMTP fails → **the entire Student insert rolls back with 500**.
+5. **If User already exists**: `Student.validate_user()` finds the user, updates roles, does NOT send any email. Student creation succeeds.
+6. **Email routing**: The `sender` field is just a display name. The actual SMTP authentication uses the `email_account` field, which defaults to the default outgoing Email Account.
+7. **`email_retry_limit`** (System Settings): Defaults to 3. Frappe retries "Not Sent" emails up to this limit. After max retries → status changes to "Error" (permanent).
+
+### The Quota Problem
+- **Root Cause**: Gmail daily sending limit (500/day free, 2000/day Workspace). On 2026-02-26, a mass send of 829 emails through `smartuplearningventures@gmail.com` hit the daily limit.
+- **Cascading failure**: 284 emails went to Error. Each retry (3×) = ~850 extra failed SMTP attempts. Google imposed an extended temporary block. Even days later, with only 13 emails/day, the account still returned "550 Daily user sending limit exceeded".
+- **Student creation crash**: When `Smartuplearningventures` was default outgoing and its SMTP was blocked, `Student.validate_user()` → sync welcome email → SMTP 550 → 500 error → Student creation fails completely.
+
+### Fixes Applied
+1. **Pre-create User** (`enrollment.ts`): Create User via admin API with `send_welcome_email: 0` BEFORE creating Student. Student.validate_user() finds existing user → no email → no SMTP dependency. Tested: works even with completely broken SMTP.
+2. **Switched default outgoing**: Changed from `Smartuplearningventures` (blocked) to `Academiqedullp` (working). Disabled `Smartuplearningventures` outgoing.
+3. **Parent welcome email**: Removed plaintext password from email body. Now shows "Set Your Password" button linking to `/auth/forgot-password`.
+
+### Verified Behavior (live tests)
+| Scenario | Result |
+|----------|--------|
+| User created with `send_welcome_email: 0` | No email queued |
+| Student created with existing user | No email queued |
+| Student created WITHOUT pre-created user + working SMTP | Email queued + sent, Student created |
+| Student created WITHOUT pre-created user + broken SMTP | **Student creation FAILS with 500** |
+| Student created WITH pre-created user + broken SMTP | **Student created OK, zero emails** |
+
+### Rules
+- Always pre-create User with `send_welcome_email: 0` before any doctype that auto-creates users (Student, Employee, etc.)
+- Never rely on Frappe's auto-user-creation when SMTP may be unavailable
+- Monitor Email Queue errors — 325 stuck error emails can cause cascading SMTP quota issues via retries
+- Only Administrator role can delete Email Queue entries — use Frappe desk UI to clean up
+- Keep a secondary Email Account configured as backup; switch default outgoing if primary is blocked
+
+## Frappe HTTP 409 on Resource Creation — Record May Still Exist
+- **Date**: 2026-03-07
+- **Issue**: Frappe returns HTTP 409 Conflict when creating a Program Enrollment even though the PE was successfully created. Axios treats 409 as error, killing the entire admission chain. The student appears "failed" in the UI but is actually saved to Frappe.
+- **Root Cause**: Frappe's 409 can mean: (a) genuine duplicate, or (b) race condition where the doc was created between validation and insert. In both cases, the record often EXISTS.
+- **Fix**: Wrap resource creation in try/catch. On 409, extract the record name from the response body OR query by the unique key combo. Check docstatus before attempting re-submission.
+- **Rule**: NEVER trust that 409 means "nothing was created". Always check for the existing record and recover gracefully.
+
+## Frappe PE.student_batch_name ≠ Student Group Name
+- **Date**: 2026-03-07
+- **Issue**: `Program Enrollment.student_batch_name` stores the **Student Batch Name** (e.g., "Vennala 26-27"), NOT the Student Group name (e.g., "SU ERV-10th State-2026-2027"). Comparing PE batch names against Student Group names produces zero matches.
+- **Fix**: When filtering PEs by branch, fetch `Student Group.batch` field and compare against that.
+- **Rule**: Always verify which linked doctype a field references. `student_batch_name` refers to the "Student Batch Name" doctype, not "Student Group".
+
+## Multi-Step Frappe Operations Need Stage Tracking
+- **Date**: 2026-03-07
+- **Issue**: When `admitStudent()` creates 6+ resources in sequence and fails at step 4, the error message says "Failed to create student" even though the student was created successfully at step 2. The user has no idea which step failed.
+- **Fix**: Implement stage-based progress tracking. Each step reports pending/in_progress/success/failed/skipped. Errors include the failing stage name and prior completed stages.
+- **Rule**: For any multi-step API operation, track progress per step. Report partial success explicitly. Don't wrap everything in a single try/catch.
+
+## SO qty Must Match Invoice Count for Multi-Instalment Billing
+- **Date**: 2026-03-07
+- **Issue**: Creating a Sales Order with qty=1 and then generating 4 invoices each with qty=1 and the same `so_detail` triggers Frappe's overbilling protection (billing 4× the ordered quantity).
+- **Fix**: Create SO with qty=numInstalments and rate=perInstalmentRate. Each invoice then bills qty=1 per instalment, totaling exactly the ordered quantity.
+- **Rule**: When planning multi-invoice billing against a single SO, set SO item qty to the expected number of invoices.
+
 ## Frappe Email: Don't Hardcode Sender
 - **Date**: 2026-03-06
 - **Issue**: `create-parent-user` hardcoded `sender: "academiqedullp@gmail.com"` which doesn't match Frappe's configured Email Account (`smartuplearningventures@gmail.com`). Frappe silently rejects emails when the sender doesn't match any Email Account.
@@ -72,3 +135,27 @@
 - **Impact**: Zero invoices created after admission. Parent couldn't pay fees at all. SO showed 0% billed.
 - **Fix**: Use `qty: 1, rate: instalment_amount` for each instalment invoice instead of splitting the SO line qty proportionally. Removed `remainingQty` tracking and `isLast` fractional logic. Kept `sales_order` and `so_detail` linkage.
 - **Rule**: When creating Sales Invoice items linked to a Sales Order, always use `qty: 1` with the instalment amount as the rate. Never calculate fractional quantities — Frappe UOM "Nos" rejects non-integers. The SO `per_billed` field auto-calculates correctly based on total amounts billed.
+
+## Upfront Input Validation Prevents Frappe Stack Trace Leaks
+- **Date**: 2026-03-07
+- **Issue**: When `first_name` is empty, auto-generated student email becomes `.branchabbr.SRR@dummy.com` (starts with dot). Frappe rejects this with `InvalidEmailAddressError` including a full Python stack trace in the response. The raw traceback leaks internal paths like `apps/frappe/frappe/app.py`.
+- **Impact**: Test E4 showed that error messages from Frappe can contain `File "apps/frappe/..."` and `Traceback` strings when exotic validation errors occur.
+- **Fix**: Added upfront validation in `admitStudent()` for all required fields (`first_name`, `guardian_name`, `guardian_email`, `custom_branch`, `program`) BEFORE any Frappe API calls. Now fails fast with clean `validation_error` messages.
+- **Rule**: Always validate required fields at the application layer before sending to Frappe. Frappe's error messages for edge cases (invalid email format, missing mandatory fields) often contain raw Python tracebacks that leak internals to the client.
+
+## Real-Email Integration Test Results (2026-03-07)
+- **Test Script**: `scripts/test-real-email-combos.mjs`
+- **Scenarios tested**: 4 success + 4 error = 8 total
+- **Results**: ALL 8 passed (4 ✅ success, 4 📋 expected errors)
+- **Key findings**:
+  - S1-S4: Full pipeline works end-to-end with real emails (Guardian → Parent User → Student User → Student → PE → Batch → SO → Welcome Email)
+  - S3: Existing Frappe User as student email → pre-create returns 409 → handled gracefully
+  - S4: Existing Frappe User as parent → parent creation returns 409 → handled gracefully
+  - S4: Auto-generated dummy email → works fine
+  - E1: Duplicate student email → caught with clean error message, no internal leak
+  - E2: Duplicate SRR ID → caught as DuplicateEntryError, clean message
+  - E3: Invalid program → caught at PE stage as LinkValidationError
+  - E4: Missing first_name → now caught upfront before any API calls
+  - Welcome emails: 4 emails queued via Academiqedullp, all force-sent to Sent status, 0 errors
+  - Email Queue: started clean (Error=0), ended clean (Error=0, Not Sent=0)
+

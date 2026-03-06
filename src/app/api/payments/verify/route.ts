@@ -185,6 +185,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Step 5: Send receipt email to parent (non-blocking)
+    // Do NOT pass `email` (session user) — let send-receipt resolve the guardian email
+    // from the invoice. Otherwise when BM pays on behalf, receipt goes to BM not parent.
     if (paymentEntryName && actualInvoiceId) {
       try {
         const origin = request.nextUrl.origin;
@@ -194,7 +196,7 @@ export async function POST(request: NextRequest) {
             "Content-Type": "application/json",
             Cookie: request.headers.get("cookie") || "",
           },
-          body: JSON.stringify({ invoice_id: actualInvoiceId, email }),
+          body: JSON.stringify({ invoice_id: actualInvoiceId }),
         });
         if (!receiptRes.ok) {
           const errBody = await receiptRes.text();

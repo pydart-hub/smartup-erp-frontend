@@ -155,11 +155,42 @@ export async function POST(request: NextRequest) {
 
     const userData = await createRes.json();
 
+    // Explicitly set password via set_value — new_password in creation payload
+    // does not reliably work on Frappe Cloud for Website Users
+    try {
+      const setPwdRes = await fetch(
+        `${FRAPPE_URL}/api/method/frappe.client.set_value`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: adminAuth,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            doctype: "User",
+            name: email,
+            fieldname: "new_password",
+            value: password,
+          }),
+          cache: "no-store",
+        }
+      );
+      if (!setPwdRes.ok) {
+        console.warn("[create-parent-user] set_value for password failed:", setPwdRes.status);
+      } else {
+        console.log(`[create-parent-user] Password set successfully for ${email}`);
+      }
+    } catch (pwdErr) {
+      console.warn("[create-parent-user] Password set_value failed:", pwdErr);
+    }
+
     // ── Send login credentials email to parent ──────────────────
     try {
       const loginUrl = process.env.NEXT_PUBLIC_APP_URL
         || process.env.VERCEL_URL
         || "http://localhost:3000";
+
+      const setPasswordUrl = `${loginUrl}/auth/forgot-password`;
 
       const emailBody = `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -168,7 +199,7 @@ export async function POST(request: NextRequest) {
           <p>Your child has been successfully registered at SmartUp. A parent portal account has been created for you to track your child's academic progress, fees, and attendance.</p>
           
           <div style="background-color: #f5f5f5; border-radius: 8px; padding: 20px; margin: 20px 0;">
-            <h3 style="margin-top: 0; color: #171717;">Your Login Credentials</h3>
+            <h3 style="margin-top: 0; color: #171717;">Your Account Details</h3>
             <table style="width: 100%; border-collapse: collapse;">
               <tr>
                 <td style="padding: 8px 0; color: #666; width: 120px;">Login URL:</td>
@@ -178,14 +209,16 @@ export async function POST(request: NextRequest) {
                 <td style="padding: 8px 0; color: #666;">Email:</td>
                 <td style="padding: 8px 0;"><strong>${email}</strong></td>
               </tr>
-              <tr>
-                <td style="padding: 8px 0; color: #666;">Password:</td>
-                <td style="padding: 8px 0;"><strong>${password}</strong></td>
-              </tr>
             </table>
           </div>
 
-          <p style="color: #e74c3c; font-size: 13px;">⚠️ Please change your password after your first login for security.</p>
+          <p>You can log in using your email and the password provided by the branch manager. If you need to reset your password, click the button below:</p>
+          
+          <div style="text-align: center; margin: 24px 0;">
+            <a href="${setPasswordUrl}" style="display: inline-block; background-color: #2d95f0; color: #ffffff; text-decoration: none; padding: 12px 32px; border-radius: 6px; font-weight: 600;">Reset Password</a>
+          </div>
+
+          <p style="color: #888; font-size: 13px;">If the button doesn't work, copy and paste this link into your browser: ${setPasswordUrl}</p>
           
           <p>If you have any questions, please contact the school administration.</p>
           
@@ -205,12 +238,12 @@ export async function POST(request: NextRequest) {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            subject: "Welcome to SmartUp Parent Portal - Your Login Credentials",
+            subject: "Welcome to SmartUp Parent Portal",
             content: emailBody,
             recipients: email,
             communication_medium: "Email",
             send_email: 1,
-            // No explicit sender — Frappe uses its configured default outgoing Email Account
+            sender: "Academiqedullp <academiqedullp@gmail.com>",
           }),
           cache: "no-store",
         }

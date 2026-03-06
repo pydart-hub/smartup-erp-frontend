@@ -61,6 +61,15 @@ export async function POST(request: NextRequest) {
       );
     }
     const soData = (await soRes.json()).data;
+
+    // Guard: SO must be submitted
+    if (soData.docstatus !== 1) {
+      return NextResponse.json(
+        { error: `Sales Order ${salesOrderName} is not submitted (docstatus=${soData.docstatus}). Submit it before creating invoices.` },
+        { status: 400 },
+      );
+    }
+
     const soItem = soData.items?.[0]; // Tuition fee is always first item
 
     if (!soItem) {
@@ -72,6 +81,7 @@ export async function POST(request: NextRequest) {
 
     // 2. Create one Sales Invoice per instalment
     const createdInvoices: string[] = [];
+    const draftInvoices: string[] = []; // Created but submission failed
     const failedInstalments: { index: number; label: string; error: string }[] = [];
 
     for (let i = 0; i < schedule.length; i++) {
@@ -87,9 +97,8 @@ export async function POST(request: NextRequest) {
         student: soData.student,
         custom_academic_year: soData.custom_academic_year,
         // Items — qty=1 per instalment, rate=instalment amount.
-        // Using qty=1 avoids UOMMustBeIntegerError when UOM "Nos" has
-        // "Must be Whole Number" enabled. The sales_order linkage in the
-        // item row still ties the invoice back to the SO for reference.
+        // SO should have qty=numInstalments so each invoice billing qty=1
+        // stays within the overbilling threshold.
         items: [
           {
             item_code: soItem.item_code,
@@ -132,14 +141,19 @@ export async function POST(request: NextRequest) {
       );
 
       if (!submitRes.ok) {
-        console.error(`[create-invoices] Failed to submit invoice ${invName}`);
+        const submitErr = await submitRes.text().catch(() => "");
+        console.error(`[create-invoices] Failed to submit invoice ${invName}:`, submitErr);
+        // Track as draft — created but not submitted
+        draftInvoices.push(invName);
+        failedInstalments.push({ index: i, label: inst.label, error: `Created as draft but submission failed: ${submitErr}` });
+      } else {
+        createdInvoices.push(invName);
       }
-
-      createdInvoices.push(invName);
     }
 
     return NextResponse.json({
       invoices: createdInvoices,
+      ...(draftInvoices.length > 0 && { drafts: draftInvoices }),
       ...(failedInstalments.length > 0 && { failed: failedInstalments }),
     });
   } catch (err) {

@@ -19,7 +19,7 @@ import { getStudents } from "@/lib/api/students";
 import apiClient from "@/lib/api/client";
 import type { Student } from "@/lib/types/student";
 import { useAuth } from "@/lib/hooks/useAuth";
-import { useAcademicYearStore } from "@/lib/stores/academicYearStore";
+// Academic year store not needed — students list always shows latest enrollment
 
 const PAGE_SIZE = 25;
 
@@ -72,7 +72,6 @@ async function fetchEnrollmentMap(
 
 export default function StudentsPage() {
   const { defaultCompany } = useAuth();
-  const { selectedYear } = useAcademicYearStore();
   const queryClient = useQueryClient();
 
   const [searchInput, setSearchInput] = useState("");
@@ -143,9 +142,10 @@ export default function StudentsPage() {
 
   // ── Query 2: program enrollments for current page ──────────
   const studentIds = students.map((s) => s.name);
+  // Don't filter by academic year — always show the latest enrollment's Class/Batch/Fee Plan
   const { data: enrollmentMap = {} } = useQuery({
-    queryKey: ["enrollment-map", studentIds, selectedYear],
-    queryFn: () => fetchEnrollmentMap(studentIds, selectedYear),
+    queryKey: ["enrollment-map", studentIds],
+    queryFn: () => fetchEnrollmentMap(studentIds),
     enabled: studentIds.length > 0,
     staleTime: 60_000,
   });

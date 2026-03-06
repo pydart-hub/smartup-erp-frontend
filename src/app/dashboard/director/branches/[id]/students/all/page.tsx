@@ -20,7 +20,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { getBranchStudents, getStudentCountForBranch } from "@/lib/api/director";
 import apiClient from "@/lib/api/client";
-import { useAcademicYearStore } from "@/lib/stores/academicYearStore";
+// Academic year store not needed — students list always shows latest enrollment
 
 const PAGE_SIZE = 25;
 
@@ -31,7 +31,6 @@ export default function BranchAllStudentsPage() {
   const branchName = decodeURIComponent(params.id as string);
   const shortName = branchName.replace("Smart Up ", "").replace("Smart Up", "HQ");
   const encodedBranch = encodeURIComponent(branchName);
-  const { selectedYear } = useAcademicYearStore();
 
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
@@ -79,17 +78,16 @@ export default function BranchAllStudentsPage() {
   const students = studentsRes?.data ?? [];
   const hasMore = students.length === PAGE_SIZE;
 
-  // Fetch enrollment data (program, fee plan) for displayed students
+  // Fetch enrollment data (program, fee plan) for displayed students — no year filter, always latest
   const studentIds = students.map((s) => s.name);
   const { data: enrollmentMap = {} } = useQuery({
-    queryKey: ["director-enrollment-map", studentIds, selectedYear],
+    queryKey: ["director-enrollment-map", studentIds],
     queryFn: async () => {
       if (!studentIds.length) return {};
       const filters: (string | number | string[])[][] = [
         ["student", "in", studentIds],
         ["docstatus", "=", 1],
       ];
-      if (selectedYear) filters.push(["academic_year", "=", selectedYear]);
       const { data } = await apiClient.get("/resource/Program Enrollment", {
         params: {
           filters: JSON.stringify(filters),

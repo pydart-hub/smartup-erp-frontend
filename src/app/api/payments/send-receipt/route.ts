@@ -177,7 +177,7 @@ export async function POST(request: NextRequest) {
           send_email: 1,
           print_format: "Standard",
           send_me_a_copy: 0,
-          // No explicit sender — Frappe uses its configured default outgoing Email Account
+          sender: "Academiqedullp <academiqedullp@gmail.com>",
         }),
       },
     );
