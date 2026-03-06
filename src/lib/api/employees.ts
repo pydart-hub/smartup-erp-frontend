@@ -114,7 +114,7 @@ export async function getEmployeeAttendance(params?: {
   status?: string;
   limit_page_length?: number;
 }): Promise<FrappeListResponse<EmployeeAttendance>> {
-  const filters: string[][] = [];
+  const filters: (string | number)[][] = [["docstatus", "=", 1]];
   if (params?.company) filters.push(["company", "=", params.company]);
   if (params?.date) filters.push(["attendance_date", "=", params.date]);
   if (params?.from_date) filters.push(["attendance_date", ">=", params.from_date]);
@@ -210,7 +210,7 @@ export async function getInstructorsWithCourses(branch: string): Promise<Instruc
 // Create / Update Employee Attendance
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Create a new Attendance record (submitted) */
+/** Create a new Attendance record and submit it (docstatus: 1) */
 export async function createEmployeeAttendance(payload: {
   employee: string;
   employee_name: string;
@@ -218,16 +218,34 @@ export async function createEmployeeAttendance(payload: {
   status: string;
   company: string;
 }): Promise<{ data: EmployeeAttendance }> {
-  const { data } = await apiClient.post("/resource/Attendance", payload);
+  const { data } = await apiClient.post("/resource/Attendance", {
+    ...payload,
+    docstatus: 1,
+  });
   return data;
 }
 
-/** Update an existing draft Attendance record */
+/** Update an existing Attendance record: cancel old → create new submitted */
 export async function updateEmployeeAttendance(
-  name: string,
-  status: string
+  existingName: string,
+  payload: {
+    employee: string;
+    employee_name: string;
+    attendance_date: string;
+    status: string;
+    company: string;
+  }
 ): Promise<void> {
-  await apiClient.put(`/resource/Attendance/${encodeURIComponent(name)}`, { status });
+  // Cancel the existing record first
+  await apiClient.post("/method/frappe.client.cancel", {
+    doctype: "Attendance",
+    name: existingName,
+  });
+  // Create a new submitted record
+  await apiClient.post("/resource/Attendance", {
+    ...payload,
+    docstatus: 1,
+  });
 }
 
 /** Get Fee Schedules for a company (used later for class-wise filters) */

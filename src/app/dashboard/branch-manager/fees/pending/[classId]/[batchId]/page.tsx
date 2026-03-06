@@ -81,7 +81,7 @@ export default function StudentPendingFeesPage() {
 
           // Show only invoices where customer is NOT in any batch
           setInvoices(
-            allInvoices.filter((inv) => !allStudentNames.has(inv.customer))
+            allInvoices.filter((inv) => !allStudentNames.has(inv.customer_name || inv.customer))
           );
         } else {
           // Fetch the specific batch to get its student list
@@ -99,7 +99,7 @@ export default function StudentPendingFeesPage() {
 
           // Filter invoices to only those whose customer matches a batch student
           setInvoices(
-            allInvoices.filter((inv) => batchStudentNames.has(inv.customer))
+            allInvoices.filter((inv) => batchStudentNames.has(inv.customer_name || inv.customer))
           );
         }
       } catch (err) {

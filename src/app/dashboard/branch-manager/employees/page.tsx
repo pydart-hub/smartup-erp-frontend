@@ -169,17 +169,18 @@ export default function EmployeesPage() {
         const emp = employees.find((e) => e.name === empName);
         if (!emp) continue;
         const existing = existingMap.get(empName);
+        const payload = {
+          employee: emp.name,
+          employee_name: emp.employee_name,
+          attendance_date: selectedDate,
+          status,
+          company: emp.company,
+        };
         try {
           if (existing) {
-            await updateEmployeeAttendance(existing.docId, status);
+            await updateEmployeeAttendance(existing.docId, payload);
           } else {
-            await createEmployeeAttendance({
-              employee: emp.name,
-              employee_name: emp.employee_name,
-              attendance_date: selectedDate,
-              status,
-              company: emp.company,
-            });
+            await createEmployeeAttendance(payload);
           }
           saved++;
         } catch {

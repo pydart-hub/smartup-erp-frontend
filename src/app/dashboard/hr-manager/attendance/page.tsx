@@ -142,17 +142,18 @@ export default function HRAttendancePage() {
     for (const [empId, status] of Object.entries(pendingChanges)) {
       const existing = attendanceMap.get(empId);
       const emp = employees.find((e) => e.name === empId);
+      const payload = {
+        employee: empId,
+        employee_name: emp?.employee_name ?? "",
+        attendance_date: selectedDate,
+        status,
+        company: defaultCompany || emp?.company || "",
+      };
       try {
         if (existing) {
-          await updateEmployeeAttendance(existing.name, status);
+          await updateEmployeeAttendance(existing.name, payload);
         } else {
-          await createEmployeeAttendance({
-            employee: empId,
-            employee_name: emp?.employee_name ?? "",
-            attendance_date: selectedDate,
-            status,
-            company: defaultCompany || emp?.company || "",
-          });
+          await createEmployeeAttendance(payload);
         }
         successCount++;
       } catch {

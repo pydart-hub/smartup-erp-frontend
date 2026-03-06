@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import React, { useState, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   UserPlus, Search, Eye, Pencil, Trash2,
   ChevronLeft, ChevronRight, Loader2, AlertCircle,
+  X, AlertTriangle,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Button } from "@/components/ui/Button";
@@ -72,11 +73,46 @@ async function fetchEnrollmentMap(
 export default function StudentsPage() {
   const { defaultCompany } = useAuth();
   const { selectedYear } = useAcademicYearStore();
+  const queryClient = useQueryClient();
 
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");          // debounced
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [page, setPage] = useState(0);
+
+  // Delete state
+  const [deleteTarget, setDeleteTarget] = useState<Student | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const handleDelete = useCallback(async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      const res = await fetch("/api/admin/delete-student", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ student_id: deleteTarget.name }),
+      });
+      const data = await res.json();
+      if (!res.ok && res.status !== 207) {
+        setDeleteError(data.error || "Failed to delete student");
+        return;
+      }
+      if (data.failed?.length > 0) {
+        setDeleteError(`Partially deleted. ${data.failed.length} step(s) failed: ${data.failed.map((f: { step: string }) => f.step).join(", ")}`);
+        // Still close and refresh — student is likely gone
+      }
+      setDeleteTarget(null);
+      queryClient.invalidateQueries({ queryKey: ["students"] });
+      queryClient.invalidateQueries({ queryKey: ["enrollment-map"] });
+    } catch {
+      setDeleteError("Network error — please try again.");
+    } finally {
+      setDeleting(false);
+    }
+  }, [deleteTarget, queryClient]);
 
   // Debounce search input (400 ms)
   useEffect(() => {
@@ -289,7 +325,10 @@ export default function StudentsPage() {
                                     <Pencil className="h-4 w-4" />
                                   </button>
                                 </Link>
-                              <button className="w-8 h-8 rounded-[8px] flex items-center justify-center text-text-tertiary hover:bg-error-light hover:text-error transition-colors">
+                              <button
+                                onClick={() => { setDeleteError(null); setDeleteTarget(student); }}
+                                className="w-8 h-8 rounded-[8px] flex items-center justify-center text-text-tertiary hover:bg-error-light hover:text-error transition-colors"
+                              >
                                 <Trash2 className="h-4 w-4" />
                               </button>
                             </div>
@@ -332,6 +371,104 @@ export default function StudentsPage() {
           </div>
         </div>
       </Card>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {deleteTarget && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+            onClick={() => !deleting && setDeleteTarget(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6"
+            >
+              {/* Header */}
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-error/10 flex items-center justify-center">
+                    <AlertTriangle className="h-5 w-5 text-error" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-text-primary">Delete Student</h3>
+                    <p className="text-sm text-text-secondary">This action cannot be undone</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => !deleting && setDeleteTarget(null)}
+                  className="text-text-tertiary hover:text-text-primary transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="bg-error/5 border border-error/20 rounded-xl p-4 mb-5">
+                <p className="text-sm text-text-primary mb-2">
+                  You are about to permanently delete:
+                </p>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-9 h-9 rounded-full bg-primary-light text-primary flex items-center justify-center text-xs font-bold">
+                    {initials(deleteTarget.student_name || deleteTarget.first_name || "?")}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-text-primary">{deleteTarget.student_name}</p>
+                    <p className="text-xs text-text-tertiary">{deleteTarget.name}</p>
+                  </div>
+                </div>
+                <p className="text-xs text-text-secondary leading-relaxed">
+                  This will also delete all related records: enrollments, batch memberships,
+                  sales orders, invoices, payments, and the linked customer record.
+                </p>
+              </div>
+
+              {/* Error */}
+              {deleteError && (
+                <div className="bg-warning/10 border border-warning/30 rounded-lg p-3 mb-4 text-sm text-warning">
+                  {deleteError}
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex items-center gap-3 justify-end">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setDeleteTarget(null)}
+                  disabled={deleting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="!bg-error hover:!bg-error/90 !text-white gap-2"
+                >
+                  {deleting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Deleting…
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="h-4 w-4" />
+                      Delete Student
+                    </>
+                  )}
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

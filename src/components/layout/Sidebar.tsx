@@ -23,6 +23,7 @@ import {
   UserCheck,
   BookOpen,
   Receipt,
+  Briefcase,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useUIStore } from "@/lib/stores/uiStore";
@@ -44,6 +45,7 @@ const iconMap: Record<string, React.ElementType> = {
   ClipboardEdit,
   CalendarDays,
   Receipt,
+  Briefcase,
 };
 
 interface SidebarProps {

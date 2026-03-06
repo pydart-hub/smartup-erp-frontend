@@ -85,7 +85,7 @@ export default function BatchPendingFeesPage() {
   const invoiceCustomers = useMemo(() => {
     const map = new Map<string, { outstanding: number; count: number }>();
     for (const inv of invoices) {
-      const key = inv.customer;
+      const key = inv.customer_name || inv.customer;
       const existing = map.get(key);
       if (existing) {
         existing.outstanding += inv.outstanding_amount;
@@ -131,10 +131,10 @@ export default function BatchPendingFeesPage() {
 
     // Add "Unmatched" for invoices not assigned to any batch
     const unmatchedOutstanding = invoices
-      .filter((inv) => !matchedCustomers.has(inv.customer))
+      .filter((inv) => !matchedCustomers.has(inv.customer_name || inv.customer))
       .reduce((s, inv) => s + inv.outstanding_amount, 0);
     const unmatchedCount = invoices.filter(
-      (inv) => !matchedCustomers.has(inv.customer)
+      (inv) => !matchedCustomers.has(inv.customer_name || inv.customer)
     ).length;
 
     if (unmatchedCount > 0) {

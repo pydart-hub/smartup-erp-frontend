@@ -92,7 +92,12 @@ export const BRANCH_MANAGER_NAV: NavItem[] = [
       { label: "Batches", href: "/dashboard/branch-manager/batches", icon: "Users" },
     ],
   },
-  { label: "Attendance", href: "/dashboard/branch-manager/attendance", icon: "ClipboardCheck" },
+  { label: "Attendance", href: "/dashboard/branch-manager/attendance", icon: "ClipboardCheck",
+    children: [
+      { label: "Students", href: "/dashboard/branch-manager/attendance/students", icon: "GraduationCap" },
+      { label: "Staff", href: "/dashboard/branch-manager/attendance/staff", icon: "Briefcase" },
+    ],
+  },
   { label: "Course Schedule", href: "/dashboard/branch-manager/course-schedule", icon: "CalendarDays" },
   { label: "Teachers", href: "/dashboard/branch-manager/teachers", icon: "UserCheck" },
   { label: "Fees", href: "/dashboard/branch-manager/fees", icon: "IndianRupee" },
