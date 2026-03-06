@@ -5,31 +5,21 @@ const ROLE_DASHBOARD_MAP: Record<string, string> = {
   "Director": "/dashboard/director",
   "Management": "/dashboard/director",
   "Branch Manager": "/dashboard/branch-manager",
+  "HR Manager": "/dashboard/hr-manager",
   "Instructor": "/dashboard/instructor",
   "Batch Coordinator": "/dashboard/batch-coordinator",
   "Teacher": "/dashboard/teacher",
-  "Accountant": "/dashboard/accountant",
   "Administrator": "/dashboard/admin",
   "Parent": "/dashboard/parent",
 };
 
-const PUBLIC_PATHS = ["/auth/login", "/auth/forgot-password", "/api/", "/toggle"];
+const PUBLIC_PATHS = ["/auth/login", "/auth/forgot-password", "/api/"];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow public paths
   if (PUBLIC_PATHS.some((path) => pathname.startsWith(path))) {
-    return NextResponse.next();
-  }
-
-  // Developer: auth bypass flag (set from /toggle page)
-  const devBypass = request.cookies.get("dev_auth_bypass");
-  if (devBypass?.value === "1") {
-    // Still redirect root → branch-manager, but skip session validation
-    if (pathname === "/" || pathname === "/dashboard") {
-      return NextResponse.redirect(new URL("/dashboard/branch-manager", request.url));
-    }
     return NextResponse.next();
   }
 

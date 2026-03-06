@@ -5,7 +5,6 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import {
-  IndianRupee,
   Search,
   Building2,
   ChevronRight,
@@ -16,27 +15,21 @@ import {
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Input } from "@/components/ui/Input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
-import { getAllBranches, getBranchFeeSchedules, getBranchInvoiceStats } from "@/lib/api/director";
+import { getAllBranches, getBranchInvoiceStats } from "@/lib/api/director";
 import { formatCurrency } from "@/lib/utils/formatters";
 
 function BranchFeeRow({ branch }: { branch: { name: string; abbr: string } }) {
-  const { data: fees, isLoading } = useQuery({
-    queryKey: ["director-branch-fees", branch.name],
-    queryFn: () => getBranchFeeSchedules(branch.name),
-    staleTime: 120_000,
-  });
-
-  const { data: invoiceStats, isLoading: loadInvoices } = useQuery({
+  const { data: invoiceStats, isLoading } = useQuery({
     queryKey: ["director-branch-invoice-stats", branch.name],
     queryFn: () => getBranchInvoiceStats(branch.name),
     staleTime: 120_000,
   });
 
   const shortName = branch.name.replace("Smart Up ", "").replace("Smart Up", "HQ");
-  const feeList = fees ?? [];
-  const totalAmount = feeList.reduce((sum, f) => sum + (f.grand_total || f.total_amount || 0), 0);
+  const totalFees = invoiceStats?.totalInvoiced ?? 0;
+  const collected = invoiceStats?.totalCollected ?? 0;
+  const pending = invoiceStats?.totalOutstanding ?? 0;
+  const invoiceCount = invoiceStats?.count ?? 0;
 
   return (
     <Link href={`/dashboard/director/branches/${encodeURIComponent(branch.name)}/fees`}>
@@ -46,32 +39,32 @@ function BranchFeeRow({ branch }: { branch: { name: string; abbr: string } }) {
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-text-primary">{shortName}</p>
-          <p className="text-xs text-text-tertiary">{feeList.length} fee schedule{feeList.length !== 1 ? "s" : ""}</p>
+          <p className="text-xs text-text-tertiary">{invoiceCount} invoice{invoiceCount !== 1 ? "s" : ""}</p>
         </div>
         <div className="flex items-center gap-4 shrink-0">
           <div className="text-right">
             {isLoading ? (
               <span className="inline-block w-16 h-5 bg-border-light rounded animate-pulse" />
             ) : (
-              <p className="text-sm font-bold text-text-primary">{formatCurrency(totalAmount)}</p>
+              <p className="text-sm font-bold text-text-primary">{formatCurrency(totalFees)}</p>
             )}
             <p className="text-[10px] text-text-tertiary">total fees</p>
           </div>
           <div className="text-right">
-            {loadInvoices ? (
+            {isLoading ? (
               <span className="inline-block w-14 h-5 bg-border-light rounded animate-pulse" />
             ) : (
-              <p className="text-sm font-bold text-success">{formatCurrency(invoiceStats?.totalCollected ?? 0)}</p>
+              <p className="text-sm font-bold text-success">{formatCurrency(collected)}</p>
             )}
             <p className="text-[10px] text-success/70 flex items-center justify-end gap-0.5">
               <CircleCheck className="h-2.5 w-2.5" /> collected
             </p>
           </div>
           <div className="text-right">
-            {loadInvoices ? (
+            {isLoading ? (
               <span className="inline-block w-14 h-5 bg-border-light rounded animate-pulse" />
             ) : (
-              <p className="text-sm font-bold text-error">{formatCurrency(invoiceStats?.totalOutstanding ?? 0)}</p>
+              <p className="text-sm font-bold text-error">{formatCurrency(pending)}</p>
             )}
             <p className="text-[10px] text-error/70 flex items-center justify-end gap-0.5">
               <Clock className="h-2.5 w-2.5" /> pending
@@ -102,7 +95,7 @@ export default function DirectorFeesPage() {
       <BreadcrumbNav />
       <div>
         <h1 className="text-2xl font-bold text-text-primary">Fees</h1>
-        <p className="text-sm text-text-secondary mt-0.5">Fee schedules and collection across branches</p>
+        <p className="text-sm text-text-secondary mt-0.5">Invoice collection across branches (submitted invoices only)</p>
       </div>
 
       <div className="relative max-w-sm">

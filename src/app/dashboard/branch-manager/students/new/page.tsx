@@ -11,6 +11,7 @@ import {
   User,
   Users,
   School,
+  CreditCard,
   ArrowLeft,
   ArrowRight,
   Check,
@@ -20,6 +21,9 @@ import {
   Loader2,
   AlertCircle,
   Lock,
+  Banknote,
+  Wifi,
+  Tag,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Button } from "@/components/ui/Button";
@@ -27,6 +31,9 @@ import { Input } from "@/components/ui/Input";
 import { Card, CardContent } from "@/components/ui/Card";
 import { studentSchema, type StudentFormValues } from "@/lib/validators/student";
 import { admitStudent, getAcademicYears, getBranches, getStudentGroups, getNextSrrId } from "@/lib/api/enrollment";
+import { getFeeStructures } from "@/lib/api/fees";
+import type { FeeConfigEntry, PaymentOptionSummary } from "@/lib/types/fee";
+import { getAllPaymentOptions } from "@/lib/utils/feeSchedule";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/hooks/useAuth";
 
@@ -54,6 +61,13 @@ const STEPS = [
   { id: 1, label: "Student Info", icon: User },
   { id: 2, label: "Guardian", icon: Users },
   { id: 3, label: "Academic", icon: School },
+  { id: 4, label: "Fee Details", icon: CreditCard },
+];
+
+const PLAN_OPTIONS = [
+  { value: "Basic", label: "Basic", description: "Standard curriculum" },
+  { value: "Intermediate", label: "Intermediate", description: "Enhanced learning" },
+  { value: "Advanced", label: "Advanced", description: "Premium programme" },
 ];
 
 export default function NewStudentPage() {
@@ -73,8 +87,11 @@ export default function NewStudentPage() {
     defaultValues: {
       enrollment_date: new Date().toISOString().split("T")[0],
       gender: "Male",
-      academic_year: "2025-2026",
+      academic_year: "2026-2027",
       custom_branch: defaultCompany || "",
+      custom_plan: "",
+      custom_no_of_instalments: "",
+      custom_mode_of_payment: undefined as unknown as "Cash" | "Online",
     },
   });
 
@@ -159,15 +176,109 @@ export default function NewStudentPage() {
       .map((g) => g.batch!);
   }, [studentGroups]);
 
+  // ── Fee structure lookup ──────────────────────────────────────
+  const selectedPlan = watch("custom_plan");
+  const selectedInstalments = watch("custom_no_of_instalments");
+  const selectedAcademicYear = watch("academic_year");
+  const selectedModeOfPayment = watch("custom_mode_of_payment");
+
+  // Fee Structure program names may differ from Student Group program names
+  // e.g. Student Group uses "11th Science State" but Fee Structure uses "11th State"
+  const feeProgram = useMemo(() => {
+    if (!selectedProgram) return "";
+    // Strip "Science " when it appears between the class number and board
+    // "11th Science State" → "11th State", "11th Science CBSE" stays as-is (exists in both)
+    return selectedProgram.replace(/^(\d+th) Science (State)$/i, "$1 $2");
+  }, [selectedProgram]);
+
+  // Fetch all submitted fee structures for the selected branch + program
+  const { data: feeStructuresRes, isFetching: loadingFeeStructures } = useQuery({
+    queryKey: ["fee-structures", selectedBranch, feeProgram, selectedAcademicYear],
+    queryFn: () =>
+      getFeeStructures({
+        company: selectedBranch,
+        program: feeProgram,
+        academic_year: selectedAcademicYear,
+        docstatus: 1,
+      }),
+    enabled: !!(selectedBranch && feeProgram && selectedAcademicYear),
+    staleTime: 60_000,
+  });
+
+  const feeStructures = useMemo(() => feeStructuresRes?.data ?? [], [feeStructuresRes]);
+
+  // Derive available plans from fetched structures
+  const availablePlans = useMemo(() => {
+    const plans = new Set<string>();
+    feeStructures.forEach((fs) => { if (fs.custom_plan) plans.add(fs.custom_plan); });
+    return Array.from(plans);
+  }, [feeStructures]);
+
+  // Fetch XLSX per-instalment pricing when plan is selected
+  const { data: feeConfigRes, isFetching: loadingFeeConfig } = useQuery({
+    queryKey: ["fee-config", selectedBranch, selectedProgram, selectedPlan],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        company: selectedBranch,
+        program: selectedProgram,
+        plan: selectedPlan,
+      });
+      const res = await fetch(`/api/fee-config?${params}`);
+      if (!res.ok) return null;
+      const json = await res.json();
+      return json.data as FeeConfigEntry;
+    },
+    enabled: !!(selectedBranch && selectedProgram && selectedPlan),
+    staleTime: 60_000,
+  });
+
+  const feeConfig: FeeConfigEntry | null = feeConfigRes ?? null;
+
+  // Generate payment option summaries from XLSX data
+  const selectedEnrollmentDate = watch("enrollment_date");
+  const paymentOptions: PaymentOptionSummary[] = useMemo(() => {
+    if (!feeConfig) return [];
+    return getAllPaymentOptions(feeConfig, selectedAcademicYear, selectedEnrollmentDate);
+  }, [feeConfig, selectedAcademicYear, selectedEnrollmentDate]);
+
+  // Selected payment option details
+  const selectedOption: PaymentOptionSummary | null = useMemo(() => {
+    if (!selectedInstalments || paymentOptions.length === 0) return null;
+    return paymentOptions.find((o) => o.instalments === Number(selectedInstalments)) ?? null;
+  }, [paymentOptions, selectedInstalments]);
+
+  // Match fee structure from selections (still needed for SO creation)
+  const matchedFeeStructure = useMemo(() => {
+    if (!selectedPlan || !selectedInstalments) return null;
+    return feeStructures.find(
+      (fs) =>
+        fs.custom_plan === selectedPlan &&
+        fs.custom_no_of_instalments === selectedInstalments
+    ) ?? null;
+  }, [feeStructures, selectedPlan, selectedInstalments]);
+
+  // Auto-set fee_structure in form when resolved
+  useEffect(() => {
+    const name = matchedFeeStructure?.name ?? "";
+    setValue("fee_structure", name);
+  }, [matchedFeeStructure, setValue]);
+
+  // Reset instalment selection when plan changes
+  const prevPlanRef = useRef(selectedPlan);
+  useEffect(() => {
+    if (prevPlanRef.current !== selectedPlan) {
+      prevPlanRef.current = selectedPlan;
+      setValue("custom_no_of_instalments", "");
+    }
+  }, [selectedPlan, setValue]);
+
   // ── Submit ────────────────────────────────────────────────────
   async function onSubmit(data: StudentFormValues) {
     try {
       const matchedGroup = studentGroups.find((g) => g.batch === data.student_batch_name);
 
       const result = await admitStudent({
-        first_name: data.first_name,
-        middle_name: data.middle_name,
-        last_name: data.last_name,
+        first_name: data.full_name,
         date_of_birth: data.date_of_birth,
         gender: data.gender,
         blood_group: data.blood_group,
@@ -185,20 +296,46 @@ export default function NewStudentPage() {
         guardian_mobile: data.guardian_mobile,
         guardian_relation: data.guardian_relation,
         guardian_password: data.guardian_password,
+        fee_structure: data.fee_structure,
+        custom_plan: data.custom_plan,
+        custom_no_of_instalments: data.custom_no_of_instalments,
+        custom_mode_of_payment: data.custom_mode_of_payment,
+        instalmentSchedule: selectedOption?.schedule.map((s) => ({
+          amount: s.amount,
+          dueDate: s.dueDate,
+          label: s.label,
+        })),
       });
 
-      const soMsg = result.salesOrder
-        ? ` Sales Order ${result.salesOrder} created.`
-        : "";
-      toast.success(`Student admitted successfully!${soMsg}`);
+      const soMsg = result.salesOrder ? ` SO: ${result.salesOrder}.` : "";
+      const invMsg = result.invoices?.length ? ` ${result.invoices.length} invoice(s) created.` : "";
+      toast.success(`Student admitted successfully!${soMsg}${invMsg}`);
+
+      // Show warnings for non-blocking failures (SO/invoice issues)
+      if (result.warnings?.length) {
+        for (const w of result.warnings) {
+          toast.warning(w, { duration: 8000 });
+        }
+      }
+
       router.push("/dashboard/branch-manager/students");
     } catch (err: unknown) {
       // Frappe validation errors (HTTP 417) encode the real message in
       // `_server_messages` as a JSON-encoded array of {message} objects.
       const data = (err as { response?: { data?: Record<string, unknown> } })?.response?.data;
       let msg = "Failed to create student";
-      if (data) {
-        if (typeof data._server_messages === "string") {
+      // Check for our own typed errors thrown inside admitStudent
+      if ((err as { __type?: string }).__type === "duplicate_email") {
+        msg = (err as Error).message;
+      } else if (data) {
+        // Handle DuplicateEntryError specifically
+        if (String(data.exc_type) === "DuplicateEntryError" ||
+            String(data.exception ?? "").includes("DuplicateEntryError")) {
+          msg = "A student with this SRR ID already exists at this branch. Please use a different SRR ID.";
+        } else if (String(data.exc_type) === "UniqueValidationError" ||
+            String(data.exception ?? "").includes("UniqueValidationError")) {
+          msg = "A student with this email address already exists. Please use a different email.";
+        } else if (typeof data._server_messages === "string") {
           try {
             const parsed: { message: string }[] = JSON.parse(data._server_messages as string);
             msg = parsed.map((m) => m.message).join(" ") || msg;
@@ -218,24 +355,29 @@ export default function NewStudentPage() {
     }
   }
 
+  // (selectedPaymentType was removed — replaced by selectedPlan / selectedInstalments above)
+
   async function nextStep() {
     const fieldsToValidate: Record<number, (keyof StudentFormValues)[]> = {
-      1: ["first_name", "date_of_birth", "gender"],
+      1: ["full_name", "date_of_birth", "gender"],
       2: ["guardian_name", "guardian_mobile", "guardian_relation", "guardian_email", "guardian_password"],
+      3: ["custom_branch", "program", "academic_year", "enrollment_date"],
     };
     const isValid = await trigger(fieldsToValidate[currentStep] ?? []);
-    if (isValid) setCurrentStep((prev) => Math.min(prev + 1, 3));
+    if (isValid) setCurrentStep((prev) => Math.min(prev + 1, 4));
   }
 
   // Navigate to the step that contains the failing field so the user can see the error
   function handleFormError(formErrors: FieldErrors<StudentFormValues>) {
     const step1Keys: (keyof StudentFormValues)[] = [
-      "first_name", "date_of_birth", "gender",
-      "middle_name", "last_name", "blood_group",
-      "student_email_id", "student_mobile_number",
+      "full_name", "date_of_birth", "gender",
+      "blood_group", "student_email_id", "student_mobile_number",
     ];
     const step2Keys: (keyof StudentFormValues)[] = [
       "guardian_name", "guardian_mobile", "guardian_relation", "guardian_email", "guardian_password",
+    ];
+    const step3Keys: (keyof StudentFormValues)[] = [
+      "custom_branch", "program", "academic_year", "enrollment_date", "custom_srr_id", "student_batch_name",
     ];
     const errorKeys = Object.keys(formErrors) as (keyof StudentFormValues)[];
     if (errorKeys.some((k) => step1Keys.includes(k))) {
@@ -244,8 +386,11 @@ export default function NewStudentPage() {
     } else if (errorKeys.some((k) => step2Keys.includes(k))) {
       setCurrentStep(2);
       toast.error("Please fix the errors in Guardian Info (Step 2)");
+    } else if (errorKeys.some((k) => step3Keys.includes(k))) {
+      setCurrentStep(3);
+      toast.error("Please fix the errors in Academic Details (Step 3)");
     }
-    // Academic field errors are on Step 3 (currently visible) — show inline
+    // Payment field errors are on Step 4 (currently visible) — show inline
   }
 
   function prevStep() {
@@ -307,7 +452,13 @@ export default function NewStudentPage() {
       </div>
 
       {/* Form */}
-      <form onSubmit={handleSubmit(onSubmit, handleFormError)}>
+      <form
+        onSubmit={handleSubmit(onSubmit, handleFormError)}
+        onKeyDown={(e) => {
+          // Prevent Enter from submitting the form on intermediate steps
+          if (e.key === "Enter" && currentStep < 4) e.preventDefault();
+        }}
+      >
         <Card>
           <CardContent className="p-6">
             <AnimatePresence mode="wait">
@@ -325,10 +476,8 @@ export default function NewStudentPage() {
                     <p className="text-sm text-text-secondary mt-0.5">Basic personal details</p>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <Input label="First Name *" placeholder="John" error={errors.first_name?.message} {...register("first_name")} />
-                    <Input label="Middle Name" placeholder="William" {...register("middle_name")} />
-                    <Input label="Last Name" placeholder="Doe" {...register("last_name")} />
+                  <div className="grid grid-cols-1 gap-4">
+                    <Input label="Name *" placeholder="Full Name" error={errors.full_name?.message} {...register("full_name")} />
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -410,9 +559,7 @@ export default function NewStudentPage() {
                         <option value="">Select relation</option>
                         <option value="Father">Father</option>
                         <option value="Mother">Mother</option>
-                        <option value="Guardian">Guardian</option>
-                        <option value="Sibling">Sibling</option>
-                        <option value="Other">Other</option>
+                        <option value="Others">Others</option>
                       </select>
                     </SelectField>
                   </div>
@@ -570,11 +717,260 @@ export default function NewStudentPage() {
                       </p>
                     </div>
                   )}
+                </motion.div>
+              )}
+
+              {/* Step 4: Fee Details */}
+              {currentStep === 4 && (
+                <motion.div
+                  key="step4"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="space-y-5"
+                >
+                  <div>
+                    <h3 className="text-lg font-semibold text-text-primary">Fee Details</h3>
+                    <p className="text-sm text-text-secondary mt-0.5">
+                      Select a fee plan and instalment option
+                      {!selectedBranch || !selectedProgram
+                        ? " — please select branch & class in Step 3 first"
+                        : ""}
+                    </p>
+                  </div>
+
+                  {/* No fee structures available warning */}
+                  {selectedBranch && selectedProgram && !loadingFeeStructures && feeStructures.length === 0 && (
+                    <div className="bg-warning/10 rounded-[10px] p-4 border border-warning/20 flex items-start gap-2">
+                      <AlertCircle className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
+                      <p className="text-sm text-warning">
+                        No fee structures found for {selectedProgram} at {selectedBranch.replace("Smart Up ", "")} ({selectedAcademicYear}). Please contact the administrator.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Loading state */}
+                  {loadingFeeStructures && (
+                    <div className="flex items-center justify-center py-8 gap-2 text-text-tertiary">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span className="text-sm">Loading fee structures…</span>
+                    </div>
+                  )}
+
+                  {/* Plan selection */}
+                  {feeStructures.length > 0 && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-text-secondary">Fee Plan *</label>
+                      <div className="grid grid-cols-3 gap-3">
+                        {PLAN_OPTIONS.filter((p) => availablePlans.includes(p.value)).map((plan) => {
+                          const isSelected = selectedPlan === plan.value;
+                          return (
+                            <label
+                              key={plan.value}
+                              className={`relative flex flex-col items-center gap-2 p-4 rounded-[12px] border-2 cursor-pointer transition-all ${
+                                isSelected
+                                  ? "border-primary bg-primary/5"
+                                  : "border-border-input bg-surface hover:border-border-input/80"
+                              }`}
+                            >
+                              <input
+                                type="radio"
+                                value={plan.value}
+                                {...register("custom_plan")}
+                                className="sr-only"
+                              />
+                              <span className={`text-sm font-semibold ${
+                                isSelected ? "text-primary" : "text-text-secondary"
+                              }`}>
+                                {plan.label}
+                              </span>
+                              <span className="text-xs text-text-tertiary text-center">{plan.description}</span>
+                              {isSelected && (
+                                <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                                  <Check className="h-3 w-3 text-white" />
+                                </div>
+                              )}
+                            </label>
+                          );
+                        })}
+                      </div>
+                      {errors.custom_plan && <p className="text-xs text-error">{errors.custom_plan.message}</p>}
+                    </div>
+                  )}
+
+                  {/* Payment Option Selection (replaces old instalment picker) */}
+                  {selectedPlan && paymentOptions.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="space-y-3"
+                    >
+                      <label className="text-sm font-medium text-text-secondary">Payment Option *</label>
+                      {loadingFeeConfig ? (
+                        <div className="flex items-center justify-center py-6 gap-2 text-text-tertiary">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span className="text-sm">Loading pricing…</span>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {paymentOptions.map((opt) => {
+                            const isSelected = selectedInstalments === String(opt.instalments);
+                            const isBestValue = opt.instalments === 1;
+                            return (
+                              <label
+                                key={opt.instalments}
+                                className={`relative flex flex-col p-4 rounded-[12px] border-2 cursor-pointer transition-all ${
+                                  isSelected
+                                    ? "border-primary bg-primary/5"
+                                    : "border-border-input bg-surface hover:border-primary/30"
+                                }`}
+                              >
+                                <input
+                                  type="radio"
+                                  value={String(opt.instalments)}
+                                  {...register("custom_no_of_instalments")}
+                                  className="sr-only"
+                                />
+                                {isBestValue && (
+                                  <span className="absolute -top-2.5 left-3 px-2 py-0.5 text-[10px] font-bold uppercase bg-green-500 text-white rounded-full">
+                                    Best Value
+                                  </span>
+                                )}
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className={`text-sm font-semibold ${isSelected ? "text-primary" : "text-text-primary"}`}>
+                                    {opt.label}
+                                  </span>
+                                  <span className={`text-base font-bold ${isSelected ? "text-primary" : "text-text-primary"}`}>
+                                    ₹{opt.total.toLocaleString("en-IN")}
+                                  </span>
+                                </div>
+                                {(opt.savings ?? 0) > 0 && (
+                                  <div className="flex items-center gap-1 mb-1">
+                                    <Tag className="h-3 w-3 text-green-600" />
+                                    <span className="text-xs text-green-600 font-medium">
+                                      Save ₹{(opt.savings ?? 0).toLocaleString("en-IN")} vs annual fee
+                                    </span>
+                                  </div>
+                                )}
+                                {opt.instalments > 1 && (
+                                  <div className="text-xs text-text-tertiary mt-1">
+                                    {opt.schedule.map((s, i) => (
+                                      <span key={i}>
+                                        {s.label}: ₹{s.amount.toLocaleString("en-IN")}
+                                        {i < opt.schedule.length - 1 ? " · " : ""}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                                {isSelected && (
+                                  <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                                    <Check className="h-3 w-3 text-white" />
+                                  </div>
+                                )}
+                              </label>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {errors.custom_no_of_instalments && (
+                        <p className="text-xs text-error">{errors.custom_no_of_instalments.message}</p>
+                      )}
+                    </motion.div>
+                  )}
+
+                  {/* Instalment Schedule Detail */}
+                  {selectedOption && selectedOption.instalments > 1 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                    >
+                      <div className="bg-brand-wash rounded-[12px] border border-primary/10 overflow-hidden">
+                        <div className="px-4 py-3 border-b border-primary/10 flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-semibold text-primary">Payment Schedule</p>
+                            <p className="text-xs text-text-tertiary mt-0.5">
+                              {selectedOption.label} — {selectedOption.schedule.length} payments
+                            </p>
+                          </div>
+                          <span className="text-lg font-bold text-primary">
+                            ₹{selectedOption.total.toLocaleString("en-IN")}
+                          </span>
+                        </div>
+                        <div className="divide-y divide-primary/5">
+                          {selectedOption.schedule.map((inst) => (
+                            <div key={inst.index} className="flex items-center justify-between px-4 py-2.5">
+                              <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold flex items-center justify-center">
+                                  {inst.index}
+                                </div>
+                                <div>
+                                  <span className="text-sm text-text-secondary">{inst.label}</span>
+                                  <span className="text-xs text-text-tertiary ml-2">
+                                    Due {new Date(inst.dueDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                                  </span>
+                                </div>
+                              </div>
+                              <span className="text-sm font-medium text-text-primary">
+                                ₹{inst.amount.toLocaleString("en-IN")}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* Mode of Payment */}
+                  {selectedInstalments && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-text-secondary">Mode of Payment *</label>
+                      <div className="grid grid-cols-2 gap-3">
+                        {([
+                          { value: "Cash" as const, label: "Cash", description: "Pay at branch counter", icon: Banknote },
+                          { value: "Online" as const, label: "Online", description: "Pay via Razorpay", icon: Wifi },
+                        ]).map((opt) => {
+                          const isSelected = selectedModeOfPayment === opt.value;
+                          const Icon = opt.icon;
+                          return (
+                            <label
+                              key={opt.value}
+                              className={`relative flex flex-col items-center gap-2 p-4 rounded-[12px] border-2 cursor-pointer transition-all ${
+                                isSelected
+                                  ? "border-primary bg-primary/5"
+                                  : "border-border-input bg-surface hover:border-border-input/80"
+                              }`}
+                            >
+                              <input
+                                type="radio"
+                                value={opt.value}
+                                {...register("custom_mode_of_payment")}
+                                className="sr-only"
+                              />
+                              <Icon className={`h-5 w-5 ${isSelected ? "text-primary" : "text-text-tertiary"}`} />
+                              <span className={`text-sm font-semibold ${isSelected ? "text-primary" : "text-text-secondary"}`}>
+                                {opt.label}
+                              </span>
+                              <span className="text-xs text-text-tertiary text-center">{opt.description}</span>
+                              {isSelected && (
+                                <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                                  <Check className="h-3 w-3 text-white" />
+                                </div>
+                              )}
+                            </label>
+                          );
+                        })}
+                      </div>
+                      {errors.custom_mode_of_payment && (
+                        <p className="text-xs text-error">{errors.custom_mode_of_payment.message}</p>
+                      )}
+                    </div>
+                  )}
 
                   {/* Admission summary */}
                   <div className="bg-app-bg rounded-[10px] p-4 border border-border-light text-sm space-y-1.5 text-text-secondary">
                     <p className="font-semibold text-text-primary mb-2">Admission Summary</p>
-                    <p><span className="text-text-tertiary w-36 inline-block">Student:</span> {[watch("first_name"), watch("middle_name"), watch("last_name")].filter(Boolean).join(" ") || "—"}</p>
+                    <p><span className="text-text-tertiary w-36 inline-block">Student:</span> {watch("full_name") || "—"}</p>
                     <p><span className="text-text-tertiary w-36 inline-block">Guardian:</span> {watch("guardian_name") || "—"}{watch("guardian_relation") ? ` (${watch("guardian_relation")})` : ""}</p>
                     <p><span className="text-text-tertiary w-36 inline-block">Branch:</span> {watch("custom_branch") || "—"}</p>
                     <p><span className="text-text-tertiary w-36 inline-block">Class:</span> {watch("program") || "—"}</p>
@@ -582,6 +978,15 @@ export default function NewStudentPage() {
                     <p><span className="text-text-tertiary w-36 inline-block">SRR ID:</span> {watch("custom_srr_id") || "—"}</p>
                     <p><span className="text-text-tertiary w-36 inline-block">Batch:</span> {watch("student_batch_name") || "Auto-assign"}</p>
                     <p><span className="text-text-tertiary w-36 inline-block">Enrollment Date:</span> {watch("enrollment_date") || "—"}</p>
+                    <p><span className="text-text-tertiary w-36 inline-block">Fee Plan:</span> {selectedPlan || "—"}</p>
+                    <p>
+                      <span className="text-text-tertiary w-36 inline-block">Instalments:</span>
+                      {selectedInstalments ? (selectedInstalments === "1" ? "One-Time" : `${selectedInstalments} Instalments`) : "—"}
+                    </p>
+                    <p><span className="text-text-tertiary w-36 inline-block">Payment Mode:</span> {selectedModeOfPayment || "—"}</p>
+                    {selectedOption && (
+                      <p><span className="text-text-tertiary w-36 inline-block">Total Fee:</span> <span className="font-semibold text-primary">₹{selectedOption.total.toLocaleString("en-IN")}</span></p>
+                    )}
                   </div>
                 </motion.div>
               )}
@@ -599,7 +1004,7 @@ export default function NewStudentPage() {
                 Previous
               </Button>
 
-              {currentStep < 3 ? (
+              {currentStep < 4 ? (
                 <Button type="button" variant="primary" onClick={nextStep}>
                   Next
                   <ArrowRight className="h-4 w-4" />

@@ -22,7 +22,6 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { getBatch } from "@/lib/api/batches";
 import { useInstructorBatches } from "@/lib/hooks/useInstructorBatches";
-import { useAuthStore } from "@/lib/stores/authStore";
 import type { Batch, BatchStudent } from "@/lib/types/batch";
 
 export default function InstructorBatchDetailPage() {
@@ -30,7 +29,6 @@ export default function InstructorBatchDetailPage() {
   const decodedId = decodeURIComponent(id);
   const router = useRouter();
 
-  const { allowedBatches, defaultCompany } = useAuthStore();
   const { isBatchAllowed, isLoading: batchesLoading } = useInstructorBatches();
 
   const [batch, setBatch] = useState<Batch | null>(null);
@@ -47,9 +45,9 @@ export default function InstructorBatchDetailPage() {
       .then((res) => {
         const b = res.data;
         // ── Auth guard: verify this batch belongs to the instructor ──
-        const batchCodeAllowed = b.batch ? allowedBatches.includes(b.batch) : false;
-        const branchAllowed = defaultCompany ? b.custom_branch === defaultCompany : true;
-        if (!batchCodeAllowed || !branchAllowed) {
+        // Uses the hook's isBatchAllowed() which checks the instructor
+        // child table (populated after useInstructorBatches finishes loading).
+        if (!isBatchAllowed(decodedId)) {
           setAccessDenied(true);
           setBatch(null);
           return;

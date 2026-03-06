@@ -2,36 +2,75 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { getBatches, getBatch } from "@/lib/api/batches";
+import apiClient from "@/lib/api/client";
 import { useAuthStore } from "@/lib/stores/authStore";
 import type { Batch } from "@/lib/types/batch";
+
+/** A row from the Instructor doc → instructor_log child table */
+interface InstructorLogEntry {
+  program: string;
+  course?: string;
+  custom_branch: string;
+  academic_year?: string;
+}
+
+/** Fetch the Instructor doc (contains instructor_log child table) */
+async function getInstructorDoc(name: string) {
+  const { data } = await apiClient.get(
+    `/resource/Instructor/${encodeURIComponent(name)}`
+  );
+  return data.data as {
+    name: string;
+    instructor_name: string;
+    instructor_log?: InstructorLogEntry[];
+  };
+}
 
 /**
  * Shared hook that fetches all Student Groups the instructor has access to.
  *
- * Scoping is enforced by the Frappe backend via User Permissions:
- *  - The instructor's own API token is used for all requests.
- *  - Frappe restricts results to only the Company and Student Batch Name
- *    values assigned to the instructor via User Permission records.
- *  - No client-side filter injection is needed.
+ * Scoping works by reading the Instructor doc's `instructor_log` child table
+ * which lists (program, custom_branch) pairs the instructor is assigned to.
+ * Student Groups are matched against those pairs.
  */
 export function useInstructorBatches() {
-  const { defaultCompany, allowedBatches, isInstructor } = useAuthStore();
+  const { defaultCompany, allowedBatches, isInstructor, instructorName } =
+    useAuthStore();
 
   const query = useQuery<Batch[]>({
-    queryKey: ["instructor-all-batches", defaultCompany],
+    queryKey: ["instructor-all-batches", defaultCompany, instructorName],
     queryFn: async () => {
-      // Step 1: Get list of Student Group IDs the instructor can access.
+      if (!instructorName) return [];
+
+      // Step 1: Fetch the Instructor doc to get instructor_log assignments
+      const instrDoc = await getInstructorDoc(instructorName);
+      const logEntries = instrDoc.instructor_log ?? [];
+
+      if (logEntries.length === 0) return [];
+
+      // Build a set of "program|branch" keys for fast lookup
+      const assignmentKeys = new Set(
+        logEntries.map((e) => `${e.program}|${e.custom_branch}`)
+      );
+
+      // Step 2: Get list of Student Group IDs.
       // The list endpoint only returns scalar fields (no child tables).
       const listRes = await getBatches({ limit_page_length: 500 });
-      const ids = (listRes.data ?? []).map((b) => b.name);
+      const allGroups = listRes.data ?? [];
 
-      if (ids.length === 0) return [];
+      // Step 3: Filter to only groups matching an instructor_log entry
+      const matchedGroups = allGroups.filter((sg) => {
+        const key = `${sg.program ?? ""}|${sg.custom_branch ?? ""}`;
+        return assignmentKeys.has(key);
+      });
 
-      // Step 2: Fetch each Student Group individually to get the full doc
-      // including the `students` child table (needed for counts & student list).
+      if (matchedGroups.length === 0) return [];
+
+      // Step 4: Fetch each matched Student Group individually to get the
+      // full doc including the `students` child table (for counts & list).
       const fullDocs = await Promise.all(
-        ids.map((id) =>
-          getBatch(id)
+        matchedGroups.map((sg) =>
+          getBatch(sg.name)
             .then((r) => r.data)
             .catch(() => null)
         )
@@ -39,7 +78,7 @@ export function useInstructorBatches() {
 
       return fullDocs.filter((d): d is Batch => d !== null);
     },
-    enabled: isInstructor,
+    enabled: isInstructor && !!instructorName,
     staleTime: 60_000,
   });
 

@@ -28,8 +28,6 @@ import {
   getInstructorCountForBranch,
   getTotalStudentCount,
   getTotalStaffCount,
-  getTotalFeeStats,
-  getTotalSalesStats,
   getTotalInvoiceStats,
 } from "@/lib/api/director";
 import { formatCurrency } from "@/lib/utils/formatters";
@@ -56,26 +54,29 @@ function BranchCard({ branch }: { branch: { name: string; company_name: string; 
   const { data: studentCount, isLoading: loadingStudents } = useQuery({
     queryKey: ["director-branch-students", branch.name],
     queryFn: () => getStudentCountForBranch(branch.name),
-    staleTime: 120_000,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
   });
 
   const { data: batchCount, isLoading: loadingBatches } = useQuery({
     queryKey: ["director-branch-batches", branch.name],
     queryFn: () => getBatchCountForBranch(branch.name),
-    staleTime: 120_000,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
   });
 
   const { data: instructorCount, isLoading: loadingInstructors } = useQuery({
     queryKey: ["director-branch-instructors", branch.name],
     queryFn: () => getInstructorCountForBranch(branch.name),
-    staleTime: 120_000,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
   });
 
   const shortName = branch.name.replace("Smart Up ", "").replace("Smart Up", "HQ");
 
   return (
     <Link href={`/dashboard/director/branches/${encodeURIComponent(branch.name)}`}>
-      <motion.div variants={itemVariants} whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }}>
+      <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: "easeOut" }} whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }}>
         <Card className="h-full hover:shadow-md transition-shadow cursor-pointer border-border-light hover:border-primary/30">
           <CardContent className="p-5">
             {/* Header */}
@@ -152,7 +153,8 @@ export default function DirectorDashboard() {
   } = useQuery({
     queryKey: ["director-branches"],
     queryFn: getAllBranches,
-    staleTime: 300_000,
+    staleTime: 60_000,
+    refetchInterval: 60_000,
   });
 
   // Filter out the parent "Smart Up" company (HQ) if it has no students
@@ -167,31 +169,22 @@ export default function DirectorDashboard() {
   const { data: totalStudents, isLoading: loadTotalStudents } = useQuery({
     queryKey: ["director-total-students"],
     queryFn: getTotalStudentCount,
-    staleTime: 300_000,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
   });
 
   const { data: totalStaff, isLoading: loadTotalStaff } = useQuery({
     queryKey: ["director-total-staff"],
     queryFn: getTotalStaffCount,
-    staleTime: 300_000,
-  });
-
-  const { data: feeStats, isLoading: loadFeeStats } = useQuery({
-    queryKey: ["director-total-fees"],
-    queryFn: getTotalFeeStats,
-    staleTime: 300_000,
-  });
-
-  const { data: salesStats, isLoading: loadSalesStats } = useQuery({
-    queryKey: ["director-total-sales"],
-    queryFn: getTotalSalesStats,
-    staleTime: 300_000,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
   });
 
   const { data: invoiceStats, isLoading: loadInvoiceStats } = useQuery({
     queryKey: ["director-total-invoices"],
     queryFn: getTotalInvoiceStats,
-    staleTime: 300_000,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
   });
 
   return (
@@ -251,9 +244,9 @@ export default function DirectorDashboard() {
             <CardContent className="p-4 text-center">
               <IndianRupee className="h-5 w-5 text-warning mx-auto mb-2" />
               <p className="text-2xl font-bold text-text-primary">
-                {loadFeeStats ? "..." : formatCurrency(feeStats?.totalAmount ?? 0)}
+                {loadInvoiceStats ? "..." : formatCurrency(invoiceStats?.totalInvoiced ?? 0)}
               </p>
-              <p className="text-xs text-text-tertiary">Total Fees</p>
+              <p className="text-xs text-text-tertiary">Total Billed</p>
               <ChevronRight className="h-3.5 w-3.5 text-text-tertiary mx-auto mt-1" />
             </CardContent>
           </Card>
@@ -303,11 +296,16 @@ export default function DirectorDashboard() {
             <p className="text-sm text-error">Failed to load branches</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+          >
             {activeBranches.map((branch) => (
               <BranchCard key={branch.name} branch={branch} />
             ))}
-          </div>
+          </motion.div>
         )}
       </motion.div>
     </motion.div>

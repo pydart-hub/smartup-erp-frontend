@@ -1,23 +1,25 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, FileText, AlertCircle, ShoppingCart,
-  Building2, Calendar, Hash, User, Package,
+  Package, Receipt, CheckCircle2, Banknote, X, Loader2, RefreshCw,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { Input } from "@/components/ui/Input";
 import { getSalesOrder, getSalesInvoices, cancelSalesOrder } from "@/lib/api/sales";
 import { formatDate, formatCurrency } from "@/lib/utils/formatters";
+import { INSTALMENT_DUE_DATES } from "@/lib/utils/constants";
 import { toast } from "sonner";
-import type { SalesOrderStatus } from "@/lib/types/sales";
+import type { SalesOrderStatus, SalesInvoice } from "@/lib/types/sales";
 
 const STATUS_COLORS: Record<SalesOrderStatus, "default" | "success" | "warning" | "error" | "info"> = {
   Draft: "default",
@@ -45,6 +47,57 @@ export default function SalesOrderDetailPage() {
   const queryClient = useQueryClient();
   const decodedId = decodeURIComponent(id);
 
+  // ── Payment modal state ─────────────────────────────────────
+  const [paymentInvoice, setPaymentInvoice] = useState<SalesInvoice | null>(null);
+  const [payAmount, setPayAmount] = useState("");
+  const [payMode, setPayMode] = useState("Cash");
+  const [payDate, setPayDate] = useState(new Date().toISOString().split("T")[0]);
+  const [payRef, setPayRef] = useState("");
+
+  function openPaymentModal(inv: SalesInvoice) {
+    setPaymentInvoice(inv);
+    setPayAmount(String(inv.outstanding_amount));
+    setPayMode("Cash");
+    setPayDate(new Date().toISOString().split("T")[0]);
+    setPayRef("");
+  }
+
+  function closePaymentModal() {
+    setPaymentInvoice(null);
+  }
+
+  const paymentMutation = useMutation({
+    mutationFn: async () => {
+      if (!paymentInvoice) throw new Error("No invoice selected");
+      const res = await fetch("/api/payments/record-cash", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          invoice_id: paymentInvoice.name,
+          amount: Number(payAmount),
+          mode_of_payment: payMode,
+          posting_date: payDate,
+          reference_no: payRef || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to record payment");
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast.success(`Payment recorded: ${data.payment_entry}`);
+      closePaymentModal();
+      queryClient.invalidateQueries({ queryKey: ["so-invoices", decodedId] });
+      queryClient.invalidateQueries({ queryKey: ["sales-order", decodedId] });
+    },
+    onError: (err: Error) => {
+      toast.error(err.message);
+    },
+  });
+
   // ── SO data ───────────────────────────────────────────────
   const { data: soRes, isLoading, isError } = useQuery({
     queryKey: ["sales-order", decodedId],
@@ -53,14 +106,79 @@ export default function SalesOrderDetailPage() {
   });
   const so = soRes?.data;
 
-  // ── Linked invoices (filter by customer + company since sales_order field is restricted) ──
+  // ── Linked invoices (filter by child table sales_order reference) ──
   const { data: invoicesRes } = useQuery({
-    queryKey: ["so-invoices", decodedId, so?.customer, so?.company],
-    queryFn: () => getSalesInvoices({ customer: so!.customer, company: so!.company, limit_page_length: 10 }),
-    enabled: !!so?.customer,
+    queryKey: ["so-invoices", decodedId],
+    queryFn: () => getSalesInvoices({ sales_order: decodedId, limit_page_length: 20 }),
+    enabled: !!so,
     staleTime: 30_000,
   });
   const linkedInvoices = invoicesRes?.data ?? [];
+
+  // ── Generate invoices for SOs that are missing them ─────────
+  const generateInvoicesMutation = useMutation({
+    mutationFn: async () => {
+      if (!so) throw new Error("No Sales Order");
+      const numInst = Number(so.custom_no_of_instalments) || 1;
+      const total = so.grand_total;
+      const academicYear = so.custom_academic_year || "2026-2027";
+      const startYear = parseInt(academicYear.split("-")[0], 10);
+
+      // Build due dates
+      function buildDueDate(tmpl: { month: number; day: number }) {
+        const calYear = tmpl.month < 3 ? startYear + 1 : startYear;
+        return `${calYear}-${String(tmpl.month + 1).padStart(2, "0")}-${String(tmpl.day).padStart(2, "0")}`;
+      }
+
+      let schedule: { amount: number; dueDate: string; label: string }[];
+      if (numInst === 1) {
+        schedule = [{ amount: total, dueDate: new Date().toISOString().split("T")[0], label: "Full Payment" }];
+      } else {
+        const dueDates = numInst === 4 ? INSTALMENT_DUE_DATES.quarterly
+          : numInst === 6 ? INSTALMENT_DUE_DATES.inst6
+          : numInst === 8 ? INSTALMENT_DUE_DATES.inst8
+          : INSTALMENT_DUE_DATES.quarterly;
+        const perInst = Math.floor(total / numInst);
+        const remainder = total - perInst * (numInst - 1);
+        const labels = numInst === 4 ? ["Q1", "Q2", "Q3", "Q4"] : null;
+        schedule = dueDates.slice(0, numInst).map((tmpl, i) => ({
+          amount: i === numInst - 1 ? remainder : perInst,
+          dueDate: buildDueDate(tmpl),
+          label: labels?.[i] || `Instalment ${i + 1}`,
+        }));
+      }
+
+      const res = await fetch("/api/admission/create-invoices", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ salesOrderName: so.name, schedule }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Failed (HTTP ${res.status})`);
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      const count = data.invoices?.length ?? 0;
+      const failed = data.failed?.length ?? 0;
+      if (failed > 0) {
+        toast.warning(`Created ${count} invoice(s), ${failed} failed.`);
+      } else {
+        toast.success(`${count} invoice(s) created successfully!`);
+      }
+      queryClient.invalidateQueries({ queryKey: ["so-invoices", decodedId] });
+      queryClient.invalidateQueries({ queryKey: ["sales-order", decodedId] });
+    },
+    onError: (err: Error) => {
+      toast.error(`Invoice generation failed: ${err.message}`);
+    },
+  });
+
+  const perBilled = so?.per_billed ?? 0;
+  const isFullyBilled = perBilled >= 100;
+  const canCreateInvoice = so?.docstatus === 1 && !isFullyBilled && so.status !== "Cancelled";
 
   async function handleCancel() {
     if (!so || !confirm(`Cancel ${so.name}?`)) return;
@@ -99,13 +217,17 @@ export default function SalesOrderDetailPage() {
   }
 
   const status = so.status as SalesOrderStatus;
+  const billedAmount = so.grand_total * (perBilled / 100);
+  const unbilledAmount = so.grand_total - billedAmount;
+  const totalOutstanding = linkedInvoices.reduce((sum, inv) => sum + (inv.outstanding_amount ?? 0), 0);
+  const totalPaid = linkedInvoices.reduce((sum, inv) => sum + (inv.grand_total - (inv.outstanding_amount ?? 0)), 0);
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 max-w-5xl mx-auto">
       <BreadcrumbNav />
 
       {/* Header */}
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.back()}
@@ -118,13 +240,20 @@ export default function SalesOrderDetailPage() {
             <p className="text-xs text-text-tertiary">{so.customer_name || so.customer}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Badge variant={STATUS_COLORS[status] ?? "default"}>{status}</Badge>
-          <Link href={`/dashboard/branch-manager/invoices/new?so=${encodeURIComponent(so.name)}`}>
-            <Button variant="outline" size="sm">
-              <FileText className="h-4 w-4" /> Create Invoice
-            </Button>
-          </Link>
+          {canCreateInvoice && (
+            <Link href={`/dashboard/branch-manager/invoices/new?so=${encodeURIComponent(so.name)}`}>
+              <Button variant="primary" size="sm">
+                <Receipt className="h-4 w-4" /> Create Invoice
+              </Button>
+            </Link>
+          )}
+          {isFullyBilled && (
+            <Badge variant="success">
+              <CheckCircle2 className="h-3 w-3 mr-1" /> Fully Billed
+            </Badge>
+          )}
           {so.docstatus === 1 && status !== "Cancelled" && (
             <Button variant="danger" size="sm" onClick={handleCancel}>
               Cancel Order
@@ -133,7 +262,7 @@ export default function SalesOrderDetailPage() {
         </div>
       </div>
 
-      {/* Hero summary card */}
+      {/* Hero summary card with billing progress */}
       <Card>
         <CardContent className="p-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
@@ -142,16 +271,34 @@ export default function SalesOrderDetailPage() {
               <p className="text-2xl font-bold text-primary">{formatCurrency(so.grand_total)}</p>
             </div>
             <div>
-              <p className="text-xs text-text-tertiary mb-1">Billed</p>
-              <p className="text-2xl font-bold text-success">{(so.per_billed ?? 0).toFixed(0)}%</p>
+              <p className="text-xs text-text-tertiary mb-1">Paid</p>
+              <p className="text-2xl font-bold text-success">{formatCurrency(totalPaid)}</p>
             </div>
             <div>
-              <p className="text-xs text-text-tertiary mb-1">Advance Paid</p>
-              <p className="text-2xl font-bold text-text-primary">{formatCurrency(so.advance_paid ?? 0)}</p>
+              <p className="text-xs text-text-tertiary mb-1">Outstanding</p>
+              <p className="text-2xl font-bold text-warning">{formatCurrency(totalOutstanding)}</p>
             </div>
             <div>
               <p className="text-xs text-text-tertiary mb-1">Invoices</p>
               <p className="text-2xl font-bold text-text-primary">{linkedInvoices.length}</p>
+            </div>
+          </div>
+
+          {/* Payment progress bar */}
+          <div className="mt-5 pt-4 border-t border-border-light">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-text-secondary">Payment Progress</span>
+              <span className="text-xs font-bold text-text-primary">
+                {so.grand_total > 0 ? Math.round((totalPaid / so.grand_total) * 100) : 0}%
+              </span>
+            </div>
+            <div className="w-full h-2.5 bg-app-bg rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${
+                  totalOutstanding === 0 && linkedInvoices.length > 0 ? "bg-success" : totalPaid > 0 ? "bg-primary" : "bg-border-light"
+                }`}
+                style={{ width: `${so.grand_total > 0 ? Math.min((totalPaid / so.grand_total) * 100, 100) : 0}%` }}
+              />
             </div>
           </div>
         </CardContent>
@@ -167,11 +314,12 @@ export default function SalesOrderDetailPage() {
             </div>
             <InfoRow label="Order No." value={so.name} />
             <InfoRow label="Customer" value={so.customer_name || so.customer} />
+            {so.student && <InfoRow label="Student" value={so.student} />}
             <InfoRow label="Company" value={so.company} />
             <InfoRow label="Order Date" value={formatDate(so.transaction_date)} />
-            <InfoRow label="Delivery Date" value={so.delivery_date ? formatDate(so.delivery_date) : null} />
-            <InfoRow label="Order Type" value={so.order_type} />
-            <InfoRow label="Currency" value={so.currency} />
+            {so.custom_plan && <InfoRow label="Plan" value={so.custom_plan} />}
+            {so.custom_no_of_instalments && <InfoRow label="Instalments" value={so.custom_no_of_instalments} />}
+            {so.custom_academic_year && <InfoRow label="Academic Year" value={so.custom_academic_year} />}
             <InfoRow label="Created" value={so.creation ? formatDate(so.creation) : null} />
           </CardContent>
         </Card>
@@ -218,21 +366,56 @@ export default function SalesOrderDetailPage() {
       </div>
 
       {/* Linked Invoices */}
-      {linkedInvoices.length > 0 && (
-        <Card>
-          <CardContent className="p-5">
-            <div className="flex items-center gap-2 mb-4 pb-3 border-b border-border-light">
+      <Card>
+        <CardContent className="p-5">
+          <div className="flex items-center justify-between mb-4 pb-3 border-b border-border-light">
+            <div className="flex items-center gap-2">
               <FileText className="h-4 w-4 text-primary" />
-              <h3 className="font-semibold text-text-primary">Linked Invoices</h3>
+              <h3 className="font-semibold text-text-primary">Invoices from this Order</h3>
+              {linkedInvoices.length > 0 && (
+                <Badge variant="default">{linkedInvoices.length}</Badge>
+              )}
             </div>
+            {canCreateInvoice && (
+              <Link href={`/dashboard/branch-manager/invoices/new?so=${encodeURIComponent(so.name)}`}>
+                <Button variant="outline" size="sm">
+                  <Receipt className="h-4 w-4" /> Create Invoice
+                </Button>
+              </Link>
+            )}
+          </div>
+
+          {linkedInvoices.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 text-text-tertiary">
+              <FileText className="h-8 w-8 mb-2 opacity-40" />
+              <p className="text-sm font-medium">No invoices created yet</p>
+              <p className="text-xs mt-1">Invoices are auto-created on admission.</p>
+              {canCreateInvoice && so.custom_no_of_instalments && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  className="mt-4"
+                  disabled={generateInvoicesMutation.isPending}
+                  onClick={() => generateInvoicesMutation.mutate()}
+                >
+                  {generateInvoicesMutation.isPending ? (
+                    <><Loader2 className="h-4 w-4 animate-spin" /> Generating...</>
+                  ) : (
+                    <><RefreshCw className="h-4 w-4" /> Generate {so.custom_no_of_instalments} Invoice(s)</>
+                  )}
+                </Button>
+              )}
+            </div>
+          ) : (
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border-light text-text-secondary text-xs font-semibold">
                   <th className="text-left pb-2 pr-3">Invoice #</th>
-                  <th className="text-left pb-2 pr-3">Date</th>
+                  <th className="text-left pb-2 pr-3">Due Date</th>
                   <th className="text-right pb-2 pr-3">Grand Total</th>
                   <th className="text-right pb-2 pr-3">Outstanding</th>
-                  <th className="text-left pb-2">Status</th>
+                  <th className="text-left pb-2 pr-3">Status</th>
+                  <th className="text-right pb-2">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border-light">
@@ -246,20 +429,126 @@ export default function SalesOrderDetailPage() {
                         {inv.name}
                       </Link>
                     </td>
-                    <td className="py-2 pr-3 text-text-secondary">{formatDate(inv.posting_date)}</td>
+                    <td className="py-2 pr-3 text-text-secondary">{inv.due_date ? formatDate(inv.due_date) : formatDate(inv.posting_date)}</td>
                     <td className="py-2 pr-3 text-right font-semibold">{formatCurrency(inv.grand_total)}</td>
                     <td className="py-2 pr-3 text-right text-warning font-semibold">{formatCurrency(inv.outstanding_amount)}</td>
-                    <td className="py-2">
-                      <Badge variant={inv.outstanding_amount === 0 ? "success" : "warning"}>
-                        {inv.status}
+                    <td className="py-2 pr-3">
+                      <Badge variant={inv.outstanding_amount === 0 ? "success" : inv.due_date && inv.due_date < new Date().toISOString().split("T")[0] ? "error" : "warning"}>
+                        {inv.outstanding_amount === 0 ? "Paid" : inv.due_date && inv.due_date < new Date().toISOString().split("T")[0] ? "Overdue" : inv.status}
                       </Badge>
+                    </td>
+                    <td className="py-2 text-right">
+                      {inv.outstanding_amount > 0 && (
+                        <Button variant="outline" size="sm" onClick={() => openPaymentModal(inv)}>
+                          <Banknote className="h-3.5 w-3.5" /> Pay
+                        </Button>
+                      )}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </CardContent>
-        </Card>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── Record Payment Modal ─────────────────────────────── */}
+      {paymentInvoice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={closePaymentModal} />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="relative bg-surface rounded-2xl shadow-2xl border border-border-light w-full max-w-md mx-4 p-6"
+          >
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h2 className="text-lg font-bold text-text-primary">Record Payment</h2>
+                <p className="text-xs text-text-tertiary mt-0.5">{paymentInvoice.name}</p>
+              </div>
+              <button onClick={closePaymentModal} className="text-text-tertiary hover:text-text-primary transition-colors">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="bg-app-bg rounded-xl p-4 mb-5">
+              <div className="flex justify-between text-sm">
+                <span className="text-text-tertiary">Invoice Total</span>
+                <span className="font-semibold">{formatCurrency(paymentInvoice.grand_total)}</span>
+              </div>
+              <div className="flex justify-between text-sm mt-1">
+                <span className="text-text-tertiary">Outstanding</span>
+                <span className="font-bold text-warning">{formatCurrency(paymentInvoice.outstanding_amount)}</span>
+              </div>
+              {paymentInvoice.due_date && (
+                <div className="flex justify-between text-sm mt-1">
+                  <span className="text-text-tertiary">Due Date</span>
+                  <span className="font-medium">{formatDate(paymentInvoice.due_date)}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-4">
+              <Input
+                label="Amount (₹)"
+                type="number"
+                value={payAmount}
+                onChange={(e) => setPayAmount(e.target.value)}
+                min={1}
+                max={paymentInvoice.outstanding_amount}
+                step="0.01"
+              />
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-text-secondary">Mode of Payment</label>
+                <select
+                  value={payMode}
+                  onChange={(e) => setPayMode(e.target.value)}
+                  className="h-10 w-full rounded-[10px] border border-border-input bg-surface px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                >
+                  <option value="Cash">Cash</option>
+                  <option value="Bank Transfer">Bank Transfer</option>
+                  <option value="UPI">UPI</option>
+                  <option value="Cheque">Cheque</option>
+                </select>
+              </div>
+
+              <Input
+                label="Payment Date"
+                type="date"
+                value={payDate}
+                onChange={(e) => setPayDate(e.target.value)}
+              />
+
+              <Input
+                label="Reference No. (optional)"
+                type="text"
+                value={payRef}
+                onChange={(e) => setPayRef(e.target.value)}
+                placeholder="Receipt #, UTR, cheque no."
+              />
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <Button variant="outline" size="md" onClick={closePaymentModal} className="flex-1">
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                size="md"
+                className="flex-1"
+                disabled={paymentMutation.isPending || !payAmount || Number(payAmount) <= 0}
+                onClick={() => paymentMutation.mutate()}
+              >
+                {paymentMutation.isPending ? (
+                  <><Loader2 className="h-4 w-4 animate-spin" /> Recording...</>
+                ) : (
+                  <><Banknote className="h-4 w-4" /> Record Payment</>
+                )}
+              </Button>
+            </div>
+          </motion.div>
+        </div>
       )}
     </motion.div>
   );

@@ -4,19 +4,19 @@ import React, { useEffect, useState, Suspense } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Plus, School, Users, User, Loader2, RefreshCw, ArrowLeft } from "lucide-react";
+import { School, Users, User, Loader2, RefreshCw, ArrowLeft } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
-import { useFeatureFlagsStore } from "@/lib/stores/featureFlagsStore";
 import { getBatches } from "@/lib/api/batches";
 import type { Batch } from "@/lib/types/batch";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { useAcademicYearStore } from "@/lib/stores/academicYearStore";
 
 export function BatchesContent() {
-  const { flags } = useFeatureFlagsStore();
   const { defaultCompany } = useAuth();
+  const { selectedYear } = useAcademicYearStore();
   const searchParams = useSearchParams();
   const programFilter = searchParams.get("program") || "";
   const [batches, setBatches] = useState<Batch[]>([]);
@@ -30,15 +30,14 @@ export function BatchesContent() {
       limit_page_length: 500,
       ...(defaultCompany ? { custom_branch: defaultCompany } : {}),
       ...(programFilter ? { program: programFilter } : {}),
+      academic_year: selectedYear,
     })
       .then((res) => setBatches(res.data))
       .catch(() => setError("Failed to load batches from server."))
       .finally(() => setLoading(false));
   }
 
-  useEffect(() => { loadBatches(); }, [defaultCompany, programFilter]);
-
-  if (!flags.batches) return null;
+  useEffect(() => { loadBatches(); }, [defaultCompany, programFilter, selectedYear]);
 
   // Group by program
   const groupedBatches = batches.reduce(
@@ -77,12 +76,6 @@ export function BatchesContent() {
           <Button variant="outline" size="md" onClick={loadBatches} disabled={loading}>
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           </Button>
-          <Link href="/dashboard/branch-manager/batches/new">
-            <Button variant="primary" size="md">
-              <Plus className="h-4 w-4" />
-              Create Batch
-            </Button>
-          </Link>
         </div>
       </div>
 

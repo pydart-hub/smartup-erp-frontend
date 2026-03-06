@@ -28,16 +28,15 @@ export interface AttendanceSummary {
 }
 
 /**
- * Payload for the Frappe Education bulk mark attendance method.
- * Calls: POST /api/method/education.api.mark_attendance
+ * Payload for bulk mark attendance.
+ * Uses direct REST API (create/cancel/recreate Student Attendance docs).
  */
 export interface BulkAttendancePayload {
   student_group: string;        // Student Group name
-  course_schedule?: string;
   date: string;
-  students_present: string[];   // array of student IDs
-  students_absent: string[];    // array of student IDs
-  students_late?: string[];
+  /** Each entry: { student: "STU-...", student_name: "Name", status: "Present"|"Absent"|"Late" } */
+  students: { student: string; student_name: string; status: "Present" | "Absent" | "Late" }[];
+  custom_branch?: string;       // Company / branch for the student group
 }
 
 export interface AttendanceReportParams {

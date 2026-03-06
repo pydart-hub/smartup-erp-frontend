@@ -94,6 +94,11 @@ export interface ProgramEnrollmentFormData {
   enrollment_date: string;
   student_batch_name?: string;     // Student Batch Name (branch batch code)
   student_category?: string;
+  student_group_name?: string;     // Student Group (batch) name e.g. "CHL-10th-25-1" — used to fill custom_batch_name on Course Enrollments
+  // Fee fields (stored on Program Enrollment for parent dashboard)
+  custom_fee_structure?: string;   // Link → Fee Structure name e.g. "SU ERV-8th State-Basic-4"
+  custom_plan?: string;            // "Basic" | "Intermediate" | "Advanced"
+  custom_no_of_instalments?: string; // "1" | "4" | "6" | "8"
 }
 
 // ─────────────────────────────────────────────────────

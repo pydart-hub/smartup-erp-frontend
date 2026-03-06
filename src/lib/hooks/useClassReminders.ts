@@ -29,6 +29,7 @@ export function useClassReminders() {
     queryFn: () =>
       getCourseSchedules({
         date: today,
+        instructor: instructorName || undefined,
         branches:
           allowedCompanies.length > 0 ? allowedCompanies : undefined,
         limit_page_length: 100,

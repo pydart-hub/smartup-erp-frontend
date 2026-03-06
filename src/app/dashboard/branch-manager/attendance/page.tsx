@@ -12,11 +12,11 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { toast } from "sonner";
-import { useFeatureFlagsStore } from "@/lib/stores/featureFlagsStore";
 import { getBatches, getBatch } from "@/lib/api/batches";
 import { getAttendance, bulkMarkAttendance, getClassWiseAttendance } from "@/lib/api/attendance";
 import type { Batch, BatchStudent } from "@/lib/types/batch";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { useAcademicYearStore } from "@/lib/stores/academicYearStore";
 
 type AttendanceStatus = "Present" | "Absent" | "Late";
 
@@ -31,8 +31,8 @@ interface ClassSummary {
 }
 
 export default function AttendancePage() {
-  const { flags } = useFeatureFlagsStore();
   const { defaultCompany } = useAuth();
+  const { selectedYear } = useAcademicYearStore();
 
   // View mode: "dashboard" (class-wise overview) vs "batch" (detailed)
   const [viewMode, setViewMode] = useState<"dashboard" | "batch">("dashboard");
@@ -51,11 +51,12 @@ export default function AttendancePage() {
 
   // ── Batches list ──
   const { data: batchesRes } = useQuery({
-    queryKey: ["batches-list", defaultCompany],
+    queryKey: ["batches-list", defaultCompany, selectedYear],
     queryFn: () =>
       getBatches({
         limit_page_length: 500,
         ...(defaultCompany ? { custom_branch: defaultCompany } : {}),
+        academic_year: selectedYear,
       }),
     staleTime: 5 * 60_000,
     enabled: !!defaultCompany,
@@ -151,8 +152,6 @@ export default function AttendancePage() {
     if (viewMode === "batch" && selectedBatchId) loadBatchAttendance();
   }, [viewMode, loadBatchAttendance, selectedBatchId]);
 
-  if (!flags.attendance) return null;
-
   // Open class detail
   function openClassAttendance(batchId: string) {
     setSelectedBatchId(batchId);
@@ -188,16 +187,18 @@ export default function AttendancePage() {
     if (!selectedBatchId || students.length === 0) return;
     setSaving(true);
     try {
-      const students_present = students.filter((s) => attendance[s.student] === "Present").map((s) => s.student);
-      const students_absent = students.filter((s) => attendance[s.student] === "Absent").map((s) => s.student);
-      const students_late = students.filter((s) => attendance[s.student] === "Late").map((s) => s.student);
+      // Build the students array with name + status for each student
+      const attendanceEntries = students.map((s) => ({
+        student: s.student,
+        student_name: s.student_name || s.student,
+        status: attendance[s.student] ?? ("Present" as const),
+      }));
 
       await bulkMarkAttendance({
         student_group: selectedBatchId,
         date: selectedDate,
-        students_present,
-        students_absent,
-        students_late,
+        students: attendanceEntries,
+        custom_branch: defaultCompany || undefined,
       });
 
       toast.success(`Attendance saved for ${selectedDate}`);

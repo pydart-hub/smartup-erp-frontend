@@ -5,14 +5,12 @@ import { Menu, Search, LogOut, ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useUIStore } from "@/lib/stores/uiStore";
-import { useFeatureFlagsStore } from "@/lib/stores/featureFlagsStore";
 import { getInitials } from "@/lib/utils/formatters";
 import { NotificationDropdown } from "@/components/layout/NotificationDropdown";
 
 export function Topbar() {
   const { user, role, logout } = useAuth();
   const { toggleSidebar } = useUIStore();
-  const { flags } = useFeatureFlagsStore();
   const [showUserMenu, setShowUserMenu] = React.useState(false);
   const menuRef = React.useRef<HTMLDivElement>(null);
 
@@ -39,27 +37,22 @@ export function Topbar() {
         </button>
 
         {/* Search Bar */}
-        {flags.topbar_search && (
-          <div className="hidden md:flex items-center bg-app-bg rounded-[10px] px-3 py-2 w-80 border border-transparent focus-within:border-primary/30 focus-within:bg-surface transition-all">
-            <Search className="h-4 w-4 text-text-tertiary mr-2 shrink-0" />
-            <input
-              type="text"
-              placeholder="Search students, batches, fees..."
-              className="bg-transparent text-sm text-text-primary placeholder:text-text-tertiary outline-none w-full"
-            />
-          </div>
-        )}
+        <div className="hidden md:flex items-center bg-app-bg rounded-[10px] px-3 py-2 w-80 border border-transparent focus-within:border-primary/30 focus-within:bg-surface transition-all">
+          <Search className="h-4 w-4 text-text-tertiary mr-2 shrink-0" />
+          <input
+            type="text"
+            placeholder="Search students, batches, fees..."
+            className="bg-transparent text-sm text-text-primary placeholder:text-text-tertiary outline-none w-full"
+          />
+        </div>
       </div>
 
       {/* Right: Notifications + User */}
       <div className="flex items-center gap-2">
         {/* Notification Bell */}
-        {flags.topbar_notifications && (
-          <NotificationDropdown />
-        )}
+        <NotificationDropdown />
 
         {/* User Menu */}
-        {flags.topbar_profile && (
         <div className="relative" ref={menuRef}>
           <button
             onClick={() => setShowUserMenu(!showUserMenu)}
@@ -105,7 +98,6 @@ export function Topbar() {
             </motion.div>
           )}
         </div>
-        )}
       </div>
     </header>
   );

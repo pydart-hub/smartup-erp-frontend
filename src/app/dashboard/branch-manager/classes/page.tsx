@@ -8,14 +8,14 @@ import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
-import { useFeatureFlagsStore } from "@/lib/stores/featureFlagsStore";
 import { getClasses, getBatchCountsByProgram } from "@/lib/api/batches";
 import type { ClassLevel } from "@/lib/types/batch";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { useAcademicYearStore } from "@/lib/stores/academicYearStore";
 
 export default function ClassesPage() {
-  const { flags } = useFeatureFlagsStore();
   const { defaultCompany } = useAuth();
+  const { selectedYear } = useAcademicYearStore();
 
   const [classes, setClasses] = useState<ClassLevel[]>([]);
   const [batchCounts, setBatchCounts] = useState<Record<string, number>>({});
@@ -27,10 +27,10 @@ export default function ClassesPage() {
     setError(null);
     Promise.all([
       getClasses({ limit_page_length: 100 }),
-      getBatchCountsByProgram(defaultCompany || undefined),
+      getBatchCountsByProgram(defaultCompany || undefined, selectedYear),
     ])
       .then(([classesRes, counts]) => {
-        // Only show programs that have at least one batch for this branch
+        // Only show programs that have at least one batch for this branch + year
         const filtered = classesRes.data.filter((c) => (counts[c.name] ?? 0) > 0);
         setClasses(filtered);
         setBatchCounts(counts);
@@ -39,9 +39,7 @@ export default function ClassesPage() {
       .finally(() => setLoading(false));
   }
 
-  useEffect(() => { loadData(); }, [defaultCompany]);
-
-  if (!flags.classes) return null;
+  useEffect(() => { loadData(); }, [defaultCompany, selectedYear]);
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">

@@ -26,7 +26,8 @@ import {
   getRooms,
   createCourseSchedule,
 } from "@/lib/api/courseSchedule";
-import { getInstructors } from "@/lib/api/employees";
+import { getInstructorsWithCourses } from "@/lib/api/employees";
+import type { InstructorWithLog } from "@/lib/api/employees";
 
 // ── Field wrapper ─────────────────────────────────────────────────────────────
 
@@ -107,14 +108,59 @@ export default function NewCourseSchedulePage() {
     enabled: !!selectedGroupProgram,
     staleTime: 10 * 60_000,
   });
-  const courses = programCourses ?? [];
+  const allProgramCourses = programCourses ?? [];
 
-  const { data: instrRes } = useQuery({
-    queryKey: ["instructors-all"],
-    queryFn: () => getInstructors({ limit_page_length: 500 }),
-    staleTime: 5 * 60_000,
+  // Fetch all instructors for this branch WITH their course assignments
+  const { data: allInstructors } = useQuery({
+    queryKey: ["instructors-with-courses", branch],
+    queryFn: () => getInstructorsWithCourses(branch),
+    enabled: !!branch,
+    staleTime: 10 * 60_000,
   });
-  const instructors = instrRes?.data ?? [];
+  const branchInstructors: InstructorWithLog[] = allInstructors ?? [];
+
+  // ── Bidirectional filtering: instructor ↔ course ──────────────────────────
+
+  // When an instructor is selected → filter courses to only their assigned courses
+  // When a course is selected → filter instructors to only those assigned to that course
+  const filteredCourses = useMemo(() => {
+    if (!form.instructor || !selectedGroupProgram) return allProgramCourses;
+    const instructor = branchInstructors.find((i) => i.name === form.instructor);
+    if (!instructor) return allProgramCourses;
+
+    // Get the course names from this instructor's log for the current program
+    const assignedCourses = new Set(
+      instructor.instructor_log
+        .filter((log) => log.program === selectedGroupProgram && log.course)
+        .map((log) => log.course!)
+    );
+
+    // If no log entries have courses (course field was empty), show all program courses
+    if (assignedCourses.size === 0) return allProgramCourses;
+
+    return allProgramCourses.filter((c) => assignedCourses.has(c.course));
+  }, [form.instructor, selectedGroupProgram, allProgramCourses, branchInstructors]);
+
+  const filteredInstructors = useMemo(() => {
+    if (!selectedGroupProgram) return branchInstructors;
+
+    // First filter by program — only show instructors assigned to this program
+    const programInstructors = branchInstructors.filter((i) =>
+      i.instructor_log.some((log) => log.program === selectedGroupProgram)
+    );
+
+    // If a course is also selected, further filter to only instructors assigned to that course
+    if (!form.course) return programInstructors;
+
+    const courseInstructors = programInstructors.filter((i) =>
+      i.instructor_log.some(
+        (log) => log.program === selectedGroupProgram && log.course === form.course
+      )
+    );
+
+    // If no instructors have explicit course assignments, show all program instructors
+    return courseInstructors.length > 0 ? courseInstructors : programInstructors;
+  }, [form.course, selectedGroupProgram, branchInstructors]);
 
   const { data: roomRes } = useQuery({
     queryKey: ["rooms"],
@@ -179,10 +225,57 @@ export default function NewCourseSchedulePage() {
     setServerError("");
   };
 
-  // When student group changes, reset course (the options will change)
+  // When student group changes, reset course + instructor (options depend on program)
   const handleGroupChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setForm((prev) => ({ ...prev, student_group: e.target.value, course: "" }));
-    setErrors((prev) => ({ ...prev, student_group: undefined, course: undefined }));
+    setForm((prev) => ({ ...prev, student_group: e.target.value, course: "", instructor: "" }));
+    setErrors((prev) => ({ ...prev, student_group: undefined, course: undefined, instructor: undefined }));
+    setServerError("");
+  };
+
+  // When instructor changes, reset course if it's no longer in the filtered list
+  const handleInstructorChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newInstructor = e.target.value;
+    setForm((prev) => {
+      // Check if current course is still valid for the new instructor
+      if (prev.course && newInstructor) {
+        const instructor = branchInstructors.find((i) => i.name === newInstructor);
+        if (instructor) {
+          const assignedCourses = new Set(
+            instructor.instructor_log
+              .filter((log) => log.program === selectedGroupProgram && log.course)
+              .map((log) => log.course!)
+          );
+          // If instructor has explicit course assignments and current course isn't in them, reset
+          if (assignedCourses.size > 0 && !assignedCourses.has(prev.course)) {
+            return { ...prev, instructor: newInstructor, course: "" };
+          }
+        }
+      }
+      return { ...prev, instructor: newInstructor };
+    });
+    setErrors((prev) => ({ ...prev, instructor: undefined, course: undefined }));
+    setServerError("");
+  };
+
+  // When course changes, reset instructor if they don't teach this course
+  const handleCourseChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newCourse = e.target.value;
+    setForm((prev) => {
+      // Check if current instructor is still valid for the new course
+      if (prev.instructor && newCourse) {
+        const instructor = branchInstructors.find((i) => i.name === prev.instructor);
+        if (instructor) {
+          const teachesThisCourse = instructor.instructor_log.some(
+            (log) => log.program === selectedGroupProgram && log.course === newCourse
+          );
+          if (!teachesThisCourse) {
+            return { ...prev, course: newCourse, instructor: "" };
+          }
+        }
+      }
+      return { ...prev, course: newCourse };
+    });
+    setErrors((prev) => ({ ...prev, course: undefined, instructor: undefined }));
     setServerError("");
   };
 
@@ -235,11 +328,11 @@ export default function NewCourseSchedulePage() {
                   </select>
                 </Field>
 
-                {/* Course — filtered by selected group's program */}
+                {/* Course — filtered by selected group's program + instructor assignment */}
                 <Field label="Course / Subject" icon={BookOpen} required error={errors.course}>
                   <select
                     value={form.course}
-                    onChange={set("course")}
+                    onChange={handleCourseChange}
                     disabled={!form.student_group || coursesLoading}
                     className={`${selectCls} ${errors.course ? "border-error focus:ring-error/30" : ""}`}
                   >
@@ -248,25 +341,32 @@ export default function NewCourseSchedulePage() {
                         ? "Select a group first…"
                         : coursesLoading
                           ? "Loading courses…"
-                          : courses.length === 0
+                          : filteredCourses.length === 0
                             ? "No courses found for this program"
                             : "Select a course…"}
                     </option>
-                    {courses.map((c) => (
+                    {filteredCourses.map((c) => (
                       <option key={c.course} value={c.course}>{c.course_name}</option>
                     ))}
                   </select>
                 </Field>
 
-                {/* Instructor */}
+                {/* Instructor — filtered by selected program + course */}
                 <Field label="Instructor" icon={GraduationCap} required error={errors.instructor}>
                   <select
                     value={form.instructor}
-                    onChange={set("instructor")}
+                    onChange={handleInstructorChange}
+                    disabled={!form.student_group}
                     className={`${selectCls} ${errors.instructor ? "border-error focus:ring-error/30" : ""}`}
                   >
-                    <option value="">Select an instructor…</option>
-                    {instructors.map((i) => (
+                    <option value="">
+                      {!form.student_group
+                        ? "Select a group first…"
+                        : filteredInstructors.length === 0
+                          ? "No instructors assigned to this program"
+                          : "Select an instructor…"}
+                    </option>
+                    {filteredInstructors.map((i) => (
                       <option key={i.name} value={i.name}>{i.instructor_name}</option>
                     ))}
                   </select>
@@ -344,7 +444,7 @@ export default function NewCourseSchedulePage() {
                     {form.instructor && (
                       <p className="text-xs text-text-secondary flex items-center gap-1">
                         <GraduationCap className="h-3 w-3" />
-                        {instructors.find((i) => i.name === form.instructor)?.instructor_name ?? form.instructor}
+                        {branchInstructors.find((i) => i.name === form.instructor)?.instructor_name ?? form.instructor}
                       </p>
                     )}
                     {form.schedule_date && (

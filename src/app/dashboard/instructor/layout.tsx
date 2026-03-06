@@ -35,7 +35,6 @@ export default function InstructorDashboardLayout({
         "Branch Manager": "/dashboard/branch-manager",
         Parent: "/dashboard/parent",
         Teacher: "/dashboard/teacher",
-        Accountant: "/dashboard/accountant",
         Administrator: "/dashboard/admin",
       };
       const dest = ROLE_ROUTES[role ?? ""] || "/dashboard/branch-manager";

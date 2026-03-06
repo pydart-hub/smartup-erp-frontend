@@ -294,9 +294,7 @@ export default function StudentEditPage() {
                       <option value="">— Select —</option>
                       <option value="Father">Father</option>
                       <option value="Mother">Mother</option>
-                      <option value="Guardian">Guardian</option>
-                      <option value="Sibling">Sibling</option>
-                      <option value="Other">Other</option>
+                      <option value="Others">Others</option>
                     </select>
                   </div>
                 </div>

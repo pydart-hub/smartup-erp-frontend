@@ -1,6 +1,37 @@
-# Instructor Access — API Audit & Fixes
+# SmartUp ERP — Task Tracker
 
-## Completed
+## Current: E2E Admission-Fee-Payment Test (2026-03-06)
+
+### Test Results — Full Pipeline
+- [x] BM login (branchmanager@gmail.com) ✅
+- [x] Guardian created: EDU-GRD-2026-00019 ✅
+- [x] Parent user created: solutions.pydart@gmail.com / Test@123 ✅
+- [x] Student created: STU-SU VYT-26-011 "Test Student Pydart" ✅
+- [x] Program Enrollment: PEN-10th-Vennala 26-27-011 (submitted) ✅
+- [x] Student Group: Added to Vennala-10th State-A ✅
+- [x] Sales Order: SAL-ORD-2026-00047 | ₹23,800 (submitted) ✅
+- [x] Invoices: 4 created (₹7000 + ₹5600×3 = ₹23,800) ✅ **(after qty=1 fix)**
+- [x] SO billed: per_billed=100% ✅
+- [x] Parent login: 200 OK, role=Parent ✅
+- [x] Parent data API: 1 child, 1 SO, 4 invoices ✅
+- [x] Razorpay create-order: order_SNi9gLa0B7CKNQ for ₹7,000 ✅
+- [x] Generate Invoices button: hidden when per_billed=100% ✅
+
+### Bug Fixed: UOM Fractional Qty Error
+- **File**: `src/app/api/admission/create-invoices/route.ts`
+- **Bug**: Calculated `qty = instalment_amount / so_total * so_item_qty` → 0.294 (fractional)
+- **Error**: `UOMMustBeIntegerError: Quantity (0.294) cannot be a fraction`
+- **Fix**: Use `qty: 1, rate: instalment_amount` per invoice item
+
+### Previous Fixes (same session)
+- [x] Added warnings array to `admitStudent()` return
+- [x] Toast warnings in admission form for SO/invoice failures
+- [x] "Generate Invoices" retry button on SO detail page
+- [x] Parent portal "Invoices being processed" warning
+
+---
+
+## Previous: Create Sales Invoice from Sales Order
 
 - [x] Deep study of all Frappe education DocType schemas and permissions
 - [x] Audit instructor user roles, User Permissions, and API keys

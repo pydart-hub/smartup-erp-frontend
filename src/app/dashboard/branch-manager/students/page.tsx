@@ -17,8 +17,8 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { getStudents } from "@/lib/api/students";
 import apiClient from "@/lib/api/client";
 import type { Student } from "@/lib/types/student";
-import { useFeatureFlagsStore } from "@/lib/stores/featureFlagsStore";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { useAcademicYearStore } from "@/lib/stores/academicYearStore";
 
 const PAGE_SIZE = 25;
 
@@ -42,34 +42,36 @@ function getEnabledParam(f: StatusFilter): 0 | 1 | undefined {
 
 // Fetch program enrollment map for a list of student IDs (one API call via "in" filter)
 async function fetchEnrollmentMap(
-  studentIds: string[]
-): Promise<Record<string, { program: string; student_batch_name?: string }>> {
+  studentIds: string[],
+  academic_year?: string
+): Promise<Record<string, { program: string; student_batch_name?: string; custom_fee_structure?: string; custom_plan?: string }>> {
   if (!studentIds.length) return {};
+  const enrollFilters: (string | number | string[])[][] = [
+    ["student", "in", studentIds],
+    ["docstatus", "=", 1],
+  ];
+  if (academic_year) enrollFilters.push(["academic_year", "=", academic_year]);
   const { data } = await apiClient.get("/resource/Program Enrollment", {
     params: {
-      filters: JSON.stringify([
-        ["student", "in", studentIds],
-        ["docstatus", "=", 1],
-      ]),
-      fields: JSON.stringify(["student", "program", "student_batch_name"]),
+      filters: JSON.stringify(enrollFilters),
+      fields: JSON.stringify(["student", "program", "student_batch_name", "custom_fee_structure", "custom_plan"]),
       order_by: "enrollment_date desc",
       limit_page_length: studentIds.length * 3, // allow multiple enrollments per student
     },
   });
   // Keep only the latest enrollment per student
-  const map: Record<string, { program: string; student_batch_name?: string }> = {};
+  const map: Record<string, { program: string; student_batch_name?: string; custom_fee_structure?: string; custom_plan?: string }> = {};
   for (const row of (data.data ?? [])) {
     if (!map[row.student]) {
-      map[row.student] = { program: row.program, student_batch_name: row.student_batch_name };
+      map[row.student] = { program: row.program, student_batch_name: row.student_batch_name, custom_fee_structure: row.custom_fee_structure, custom_plan: row.custom_plan };
     }
   }
   return map;
 }
 
 export default function StudentsPage() {
-  const { flags } = useFeatureFlagsStore();
   const { defaultCompany } = useAuth();
-  if (!flags.students) return null;
+  const { selectedYear } = useAcademicYearStore();
 
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");          // debounced
@@ -106,8 +108,8 @@ export default function StudentsPage() {
   // ── Query 2: program enrollments for current page ──────────
   const studentIds = students.map((s) => s.name);
   const { data: enrollmentMap = {} } = useQuery({
-    queryKey: ["enrollment-map", studentIds],
-    queryFn: () => fetchEnrollmentMap(studentIds),
+    queryKey: ["enrollment-map", studentIds, selectedYear],
+    queryFn: () => fetchEnrollmentMap(studentIds, selectedYear),
     enabled: studentIds.length > 0,
     staleTime: 60_000,
   });
@@ -124,14 +126,12 @@ export default function StudentsPage() {
             {isLoading ? "Loading…" : `${page * PAGE_SIZE + students.length} students shown`}
           </p>
         </div>
-        {flags.students_create && (
-          <Link href="/dashboard/branch-manager/students/new">
+        <Link href="/dashboard/branch-manager/students/new">
             <Button variant="primary" size="md">
               <UserPlus className="h-4 w-4" />
               Add Student
             </Button>
           </Link>
-        )}
       </div>
 
       {/* Filters Bar */}
@@ -183,6 +183,7 @@ export default function StudentsPage() {
                   <th className="text-left px-5 py-3 font-semibold text-text-secondary">Student</th>
                   <th className="text-left px-5 py-3 font-semibold text-text-secondary">Class</th>
                   <th className="text-left px-5 py-3 font-semibold text-text-secondary">Batch</th>
+                  <th className="text-left px-5 py-3 font-semibold text-text-secondary">Fee Plan</th>
                   <th className="text-left px-5 py-3 font-semibold text-text-secondary">Branch</th>
                   <th className="text-left px-5 py-3 font-semibold text-text-secondary">Mobile</th>
                   <th className="text-left px-5 py-3 font-semibold text-text-secondary">Joined</th>
@@ -192,9 +193,9 @@ export default function StudentsPage() {
               </thead>
               <tbody>
                 {isLoading
-                  ? Array.from({ length: 8 }).map((_, i) => (
+                  ? Array.from({ length: 9 }).map((_, i) => (
                       <tr key={i} className="border-b border-border-light">
-                        {Array.from({ length: 8 }).map((_, j) => (
+                        {Array.from({ length: 9 }).map((_, j) => (
                           <td key={j} className="px-5 py-3">
                             <Skeleton className="h-4 w-full rounded" />
                           </td>
@@ -204,7 +205,7 @@ export default function StudentsPage() {
                   : students.length === 0
                   ? (
                       <tr>
-                        <td colSpan={8} className="px-5 py-16 text-center text-text-tertiary text-sm">
+                        <td colSpan={9} className="px-5 py-16 text-center text-text-tertiary text-sm">
                           No students found{search ? ` matching "${search}"` : ""}.
                         </td>
                       </tr>
@@ -244,6 +245,13 @@ export default function StudentsPage() {
                             {enr?.student_batch_name ?? <span className="text-text-tertiary text-xs">—</span>}
                           </td>
 
+                          {/* Fee Plan */}
+                          <td className="px-5 py-3 text-text-secondary text-xs">
+                            {enr?.custom_plan
+                              ? <span>{enr.custom_plan}{enr.custom_fee_structure ? <span className="text-text-tertiary"> · {enr.custom_fee_structure}</span> : ""}</span>
+                              : <span className="text-text-tertiary">—</span>}
+                          </td>
+
                           {/* Branch */}
                           <td className="px-5 py-3 text-text-secondary text-xs">
                             {student.custom_branch
@@ -271,20 +279,16 @@ export default function StudentsPage() {
                           {/* Actions */}
                           <td className="px-5 py-3">
                             <div className="flex items-center justify-end gap-1">
-                              {flags.students_view && (
-                                <Link href={`/dashboard/branch-manager/students/${student.name}`}>
+                              <Link href={`/dashboard/branch-manager/students/${student.name}`}>
                                   <button className="w-8 h-8 rounded-[8px] flex items-center justify-center text-text-tertiary hover:bg-app-bg hover:text-primary transition-colors">
                                     <Eye className="h-4 w-4" />
                                   </button>
                                 </Link>
-                              )}
-                              {flags.students_edit && (
-                                <Link href={`/dashboard/branch-manager/students/${student.name}/edit`}>
+                              <Link href={`/dashboard/branch-manager/students/${student.name}/edit`}>
                                   <button className="w-8 h-8 rounded-[8px] flex items-center justify-center text-text-tertiary hover:bg-app-bg hover:text-info transition-colors">
                                     <Pencil className="h-4 w-4" />
                                   </button>
                                 </Link>
-                              )}
                               <button className="w-8 h-8 rounded-[8px] flex items-center justify-center text-text-tertiary hover:bg-error-light hover:text-error transition-colors">
                                 <Trash2 className="h-4 w-4" />
                               </button>

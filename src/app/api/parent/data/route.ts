@@ -92,9 +92,13 @@ export async function GET(request: NextRequest) {
       fees: {},
       salesOrders: {},
       salesInvoices: {},
+      feeStructures: {},
+      paymentEntries: {},
     };
 
     // ── 1. Find Guardian by email ────────────────────────────────
+    // Multiple Guardian records may exist for the same email (e.g. from retry
+    // attempts during admission). Fetch ALL of them and scan each one for students.
     const guardians = await safeFetch<{
       name: string;
       guardian_name: string;
@@ -105,21 +109,25 @@ export async function GET(request: NextRequest) {
         "Guardian",
         [["email_address", "=", email]],
         ["name", "guardian_name", "email_address", "mobile_number"],
-        { limit: 1 }
+        { limit: 20 }
       ),
       headers
     );
-    const guardian = guardians[0] ?? null;
 
-    if (!guardian) {
+    if (guardians.length === 0) {
       console.warn(`[parent/data] No Guardian found for email: ${email}`);
       return NextResponse.json(emptyResult);
     }
+    console.log(`[parent/data] Found ${guardians.length} guardian(s) for email: ${email}:`, guardians.map(g => g.name).join(", "));
 
-    // ── 2. Find Students linked to this Guardian ─────────────────
-    // IMPORTANT: Child table doctype is "Student Guardian" (singular),
-    //            NOT "Student Guardians" (plural).
-    const children = await safeFetch<{
+    // Use the first guardian as the "primary" for display/return purposes
+    const guardian = guardians[0];
+    const guardianIds = guardians.map((g) => g.name);
+
+    // ── 2. Find Students linked to any of these Guardians ────────
+    // Try both child-table doctype names — Frappe Education uses "Student Guardian"
+    // (singular) but some installations store it as "Student Guardians" (plural).
+    let children: ({
       name: string;
       student_name: string;
       first_name: string;
@@ -132,22 +140,57 @@ export async function GET(request: NextRequest) {
       custom_parent_name: string;
       joining_date: string;
       enabled: number;
-    }>(
+    })[] = [];
+
+    const studentFields = [
+      "name", "student_name", "first_name",
+      "custom_branch", "custom_branch_abbr", "custom_srr_id",
+      "customer", "student_email_id", "student_mobile_number",
+      "custom_parent_name", "joining_date", "enabled",
+    ];
+
+    // First try the singular form (standard Frappe Education)
+    children = await safeFetch(
       frappeListUrl(
         "Student",
-        [["Student Guardian", "guardian", "=", guardian.name]],
-        [
-          "name", "student_name", "first_name",
-          "custom_branch", "custom_branch_abbr", "custom_srr_id",
-          "customer", "student_email_id", "student_mobile_number",
-          "custom_parent_name", "joining_date", "enabled",
-        ],
+        [["Student Guardian", "guardian", "in", guardianIds]],
+        studentFields,
         { limit: 20 }
       ),
       headers
     );
+    console.log(`[parent/data] Student lookup (singular, ${guardianIds.length} guardians) returned ${children.length} children`);
+
+    // Fallback: try plural form
+    if (children.length === 0) {
+      children = await safeFetch(
+        frappeListUrl(
+          "Student",
+          [["Student Guardians", "guardian", "in", guardianIds]],
+          studentFields,
+          { limit: 20 }
+        ),
+        headers
+      );
+      console.log(`[parent/data] Student lookup (plural, ${guardianIds.length} guardians) returned ${children.length} children`);
+    }
+
+    // Last-resort fallback: search by guardian_name text on the Student doctype
+    if (children.length === 0) {
+      children = await safeFetch(
+        frappeListUrl(
+          "Student",
+          [["custom_parent_name", "=", guardian.guardian_name]],
+          studentFields,
+          { limit: 20 }
+        ),
+        headers
+      );
+      console.log(`[parent/data] Student lookup (custom_parent_name) returned ${children.length} children`);
+    }
 
     if (children.length === 0) {
+      console.warn(`[parent/data] No students found for guardian(s): ${guardianIds.join(", ")} (${guardian.guardian_name})`);
       return NextResponse.json({ ...emptyResult, guardian });
     }
 
@@ -160,27 +203,95 @@ export async function GET(request: NextRequest) {
     const feesMap: Record<string, unknown[]> = {};
     const salesOrderMap: Record<string, unknown[]> = {};
     const salesInvoiceMap: Record<string, unknown[]> = {};
+    const feeStructureMap: Record<string, unknown[]> = {};
+    const paymentEntryMap: Record<string, unknown[]> = {};
 
     await Promise.all(
       children.map(async (child) => {
         // 3a. Program Enrollment — get program, batch, academic year
-        //     (These fields do NOT exist on Student, only on Program Enrollment)
-        enrollmentMap[child.name] = await safeFetch(
+        //     Include both submitted (docstatus=1) and draft (docstatus=0) so parents
+        //     can see their child's enrollment even if admin hasn't submitted it yet.
+        const enrollments = await safeFetch<{ name: string; student: string; student_name: string; program: string; custom_program_abb: string; academic_year: string; student_batch_name: string; enrollment_date: string; custom_fee_structure: string | null; custom_plan: string | null; custom_no_of_instalments: string | null }>(
           frappeListUrl(
             "Program Enrollment",
             [
               ["student", "=", child.name],
-              ["docstatus", "=", 1],
+              ["docstatus", "in", [0, 1]],
             ],
             [
               "name", "student", "student_name", "program",
               "custom_program_abb", "academic_year",
               "student_batch_name", "enrollment_date",
+              "custom_fee_structure", "custom_plan", "custom_no_of_instalments",
             ],
             { limit: 10, orderBy: "enrollment_date desc" }
           ),
           headers
         );
+        enrollmentMap[child.name] = enrollments;
+
+        // 3a-ii. Fetch Fee Structure for the latest enrollment
+        const latestEnr = enrollments[0];
+        if (latestEnr?.program && latestEnr?.academic_year) {
+          let fsList: { name: string }[] = [];
+
+          // Best case: enrollment has the exact Fee Structure stored
+          if (latestEnr.custom_fee_structure) {
+            fsList = [{ name: latestEnr.custom_fee_structure }];
+          } else {
+            // Fallback: search by program + academic year + company
+            // Normalise program name: Fee Structures use "11th State" but enrollments
+            // may use "11th Science State". Strip "Science " for the lookup.
+            const feeProgram = latestEnr.program.replace(
+              /^(\d+(?:st|nd|rd|th))\s+Science\s+(State|CBSE)/i,
+              "$1 $2"
+            );
+            const programsToTry = feeProgram !== latestEnr.program
+              ? [feeProgram, latestEnr.program]
+              : [latestEnr.program];
+
+            // Filter by the student's company (branch) to narrow results
+            const companyFilter: string[][] = child.custom_branch
+              ? [["company", "=", child.custom_branch]]
+              : [];
+
+            for (const prog of programsToTry) {
+              fsList = await safeFetch<{ name: string }>(
+                frappeListUrl(
+                  "Fee Structure",
+                  [
+                    ["program", "=", prog],
+                    ["academic_year", "=", latestEnr.academic_year],
+                    ...companyFilter,
+                  ],
+                  ["name", "program", "academic_year", "total_amount", "company"],
+                  { limit: 5 }
+                ),
+                headers
+              );
+              if (fsList.length > 0) break;
+            }
+          }
+          // Fetch full docs to get the components child table
+          const fullDocs = await Promise.all(
+            fsList.map(async (fs) => {
+              try {
+                const res = await fetch(
+                  `${FRAPPE_URL}/api/resource/Fee%20Structure/${encodeURIComponent(fs.name)}`,
+                  { headers, cache: "no-store" }
+                );
+                if (!res.ok) return fs;
+                const json = await res.json();
+                return json?.data ?? fs;
+              } catch {
+                return fs;
+              }
+            })
+          );
+          feeStructureMap[child.name] = fullDocs.filter(Boolean) as unknown[];
+        } else {
+          feeStructureMap[child.name] = [];
+        }
 
         // 3b. Attendance (current month, submitted only)
         attendanceMap[child.name] = await safeFetch(
@@ -226,6 +337,8 @@ export async function GET(request: NextRequest) {
                 "name", "customer", "customer_name", "transaction_date",
                 "delivery_date", "grand_total", "status",
                 "per_billed", "advance_paid",
+                "custom_academic_year", "student",
+                "custom_no_of_instalments", "custom_plan",
               ],
               { limit: 50, orderBy: "transaction_date desc" }
             ),
@@ -249,9 +362,28 @@ export async function GET(request: NextRequest) {
             ),
             headers
           );
+
+          // 3f. Payment Entries — submitted payments by customer
+          paymentEntryMap[child.name] = await safeFetch(
+            frappeListUrl(
+              "Payment Entry",
+              [
+                ["party_type", "=", "Customer"],
+                ["party", "=", child.customer],
+                ["docstatus", "=", 1],
+              ],
+              [
+                "name", "posting_date", "paid_amount", "mode_of_payment",
+                "reference_no", "party_name",
+              ],
+              { limit: 50, orderBy: "posting_date desc" }
+            ),
+            headers
+          );
         } else {
           salesOrderMap[child.name] = [];
           salesInvoiceMap[child.name] = [];
+          paymentEntryMap[child.name] = [];
         }
       })
     );
@@ -264,6 +396,8 @@ export async function GET(request: NextRequest) {
       fees: feesMap,
       salesOrders: salesOrderMap,
       salesInvoices: salesInvoiceMap,
+      feeStructures: feeStructureMap,
+      paymentEntries: paymentEntryMap,
     });
   } catch (error: unknown) {
     console.error("[parent/data] Unexpected error:", error);

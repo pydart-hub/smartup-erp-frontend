@@ -11,11 +11,12 @@ const APP_ROLE_PRIORITY = [
   "Director",
   "Management",
   "Branch Manager",
+  "HR Manager",
   "Administrator",
   "Instructor",
   "Batch Coordinator",
   "Teacher",
-  "Accountant",
+  "Accounts User",
   "Parent",
 ];
 

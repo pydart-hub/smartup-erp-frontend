@@ -8,6 +8,9 @@ export interface FeeComponent {
   fees_category: string;    // Fee Category name
   description?: string;
   amount: number;
+  item?: string;            // link → Item
+  discount?: number;        // percentage
+  total?: number;           // computed after discount
 }
 
 /**
@@ -15,7 +18,7 @@ export interface FeeComponent {
  * Named e.g. FST-10th Grade-2025-2026
  */
 export interface FeeStructure {
-  name: string;             // EDU-FST-YYYY-NNNNN
+  name: string;             // e.g. "SU ERV-8th State-Basic-4"
   program: string;          // link → Program (required)
   academic_year: string;    // link → Academic Year (required)
   academic_term?: string;
@@ -25,6 +28,12 @@ export interface FeeStructure {
   receivable_account: string;  // required
   company?: string;
   cost_center?: string;
+  docstatus?: 0 | 1 | 2;
+
+  // Custom fields
+  custom_plan?: string;                // "Basic" | "Intermediate" | "Advanced"
+  custom_no_of_instalments?: string;   // "1" | "4" | "6" | "8"
+  custom_branch_abbr?: string;         // e.g. "SU ERV"
 }
 
 /**
@@ -88,6 +97,46 @@ export interface PaymentFormData {
   mode_of_payment: string;
   reference_no?: string;
   remarks?: string;
+}
+
+// ── Fee Config (parsed from XLSX pricing data) ──
+
+/** Single pricing entry from fee_structure_parsed.json */
+export interface FeeConfigEntry {
+  branch: string;        // e.g. "Vennala", "Tier 1 (Chullikal, Fortkochi, Eraveli, Palluruthi)"
+  plan: string;          // "Basic" | "Intermediate" | "Advanced"
+  class: string;         // e.g. "8 State", "9 Cbse", "Plus One", "Plus Two"
+  annual_fee: number;
+  early_bird: number;
+  otp: number;           // One-Time Payment
+  quarterly_total: number;
+  q1: number;
+  q2: number;
+  q3: number;
+  q4: number;
+  inst6_total: number;
+  inst6_per: number;     // per-instalment for instalments 1-5
+  inst6_last: number;    // last instalment (different due to rounding)
+  inst8_total: number;
+  inst8_per: number;     // per-instalment for instalments 1-7
+  inst8_last: number;    // last instalment (different due to rounding)
+}
+
+/** A single instalment in the payment schedule */
+export interface InstalmentEntry {
+  index: number;         // 1-based instalment number
+  label: string;         // e.g. "Q1", "Instalment 3", "Full Payment"
+  amount: number;
+  dueDate: string;       // ISO date string, e.g. "2026-04-15"
+}
+
+/** Payment option summary shown in the admission UI */
+export interface PaymentOptionSummary {
+  instalments: number;   // 1, 4, 6, or 8
+  label: string;         // "One-Time Payment", "Quarterly", etc.
+  total: number;         // total amount for this option
+  schedule: InstalmentEntry[];
+  savings?: number;      // savings vs annual_fee (if applicable)
 }
 
 export interface FeeReportSummary {

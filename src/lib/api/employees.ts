@@ -161,6 +161,51 @@ export async function getInstructorsByCompany(company: string): Promise<Instruct
   return instrRes.data.filter((i) => employeeNames.has(i.employee));
 }
 
+// ── Instructor Log (child table) ─────────────────────────────────────────────
+
+export interface InstructorLogEntry {
+  program: string;
+  course?: string;
+  custom_branch?: string;
+  academic_year?: string;
+}
+
+export interface InstructorWithLog extends Instructor {
+  instructor_log: InstructorLogEntry[];
+}
+
+/**
+ * Fetch a single instructor's full doc (including instructor_log child table).
+ * This is needed because the list API does not return child tables.
+ */
+export async function getInstructorDoc(name: string): Promise<InstructorWithLog> {
+  const { data } = await apiClient.get<{ data: InstructorWithLog }>(
+    `/resource/Instructor/${encodeURIComponent(name)}`
+  );
+  return data.data;
+}
+
+/**
+ * Fetch all instructors for a given branch with their course assignments.
+ * Makes N+1 calls: one list call + one per instructor for the full doc.
+ * Results should be cached aggressively (staleTime: 10+ min).
+ */
+export async function getInstructorsWithCourses(branch: string): Promise<InstructorWithLog[]> {
+  const branchInstructors = await getInstructorsByCompany(branch);
+
+  // Fetch full docs in parallel (for instructor_log with courses)
+  const docs = await Promise.all(
+    branchInstructors.map((i) =>
+      getInstructorDoc(i.name).catch(() => ({
+        ...i,
+        instructor_log: [] as InstructorLogEntry[],
+      }))
+    )
+  );
+
+  return docs as InstructorWithLog[];
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Create / Update Employee Attendance
 // ─────────────────────────────────────────────────────────────────────────────

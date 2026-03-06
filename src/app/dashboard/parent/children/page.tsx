@@ -10,6 +10,8 @@ import {
   Mail,
   Phone,
   Calendar,
+  CreditCard,
+  FileText,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -142,6 +144,27 @@ export default function ParentChildrenPage() {
                             </p>
                           </div>
                         </div>
+                        <div className="flex items-start gap-2">
+                          <CreditCard className="h-4 w-4 text-text-tertiary mt-0.5" />
+                          <div>
+                            <p className="text-xs text-text-tertiary">Fee Plan</p>
+                            <p className="text-sm font-medium text-text-primary">
+                              {enrollment?.custom_plan || "—"}
+                              {enrollment?.custom_no_of_instalments ? ` · ${enrollment.custom_no_of_instalments}x` : ""}
+                            </p>
+                          </div>
+                        </div>
+                        {enrollment?.custom_fee_structure && (
+                          <div className="flex items-start gap-2">
+                            <FileText className="h-4 w-4 text-text-tertiary mt-0.5" />
+                            <div>
+                              <p className="text-xs text-text-tertiary">Fee Structure</p>
+                              <p className="text-sm font-medium text-text-primary">
+                                {enrollment.custom_fee_structure}
+                              </p>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {/* Contact info */}

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   Calendar,
@@ -10,7 +10,9 @@ import {
   Users,
   Save,
   Loader2,
+  AlertTriangle,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -18,11 +20,26 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { toast } from "sonner";
 import { getBatch } from "@/lib/api/batches";
 import { getAttendance, bulkMarkAttendance } from "@/lib/api/attendance";
+import { getCourseSchedules } from "@/lib/api/courseSchedule";
 import type { BatchStudent } from "@/lib/types/batch";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useInstructorBatches } from "@/lib/hooks/useInstructorBatches";
 
 type AttendanceStatus = "Present" | "Absent" | "Late";
+
+/** Parse an HH:MM or HH:MM:SS time string into total minutes since midnight */
+function parseTimeToMinutes(time: string): number {
+  const [h, m] = time.split(":").map(Number);
+  return h * 60 + (m || 0);
+}
+
+/** Format HH:MM:SS → h:MM AM/PM */
+function formatTime12h(time: string): string {
+  const [h, m] = time.split(":").map(Number);
+  const ampm = h >= 12 ? "PM" : "AM";
+  const hour12 = h % 12 || 12;
+  return `${hour12}:${String(m).padStart(2, "0")} ${ampm}`;
+}
 
 export default function InstructorAttendancePage() {
   const { defaultCompany } = useAuth();
@@ -44,6 +61,82 @@ export default function InstructorAttendancePage() {
       setSelectedBatchId(activeBatches[0].name);
     }
   }, [batchesLoading, activeBatches, selectedBatchId]);
+
+  // ── Fetch course schedule for this batch + date to enforce class-end gating ──
+  const { data: scheduleRes, isLoading: scheduleLoading } = useQuery({
+    queryKey: ["attendance-schedule-check", selectedBatchId, selectedDate],
+    queryFn: () =>
+      getCourseSchedules({
+        date: selectedDate,
+        student_group: selectedBatchId || undefined,
+        limit_page_length: 50,
+      }),
+    enabled: !!selectedBatchId && !!selectedDate,
+    staleTime: 60_000,
+    refetchInterval: 60_000, // re-check every minute so the gate lifts when class ends
+  });
+
+  /**
+   * Determine if the instructor is allowed to mark attendance right now.
+   *
+   * Rules:
+   *  - No schedule found for this batch+date → blocked (no class = no attendance)
+   *  - Future dates → blocked
+   *  - Past dates with a schedule → allowed (class already happened)
+   *  - Today with a schedule → allowed only AFTER the latest class ends (current time ≥ to_time)
+   */
+  const { attendanceBlocked, blockReason } = useMemo(() => {
+    // While loading schedules, stay blocked (we'll unlock once data arrives)
+    if (scheduleLoading) {
+      return { attendanceBlocked: true, blockReason: "" };
+    }
+
+    const schedules = scheduleRes?.data ?? [];
+    const today = new Date().toISOString().split("T")[0];
+
+    // No schedule at all for this batch on this date → block
+    if (schedules.length === 0) {
+      return {
+        attendanceBlocked: true,
+        blockReason: "No class is scheduled for this batch on this date. Attendance can only be marked for scheduled classes.",
+      };
+    }
+
+    // Future date → block
+    if (selectedDate > today) {
+      return {
+        attendanceBlocked: true,
+        blockReason: "You cannot mark attendance for a future date.",
+      };
+    }
+
+    // Past date with schedule → allow (class already happened)
+    if (selectedDate < today) {
+      return { attendanceBlocked: false, blockReason: "" };
+    }
+
+    // Today — check if the latest class has ended
+    let maxEndMinutes = 0;
+    let maxEndTimeStr = "";
+    for (const s of schedules) {
+      const endMinutes = parseTimeToMinutes(s.to_time);
+      if (endMinutes > maxEndMinutes) {
+        maxEndMinutes = endMinutes;
+        maxEndTimeStr = s.to_time;
+      }
+    }
+
+    const now = new Date();
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const ended = nowMinutes >= maxEndMinutes;
+
+    return {
+      attendanceBlocked: !ended,
+      blockReason: !ended
+        ? `Attendance can only be marked after class ends at ${formatTime12h(maxEndTimeStr)}.`
+        : "",
+    };
+  }, [selectedDate, scheduleRes, scheduleLoading]);
 
   // Load students + existing attendance when batch or date changes
   const loadAttendanceData = useCallback(async () => {
@@ -102,6 +195,11 @@ export default function InstructorAttendancePage() {
 
   async function saveAttendance() {
     if (!selectedBatchId || students.length === 0) return;
+    // Block if class hasn't ended yet
+    if (attendanceBlocked) {
+      toast.error("Attendance can only be marked after the class has ended.");
+      return;
+    }
     // Double-check batch access before saving
     if (!isBatchAllowed(selectedBatchId)) {
       toast.error("Access denied: you cannot mark attendance for this batch.");
@@ -109,16 +207,18 @@ export default function InstructorAttendancePage() {
     }
     setSaving(true);
     try {
-      const students_present = students.filter((s) => attendance[s.student] === "Present").map((s) => s.student);
-      const students_absent  = students.filter((s) => attendance[s.student] === "Absent").map((s) => s.student);
-      const students_late    = students.filter((s) => attendance[s.student] === "Late").map((s) => s.student);
+      // Build the students array with name + status for each student
+      const attendanceEntries = students.map((s) => ({
+        student: s.student,
+        student_name: s.student_name || s.student,
+        status: attendance[s.student] ?? ("Present" as const),
+      }));
 
       await bulkMarkAttendance({
         student_group: selectedBatchId,
         date: selectedDate,
-        students_present,
-        students_absent,
-        students_late,
+        students: attendanceEntries,
+        custom_branch: selectedBatch?.custom_branch || undefined,
       });
 
       toast.success(`Attendance saved for ${selectedDate}`);
@@ -188,11 +288,11 @@ export default function InstructorAttendancePage() {
             </div>
 
             <div className="flex items-end gap-2 ml-auto">
-              <Button variant="outline" size="md" onClick={markAllPresent} disabled={dataLoading || students.length === 0}>
+              <Button variant="outline" size="md" onClick={markAllPresent} disabled={dataLoading || students.length === 0 || attendanceBlocked}>
                 <CheckCircle className="h-4 w-4" />
                 Mark All Present
               </Button>
-              <Button variant="primary" size="md" onClick={saveAttendance} disabled={saving || students.length === 0}>
+              <Button variant="primary" size="md" onClick={saveAttendance} disabled={saving || students.length === 0 || attendanceBlocked}>
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 Save
               </Button>
@@ -200,6 +300,23 @@ export default function InstructorAttendancePage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Class-end gate warning */}
+      {attendanceBlocked && blockReason && !dataLoading && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-3 rounded-[12px] border border-warning/30 bg-warning-light px-4 py-3"
+        >
+          <AlertTriangle className="h-5 w-5 text-warning shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-text-primary">{blockReason}</p>
+            <p className="text-xs text-text-secondary mt-0.5">
+              You&apos;ll be able to mark attendance once the scheduled class is over.
+            </p>
+          </div>
+        </motion.div>
+      )}
 
       {/* Loading */}
       {dataLoading && (
@@ -250,9 +367,9 @@ export default function InstructorAttendancePage() {
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: index * 0.03 }}
-                      whileTap={{ scale: 0.97 }}
-                      onClick={() => toggleStatus(student.student)}
-                      className={`flex items-center gap-3 p-3 rounded-[10px] border-2 transition-all cursor-pointer text-left ${config.bg} ${config.ring} ring-2`}
+                      whileTap={attendanceBlocked ? undefined : { scale: 0.97 }}
+                      onClick={() => !attendanceBlocked && toggleStatus(student.student)}
+                      className={`flex items-center gap-3 p-3 rounded-[10px] border-2 transition-all text-left ${config.bg} ${config.ring} ring-2 ${attendanceBlocked ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}
                     >
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center ${config.bg}`}>
                         <Icon className={`h-4 w-4 ${config.color}`} />

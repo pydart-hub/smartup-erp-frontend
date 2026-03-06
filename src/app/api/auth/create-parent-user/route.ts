@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireRole, STAFF_ROLES } from "@/lib/utils/apiAuth";
 
 const FRAPPE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL;
 const FRAPPE_API_KEY = process.env.FRAPPE_API_KEY;
@@ -14,11 +15,9 @@ const FRAPPE_API_SECRET = process.env.FRAPPE_API_SECRET;
  */
 export async function POST(request: NextRequest) {
   try {
-    // Verify the caller is authenticated (has a valid session)
-    const sessionCookie = request.cookies.get("smartup_session");
-    if (!sessionCookie) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
+    // Auth: require staff role (BM / Admin / Director)
+    const authResult = requireRole(request, STAFF_ROLES);
+    if (authResult instanceof NextResponse) return authResult;
 
     const body = await request.json();
     const { email, full_name, password } = body;
@@ -209,9 +208,9 @@ export async function POST(request: NextRequest) {
             subject: "Welcome to SmartUp Parent Portal - Your Login Credentials",
             content: emailBody,
             recipients: email,
-            sender: "academiqedullp@gmail.com",
             communication_medium: "Email",
             send_email: 1,
+            // No explicit sender — Frappe uses its configured default outgoing Email Account
           }),
           cache: "no-store",
         }

@@ -1,24 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { GraduationCap } from "lucide-react";
 import { LoginForm } from "@/components/auth/LoginForm";
-import { useFeatureFlagsStore } from "@/lib/stores/featureFlagsStore";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { flags } = useFeatureFlagsStore();
-
-  // Dev: if auth is turned off, skip login and go straight to dashboard
-  useEffect(() => {
-    if (!flags.auth) {
-      router.replace("/dashboard/branch-manager");
-    }
-  }, [flags.auth, router]);
-
-  if (!flags.auth) return null;
 
   return (
     <div className="min-h-screen bg-app-bg flex">

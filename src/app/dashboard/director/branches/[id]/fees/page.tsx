@@ -15,13 +15,12 @@ import {
   AlertCircle,
   CircleCheck,
   Clock,
-  ShoppingCart,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { getBranchFeeSchedules, getBranchSalesSummary, getBranchInvoiceStats } from "@/lib/api/director";
+import { getBranchFeeSchedules, getBranchInvoiceStats } from "@/lib/api/director";
 import { formatCurrency } from "@/lib/utils/formatters";
 
 const containerVariants = {
@@ -60,15 +59,6 @@ export default function BranchFeesPage() {
   });
 
   const {
-    data: salesStats,
-    isLoading: loadSales,
-  } = useQuery({
-    queryKey: ["director-branch-sales-summary", branchName],
-    queryFn: () => getBranchSalesSummary(branchName),
-    staleTime: 120_000,
-  });
-
-  const {
     data: invoiceStats,
     isLoading: loadInvoices,
   } = useQuery({
@@ -78,10 +68,10 @@ export default function BranchFeesPage() {
   });
 
   const fees = feeSchedules ?? [];
-  const totalFeeAmount = fees.reduce((sum, f) => sum + (f.total_amount || f.grand_total || 0), 0);
-  const totalRevenue = salesStats?.totalRevenue ?? 0;
+  const totalFees = invoiceStats?.totalInvoiced ?? 0;
   const totalCollected = invoiceStats?.totalCollected ?? 0;
   const totalPending = invoiceStats?.totalOutstanding ?? 0;
+  const invoiceCount = invoiceStats?.count ?? 0;
 
   // Group fee schedules by program
   const feesByProgram = fees.reduce(
@@ -119,10 +109,10 @@ export default function BranchFeesPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-text-primary">
-              Fees & Revenue — {shortName}
+              Fees — {shortName}
             </h1>
             <p className="text-sm text-text-secondary mt-0.5">
-              Fee schedules, sales orders, and collections overview
+              Submitted invoices only · {invoiceCount} invoice{invoiceCount !== 1 ? "s" : ""}
             </p>
           </div>
           <Badge variant="outline" className="self-start text-xs">
@@ -131,38 +121,17 @@ export default function BranchFeesPage() {
         </div>
       </motion.div>
 
-      {/* Financial Summary Cards */}
-      <motion.div variants={itemVariants} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+      {/* Financial Summary Cards — Sales Invoice only */}
+      <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="border-border-light">
           <CardContent className="p-4 text-center">
-            <FileText className="h-5 w-5 text-primary mx-auto mb-2" />
+            <IndianRupee className="h-5 w-5 text-primary mx-auto mb-2" />
             <p className="text-2xl font-bold text-text-primary">
-              {loadFees ? "..." : fees.length}
-            </p>
-            <p className="text-xs text-text-tertiary">Fee Schedules</p>
-          </CardContent>
-        </Card>
-        <Card className="border-border-light">
-          <CardContent className="p-4 text-center">
-            <IndianRupee className="h-5 w-5 text-warning mx-auto mb-2" />
-            <p className="text-2xl font-bold text-text-primary">
-              {loadFees ? "..." : formatCurrency(totalFeeAmount)}
+              {loadInvoices ? "..." : formatCurrency(totalFees)}
             </p>
             <p className="text-xs text-text-tertiary">Total Fees</p>
           </CardContent>
         </Card>
-        <Link href={`/dashboard/director/branches/${encodedBranch}/sales-orders`}>
-          <Card className="h-full hover:shadow-md transition-shadow cursor-pointer border-border-light hover:border-primary/30">
-            <CardContent className="p-4 text-center">
-              <ShoppingCart className="h-5 w-5 text-info mx-auto mb-2" />
-              <p className="text-2xl font-bold text-text-primary">
-                {loadSales ? "..." : formatCurrency(totalRevenue)}
-              </p>
-              <p className="text-xs text-text-tertiary">Sales Revenue</p>
-              <ChevronRight className="h-3.5 w-3.5 text-text-tertiary mx-auto mt-1" />
-            </CardContent>
-          </Card>
-        </Link>
         <Card className="border-success/20">
           <CardContent className="p-4 text-center">
             <CircleCheck className="h-5 w-5 text-success mx-auto mb-2" />
@@ -279,9 +248,7 @@ export default function BranchFeesPage() {
               </div>
               <div className="flex-1">
                 <p className="font-medium text-text-primary">View Sales Orders</p>
-                <p className="text-xs text-text-tertiary">
-                  {(loadSales || loadInvoices) ? "Loading..." : `${salesStats?.count ?? 0} orders · ${formatCurrency(totalRevenue)} revenue · ${formatCurrency(totalCollected)} collected`}
-                </p>
+                <p className="text-xs text-text-tertiary">Browse sales orders for this branch</p>
               </div>
               <ChevronRight className="h-4 w-4 text-text-tertiary shrink-0" />
             </CardContent>

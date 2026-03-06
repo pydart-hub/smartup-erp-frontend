@@ -18,7 +18,6 @@ import { getSalesOrders } from "@/lib/api/sales";
 import { getBranches } from "@/lib/api/enrollment";
 import { getFeeSchedules } from "@/lib/api/employees";
 import { formatDate, formatCurrency } from "@/lib/utils/formatters";
-import { useFeatureFlagsStore } from "@/lib/stores/featureFlagsStore";
 import { useAuth } from "@/lib/hooks/useAuth";
 import type { SalesOrderStatus } from "@/lib/types/sales";
 
@@ -43,9 +42,7 @@ const STATUS_TABS = [
 ];
 
 export default function SalesOrdersPage() {
-  const { flags } = useFeatureFlagsStore();
   const { defaultCompany, allowedCompanies } = useAuth();
-  if (!flags.sales_orders) return null;
 
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
@@ -199,6 +196,7 @@ export default function SalesOrdersPage() {
                   <th className="text-left px-5 py-3 font-semibold text-text-secondary">Date</th>
                   <th className="text-left px-5 py-3 font-semibold text-text-secondary">Delivery</th>
                   <th className="text-right px-5 py-3 font-semibold text-text-secondary">Grand Total</th>
+                  <th className="text-left px-5 py-3 font-semibold text-text-secondary">Plan</th>
                   <th className="text-center px-5 py-3 font-semibold text-text-secondary">Billed</th>
                   <th className="text-left px-5 py-3 font-semibold text-text-secondary">Status</th>
                   <th className="text-right px-5 py-3 font-semibold text-text-secondary">Actions</th>
@@ -208,7 +206,7 @@ export default function SalesOrdersPage() {
                 {isLoading
                   ? Array.from({ length: 8 }).map((_, i) => (
                       <tr key={i} className="border-b border-border-light">
-                        {Array.from({ length: 9 }).map((_, j) => (
+                        {Array.from({ length: 10 }).map((_, j) => (
                           <td key={j} className="px-5 py-3">
                             <Skeleton className="h-4 w-full rounded" />
                           </td>
@@ -218,7 +216,7 @@ export default function SalesOrdersPage() {
                   : orders.length === 0
                   ? (
                       <tr>
-                        <td colSpan={9} className="text-center py-16 text-text-tertiary">
+                        <td colSpan={10} className="text-center py-16 text-text-tertiary">
                           No sales orders found.
                         </td>
                       </tr>
@@ -248,6 +246,18 @@ export default function SalesOrdersPage() {
                         <td className="px-5 py-3 text-right font-semibold text-text-primary">
                           {formatCurrency(order.grand_total)}
                         </td>
+                        <td className="px-5 py-3">
+                          {order.custom_plan ? (
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-xs font-medium text-text-primary">{order.custom_plan}</span>
+                              {order.custom_no_of_instalments && (
+                                <span className="text-[10px] text-text-tertiary">{order.custom_no_of_instalments}x inst.</span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-text-tertiary">—</span>
+                          )}
+                        </td>
                         <td className="px-5 py-3 text-center">
                           <span className={`text-xs font-medium ${
                             (order.per_billed ?? 0) >= 100
@@ -265,15 +275,17 @@ export default function SalesOrdersPage() {
                         <td className="px-5 py-3 text-right">
                           <div className="flex items-center justify-end gap-1">
                             <Link href={`/dashboard/branch-manager/sales-orders/${encodeURIComponent(order.name)}`}>
-                              <button className="p-1.5 rounded-[8px] text-text-tertiary hover:text-primary hover:bg-brand-wash transition-colors">
+                              <button className="p-1.5 rounded-[8px] text-text-tertiary hover:text-primary hover:bg-brand-wash transition-colors" title="View">
                                 <Eye className="h-4 w-4" />
                               </button>
                             </Link>
-                            <Link href={`/dashboard/branch-manager/invoices/new?so=${encodeURIComponent(order.name)}`}>
-                              <button className="p-1.5 rounded-[8px] text-text-tertiary hover:text-info hover:bg-info/10 transition-colors" title="Create Invoice">
-                                <FileText className="h-4 w-4" />
-                              </button>
-                            </Link>
+                            {order.docstatus === 1 && (order.per_billed ?? 0) < 100 && order.status !== "Cancelled" && (
+                              <Link href={`/dashboard/branch-manager/invoices/new?so=${encodeURIComponent(order.name)}`}>
+                                <button className="p-1.5 rounded-[8px] text-text-tertiary hover:text-info hover:bg-info/10 transition-colors" title="Create Invoice">
+                                  <FileText className="h-4 w-4" />
+                                </button>
+                              </Link>
+                            )}
                           </div>
                         </td>
                       </tr>

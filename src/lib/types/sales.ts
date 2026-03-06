@@ -47,6 +47,10 @@ export interface SalesOrder {
   per_billed?: number;      // % invoiced
   per_delivered?: number;   // % delivered
   advance_paid?: number;
+  custom_academic_year?: string;
+  student?: string;
+  custom_no_of_instalments?: string;
+  custom_plan?: string;
   docstatus?: 0 | 1 | 2;
   // ERPNext timestamps
   creation?: string;
@@ -61,6 +65,22 @@ export interface SalesOrderFormData {
   order_type?: string;
   items: SalesOrderItemFormData[];
   taxes_and_charges?: string;
+  // Payment Schedule child table
+  payment_schedule?: PaymentScheduleEntry[];
+  // Custom fields for student fee tracking
+  custom_academic_year?: string;
+  student?: string;
+  custom_no_of_instalments?: string;
+  custom_plan?: string;
+  custom_mode_of_payment?: string;
+}
+
+/** Payment Schedule child table row on Sales Order */
+export interface PaymentScheduleEntry {
+  due_date: string;
+  invoice_portion: number;  // percentage of grand_total
+  payment_amount: number;
+  description?: string;
 }
 
 export interface SalesOrderItemFormData {

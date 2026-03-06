@@ -19,6 +19,8 @@ import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { getBranchStudents, getStudentCountForBranch } from "@/lib/api/director";
+import apiClient from "@/lib/api/client";
+import { useAcademicYearStore } from "@/lib/stores/academicYearStore";
 
 const PAGE_SIZE = 25;
 
@@ -29,6 +31,7 @@ export default function BranchAllStudentsPage() {
   const branchName = decodeURIComponent(params.id as string);
   const shortName = branchName.replace("Smart Up ", "").replace("Smart Up", "HQ");
   const encodedBranch = encodeURIComponent(branchName);
+  const { selectedYear } = useAcademicYearStore();
 
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
@@ -75,6 +78,37 @@ export default function BranchAllStudentsPage() {
 
   const students = studentsRes?.data ?? [];
   const hasMore = students.length === PAGE_SIZE;
+
+  // Fetch enrollment data (program, fee plan) for displayed students
+  const studentIds = students.map((s) => s.name);
+  const { data: enrollmentMap = {} } = useQuery({
+    queryKey: ["director-enrollment-map", studentIds, selectedYear],
+    queryFn: async () => {
+      if (!studentIds.length) return {};
+      const filters: (string | number | string[])[][] = [
+        ["student", "in", studentIds],
+        ["docstatus", "=", 1],
+      ];
+      if (selectedYear) filters.push(["academic_year", "=", selectedYear]);
+      const { data } = await apiClient.get("/resource/Program Enrollment", {
+        params: {
+          filters: JSON.stringify(filters),
+          fields: JSON.stringify(["student", "program", "student_batch_name", "custom_fee_structure", "custom_plan"]),
+          order_by: "enrollment_date desc",
+          limit_page_length: studentIds.length * 3,
+        },
+      });
+      const map: Record<string, { program: string; student_batch_name?: string; custom_fee_structure?: string; custom_plan?: string }> = {};
+      for (const row of (data.data ?? [])) {
+        if (!map[row.student]) {
+          map[row.student] = { program: row.program, student_batch_name: row.student_batch_name, custom_fee_structure: row.custom_fee_structure, custom_plan: row.custom_plan };
+        }
+      }
+      return map;
+    },
+    enabled: studentIds.length > 0,
+    staleTime: 60_000,
+  });
 
   return (
     <motion.div
@@ -155,14 +189,17 @@ export default function BranchAllStudentsPage() {
                 <thead>
                   <tr className="border-b border-border-light bg-app-bg">
                     <th className="text-left px-4 py-3 font-medium text-text-secondary">Student</th>
+                    <th className="text-left px-4 py-3 font-medium text-text-secondary">Course</th>
+                    <th className="text-left px-4 py-3 font-medium text-text-secondary">Fee Plan</th>
                     <th className="text-left px-4 py-3 font-medium text-text-secondary hidden sm:table-cell">Email</th>
-                    <th className="text-left px-4 py-3 font-medium text-text-secondary hidden md:table-cell">Gender</th>
                     <th className="text-left px-4 py-3 font-medium text-text-secondary hidden lg:table-cell">Joined</th>
                     <th className="text-center px-4 py-3 font-medium text-text-secondary">Status</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {students.map((s) => (
+                  {students.map((s) => {
+                    const enr = enrollmentMap[s.name];
+                    return (
                     <tr
                       key={s.name}
                       className="border-b border-border-light last:border-0 hover:bg-app-bg/50 transition-colors"
@@ -173,11 +210,16 @@ export default function BranchAllStudentsPage() {
                           <p className="text-xs text-text-tertiary">{s.name}</p>
                         </div>
                       </td>
+                      <td className="px-4 py-3 text-text-secondary text-sm">
+                        {enr?.program || "—"}
+                      </td>
+                      <td className="px-4 py-3 text-text-secondary text-xs">
+                        {enr?.custom_plan
+                          ? <span>{enr.custom_plan}{enr.custom_fee_structure ? <span className="text-text-tertiary"> · {enr.custom_fee_structure}</span> : ""}</span>
+                          : <span className="text-text-tertiary">—</span>}
+                      </td>
                       <td className="px-4 py-3 text-text-secondary hidden sm:table-cell">
                         {s.student_email_id || "—"}
-                      </td>
-                      <td className="px-4 py-3 text-text-secondary hidden md:table-cell">
-                        {s.gender || "—"}
                       </td>
                       <td className="px-4 py-3 text-text-secondary hidden lg:table-cell">
                         {s.joining_date || "—"}
@@ -188,7 +230,8 @@ export default function BranchAllStudentsPage() {
                         </Badge>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

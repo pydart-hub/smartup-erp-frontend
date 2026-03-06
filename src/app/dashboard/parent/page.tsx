@@ -46,6 +46,9 @@ export interface EnrollmentInfo {
   academic_year: string;
   student_batch_name: string; // e.g. "CHL-25"
   enrollment_date: string;
+  custom_fee_structure?: string | null;
+  custom_plan?: string | null;
+  custom_no_of_instalments?: string | null;
 }
 
 export interface AttendanceRecord {
@@ -82,6 +85,30 @@ export interface SalesOrderEntry {
   status: string;
   per_billed?: number;
   advance_paid?: number;
+  custom_academic_year?: string;
+  student?: string;
+  custom_no_of_instalments?: string;
+  custom_plan?: string;
+}
+
+export interface FeeStructureEntry {
+  name: string;
+  program: string;
+  academic_year: string;
+  total_amount: number;
+  company?: string;
+  custom_plan?: string;
+  custom_no_of_instalments?: string;
+  components?: { fees_category: string; amount: number; total?: number }[];
+}
+
+export interface PaymentEntryRecord {
+  name: string;
+  posting_date: string;
+  paid_amount: number;
+  mode_of_payment: string;
+  reference_no?: string;
+  party_name?: string;
 }
 
 export interface ParentData {
@@ -92,6 +119,8 @@ export interface ParentData {
   fees: Record<string, FeeEntry[]>;
   salesOrders: Record<string, SalesOrderEntry[]>;
   salesInvoices: Record<string, SalesInvoiceEntry[]>;
+  feeStructures: Record<string, FeeStructureEntry[]>;
+  paymentEntries: Record<string, PaymentEntryRecord[]>;
 }
 
 // ── Helpers ─────────────────────────────────────────────────────
@@ -176,10 +205,22 @@ export default function ParentDashboardPage() {
     displayTotalFees = totalFeesDoc;
     displayOutstanding = totalFeesOutstanding;
   } else {
+    // Sales Orders exist but no invoices — full amount is outstanding
     displayTotalFees = totalSO;
-    displayOutstanding = 0; // SOs don't have outstanding
+    displayOutstanding = totalSO;
   }
   const displayPaid = displayTotalFees - displayOutstanding;
+
+  // Next due invoice: earliest outstanding invoice across all children
+  const todayStr = new Date().toISOString().split("T")[0];
+  const nextDueInvoice = allInvoices
+    .filter((inv) => inv.outstanding_amount > 0)
+    .sort((a, b) => (a.due_date ?? a.posting_date).localeCompare(b.due_date ?? b.posting_date))[0] as
+    | SalesInvoiceEntry
+    | undefined;
+  const nextDueIsOverdue = nextDueInvoice?.due_date
+    ? nextDueInvoice.due_date < todayStr
+    : false;
 
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="space-y-6">
@@ -228,6 +269,55 @@ export default function ParentDashboardPage() {
           href="/dashboard/parent/fees"
         />
       </motion.div>
+
+      {/* Next Payment Due */}
+      {nextDueInvoice && !isLoading && (
+        <motion.div variants={item}>
+          <Link href="/dashboard/parent/fees" className="block">
+            <div
+              className={`rounded-[14px] border p-4 flex items-center justify-between gap-4 transition-colors hover:shadow-sm ${
+                nextDueIsOverdue
+                  ? "bg-error-light border-error/20"
+                  : "bg-warning-light border-warning/20"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div
+                  className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                    nextDueIsOverdue ? "bg-error/10" : "bg-warning/10"
+                  }`}
+                >
+                  {nextDueIsOverdue ? (
+                    <AlertCircle className="h-5 w-5 text-error" />
+                  ) : (
+                    <Clock className="h-5 w-5 text-warning" />
+                  )}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-text-primary">
+                    {nextDueIsOverdue ? "Payment Overdue" : "Next Payment Due"}
+                  </p>
+                  <p className="text-xs text-text-secondary">
+                    {nextDueInvoice.due_date
+                      ? new Date(nextDueInvoice.due_date).toLocaleDateString("en-IN", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })
+                      : nextDueInvoice.name}
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-lg font-bold text-text-primary">
+                  {formatCurrency(nextDueInvoice.outstanding_amount)}
+                </p>
+                <span className="text-xs text-primary font-medium">Pay Now →</span>
+              </div>
+            </div>
+          </Link>
+        </motion.div>
+      )}
 
       {/* Children Cards */}
       <motion.div variants={item}>
@@ -427,7 +517,7 @@ export default function ParentDashboardPage() {
                           posting_date: so.transaction_date,
                           due_date: undefined as string | undefined,
                           grand_total: so.grand_total,
-                          outstanding_amount: 0,
+                          outstanding_amount: so.grand_total, // SO = fully outstanding
                           status: so.status,
                         }))
                     )
@@ -510,6 +600,20 @@ export default function ParentDashboardPage() {
                         <span className="text-text-tertiary">Academic Year</span>
                         <span className="font-medium text-text-primary">{enrollment?.academic_year || "—"}</span>
                       </div>
+                      <div className="flex justify-between">
+                        <span className="text-text-tertiary">Fee Plan</span>
+                        <span className="font-medium text-text-primary">{enrollment?.custom_plan || "—"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-text-tertiary">Instalments</span>
+                        <span className="font-medium text-text-primary">{enrollment?.custom_no_of_instalments ? `${enrollment.custom_no_of_instalments}x` : "—"}</span>
+                      </div>
+                      {enrollment?.custom_fee_structure && (
+                        <div className="flex justify-between">
+                          <span className="text-text-tertiary">Fee Structure</span>
+                          <span className="font-medium text-text-primary text-xs text-right">{enrollment.custom_fee_structure}</span>
+                        </div>
+                      )}
                     </div>
                   );
                 })}

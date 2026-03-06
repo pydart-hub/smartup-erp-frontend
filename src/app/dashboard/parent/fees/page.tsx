@@ -1,27 +1,30 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   IndianRupee,
   GraduationCap,
-  Calendar,
   FileText,
   ChevronDown,
   CheckCircle2,
   AlertCircle,
-  ShoppingCart,
-  Clock,
+  Receipt,
 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import InstalmentTimeline, {
+  type InstalmentItem,
+} from "@/components/fees/InstalmentTimeline";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { useAuth } from "@/lib/hooks/useAuth";
 import {
   useParentData,
   getLatestEnrollment,
-  type FeeEntry,
   type SalesInvoiceEntry,
   type SalesOrderEntry,
+  type FeeStructureEntry,
+  type PaymentEntryRecord,
 } from "../page";
 
 function formatCurrency(amount: number) {
@@ -30,6 +33,12 @@ function formatCurrency(amount: number) {
     currency: "INR",
     maximumFractionDigits: 0,
   }).format(amount);
+}
+
+function formatDate(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString("en-IN", {
+    day: "numeric", month: "short", year: "numeric",
+  });
 }
 
 const container = {
@@ -42,49 +51,58 @@ const item = {
 };
 
 export default function ParentFeesPage() {
-  const { user } = useAuth();
-  const { data, isLoading } = useParentData(user?.email);
+  const { user, isLoading: authLoading } = useAuth();
+  const { data, isLoading: dataLoading } = useParentData(user?.email);
+  const isLoading = authLoading || dataLoading;
   const [selectedChild, setSelectedChild] = useState<string>("all");
   const today = new Date().toISOString().split("T")[0];
+  const queryClient = useQueryClient();
+
+  const handlePaymentSuccess = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["parent-data"] });
+  }, [queryClient]);
 
   const children = data?.children ?? [];
 
-  const getChildFees = (studentId: string): FeeEntry[] =>
-    (data?.fees?.[studentId] ?? []) as FeeEntry[];
   const getChildInvoices = (studentId: string): SalesInvoiceEntry[] =>
     (data?.salesInvoices?.[studentId] ?? []) as SalesInvoiceEntry[];
   const getChildSalesOrders = (studentId: string): SalesOrderEntry[] =>
     (data?.salesOrders?.[studentId] ?? []) as SalesOrderEntry[];
+  const getChildFeeStructures = (studentId: string): FeeStructureEntry[] =>
+    (data?.feeStructures?.[studentId] ?? []) as FeeStructureEntry[];
 
   const targetChildren = selectedChild === "all"
     ? children
     : children.filter((c) => c.name === selectedChild);
 
-  const allFees = targetChildren.flatMap((c) => getChildFees(c.name));
   const allInvoices = targetChildren.flatMap((c) => getChildInvoices(c.name));
   const allSOs = targetChildren.flatMap((c) => getChildSalesOrders(c.name));
+  const allFeeStructures = targetChildren.flatMap((c) => getChildFeeStructures(c.name));
 
   // Aggregate totals
   const totalInvoiced = allInvoices.reduce((s, i) => s + i.grand_total, 0);
   const totalInvOutstanding = allInvoices.reduce((s, i) => s + i.outstanding_amount, 0);
-  const totalFeesDoc = allFees.reduce((s, f) => s + f.grand_total, 0);
-  const totalFeesOutstanding = allFees.reduce((s, f) => s + f.outstanding_amount, 0);
   const totalSO = allSOs.reduce((s, so) => s + so.grand_total, 0);
+  const totalFeeStructure = allFeeStructures.reduce((s, fs) => s + fs.total_amount, 0);
 
-  // Best available source
+  // Best available source for summary:
+  // SO = full fee commitment, invoices = what's been billed from backend
   let displayTotal: number;
   let displayOutstanding: number;
-  if (totalInvoiced > 0) {
-    displayTotal = totalInvoiced;
-    displayOutstanding = totalInvOutstanding;
-  } else if (totalFeesDoc > 0) {
-    displayTotal = totalFeesDoc;
-    displayOutstanding = totalFeesOutstanding;
-  } else {
+  let displayPaid: number;
+  if (totalSO > 0) {
     displayTotal = totalSO;
-    displayOutstanding = 0;
+    displayPaid = totalInvoiced > 0 ? totalInvoiced - totalInvOutstanding : 0;
+    displayOutstanding = totalSO - displayPaid;
+  } else if (totalInvoiced > 0) {
+    displayTotal = totalInvoiced;
+    displayPaid = totalInvoiced - totalInvOutstanding;
+    displayOutstanding = totalInvOutstanding;
+  } else {
+    displayTotal = totalFeeStructure;
+    displayPaid = 0;
+    displayOutstanding = totalFeeStructure;
   }
-  const displayPaid = displayTotal - displayOutstanding;
 
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="space-y-6">
@@ -133,7 +151,7 @@ export default function ParentFeesPage() {
             <p className="text-sm text-text-secondary">Paid</p>
           </div>
           <p className="text-2xl font-bold text-success mt-1">
-            {displayPaid > 0 ? formatCurrency(displayPaid) : "—"}
+            {displayPaid > 0 ? formatCurrency(displayPaid) : displayTotal > 0 ? formatCurrency(0) : "—"}
           </p>
         </div>
         <div className="bg-error-light rounded-[14px] p-5 border border-error/10">
@@ -155,233 +173,240 @@ export default function ParentFeesPage() {
           ))}
         </div>
       ) : (
-        targetChildren.map((child) => {
-          const enrollment = getLatestEnrollment(data, child.name);
-          const childFees = getChildFees(child.name);
-          const childInvoices = getChildInvoices(child.name);
-          const childSOs = getChildSalesOrders(child.name);
-          const hasInvoices = childInvoices.length > 0;
-          const hasFees = childFees.length > 0;
-          const hasSOs = childSOs.length > 0;
-
-          return (
-            <motion.div key={child.name} variants={item}>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <GraduationCap className="h-5 w-5 text-primary" />
-                    {child.student_name}
-                    <span className="text-sm font-normal text-text-secondary ml-2">
-                      {[
-                        enrollment?.program,
-                        child.custom_branch?.replace("Smart Up ", ""),
-                      ]
-                        .filter(Boolean)
-                        .join(" • ")}
-                    </span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Sales Invoices */}
-                  {hasInvoices && (
-                    <div>
-                      <h4 className="text-sm font-semibold text-text-primary mb-3 flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-text-tertiary" />
-                        Invoices
-                      </h4>
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="border-b border-border-light text-text-secondary">
-                              <th className="text-left py-2 pr-4 font-medium">Invoice</th>
-                              <th className="text-left py-2 pr-4 font-medium">Date</th>
-                              <th className="text-left py-2 pr-4 font-medium">Due Date</th>
-                              <th className="text-right py-2 pr-4 font-medium">Amount</th>
-                              <th className="text-right py-2 pr-4 font-medium">Outstanding</th>
-                              <th className="text-right py-2 font-medium">Status</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {childInvoices.map((inv) => {
-                              const isOverdue = !!inv.due_date && inv.due_date < today && inv.outstanding_amount > 0;
-                              const isDueToday = !!inv.due_date && inv.due_date === today && inv.outstanding_amount > 0;
-                              return (
-                              <tr key={inv.name} className="border-b border-border-light last:border-0">
-                                <td className="py-2.5 pr-4 font-medium text-text-primary">{inv.name}</td>
-                                <td className="py-2.5 pr-4 text-text-secondary">
-                                  {new Date(inv.posting_date).toLocaleDateString("en-IN", {
-                                    day: "numeric", month: "short", year: "numeric",
-                                  })}
-                                </td>
-                                <td className="py-2.5 pr-4">
-                                  <span className={`flex items-center gap-1 text-sm ${
-                                    isOverdue ? "text-error font-semibold" : isDueToday ? "text-warning font-semibold" : "text-text-secondary"
-                                  }`}>
-                                    {(isOverdue || isDueToday) && <Clock className="h-3.5 w-3.5 shrink-0" />}
-                                    {inv.due_date
-                                      ? new Date(inv.due_date).toLocaleDateString("en-IN", {
-                                          day: "numeric", month: "short", year: "numeric",
-                                        })
-                                      : "—"}
-                                    {isOverdue && <span className="text-[10px] font-bold ml-1">OVERDUE</span>}
-                                  </span>
-                                </td>
-                                <td className="py-2.5 pr-4 text-right font-semibold text-text-primary">
-                                  {formatCurrency(inv.grand_total)}
-                                </td>
-                                <td className="py-2.5 pr-4 text-right">
-                                  {inv.outstanding_amount > 0 ? (
-                                    <span className="font-semibold text-error">{formatCurrency(inv.outstanding_amount)}</span>
-                                  ) : (
-                                    <span className="text-success">—</span>
-                                  )}
-                                </td>
-                                <td className="py-2.5 text-right">
-                                  <Badge variant={inv.outstanding_amount > 0 ? "error" : "success"}>
-                                    {inv.status || (inv.outstanding_amount > 0 ? "Unpaid" : "Paid")}
-                                  </Badge>
-                                </td>
-                              </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Fee Records (Fees doctype) — shown only if no invoices */}
-                  {hasFees && !hasInvoices && (
-                    <div>
-                      <h4 className="text-sm font-semibold text-text-primary mb-3 flex items-center gap-2">
-                        <IndianRupee className="h-4 w-4 text-text-tertiary" />
-                        Fee Records
-                      </h4>
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="border-b border-border-light text-text-secondary">
-                              <th className="text-left py-2 pr-4 font-medium">Fee ID</th>
-                              <th className="text-left py-2 pr-4 font-medium">Date</th>
-                              <th className="text-left py-2 pr-4 font-medium">Due Date</th>
-                              <th className="text-right py-2 pr-4 font-medium">Amount</th>
-                              <th className="text-right py-2 pr-4 font-medium">Outstanding</th>
-                              <th className="text-right py-2 font-medium">Status</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {childFees.map((fee) => {
-                              const isOverdue = !!fee.due_date && fee.due_date < today && fee.outstanding_amount > 0;
-                              const isDueToday = !!fee.due_date && fee.due_date === today && fee.outstanding_amount > 0;
-                              return (
-                              <tr key={fee.name} className="border-b border-border-light last:border-0">
-                                <td className="py-2.5 pr-4 font-medium text-text-primary">{fee.name}</td>
-                                <td className="py-2.5 pr-4 text-text-secondary">
-                                  {new Date(fee.posting_date).toLocaleDateString("en-IN", {
-                                    day: "numeric", month: "short", year: "numeric",
-                                  })}
-                                </td>
-                                <td className="py-2.5 pr-4">
-                                  <span className={`flex items-center gap-1 text-sm ${
-                                    isOverdue ? "text-error font-semibold" : isDueToday ? "text-warning font-semibold" : "text-text-secondary"
-                                  }`}>
-                                    {(isOverdue || isDueToday) && <Clock className="h-3.5 w-3.5 shrink-0" />}
-                                    {fee.due_date
-                                      ? new Date(fee.due_date).toLocaleDateString("en-IN", {
-                                          day: "numeric", month: "short", year: "numeric",
-                                        })
-                                      : "—"}
-                                    {isOverdue && <span className="text-[10px] font-bold ml-1">OVERDUE</span>}
-                                  </span>
-                                </td>
-                                <td className="py-2.5 pr-4 text-right font-semibold text-text-primary">
-                                  {formatCurrency(fee.grand_total)}
-                                </td>
-                                <td className="py-2.5 pr-4 text-right">
-                                  {fee.outstanding_amount > 0 ? (
-                                    <span className="font-semibold text-error">{formatCurrency(fee.outstanding_amount)}</span>
-                                  ) : (
-                                    <span className="text-success">—</span>
-                                  )}
-                                </td>
-                                <td className="py-2.5 text-right">
-                                  <Badge variant={fee.outstanding_amount > 0 ? "error" : "success"}>
-                                    {fee.outstanding_amount > 0 ? "Pending" : "Paid"}
-                                  </Badge>
-                                </td>
-                              </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Sales Orders */}
-                  {hasSOs && (
-                    <div>
-                      <h4 className="text-sm font-semibold text-text-primary mb-3 flex items-center gap-2">
-                        <ShoppingCart className="h-4 w-4 text-text-tertiary" />
-                        Sales Orders
-                      </h4>
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="border-b border-border-light text-text-secondary">
-                              <th className="text-left py-2 pr-4 font-medium">Order</th>
-                              <th className="text-left py-2 pr-4 font-medium">Date</th>
-                              <th className="text-right py-2 pr-4 font-medium">Amount</th>
-                              <th className="text-right py-2 pr-4 font-medium">Billed %</th>
-                              <th className="text-right py-2 font-medium">Status</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {childSOs.map((so) => (
-                              <tr key={so.name} className="border-b border-border-light last:border-0">
-                                <td className="py-2.5 pr-4 font-medium text-text-primary">{so.name}</td>
-                                <td className="py-2.5 pr-4 text-text-secondary">
-                                  {new Date(so.transaction_date).toLocaleDateString("en-IN", {
-                                    day: "numeric", month: "short", year: "numeric",
-                                  })}
-                                </td>
-                                <td className="py-2.5 pr-4 text-right font-semibold text-text-primary">
-                                  {so.grand_total > 0 ? formatCurrency(so.grand_total) : "—"}
-                                </td>
-                                <td className="py-2.5 pr-4 text-right text-text-secondary">
-                                  {so.per_billed ?? 0}%
-                                </td>
-                                <td className="py-2.5 text-right">
-                                  <Badge
-                                    variant={
-                                      so.status === "Completed" ? "success"
-                                      : so.status === "To Bill" ? "warning"
-                                      : "info"
-                                    }
-                                  >
-                                    {so.status}
-                                  </Badge>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Empty state */}
-                  {!hasFees && !hasInvoices && !hasSOs && (
-                    <p className="text-sm text-text-secondary text-center py-6">
-                      No fee records found for this student.
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            </motion.div>
-          );
-        })
+        targetChildren.map((child) => (
+          <ChildFeeCard
+            key={child.name}
+            child={child}
+            data={data}
+            today={today}
+            user={user}
+            onPaymentSuccess={handlePaymentSuccess}
+          />
+        ))
       )}
+    </motion.div>
+  );
+}
+
+// ── Per-child fee card ───────────────────────────────────────────
+
+function ChildFeeCard({
+  child,
+  data,
+  today,
+  user,
+  onPaymentSuccess,
+}: {
+  child: { name: string; student_name: string; custom_branch: string; customer: string };
+  data: ReturnType<typeof useParentData>["data"];
+  today: string;
+  user: { full_name?: string; email?: string } | null;
+  onPaymentSuccess: () => void;
+}) {
+  const enrollment = getLatestEnrollment(data, child.name);
+  const childInvoices = (data?.salesInvoices?.[child.name] ?? []) as SalesInvoiceEntry[];
+  const childSOs = (data?.salesOrders?.[child.name] ?? []) as SalesOrderEntry[];
+  const childFeeStructures = (data?.feeStructures?.[child.name] ?? []) as FeeStructureEntry[];
+  const childPayments = (data?.paymentEntries?.[child.name] ?? []) as PaymentEntryRecord[];
+
+  const hasInvoices = childInvoices.length > 0;
+  const hasSOs = childSOs.length > 0;
+  const hasFeeStructures = childFeeStructures.length > 0;
+
+  const soTotal = childSOs.reduce((s, so) => s + so.grand_total, 0);
+  const invPaid = childInvoices.reduce((s, inv) => s + (inv.grand_total - inv.outstanding_amount), 0);
+
+  // Build instalment items from invoices, sorted by due date
+  const instalments: InstalmentItem[] = useMemo(() => {
+    if (!hasInvoices) return [];
+
+    const sorted = [...childInvoices].sort(
+      (a, b) => (a.due_date ?? a.posting_date).localeCompare(b.due_date ?? b.posting_date)
+    );
+
+    return sorted.map((inv, idx) => {
+      const isPaid = inv.outstanding_amount <= 0;
+      const dueDate = inv.due_date ?? inv.posting_date;
+      const isOverdue = dueDate < today && !isPaid;
+      const isDueToday = dueDate === today && !isPaid;
+
+      // Auto-label based on count
+      let label: string;
+      if (sorted.length === 1) label = "Full Payment";
+      else if (sorted.length === 4) label = `Q${idx + 1}`;
+      else label = `Instalment ${idx + 1}`;
+
+      return {
+        invoiceId: inv.name,
+        label,
+        amount: inv.grand_total,
+        outstandingAmount: inv.outstanding_amount,
+        dueDate,
+        postingDate: inv.posting_date,
+        status: isPaid ? "paid" : isOverdue ? "overdue" : isDueToday ? "due-today" : "upcoming",
+      } satisfies InstalmentItem;
+    });
+  }, [childInvoices, hasInvoices, today]);
+
+  const plan = enrollment?.custom_plan || childSOs[0]?.custom_plan;
+  const numInstalments = enrollment?.custom_no_of_instalments || childSOs[0]?.custom_no_of_instalments;
+
+  return (
+    <motion.div variants={item}>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 flex-wrap">
+            <GraduationCap className="h-5 w-5 text-primary" />
+            {child.student_name}
+            <span className="text-sm font-normal text-text-secondary ml-2">
+              {[
+                enrollment?.program,
+                child.custom_branch?.replace("Smart Up ", ""),
+              ]
+                .filter(Boolean)
+                .join(" • ")}
+            </span>
+            {plan && <Badge variant="info">{plan}</Badge>}
+            {numInstalments && (
+              <Badge variant="default">{numInstalments}x Instalments</Badge>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+
+          {/* SO summary header */}
+          {hasSOs && (
+            <div className="flex items-center justify-between rounded-[12px] border border-border-light bg-app-bg p-4">
+              <div>
+                <p className="text-xs text-text-secondary">Fee Order</p>
+                <p className="text-sm font-medium text-text-primary">{childSOs[0].name}</p>
+                {enrollment?.academic_year && (
+                  <p className="text-xs text-text-tertiary mt-0.5">{enrollment.academic_year}</p>
+                )}
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-text-secondary">Total Fee</p>
+                <p className="text-lg font-bold text-primary">{formatCurrency(soTotal)}</p>
+                {invPaid > 0 && (
+                  <p className="text-xs text-success">Paid: {formatCurrency(invPaid)}</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Instalment Timeline (replaces flat invoice table) */}
+          {hasInvoices && instalments.length > 0 && (
+            <InstalmentTimeline
+              instalments={instalments}
+              studentName={child.student_name}
+              customer={child.customer}
+              parentName={user?.full_name}
+              parentEmail={user?.email}
+              onPaymentSuccess={onPaymentSuccess}
+            />
+          )}
+
+          {/* Warning: SO exists but no invoices yet — parent can't pay */}
+          {hasSOs && !hasInvoices && (
+            <div className="flex items-center gap-3 rounded-[12px] border border-warning/20 bg-warning-light p-4">
+              <AlertCircle className="h-5 w-5 text-warning flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-text-primary">Invoices being processed</p>
+                <p className="text-xs text-text-secondary mt-0.5">
+                  Your fee invoices are being set up. Payment options will appear here once ready.
+                  Please contact the school office if this persists.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Payment History */}
+          {childPayments.length > 0 && (
+            <div>
+              <h4 className="text-sm font-semibold text-text-primary mb-3 flex items-center gap-2">
+                <Receipt className="h-4 w-4 text-text-tertiary" />
+                Payment History
+              </h4>
+              <div className="border border-border-light rounded-[12px] overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-app-bg">
+                    <tr>
+                      <th className="text-left px-4 py-2.5 text-text-secondary font-medium">Date</th>
+                      <th className="text-left px-4 py-2.5 text-text-secondary font-medium">Amount</th>
+                      <th className="text-left px-4 py-2.5 text-text-secondary font-medium">Mode</th>
+                      <th className="text-left px-4 py-2.5 text-text-secondary font-medium">Ref</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border-light">
+                    {childPayments.map((pe) => (
+                      <tr key={pe.name} className="hover:bg-app-bg/50">
+                        <td className="px-4 py-2.5 text-text-primary">{formatDate(pe.posting_date)}</td>
+                        <td className="px-4 py-2.5 font-medium text-success">{formatCurrency(pe.paid_amount)}</td>
+                        <td className="px-4 py-2.5 text-text-secondary">{pe.mode_of_payment}</td>
+                        <td className="px-4 py-2.5 text-text-tertiary text-xs">{pe.reference_no || "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* No invoices yet — show SO info or fee structure */}
+          {!hasInvoices && (
+            <div>
+              {hasSOs && (
+                <div className="rounded-[12px] border border-border-light bg-app-bg p-4">
+                  <p className="text-sm text-text-secondary text-center">
+                    Your fee order has been placed. Invoices will appear here once generated by the institute.
+                  </p>
+                </div>
+              )}
+              {!hasSOs && hasFeeStructures && (
+                <div>
+                  <h4 className="text-sm font-semibold text-text-primary mb-1 flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-text-tertiary" />
+                    Fee Structure
+                    <Badge variant="default" className="ml-1 text-xs">No invoice raised yet</Badge>
+                  </h4>
+                  <p className="text-xs text-text-secondary mb-4">
+                    Your fee structure has been set up. Invoices will appear here once generated by the institute.
+                  </p>
+                  {childFeeStructures.map((fs) => (
+                    <div key={fs.name} className="rounded-[12px] border border-border-light bg-app-bg p-4 mb-3">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <p className="font-semibold text-text-primary text-sm">{fs.program}</p>
+                          <p className="text-xs text-text-secondary mt-0.5">{fs.academic_year}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-text-secondary">Annual Fee</p>
+                          <p className="text-xl font-bold text-primary">{formatCurrency(fs.total_amount)}</p>
+                        </div>
+                      </div>
+                      {(fs.components ?? []).length > 0 && (
+                        <div className="border-t border-border-light pt-3 space-y-1.5">
+                          {(fs.components ?? []).map((c, i) => (
+                            <div key={i} className="flex items-center justify-between text-sm">
+                              <span className="text-text-secondary">{c.fees_category}</span>
+                              <span className="font-medium text-text-primary">{formatCurrency(c.total ?? c.amount)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {!hasSOs && !hasFeeStructures && (
+                <p className="text-sm text-text-secondary text-center py-6">
+                  No fee records found for this student.
+                </p>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </motion.div>
   );
 }

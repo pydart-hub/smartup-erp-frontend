@@ -17,7 +17,6 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { getSalesInvoices } from "@/lib/api/sales";
 import { getBranches } from "@/lib/api/enrollment";
 import { formatDate, formatCurrency } from "@/lib/utils/formatters";
-import { useFeatureFlagsStore } from "@/lib/stores/featureFlagsStore";
 import { useAuth } from "@/lib/hooks/useAuth";
 import type { SalesInvoiceStatus } from "@/lib/types/sales";
 
@@ -42,9 +41,7 @@ const STATUS_TABS = [
 ];
 
 export default function InvoicesPage() {
-  const { flags } = useFeatureFlagsStore();
   const { defaultCompany, allowedCompanies } = useAuth();
-  if (!flags.invoices) return null;
 
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");

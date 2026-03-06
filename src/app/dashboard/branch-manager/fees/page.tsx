@@ -20,7 +20,6 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { formatCurrency } from "@/lib/utils/formatters";
-import { useFeatureFlagsStore } from "@/lib/stores/featureFlagsStore";
 import { getFeeReportSummary, getPayments } from "@/lib/api/fees";
 import { getSalesInvoices } from "@/lib/api/sales";
 import type { PaymentEntry, FeeReportSummary } from "@/lib/types/fee";
@@ -38,7 +37,6 @@ const itemVariants = {
 };
 
 export default function FeesPage() {
-  const { flags } = useFeatureFlagsStore();
   const { defaultCompany } = useAuth();
 
   const [summary, setSummary] = useState<FeeReportSummary | null>(null);
@@ -46,12 +44,17 @@ export default function FeesPage() {
   const [recentPayments, setRecentPayments] = useState<PaymentEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const today = new Date().toISOString().split("T")[0];
+  const overdueInvoices = pendingFees.filter((inv) => !!inv.due_date && inv.due_date < today);
+  const overdueTotal = overdueInvoices.reduce((s, inv) => s + inv.outstanding_amount, 0);
+
   useEffect(() => {
     setLoading(true);
     Promise.all([
       getFeeReportSummary(defaultCompany || undefined),
       getSalesInvoices({
         outstanding_only: true,
+        docstatus: 1,
         limit_page_length: 10,
         order_by: "due_date asc",
         ...(defaultCompany ? { company: defaultCompany } : {}),
@@ -69,8 +72,6 @@ export default function FeesPage() {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [defaultCompany]);
-
-  if (!flags.fees) return null;
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
@@ -99,9 +100,9 @@ export default function FeesPage() {
       </motion.div>
 
       {/* Stats */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {loading ? (
-          Array.from({ length: 4 }).map((_, i) => (
+          Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="h-24 rounded-[14px] bg-surface animate-pulse border border-border-light" />
           ))
         ) : (
@@ -123,6 +124,14 @@ export default function FeesPage() {
               value={formatCurrency(summary?.total_pending ?? 0)}
               icon={<AlertTriangle className="h-5 w-5" />}
               color="warning"
+              href="/dashboard/branch-manager/fees/pending"
+            />
+            <StatsCard
+              title="Overdue"
+              value={overdueInvoices.length > 0 ? `${overdueInvoices.length} (${formatCurrency(overdueTotal)})` : "None"}
+              icon={<Clock className="h-5 w-5" />}
+              color={overdueInvoices.length > 0 ? "error" : "success"}
+              href="/dashboard/branch-manager/fees/pending"
             />
             <StatsCard
               title="Collection Rate"
@@ -142,7 +151,7 @@ export default function FeesPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Pending Fees</CardTitle>
-                <Link href="/dashboard/branch-manager/fees/reports">
+                <Link href="/dashboard/branch-manager/fees/pending">
                   <Button variant="ghost" size="sm">
                     View All <ArrowRight className="h-3.5 w-3.5 ml-1" />
                   </Button>

@@ -18,27 +18,16 @@ import {
   FileText,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   X,
   UserCheck,
   BookOpen,
+  Receipt,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useUIStore } from "@/lib/stores/uiStore";
 import { BRANCH_MANAGER_NAV, type NavItem } from "@/lib/utils/constants";
-import { useFeatureFlagsStore } from "@/lib/stores/featureFlagsStore";
-import type { FeatureFlags } from "@/lib/stores/featureFlagsStore";
 
-// Map nav href → feature flag key (only branch-manager items have feature flags)
-const NAV_FLAG_MAP: Record<string, keyof FeatureFlags> = {
-  "/dashboard/branch-manager": "overview",
-  "/dashboard/branch-manager/students": "students",
-  "/dashboard/branch-manager/classes": "classes",
-  "/dashboard/branch-manager/batches": "batches",
-  "/dashboard/branch-manager/attendance": "attendance",
-  "/dashboard/branch-manager/fees": "fees",
-  "/dashboard/branch-manager/sales-orders": "sales_orders",
-  "/dashboard/branch-manager/invoices": "invoices",
-};
 
 const iconMap: Record<string, React.ElementType> = {
   LayoutDashboard,
@@ -54,6 +43,7 @@ const iconMap: Record<string, React.ElementType> = {
   BookOpen,
   ClipboardEdit,
   CalendarDays,
+  Receipt,
 };
 
 interface SidebarProps {
@@ -63,16 +53,71 @@ interface SidebarProps {
 export function Sidebar({ navItems = BRANCH_MANAGER_NAV }: SidebarProps) {
   const pathname = usePathname();
   const { sidebarOpen, sidebarCollapsed, setSidebarOpen, toggleSidebarCollapsed } = useUIStore();
-  const { flags } = useFeatureFlagsStore();
+  const [openGroups, setOpenGroups] = React.useState<Record<string, boolean>>({});
 
-  // Filter nav items based on feature flags
-  const visibleNavItems = navItems.filter((item) => {
-    const flagKey = NAV_FLAG_MAP[item.href];
-    return flagKey ? flags[flagKey] : true;
-  });
+  // Auto-expand groups whose children match the current path
+  React.useEffect(() => {
+    const expanded: Record<string, boolean> = {};
+    navItems.forEach((item) => {
+      if (item.children?.length) {
+        const childActive = item.children.some((c) => pathname.startsWith(c.href));
+        if (childActive || pathname.startsWith(item.href)) {
+          expanded[item.href] = true;
+        }
+      }
+    });
+    setOpenGroups((prev) => ({ ...prev, ...expanded }));
+  }, [pathname, navItems]);
+
+  const toggleGroup = (href: string) => {
+    setOpenGroups((prev) => ({ ...prev, [href]: !prev[href] }));
+  };
+
+  const visibleNavItems = navItems;
 
   // Logo link: first nav item's href (works for any role)
   const homeHref = navItems[0]?.href ?? "/dashboard/branch-manager";
+
+  const renderNavLink = (item: NavItem, isChild = false) => {
+    const Icon = iconMap[item.icon] || LayoutDashboard;
+    const isActive = pathname === item.href;
+
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        onClick={() => setSidebarOpen(false)}
+        className={cn(
+          "group flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-sm font-medium transition-all duration-200 relative",
+          isActive
+            ? "bg-brand-wash text-primary"
+            : "text-text-secondary hover:bg-app-bg hover:text-text-primary",
+          sidebarCollapsed && "justify-center px-0",
+          isChild && !sidebarCollapsed && "pl-10"
+        )}
+      >
+        {isActive && (
+          <motion.div
+            layoutId="sidebar-active"
+            className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-primary rounded-r-full"
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          />
+        )}
+        <Icon className={cn("h-5 w-5 shrink-0", isChild ? "h-4 w-4" : "", isActive ? "text-primary" : "text-text-tertiary group-hover:text-text-secondary")} />
+        {!sidebarCollapsed && <span>{item.label}</span>}
+        {item.badge && !sidebarCollapsed && (
+          <span className="ml-auto text-xs bg-error text-white rounded-full px-2 py-0.5">
+            {item.badge}
+          </span>
+        )}
+        {sidebarCollapsed && (
+          <div className="absolute left-full ml-2 px-2.5 py-1.5 bg-text-primary text-white text-xs rounded-[8px] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-lg">
+            {item.label}
+          </div>
+        )}
+      </Link>
+    );
+  };
 
   return (
     <>
@@ -131,49 +176,77 @@ export function Sidebar({ navItems = BRANCH_MANAGER_NAV }: SidebarProps) {
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
           {visibleNavItems.map((item) => {
-            const Icon = iconMap[item.icon] || LayoutDashboard;
-            const isActive = pathname === item.href;
+            // Items with children → collapsible group
+            if (item.children?.length) {
+              const Icon = iconMap[item.icon] || LayoutDashboard;
+              const isOpen = !!openGroups[item.href];
+              const isParentActive = pathname === item.href;
+              const isChildActive = item.children.some((c) => pathname.startsWith(c.href));
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setSidebarOpen(false)}
-                className={cn(
-                  "group flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-sm font-medium transition-all duration-200 relative",
-                  isActive
-                    ? "bg-brand-wash text-primary"
-                    : "text-text-secondary hover:bg-app-bg hover:text-text-primary",
-                  sidebarCollapsed && "justify-center px-0"
-                )}
-              >
-                {/* Active indicator */}
-                {isActive && (
-                  <motion.div
-                    layoutId="sidebar-active"
-                    className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-primary rounded-r-full"
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                  />
-                )}
-
-                <Icon className={cn("h-5 w-5 shrink-0", isActive ? "text-primary" : "text-text-tertiary group-hover:text-text-secondary")} />
-                {!sidebarCollapsed && <span>{item.label}</span>}
-
-                {/* Badge */}
-                {item.badge && !sidebarCollapsed && (
-                  <span className="ml-auto text-xs bg-error text-white rounded-full px-2 py-0.5">
-                    {item.badge}
-                  </span>
-                )}
-
-                {/* Tooltip for collapsed */}
-                {sidebarCollapsed && (
-                  <div className="absolute left-full ml-2 px-2.5 py-1.5 bg-text-primary text-white text-xs rounded-[8px] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-lg">
-                    {item.label}
+              return (
+                <div key={item.href}>
+                  {/* Group header: parent link + toggle */}
+                  <div className="flex items-center">
+                    <Link
+                      href={item.href}
+                      onClick={() => setSidebarOpen(false)}
+                      className={cn(
+                        "group flex-1 flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-sm font-medium transition-all duration-200 relative",
+                        isParentActive
+                          ? "bg-brand-wash text-primary"
+                          : isChildActive
+                            ? "text-primary"
+                            : "text-text-secondary hover:bg-app-bg hover:text-text-primary",
+                        sidebarCollapsed && "justify-center px-0"
+                      )}
+                    >
+                      {isParentActive && (
+                        <motion.div
+                          layoutId="sidebar-active"
+                          className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-primary rounded-r-full"
+                          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                        />
+                      )}
+                      <Icon className={cn("h-5 w-5 shrink-0", (isParentActive || isChildActive) ? "text-primary" : "text-text-tertiary group-hover:text-text-secondary")} />
+                      {!sidebarCollapsed && <span>{item.label}</span>}
+                      {sidebarCollapsed && (
+                        <div className="absolute left-full ml-2 px-2.5 py-1.5 bg-text-primary text-white text-xs rounded-[8px] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-lg">
+                          {item.label}
+                        </div>
+                      )}
+                    </Link>
+                    {!sidebarCollapsed && (
+                      <button
+                        onClick={() => toggleGroup(item.href)}
+                        className="p-1.5 rounded-md text-text-tertiary hover:text-text-primary hover:bg-app-bg transition-colors"
+                      >
+                        <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", isOpen && "rotate-180")} />
+                      </button>
+                    )}
                   </div>
-                )}
-              </Link>
-            );
+
+                  {/* Children */}
+                  {!sidebarCollapsed && (
+                    <AnimatePresence initial={false}>
+                      {isOpen && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="overflow-hidden"
+                        >
+                          {item.children.map((child) => renderNavLink(child, true))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  )}
+                </div>
+              );
+            }
+
+            // Regular item (no children)
+            return renderNavLink(item);
           })}
         </nav>
 

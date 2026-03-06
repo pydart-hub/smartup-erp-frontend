@@ -21,9 +21,9 @@ import { RecentActivity, type ActivityItem } from "@/components/dashboard/Recent
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { useAuth } from "@/lib/hooks/useAuth";
-import { useFeatureFlagsStore } from "@/lib/stores/featureFlagsStore";
-import { getStudentCount, getStudents } from "@/lib/api/students";
-import { getStudentGroups, getBatchEnrollmentCounts } from "@/lib/api/enrollment";
+import { useAcademicYearStore } from "@/lib/stores/academicYearStore";
+import { getStudentGroups, getBatchEnrollmentCounts, getRecentEnrollments } from "@/lib/api/enrollment";
+import { getStudentCount } from "@/lib/api/students";
 import { getAttendance } from "@/lib/api/attendance";
 import { getEmployeeAttendance } from "@/lib/api/employees";
 import { getSalesStats } from "@/lib/api/sales";
@@ -36,13 +36,6 @@ const quickActions = [
     href: "/dashboard/branch-manager/students/new",
     icon: <UserPlus className="h-5 w-5" />,
     color: "primary" as const,
-  },
-  {
-    label: "Create Batch",
-    description: "Set up a new batch for a class",
-    href: "/dashboard/branch-manager/batches/new",
-    icon: <Users className="h-5 w-5" />,
-    color: "secondary" as const,
   },
   {
     label: "Mark Attendance",
@@ -75,25 +68,28 @@ const itemVariants = {
 
 export default function BranchManagerDashboard() {
   const { user, defaultCompany } = useAuth();
-  const { flags } = useFeatureFlagsStore();
+  const { selectedYear } = useAcademicYearStore();
   const today = new Date().toISOString().split("T")[0];
 
   // ── Real Frappe API queries (filtered by branch) ───────────
+  // Total active students for this branch (raw Student count)
   const { data: studentCount, isLoading: loadingStudents } = useQuery({
     queryKey: ["dashboard-student-count", defaultCompany],
-    queryFn: () =>
-      getStudentCount(
-        defaultCompany ? [["custom_branch", "=", defaultCompany]] : undefined
-      ),
+    queryFn: () => {
+      const filters: string[][] = [["enabled", "=", "1"]];
+      if (defaultCompany) filters.push(["custom_branch", "=", defaultCompany]);
+      return getStudentCount(filters);
+    },
     staleTime: 60_000,
   });
 
   const { data: studentGroupsRes, isLoading: loadingGroups } = useQuery({
-    queryKey: ["dashboard-student-groups", defaultCompany],
+    queryKey: ["dashboard-student-groups", defaultCompany, selectedYear],
     queryFn: () =>
       getStudentGroups({
         limit_page_length: 500,
         ...(defaultCompany ? { custom_branch: defaultCompany } : {}),
+        academic_year: selectedYear,
       }),
     staleTime: 60_000,
   });
@@ -121,20 +117,20 @@ export default function BranchManagerDashboard() {
     staleTime: 300_000,
   });
 
-  const { data: recentStudentsRes, isLoading: loadingRecent } = useQuery({
-    queryKey: ["dashboard-recent-students", defaultCompany],
+  const { data: recentEnrollmentsRes, isLoading: loadingRecent } = useQuery({
+    queryKey: ["dashboard-recent-enrollments", defaultCompany, selectedYear],
     queryFn: () =>
-      getStudents({
-        order_by: "creation desc",
-        limit_page_length: 5,
-        ...(defaultCompany ? { custom_branch: defaultCompany } : {}),
+      getRecentEnrollments({
+        company: defaultCompany || undefined,
+        academic_year: selectedYear,
+        limit: 8,
       }),
     staleTime: 60_000,
   });
 
   const { data: batchEnrollmentCounts } = useQuery({
-    queryKey: ["dashboard-batch-enrollment-counts", defaultCompany],
-    queryFn: () => getBatchEnrollmentCounts(defaultCompany || undefined),
+    queryKey: ["dashboard-batch-enrollment-counts", defaultCompany, selectedYear],
+    queryFn: () => getBatchEnrollmentCounts(defaultCompany || undefined, selectedYear),
     staleTime: 60_000,
   });
 
@@ -159,18 +155,24 @@ export default function BranchManagerDashboard() {
   const outstandingFees = salesStats?.total_outstanding ?? 0;
   const collectionRate = salesStats?.collection_rate ?? 0;
 
-  // ── Recent students as activity items ─────────────────────
+  // ── Recent enrollments as activity items (year-filtered) ─────────────────
   const recentActivities: ActivityItem[] = useMemo(
     () =>
-      (recentStudentsRes?.data ?? []).map((s) => ({
-        id: s.name,
-        type: "student_added" as const,
-        message: `${s.student_name} admitted${
-          s.custom_branch ? ` to ${s.custom_branch.replace("Smart Up ", "")}` : ""
-        }`,
-        timestamp: s.creation ?? new Date().toISOString(),
-      })),
-    [recentStudentsRes]
+      (recentEnrollmentsRes ?? []).map((pe) => {
+        // Derive short branch name from batch code prefix (e.g. "VYT-10th-25-1" → "Vyttila")
+        // Fall back to the raw batch name if lookup fails.
+        const matchedGroup = allGroups.find((g) => g.name === pe.student_batch_name);
+        const branchLabel = matchedGroup?.custom_branch
+          ? matchedGroup.custom_branch.replace(/^Smart Up\s*/i, "")
+          : pe.student_batch_name || "";
+        return {
+          id: pe.name,
+          type: "student_added" as const,
+          message: `${pe.student_name} admitted${branchLabel ? ` to ${branchLabel}` : ""}`,
+          timestamp: pe.creation ?? new Date().toISOString(),
+        };
+      }),
+    [recentEnrollmentsRes, allGroups]
   );
 
   // ── Group student groups by program for batch overview ──────────
@@ -189,8 +191,6 @@ export default function BranchManagerDashboard() {
         groups: groupList.sort((a, b) => a.name.localeCompare(b.name)),
       }));
   }, [allGroups]);
-
-  if (!flags.overview) return null;
 
   return (
     <motion.div

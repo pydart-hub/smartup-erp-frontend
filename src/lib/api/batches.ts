@@ -21,9 +21,10 @@ export async function getClasses(params?: PaginationParams): Promise<FrappeListR
 }
 
 // ── Batch counts per program (for Classes overview) ──
-export async function getBatchCountsByProgram(company?: string): Promise<Record<string, number>> {
+export async function getBatchCountsByProgram(company?: string, academic_year?: string): Promise<Record<string, number>> {
   const filters: string[][] = [["group_based_on", "=", "Batch"]];
   if (company) filters.push(["custom_branch", "=", company]);
+  if (academic_year) filters.push(["academic_year", "=", academic_year]);
   const query = new URLSearchParams({
     fields: JSON.stringify(["program", "count(name) as cnt"]),
     filters: JSON.stringify(filters),
@@ -97,6 +98,12 @@ export async function createBatch(batchData: Partial<BatchFormData>): Promise<Fr
 export async function updateBatch(id: string, updates: Partial<Batch>): Promise<FrappeSingleResponse<Batch>> {
   const { data } = await apiClient.put(`/resource/Student Group/${encodeURIComponent(id)}`, updates);
   return data;
+}
+
+// ── List Student Batch Names (link table for the `batch` field) ──
+export async function getStudentBatchNames(): Promise<string[]> {
+  const { data } = await apiClient.get(`/resource/Student Batch Name?limit_page_length=100`);
+  return (data.data as { name: string }[]).map((b) => b.name);
 }
 
 // ── Auto-assign student to next available batch ──

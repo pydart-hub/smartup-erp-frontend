@@ -10,6 +10,25 @@ import type {
 } from "@/lib/types/fee";
 import type { FrappeListResponse, FrappeSingleResponse, PaginationParams } from "@/lib/types/api";
 
+// ── Types for pending-fee drill-down ──
+export interface ClassPendingSummary {
+  item_code: string;
+  student_count: number;
+  total_outstanding: number;
+}
+
+export interface PendingInvoiceRow {
+  name: string;
+  customer: string;
+  customer_name: string;
+  item_code: string;
+  outstanding_amount: number;
+  grand_total: number;
+  due_date: string;
+  company: string;
+  status: string;
+}
+
 // ── Fee Categories ──
 export async function getFeeCategories(): Promise<FrappeListResponse<FeeCategory>> {
   const { data } = await apiClient.get("/resource/Fee Category?limit_page_length=0");
@@ -26,13 +45,23 @@ export async function getFeeStructures(params?: {
   program?: string;
   academic_year?: string;
   company?: string;        // branch
+  custom_plan?: string;
+  custom_no_of_instalments?: string;
+  docstatus?: number;
 }): Promise<FrappeListResponse<FeeStructure>> {
   const filters: string[][] = [];
   if (params?.program) filters.push(["program", "=", params.program]);
   if (params?.academic_year) filters.push(["academic_year", "=", params.academic_year]);
   if (params?.company) filters.push(["company", "=", params.company]);
+  if (params?.custom_plan) filters.push(["custom_plan", "=", params.custom_plan]);
+  if (params?.custom_no_of_instalments) filters.push(["custom_no_of_instalments", "=", params.custom_no_of_instalments]);
+  if (params?.docstatus !== undefined) filters.push(["docstatus", "=", String(params.docstatus)]);
   const query = new URLSearchParams({
-    fields: JSON.stringify(["name", "program", "academic_year", "academic_term", "total_amount", "company", "receivable_account"]),
+    fields: JSON.stringify([
+      "name", "program", "academic_year", "academic_term",
+      "total_amount", "company", "receivable_account",
+      "custom_plan", "custom_no_of_instalments", "custom_branch_abbr", "docstatus",
+    ]),
     limit_page_length: "200",
     ...(filters.length ? { filters: JSON.stringify(filters) } : {}),
   });
@@ -175,4 +204,56 @@ export async function getStudentFeeReport(studentId: string): Promise<StudentFee
     outstanding,
     installments: records,
   };
+}
+
+// ── Pending-fee drill-down helpers ──────────────────────────────────────────
+
+/**
+ * Class-wise pending fee summary.
+ * Calls server-side API route that uses admin credentials for the
+ * aggregate query (group_by + count + sum on child-table join).
+ */
+export async function getClassPendingSummary(
+  company?: string
+): Promise<ClassPendingSummary[]> {
+  const params = new URLSearchParams();
+  if (company) params.set("company", company);
+
+  const url = `/api/fees/class-summary?${params.toString()}`;
+  console.log("[getClassPendingSummary] fetching:", url, "company:", company);
+  const res = await fetch(url, {
+    credentials: "include",
+  });
+  console.log("[getClassPendingSummary] status:", res.status);
+  if (!res.ok) {
+    const text = await res.text();
+    console.error("[getClassPendingSummary] error body:", text);
+    throw new Error(`class-summary failed: ${res.status}`);
+  }
+  const json = await res.json();
+  return json.data ?? [];
+}
+
+/**
+ * Fetch all pending (outstanding > 0) Sales Invoices with their item_code.
+ * Calls server-side API route that uses admin credentials for the
+ * child-table join query.
+ */
+export async function getPendingInvoices(params?: {
+  company?: string;
+  item_code?: string;
+  limit_page_length?: number;
+}): Promise<PendingInvoiceRow[]> {
+  const sp = new URLSearchParams();
+  if (params?.company) sp.set("company", params.company);
+  if (params?.item_code) sp.set("item_code", params.item_code);
+  if (params?.limit_page_length)
+    sp.set("limit", String(params.limit_page_length));
+
+  const res = await fetch(`/api/fees/pending-invoices?${sp.toString()}`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(`pending-invoices failed: ${res.status}`);
+  const json = await res.json();
+  return json.data ?? [];
 }

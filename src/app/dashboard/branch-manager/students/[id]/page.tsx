@@ -7,7 +7,8 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Pencil, User, School, Users, Phone, Mail,
-  Calendar, Hash, Building2, AlertCircle, Loader2,
+  Calendar, Hash, Building2, AlertCircle, Loader2, IndianRupee, FileText,
+  Clock, CreditCard, ExternalLink,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Button } from "@/components/ui/Button";
@@ -66,7 +67,7 @@ export default function StudentViewPage() {
       const { data } = await apiClient.get("/resource/Program Enrollment", {
         params: {
           filters: JSON.stringify([["student", "=", id], ["docstatus", "=", 1]]),
-          fields: JSON.stringify(["name", "program", "academic_year", "student_batch_name", "enrollment_date"]),
+          fields: JSON.stringify(["name", "program", "academic_year", "student_batch_name", "enrollment_date", "custom_fee_structure", "custom_plan", "custom_no_of_instalments"]),
           order_by: "enrollment_date desc",
           limit_page_length: 1,
         },
@@ -87,6 +88,55 @@ export default function StudentViewPage() {
     },
     enabled: !!guardianLink?.guardian,
     staleTime: 120_000,
+  });
+
+  // ── Fee Structure details from enrollment ─────────────────
+  const feeStructureName = enrollmentRes?.custom_fee_structure;
+  const { data: feeStructureRes } = useQuery({
+    queryKey: ["fee-structure-detail", feeStructureName],
+    queryFn: async () => {
+      const { data } = await apiClient.get(`/resource/Fee Structure/${encodeURIComponent(feeStructureName!)}`);
+      return data.data;
+    },
+    enabled: !!feeStructureName,
+    staleTime: 120_000,
+  });
+
+  // ── Sales Orders for this student's customer ──────────────
+  const customerName = student?.customer;
+  const { data: salesOrdersRes } = useQuery({
+    queryKey: ["student-sales-orders", customerName],
+    queryFn: async () => {
+      const { data } = await apiClient.get("/resource/Sales Order", {
+        params: {
+          filters: JSON.stringify([["customer", "=", customerName], ["docstatus", "=", 1]]),
+          fields: JSON.stringify(["name", "grand_total", "status", "transaction_date", "per_billed", "advance_paid", "custom_plan", "custom_no_of_instalments"]),
+          order_by: "transaction_date desc",
+          limit_page_length: 5,
+        },
+      });
+      return data.data ?? [];
+    },
+    enabled: !!customerName,
+    staleTime: 60_000,
+  });
+
+  // ── Sales Invoices for this student's customer ────────────
+  const { data: salesInvoicesRes } = useQuery({
+    queryKey: ["student-invoices", customerName],
+    queryFn: async () => {
+      const { data } = await apiClient.get("/resource/Sales Invoice", {
+        params: {
+          filters: JSON.stringify([["customer", "=", customerName], ["docstatus", "=", 1]]),
+          fields: JSON.stringify(["name", "grand_total", "outstanding_amount", "posting_date", "due_date", "status"]),
+          order_by: "due_date asc",
+          limit_page_length: 20,
+        },
+      });
+      return data.data ?? [];
+    },
+    enabled: !!customerName,
+    staleTime: 60_000,
   });
 
   // ── Loading state ─────────────────────────────────────────
@@ -206,7 +256,31 @@ export default function StudentViewPage() {
           {enrollment?.name && (
             <InfoRow label="Enrollment ID" value={enrollment.name} />
           )}
+          {enrollment?.custom_plan && (
+            <InfoRow label="Fee Plan" value={enrollment.custom_plan} />
+          )}
+          {enrollment?.custom_no_of_instalments && (
+            <InfoRow label="Instalments" value={
+              enrollment.custom_no_of_instalments === "1" ? "One-Time" : `${enrollment.custom_no_of_instalments} Instalments`
+            } />
+          )}
         </SectionCard>
+
+        {/* Fee Structure */}
+        {feeStructureRes && (
+          <SectionCard title="Fee Structure" icon={<IndianRupee className="h-4 w-4" />}>
+            <InfoRow label="Structure" value={feeStructureRes.name} icon={<FileText className="h-3.5 w-3.5" />} />
+            <InfoRow label="Program" value={feeStructureRes.program} />
+            <InfoRow label="Academic Year" value={feeStructureRes.academic_year} />
+            {(feeStructureRes.components ?? []).map((comp: { fees_category: string; amount: number }, idx: number) => (
+              <InfoRow key={idx} label={comp.fees_category} value={`\u20B9${(comp.amount ?? 0).toLocaleString("en-IN")}`} />
+            ))}
+            <div className="flex items-center justify-between py-2.5 border-t border-border-light mt-1">
+              <span className="text-sm font-semibold text-text-primary">Total Amount</span>
+              <span className="text-sm font-bold text-primary">\u20B9{(feeStructureRes.total_amount ?? 0).toLocaleString("en-IN")}</span>
+            </div>
+          </SectionCard>
+        )}
 
         {/* Guardian Info */}
         <SectionCard title="Guardian / Parent" icon={<Users className="h-4 w-4" />}>
@@ -231,6 +305,111 @@ export default function StudentViewPage() {
         </SectionCard>
 
       </div>
+
+      {/* Fee & Payments Section */}
+      {(salesOrdersRes?.length > 0 || salesInvoicesRes?.length > 0) && (
+        <Card>
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-primary"><CreditCard className="h-4 w-4" /></span>
+                <h3 className="font-semibold text-text-primary">Fee & Payments</h3>
+              </div>
+              {salesOrdersRes?.[0]?.name && (
+                <Link href={`/dashboard/branch-manager/sales-orders/${encodeURIComponent(salesOrdersRes[0].name)}`}>
+                  <Button variant="outline" size="sm">
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    View Order
+                  </Button>
+                </Link>
+              )}
+            </div>
+
+            {/* SO summary */}
+            {salesOrdersRes?.length > 0 && (() => {
+              const so = salesOrdersRes[0];
+              const invTotal = salesInvoicesRes?.reduce((s: number, i: { grand_total: number }) => s + i.grand_total, 0) ?? 0;
+              const invOutstanding = salesInvoicesRes?.reduce((s: number, i: { outstanding_amount: number }) => s + i.outstanding_amount, 0) ?? 0;
+              const paid = invTotal - invOutstanding;
+              const pct = so.grand_total > 0 ? Math.round((paid / so.grand_total) * 100) : 0;
+              return (
+                <div className="rounded-[12px] border border-border-light bg-app-bg p-4 mb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <span className="text-xs font-mono text-primary">{so.name}</span>
+                      {so.custom_plan && <Badge variant="info" className="ml-2">{so.custom_plan}</Badge>}
+                      {so.custom_no_of_instalments && <Badge variant="default" className="ml-1">{so.custom_no_of_instalments}x</Badge>}
+                    </div>
+                    <span className="text-lg font-bold text-text-primary">₹{so.grand_total.toLocaleString("en-IN")}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-text-secondary mb-2">
+                    <span>Paid: <strong className="text-success">₹{paid.toLocaleString("en-IN")}</strong></span>
+                    <span>Outstanding: <strong className="text-error">₹{invOutstanding.toLocaleString("en-IN")}</strong></span>
+                  </div>
+                  <div className="w-full h-2 bg-border-light rounded-full overflow-hidden">
+                    <div className="h-full rounded-full bg-success transition-all" style={{ width: `${pct}%` }} />
+                  </div>
+                  <p className="text-[10px] text-text-tertiary mt-1">{pct}% collected</p>
+                </div>
+              );
+            })()}
+
+            {/* Invoice list */}
+            {salesInvoicesRes?.length > 0 && (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border-light">
+                      <th className="text-left pb-2 font-semibold text-text-secondary text-xs">Invoice</th>
+                      <th className="text-left pb-2 font-semibold text-text-secondary text-xs">Due Date</th>
+                      <th className="text-right pb-2 font-semibold text-text-secondary text-xs">Amount</th>
+                      <th className="text-right pb-2 font-semibold text-text-secondary text-xs">Outstanding</th>
+                      <th className="text-right pb-2 font-semibold text-text-secondary text-xs">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {salesInvoicesRes.map((inv: { name: string; due_date?: string; posting_date: string; grand_total: number; outstanding_amount: number; status: string }) => {
+                      const todayStr = new Date().toISOString().split("T")[0];
+                      const dueDate = inv.due_date ?? inv.posting_date;
+                      const isPaid = inv.outstanding_amount <= 0;
+                      const isOverdue = !isPaid && dueDate < todayStr;
+                      return (
+                        <tr key={inv.name} className="border-b border-border-light last:border-0">
+                          <td className="py-2 text-xs font-mono text-text-primary">{inv.name}</td>
+                          <td className="py-2">
+                            <span className={`flex items-center gap-1 text-xs ${isOverdue ? "text-error font-semibold" : "text-text-secondary"}`}>
+                              {isOverdue && <Clock className="h-3 w-3 shrink-0" />}
+                              {new Date(dueDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                              {isOverdue && <span className="text-[9px] font-bold ml-0.5">OVERDUE</span>}
+                            </span>
+                          </td>
+                          <td className="py-2 text-right text-xs font-semibold text-text-primary">₹{inv.grand_total.toLocaleString("en-IN")}</td>
+                          <td className="py-2 text-right text-xs">
+                            {isPaid ? (
+                              <span className="text-success">—</span>
+                            ) : (
+                              <span className="font-semibold text-error">₹{inv.outstanding_amount.toLocaleString("en-IN")}</span>
+                            )}
+                          </td>
+                          <td className="py-2 text-right">
+                            <Badge variant={isPaid ? "success" : isOverdue ? "error" : "warning"}>
+                              {isPaid ? "Paid" : isOverdue ? "Overdue" : "Pending"}
+                            </Badge>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {!salesInvoicesRes?.length && salesOrdersRes?.length > 0 && (
+              <p className="text-xs text-text-tertiary text-center py-3">Invoices will appear here once generated.</p>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </motion.div>
   );
 }

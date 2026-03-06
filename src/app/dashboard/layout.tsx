@@ -1,51 +1,54 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
-import { useFeatureFlagsStore } from "@/lib/stores/featureFlagsStore";
 import { useAuthStore } from "@/lib/stores/authStore";
-import { PARENT_NAV, INSTRUCTOR_NAV, DIRECTOR_NAV } from "@/lib/utils/constants";
+import { PARENT_NAV, INSTRUCTOR_NAV, DIRECTOR_NAV, HR_MANAGER_NAV } from "@/lib/utils/constants";
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      retry: 1,
-      refetchOnWindowFocus: false,
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 5 * 60 * 1000, // 5 minutes
+        retry: 1,
+        refetchOnWindowFocus: false,
+      },
     },
-  },
-});
+  });
+}
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { flags } = useFeatureFlagsStore();
+  // useState keeps the same QueryClient across HMR / Fast Refresh cycles
+  const [queryClient] = useState(makeQueryClient);
   const { role, isInstructor: storeIsInstructor } = useAuthStore();
   const isParent = role === "Parent";
   const isInstructor = storeIsInstructor || role === "Instructor";
   const isDirector = role === "Director" || role === "Management";
+  const isHRManager = role === "HR Manager";
 
   // Determine sidebar nav items based on role
   const sidebarNav = isDirector
     ? DIRECTOR_NAV
-    : isParent
-      ? PARENT_NAV
-      : isInstructor
-        ? INSTRUCTOR_NAV
-        : undefined;
+    : isHRManager
+      ? HR_MANAGER_NAV
+      : isParent
+        ? PARENT_NAV
+        : isInstructor
+          ? INSTRUCTOR_NAV
+          : undefined;
 
   return (
     <QueryClientProvider client={queryClient}>
       <div className="flex h-screen overflow-hidden bg-app-bg">
         {/* Sidebar – use role-specific nav items */}
-        {(isDirector || isParent || isInstructor || flags.sidebar) && (
-          <Sidebar navItems={sidebarNav} />
-        )}
+        <Sidebar navItems={sidebarNav} />
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col overflow-hidden">

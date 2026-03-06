@@ -32,13 +32,74 @@ export async function updateAttendance(id: string, updates: Partial<AttendanceRe
 }
 
 /**
- * Bulk mark attendance via the Frappe Education whitelisted method.
- * education.api.mark_attendance understands the student arrays and handles
- * creating/updating attendance records for the whole group at once.
+ * Bulk mark attendance for a student group on a given date.
+ *
+ * Strategy (Student Attendance is a submittable doctype):
+ *  1. Fetch existing submitted records for the date + student_group.
+ *  2. For each student:
+ *     - No existing record → create + submit (docstatus: 1)
+ *     - Existing with same status → skip (no change needed)
+ *     - Existing with different status → cancel old, create new submitted
  */
 export async function bulkMarkAttendance(payload: BulkAttendancePayload): Promise<{ message: string }> {
-  const { data } = await apiClient.post("/method/education.api.mark_attendance", payload);
-  return data;
+  const { student_group, date, students, custom_branch } = payload;
+
+  // 1. Fetch existing attendance for this date + group (only submitted, docstatus=1)
+  const existingRes = await getAttendance(date, { student_group });
+  const existingMap = new Map<string, AttendanceRecord>();
+  for (const rec of existingRes.data) {
+    existingMap.set(rec.student, rec);
+  }
+
+  // 2. Process each student
+  const promises: Promise<unknown>[] = [];
+
+  for (const { student, student_name, status } of students) {
+    const existing = existingMap.get(student);
+
+    if (existing && existing.status === status) {
+      // Same status — no change needed
+      continue;
+    }
+
+    if (existing) {
+      // Different status — cancel old, then create new
+      promises.push(
+        apiClient
+          .post("/method/frappe.client.cancel", {
+            doctype: "Student Attendance",
+            name: existing.name,
+          })
+          .then(() =>
+            apiClient.post("/resource/Student Attendance", {
+              student,
+              student_name,
+              date,
+              status,
+              student_group,
+              custom_branch: custom_branch || existing.custom_branch || undefined,
+              docstatus: 1,
+            })
+          )
+      );
+    } else {
+      // No existing record — create new
+      promises.push(
+        apiClient.post("/resource/Student Attendance", {
+          student,
+          student_name,
+          date,
+          status,
+          student_group,
+          custom_branch: custom_branch || undefined,
+          docstatus: 1,
+        })
+      );
+    }
+  }
+
+  await Promise.all(promises);
+  return { message: `Attendance saved for ${students.length} students` };
 }
 
 // ── Attendance Report ──

@@ -32,6 +32,7 @@ const SO_LIST_FIELDS = JSON.stringify([
   "name", "customer", "customer_name", "transaction_date", "delivery_date",
   "company", "status", "grand_total", "per_billed", "per_delivered",
   "advance_paid", "docstatus", "creation",
+  "student", "custom_plan", "custom_no_of_instalments",
 ]);
 
 const SINV_LIST_FIELDS = JSON.stringify([
@@ -136,16 +137,22 @@ export async function getSalesInvoices(params?: {
   from_date?: string;
   to_date?: string;
   outstanding_only?: boolean;
+  docstatus?: number;
   search?: string;
+  sales_order?: string;
 } & PaginationParams): Promise<FrappeListResponse<SalesInvoice>> {
-  const filters: string[][] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const filters: any[][] = [];
   if (params?.customer) filters.push(["customer", "=", params.customer]);
   if (params?.company) filters.push(["company", "=", params.company]);
   if (params?.status) filters.push(["status", "=", params.status]);
   if (params?.from_date) filters.push(["posting_date", ">=", params.from_date]);
   if (params?.to_date) filters.push(["posting_date", "<=", params.to_date]);
   if (params?.outstanding_only) filters.push(["outstanding_amount", ">", "0"]);
+  if (params?.docstatus !== undefined) filters.push(["docstatus", "=", String(params.docstatus)]);
   if (params?.search) filters.push(["customer_name", "like", `%${params.search}%`]);
+  // Child table filter — Frappe syntax: ["Child DocType", "field", "=", "value"]
+  if (params?.sales_order) filters.push(["Sales Invoice Item", "sales_order", "=", params.sales_order]);
 
   const query = new URLSearchParams({
     fields: SINV_LIST_FIELDS,
@@ -211,35 +218,35 @@ export async function deleteSalesInvoice(name: string): Promise<void> {
 }
 
 /**
+ * Use Frappe's native make_sales_invoice to get a properly mapped
+ * Sales Invoice document from a Sales Order.
+ * Returns the mapped doc (NOT yet saved) — includes so_detail per item,
+ * only unbilled qty, debit_to, etc.
+ */
+export async function makeSalesInvoiceFromSO(
+  salesOrderName: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<Record<string, any>> {
+  const { data } = await apiClient.post(
+    "/method/erpnext.selling.doctype.sales_order.sales_order.make_sales_invoice",
+    { source_name: salesOrderName }
+  );
+  return data.message; // the mapped doc object
+}
+
+/**
  * Create a Sales Invoice directly from a submitted Sales Order.
- * Uses frappe.client.run_doc_method to pull SO items into SINV.
+ * Uses Frappe's make_sales_invoice for proper so_detail linkage,
+ * then inserts + submits the resulting doc.
  */
 export async function createInvoiceFromOrder(
   salesOrderName: string
 ): Promise<SalesInvoice> {
-  // Fetch the SO first to get customer + company + items
-  const { data: soRes } = await apiClient.get(
-    `/resource/Sales Order/${encodeURIComponent(salesOrderName)}`
-  );
-  const so: SalesOrder = soRes.data;
+  // Step 1 — get mapped doc from Frappe (includes so_detail, unbilled qty)
+  const mapped = await makeSalesInvoiceFromSO(salesOrderName);
 
-  const payload: SalesInvoiceFormData = {
-    customer: so.customer,
-    posting_date: new Date().toISOString().split("T")[0],
-    company: so.company,
-    sales_order: so.name,
-    items: so.items.map((item) => ({
-      item_code: item.item_code,
-      item_name: item.item_name,
-      description: item.description,
-      qty: item.qty,
-      uom: item.uom,
-      rate: item.rate,
-      sales_order: so.name,
-    })),
-  };
-
-  const { data } = await apiClient.post("/resource/Sales Invoice", payload);
+  // Step 2 — insert as draft
+  const { data } = await apiClient.post("/resource/Sales Invoice", mapped);
   return data.data;
 }
 
@@ -456,46 +463,78 @@ export async function findOrCreateCustomer(
 
 /**
  * Resolve the tuition-fee Item for a program.
- * Convention: item_code = "{program_abbreviation} Tuition Fee"
- * e.g. "5th Grade" → abbr "5th" → item "5th Tuition Fee"
- *      "11th Commerce" → abbr "11co" → item "11co 4 Tuition Fee"
+ * Convention: item_code = "{program_name} Tuition Fee"
+ * e.g. "11th Science State" → item "11th Science State Tuition Fee"
+ *      "10th CBSE"          → item "10th CBSE Tuition Fee"
  *
- * NOTE: Program abbreviations use hyphens (e.g. "10th 1-1", "12sc 1-M")
- * but item codes use full words ("10th 1 to 1", "12sc 1 to M").
- * We normalise the abbreviation before searching.
+ * Falls back to searching by program abbreviation if the full-name search
+ * yields no results.
  */
 export async function getTuitionFeeItem(
   programName: string
 ): Promise<Item | null> {
-  // 1. Get program abbreviation from Frappe
-  const { data: progRes } = await apiClient.get(
-    `/resource/Program/${encodeURIComponent(programName)}?fields=["name","program_abbreviation"]`
-  );
-  const rawAbbr: string | undefined = progRes.data?.program_abbreviation;
-  if (!rawAbbr) return null;
+  const itemFields = JSON.stringify([
+    "name", "item_code", "item_name", "item_group", "standard_rate", "stock_uom",
+  ]);
 
-  // 2. Normalise: "10th 1-1" → "10th 1 to 1", "12sc 1-M" → "12sc 1 to M"
-  const abbr = rawAbbr.replace(/\b1-1\b/g, "1 to 1").replace(/\b1-M\b/g, "1 to M");
-
-  // 3. Search for items matching "{abbr}%Tuition Fee"
-  const params = new URLSearchParams({
-    fields: JSON.stringify([
-      "name", "item_code", "item_name", "item_group", "standard_rate", "stock_uom",
-    ]),
+  // 1. Try exact match: "{programName} Tuition Fee"
+  const exactCode = `${programName} Tuition Fee`;
+  const exactParams = new URLSearchParams({
+    fields: itemFields,
     filters: JSON.stringify([
-      ["item_code", "like", `${abbr}%Tuition Fee`],
+      ["item_code", "=", exactCode],
+      ["is_sales_item", "=", 1],
+      ["disabled", "=", 0],
+    ]),
+    limit_page_length: "1",
+  });
+  const { data: exactRes } = await apiClient.get(`/resource/Item?${exactParams}`);
+  const exactItems: Item[] = exactRes.data ?? [];
+  if (exactItems.length > 0) return exactItems[0];
+
+  // 2. Try wildcard: "{programName}%Tuition Fee" (handles naming variations)
+  const likeParams = new URLSearchParams({
+    fields: itemFields,
+    filters: JSON.stringify([
+      ["item_code", "like", `${programName}%Tuition Fee`],
       ["is_sales_item", "=", 1],
       ["disabled", "=", 0],
     ]),
     limit_page_length: "10",
   });
-  const { data: itemsRes } = await apiClient.get(`/resource/Item?${params}`);
-  const items: Item[] = itemsRes.data ?? [];
-  if (items.length === 0) return null;
+  const { data: likeRes } = await apiClient.get(`/resource/Item?${likeParams}`);
+  const likeItems: Item[] = likeRes.data ?? [];
+  if (likeItems.length > 0) return likeItems[0];
 
-  // Prefer exact "{abbr} Tuition Fee" match, otherwise take the first
-  const exact = items.find((i) => i.item_code === `${abbr} Tuition Fee`);
-  return exact ?? items[0];
+  // 3. Fallback: search by program abbreviation (legacy convention)
+  try {
+    const { data: progRes } = await apiClient.get(
+      `/resource/Program/${encodeURIComponent(programName)}?fields=["name","program_abbreviation"]`
+    );
+    const rawAbbr: string | undefined = progRes.data?.program_abbreviation;
+    if (rawAbbr) {
+      const abbr = rawAbbr.replace(/\b1-1\b/g, "1 to 1").replace(/\b1-M\b/g, "1 to M");
+      const abbrParams = new URLSearchParams({
+        fields: itemFields,
+        filters: JSON.stringify([
+          ["item_code", "like", `${abbr}%Tuition Fee`],
+          ["is_sales_item", "=", 1],
+          ["disabled", "=", 0],
+        ]),
+        limit_page_length: "10",
+      });
+      const { data: abbrRes } = await apiClient.get(`/resource/Item?${abbrParams}`);
+      const abbrItems: Item[] = abbrRes.data ?? [];
+      if (abbrItems.length > 0) {
+        const exact = abbrItems.find((i) => i.item_code === `${abbr} Tuition Fee`);
+        return exact ?? abbrItems[0];
+      }
+    }
+  } catch {
+    // abbreviation fallback failed — continue to return null
+  }
+
+  return null;
 }
 
 /**
