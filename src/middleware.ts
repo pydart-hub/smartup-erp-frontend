@@ -89,6 +89,6 @@ export const config = {
      * - favicon.ico, logo.svg
      * - public files
      */
-    "/((?!_next/static|_next/image|favicon.ico|logo.svg|public).*)",
+    "/((?!_next/static|_next/image|favicon.ico|logo.svg|.*\\.png$|.*\\.jpg$|.*\\.svg$|.*\\.ico$).*)",
   ],
 };

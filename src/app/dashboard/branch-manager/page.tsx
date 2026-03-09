@@ -44,13 +44,6 @@ const quickActions = [
     icon: <CalendarDays className="h-5 w-5" />,
     color: "info" as const,
   },
-  {
-    label: "Fee Collection",
-    description: "Record fee payments",
-    href: "/dashboard/branch-manager/fees/payments",
-    icon: <FileText className="h-5 w-5" />,
-    color: "warning" as const,
-  },
 ];
 
 const containerVariants = {
@@ -213,9 +206,16 @@ export default function BranchManagerDashboard() {
               Here&apos;s what&apos;s happening at your branch today.
             </p>
           </div>
-          <Badge variant="default" className="self-start px-3 py-1 text-sm">
-            Branch Manager
-          </Badge>
+          <div className="flex flex-col items-start sm:items-end gap-1">
+            <Badge variant="default" className="px-3 py-1 text-sm">
+              Branch Manager
+            </Badge>
+            {defaultCompany && (
+              <span className="text-xs text-text-tertiary">
+                {defaultCompany.replace(/^Smart Up\s*/i, "")}
+              </span>
+            )}
+          </div>
         </div>
       </motion.div>
 
@@ -306,24 +306,24 @@ export default function BranchManagerDashboard() {
                           <span className="text-sm font-semibold text-text-primary">{program}</span>
                           <span className="text-xs text-text-tertiary">({groups.length} batch{groups.length !== 1 ? "es" : ""})</span>
                         </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 ml-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 ml-6">
                           {groups.map((group) => {
                             const enrolled = batchEnrollmentCounts?.get(group.name) ?? 0;
                             const maxStr = group.max_strength ?? 60;
                             const pct = maxStr > 0 ? Math.min((enrolled / maxStr) * 100, 100) : 0;
                             const isFull = enrolled >= maxStr;
                             return (
-                              <div key={group.name} className="bg-app-bg rounded-[10px] p-3 border border-border-light">
-                                <div className="flex items-center justify-between mb-1.5">
-                                  <span className="text-xs font-semibold text-text-primary truncate max-w-[80px]" title={group.name}>
+                              <div key={group.name} className="bg-app-bg rounded-[12px] p-4 border border-border-light">
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="text-sm font-semibold text-text-primary truncate max-w-[160px]" title={group.name}>
                                     {group.name}
                                   </span>
                                   {isFull
-                                    ? <Badge variant="error" className="text-[10px] px-1.5 py-0 shrink-0">Full</Badge>
-                                    : <Badge variant="success" className="text-[10px] px-1.5 py-0 shrink-0">Open</Badge>}
+                                    ? <Badge variant="error" className="text-xs px-2 py-0.5 shrink-0">Full</Badge>
+                                    : <Badge variant="success" className="text-xs px-2 py-0.5 shrink-0">Open</Badge>}
                                 </div>
-                                <div className="text-xs text-text-secondary mb-1.5">{enrolled}/{maxStr} students</div>
-                                <div className="w-full h-1.5 bg-border-light rounded-full overflow-hidden">
+                                <div className="text-sm font-medium text-text-primary mb-2">{enrolled}/{maxStr} students</div>
+                                <div className="w-full h-2 bg-border-light rounded-full overflow-hidden">
                                   <motion.div
                                     initial={{ width: 0 }}
                                     animate={{ width: `${pct}%` }}

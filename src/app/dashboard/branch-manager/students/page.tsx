@@ -101,7 +101,10 @@ export default function StudentsPage() {
       }
       if (data.failed?.length > 0) {
         setDeleteError(`Partially deleted. ${data.failed.length} step(s) failed: ${data.failed.map((f: { step: string }) => f.step).join(", ")}`);
-        // Still close and refresh — student is likely gone
+        // Keep modal open so user sees the error, but still refresh the list
+        queryClient.invalidateQueries({ queryKey: ["students"] });
+        queryClient.invalidateQueries({ queryKey: ["enrollment-map"] });
+        return;
       }
       setDeleteTarget(null);
       queryClient.invalidateQueries({ queryKey: ["students"] });

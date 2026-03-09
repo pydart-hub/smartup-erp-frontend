@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -155,15 +156,15 @@ export function Sidebar({ navItems = BRANCH_MANAGER_NAV }: SidebarProps) {
         )}>
           {!sidebarCollapsed && (
             <Link href={homeHref} className="flex items-center gap-2.5">
-              <div className="w-9 h-9 bg-primary rounded-[10px] flex items-center justify-center">
-                <GraduationCap className="h-5 w-5 text-white" />
+              <div className="w-9 h-9 bg-primary rounded-[10px] flex items-center justify-center p-1">
+                <Image src="/smartup-logo.png" alt="SmartUp" width={28} height={28} className="object-contain" />
               </div>
               <span className="font-bold text-text-primary text-lg">Smartup</span>
             </Link>
           )}
           {sidebarCollapsed && (
-            <div className="w-9 h-9 bg-primary rounded-[10px] flex items-center justify-center">
-              <GraduationCap className="h-5 w-5 text-white" />
+            <div className="w-9 h-9 bg-primary rounded-[10px] flex items-center justify-center p-1">
+              <Image src="/smartup-logo.png" alt="SmartUp" width={28} height={28} className="object-contain" />
             </div>
           )}
           {/* Mobile close */}

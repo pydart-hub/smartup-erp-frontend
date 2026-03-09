@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { GraduationCap } from "lucide-react";
+import Image from "next/image";
 import { LoginForm } from "@/components/auth/LoginForm";
 
 export default function LoginPage() {
@@ -26,8 +26,8 @@ export default function LoginPage() {
             transition={{ duration: 0.7, delay: 0.2 }}
             className="text-center"
           >
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-white/10 rounded-[20px] mb-8 backdrop-blur-sm">
-              <GraduationCap className="h-10 w-10 text-white" />
+            <div className="inline-flex items-center justify-center w-24 h-24 bg-white/10 rounded-[20px] mb-8 backdrop-blur-sm p-2">
+              <Image src="/smartup-logo.png" alt="SmartUp" width={80} height={80} className="object-contain" />
             </div>
             <h1 className="text-4xl font-bold mb-4">Smartup ERP</h1>
             <p className="text-lg text-white/80 max-w-md leading-relaxed">
@@ -65,8 +65,8 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
           <div className="lg:hidden text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-[16px] mb-4">
-              <GraduationCap className="h-8 w-8 text-white" />
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-[16px] mb-4 p-2">
+              <Image src="/smartup-logo.png" alt="SmartUp" width={48} height={48} className="object-contain" />
             </div>
             <h1 className="text-2xl font-bold text-text-primary">Smartup ERP</h1>
           </div>

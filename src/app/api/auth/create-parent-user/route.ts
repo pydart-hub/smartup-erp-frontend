@@ -188,7 +188,7 @@ export async function POST(request: NextRequest) {
     try {
       const loginUrl = process.env.NEXT_PUBLIC_APP_URL
         || process.env.VERCEL_URL
-        || "http://localhost:3000";
+        || "https://smartuplearning.net";
 
       const setPasswordUrl = `${loginUrl}/auth/forgot-password`;
 

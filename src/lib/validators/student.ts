@@ -21,7 +21,7 @@ export const studentSchema = z.object({
   program: z.string().min(1, "Class is required"),              // Program name
   academic_year: z.string().min(1, "Academic year is required"),// Academic Year
   custom_srr_id: z.string().optional(),                         // Auto-generated SRR ID
-  student_batch_name: z.string().optional(),                    // Batch code e.g. "CHL-25"
+  student_batch_name: z.string().min(1, "Batch is required"),    // Student Group name
   enrollment_date: z.string().min(1, "Enrollment date is required"),
 
   // Step 4 — Fee Details

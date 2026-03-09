@@ -4,12 +4,16 @@ import { NextRequest, NextResponse } from "next/server";
  * POST /api/admin/delete-student
  *
  * Fully deletes a student and ALL related records from Frappe:
- *   1. Cancel + delete Sales Invoices linked to the student's Customer
- *   2. Cancel + delete Sales Orders linked to the student's Customer
- *   3. Remove student from all Student Groups
- *   4. Cancel + delete Course Enrollments
- *   5. Cancel + delete Program Enrollments
- *   6. Delete the Student document
+ *   1. Cancel + delete Payment Entries linked to the student's Customer
+ *   2. Cancel + delete Sales Invoices linked to the student's Customer
+ *   3. Cancel + delete Sales Orders linked to the student's Customer
+ *   4. Remove student from all Student Groups
+ *   5. Cancel + delete Student Attendance
+ *   6. Cancel + delete Fees (Education module)
+ *   7. Cancel + delete Course Enrollments
+ *   8. Cancel + delete Program Enrollments
+ *   9. Delete the Customer record
+ *  10. Delete the Student document
  *
  * Body: { student_id: string }
  *
@@ -234,7 +238,39 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // ── 5. Cancel + delete Course Enrollments ──
+    // ── 5. Cancel + delete Student Attendance ──
+    const attendanceRecords: { name: string; docstatus: number }[] =
+      await frappeGetList(
+        "Student Attendance",
+        [["student", "=", studentId]],
+        ["name", "docstatus"]
+      );
+    for (const att of attendanceRecords) {
+      if (att.docstatus === 1) {
+        const cancelled = await frappeCancel("Student Attendance", att.name);
+        log.push({ step: "cancel_attendance", detail: att.name, ok: cancelled });
+      }
+      const deleted = await frappeDelete("Student Attendance", att.name);
+      log.push({ step: "delete_attendance", detail: att.name, ok: deleted });
+    }
+
+    // ── 6. Cancel + delete Fees (Education module) ──
+    const feesRecords: { name: string; docstatus: number }[] =
+      await frappeGetList(
+        "Fees",
+        [["student", "=", studentId]],
+        ["name", "docstatus"]
+      );
+    for (const fee of feesRecords) {
+      if (fee.docstatus === 1) {
+        const cancelled = await frappeCancel("Fees", fee.name);
+        log.push({ step: "cancel_fee", detail: fee.name, ok: cancelled });
+      }
+      const deleted = await frappeDelete("Fees", fee.name);
+      log.push({ step: "delete_fee", detail: fee.name, ok: deleted });
+    }
+
+    // ── 7. Cancel + delete Course Enrollments ──
     const courseEnrollments: { name: string; docstatus: number }[] =
       await frappeGetList(
         "Course Enrollment",
@@ -242,7 +278,6 @@ export async function POST(request: NextRequest) {
         ["name", "docstatus"]
       );
     for (const ce of courseEnrollments) {
-      // Course Enrollment is usually not submitted (docstatus=0) but check anyway
       if (ce.docstatus === 1) {
         const cancelled = await frappeCancel("Course Enrollment", ce.name);
         log.push({ step: "cancel_ce", detail: ce.name, ok: cancelled });
@@ -251,7 +286,7 @@ export async function POST(request: NextRequest) {
       log.push({ step: "delete_ce", detail: ce.name, ok: deleted });
     }
 
-    // ── 6. Cancel + delete Program Enrollments ──
+    // ── 8. Cancel + delete Program Enrollments ──
     const progEnrollments: { name: string; docstatus: number }[] =
       await frappeGetList(
         "Program Enrollment",
@@ -267,13 +302,13 @@ export async function POST(request: NextRequest) {
       log.push({ step: "delete_pe", detail: pe.name, ok: deleted });
     }
 
-    // ── 7. Delete the Customer (auto-linked) ──
+    // ── 9. Delete the Customer (auto-linked) ──
     if (customerName) {
       const deleted = await frappeDelete("Customer", customerName);
       log.push({ step: "delete_customer", detail: customerName, ok: deleted });
     }
 
-    // ── 8. Delete the Student document ──
+    // ── 10. Delete the Student document ──
     const studentDeleted = await frappeDelete("Student", studentId);
     log.push({ step: "delete_student", detail: studentId, ok: studentDeleted });
 

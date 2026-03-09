@@ -389,34 +389,52 @@ export async function getBranches(): Promise<{ name: string; abbr: string }[]> {
  * belongs to Student Groups with that custom_branch.
  */
 export async function getBatchEnrollmentCounts(company?: string, academic_year?: string): Promise<Map<string, number>> {
-  // If company or academic_year is provided, first get the Student Group batch codes
-  // for that branch/year so we can filter enrollment counts to only relevant batches.
-  // NOTE: PE.student_batch_name stores the Student Batch Name (e.g. "Vennala 26-27"),
-  // NOT the Student Group name. So we must compare against SG.batch, not SG.name.
-  let allowedBatches: Set<string> | null = null;
-  if (company || academic_year) {
-    const sgFilters: string[][] = [["group_based_on", "=", "Batch"]];
-    if (company) sgFilters.push(["custom_branch", "=", company]);
-    if (academic_year) sgFilters.push(["academic_year", "=", academic_year]);
-    const { data: sgRes } = await apiClient.get(
-      `/resource/Student Group?fields=["name","batch"]&filters=${JSON.stringify(sgFilters)}&limit_page_length=0`
-    );
-    allowedBatches = new Set(
-      (sgRes.data as { name: string; batch: string }[])
-        .map((sg) => sg.batch)
-        .filter(Boolean)
-    );
+  // Step 1: get all Student Groups (name, program, batch) for this branch/year
+  const sgFilters: string[][] = [["group_based_on", "=", "Batch"]];
+  if (company) sgFilters.push(["custom_branch", "=", company]);
+  if (academic_year) sgFilters.push(["academic_year", "=", academic_year]);
+
+  const { data: sgRes } = await apiClient.get(
+    `/resource/Student Group?fields=["name","program","batch"]&filters=${JSON.stringify(sgFilters)}&limit_page_length=0`
+  );
+  const groups = sgRes.data as { name: string; program: string; batch: string }[];
+  if (groups.length === 0) return new Map();
+
+  // Build a lookup from composite key "program|batch" → Student Group name(s)
+  const keyToGroups = new Map<string, string[]>();
+  for (const sg of groups) {
+    if (sg.program && sg.batch) {
+      const key = `${sg.program}|${sg.batch}`;
+      const arr = keyToGroups.get(key) ?? [];
+      arr.push(sg.name);
+      keyToGroups.set(key, arr);
+    }
   }
 
-  const { data } = await apiClient.get(
-    `/resource/Program Enrollment?fields=["student_batch_name"]&filters=${JSON.stringify([["docstatus", "=", "1"]])}&limit_page_length=0`
+  // Collect all batch codes to filter PEs
+  const batchCodes = [...new Set(groups.map((sg) => sg.batch).filter(Boolean))];
+  if (batchCodes.length === 0) return new Map();
+
+  // Step 2: get all submitted PEs with program + student_batch_name matching these batches
+  const peFilters: unknown[][] = [
+    ["docstatus", "=", "1"],
+    ["student_batch_name", "in", batchCodes],
+  ];
+  const { data: peRes } = await apiClient.get(
+    `/resource/Program Enrollment?fields=["student_batch_name","program"]&filters=${JSON.stringify(peFilters)}&limit_page_length=0`
   );
+
+  // Step 3: map each PE to the correct Student Group(s) via "program|batch" key
   const countMap = new Map<string, number>();
-  (data.data as { student_batch_name: string }[]).forEach((pe) => {
-    if (pe.student_batch_name) {
-      // If we have a branch filter, only count batches that belong to this branch
-      if (allowedBatches && !allowedBatches.has(pe.student_batch_name)) return;
-      countMap.set(pe.student_batch_name, (countMap.get(pe.student_batch_name) ?? 0) + 1);
+  (peRes.data as { student_batch_name: string; program: string }[]).forEach((pe) => {
+    if (pe.program && pe.student_batch_name) {
+      const key = `${pe.program}|${pe.student_batch_name}`;
+      const sgNames = keyToGroups.get(key);
+      if (sgNames) {
+        for (const sgName of sgNames) {
+          countMap.set(sgName, (countMap.get(sgName) ?? 0) + 1);
+        }
+      }
     }
   });
   return countMap;

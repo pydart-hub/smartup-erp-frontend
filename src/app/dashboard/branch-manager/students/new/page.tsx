@@ -193,6 +193,13 @@ export default function NewStudentPage() {
     return studentGroups.filter((g) => g.name);
   }, [studentGroups]);
 
+  // Auto-select batch when only one option is available
+  useEffect(() => {
+    if (groupOptions.length === 1) {
+      setValue("student_batch_name", groupOptions[0].name!);
+    }
+  }, [groupOptions, setValue]);
+
   // ── Fee structure lookup ──────────────────────────────────────
   const selectedPlan = watch("custom_plan");
   const selectedInstalments = watch("custom_no_of_instalments");
@@ -740,9 +747,9 @@ export default function NewStudentPage() {
                   </div>
 
                   {selectedBranch && selectedProgram && (
-                    <SelectField label="Batch (optional)">
+                    <SelectField label="Batch" required error={errors.student_batch_name?.message}>
                       <select className={selectCls} {...register("student_batch_name")}>
-                        <option value="">No batch — assign later</option>
+                        <option value="">Select a batch</option>
                         {groupOptions.map((g) => {
                           const count = g.students?.length ?? "—";
                           const max = g.max_strength ?? 60;
@@ -775,7 +782,7 @@ export default function NewStudentPage() {
                     <div className="bg-warning/10 rounded-[10px] p-4 border border-warning/20 flex items-start gap-2">
                       <AlertCircle className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
                       <p className="text-sm text-warning">
-                        No batches found for {selectedProgram} at {selectedBranch.replace("Smart Up ", "")}. The student will be enrolled without a batch assignment.
+                        No batches found for {selectedProgram} at {selectedBranch.replace("Smart Up ", "")}. Please create a batch first.
                       </p>
                     </div>
                   )}
@@ -1136,7 +1143,7 @@ export default function NewStudentPage() {
                     <p><span className="text-text-tertiary w-36 inline-block">Class:</span> {watch("program") || "—"}</p>
                     <p><span className="text-text-tertiary w-36 inline-block">Academic Year:</span> {watch("academic_year") || "—"}</p>
                     <p><span className="text-text-tertiary w-36 inline-block">SRR ID:</span> {watch("custom_srr_id") || "—"}</p>
-                    <p><span className="text-text-tertiary w-36 inline-block">Batch:</span> {watch("student_batch_name") || "Not assigned"}</p>
+                    <p><span className="text-text-tertiary w-36 inline-block">Batch:</span> {watch("student_batch_name") || "—"}</p>
                     <p><span className="text-text-tertiary w-36 inline-block">Enrollment Date:</span> {watch("enrollment_date") || "—"}</p>
                     <p><span className="text-text-tertiary w-36 inline-block">Fee Plan:</span> {selectedPlan || "—"}</p>
                     <p>

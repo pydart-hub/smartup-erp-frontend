@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
     const loginUrl =
       process.env.NEXT_PUBLIC_APP_URL ||
       process.env.VERCEL_URL ||
-      "http://localhost:3000";
+      "https://smartuplearning.net";
 
     const emailBody = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto;">
