@@ -79,6 +79,7 @@ export default function NewStudentPage() {
   const { defaultCompany, allowedCompanies } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [paymentAction, setPaymentAction] = useState<"pay_now" | "send_to_parent" | null>(null);
+  const [advanceAmount, setAdvanceAmount] = useState<number | null>(null);
 
   // Post-admission payment dialog state
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
@@ -207,11 +208,12 @@ export default function NewStudentPage() {
   const selectedModeOfPayment = watch("custom_mode_of_payment");
 
   // Reset payment action when mode of payment changes
+  // Cash mode auto-selects "pay_now" (no Pay Later option)
   const prevModeRef = useRef(selectedModeOfPayment);
   useEffect(() => {
     if (prevModeRef.current !== selectedModeOfPayment) {
       prevModeRef.current = selectedModeOfPayment;
-      setPaymentAction(null);
+      setPaymentAction(selectedModeOfPayment === "Cash" ? "pay_now" : null);
     }
   }, [selectedModeOfPayment]);
 
@@ -733,6 +735,8 @@ export default function NewStudentPage() {
                       leftIcon={<Calendar className="h-4 w-4" />}
                       error={errors.enrollment_date?.message}
                       {...register("enrollment_date")}
+                      readOnly
+                      className="cursor-not-allowed opacity-70"
                     />
                   </div>
 
@@ -741,8 +745,10 @@ export default function NewStudentPage() {
                       label="SRR ID *"
                       placeholder={loadingSrrId ? "Loading…" : "e.g. 550"}
                       error={errors.custom_srr_id?.message}
-                      hint="Auto-suggested — edit if needed"
+                      hint="Auto-generated"
                       {...register("custom_srr_id")}
+                      readOnly
+                      className="cursor-not-allowed opacity-70"
                     />
                   </div>
 
@@ -1036,99 +1042,99 @@ export default function NewStudentPage() {
                     </div>
                   )}
 
-                  {/* Payment Action (sub-options under mode of payment) */}
-                  {selectedModeOfPayment && (
+                  {/* Payment Action (sub-options under mode of payment) — only for Online */}
+                  {selectedModeOfPayment === "Online" && (
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-text-secondary">
-                        {selectedModeOfPayment === "Online" ? "Payment Action" : "When to collect?"} *
+                        Payment Action *
                       </label>
                       <div className="grid grid-cols-2 gap-3">
-                        {selectedModeOfPayment === "Online" ? (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => setPaymentAction("pay_now")}
-                              className={`relative flex flex-col items-center gap-2 p-4 rounded-[12px] border-2 transition-all text-center ${
-                                paymentAction === "pay_now"
-                                  ? "border-success bg-success/5"
-                                  : "border-border-input bg-surface hover:border-border-input/80"
-                              }`}
-                            >
-                              <HandCoins className={`h-5 w-5 ${paymentAction === "pay_now" ? "text-success" : "text-text-tertiary"}`} />
-                              <span className={`text-sm font-semibold ${paymentAction === "pay_now" ? "text-success" : "text-text-secondary"}`}>
-                                Pay Now
-                              </span>
-                              <span className="text-xs text-text-tertiary">Parent is present — collect immediately</span>
-                              {paymentAction === "pay_now" && (
-                                <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-success flex items-center justify-center">
-                                  <Check className="h-3 w-3 text-white" />
-                                </div>
-                              )}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setPaymentAction("send_to_parent")}
-                              className={`relative flex flex-col items-center gap-2 p-4 rounded-[12px] border-2 transition-all text-center ${
-                                paymentAction === "send_to_parent"
-                                  ? "border-info bg-info/5"
-                                  : "border-border-input bg-surface hover:border-border-input/80"
-                              }`}
-                            >
-                              <Send className={`h-5 w-5 ${paymentAction === "send_to_parent" ? "text-info" : "text-text-tertiary"}`} />
-                              <span className={`text-sm font-semibold ${paymentAction === "send_to_parent" ? "text-info" : "text-text-secondary"}`}>
-                                Send to Parent
-                              </span>
-                              <span className="text-xs text-text-tertiary">Email payment link to parent</span>
-                              {paymentAction === "send_to_parent" && (
-                                <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-info flex items-center justify-center">
-                                  <Check className="h-3 w-3 text-white" />
-                                </div>
-                              )}
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => setPaymentAction("pay_now")}
-                              className={`relative flex flex-col items-center gap-2 p-4 rounded-[12px] border-2 transition-all text-center ${
-                                paymentAction === "pay_now"
-                                  ? "border-success bg-success/5"
-                                  : "border-border-input bg-surface hover:border-border-input/80"
-                              }`}
-                            >
-                              <HandCoins className={`h-5 w-5 ${paymentAction === "pay_now" ? "text-success" : "text-text-tertiary"}`} />
-                              <span className={`text-sm font-semibold ${paymentAction === "pay_now" ? "text-success" : "text-text-secondary"}`}>
-                                Pay Now
-                              </span>
-                              <span className="text-xs text-text-tertiary">Collect cash at counter now</span>
-                              {paymentAction === "pay_now" && (
-                                <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-success flex items-center justify-center">
-                                  <Check className="h-3 w-3 text-white" />
-                                </div>
-                              )}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setPaymentAction("send_to_parent")}
-                              className={`relative flex flex-col items-center gap-2 p-4 rounded-[12px] border-2 transition-all text-center ${
-                                paymentAction === "send_to_parent"
-                                  ? "border-info bg-info/5"
-                                  : "border-border-input bg-surface hover:border-border-input/80"
-                              }`}
-                            >
-                              <Calendar className={`h-5 w-5 ${paymentAction === "send_to_parent" ? "text-info" : "text-text-tertiary"}`} />
-                              <span className={`text-sm font-semibold ${paymentAction === "send_to_parent" ? "text-info" : "text-text-secondary"}`}>
-                                Pay Later
-                              </span>
-                              <span className="text-xs text-text-tertiary">Record payment from SO page</span>
-                              {paymentAction === "send_to_parent" && (
-                                <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-info flex items-center justify-center">
-                                  <Check className="h-3 w-3 text-white" />
-                                </div>
-                              )}
-                            </button>
-                          </>
+                        <button
+                          type="button"
+                          onClick={() => setPaymentAction("pay_now")}
+                          className={`relative flex flex-col items-center gap-2 p-4 rounded-[12px] border-2 transition-all text-center ${
+                            paymentAction === "pay_now"
+                              ? "border-success bg-success/5"
+                              : "border-border-input bg-surface hover:border-border-input/80"
+                          }`}
+                        >
+                          <HandCoins className={`h-5 w-5 ${paymentAction === "pay_now" ? "text-success" : "text-text-tertiary"}`} />
+                          <span className={`text-sm font-semibold ${paymentAction === "pay_now" ? "text-success" : "text-text-secondary"}`}>
+                            Pay Now
+                          </span>
+                          <span className="text-xs text-text-tertiary">Parent is present — collect immediately</span>
+                          {paymentAction === "pay_now" && (
+                            <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-success flex items-center justify-center">
+                              <Check className="h-3 w-3 text-white" />
+                            </div>
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPaymentAction("send_to_parent")}
+                          className={`relative flex flex-col items-center gap-2 p-4 rounded-[12px] border-2 transition-all text-center ${
+                            paymentAction === "send_to_parent"
+                              ? "border-info bg-info/5"
+                              : "border-border-input bg-surface hover:border-border-input/80"
+                          }`}
+                        >
+                          <Send className={`h-5 w-5 ${paymentAction === "send_to_parent" ? "text-info" : "text-text-tertiary"}`} />
+                          <span className={`text-sm font-semibold ${paymentAction === "send_to_parent" ? "text-info" : "text-text-secondary"}`}>
+                            Send to Parent
+                          </span>
+                          <span className="text-xs text-text-tertiary">Email payment link to parent</span>
+                          {paymentAction === "send_to_parent" && (
+                            <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-info flex items-center justify-center">
+                              <Check className="h-3 w-3 text-white" />
+                            </div>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Advance amount input — visible when "Pay Now" is selected */}
+                  {paymentAction === "pay_now" && selectedOption && selectedOption.schedule.length > 0 && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-text-secondary">
+                        Amount to Collect Now
+                      </label>
+                      <div className="bg-app-bg rounded-[12px] border border-border-light p-4 space-y-3">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-text-secondary">1st Instalment</span>
+                          <span className="font-semibold text-text-primary">
+                            ₹{selectedOption.schedule[0].amount.toLocaleString("en-IN")}
+                          </span>
+                        </div>
+                        <div>
+                          <Input
+                            type="number"
+                            min={1}
+                            max={selectedOption.schedule[0].amount}
+                            placeholder={`₹${selectedOption.schedule[0].amount.toLocaleString("en-IN")} (full amount)`}
+                            value={advanceAmount ?? ""}
+                            onChange={(e) => {
+                              const val = e.target.value ? Number(e.target.value) : null;
+                              if (val !== null && val > selectedOption!.schedule[0].amount) {
+                                setAdvanceAmount(selectedOption!.schedule[0].amount);
+                              } else {
+                                setAdvanceAmount(val);
+                              }
+                            }}
+                          />
+                          <p className="text-xs text-text-tertiary mt-1">
+                            Leave blank to collect full 1st instalment. Enter a lower amount to collect advance only.
+                          </p>
+                        </div>
+                        {advanceAmount !== null && advanceAmount > 0 && advanceAmount < selectedOption.schedule[0].amount && (
+                          <div className="flex items-center justify-between text-xs bg-warning-light rounded-lg px-3 py-2 border border-warning/20">
+                            <span className="text-warning font-medium">
+                              Advance: ₹{advanceAmount.toLocaleString("en-IN")}
+                            </span>
+                            <span className="text-text-secondary">
+                              Remaining: ₹{(selectedOption.schedule[0].amount - advanceAmount).toLocaleString("en-IN")}
+                            </span>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -1156,7 +1162,7 @@ export default function NewStudentPage() {
                       {paymentAction === "pay_now"
                         ? selectedModeOfPayment === "Online" ? "Pay Now (Razorpay)" : "Pay Now (Cash)"
                         : paymentAction === "send_to_parent"
-                          ? selectedModeOfPayment === "Online" ? "Send Request to Parent" : "Pay Later"
+                          ? "Send Request to Parent"
                           : "—"
                       }
                     </p>
@@ -1217,6 +1223,7 @@ export default function NewStudentPage() {
           action={paymentAction || "send_to_parent"}
           invoices={admissionResult.invoices}
           salesOrderName={admissionResult.salesOrderName}
+          advanceAmount={advanceAmount ?? undefined}
         />
       )}
     </motion.div>

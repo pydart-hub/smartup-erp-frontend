@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole, STAFF_ROLES } from "@/lib/utils/apiAuth";
+import { sendEmail } from "@/lib/utils/email";
 
 const FRAPPE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL;
 const FRAPPE_API_KEY = process.env.FRAPPE_API_KEY;
@@ -229,32 +230,14 @@ export async function POST(request: NextRequest) {
         </div>
       `;
 
-      const emailRes = await fetch(
-        `${FRAPPE_URL}/api/method/frappe.core.doctype.communication.email.make`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: adminAuth,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            subject: "Welcome to SmartUp Parent Portal",
-            content: emailBody,
-            recipients: email,
-            communication_medium: "Email",
-            send_email: 1,
-            sender: "Academiqedullp <academiqedullp@gmail.com>",
-          }),
-          cache: "no-store",
-        }
-      );
+      // Send directly via SMTP (nodemailer)
+      await sendEmail({
+        to: email,
+        subject: "Welcome to SmartUp Parent Portal",
+        html: emailBody,
+      });
 
-      if (emailRes.ok) {
-        console.log(`[create-parent-user] Login credentials email queued for ${email}`);
-      } else {
-        const emailErr = await emailRes.text();
-        console.warn(`[create-parent-user] Failed to send credentials email:`, emailErr);
-      }
+      console.log(`[create-parent-user] Login credentials email sent to ${email}`);
     } catch (emailError) {
       // Non-blocking — user creation already succeeded
       console.warn("[create-parent-user] Email sending failed (non-blocking):", emailError);

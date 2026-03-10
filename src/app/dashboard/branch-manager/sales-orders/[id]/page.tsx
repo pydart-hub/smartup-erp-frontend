@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import Link from "next/link";
@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 import {
   ArrowLeft, FileText, AlertCircle, ShoppingCart,
   Package, Receipt, CheckCircle2, Banknote, X, Loader2, RefreshCw,
+  CreditCard, Smartphone, Building2, Wallet,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Button } from "@/components/ui/Button";
@@ -20,6 +21,7 @@ import { formatDate, formatCurrency } from "@/lib/utils/formatters";
 import { INSTALMENT_DUE_DATES } from "@/lib/utils/constants";
 import { toast } from "sonner";
 import type { SalesOrderStatus, SalesInvoice } from "@/lib/types/sales";
+import RazorpayPayButton from "@/components/payments/RazorpayPayButton";
 
 const STATUS_COLORS: Record<SalesOrderStatus, "default" | "success" | "warning" | "error" | "info"> = {
   Draft: "default",
@@ -49,6 +51,7 @@ export default function SalesOrderDetailPage() {
 
   // ── Payment modal state ─────────────────────────────────────
   const [paymentInvoice, setPaymentInvoice] = useState<SalesInvoice | null>(null);
+  const [payTab, setPayTab] = useState<"online" | "cash">("online");
   const [payAmount, setPayAmount] = useState("");
   const [payMode, setPayMode] = useState("Cash");
   const [payDate, setPayDate] = useState(new Date().toISOString().split("T")[0]);
@@ -56,6 +59,7 @@ export default function SalesOrderDetailPage() {
 
   function openPaymentModal(inv: SalesInvoice) {
     setPaymentInvoice(inv);
+    setPayTab("online");
     setPayAmount(String(inv.outstanding_amount));
     setPayMode("Cash");
     setPayDate(new Date().toISOString().split("T")[0]);
@@ -64,6 +68,24 @@ export default function SalesOrderDetailPage() {
 
   function closePaymentModal() {
     setPaymentInvoice(null);
+  }
+
+  /** Fire receipt email (non-blocking) after any successful payment */
+  function sendReceipt(invoiceId: string) {
+    fetch("/api/payments/send-receipt", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ invoice_id: invoiceId }),
+    }).catch(() => {/* best-effort */});
+  }
+
+  /** Refresh queries after payment */
+  function onPaymentDone(invoiceId: string) {
+    sendReceipt(invoiceId);
+    closePaymentModal();
+    queryClient.invalidateQueries({ queryKey: ["so-invoices", decodedId] });
+    queryClient.invalidateQueries({ queryKey: ["sales-order", decodedId] });
   }
 
   const paymentMutation = useMutation({
@@ -89,9 +111,7 @@ export default function SalesOrderDetailPage() {
     },
     onSuccess: (data) => {
       toast.success(`Payment recorded: ${data.payment_entry}`);
-      closePaymentModal();
-      queryClient.invalidateQueries({ queryKey: ["so-invoices", decodedId] });
-      queryClient.invalidateQueries({ queryKey: ["sales-order", decodedId] });
+      if (paymentInvoice) onPaymentDone(paymentInvoice.name);
     },
     onError: (err: Error) => {
       toast.error(err.message);
@@ -114,6 +134,17 @@ export default function SalesOrderDetailPage() {
     staleTime: 30_000,
   });
   const linkedInvoices = invoicesRes?.data ?? [];
+
+  // Sort invoices by due date ascending
+  const sortedInvoices = useMemo(
+    () =>
+      [...linkedInvoices].sort((a, b) => {
+        const dateA = a.due_date || a.posting_date || "";
+        const dateB = b.due_date || b.posting_date || "";
+        return dateA.localeCompare(dateB);
+      }),
+    [linkedInvoices],
+  );
 
   // ── Generate invoices for SOs that are missing them ─────────
   const generateInvoicesMutation = useMutation({
@@ -410,6 +441,7 @@ export default function SalesOrderDetailPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border-light text-text-secondary text-xs font-semibold">
+                  <th className="text-left pb-2 pr-3">#</th>
                   <th className="text-left pb-2 pr-3">Invoice #</th>
                   <th className="text-left pb-2 pr-3">Due Date</th>
                   <th className="text-right pb-2 pr-3">Grand Total</th>
@@ -419,8 +451,11 @@ export default function SalesOrderDetailPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border-light">
-                {linkedInvoices.map((inv) => (
+                {sortedInvoices.map((inv, idx) => (
                   <tr key={inv.name} className="hover:bg-app-bg transition-colors">
+                    <td className="py-2 pr-3 text-xs text-text-tertiary font-medium">
+                      {idx + 1}/{sortedInvoices.length}
+                    </td>
                     <td className="py-2 pr-3">
                       <Link
                         href={`/dashboard/branch-manager/invoices/${encodeURIComponent(inv.name)}`}
@@ -452,7 +487,7 @@ export default function SalesOrderDetailPage() {
         </CardContent>
       </Card>
 
-      {/* ── Record Payment Modal ─────────────────────────────── */}
+      {/* ── Payment Modal (Online + Cash) ────────────────────── */}
       {paymentInvoice && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40" onClick={closePaymentModal} />
@@ -461,21 +496,35 @@ export default function SalesOrderDetailPage() {
             animate={{ opacity: 1, scale: 1 }}
             className="relative bg-surface rounded-2xl shadow-2xl border border-border-light w-full max-w-md mx-4 p-6"
           >
+            {/* Header */}
             <div className="flex items-center justify-between mb-5">
               <div>
-                <h2 className="text-lg font-bold text-text-primary">Record Payment</h2>
-                <p className="text-xs text-text-tertiary mt-0.5">{paymentInvoice.name}</p>
+                <h2 className="text-lg font-bold text-text-primary">Collect Payment</h2>
+                <p className="text-xs text-text-tertiary mt-0.5">
+                  {paymentInvoice.name}
+                  {sortedInvoices.length > 1 && (() => {
+                    const idx = sortedInvoices.findIndex(inv => inv.name === paymentInvoice.name);
+                    return idx >= 0 ? ` — Instalment ${idx + 1}/${sortedInvoices.length}` : "";
+                  })()}
+                </p>
               </div>
               <button onClick={closePaymentModal} className="text-text-tertiary hover:text-text-primary transition-colors">
                 <X className="h-5 w-5" />
               </button>
             </div>
 
+            {/* Invoice summary */}
             <div className="bg-app-bg rounded-xl p-4 mb-5">
               <div className="flex justify-between text-sm">
                 <span className="text-text-tertiary">Invoice Total</span>
                 <span className="font-semibold">{formatCurrency(paymentInvoice.grand_total)}</span>
               </div>
+              {paymentInvoice.grand_total !== paymentInvoice.outstanding_amount && (
+                <div className="flex justify-between text-sm mt-1">
+                  <span className="text-text-tertiary">Already Paid</span>
+                  <span className="font-medium text-success">{formatCurrency(paymentInvoice.grand_total - paymentInvoice.outstanding_amount)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-sm mt-1">
                 <span className="text-text-tertiary">Outstanding</span>
                 <span className="font-bold text-warning">{formatCurrency(paymentInvoice.outstanding_amount)}</span>
@@ -488,65 +537,108 @@ export default function SalesOrderDetailPage() {
               )}
             </div>
 
-            <div className="space-y-4">
-              <Input
-                label="Amount (₹)"
-                type="number"
-                value={payAmount}
-                onChange={(e) => setPayAmount(e.target.value)}
-                min={1}
-                max={paymentInvoice.outstanding_amount}
-                step="0.01"
-              />
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-text-secondary">Mode of Payment</label>
-                <select
-                  value={payMode}
-                  onChange={(e) => setPayMode(e.target.value)}
-                  className="h-10 w-full rounded-[10px] border border-border-input bg-surface px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                >
-                  <option value="Cash">Cash</option>
-                  <option value="Bank Transfer">Bank Transfer</option>
-                  <option value="UPI">UPI</option>
-                  <option value="Cheque">Cheque</option>
-                </select>
-              </div>
-
-              <Input
-                label="Payment Date"
-                type="date"
-                value={payDate}
-                onChange={(e) => setPayDate(e.target.value)}
-              />
-
-              <Input
-                label="Reference No. (optional)"
-                type="text"
-                value={payRef}
-                onChange={(e) => setPayRef(e.target.value)}
-                placeholder="Receipt #, UTR, cheque no."
-              />
-            </div>
-
-            <div className="flex gap-3 mt-6">
-              <Button variant="outline" size="md" onClick={closePaymentModal} className="flex-1">
-                Cancel
-              </Button>
-              <Button
-                variant="primary"
-                size="md"
-                className="flex-1"
-                disabled={paymentMutation.isPending || !payAmount || Number(payAmount) <= 0}
-                onClick={() => paymentMutation.mutate()}
+            {/* Payment mode tabs */}
+            <div className="flex gap-1 p-1 bg-app-bg rounded-xl mb-5">
+              <button
+                onClick={() => setPayTab("online")}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium rounded-lg transition-all ${
+                  payTab === "online"
+                    ? "bg-surface text-primary shadow-sm"
+                    : "text-text-tertiary hover:text-text-secondary"
+                }`}
               >
-                {paymentMutation.isPending ? (
-                  <><Loader2 className="h-4 w-4 animate-spin" /> Recording...</>
-                ) : (
-                  <><Banknote className="h-4 w-4" /> Record Payment</>
-                )}
-              </Button>
+                <CreditCard className="h-4 w-4" />
+                Online (Razorpay)
+              </button>
+              <button
+                onClick={() => setPayTab("cash")}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium rounded-lg transition-all ${
+                  payTab === "cash"
+                    ? "bg-surface text-primary shadow-sm"
+                    : "text-text-tertiary hover:text-text-secondary"
+                }`}
+              >
+                <Wallet className="h-4 w-4" />
+                Cash / Offline
+              </button>
             </div>
+
+            {/* Online Tab */}
+            {payTab === "online" && (
+              <div className="space-y-4">
+                <p className="text-xs text-text-tertiary">
+                  Pay the full outstanding amount via Razorpay (Card, UPI, Net Banking).
+                </p>
+                <RazorpayPayButton
+                  amount={paymentInvoice.outstanding_amount}
+                  invoiceId={paymentInvoice.name}
+                  studentName={so?.student || so?.customer_name || ""}
+                  customer={so?.customer || ""}
+                  onSuccess={() => onPaymentDone(paymentInvoice.name)}
+                  onError={(err) => toast.error(err)}
+                  size="md"
+                  className="w-full"
+                />
+              </div>
+            )}
+
+            {/* Cash / Offline Tab */}
+            {payTab === "cash" && (
+              <div className="space-y-4">
+                <Input
+                  label="Amount (₹)"
+                  type="number"
+                  value={payAmount}
+                  onChange={(e) => setPayAmount(e.target.value)}
+                  min={1}
+                  max={paymentInvoice.outstanding_amount}
+                  step="0.01"
+                />
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium text-text-secondary">Mode of Payment</label>
+                  <div className="grid grid-cols-1 gap-2">
+                    <button
+                      type="button"
+                      className="flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium border-primary bg-primary/5 text-primary"
+                      disabled
+                    >
+                      <Banknote className="h-4 w-4" />
+                      Cash
+                    </button>
+                  </div>
+                </div>
+
+                <Input
+                  label="Payment Date"
+                  type="date"
+                  value={payDate}
+                  readOnly
+                  className="cursor-not-allowed opacity-70"
+                />
+
+
+
+                <div className="flex gap-3 mt-2">
+                  <Button variant="outline" size="md" onClick={closePaymentModal} className="flex-1">
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="md"
+                    className="flex-1"
+                    disabled={paymentMutation.isPending || !payAmount || Number(payAmount) <= 0 || Number(payAmount) > paymentInvoice.outstanding_amount}
+                    onClick={() => paymentMutation.mutate()}
+                  >
+                    {paymentMutation.isPending ? (
+                      <><Loader2 className="h-4 w-4 animate-spin" /> Recording...</>
+                    ) : (
+                      <><Banknote className="h-4 w-4" /> Record ₹{Number(payAmount || 0).toLocaleString("en-IN")}</>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
           </motion.div>
         </div>
       )}

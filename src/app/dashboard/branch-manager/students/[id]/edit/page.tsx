@@ -53,7 +53,8 @@ function SectionHeader({ icon, title }: { icon: React.ReactNode; title: string }
 }
 
 export default function StudentEditPage() {
-  const { id } = useParams<{ id: string }>();
+  const { id: rawId } = useParams<{ id: string }>();
+  const id = decodeURIComponent(rawId);
   const router = useRouter();
   const queryClient = useQueryClient();
 

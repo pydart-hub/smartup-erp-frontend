@@ -1,8 +1,10 @@
 "use client";
 
-import React from "react";
-import { CheckCircle2, Clock, AlertCircle, CircleDot } from "lucide-react";
+import React, { useState, useCallback } from "react";
+import { CheckCircle2, Clock, AlertCircle, CircleDot, CircleDashed } from "lucide-react";
+import { toast } from "sonner";
 import RazorpayPayButton from "@/components/payments/RazorpayPayButton";
+import PartialPaymentModal from "@/components/payments/PartialPaymentModal";
 
 export interface InstalmentItem {
   invoiceId: string;
@@ -11,7 +13,7 @@ export interface InstalmentItem {
   outstandingAmount: number;
   dueDate: string;         // YYYY-MM-DD
   postingDate: string;
-  status: "paid" | "overdue" | "due-today" | "upcoming";
+  status: "paid" | "partially-paid" | "overdue" | "due-today" | "upcoming";
 }
 
 interface InstalmentTimelineProps {
@@ -55,6 +57,15 @@ const statusConfig = {
     borderColor: "border-success/20",
     badgeLabel: "Paid",
   },
+  "partially-paid": {
+    icon: CircleDashed,
+    dotColor: "bg-warning",
+    lineColor: "bg-warning/30",
+    textColor: "text-warning",
+    bgColor: "bg-warning-light",
+    borderColor: "border-warning/20",
+    badgeLabel: "Partially Paid",
+  },
   overdue: {
     icon: AlertCircle,
     dotColor: "bg-error",
@@ -92,6 +103,30 @@ export default function InstalmentTimeline({
   parentEmail,
   onPaymentSuccess,
 }: InstalmentTimelineProps) {
+  const [partialModalInst, setPartialModalInst] = useState<InstalmentItem | null>(null);
+
+  /** Send receipt email then refresh parent data */
+  const handlePaymentDone = useCallback(async (invoiceId: string) => {
+    // Fire receipt (non-blocking for UX)
+    try {
+      const res = await fetch("/api/payments/send-receipt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ invoice_id: invoiceId }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        toast.success(`Receipt email sent to ${data.recipient || "parent"}`, { duration: 3000 });
+      } else {
+        toast.warning("Payment recorded — receipt email could not be sent", { duration: 4000 });
+      }
+    } catch {
+      // non-blocking
+    }
+    onPaymentSuccess();
+  }, [onPaymentSuccess]);
+
   if (instalments.length === 0) return null;
 
   const totalAmount = instalments.reduce((s, i) => s + i.amount, 0);
@@ -126,9 +161,12 @@ export default function InstalmentTimeline({
           const config = statusConfig[inst.status];
           const Icon = config.icon;
           const isLast = idx === instalments.length - 1;
+          const isPartial = inst.outstandingAmount > 0 && inst.outstandingAmount < inst.amount;
+          const instPaidAmount = inst.amount - inst.outstandingAmount;
+          const instPct = inst.amount > 0 ? Math.round((instPaidAmount / inst.amount) * 100) : 0;
           const showPayButton =
             inst.outstandingAmount > 0 &&
-            (inst.status === "overdue" || inst.status === "due-today" ||
+            (inst.status === "overdue" || inst.status === "due-today" || inst.status === "partially-paid" ||
               // Also show for earliest upcoming
               (inst.status === "upcoming" &&
                 instalments.findIndex(
@@ -170,6 +208,22 @@ export default function InstalmentTimeline({
                     </span>
                   </div>
 
+                  {/* Per-instalment progress bar (only if partially paid) */}
+                  {isPartial && (
+                    <div className="mt-2 space-y-1">
+                      <div className="w-full h-1.5 bg-border-light rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-warning transition-all duration-500"
+                          style={{ width: `${instPct}%` }}
+                        />
+                      </div>
+                      <div className="flex justify-between text-[11px] text-text-secondary">
+                        <span>{formatCurrency(instPaidAmount)} paid</span>
+                        <span>Remaining: {formatCurrency(inst.outstandingAmount)}</span>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-between mt-2 flex-wrap gap-2">
                     <span className="text-xs text-text-secondary">
                       Due {formatDate(inst.dueDate)}{" "}
@@ -185,16 +239,27 @@ export default function InstalmentTimeline({
                     )}
 
                     {showPayButton && (
-                      <RazorpayPayButton
-                        amount={inst.outstandingAmount}
-                        invoiceId={inst.invoiceId}
-                        studentName={studentName}
-                        customer={customer}
-                        parentName={parentName}
-                        parentEmail={parentEmail}
-                        onSuccess={onPaymentSuccess}
-                        size="sm"
-                      />
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <RazorpayPayButton
+                          amount={inst.outstandingAmount}
+                          invoiceId={inst.invoiceId}
+                          studentName={studentName}
+                          customer={customer}
+                          parentName={parentName}
+                          parentEmail={parentEmail}
+                          onSuccess={() => handlePaymentDone(inst.invoiceId)}
+                          size="sm"
+                        />
+                        {inst.outstandingAmount > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => setPartialModalInst(inst)}
+                            className="text-xs font-medium text-primary hover:text-primary-hover underline underline-offset-2"
+                          >
+                            Pay Custom Amount
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
@@ -203,6 +268,22 @@ export default function InstalmentTimeline({
           );
         })}
       </div>
+
+      {/* Partial payment modal */}
+      {partialModalInst && (
+        <PartialPaymentModal
+          instalment={partialModalInst}
+          studentName={studentName}
+          customer={customer}
+          parentName={parentName}
+          parentEmail={parentEmail}
+          onSuccess={() => {
+            setPartialModalInst(null);
+            handlePaymentDone(partialModalInst.invoiceId);
+          }}
+          onClose={() => setPartialModalInst(null)}
+        />
+      )}
     </div>
   );
 }

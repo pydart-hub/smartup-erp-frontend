@@ -51,6 +51,9 @@ export interface PostAdmissionPaymentProps {
 
   /** Sales Order name */
   salesOrderName?: string;
+
+  /** Advance amount to collect (if less than 1st instalment) */
+  advanceAmount?: number;
 }
 
 /* ──────────────────────────────────────────────────────── */
@@ -60,16 +63,23 @@ export interface PostAdmissionPaymentProps {
 function CashPaymentForm({
   invoice,
   onPaid,
+  defaultAmount,
 }: {
   invoice: InvoiceForPayment;
   onPaid: (invoiceId: string) => void;
+  defaultAmount?: number;
 }) {
+  const maxAmount = invoice.amount;
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState("Cash");
   const [referenceNo, setReferenceNo] = useState("");
+  const [amount, setAmount] = useState<number>(defaultAmount ?? maxAmount);
   const today = new Date().toISOString().split("T")[0];
 
+  const isPartial = amount < maxAmount;
+
   const handleRecordCash = useCallback(async () => {
+    if (amount <= 0 || amount > maxAmount) return;
     setLoading(true);
     try {
       const res = await fetch("/api/payments/record-cash", {
@@ -78,7 +88,7 @@ function CashPaymentForm({
         credentials: "include",
         body: JSON.stringify({
           invoice_id: invoice.invoiceId,
-          amount: invoice.amount,
+          amount,
           mode_of_payment: mode,
           posting_date: today,
           reference_no: referenceNo || undefined,
@@ -92,7 +102,7 @@ function CashPaymentForm({
 
       const data = await res.json();
       toast.success(`Payment recorded — ${data.payment_entry}`, {
-        description: `₹${invoice.amount.toLocaleString("en-IN")} for ${invoice.invoiceId}`,
+        description: `₹${amount.toLocaleString("en-IN")} for ${invoice.invoiceId}${isPartial ? " (partial)" : ""}`,
       });
       onPaid(invoice.invoiceId);
     } catch (err) {
@@ -100,25 +110,38 @@ function CashPaymentForm({
     } finally {
       setLoading(false);
     }
-  }, [invoice, mode, referenceNo, today, onPaid]);
+  }, [invoice, amount, maxAmount, isPartial, mode, referenceNo, today, onPaid]);
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-2">
-        {(["Cash", "UPI", "Bank Transfer", "Cheque"] as const).map((m) => (
-          <button
-            key={m}
-            type="button"
-            onClick={() => setMode(m)}
-            className={`px-3 py-2 text-xs font-medium rounded-[8px] border transition-all ${
-              mode === m
-                ? "border-primary bg-primary/5 text-primary"
-                : "border-border-input bg-surface text-text-secondary hover:border-border-input/80"
-            }`}
-          >
-            {m}
-          </button>
-        ))}
+      <div className="grid grid-cols-1 gap-2">
+        <button
+          type="button"
+          className="px-3 py-2 text-xs font-medium rounded-[8px] border transition-all border-primary bg-primary/5 text-primary"
+          disabled
+        >
+          Cash
+        </button>
+      </div>
+
+      {/* Editable amount */}
+      <div>
+        <label className="text-xs text-text-secondary mb-1 block">Amount (max ₹{maxAmount.toLocaleString("en-IN")})</label>
+        <Input
+          type="number"
+          min={1}
+          max={maxAmount}
+          value={amount}
+          onChange={(e) => {
+            const v = Number(e.target.value);
+            setAmount(v > maxAmount ? maxAmount : v);
+          }}
+        />
+        {isPartial && amount > 0 && (
+          <p className="text-xs text-warning mt-1">
+            Partial payment — remaining ₹{(maxAmount - amount).toLocaleString("en-IN")} will stay outstanding
+          </p>
+        )}
       </div>
 
       <Input
@@ -132,12 +155,12 @@ function CashPaymentForm({
         className="w-full"
         onClick={handleRecordCash}
         loading={loading}
-        disabled={loading}
+        disabled={loading || amount <= 0 || amount > maxAmount}
       >
         {loading ? (
           <><Loader2 className="h-4 w-4 animate-spin" /> Recording…</>
         ) : (
-          <><Banknote className="h-4 w-4" /> Record ₹{invoice.amount.toLocaleString("en-IN")}</>
+          <><Banknote className="h-4 w-4" /> Record ₹{amount.toLocaleString("en-IN")}{isPartial ? " (partial)" : ""}</>
         )}
       </Button>
     </div>
@@ -160,14 +183,41 @@ export default function PostAdmissionPayment({
   action,
   invoices,
   salesOrderName,
+  advanceAmount,
 }: PostAdmissionPaymentProps) {
   const [paidInvoices, setPaidInvoices] = useState<Set<string>>(new Set());
   const [sendingRequest, setSendingRequest] = useState(false);
   const [requestSent, setRequestSent] = useState(false);
 
-  const handlePaid = useCallback((invoiceId: string) => {
+  const handlePaid = useCallback(async (invoiceId: string) => {
     setPaidInvoices((prev) => new Set([...prev, invoiceId]));
+    // Send receipt email to parent (non-blocking)
+    try {
+      const res = await fetch("/api/payments/send-receipt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ invoice_id: invoiceId }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        toast.success(`Receipt email sent to ${data.recipient || "parent"}`, { duration: 3000 });
+      } else {
+        console.warn("Receipt email failed:", res.status);
+        toast.warning("Payment recorded — receipt email could not be sent", { duration: 4000 });
+      }
+    } catch {
+      console.warn("Receipt email request failed");
+    }
   }, []);
+
+  // Determine the effective amount for the 1st invoice
+  const firstInvoice = invoices[0];
+  const effectiveFirstAmount =
+    advanceAmount && advanceAmount > 0 && firstInvoice && advanceAmount < firstInvoice.amount
+      ? advanceAmount
+      : firstInvoice?.amount ?? 0;
+  const isPartialAdvance = firstInvoice ? effectiveFirstAmount < firstInvoice.amount : false;
 
   const allPaid = invoices.length > 0 && invoices.every((inv) => paidInvoices.has(inv.invoiceId));
   const totalAmount = invoices.reduce((s, i) => s + i.amount, 0);
@@ -270,13 +320,28 @@ export default function PostAdmissionPayment({
           {/* ── PAY NOW FLOW ── */}
           {action === "pay_now" && (
             <div className="space-y-4">
+              {/* Advance info banner */}
+              {isPartialAdvance && !paidInvoices.has(firstInvoice.invoiceId) && (
+                <div className="flex items-center justify-between bg-warning-light rounded-[10px] border border-warning/20 px-4 py-2.5 text-xs">
+                  <span className="text-warning font-semibold">
+                    Collecting advance: ₹{effectiveFirstAmount.toLocaleString("en-IN")}
+                  </span>
+                  <span className="text-text-secondary">
+                    Remaining ₹{(firstInvoice.amount - effectiveFirstAmount).toLocaleString("en-IN")} will stay pending
+                  </span>
+                </div>
+              )}
+
               {invoices.length === 0 ? (
                 <div className="text-center py-6 text-text-secondary text-sm">
                   No invoices generated yet. Payment can be collected from the Sales Order page.
                 </div>
               ) : (
-                invoices.map((inv, idx) => {
+                /* Cash mode: only show first instalment. Online: show first with Razorpay, rest as info. */
+                (mode === "Cash" ? invoices.slice(0, 1) : invoices).map((inv, idx) => {
                   const isPaid = paidInvoices.has(inv.invoiceId);
+                  // For 1st invoice, use the advance amount if partial
+                  const payableAmount = idx === 0 ? effectiveFirstAmount : inv.amount;
 
                   return (
                     <div
@@ -323,11 +388,16 @@ export default function PostAdmissionPayment({
                       {isPaid ? (
                         <div className="flex items-center gap-2 text-sm text-success font-medium">
                           <CheckCircle2 className="h-4 w-4" /> Payment recorded
+                          {idx === 0 && isPartialAdvance && (
+                            <span className="text-xs text-text-tertiary font-normal ml-1">
+                              (advance — ₹{(inv.amount - effectiveFirstAmount).toLocaleString("en-IN")} remaining)
+                            </span>
+                          )}
                         </div>
                       ) : mode === "Online" ? (
                         idx === 0 ? (
                           <RazorpayPayButton
-                            amount={inv.amount}
+                            amount={payableAmount}
                             invoiceId={inv.invoiceId}
                             studentName={studentName}
                             customer={customerName}
@@ -344,11 +414,18 @@ export default function PostAdmissionPayment({
                           </div>
                         )
                       ) : (
-                        <CashPaymentForm invoice={inv} onPaid={handlePaid} />
+                        <CashPaymentForm invoice={inv} onPaid={handlePaid} defaultAmount={payableAmount} />
                       )}
                     </div>
                   );
                 })
+              )}
+
+              {/* Note for Cash mode: remaining instalments */}
+              {mode === "Cash" && invoices.length > 1 && (
+                <div className="text-center py-3 px-4 bg-info/5 border border-info/15 rounded-[10px] text-xs text-text-secondary">
+                  Remaining {invoices.length - 1} instalment{invoices.length > 2 ? "s" : ""} can be collected from the <strong>Sales Order</strong> page.
+                </div>
               )}
 
               {allPaid && (

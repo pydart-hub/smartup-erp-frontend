@@ -28,6 +28,7 @@ const STATUS_COLORS: Record<SalesInvoiceStatus, "default" | "success" | "warning
   Return: "warning",
   "Credit Note Issued": "warning",
   Paid: "success",
+  "Partly Paid": "warning",
   Unpaid: "error",
   Overdue: "error",
   Cancelled: "default",

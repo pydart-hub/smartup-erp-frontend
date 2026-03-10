@@ -139,26 +139,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 5. Send receipt email to parent (non-blocking, uses guardian lookup)
-    if (paymentEntryName) {
-      try {
-        const origin = request.nextUrl.origin;
-        const receiptRes = await fetch(`${origin}/api/payments/send-receipt`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Cookie: request.headers.get("cookie") || "",
-          },
-          body: JSON.stringify({ invoice_id }),
-        });
-        if (!receiptRes.ok) {
-          const errBody = await receiptRes.text();
-          console.warn("[record-cash] Receipt email returned error:", receiptRes.status, errBody);
-        }
-      } catch (emailErr) {
-        console.warn("[record-cash] Receipt email failed (non-blocking):", emailErr);
-      }
-    }
+    // Receipt email is now triggered by the frontend after receiving this response.
 
     return NextResponse.json({ payment_entry: paymentEntryName });
   } catch (error: unknown) {

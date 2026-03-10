@@ -5,7 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import {
-  ShoppingCart, Plus, Search, Eye, Trash2,
+  ShoppingCart, Search, Eye, Trash2,
   ChevronLeft, ChevronRight, AlertCircle, FileText,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
@@ -108,12 +108,6 @@ export default function SalesOrdersPage() {
             {isLoading ? "Loading…" : `${page * PAGE_SIZE + orders.length} orders shown`}
           </p>
         </div>
-        <Link href="/dashboard/branch-manager/sales-orders/new">
-          <Button variant="primary" size="md">
-            <Plus className="h-4 w-4" />
-            New Order
-          </Button>
-        </Link>
       </div>
 
       {/* Filters */}

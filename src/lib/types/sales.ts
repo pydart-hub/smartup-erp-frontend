@@ -102,6 +102,7 @@ export type SalesInvoiceStatus =
   | "Return"
   | "Credit Note Issued"
   | "Paid"
+  | "Partly Paid"
   | "Unpaid"
   | "Overdue"
   | "Cancelled";

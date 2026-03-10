@@ -49,7 +49,8 @@ function SectionCard({ title, icon, children }: { title: string; icon: React.Rea
 }
 
 export default function StudentViewPage() {
-  const { id } = useParams<{ id: string }>();
+  const { id: rawId } = useParams<{ id: string }>();
+  const id = decodeURIComponent(rawId);
   const router = useRouter();
 
   // ── Student data ──────────────────────────────────────────
@@ -273,11 +274,11 @@ export default function StudentViewPage() {
             <InfoRow label="Program" value={feeStructureRes.program} />
             <InfoRow label="Academic Year" value={feeStructureRes.academic_year} />
             {(feeStructureRes.components ?? []).map((comp: { fees_category: string; amount: number }, idx: number) => (
-              <InfoRow key={idx} label={comp.fees_category} value={`\u20B9${(comp.amount ?? 0).toLocaleString("en-IN")}`} />
+              <InfoRow key={idx} label={comp.fees_category} value={`₹${(comp.amount ?? 0).toLocaleString("en-IN")}`} />
             ))}
             <div className="flex items-center justify-between py-2.5 border-t border-border-light mt-1">
               <span className="text-sm font-semibold text-text-primary">Total Amount</span>
-              <span className="text-sm font-bold text-primary">\u20B9{(feeStructureRes.total_amount ?? 0).toLocaleString("en-IN")}</span>
+              <span className="text-sm font-bold text-primary">₹{(feeStructureRes.total_amount ?? 0).toLocaleString("en-IN")}</span>
             </div>
           </SectionCard>
         )}

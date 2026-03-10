@@ -1,0 +1,513 @@
+/**
+ * WhatsApp Template Definitions & Parameter Builders
+ *
+ * All templates are UTILITY category — approved for transactional use.
+ * These mirror the existing email notification workflows 1:1.
+ *
+ * ┌──────────────────────────┬────────────────────────────────────────┐
+ * │ Template Name            │ Email Equivalent                       │
+ * ├──────────────────────────┼────────────────────────────────────────┤
+ * │ payment_receipt          │ POST /api/payments/send-receipt        │
+ * │ payment_request          │ POST /api/payments/send-payment-request│
+ * │ student_welcome          │ POST /api/auth/send-student-welcome    │
+ * │ parent_welcome           │ POST /api/auth/create-parent-user      │
+ * │ fee_reminder             │ (new — no email equiv yet)             │
+ * └──────────────────────────┴────────────────────────────────────────┘
+ *
+ * HOW TO USE:
+ *   1. Submit the template JSON to Meta via their Template API or Business Manager UI.
+ *   2. Wait for APPROVED status.
+ *   3. Use the builder functions to construct runtime parameters.
+ *   4. Call sendTemplate() from whatsapp.ts.
+ *
+ * META TEMPLATE SUBMISSION:
+ *   POST https://graph.facebook.com/v21.0/{WABA_ID}/message_templates
+ *   Authorization: Bearer {ACCESS_TOKEN}
+ *   Body: { ...templateDefinitionJSON }
+ */
+
+import type { TemplateComponent, SendTemplateOptions } from "./whatsapp";
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 1. TEMPLATE DEFINITIONS (submit these to Meta for approval)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Structure matching Meta's Template API submission format.
+ * Use these to create templates via API or copy into Business Manager UI.
+ */
+export const TEMPLATE_DEFINITIONS = {
+  // ─────────────────────────────────────────────────────────────────────
+  // 1. PAYMENT RECEIPT
+  //    Sent after Razorpay/Cash payment is recorded.
+  //    Email equiv: POST /api/payments/send-receipt
+  // ─────────────────────────────────────────────────────────────────────
+  payment_receipt: {
+    name: "payment_receipt",
+    language: "en",
+    category: "UTILITY",
+    components: [
+      {
+        type: "HEADER",
+        format: "TEXT",
+        text: "Payment Received ✅",
+      },
+      {
+        type: "BODY",
+        text: [
+          "Hi {{1}},",
+          "",
+          "We've received your payment for *{{2}}*.",
+          "",
+          "📄 *Invoice:* {{3}}",
+          "💰 *Amount Paid:* ₹{{4}}",
+          "📅 *Date:* {{5}}",
+          "💳 *Mode:* {{6}}",
+          "🔖 *Ref:* {{7}}",
+          "",
+          "{{8}}",
+          "",
+          "Thank you for your timely payment!",
+        ].join("\n"),
+        example: {
+          body_text: [
+            [
+              "Ravi Kumar",
+              "Arjun Ravi",
+              "ACC-SINV-2026-00042",
+              "25,000",
+              "10 Mar 2026",
+              "Razorpay",
+              "pay_QR1abc2def3ghi",
+              "Instalment 1/3 — Balance: ₹50,000",
+            ],
+          ],
+        },
+      },
+      {
+        type: "FOOTER",
+        text: "SmartUp Learning Ventures",
+      },
+    ],
+  },
+
+  // ─────────────────────────────────────────────────────────────────────
+  // 2. PAYMENT REQUEST
+  //    Staff sends payment link to parent.
+  //    Email equiv: POST /api/payments/send-payment-request
+  // ─────────────────────────────────────────────────────────────────────
+  payment_request: {
+    name: "payment_request",
+    language: "en",
+    category: "UTILITY",
+    components: [
+      {
+        type: "HEADER",
+        format: "TEXT",
+        text: "Fee Payment Due 📋",
+      },
+      {
+        type: "BODY",
+        text: [
+          "Hi {{1}},",
+          "",
+          "Your child *{{2}}* has a pending fee payment.",
+          "",
+          "💰 *Total Amount:* ₹{{3}}",
+          "📋 *Instalments:*",
+          "{{4}}",
+          "",
+          "Please complete the payment at your earliest convenience.",
+        ].join("\n"),
+        example: {
+          body_text: [
+            [
+              "Ravi Kumar",
+              "Arjun Ravi",
+              "75,000",
+              "1. Instalment 1 — ₹25,000 (Due: 15 Jan 2026)\n2. Instalment 2 — ₹25,000 (Due: 15 Apr 2026)\n3. Instalment 3 — ₹25,000 (Due: 15 Jul 2026)",
+            ],
+          ],
+        },
+      },
+      {
+        type: "FOOTER",
+        text: "SmartUp Learning Ventures",
+      },
+      {
+        type: "BUTTONS",
+        buttons: [
+          {
+            type: "URL",
+            text: "Pay Now",
+            url: "https://smartuplearning.net/dashboard/parent/fees",
+          },
+        ],
+      },
+    ],
+  },
+
+  // ─────────────────────────────────────────────────────────────────────
+  // 3. STUDENT WELCOME
+  //    Sent after student admission with login credentials.
+  //    Email equiv: POST /api/auth/send-student-welcome
+  // ─────────────────────────────────────────────────────────────────────
+  student_welcome: {
+    name: "student_welcome",
+    language: "en",
+    category: "UTILITY",
+    components: [
+      {
+        type: "HEADER",
+        format: "TEXT",
+        text: "Welcome to SmartUp! 🎓",
+      },
+      {
+        type: "BODY",
+        text: [
+          "Hi {{1}},",
+          "",
+          "Welcome to SmartUp Learning! Your student account is ready.",
+          "",
+          "📚 *Program:* {{2}}",
+          "🏫 *Branch:* {{3}}",
+          "",
+          "🔐 *Login Details:*",
+          "Email: {{4}}",
+          "Student ID: {{5}}",
+          "",
+          "Please log in and change your password on first access.",
+        ].join("\n"),
+        example: {
+          body_text: [
+            [
+              "Arjun Ravi",
+              "BCA",
+              "Vennala",
+              "arjun@student.smartup.in",
+              "STU-2026-0042",
+            ],
+          ],
+        },
+      },
+      {
+        type: "FOOTER",
+        text: "SmartUp Learning Ventures",
+      },
+      {
+        type: "BUTTONS",
+        buttons: [
+          {
+            type: "URL",
+            text: "Login Now",
+            url: "https://smartuplearning.net/auth/login",
+          },
+        ],
+      },
+    ],
+  },
+
+  // ─────────────────────────────────────────────────────────────────────
+  // 4. PARENT WELCOME
+  //    Sent when staff creates a parent portal account.
+  //    Email equiv: POST /api/auth/create-parent-user
+  // ─────────────────────────────────────────────────────────────────────
+  parent_welcome: {
+    name: "parent_welcome",
+    language: "en",
+    category: "UTILITY",
+    components: [
+      {
+        type: "HEADER",
+        format: "TEXT",
+        text: "Parent Portal Access 👨‍👩‍👧",
+      },
+      {
+        type: "BODY",
+        text: [
+          "Hi {{1}},",
+          "",
+          "Your SmartUp Parent Portal account is ready! Track your child's academic progress, fees, and attendance.",
+          "",
+          "🔐 *Login Details:*",
+          "Email: {{2}}",
+          "",
+          "Use the link below to set your password and get started.",
+        ].join("\n"),
+        example: {
+          body_text: [["Ravi Kumar", "ravi@example.com"]],
+        },
+      },
+      {
+        type: "FOOTER",
+        text: "SmartUp Learning Ventures",
+      },
+      {
+        type: "BUTTONS",
+        buttons: [
+          {
+            type: "URL",
+            text: "Set Password",
+            url: "https://smartuplearning.net/auth/forgot-password",
+          },
+        ],
+      },
+    ],
+  },
+
+  // ─────────────────────────────────────────────────────────────────────
+  // 5. FEE REMINDER
+  //    Proactive reminder before due date (no email equiv yet).
+  //    Common WhatsApp use case for schools.
+  // ─────────────────────────────────────────────────────────────────────
+  fee_reminder: {
+    name: "fee_reminder",
+    language: "en",
+    category: "UTILITY",
+    components: [
+      {
+        type: "HEADER",
+        format: "TEXT",
+        text: "Fee Reminder ⏰",
+      },
+      {
+        type: "BODY",
+        text: [
+          "Hi {{1}},",
+          "",
+          "This is a friendly reminder that a fee payment for *{{2}}* is due soon.",
+          "",
+          "📄 *Invoice:* {{3}}",
+          "💰 *Amount Due:* ₹{{4}}",
+          "📅 *Due Date:* {{5}}",
+          "",
+          "Please make the payment before the due date to avoid any late fees.",
+        ].join("\n"),
+        example: {
+          body_text: [
+            [
+              "Ravi Kumar",
+              "Arjun Ravi",
+              "ACC-SINV-2026-00045",
+              "25,000",
+              "15 Apr 2026",
+            ],
+          ],
+        },
+      },
+      {
+        type: "FOOTER",
+        text: "SmartUp Learning Ventures",
+      },
+      {
+        type: "BUTTONS",
+        buttons: [
+          {
+            type: "URL",
+            text: "Pay Now",
+            url: "https://smartuplearning.net/dashboard/parent/fees",
+          },
+        ],
+      },
+    ],
+  },
+} as const;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 2. PARAMETER BUILDER FUNCTIONS
+//    These build the runtime `components` array for sendTemplate().
+// ═══════════════════════════════════════════════════════════════════════════
+
+function txt(value: string) {
+  return { type: "text" as const, text: value };
+}
+
+function formatINR(amount: number): string {
+  return amount.toLocaleString("en-IN");
+}
+
+function formatDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+// ---------------------------------------------------------------------------
+// 1. Payment Receipt
+// ---------------------------------------------------------------------------
+
+export interface PaymentReceiptParams {
+  guardianName: string;
+  studentName: string;
+  invoiceId: string;
+  amountPaid: number;
+  paymentDate: string;
+  paymentMode: string; // "Razorpay" | "Cash" | "UPI" | "Bank Transfer" | "Cheque"
+  referenceId: string;
+  /** e.g. "Instalment 1/3 — Balance: ₹50,000" or "Fully Paid" */
+  instalmentSummary: string;
+}
+
+export function buildPaymentReceipt(
+  phone: string,
+  p: PaymentReceiptParams,
+): SendTemplateOptions {
+  return {
+    to: phone,
+    templateName: "payment_receipt",
+    components: [
+      {
+        type: "body",
+        parameters: [
+          txt(p.guardianName),
+          txt(p.studentName),
+          txt(p.invoiceId),
+          txt(formatINR(p.amountPaid)),
+          txt(formatDate(p.paymentDate)),
+          txt(p.paymentMode),
+          txt(p.referenceId),
+          txt(p.instalmentSummary),
+        ],
+      },
+    ],
+  };
+}
+
+// ---------------------------------------------------------------------------
+// 2. Payment Request
+// ---------------------------------------------------------------------------
+
+export interface PaymentRequestParams {
+  guardianName: string;
+  studentName: string;
+  totalAmount: number;
+  invoices: Array<{
+    label: string;
+    amount: number;
+    dueDate: string;
+  }>;
+}
+
+export function buildPaymentRequest(
+  phone: string,
+  p: PaymentRequestParams,
+): SendTemplateOptions {
+  // Build a numbered list of instalments for the {{4}} placeholder
+  const instalmentList = p.invoices
+    .map(
+      (inv, i) =>
+        `${i + 1}. ${inv.label} — ₹${formatINR(inv.amount)} (Due: ${formatDate(inv.dueDate)})`,
+    )
+    .join("\n");
+
+  return {
+    to: phone,
+    templateName: "payment_request",
+    components: [
+      {
+        type: "body",
+        parameters: [
+          txt(p.guardianName),
+          txt(p.studentName),
+          txt(formatINR(p.totalAmount)),
+          txt(instalmentList),
+        ],
+      },
+    ],
+  };
+}
+
+// ---------------------------------------------------------------------------
+// 3. Student Welcome
+// ---------------------------------------------------------------------------
+
+export interface StudentWelcomeParams {
+  studentName: string;
+  program: string;
+  branch: string;
+  email: string;
+  studentId: string;
+}
+
+export function buildStudentWelcome(
+  phone: string,
+  p: StudentWelcomeParams,
+): SendTemplateOptions {
+  return {
+    to: phone,
+    templateName: "student_welcome",
+    components: [
+      {
+        type: "body",
+        parameters: [
+          txt(p.studentName),
+          txt(p.program),
+          txt(p.branch),
+          txt(p.email),
+          txt(p.studentId),
+        ],
+      },
+    ],
+  };
+}
+
+// ---------------------------------------------------------------------------
+// 4. Parent Welcome
+// ---------------------------------------------------------------------------
+
+export interface ParentWelcomeParams {
+  guardianName: string;
+  email: string;
+}
+
+export function buildParentWelcome(
+  phone: string,
+  p: ParentWelcomeParams,
+): SendTemplateOptions {
+  return {
+    to: phone,
+    templateName: "parent_welcome",
+    components: [
+      {
+        type: "body",
+        parameters: [txt(p.guardianName), txt(p.email)],
+      },
+    ],
+  };
+}
+
+// ---------------------------------------------------------------------------
+// 5. Fee Reminder
+// ---------------------------------------------------------------------------
+
+export interface FeeReminderParams {
+  guardianName: string;
+  studentName: string;
+  invoiceId: string;
+  amountDue: number;
+  dueDate: string;
+}
+
+export function buildFeeReminder(
+  phone: string,
+  p: FeeReminderParams,
+): SendTemplateOptions {
+  return {
+    to: phone,
+    templateName: "fee_reminder",
+    components: [
+      {
+        type: "body",
+        parameters: [
+          txt(p.guardianName),
+          txt(p.studentName),
+          txt(p.invoiceId),
+          txt(formatINR(p.amountDue)),
+          txt(formatDate(p.dueDate)),
+        ],
+      },
+    ],
+  };
+}

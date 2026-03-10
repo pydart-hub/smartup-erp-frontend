@@ -327,6 +327,8 @@ export default function StudentPendingFeesPage() {
                               variant={
                                 inv.status === "Overdue"
                                   ? "error"
+                                  : inv.status === "Partly Paid"
+                                  ? "warning"
                                   : inv.status === "Unpaid"
                                   ? "warning"
                                   : "info"

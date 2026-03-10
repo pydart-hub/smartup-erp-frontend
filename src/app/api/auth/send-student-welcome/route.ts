@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-
-const FRAPPE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL!;
-const API_KEY = process.env.FRAPPE_API_KEY!;
-const API_SECRET = process.env.FRAPPE_API_SECRET!;
+import { sendEmail } from "@/lib/utils/email";
 
 /**
  * POST /api/auth/send-student-welcome
@@ -34,8 +31,6 @@ export async function POST(req: NextRequest) {
         skipped: true,
       });
     }
-
-    const adminAuth = `token ${API_KEY}:${API_SECRET}`;
 
     const loginUrl =
       process.env.NEXT_PUBLIC_APP_URL ||
@@ -88,45 +83,18 @@ export async function POST(req: NextRequest) {
       </div>
     `;
 
-    const emailRes = await fetch(
-      `${FRAPPE_URL}/api/method/frappe.core.doctype.communication.email.make`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: adminAuth,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          subject: "Welcome to SmartUp Student Portal — Your Login Details",
-          content: emailBody,
-          recipients: email,
-          communication_medium: "Email",
-          send_email: 1,
-          sender: "Academiqedullp <academiqedullp@gmail.com>",
-        }),
-        cache: "no-store",
-      }
-    );
+    // Send directly via SMTP (nodemailer)
+    await sendEmail({
+      to: email,
+      subject: "Welcome to SmartUp Student Portal — Your Login Details",
+      html: emailBody,
+    });
 
-    if (emailRes.ok) {
-      console.log(
-        `[send-student-welcome] Welcome email queued for ${email}`
-      );
-      return NextResponse.json({
-        message: "Student welcome email sent",
-        sent: true,
-      });
-    } else {
-      const errText = await emailRes.text();
-      console.warn(
-        `[send-student-welcome] Failed to send welcome email:`,
-        errText
-      );
-      return NextResponse.json(
-        { error: "Failed to send welcome email", details: errText },
-        { status: 500 }
-      );
-    }
+    console.log(`[send-student-welcome] Welcome email sent to ${email}`);
+    return NextResponse.json({
+      message: "Student welcome email sent",
+      sent: true,
+    });
   } catch (error: unknown) {
     console.error("[send-student-welcome] Error:", error);
     return NextResponse.json(

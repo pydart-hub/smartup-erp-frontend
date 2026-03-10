@@ -17,10 +17,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole, STAFF_ROLES } from "@/lib/utils/apiAuth";
+import { sendEmail } from "@/lib/utils/email";
 
-const FRAPPE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL;
-const API_KEY = process.env.FRAPPE_API_KEY;
-const API_SECRET = process.env.FRAPPE_API_SECRET;
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://erp.smartup.in";
 
 interface InvoiceDetail {
@@ -158,37 +156,12 @@ export async function POST(request: NextRequest) {
       </div>
     `.trim();
 
-    // Send via Frappe Communication API
-    const adminHeaders = {
-      "Content-Type": "application/json",
-      Authorization: `token ${API_KEY}:${API_SECRET}`,
-    };
-
-    const emailRes = await fetch(
-      `${FRAPPE_URL}/api/method/frappe.core.doctype.communication.email.make`,
-      {
-        method: "POST",
-        headers: adminHeaders,
-        body: JSON.stringify({
-          recipients: guardian_email,
-          subject: `Fee Payment Request — ${student_name}`,
-          content: emailBody,
-          communication_medium: "Email",
-          send_email: 1,
-          send_me_a_copy: 0,
-          sender: "Academiqedullp <academiqedullp@gmail.com>",
-        }),
-      },
-    );
-
-    if (!emailRes.ok) {
-      const errText = await emailRes.text();
-      console.error("[send-payment-request] Email send failed:", emailRes.status, errText);
-      return NextResponse.json(
-        { error: `Failed to send email: ${emailRes.statusText}` },
-        { status: 502 },
-      );
-    }
+    // Send directly via SMTP (nodemailer)
+    await sendEmail({
+      to: guardian_email,
+      subject: `Fee Payment Request — ${student_name}`,
+      html: emailBody,
+    });
 
     console.log(`[send-payment-request] Payment request sent to ${guardian_email} for ${student_name}`);
 

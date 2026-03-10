@@ -7,8 +7,6 @@ import {
   IndianRupee,
   TrendingUp,
   AlertTriangle,
-  FileText,
-  CreditCard,
   BarChart3,
   ArrowRight,
   Loader2,
@@ -82,20 +80,6 @@ export default function FeesPage() {
         <div>
           <h1 className="text-2xl font-bold text-text-primary">Fee Management</h1>
           <p className="text-sm text-text-secondary mt-0.5">Track fees, payments, and generate reports</p>
-        </div>
-        <div className="flex gap-2">
-          <Link href="/dashboard/branch-manager/fees/structure">
-            <Button variant="outline" size="md">
-              <FileText className="h-4 w-4" />
-              Fee Structure
-            </Button>
-          </Link>
-          <Link href="/dashboard/branch-manager/fees/payments">
-            <Button variant="primary" size="md">
-              <CreditCard className="h-4 w-4" />
-              Record Payment
-            </Button>
-          </Link>
         </div>
       </motion.div>
 
@@ -210,7 +194,12 @@ export default function FeesPage() {
                               </span>
                             </td>
                             <td className="py-3">
-                              <Badge variant={invoice.status === "Overdue" ? "error" : invoice.status === "Unpaid" ? "warning" : "info"}>
+                              <Badge variant={
+                                invoice.status === "Overdue" ? "error"
+                                  : invoice.status === "Partly Paid" ? "warning"
+                                  : invoice.status === "Unpaid" ? "warning"
+                                  : "info"
+                              }>
                                 {invoice.status}
                               </Badge>
                             </td>

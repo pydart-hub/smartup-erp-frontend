@@ -226,6 +226,7 @@ function ChildFeeCard({
 
     return sorted.map((inv, idx) => {
       const isPaid = inv.outstanding_amount <= 0;
+      const isPartiallyPaid = !isPaid && inv.outstanding_amount < inv.grand_total;
       const dueDate = inv.due_date ?? inv.posting_date;
       const isOverdue = dueDate < today && !isPaid;
       const isDueToday = dueDate === today && !isPaid;
@@ -236,6 +237,13 @@ function ChildFeeCard({
       else if (sorted.length === 4) label = `Q${idx + 1}`;
       else label = `Instalment ${idx + 1}`;
 
+      let status: InstalmentItem["status"];
+      if (isPaid) status = "paid";
+      else if (isPartiallyPaid) status = "partially-paid";
+      else if (isOverdue) status = "overdue";
+      else if (isDueToday) status = "due-today";
+      else status = "upcoming";
+
       return {
         invoiceId: inv.name,
         label,
@@ -243,7 +251,7 @@ function ChildFeeCard({
         outstandingAmount: inv.outstanding_amount,
         dueDate,
         postingDate: inv.posting_date,
-        status: isPaid ? "paid" : isOverdue ? "overdue" : isDueToday ? "due-today" : "upcoming",
+        status,
       } satisfies InstalmentItem;
     });
   }, [childInvoices, hasInvoices, today]);
