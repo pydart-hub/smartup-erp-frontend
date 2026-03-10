@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendEmail } from "@/lib/utils/email";
+import { sendTemplate } from "@/lib/utils/whatsapp";
 
 /**
  * POST /api/auth/send-student-welcome
@@ -11,7 +12,7 @@ import { sendEmail } from "@/lib/utils/email";
  */
 export async function POST(req: NextRequest) {
   try {
-    const { email, full_name, student_id, program, branch, password } =
+    const { email, full_name, student_id, program, branch, password, phone } =
       await req.json();
 
     if (!email || !full_name) {
@@ -83,17 +84,44 @@ export async function POST(req: NextRequest) {
       </div>
     `;
 
-    // Send directly via SMTP (nodemailer)
-    await sendEmail({
-      to: email,
-      subject: "Welcome to SmartUp Student Portal — Your Login Details",
-      html: emailBody,
-    });
+    // Send directly via SMTP (nodemailer) — non-blocking, WhatsApp fires regardless
+    let emailSent = false;
+    try {
+      await sendEmail({
+        to: email,
+        subject: "Welcome to SmartUp Student Portal — Your Login Details",
+        html: emailBody,
+      });
+      emailSent = true;
+      console.log(`[send-student-welcome] Welcome email sent to ${email}`);
+    } catch (emailErr) {
+      console.warn("[send-student-welcome] Email failed (non-blocking):", (emailErr as Error).message);
+    }
 
-    console.log(`[send-student-welcome] Welcome email sent to ${email}`);
+    // WhatsApp enrollment confirmation (non-blocking, approved smartup_student_onboard template)
+    if (phone) {
+      sendTemplate({
+        to: phone,
+        templateName: "smartup_student_onboard",
+        components: [
+          {
+            type: "body",
+            parameters: [
+              { type: "text", text: full_name },
+              { type: "text", text: program || "—" },
+              { type: "text", text: branch || "—" },
+              { type: "text", text: student_id || "—" },
+            ],
+          },
+        ],
+      }).catch((err) => console.warn("[send-student-welcome] WhatsApp failed:", err));
+    }
+
     return NextResponse.json({
-      message: "Student welcome email sent",
+      message: "Student welcome notification sent",
       sent: true,
+      email: emailSent,
+      whatsapp: !!phone,
     });
   } catch (error: unknown) {
     console.error("[send-student-welcome] Error:", error);

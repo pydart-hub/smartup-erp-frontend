@@ -15,6 +15,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/utils/apiAuth";
 import { sendEmail, fetchInvoicePDF } from "@/lib/utils/email";
+import { sendTemplate } from "@/lib/utils/whatsapp";
 
 const FRAPPE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL;
 const API_KEY = process.env.FRAPPE_API_KEY;
@@ -67,6 +68,7 @@ interface ReceiptContext {
   invoice: InvoiceDoc;
   guardianEmail: string;
   guardianName: string;
+  guardianPhone?: string;
   studentName: string;
   paymentEntry: PaymentEntryRef | null;
   // Overall totals from the Sales Order
@@ -106,7 +108,7 @@ async function safeFetchList(url: string): Promise<Record<string, unknown>[]> {
 /* ── Helper: fetch guardian info from Student ID ────────────── */
 async function getGuardianFromStudent(
   studentId: string,
-): Promise<{ email: string; name: string } | null> {
+): Promise<{ email: string; name: string; phone?: string } | null> {
   const student = await safeFetchDoc(
     `${FRAPPE_URL}/api/resource/Student/${encodeURIComponent(studentId)}`,
   );
@@ -124,6 +126,7 @@ async function getGuardianFromStudent(
   return {
     email: guardian.email_address as string,
     name: (guardian.guardian_name as string) || guardianLink,
+    phone: (guardian.mobile_number as string) || undefined,
   };
 }
 
@@ -145,6 +148,7 @@ async function resolveReceiptContext(
   // 2. Resolve guardian (3-path fallback)
   let guardianEmail = overrideEmail || "";
   let guardianName = "Parent";
+  let guardianPhone: string | undefined;
   let studentName = (inv.student_name as string) || (inv.customer_name as string) || "";
 
   if (!guardianEmail) {
@@ -154,6 +158,7 @@ async function resolveReceiptContext(
       if (g) {
         guardianEmail = g.email;
         guardianName = g.name;
+        guardianPhone = g.phone;
       }
     }
 
@@ -169,6 +174,7 @@ async function resolveReceiptContext(
           if (g) {
             guardianEmail = g.email;
             guardianName = g.name;
+            guardianPhone = g.phone;
           }
           if (!studentName) studentName = (so.student_name as string) || "";
         }
@@ -190,6 +196,7 @@ async function resolveReceiptContext(
         if (g) {
           guardianEmail = g.email;
           guardianName = g.name;
+          guardianPhone = g.phone;
         }
       }
     }
@@ -263,6 +270,7 @@ async function resolveReceiptContext(
     invoice: inv,
     guardianEmail,
     guardianName,
+    guardianPhone,
     studentName,
     paymentEntry,
     totalCourseFee,
@@ -496,6 +504,34 @@ export async function POST(request: NextRequest) {
       html: buildReceiptHtml(ctx),
       attachments,
     });
+
+    // WhatsApp payment receipt (non-blocking, approved smartup_payment_done template)
+    if (ctx.guardianPhone) {
+      const amountPaid =
+        ctx.paymentEntry?.paid_amount ??
+        ((ctx.invoice.grand_total || 0) - (ctx.invoice.outstanding_amount || 0));
+      const txRef =
+        ctx.paymentEntry?.reference_no || ctx.paymentEntry?.name || ctx.invoice.name;
+      const txDate =
+        ctx.paymentEntry?.posting_date ||
+        ctx.invoice.posting_date ||
+        new Date().toISOString().slice(0, 10);
+      sendTemplate({
+        to: ctx.guardianPhone,
+        templateName: "smartup_payment_done",
+        components: [
+          {
+            type: "body",
+            parameters: [
+              { type: "text", text: ctx.guardianName },
+              { type: "text", text: `₹${amountPaid.toLocaleString("en-IN")}` },
+              { type: "text", text: txRef },
+              { type: "text", text: txDate },
+            ],
+          },
+        ],
+      }).catch((err) => console.warn("[send-receipt] WhatsApp failed:", err));
+    }
 
     return NextResponse.json({ success: true, recipient: ctx.guardianEmail });
   } catch (error: unknown) {

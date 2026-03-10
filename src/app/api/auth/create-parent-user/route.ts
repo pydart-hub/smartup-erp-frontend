@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole, STAFF_ROLES } from "@/lib/utils/apiAuth";
 import { sendEmail } from "@/lib/utils/email";
+import { sendTemplate } from "@/lib/utils/whatsapp";
 
 const FRAPPE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL;
 const FRAPPE_API_KEY = process.env.FRAPPE_API_KEY;
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest) {
     if (authResult instanceof NextResponse) return authResult;
 
     const body = await request.json();
-    const { email, full_name, password } = body;
+    const { email, full_name, password, phone } = body;
 
     if (!email || !full_name || !password) {
       return NextResponse.json(
@@ -238,6 +239,25 @@ export async function POST(request: NextRequest) {
       });
 
       console.log(`[create-parent-user] Login credentials email sent to ${email}`);
+
+      // WhatsApp portal notification (non-blocking, approved smartup_user_setup template)
+      if (phone) {
+        sendTemplate({
+          to: phone,
+          templateName: "smartup_user_setup",
+          components: [
+            {
+              type: "body",
+              parameters: [
+                { type: "text", text: full_name },
+                { type: "text", text: "Parent" },
+                { type: "text", text: loginUrl },
+                { type: "text", text: email },
+              ],
+            },
+          ],
+        }).catch((err) => console.warn("[create-parent-user] WhatsApp failed:", err));
+      }
     } catch (emailError) {
       // Non-blocking — user creation already succeeded
       console.warn("[create-parent-user] Email sending failed (non-blocking):", emailError);

@@ -18,6 +18,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole, STAFF_ROLES } from "@/lib/utils/apiAuth";
 import { sendEmail } from "@/lib/utils/email";
+import { sendTemplate } from "@/lib/utils/whatsapp";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://erp.smartup.in";
 
@@ -38,6 +39,7 @@ export async function POST(request: NextRequest) {
     const {
       guardian_email,
       guardian_name,
+      guardian_phone,
       student_name,
       total_amount,
       invoices,
@@ -45,6 +47,7 @@ export async function POST(request: NextRequest) {
     } = body as {
       guardian_email: string;
       guardian_name: string;
+      guardian_phone?: string;
       student_name: string;
       total_amount: number;
       invoices: InvoiceDetail[];
@@ -164,6 +167,30 @@ export async function POST(request: NextRequest) {
     });
 
     console.log(`[send-payment-request] Payment request sent to ${guardian_email} for ${student_name}`);
+
+    // WhatsApp payment reminder (non-blocking, approved smartup_payment_reminder template)
+    const firstInv = invoices?.[0];
+    if (guardian_phone && firstInv) {
+      const dueDateFormatted = new Date(firstInv.due_date).toLocaleDateString("en-IN", {
+        day: "numeric", month: "short", year: "numeric",
+      });
+      sendTemplate({
+        to: guardian_phone,
+        templateName: "smartup_payment_reminder",
+        components: [
+          {
+            type: "body",
+            parameters: [
+              { type: "text", text: guardian_name || "Parent" },
+              { type: "text", text: `₹${total_amount.toLocaleString("en-IN")}` },
+              { type: "text", text: student_name },
+              { type: "text", text: dueDateFormatted },
+              { type: "text", text: firstInv.invoice_id },
+            ],
+          },
+        ],
+      }).catch((err) => console.warn("[send-payment-request] WhatsApp failed:", err));
+    }
 
     return NextResponse.json({ success: true, recipient: guardian_email });
   } catch (error: unknown) {
