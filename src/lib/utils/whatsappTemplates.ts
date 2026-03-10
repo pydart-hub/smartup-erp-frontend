@@ -9,7 +9,6 @@
  * ├──────────────────────────┼────────────────────────────────────────┤
  * │ payment_receipt          │ POST /api/payments/send-receipt        │
  * │ payment_request          │ POST /api/payments/send-payment-request│
- * │ student_welcome          │ POST /api/auth/send-student-welcome    │
  * │ parent_welcome           │ POST /api/auth/create-parent-user      │
  * │ fee_reminder             │ (new — no email equiv yet)             │
  * └──────────────────────────┴────────────────────────────────────────┘
@@ -50,7 +49,7 @@ export const TEMPLATE_DEFINITIONS = {
       {
         type: "HEADER",
         format: "TEXT",
-        text: "Payment Received ✅",
+        text: "Payment Received",
       },
       {
         type: "BODY",
@@ -104,7 +103,7 @@ export const TEMPLATE_DEFINITIONS = {
       {
         type: "HEADER",
         format: "TEXT",
-        text: "Fee Payment Due 📋",
+        text: "Fee Payment Due",
       },
       {
         type: "BODY",
@@ -148,115 +147,40 @@ export const TEMPLATE_DEFINITIONS = {
   },
 
   // ─────────────────────────────────────────────────────────────────────
-  // 3. STUDENT WELCOME
-  //    Sent after student admission with login credentials.
-  //    Email equiv: POST /api/auth/send-student-welcome
-  // ─────────────────────────────────────────────────────────────────────
-  student_welcome: {
-    name: "student_welcome",
-    language: "en",
-    category: "UTILITY",
-    components: [
-      {
-        type: "HEADER",
-        format: "TEXT",
-        text: "Welcome to SmartUp! 🎓",
-      },
-      {
-        type: "BODY",
-        text: [
-          "Hi {{1}},",
-          "",
-          "Welcome to SmartUp Learning! Your student account is ready.",
-          "",
-          "📚 *Program:* {{2}}",
-          "🏫 *Branch:* {{3}}",
-          "",
-          "🔐 *Login Details:*",
-          "Email: {{4}}",
-          "Student ID: {{5}}",
-          "",
-          "Please log in and change your password on first access.",
-        ].join("\n"),
-        example: {
-          body_text: [
-            [
-              "Arjun Ravi",
-              "BCA",
-              "Vennala",
-              "arjun@student.smartup.in",
-              "STU-2026-0042",
-            ],
-          ],
-        },
-      },
-      {
-        type: "FOOTER",
-        text: "SmartUp Learning Ventures",
-      },
-      {
-        type: "BUTTONS",
-        buttons: [
-          {
-            type: "URL",
-            text: "Login Now",
-            url: "https://smartuplearning.net/auth/login",
-          },
-        ],
-      },
-    ],
-  },
-
-  // ─────────────────────────────────────────────────────────────────────
-  // 4. PARENT WELCOME
-  //    Sent when staff creates a parent portal account.
-  //    Email equiv: POST /api/auth/create-parent-user
+  // 3. PARENT WELCOME (smartup_parent_onboard)
   // ─────────────────────────────────────────────────────────────────────
   parent_welcome: {
-    name: "parent_welcome",
+    name: "smartup_parent_onboard",
     language: "en",
     category: "UTILITY",
     components: [
       {
         type: "HEADER",
         format: "TEXT",
-        text: "Parent Portal Access 👨‍👩‍👧",
+        text: "Parent Portal Ready",
       },
       {
         type: "BODY",
         text: [
           "Hi {{1}},",
           "",
-          "Your SmartUp Parent Portal account is ready! Track your child's academic progress, fees, and attendance.",
+          "Your SmartUp Parent Portal account is ready. You can now track your childs academic progress, fees, and attendance.",
           "",
-          "🔐 *Login Details:*",
-          "Email: {{2}}",
-          "",
-          "Use the link below to set your password and get started.",
+          "Your account details have been sent to your registered email address. Please check your inbox to get started.",
         ].join("\n"),
         example: {
-          body_text: [["Ravi Kumar", "ravi@example.com"]],
+          body_text: [["Ravi Kumar"]],
         },
       },
       {
         type: "FOOTER",
         text: "SmartUp Learning Ventures",
       },
-      {
-        type: "BUTTONS",
-        buttons: [
-          {
-            type: "URL",
-            text: "Set Password",
-            url: "https://smartuplearning.net/auth/forgot-password",
-          },
-        ],
-      },
     ],
   },
 
   // ─────────────────────────────────────────────────────────────────────
-  // 5. FEE REMINDER
+  // 4. FEE REMINDER
   //    Proactive reminder before due date (no email equiv yet).
   //    Common WhatsApp use case for schools.
   // ─────────────────────────────────────────────────────────────────────
@@ -268,7 +192,7 @@ export const TEMPLATE_DEFINITIONS = {
       {
         type: "HEADER",
         format: "TEXT",
-        text: "Fee Reminder ⏰",
+        text: "Fee Reminder",
       },
       {
         type: "BODY",
@@ -394,7 +318,6 @@ export function buildPaymentRequest(
   phone: string,
   p: PaymentRequestParams,
 ): SendTemplateOptions {
-  // Build a numbered list of instalments for the {{4}} placeholder
   const instalmentList = p.invoices
     .map(
       (inv, i) =>
@@ -420,46 +343,11 @@ export function buildPaymentRequest(
 }
 
 // ---------------------------------------------------------------------------
-// 3. Student Welcome
-// ---------------------------------------------------------------------------
-
-export interface StudentWelcomeParams {
-  studentName: string;
-  program: string;
-  branch: string;
-  email: string;
-  studentId: string;
-}
-
-export function buildStudentWelcome(
-  phone: string,
-  p: StudentWelcomeParams,
-): SendTemplateOptions {
-  return {
-    to: phone,
-    templateName: "student_welcome",
-    components: [
-      {
-        type: "body",
-        parameters: [
-          txt(p.studentName),
-          txt(p.program),
-          txt(p.branch),
-          txt(p.email),
-          txt(p.studentId),
-        ],
-      },
-    ],
-  };
-}
-
-// ---------------------------------------------------------------------------
-// 4. Parent Welcome
+// 3. Parent Welcome
 // ---------------------------------------------------------------------------
 
 export interface ParentWelcomeParams {
   guardianName: string;
-  email: string;
 }
 
 export function buildParentWelcome(
@@ -468,18 +356,18 @@ export function buildParentWelcome(
 ): SendTemplateOptions {
   return {
     to: phone,
-    templateName: "parent_welcome",
+    templateName: "smartup_parent_onboard",
     components: [
       {
         type: "body",
-        parameters: [txt(p.guardianName), txt(p.email)],
+        parameters: [txt(p.guardianName)],
       },
     ],
   };
 }
 
 // ---------------------------------------------------------------------------
-// 5. Fee Reminder
+// 4. Fee Reminder
 // ---------------------------------------------------------------------------
 
 export interface FeeReminderParams {
