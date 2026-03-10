@@ -681,6 +681,7 @@ export async function admitStudent(
         email: form.guardian_email,
         full_name: form.guardian_name,
         password: form.guardian_password,
+        phone: form.guardian_mobile || undefined,
       }),
     });
     if (!parentUserRes.ok) {
@@ -855,6 +856,7 @@ export async function admitStudent(
           program: form.program,
           branch: form.custom_branch,
           password: `Student@${srrId}`,
+          phone: form.student_mobile_number || undefined,
         }),
       });
       if (welcomeRes.ok) {

@@ -233,6 +233,7 @@ export default function PostAdmissionPayment({
         body: JSON.stringify({
           guardian_email: guardianEmail,
           guardian_name: guardianName,
+          guardian_phone: guardianPhone || undefined,
           student_name: studentName,
           total_amount: totalAmount,
           invoices: invoices.map((inv) => ({
