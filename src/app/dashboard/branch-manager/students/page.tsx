@@ -5,9 +5,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  UserPlus, Search, Eye, Pencil, Trash2,
+  UserPlus, Search, Eye, Pencil, Trash2, ArrowRightLeft,
   ChevronLeft, ChevronRight, Loader2, AlertCircle,
-  X, AlertTriangle,
+  X, AlertTriangle, UserX,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Button } from "@/components/ui/Button";
@@ -19,16 +19,19 @@ import { getStudents } from "@/lib/api/students";
 import apiClient from "@/lib/api/client";
 import type { Student } from "@/lib/types/student";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { TransferRequestModal } from "@/components/transfers/TransferRequestModal";
+import { DiscontinueStudentModal } from "@/components/students/DiscontinueStudentModal";
 // Academic year store not needed — students list always shows latest enrollment
 
 const PAGE_SIZE = 25;
 
-type StatusFilter = "all" | "active" | "inactive";
+type StatusFilter = "all" | "active" | "inactive" | "discontinued";
 
 const STATUS_TABS: { value: StatusFilter; label: string }[] = [
   { value: "all", label: "All" },
   { value: "active", label: "Active" },
   { value: "inactive", label: "Inactive" },
+  { value: "discontinued", label: "Discontinued" },
 ];
 
 function initials(name: string) {
@@ -38,7 +41,13 @@ function initials(name: string) {
 function getEnabledParam(f: StatusFilter): 0 | 1 | undefined {
   if (f === "active") return 1;
   if (f === "inactive") return 0;
+  if (f === "discontinued") return 0;
   return undefined;
+}
+
+function getExtraFilters(f: StatusFilter): string[][] {
+  if (f === "discontinued") return [["custom_discontinuation_date", "is", "set"]];
+  return [];
 }
 
 // Fetch program enrollment map for a list of student IDs (one API call via "in" filter)
@@ -83,6 +92,12 @@ export default function StudentsPage() {
   const [deleteTarget, setDeleteTarget] = useState<Student | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  // Transfer state
+  const [transferTarget, setTransferTarget] = useState<Student | null>(null);
+
+  // Discontinue state
+  const [discontinueTarget, setDiscontinueTarget] = useState<Student | null>(null);
 
   const handleDelete = useCallback(async () => {
     if (!deleteTarget) return;
@@ -132,6 +147,7 @@ export default function StudentsPage() {
       getStudents({
         search: search || undefined,
         enabled: getEnabledParam(statusFilter),
+        extraFilters: getExtraFilters(statusFilter),
         limit_start: page * PAGE_SIZE,
         limit_page_length: PAGE_SIZE,
         order_by: "student_name asc",
@@ -308,10 +324,14 @@ export default function StudentsPage() {
                             {student.joining_date ?? <span className="text-text-tertiary">—</span>}
                           </td>
 
-                          {/* Status: enabled 1 = Active, 0 = Inactive */}
+                          {/* Status: enabled 1 = Active, 0 = Inactive/Discontinued */}
                           <td className="px-5 py-3">
-                            <Badge variant={student.enabled === 1 ? "success" : "default"}>
-                              {student.enabled === 1 ? "Active" : "Inactive"}
+                            <Badge variant={
+                              student.enabled === 1 ? "success"
+                              : student.custom_discontinuation_date ? "error"
+                              : "default"
+                            }>
+                              {student.enabled === 1 ? "Active" : student.custom_discontinuation_date ? "Discontinued" : "Inactive"}
                             </Badge>
                           </td>
 
@@ -334,6 +354,22 @@ export default function StudentsPage() {
                               >
                                 <Trash2 className="h-4 w-4" />
                               </button>
+                              <button
+                                onClick={() => setTransferTarget(student)}
+                                title="Transfer to another branch"
+                                className="w-8 h-8 rounded-[8px] flex items-center justify-center text-text-tertiary hover:bg-primary-light hover:text-primary transition-colors"
+                              >
+                                <ArrowRightLeft className="h-4 w-4" />
+                              </button>
+                              {student.enabled === 1 && (
+                                <button
+                                  onClick={() => setDiscontinueTarget(student)}
+                                  title="Discontinue student"
+                                  className="w-8 h-8 rounded-[8px] flex items-center justify-center text-text-tertiary hover:bg-warning/10 hover:text-warning transition-colors"
+                                >
+                                  <UserX className="h-4 w-4" />
+                                </button>
+                              )}
                             </div>
                           </td>
                         </motion.tr>
@@ -472,6 +508,31 @@ export default function StudentsPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Transfer Modal */}
+      {transferTarget && transferTarget.custom_branch && (
+        <TransferRequestModal
+          student={transferTarget as Student & { custom_branch: string }}
+          onClose={() => setTransferTarget(null)}
+          onSuccess={() => {
+            setTransferTarget(null);
+            queryClient.invalidateQueries({ queryKey: ["students"] });
+          }}
+        />
+      )}
+
+      {/* Discontinue Modal */}
+      {discontinueTarget && (
+        <DiscontinueStudentModal
+          student={discontinueTarget}
+          onClose={() => setDiscontinueTarget(null)}
+          onSuccess={() => {
+            setDiscontinueTarget(null);
+            queryClient.invalidateQueries({ queryKey: ["students"] });
+            queryClient.invalidateQueries({ queryKey: ["enrollment-map"] });
+          }}
+        />
+      )}
     </motion.div>
   );
 }

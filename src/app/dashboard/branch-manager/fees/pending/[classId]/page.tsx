@@ -42,34 +42,42 @@ export default function BatchPendingFeesPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
-  // Extract the program abbreviation from item_code
-  // e.g. "9th Tuition Fee" → "9th", "11co 4 Tuition Fee" → "11co"
-  // We match against program abbreviation from the Program doctype on Student Groups
-
   useEffect(() => {
     if (!decodedClass) return;
     setLoading(true);
 
-    // Fetch invoices + student groups in parallel
+    // Fetch invoices + student groups + discontinued students in parallel
     Promise.all([
       getPendingInvoices({
         company: defaultCompany || undefined,
         item_code: decodedClass,
         limit_page_length: 2000,
       }),
-      // Fetch all batches for this branch — we'll match students from invoices
       getBatches({
         custom_branch: defaultCompany || undefined,
         limit_page_length: 500,
       }),
+      fetch(
+        `/api/fees/discontinued-summary${defaultCompany ? `?company=${encodeURIComponent(defaultCompany)}` : ""}`,
+        { credentials: "include" }
+      ).then((r) => r.ok ? r.json() : null).catch(() => null),
     ])
-      .then(async ([invData, batchListRes]) => {
-        setInvoices(invData);
+      .then(async ([invData, batchListRes, discData]) => {
+        // Build set of discontinued student IDs to exclude
+        const discIds = new Set<string>(
+          (discData?.students ?? []).map((s: { student_id: string }) => s.student_id)
+        );
+
+        // Filter out invoices belonging to discontinued students
+        const activeInvoices = invData.filter(
+          (inv: PendingInvoiceRow) => !inv.student || !discIds.has(inv.student)
+        );
+        setInvoices(activeInvoices);
 
         // Fetch full docs for batches to get student child tables
-        const batchIds = (batchListRes.data ?? []).map((b) => b.name);
+        const batchIds = (batchListRes.data ?? []).map((b: { name: string }) => b.name);
         const fullBatches = await Promise.all(
-          batchIds.map((id) =>
+          batchIds.map((id: string) =>
             getBatch(id)
               .then((r) => r.data)
               .catch(() => null)
@@ -130,18 +138,22 @@ export default function BatchPendingFeesPage() {
     }
 
     // Add "Unmatched" for invoices not assigned to any batch
-    const unmatchedOutstanding = invoices
-      .filter((inv) => !matchedCustomers.has(inv.customer_name || inv.customer))
-      .reduce((s, inv) => s + inv.outstanding_amount, 0);
-    const unmatchedCount = invoices.filter(
+    const unmatchedInvoices = invoices.filter(
       (inv) => !matchedCustomers.has(inv.customer_name || inv.customer)
-    ).length;
+    );
+    const unmatchedOutstanding = unmatchedInvoices.reduce(
+      (s, inv) => s + inv.outstanding_amount, 0
+    );
+    // Count unique students (customers), not invoices
+    const unmatchedStudentCount = new Set(
+      unmatchedInvoices.map((inv) => inv.customer_name || inv.customer)
+    ).size;
 
-    if (unmatchedCount > 0) {
+    if (unmatchedStudentCount > 0) {
       summaries.push({
         batchName: "__unmatched__",
         batchDisplayName: "Unassigned Students",
-        studentCount: unmatchedCount,
+        studentCount: unmatchedStudentCount,
         totalOutstanding: unmatchedOutstanding,
       });
     }
@@ -221,7 +233,7 @@ export default function BatchPendingFeesPage() {
                   Total Students
                 </p>
                 <p className="text-xl font-bold text-text-primary">
-                  {invoices.length}
+                  {invoiceCustomers.size}
                 </p>
               </div>
             </CardContent>

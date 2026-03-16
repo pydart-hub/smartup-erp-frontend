@@ -94,7 +94,7 @@ export default function BatchDetailPage() {
             <p className="text-2xl font-bold text-text-primary">
               {students.length - activeStudents.length}
             </p>
-            <p className="text-xs text-text-tertiary">Inactive</p>
+            <p className="text-xs text-text-tertiary">Discontinued</p>
           </CardContent>
         </Card>
       </div>
@@ -161,7 +161,7 @@ export default function BatchDetailPage() {
                           variant={s.active ? "success" : "error"}
                           className="text-[10px]"
                         >
-                          {s.active ? "Active" : "Inactive"}
+                          {s.active ? "Active" : "Discontinued"}
                         </Badge>
                       </td>
                     </tr>

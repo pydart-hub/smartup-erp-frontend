@@ -1,14 +1,14 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Pencil, User, School, Users, Phone, Mail,
   Calendar, Hash, Building2, AlertCircle, Loader2, IndianRupee, FileText,
-  Clock, CreditCard, ExternalLink,
+  Clock, CreditCard, ExternalLink, UserX,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Button } from "@/components/ui/Button";
@@ -17,6 +17,7 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { getStudent } from "@/lib/api/students";
 import apiClient from "@/lib/api/client";
+import { DiscontinueStudentModal } from "@/components/students/DiscontinueStudentModal";
 
 function initials(name: string) {
   return name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
@@ -52,6 +53,9 @@ export default function StudentViewPage() {
   const { id: rawId } = useParams<{ id: string }>();
   const id = decodeURIComponent(rawId);
   const router = useRouter();
+
+  // ── Discontinue modal state ───────────────────────────────
+  const [showDiscontinue, setShowDiscontinue] = useState(false);
 
   // ── Student data ──────────────────────────────────────────
   const { data: studentRes, isLoading, isError } = useQuery({
@@ -172,6 +176,10 @@ export default function StudentViewPage() {
   const fullName = student.student_name || [student.first_name, student.middle_name, student.last_name].filter(Boolean).join(" ");
   const enrollment = enrollmentRes;
   const guardian = guardianRes;
+  const queryClient = useQueryClient();
+
+  // Check if student is already discontinued
+  const isDiscontinued = student.enabled === 0 && !!student.custom_discontinuation_date;
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 max-w-4xl mx-auto">
@@ -191,12 +199,25 @@ export default function StudentViewPage() {
             <p className="text-xs text-text-tertiary">{student.name}</p>
           </div>
         </div>
-        <Link href={`/dashboard/branch-manager/students/${id}/edit`}>
-          <Button variant="outline" size="sm">
-            <Pencil className="h-4 w-4" />
-            Edit
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          {student.enabled === 1 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowDiscontinue(true)}
+              className="!border-warning/40 !text-warning hover:!bg-warning/5 gap-1.5"
+            >
+              <UserX className="h-4 w-4" />
+              Discontinue
+            </Button>
+          )}
+          <Link href={`/dashboard/branch-manager/students/${id}/edit`}>
+            <Button variant="outline" size="sm">
+              <Pencil className="h-4 w-4" />
+              Edit
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Hero card */}
@@ -209,8 +230,8 @@ export default function StudentViewPage() {
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-3 mb-1">
                 <h2 className="text-2xl font-bold text-text-primary">{fullName}</h2>
-                <Badge variant={student.enabled === 1 ? "success" : "default"}>
-                  {student.enabled === 1 ? "Active" : "Inactive"}
+                <Badge variant={student.enabled === 1 ? "success" : isDiscontinued ? "error" : "default"}>
+                  {student.enabled === 1 ? "Active" : isDiscontinued ? "Discontinued" : "Inactive"}
                 </Badge>
               </div>
               <div className="flex flex-wrap gap-4 text-sm text-text-secondary mt-1">
@@ -410,6 +431,55 @@ export default function StudentViewPage() {
             )}
           </CardContent>
         </Card>
+      )}
+
+      {/* Discontinuation Info Card */}
+      {isDiscontinued && (
+        <Card>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-error"><UserX className="h-4 w-4" /></span>
+              <h3 className="font-semibold text-text-primary">Discontinuation Details</h3>
+            </div>
+            <div className="bg-error/5 border border-error/20 rounded-xl p-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <p className="text-xs text-text-tertiary mb-0.5">Date</p>
+                  <p className="text-sm font-medium text-text-primary">
+                    {student.custom_discontinuation_date
+                      ? new Date(student.custom_discontinuation_date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
+                      : "—"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-text-tertiary mb-0.5">Reason</p>
+                  <p className="text-sm font-medium text-text-primary">
+                    {student.custom_discontinuation_reason || "—"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-text-tertiary mb-0.5">Remarks</p>
+                  <p className="text-sm font-medium text-text-primary">
+                    {student.custom_discontinuation_remarks || "—"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Discontinue Modal */}
+      {showDiscontinue && student && (
+        <DiscontinueStudentModal
+          student={student}
+          onClose={() => setShowDiscontinue(false)}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ["student", id] });
+            queryClient.invalidateQueries({ queryKey: ["student-invoices"] });
+            queryClient.invalidateQueries({ queryKey: ["student-sales-orders"] });
+          }}
+        />
       )}
     </motion.div>
   );

@@ -552,6 +552,7 @@ export interface AdmitStudentForm {
   blood_group?: string;
   student_email_id?: string;
   student_mobile_number?: string;
+  custom_aadhaar?: string;         // Aadhaar number (12 digits)
   joining_date?: string;
   custom_branch: string;         // Company name
   custom_branch_abbr?: string;   // Company abbreviation for unique email generation
@@ -682,6 +683,9 @@ export async function admitStudent(
         full_name: form.guardian_name,
         password: form.guardian_password,
         phone: form.guardian_mobile || undefined,
+        student_name: [form.first_name, form.middle_name, form.last_name].filter(Boolean).join(" "),
+        program: form.program || undefined,
+        branch: form.custom_branch || undefined,
       }),
     });
     if (!parentUserRes.ok) {
@@ -746,6 +750,7 @@ export async function admitStudent(
     if (form.middle_name) payload.middle_name = form.middle_name;
     if (form.blood_group) payload.blood_group = form.blood_group;
     if (form.student_mobile_number) payload.student_mobile_number = form.student_mobile_number;
+    if (form.custom_aadhaar) payload.custom_aadhaar = form.custom_aadhaar;
     return payload;
   }
 
@@ -855,7 +860,6 @@ export async function admitStudent(
           student_id: student.name,
           program: form.program,
           branch: form.custom_branch,
-          password: `Student@${srrId}`,
           phone: form.student_mobile_number || undefined,
         }),
       });

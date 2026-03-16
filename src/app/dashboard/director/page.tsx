@@ -13,9 +13,9 @@ import {
   Loader2,
   AlertCircle,
   IndianRupee,
-  ShoppingCart,
   CircleCheck,
   Clock,
+  TriangleAlert,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -27,8 +27,11 @@ import {
   getBatchCountForBranch,
   getInstructorCountForBranch,
   getTotalStudentCount,
+  getActiveStudentCount,
+  getDiscontinuedStudentCount,
   getTotalStaffCount,
   getTotalInvoiceStats,
+  getDiscontinuedStudentForfeitedFees,
 } from "@/lib/api/director";
 import { formatCurrency } from "@/lib/utils/formatters";
 
@@ -166,25 +169,46 @@ export default function DirectorDashboard() {
   const totalBranches = activeBranches.length;
 
   // Dynamic total counts
-  const { data: totalStudents, isLoading: loadTotalStudents } = useQuery({
+  const { data: totalStudents, isLoading: loadTotalStudents, isError: errTotalStudents } = useQuery({
     queryKey: ["director-total-students"],
     queryFn: getTotalStudentCount,
     staleTime: 30_000,
     refetchInterval: 30_000,
   });
 
-  const { data: totalStaff, isLoading: loadTotalStaff } = useQuery({
+  const { data: activeStudents, isLoading: loadActiveStudents } = useQuery({
+    queryKey: ["director-active-students"],
+    queryFn: getActiveStudentCount,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+  });
+
+  const { data: discontinuedStudents, isLoading: loadDiscontinuedStudents } = useQuery({
+    queryKey: ["director-discontinued-students"],
+    queryFn: getDiscontinuedStudentCount,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+  });
+
+  const { data: totalStaff, isLoading: loadTotalStaff, isError: errTotalStaff } = useQuery({
     queryKey: ["director-total-staff"],
     queryFn: getTotalStaffCount,
     staleTime: 30_000,
     refetchInterval: 30_000,
   });
 
-  const { data: invoiceStats, isLoading: loadInvoiceStats } = useQuery({
+  const { data: invoiceStats, isLoading: loadInvoiceStats, isError: errInvoiceStats } = useQuery({
     queryKey: ["director-total-invoices"],
     queryFn: getTotalInvoiceStats,
     staleTime: 30_000,
     refetchInterval: 30_000,
+  });
+
+  const { data: forfeitedFees, isLoading: loadForfeitedFees, isError: errForfeitedFees } = useQuery({
+    queryKey: ["director-forfeited-fees"],
+    queryFn: getDiscontinuedStudentForfeitedFees,
+    staleTime: 60_000,
+    refetchInterval: 60_000,
   });
 
   return (
@@ -214,15 +238,38 @@ export default function DirectorDashboard() {
       </motion.div>
 
       {/* Summary Stats — Clickable Cards */}
-      <motion.div variants={itemVariants} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+      <motion.div variants={itemVariants} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         <Link href="/dashboard/director/students">
           <Card className="h-full hover:shadow-md transition-shadow cursor-pointer border-border-light hover:border-primary/30">
             <CardContent className="p-4 text-center">
               <GraduationCap className="h-5 w-5 text-primary mx-auto mb-2" />
-              <p className="text-2xl font-bold text-text-primary">
-                {loadTotalStudents ? "..." : (totalStudents ?? 0).toLocaleString()}
-              </p>
+              {errTotalStudents ? (
+                <p className="text-sm text-error flex items-center justify-center gap-1">
+                  <AlertCircle className="h-4 w-4" /> Error
+                </p>
+              ) : (
+                <p className="text-2xl font-bold text-text-primary">
+                  {loadTotalStudents ? "..." : (totalStudents ?? 0).toLocaleString()}
+                </p>
+              )}
               <p className="text-xs text-text-tertiary">Total Students</p>
+              {!errTotalStudents && (
+                <div className="flex justify-center gap-3 mt-2">
+                  <div className="text-center">
+                    <p className="text-sm font-semibold text-success">
+                      {loadActiveStudents ? "..." : (activeStudents ?? 0).toLocaleString()}
+                    </p>
+                    <p className="text-[10px] text-text-tertiary uppercase tracking-wide">Active</p>
+                  </div>
+                  <div className="w-px bg-border-light" />
+                  <div className="text-center">
+                    <p className="text-sm font-semibold text-error">
+                      {loadDiscontinuedStudents ? "..." : (discontinuedStudents ?? 0).toLocaleString()}
+                    </p>
+                    <p className="text-[10px] text-text-tertiary uppercase tracking-wide">Discontinued</p>
+                  </div>
+                </div>
+              )}
               <ChevronRight className="h-3.5 w-3.5 text-text-tertiary mx-auto mt-1" />
             </CardContent>
           </Card>
@@ -231,9 +278,15 @@ export default function DirectorDashboard() {
           <Card className="h-full hover:shadow-md transition-shadow cursor-pointer border-border-light hover:border-primary/30">
             <CardContent className="p-4 text-center">
               <UserCheck className="h-5 w-5 text-info mx-auto mb-2" />
-              <p className="text-2xl font-bold text-text-primary">
-                {loadTotalStaff ? "..." : (totalStaff ?? 0).toLocaleString()}
-              </p>
+              {errTotalStaff ? (
+                <p className="text-sm text-error flex items-center justify-center gap-1">
+                  <AlertCircle className="h-4 w-4" /> Error
+                </p>
+              ) : (
+                <p className="text-2xl font-bold text-text-primary">
+                  {loadTotalStaff ? "..." : (totalStaff ?? 0).toLocaleString()}
+                </p>
+              )}
               <p className="text-xs text-text-tertiary">Total Staff</p>
               <ChevronRight className="h-3.5 w-3.5 text-text-tertiary mx-auto mt-1" />
             </CardContent>
@@ -243,9 +296,15 @@ export default function DirectorDashboard() {
           <Card className="h-full hover:shadow-md transition-shadow cursor-pointer border-border-light hover:border-primary/30">
             <CardContent className="p-4 text-center">
               <IndianRupee className="h-5 w-5 text-warning mx-auto mb-2" />
-              <p className="text-2xl font-bold text-text-primary">
-                {loadInvoiceStats ? "..." : formatCurrency(invoiceStats?.totalInvoiced ?? 0)}
-              </p>
+              {errInvoiceStats ? (
+                <p className="text-sm text-error flex items-center justify-center gap-1">
+                  <AlertCircle className="h-4 w-4" /> Error
+                </p>
+              ) : (
+                <p className="text-2xl font-bold text-text-primary">
+                  {loadInvoiceStats ? "..." : formatCurrency(invoiceStats?.totalInvoiced ?? 0)}
+                </p>
+              )}
               <p className="text-xs text-text-tertiary">Total Billed</p>
               <ChevronRight className="h-3.5 w-3.5 text-text-tertiary mx-auto mt-1" />
             </CardContent>
@@ -255,9 +314,15 @@ export default function DirectorDashboard() {
           <Card className="h-full hover:shadow-md transition-shadow cursor-pointer border-border-light hover:border-success/30 border-success/20">
             <CardContent className="p-4 text-center">
               <CircleCheck className="h-5 w-5 text-success mx-auto mb-2" />
-              <p className="text-2xl font-bold text-success">
-                {loadInvoiceStats ? "..." : formatCurrency(invoiceStats?.totalCollected ?? 0)}
-              </p>
+              {errInvoiceStats ? (
+                <p className="text-sm text-error flex items-center justify-center gap-1">
+                  <AlertCircle className="h-4 w-4" /> Error
+                </p>
+              ) : (
+                <p className="text-2xl font-bold text-success">
+                  {loadInvoiceStats ? "..." : formatCurrency(invoiceStats?.totalCollected ?? 0)}
+                </p>
+              )}
               <p className="text-xs text-text-tertiary">Collected</p>
               <ChevronRight className="h-3.5 w-3.5 text-text-tertiary mx-auto mt-1" />
             </CardContent>
@@ -267,11 +332,35 @@ export default function DirectorDashboard() {
           <Card className="h-full hover:shadow-md transition-shadow cursor-pointer border-border-light hover:border-error/30 border-error/20">
             <CardContent className="p-4 text-center">
               <Clock className="h-5 w-5 text-error mx-auto mb-2" />
-              <p className="text-2xl font-bold text-error">
-                {loadInvoiceStats ? "..." : formatCurrency(invoiceStats?.totalOutstanding ?? 0)}
-              </p>
+              {errInvoiceStats ? (
+                <p className="text-sm text-error flex items-center justify-center gap-1">
+                  <AlertCircle className="h-4 w-4" /> Error
+                </p>
+              ) : (
+                <p className="text-2xl font-bold text-error">
+                  {loadInvoiceStats || loadForfeitedFees ? "..." : formatCurrency((invoiceStats?.totalOutstanding ?? 0) - (forfeitedFees ?? 0))}
+                </p>
+              )}
               <p className="text-xs text-text-tertiary">Pending Fees</p>
               <ChevronRight className="h-3.5 w-3.5 text-text-tertiary mx-auto mt-1" />
+            </CardContent>
+          </Card>
+        </Link>
+        <Link href="/dashboard/director/students">
+          <Card className="h-full hover:shadow-md transition-shadow cursor-pointer border-amber-200/60 hover:border-amber-400/50">
+            <CardContent className="p-4 text-center">
+              <TriangleAlert className="h-5 w-5 text-amber-500 mx-auto mb-2" />
+              {errForfeitedFees ? (
+                <p className="text-sm text-error flex items-center justify-center gap-1">
+                  <AlertCircle className="h-4 w-4" /> Error
+                </p>
+              ) : (
+                <p className="text-2xl font-bold text-amber-600">
+                  {loadForfeitedFees ? "..." : formatCurrency(forfeitedFees ?? 0)}
+                </p>
+              )}
+              <p className="text-xs text-text-tertiary">Forfeited Fees</p>
+              <p className="text-[10px] text-text-tertiary mt-0.5">Discontinued</p>
             </CardContent>
           </Card>
         </Link>

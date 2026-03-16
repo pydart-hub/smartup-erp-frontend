@@ -133,6 +133,7 @@ export interface SalesInvoice {
   name: string;             // e.g. ACC-SINV-2026-00001
   customer: string;         // link → Customer  (required)
   customer_name?: string;
+  student?: string;         // link → Student
   posting_date: string;     // required
   due_date?: string;
   company: string;          // link → Company  (required)
@@ -141,6 +142,7 @@ export interface SalesInvoice {
   sales_order?: string;     // optional link to originating SO
   status: SalesInvoiceStatus;
   is_return?: 0 | 1;
+  return_against?: string;       // link → original Sales Invoice (for credit notes)
   items: SalesInvoiceItem[];
   payments?: SalesInvoicePayment[];
   total?: number;

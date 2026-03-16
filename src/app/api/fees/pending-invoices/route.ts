@@ -59,6 +59,7 @@ export async function GET(request: NextRequest) {
         "name",
         "customer",
         "customer_name",
+        "student",
         `${bt}tabSales Invoice Item${bt}.item_code as item_code`,
         "outstanding_amount",
         "grand_total",

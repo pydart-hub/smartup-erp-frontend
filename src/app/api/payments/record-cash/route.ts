@@ -54,6 +54,35 @@ export async function POST(request: NextRequest) {
       Authorization: `token ${API_KEY}:${API_SECRET}`,
     };
 
+    // ── Check if student is discontinued ──
+    try {
+      const invRes = await fetch(
+        `${FRAPPE_URL}/api/resource/Sales Invoice/${encodeURIComponent(invoice_id)}?fields=["student"]`,
+        { headers },
+      );
+      if (invRes.ok) {
+        const invData = (await invRes.json()).data;
+        const studentId = invData?.student;
+        if (studentId) {
+          const stuRes = await fetch(
+            `${FRAPPE_URL}/api/resource/Student/${encodeURIComponent(studentId)}?fields=["enabled","custom_discontinuation_date"]`,
+            { headers },
+          );
+          if (stuRes.ok) {
+            const stu = (await stuRes.json()).data;
+            if (stu?.enabled === 0 && stu?.custom_discontinuation_date) {
+              return NextResponse.json(
+                { error: "Cannot accept payment — student is discontinued" },
+                { status: 403 },
+              );
+            }
+          }
+        }
+      }
+    } catch {
+      // Non-blocking — proceed if lookup fails
+    }
+
     // 1. Use Frappe's get_payment_entry to get a fully mapped PE
     const getPeRes = await fetch(
       `${FRAPPE_URL}/api/method/erpnext.accounts.doctype.payment_entry.payment_entry.get_payment_entry`,

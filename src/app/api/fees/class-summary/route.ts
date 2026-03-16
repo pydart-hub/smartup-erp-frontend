@@ -47,19 +47,47 @@ export async function GET(request: NextRequest) {
 
     const bt = "`"; // backtick helper
 
-    const filters: (string | number)[][] = [
+    // Fetch discontinued students to exclude from pending summary
+    const discFilters: (string | number | string[])[][] = [
+      ["enabled", "=", 0],
+      ["custom_discontinuation_date", "is", "set"],
+    ];
+    if (company) discFilters.push(["custom_branch", "=", company]);
+
+    const discStudentsRes = await fetch(
+      `${FRAPPE_URL}/api/resource/Student?${new URLSearchParams({
+        filters: JSON.stringify(discFilters),
+        fields: JSON.stringify(["customer"]),
+        limit_page_length: "500",
+      })}`,
+      {
+        headers: { Authorization: `token ${FRAPPE_API_KEY}:${FRAPPE_API_SECRET}` },
+        cache: "no-store",
+      }
+    );
+    const discStudents: { customer?: string }[] = discStudentsRes.ok
+      ? ((await discStudentsRes.json()).data ?? [])
+      : [];
+    const discCustomers = discStudents
+      .map((s) => s.customer)
+      .filter(Boolean) as string[];
+
+    const filters: (string | number | string[])[][] = [
       ["Sales Invoice", "docstatus", "=", 1],
       ["Sales Invoice", "outstanding_amount", ">", 0],
     ];
     if (company) {
       filters.push(["Sales Invoice", "company", "=", company]);
     }
+    if (discCustomers.length > 0) {
+      filters.push(["Sales Invoice", "customer", "not in", discCustomers]);
+    }
 
     const payload = {
       doctype: "Sales Invoice",
       fields: [
         `${bt}tabSales Invoice Item${bt}.item_code as item_code`,
-        `count(${bt}tabSales Invoice${bt}.name) as cnt`,
+        `count(distinct ${bt}tabSales Invoice${bt}.customer) as cnt`,
         `sum(${bt}tabSales Invoice${bt}.outstanding_amount) as total_out`,
       ],
       filters,

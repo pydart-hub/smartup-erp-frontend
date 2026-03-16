@@ -8,19 +8,18 @@ import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
   IndianRupee,
-  FileText,
   School,
   ChevronRight,
   Loader2,
   AlertCircle,
   CircleCheck,
   Clock,
+  TriangleAlert,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
-import { getBranchFeeSchedules, getBranchInvoiceStats } from "@/lib/api/director";
+import { getBranchInvoiceStats, getBranchProgramFeeStats, getBranchForfeitedFees } from "@/lib/api/director";
 import { formatCurrency } from "@/lib/utils/formatters";
 
 const containerVariants = {
@@ -33,56 +32,39 @@ const itemVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" as const } },
 };
 
-const statusColors: Record<string, "warning" | "info" | "success" | "error" | "default"> = {
-  Draft: "default",
-  Submitted: "info",
-  "Fee Creation Pending": "warning",
-  "Fee Created": "success",
-  Cancelled: "error",
-  Failed: "error",
-};
-
 export default function BranchFeesPage() {
   const params = useParams();
   const branchName = decodeURIComponent(params.id as string);
   const shortName = branchName.replace("Smart Up ", "").replace("Smart Up", "HQ");
   const encodedBranch = encodeURIComponent(branchName);
 
-  const {
-    data: feeSchedules,
-    isLoading: loadFees,
-    isError: feeError,
-  } = useQuery({
-    queryKey: ["director-branch-fees", branchName],
-    queryFn: () => getBranchFeeSchedules(branchName),
-    staleTime: 120_000,
-  });
-
-  const {
-    data: invoiceStats,
-    isLoading: loadInvoices,
-  } = useQuery({
+  const { data: invoiceStats, isLoading: loadInvoices } = useQuery({
     queryKey: ["director-branch-invoice-stats", branchName],
     queryFn: () => getBranchInvoiceStats(branchName),
     staleTime: 120_000,
   });
 
-  const fees = feeSchedules ?? [];
+  const { data: forfeitedTotal, isLoading: loadForfeited } = useQuery({
+    queryKey: ["director-branch-forfeited-fees", branchName],
+    queryFn: () => getBranchForfeitedFees(branchName),
+    staleTime: 120_000,
+  });
+
+  const {
+    data: programStats,
+    isLoading: loadPrograms,
+    isError: programError,
+  } = useQuery({
+    queryKey: ["director-branch-program-fees", branchName],
+    queryFn: () => getBranchProgramFeeStats(branchName),
+    staleTime: 120_000,
+  });
+
   const totalFees = invoiceStats?.totalInvoiced ?? 0;
   const totalCollected = invoiceStats?.totalCollected ?? 0;
-  const totalPending = invoiceStats?.totalOutstanding ?? 0;
+  const forfeited = forfeitedTotal ?? 0;
+  const totalPending = (invoiceStats?.totalOutstanding ?? 0) - forfeited;
   const invoiceCount = invoiceStats?.count ?? 0;
-
-  // Group fee schedules by program
-  const feesByProgram = fees.reduce(
-    (acc, f) => {
-      const key = f.program || "General";
-      if (!acc[key]) acc[key] = [];
-      acc[key].push(f);
-      return acc;
-    },
-    {} as Record<string, typeof fees>
-  );
 
   return (
     <motion.div
@@ -108,21 +90,17 @@ export default function BranchFeesPage() {
       <motion.div variants={itemVariants}>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-text-primary">
-              Fees — {shortName}
-            </h1>
+            <h1 className="text-2xl font-bold text-text-primary">Fees — {shortName}</h1>
             <p className="text-sm text-text-secondary mt-0.5">
               Submitted invoices only · {invoiceCount} invoice{invoiceCount !== 1 ? "s" : ""}
             </p>
           </div>
-          <Badge variant="outline" className="self-start text-xs">
-            {branchName}
-          </Badge>
+          <Badge variant="outline" className="self-start text-xs">{branchName}</Badge>
         </div>
       </motion.div>
 
-      {/* Financial Summary Cards — Sales Invoice only */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* Summary Cards */}
+      <motion.div variants={itemVariants} className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <Card className="border-border-light">
           <CardContent className="p-4 text-center">
             <IndianRupee className="h-5 w-5 text-primary mx-auto mb-2" />
@@ -147,93 +125,81 @@ export default function BranchFeesPage() {
             <p className="text-2xl font-bold text-error">
               {loadInvoices ? "..." : formatCurrency(totalPending)}
             </p>
-            <p className="text-xs text-text-tertiary">Pending Fees</p>
+            <p className="text-xs text-text-tertiary">Pending</p>
+          </CardContent>
+        </Card>
+        <Card className="border-amber-200/60">
+          <CardContent className="p-4 text-center">
+            <TriangleAlert className="h-5 w-5 text-amber-500 mx-auto mb-2" />
+            <p className="text-2xl font-bold text-amber-600">
+              {loadForfeited ? "..." : formatCurrency(forfeited)}
+            </p>
+            <p className="text-xs text-text-tertiary">Forfeited</p>
+            <p className="text-[10px] text-text-tertiary">Discontinued</p>
           </CardContent>
         </Card>
       </motion.div>
 
-      {/* Fee Schedules by Program */}
+      {/* Program-wise breakdown */}
       <motion.div variants={itemVariants}>
-        <h2 className="text-lg font-semibold text-text-primary mb-3">Fee Schedules</h2>
+        <h2 className="text-lg font-semibold text-text-primary mb-3">By Program / Class</h2>
 
-        {loadFees ? (
+        {loadPrograms ? (
           <div className="flex items-center justify-center h-48">
             <Loader2 className="animate-spin h-6 w-6 text-primary" />
           </div>
-        ) : feeError ? (
+        ) : programError ? (
           <div className="flex flex-col items-center justify-center h-48 gap-3">
             <AlertCircle className="h-8 w-8 text-error" />
-            <p className="text-sm text-error">Failed to load fee schedules</p>
+            <p className="text-sm text-error">Failed to load program stats</p>
           </div>
-        ) : fees.length === 0 ? (
+        ) : !programStats?.length ? (
           <div className="flex flex-col items-center justify-center h-48">
-            <FileText className="h-8 w-8 text-text-tertiary mb-2" />
-            <p className="text-sm text-text-tertiary">No fee schedules found for this branch</p>
+            <School className="h-8 w-8 text-text-tertiary mb-2" />
+            <p className="text-sm text-text-tertiary">No invoice data found for this branch</p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {Object.entries(feesByProgram)
-              .sort(([a], [b]) => a.localeCompare(b))
-              .map(([program, programFees]) => {
-                const programTotal = programFees.reduce(
-                  (sum, f) => sum + (f.total_amount || f.grand_total || 0),
-                  0
-                );
-                return (
-                  <Card key={program}>
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <School className="h-5 w-5 text-primary" />
-                          <CardTitle className="text-base">{program}</CardTitle>
-                          <Badge variant="outline" className="text-[10px]">
-                            {programFees.length} schedule{programFees.length !== 1 ? "s" : ""}
-                          </Badge>
-                        </div>
-                        <span className="text-sm font-bold text-text-primary">
-                          {formatCurrency(programTotal)}
-                        </span>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="pt-2">
-                      <div className="space-y-2">
-                        {programFees.map((fee) => (
-                          <div
-                            key={fee.name}
-                            className="flex items-center gap-3 p-3 rounded-[10px] border border-border-light bg-surface"
-                          >
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-text-primary truncate">
-                                {fee.name}
-                              </p>
-                              <div className="flex items-center gap-2 text-xs text-text-tertiary mt-0.5">
-                                {fee.fee_structure && <span>{fee.fee_structure}</span>}
-                                {fee.academic_year && (
-                                  <>
-                                    <span>·</span>
-                                    <span>{fee.academic_year}</span>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                            <div className="text-right shrink-0">
-                              <p className="text-sm font-bold text-text-primary">
-                                {formatCurrency(fee.total_amount || fee.grand_total || 0)}
-                              </p>
-                            </div>
-                            <Badge
-                              variant={statusColors[fee.status] || "default"}
-                              className="text-[10px] shrink-0"
-                            >
-                              {fee.status}
-                            </Badge>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+          <div className="space-y-3">
+            {programStats.map((p) => (
+              <div
+                key={p.program}
+                className="flex items-center gap-3 p-3 rounded-[10px] border border-border-light bg-surface"
+              >
+                <div className="w-9 h-9 rounded-lg bg-brand-wash flex items-center justify-center shrink-0">
+                  <School className="h-4 w-4 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-text-primary">{p.program}</p>
+                  <p className="text-xs text-text-tertiary">{p.count} invoice{p.count !== 1 ? "s" : ""}</p>
+                </div>
+                <div className="flex items-center gap-4 shrink-0">
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-text-primary">{formatCurrency(p.totalInvoiced)}</p>
+                    <p className="text-[10px] text-text-tertiary">total</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-success">{formatCurrency(p.totalCollected)}</p>
+                    <p className="text-[10px] text-success/70 flex items-center justify-end gap-0.5">
+                      <CircleCheck className="h-2.5 w-2.5" /> collected
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-error">{formatCurrency(p.totalOutstanding - p.forfeitedFees)}</p>
+                    <p className="text-[10px] text-error/70 flex items-center justify-end gap-0.5">
+                      <Clock className="h-2.5 w-2.5" /> pending
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className={`text-sm font-bold ${p.forfeitedFees > 0 ? "text-amber-600" : "text-text-tertiary"}`}>
+                      {formatCurrency(p.forfeitedFees)}
+                    </p>
+                    <p className="text-[10px] text-amber-500/80 flex items-center justify-end gap-0.5">
+                      <TriangleAlert className="h-2.5 w-2.5" /> forfeited
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </motion.div>
@@ -258,3 +224,4 @@ export default function BranchFeesPage() {
     </motion.div>
   );
 }
+

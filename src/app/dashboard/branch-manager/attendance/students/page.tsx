@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { toast } from "sonner";
 import { getBatches, getBatch } from "@/lib/api/batches";
-import { getAttendance, bulkMarkAttendance, getClassWiseAttendance } from "@/lib/api/attendance";
+import { getAttendance, bulkMarkAttendance } from "@/lib/api/attendance";
 import type { Batch, BatchStudent } from "@/lib/types/batch";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useAcademicYearStore } from "@/lib/stores/academicYearStore";
@@ -67,28 +67,54 @@ export default function AttendancePage() {
     [batches]
   );
 
-  // ── Class-wise attendance summary (dashboard view) ──
-  const { data: classWiseRes, isLoading: classWiseLoading } = useQuery({
-    queryKey: ["class-wise-attendance", defaultCompany, selectedDate],
+  // ── Branch attendance records (with student field for filtering) ──
+  const { data: branchAttendanceRes, isLoading: classWiseLoading } = useQuery({
+    queryKey: ["branch-attendance-records", defaultCompany, selectedDate],
     queryFn: () =>
-      getClassWiseAttendance(selectedDate, {
+      getAttendance(selectedDate, {
         custom_branch: defaultCompany || undefined,
       }),
     staleTime: 30_000,
     enabled: !!defaultCompany && viewMode === "dashboard",
   });
 
-  // Build class summaries
+  // ── Batch member lists (to filter out transferred-out students) ──
+  const { data: batchMembersMap } = useQuery({
+    queryKey: ["batch-members-map", defaultCompany, selectedYear],
+    queryFn: async () => {
+      const memberMap = new Map<string, Set<string>>();
+      for (const b of batches) {
+        try {
+          const res = await getBatch(b.name);
+          const members = (res.data.students ?? [])
+            .filter((s) => s.active !== 0)
+            .map((s) => s.student);
+          memberMap.set(b.name, new Set(members));
+        } catch {
+          memberMap.set(b.name, new Set());
+        }
+      }
+      return memberMap;
+    },
+    staleTime: 5 * 60_000,
+    enabled: !!defaultCompany && batches.length > 0 && viewMode === "dashboard",
+  });
+
+  // Build class summaries, only counting attendance for current batch members
   const classSummaries: ClassSummary[] = useMemo(() => {
-    const rawData = classWiseRes?.data ?? [];
+    const rawRecords = branchAttendanceRes?.data ?? [];
     const groupMap = new Map<string, { present: number; absent: number; late: number }>();
 
-    for (const row of rawData) {
+    for (const row of rawRecords) {
       if (!row.student_group) continue;
+      // Only count if the student is still a current member of this batch
+      const members = batchMembersMap?.get(row.student_group);
+      if (members && !members.has(row.student)) continue;
+
       const existing = groupMap.get(row.student_group) ?? { present: 0, absent: 0, late: 0 };
-      if (row.status === "Present") existing.present = row.cnt;
-      else if (row.status === "Absent") existing.absent = row.cnt;
-      else if (row.status === "Late") existing.late = row.cnt;
+      if (row.status === "Present") existing.present += 1;
+      else if (row.status === "Absent") existing.absent += 1;
+      else if (row.status === "Late") existing.late += 1;
       groupMap.set(row.student_group, existing);
     }
 
@@ -109,7 +135,7 @@ export default function AttendancePage() {
         };
       })
       .sort((a, b) => a.displayName.localeCompare(b.displayName));
-  }, [classWiseRes, batches, batchMap]);
+  }, [branchAttendanceRes, batchMembersMap, batches, batchMap]);
 
   // Overall totals
   const overallPresent = classSummaries.reduce((s, c) => s + c.present, 0);

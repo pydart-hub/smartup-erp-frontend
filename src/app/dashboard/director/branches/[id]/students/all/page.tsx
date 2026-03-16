@@ -224,7 +224,7 @@ export default function BranchAllStudentsPage() {
                       </td>
                       <td className="px-4 py-3 text-center">
                         <Badge variant={s.enabled ? "success" : "error"} className="text-[10px]">
-                          {s.enabled ? "Active" : "Inactive"}
+                          {s.enabled ? "Active" : "Discontinued"}
                         </Badge>
                       </td>
                     </tr>

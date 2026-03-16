@@ -10,6 +10,7 @@ interface StatsCardProps {
   title: string;
   value: string | number;
   icon: React.ReactNode;
+  subtitle?: React.ReactNode;
   trend?: { value: number; label: string };
   color?: "primary" | "secondary" | "success" | "warning" | "error" | "info";
   loading?: boolean;
@@ -50,7 +51,7 @@ const colorMap = {
   },
 };
 
-export function StatsCard({ title, value, icon, trend, color = "primary", loading, href }: StatsCardProps) {
+export function StatsCard({ title, value, icon, subtitle, trend, color = "primary", loading, href }: StatsCardProps) {
   const colors = colorMap[color];
 
   if (loading) {
@@ -77,6 +78,9 @@ export function StatsCard({ title, value, icon, trend, color = "primary", loadin
         <div>
           <p className="text-sm font-medium text-text-secondary">{title}</p>
           <p className="text-2xl font-bold text-text-primary mt-1">{value}</p>
+          {subtitle && (
+            <div className="mt-1.5">{subtitle}</div>
+          )}
           {trend && (
             <div className="flex items-center gap-1 mt-2">
               {trend.value > 0 ? (

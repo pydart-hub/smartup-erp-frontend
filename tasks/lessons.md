@@ -122,6 +122,20 @@
 - **Working Alternative**: Use `POST /api/method/frappe.client.get_list` with admin token — supports child-table fields, `group_by`, and aggregations on joined tables.
 - **Rule**: For queries needing child-table joins or group_by, always use server-side API routes with admin token calling `frappe.client.get_list` POST. Don't attempt child-table fields through the GET resource endpoint.
 
+## Frappe PE on_submit Creates Course Enrollments — Must Patch CEs Before Submit
+- **Date**: 2026-03-12
+- **Issue**: When a Program Enrollment is submitted (`docstatus: 1`), Frappe's `on_submit` hook calls `create_course_enrollments()`, which auto-creates Course Enrollment records. If `custom_batch_name` is mandatory on Course Enrollment, Frappe throws `MandatoryError` and the submission fails.
+- **Root Cause**: Transfer execute code was creating PE and immediately submitting it, without setting batch-related fields. The admission flow correctly creates PE as draft → patches CEs with `custom_batch_name` → then submits.
+- **Fix**: Reordered Steps 7-8 in transfer: (1) find new branch Student Group first, (2) create PE as draft with `student_batch_name`, (3) patch auto-created CEs with `custom_batch_name` = Student Group name, (4) then submit PE.
+- **Rule**: When creating a Program Enrollment, ALWAYS follow this sequence: create draft → patch Course Enrollments → submit. Never submit a PE immediately after creation if CEs have mandatory custom fields.
+
+## Frappe Select Field Validation is Strict — No Custom Statuses
+- **Date**: 2026-03-12
+- **Issue**: `Student Branch Transfer.status` only allows "Pending", "Approved", "Rejected", "Completed", "Failed". Our transfer execute code tried to set "In Progress" as an intermediate status, which Frappe rejected with `ValidationError: Status cannot be "In Progress"`.
+- **Root Cause**: Frappe `Select` fields validate against their defined option list. You cannot PUT a value that isn't in the dropdown options—Frappe throws `_validate_selects()` error.
+- **Fix**: Removed the "In Progress" status update. The existing `status !== "Approved"` guard already prevents duplicate execution.
+- **Rule**: ALWAYS check the allowed values of a Frappe `Select` field before writing to it. Never assume a status value exists—verify against the doctype definition or test with a direct API call first.
+
 ## Admission: Non-Blocking SO/Invoice Creation Hides Failures
 - **Date**: 2026-03-06
 - **Issue**: `admitStudent()` wraps SO creation (step 5) and invoice creation (step 6) in try/catch blocks that only `console.warn` on failure. The toast always shows "Student admitted successfully!" even when no SO or invoices were created. Additionally, the `failed` array from the create-invoices API response was never checked.

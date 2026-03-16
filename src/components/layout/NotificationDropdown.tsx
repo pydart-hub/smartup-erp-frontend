@@ -11,8 +11,11 @@ import {
   CheckCheck,
   X,
   AlertCircle,
+  ArrowRightLeft,
 } from "lucide-react";
+import Link from "next/link";
 import { useClassReminders } from "@/lib/hooks/useClassReminders";
+import { useTransferNotifications } from "@/lib/hooks/useTransferNotifications";
 import type { ClassReminder } from "@/lib/stores/notificationStore";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -53,8 +56,11 @@ function urgencyLabel(mins: number): {
 export function NotificationDropdown() {
   const { reminders, dismissReminder, dismissAll, unreadCount, isInstructor } =
     useClassReminders();
+  const { pendingTransfers, pendingCount } = useTransferNotifications();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+
+  const totalUnread = unreadCount + pendingCount;
 
   // Close on outside click
   useEffect(() => {
@@ -79,9 +85,9 @@ export function NotificationDropdown() {
         className="w-10 h-10 rounded-[10px] flex items-center justify-center text-text-secondary hover:bg-app-bg transition-colors relative"
       >
         <Bell className="h-5 w-5" />
-        {unreadCount > 0 && (
+        {totalUnread > 0 && (
           <span className="absolute top-1.5 right-1.5 flex items-center justify-center min-w-[16px] h-4 px-1 bg-error rounded-full text-[10px] font-bold text-white">
-            {unreadCount > 9 ? "9+" : unreadCount}
+            {totalUnread > 9 ? "9+" : totalUnread}
           </span>
         )}
       </button>
@@ -102,9 +108,9 @@ export function NotificationDropdown() {
                 <h3 className="font-semibold text-sm text-text-primary">
                   Notifications
                 </h3>
-                {unreadCount > 0 && (
+                {totalUnread > 0 && (
                   <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 bg-primary/10 text-primary rounded-full text-[11px] font-bold">
-                    {unreadCount}
+                    {totalUnread}
                   </span>
                 )}
               </div>
@@ -121,12 +127,55 @@ export function NotificationDropdown() {
 
             {/* Content */}
             <div className="max-h-[400px] overflow-y-auto">
-              {!isInstructor ? (
+              {/* ── Transfer notifications ── */}
+              {pendingCount > 0 && (
+                <div className="p-2 space-y-1">
+                  <div className="px-2 py-1">
+                    <p className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider">
+                      Pending Transfers
+                    </p>
+                  </div>
+                  {pendingTransfers.map((t) => (
+                    <Link
+                      key={t.name}
+                      href="/dashboard/branch-manager/transfers"
+                      onClick={() => setOpen(false)}
+                      className="block"
+                    >
+                      <motion.div
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="relative rounded-[10px] p-3 bg-warning/5 border border-warning/15 hover:bg-warning/10 transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="mt-0.5 p-1.5 rounded-[8px] bg-warning/10">
+                            <ArrowRightLeft className="h-4 w-4 text-warning" />
+                          </div>
+                          <div className="flex-1 min-w-0 space-y-0.5">
+                            <p className="font-semibold text-sm text-text-primary truncate">
+                              {t.student_name}
+                            </p>
+                            <p className="text-xs text-text-secondary">
+                              Transfer from {t.from_branch?.replace("Smart Up ", "")}
+                            </p>
+                            <p className="text-[11px] text-warning font-medium">Awaiting your review</p>
+                          </div>
+                        </div>
+                      </motion.div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+
+              {/* ── Class reminders ── */}
+              {!isInstructor && pendingCount === 0 ? (
                 <div className="px-4 py-8 text-center">
                   <Bell className="h-8 w-8 text-text-tertiary mx-auto mb-2 opacity-40" />
                   <p className="text-sm text-text-tertiary">No notifications</p>
                 </div>
-              ) : reminders.length === 0 ? (
+              ) : !isInstructor && pendingCount > 0 ? (
+                null /* transfers already shown above */
+              ) : reminders.length === 0 && pendingCount === 0 ? (
                 <div className="px-4 py-8 text-center">
                   <Bell className="h-8 w-8 text-text-tertiary mx-auto mb-2 opacity-40" />
                   <p className="text-sm text-text-tertiary">

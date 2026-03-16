@@ -12,6 +12,7 @@ export interface Student {
   blood_group?: string;
   student_email_id: string;        // required
   student_mobile_number?: string;
+  custom_aadhaar?: string;          // Aadhaar number (12 digits)
   nationality?: string;
   address_line_1?: string;
   address_line_2?: string;
@@ -33,6 +34,11 @@ export interface Student {
 
   // Guardians child table
   guardians?: StudentGuardianLink[];
+
+  // Discontinuation fields (custom)
+  custom_discontinuation_date?: string;
+  custom_discontinuation_reason?: string;
+  custom_discontinuation_remarks?: string;
 
   // Timestamps
   creation?: string;
@@ -165,6 +171,7 @@ export interface StudentFormData {
   blood_group?: string;
   student_email_id: string;
   student_mobile_number?: string;
+  custom_aadhaar?: string;          // Aadhaar number (12 digits)
   joining_date?: string;
   address_line_1?: string;
   city?: string;

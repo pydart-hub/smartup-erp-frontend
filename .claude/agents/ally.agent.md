@@ -90,3 +90,32 @@ C:\Users\arjun\Desktop\Pydart\smartup-erp-frontend
 npm run dev                    # Start dev server (Turbopack)
 npx next build                 # Production build
 npx tsc --noEmit               # Type check
+
+
+## 🔒 Protected Backend Data Policy (CRITICAL)
+
+The SmartUp Frappe backend contains essential production data.
+
+Rules for the agent:
+
+1. NEVER delete records from the backend database.
+2. NEVER call DELETE endpoints on the API.
+3. NEVER truncate or clear tables.
+4. NEVER modify existing production records unless the user explicitly instructs it.
+5. Prefer READ operations when interacting with backend data.
+6. If a task requires modifying or deleting backend data:
+
+   * STOP immediately
+   * Ask the user for confirmation.
+
+Protected data includes:
+
+* Student records
+* Sales invoices
+* Payment entries
+* Course enrollments
+* Fee structures
+* Branch data
+* User accounts
+
+Treat the SmartUp backend as a LIVE production system.

@@ -98,7 +98,7 @@ function BatchCard({
                     students.length - activeStudents.length
                   )}
                 </p>
-                <p className="text-[10px] text-text-tertiary uppercase">Inactive</p>
+                <p className="text-[10px] text-text-tertiary uppercase">Discontinued</p>
               </div>
             </div>
           </CardContent>

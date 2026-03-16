@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import Razorpay from "razorpay";
 
+const FRAPPE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL;
+const FRAPPE_API_KEY = process.env.FRAPPE_API_KEY;
+const FRAPPE_API_SECRET = process.env.FRAPPE_API_SECRET;
+
 const razorpay = new Razorpay({
   key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
   key_secret: process.env.RAZORPAY_KEY_SECRET!,
@@ -52,6 +56,35 @@ export async function POST(request: NextRequest) {
         { error: "Invoice ID is required" },
         { status: 400 }
       );
+    }
+
+    // ── Check if student is discontinued ──
+    try {
+      const invRes = await fetch(
+        `${FRAPPE_URL}/api/resource/Sales Invoice/${encodeURIComponent(invoice_id)}?fields=["student"]`,
+        { headers: { Authorization: `token ${FRAPPE_API_KEY}:${FRAPPE_API_SECRET}` } },
+      );
+      if (invRes.ok) {
+        const invData = (await invRes.json()).data;
+        const studentId = invData?.student;
+        if (studentId) {
+          const stuRes = await fetch(
+            `${FRAPPE_URL}/api/resource/Student/${encodeURIComponent(studentId)}?fields=["enabled","custom_discontinuation_date"]`,
+            { headers: { Authorization: `token ${FRAPPE_API_KEY}:${FRAPPE_API_SECRET}` } },
+          );
+          if (stuRes.ok) {
+            const stu = (await stuRes.json()).data;
+            if (stu?.enabled === 0 && stu?.custom_discontinuation_date) {
+              return NextResponse.json(
+                { error: "Cannot accept payment — student is discontinued" },
+                { status: 403 },
+              );
+            }
+          }
+        }
+      }
+    } catch {
+      // Non-blocking — proceed if lookup fails
     }
 
     // Razorpay expects amount in paise (1 INR = 100 paise)

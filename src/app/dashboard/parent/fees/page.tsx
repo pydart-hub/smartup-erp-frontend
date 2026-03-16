@@ -197,7 +197,7 @@ function ChildFeeCard({
   user,
   onPaymentSuccess,
 }: {
-  child: { name: string; student_name: string; custom_branch: string; customer: string };
+  child: { name: string; student_name: string; custom_branch: string; customer: string; enabled: number };
   data: ReturnType<typeof useParentData>["data"];
   today: string;
   user: { full_name?: string; email?: string } | null;
@@ -311,6 +311,7 @@ function ChildFeeCard({
               parentName={user?.full_name}
               parentEmail={user?.email}
               onPaymentSuccess={onPaymentSuccess}
+              disabled={child.enabled === 0}
             />
           )}
 

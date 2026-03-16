@@ -18,22 +18,30 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { getAllBranches, getStudentCountForBranch } from "@/lib/api/director";
+import { getAllBranches, getActiveStudentCountForBranch, getDiscontinuedStudentCountForBranch } from "@/lib/api/director";
 
 function BranchStudentRow({
   branch,
 }: {
   branch: { name: string; abbr: string };
 }) {
-  const { data: count, isLoading } = useQuery({
-    queryKey: ["director-branch-students", branch.name],
-    queryFn: () => getStudentCountForBranch(branch.name),
+  const { data: activeCount, isLoading: loadingActive } = useQuery({
+    queryKey: ["director-branch-active-students", branch.name],
+    queryFn: () => getActiveStudentCountForBranch(branch.name),
+    staleTime: 120_000,
+  });
+
+  const { data: discontinuedCount, isLoading: loadingDiscontinued } = useQuery({
+    queryKey: ["director-branch-discontinued-students", branch.name],
+    queryFn: () => getDiscontinuedStudentCountForBranch(branch.name),
     staleTime: 120_000,
   });
 
   const shortName = branch.name
     .replace("Smart Up ", "")
     .replace("Smart Up", "HQ");
+
+  const loading = loadingActive || loadingDiscontinued;
 
   return (
     <Link
@@ -47,16 +55,25 @@ function BranchStudentRow({
           <p className="text-sm font-medium text-text-primary">{shortName}</p>
           <p className="text-xs text-text-tertiary">{branch.abbr}</p>
         </div>
-        <div className="text-right shrink-0">
-          <p className="text-lg font-bold text-text-primary">
-            {isLoading ? (
-              <span className="inline-block w-8 h-5 bg-border-light rounded animate-pulse" />
-            ) : (
-              count ?? 0
+        {loading ? (
+          <div className="flex gap-4 shrink-0">
+            <span className="inline-block w-12 h-8 bg-border-light rounded animate-pulse" />
+            <span className="inline-block w-12 h-8 bg-border-light rounded animate-pulse" />
+          </div>
+        ) : (
+          <div className="flex items-center gap-4 shrink-0">
+            <div className="text-center">
+              <p className="text-lg font-bold text-success">{activeCount ?? 0}</p>
+              <p className="text-[10px] text-text-tertiary uppercase tracking-wide">Active</p>
+            </div>
+            {(discontinuedCount ?? 0) > 0 && (
+              <div className="text-center">
+                <p className="text-lg font-bold text-error">{discontinuedCount}</p>
+                <p className="text-[10px] text-text-tertiary uppercase tracking-wide">Disc.</p>
+              </div>
             )}
-          </p>
-          <p className="text-[10px] text-text-tertiary">students</p>
-        </div>
+          </div>
+        )}
         <ChevronRight className="h-4 w-4 text-text-tertiary shrink-0" />
       </div>
     </Link>

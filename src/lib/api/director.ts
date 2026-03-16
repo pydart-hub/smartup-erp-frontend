@@ -56,6 +56,18 @@ export async function getStudentCountForBranch(
   return getCount("Student", { custom_branch: branch });
 }
 
+export async function getActiveStudentCountForBranch(
+  branch: string
+): Promise<number> {
+  return getCount("Student", { custom_branch: branch, enabled: "1" });
+}
+
+export async function getDiscontinuedStudentCountForBranch(
+  branch: string
+): Promise<number> {
+  return getCount("Student", { custom_branch: branch, enabled: "0" });
+}
+
 export async function getBatchCountForBranch(
   branch: string
 ): Promise<number> {
@@ -95,6 +107,14 @@ export async function getAttendanceCountForBranch(
 
 export async function getTotalStudentCount(): Promise<number> {
   return getCount("Student");
+}
+
+export async function getActiveStudentCount(): Promise<number> {
+  return getCount("Student", { enabled: "1" });
+}
+
+export async function getDiscontinuedStudentCount(): Promise<number> {
+  return getCount("Student", { enabled: "0" });
 }
 
 export async function getTotalStaffCount(): Promise<number> {
@@ -196,6 +216,160 @@ export async function getTotalInvoiceStats(): Promise<{
     totalCollected: invoiced - outstanding,
     count: row?.count ?? 0,
   };
+}
+
+/**
+ * Total outstanding fees for all discontinued students.
+ * Step 1: fetch discontinued student IDs, Step 2: sum their invoice outstanding amounts.
+ */
+export async function getDiscontinuedStudentForfeitedFees(): Promise<number> {
+  // Step 1 – get all discontinued student names
+  const studentParams = new URLSearchParams({
+    fields: JSON.stringify(["name"]),
+    filters: JSON.stringify({ enabled: "0" }),
+    limit_page_length: "500",
+  });
+  const { data: studentData } = await apiClient.get(`/resource/Student?${studentParams}`);
+  const students: { name: string }[] = studentData?.data ?? [];
+  if (!students.length) return 0;
+
+  const studentNames = students.map((s) => s.name);
+
+  // Step 2 – sum outstanding_amount for submitted invoices linked to those students
+  const invoiceParams = new URLSearchParams({
+    fields: JSON.stringify(["sum(outstanding_amount) as total_outstanding"]),
+    filters: JSON.stringify([
+      ["docstatus", "=", "1"],
+      ["outstanding_amount", ">", "0"],
+      ["student", "in", studentNames],
+    ]),
+    limit_page_length: "1",
+  });
+  const { data: invoiceData } = await apiClient.get(`/resource/Sales Invoice?${invoiceParams}`);
+  return invoiceData?.data?.[0]?.total_outstanding ?? 0;
+}
+
+/** Outstanding invoices from discontinued students in a specific branch. */
+export async function getBranchForfeitedFees(branch: string): Promise<number> {
+  const studentParams = new URLSearchParams({
+    fields: JSON.stringify(["name"]),
+    filters: JSON.stringify([["custom_branch", "=", branch], ["enabled", "=", "0"]]),
+    limit_page_length: "500",
+  });
+  const { data: studentData } = await apiClient.get(`/resource/Student?${studentParams}`);
+  const students: { name: string }[] = studentData?.data ?? [];
+  if (!students.length) return 0;
+
+  const studentNames = students.map((s) => s.name);
+  const invoiceParams = new URLSearchParams({
+    fields: JSON.stringify(["sum(outstanding_amount) as total_outstanding"]),
+    filters: JSON.stringify([
+      ["docstatus", "=", "1"],
+      ["outstanding_amount", ">", "0"],
+      ["student", "in", studentNames],
+      ["company", "=", branch],
+    ]),
+    limit_page_length: "1",
+  });
+  const { data: invoiceData } = await apiClient.get(`/resource/Sales Invoice?${invoiceParams}`);
+  return invoiceData?.data?.[0]?.total_outstanding ?? 0;
+}
+
+export interface ProgramFeeStats {
+  program: string;
+  totalInvoiced: number;
+  totalCollected: number;
+  totalOutstanding: number;
+  forfeitedFees: number;
+  count: number;
+}
+
+/**
+ * Program-wise invoice stats for a branch.
+ * Approach: Branch students → latest Program Enrollment per student → aggregate invoices per program.
+ */
+export async function getBranchProgramFeeStats(branch: string): Promise<ProgramFeeStats[]> {
+  // Step 1: Get all students (active + discontinued) for this branch
+  const studentParams = new URLSearchParams({
+    fields: JSON.stringify(["name", "enabled"]),
+    filters: JSON.stringify([["custom_branch", "=", branch]]),
+    limit_page_length: "500",
+  });
+  const { data: studentData } = await apiClient.get(`/resource/Student?${studentParams}`);
+  const students: { name: string; enabled: number }[] = studentData?.data ?? [];
+  if (!students.length) return [];
+
+  const allStudentNames = students.map((s) => s.name);
+
+  // Step 2: Get latest Program Enrollment per student (sorted desc by date, first wins)
+  const enrollParams = new URLSearchParams({
+    fields: JSON.stringify(["student", "program", "enrollment_date"]),
+    filters: JSON.stringify([["student", "in", allStudentNames], ["docstatus", "=", "1"]]),
+    limit_page_length: "1000",
+    order_by: "enrollment_date desc",
+  });
+  const { data: enrollData } = await apiClient.get(`/resource/Program Enrollment?${enrollParams}`);
+  const enrollments: { student: string; program: string }[] = enrollData?.data ?? [];
+
+  // Latest program per student
+  const studentProgram = new Map<string, string>();
+  for (const e of enrollments) {
+    if (!studentProgram.has(e.student)) studentProgram.set(e.student, e.program);
+  }
+
+  // Build program → { all[], discontinued[] }
+  const programStudents = new Map<string, { all: string[]; discontinued: string[] }>();
+  for (const s of students) {
+    const program = studentProgram.get(s.name) ?? "Uncategorized";
+    if (!programStudents.has(program)) programStudents.set(program, { all: [], discontinued: [] });
+    const grp = programStudents.get(program)!;
+    grp.all.push(s.name);
+    if (!s.enabled) grp.discontinued.push(s.name);
+  }
+
+  // Step 3: Aggregate invoice stats per program in parallel
+  const results = await Promise.all(
+    Array.from(programStudents.entries()).map(async ([program, { all, discontinued }]) => {
+      const allInvParams = new URLSearchParams({
+        fields: JSON.stringify(["sum(grand_total) as total_invoiced", "sum(outstanding_amount) as total_outstanding", "count(name) as count"]),
+        filters: JSON.stringify([["docstatus", "=", "1"], ["student", "in", all], ["company", "=", branch]]),
+        limit_page_length: "1",
+      });
+      const { data: allData } = await apiClient.get(`/resource/Sales Invoice?${allInvParams}`);
+      const row = allData?.data?.[0];
+      const totalInvoiced = row?.total_invoiced ?? 0;
+      const totalOutstanding = row?.total_outstanding ?? 0;
+
+      let forfeitedFees = 0;
+      if (discontinued.length) {
+        const forfParams = new URLSearchParams({
+          fields: JSON.stringify(["sum(outstanding_amount) as total_outstanding"]),
+          filters: JSON.stringify([
+            ["docstatus", "=", "1"],
+            ["outstanding_amount", ">", "0"],
+            ["student", "in", discontinued],
+            ["company", "=", branch],
+          ]),
+          limit_page_length: "1",
+        });
+        const { data: forfData } = await apiClient.get(`/resource/Sales Invoice?${forfParams}`);
+        forfeitedFees = forfData?.data?.[0]?.total_outstanding ?? 0;
+      }
+
+      return {
+        program,
+        totalInvoiced,
+        totalCollected: totalInvoiced - totalOutstanding,
+        totalOutstanding,
+        forfeitedFees,
+        count: row?.count ?? 0,
+      };
+    })
+  );
+
+  return results
+    .filter((r) => r.count > 0)
+    .sort((a, b) => b.totalInvoiced - a.totalInvoiced);
 }
 
 /** Get invoice stats for a specific branch */
@@ -356,6 +530,21 @@ export async function getBatchStudents(
     `/resource/Student Group/${encodeURIComponent(batchName)}`
   );
   return { students: data.data?.students ?? [] };
+}
+
+/** Aggregate active/inactive student counts for a set of batch names (one API call) */
+export async function getProgramBatchesStudentStats(
+  batchNames: string[]
+): Promise<{ active: number; inactive: number }> {
+  if (!batchNames.length) return { active: 0, inactive: 0 };
+  const results = await Promise.all(batchNames.map((name) => getBatchStudents(name)));
+  let active = 0;
+  let inactive = 0;
+  for (const res of results) {
+    active += res.students.filter((s) => s.active).length;
+    inactive += res.students.filter((s) => !s.active).length;
+  }
+  return { active, inactive };
 }
 
 export interface BranchInstructor {

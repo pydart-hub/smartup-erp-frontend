@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ── Record payment in Frappe ──
+    // ── Check if student is discontinued ──
     const adminAuth = `token ${FRAPPE_API_KEY}:${FRAPPE_API_SECRET}`;
     const headers = {
       Authorization: adminAuth,
@@ -81,6 +81,36 @@ export async function POST(request: NextRequest) {
     };
 
     const actualInvoiceId = invoice_id;
+
+    try {
+      const invRes = await fetch(
+        `${FRAPPE_URL}/api/resource/Sales Invoice/${encodeURIComponent(actualInvoiceId)}?fields=["student"]`,
+        { headers },
+      );
+      if (invRes.ok) {
+        const invData = (await invRes.json()).data;
+        const studentId = invData?.student;
+        if (studentId) {
+          const stuRes = await fetch(
+            `${FRAPPE_URL}/api/resource/Student/${encodeURIComponent(studentId)}?fields=["enabled","custom_discontinuation_date"]`,
+            { headers },
+          );
+          if (stuRes.ok) {
+            const stu = (await stuRes.json()).data;
+            if (stu?.enabled === 0 && stu?.custom_discontinuation_date) {
+              return NextResponse.json(
+                { error: "Cannot accept payment — student is discontinued" },
+                { status: 403 },
+              );
+            }
+          }
+        }
+      }
+    } catch {
+      // Non-blocking — proceed if lookup fails
+    }
+
+    // ── Record payment in Frappe ──
 
     // Determine reference doctype — invoices are always generated from the backend
     const isSalesInvoice = actualInvoiceId?.startsWith("ACC-SINV") || actualInvoiceId?.startsWith("SINV");

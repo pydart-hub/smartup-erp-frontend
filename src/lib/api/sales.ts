@@ -38,7 +38,7 @@ const SO_LIST_FIELDS = JSON.stringify([
 const SINV_LIST_FIELDS = JSON.stringify([
   "name", "customer", "customer_name", "posting_date", "due_date",
   "company", "status", "grand_total", "outstanding_amount",
-  "docstatus", "is_return", "creation",
+  "docstatus", "is_return", "creation", "student",
 ]);
 
 // ─────────────────────────────────────────────────────────────────────────────

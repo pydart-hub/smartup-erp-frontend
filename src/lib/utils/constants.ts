@@ -2,8 +2,19 @@
 export const MAX_BATCH_CAPACITY = 60;
 
 // ── Student Statuses ──
-export const STUDENT_STATUSES = ["Active", "Completed", "Drop-out"] as const;
+export const STUDENT_STATUSES = ["Active", "Completed", "Drop-out", "Discontinued"] as const;
 export type StudentStatus = (typeof STUDENT_STATUSES)[number];
+
+// ── Discontinuation Reasons ──
+export const DISCONTINUATION_REASONS = [
+  "Fee Default",
+  "Relocation",
+  "Personal Reasons",
+  "Health Issues",
+  "Transfer to Other School",
+  "Other",
+] as const;
+export type DiscontinuationReason = (typeof DISCONTINUATION_REASONS)[number];
 
 // ── Class Levels ──
 export const CLASS_LEVELS = ["8", "9", "10", "11", "12"] as const;
@@ -67,11 +78,15 @@ export const ROLES = {
 
 // ── Role to Dashboard Route Mapping ──
 export const ROLE_DASHBOARD_MAP: Record<string, string> = {
+  "Director": "/dashboard/director",
+  "Management": "/dashboard/director",
   "Branch Manager": "/dashboard/branch-manager",
   "Batch Coordinator": "/dashboard/batch-coordinator",
   "Teacher": "/dashboard/teacher",
   "Administrator": "/dashboard/admin",
   "HR Manager": "/dashboard/hr-manager",
+  "Instructor": "/dashboard/instructor",
+  "Parent": "/dashboard/parent",
 };
 
 // ── Sidebar Navigation per Role ──
@@ -102,6 +117,7 @@ export const BRANCH_MANAGER_NAV: NavItem[] = [
   { label: "Teachers", href: "/dashboard/branch-manager/teachers", icon: "UserCheck" },
   { label: "Fees", href: "/dashboard/branch-manager/fees", icon: "IndianRupee" },
   { label: "Sales Orders", href: "/dashboard/branch-manager/sales-orders", icon: "ShoppingCart" },
+  { label: "Transfers", href: "/dashboard/branch-manager/transfers", icon: "ArrowRightLeft" },
 ];
 
 export const DIRECTOR_NAV: NavItem[] = [
@@ -117,6 +133,7 @@ export const DIRECTOR_NAV: NavItem[] = [
   { label: "Course Schedule", href: "/dashboard/director/course-schedule", icon: "CalendarDays" },
   { label: "Fees", href: "/dashboard/director/fees", icon: "IndianRupee" },
   { label: "Sales Orders", href: "/dashboard/director/sales-orders", icon: "ShoppingCart" },
+  { label: "Transfers", href: "/dashboard/branch-manager/transfers", icon: "ArrowRightLeft" },
 ];
 
 export const INSTRUCTOR_NAV: NavItem[] = [

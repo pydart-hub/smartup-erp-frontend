@@ -8,6 +8,7 @@ export const studentSchema = z.object({
   blood_group: z.enum(["", "A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"]).optional(),
   student_email_id: z.union([z.string().email("Invalid email"), z.literal("")]).optional(),
   student_mobile_number: z.string().regex(/^\d{10}$/, "Mobile number must be exactly 10 digits").optional().or(z.literal("")),
+  aadhaar_number: z.string().regex(/^\d{12}$/, "Aadhaar number must be exactly 12 digits").optional().or(z.literal("")),
 
   // Step 2 — Guardian
   guardian_name: z.string().min(1, "Guardian name is required"),

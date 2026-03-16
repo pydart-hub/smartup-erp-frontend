@@ -12,10 +12,11 @@ import {
   AlertCircle,
   CircleCheck,
   Clock,
+  TriangleAlert,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Input } from "@/components/ui/Input";
-import { getAllBranches, getBranchInvoiceStats } from "@/lib/api/director";
+import { getAllBranches, getBranchInvoiceStats, getBranchForfeitedFees } from "@/lib/api/director";
 import { formatCurrency } from "@/lib/utils/formatters";
 
 function BranchFeeRow({ branch }: { branch: { name: string; abbr: string } }) {
@@ -25,10 +26,17 @@ function BranchFeeRow({ branch }: { branch: { name: string; abbr: string } }) {
     staleTime: 120_000,
   });
 
+  const { data: forfeitedFees, isLoading: loadForfeited } = useQuery({
+    queryKey: ["director-branch-forfeited-fees", branch.name],
+    queryFn: () => getBranchForfeitedFees(branch.name),
+    staleTime: 120_000,
+  });
+
   const shortName = branch.name.replace("Smart Up ", "").replace("Smart Up", "HQ");
   const totalFees = invoiceStats?.totalInvoiced ?? 0;
   const collected = invoiceStats?.totalCollected ?? 0;
-  const pending = invoiceStats?.totalOutstanding ?? 0;
+  const forfeited = forfeitedFees ?? 0;
+  const pending = (invoiceStats?.totalOutstanding ?? 0) - forfeited;
   const invoiceCount = invoiceStats?.count ?? 0;
 
   return (
@@ -68,6 +76,16 @@ function BranchFeeRow({ branch }: { branch: { name: string; abbr: string } }) {
             )}
             <p className="text-[10px] text-error/70 flex items-center justify-end gap-0.5">
               <Clock className="h-2.5 w-2.5" /> pending
+            </p>
+          </div>
+          <div className="text-right">
+            {loadForfeited ? (
+              <span className="inline-block w-14 h-5 bg-border-light rounded animate-pulse" />
+            ) : (
+              <p className={`text-sm font-bold ${forfeited > 0 ? "text-amber-600" : "text-text-tertiary"}`}>{formatCurrency(forfeited)}</p>
+            )}
+            <p className="text-[10px] text-amber-500/80 flex items-center justify-end gap-0.5">
+              <TriangleAlert className="h-2.5 w-2.5" /> forfeited
             </p>
           </div>
         </div>

@@ -25,10 +25,12 @@ import {
   BookOpen,
   Receipt,
   Briefcase,
+  ArrowRightLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useUIStore } from "@/lib/stores/uiStore";
 import { BRANCH_MANAGER_NAV, type NavItem } from "@/lib/utils/constants";
+import { useTransferNotifications } from "@/lib/hooks/useTransferNotifications";
 
 
 const iconMap: Record<string, React.ElementType> = {
@@ -47,6 +49,7 @@ const iconMap: Record<string, React.ElementType> = {
   CalendarDays,
   Receipt,
   Briefcase,
+  ArrowRightLeft,
 };
 
 interface SidebarProps {
@@ -56,6 +59,7 @@ interface SidebarProps {
 export function Sidebar({ navItems = BRANCH_MANAGER_NAV }: SidebarProps) {
   const pathname = usePathname();
   const { sidebarOpen, sidebarCollapsed, setSidebarOpen, toggleSidebarCollapsed } = useUIStore();
+  const { pendingCount } = useTransferNotifications();
   const [openGroups, setOpenGroups] = React.useState<Record<string, boolean>>({});
 
   // Auto-expand groups whose children match the current path
@@ -76,7 +80,15 @@ export function Sidebar({ navItems = BRANCH_MANAGER_NAV }: SidebarProps) {
     setOpenGroups((prev) => ({ ...prev, [href]: !prev[href] }));
   };
 
-  const visibleNavItems = navItems;
+  const visibleNavItems = React.useMemo(
+    () =>
+      navItems.map((item) =>
+        item.label === "Transfers" && pendingCount > 0
+          ? { ...item, badge: String(pendingCount) }
+          : item,
+      ),
+    [navItems, pendingCount],
+  );
 
   // Logo link: first nav item's href (works for any role)
   const homeHref = navItems[0]?.href ?? "/dashboard/branch-manager";

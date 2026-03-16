@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     if (authResult instanceof NextResponse) return authResult;
 
     const body = await request.json();
-    const { email, full_name, password, phone } = body;
+    const { email, full_name, password, phone, student_name, program, branch } = body;
 
     if (!email || !full_name || !password) {
       return NextResponse.json(
@@ -192,16 +192,24 @@ export async function POST(request: NextRequest) {
         || process.env.VERCEL_URL
         || "https://smartuplearning.net";
 
-      const setPasswordUrl = `${loginUrl}/auth/forgot-password`;
-
       const emailBody = `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #171717;">Welcome to SmartUp Parent Portal</h2>
           <p>Dear <strong>${full_name}</strong>,</p>
-          <p>Your child has been successfully registered at SmartUp. A parent portal account has been created for you to track your child's academic progress, fees, and attendance.</p>
-          
+          <p>Your child${student_name ? ` <strong>${student_name}</strong>` : ""} has been successfully enrolled${program ? ` in <strong>${program}</strong>` : ""}${branch ? ` at <strong>SmartUp ${branch}</strong>` : ""}. A parent portal account has been created for you to track your child's academic progress, fees, and attendance.</p>
+
+          ${(student_name || program || branch) ? `
+          <div style="background-color: #eef6ff; border-left: 4px solid #2d95f0; border-radius: 4px; padding: 14px 18px; margin: 16px 0;">
+            <p style="margin: 0; font-size: 14px; color: #1a56a0; font-weight: 600;">Enrollment Summary</p>
+            <table style="width: 100%; border-collapse: collapse; margin-top: 8px;">
+              ${student_name ? `<tr><td style="padding: 4px 0; color: #555; width: 120px; font-size: 13px;">Student:</td><td style="padding: 4px 0; font-size: 13px;"><strong>${student_name}</strong></td></tr>` : ""}
+              ${program ? `<tr><td style="padding: 4px 0; color: #555; font-size: 13px;">Program:</td><td style="padding: 4px 0; font-size: 13px;"><strong>${program}</strong></td></tr>` : ""}
+              ${branch ? `<tr><td style="padding: 4px 0; color: #555; font-size: 13px;">Branch:</td><td style="padding: 4px 0; font-size: 13px;"><strong>SmartUp ${branch}</strong></td></tr>` : ""}
+            </table>
+          </div>` : ""}
+
           <div style="background-color: #f5f5f5; border-radius: 8px; padding: 20px; margin: 20px 0;">
-            <h3 style="margin-top: 0; color: #171717;">Your Account Details</h3>
+            <h3 style="margin-top: 0; color: #171717;">Your Login Details</h3>
             <table style="width: 100%; border-collapse: collapse;">
               <tr>
                 <td style="padding: 8px 0; color: #666; width: 120px;">Login URL:</td>
@@ -211,19 +219,23 @@ export async function POST(request: NextRequest) {
                 <td style="padding: 8px 0; color: #666;">Email:</td>
                 <td style="padding: 8px 0;"><strong>${email}</strong></td>
               </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #666;">Password:</td>
+                <td style="padding: 8px 0;"><strong>${password}</strong></td>
+              </tr>
             </table>
           </div>
 
-          <p>You can log in using your email and the password provided by the branch manager. If you need to reset your password, click the button below:</p>
-          
+          <p style="color: #e53e3e; font-size: 13px;"><strong>Important:</strong> Please change your password after your first login for security.</p>
+
           <div style="text-align: center; margin: 24px 0;">
-            <a href="${setPasswordUrl}" style="display: inline-block; background-color: #2d95f0; color: #ffffff; text-decoration: none; padding: 12px 32px; border-radius: 6px; font-weight: 600;">Reset Password</a>
+            <a href="${loginUrl}/auth/login" style="display: inline-block; background-color: #2d95f0; color: #ffffff; text-decoration: none; padding: 12px 32px; border-radius: 6px; font-weight: 600;">Login to Parent Portal</a>
           </div>
 
-          <p style="color: #888; font-size: 13px;">If the button doesn't work, copy and paste this link into your browser: ${setPasswordUrl}</p>
-          
+          <p style="color: #888; font-size: 13px;">If the button doesn't work, copy and paste this link into your browser: ${loginUrl}/auth/login</p>
+
           <p>If you have any questions, please contact the school administration.</p>
-          
+
           <p style="margin-top: 30px;">
             Thank you,<br>
             <strong>SmartUp Team</strong>

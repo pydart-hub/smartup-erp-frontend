@@ -19,7 +19,7 @@ import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { getBranchBatches, getStudentCountForBranch } from "@/lib/api/director";
+import { getBranchBatches, getStudentCountForBranch, getActiveStudentCountForBranch, getDiscontinuedStudentCountForBranch, getProgramBatchesStudentStats } from "@/lib/api/director";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -31,6 +31,20 @@ const itemVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" as const } },
 };
 
+function ProgramStudentCount({ batchNames }: { batchNames: string[] }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["director-program-student-stats", ...batchNames.slice().sort()],
+    queryFn: () => getProgramBatchesStudentStats(batchNames),
+    staleTime: 120_000,
+  });
+  const total = (data?.active ?? 0) + (data?.inactive ?? 0);
+  return (
+    <p className="text-xs text-text-tertiary mt-2">
+      {isLoading ? "..." : `${total} student${total !== 1 ? "s" : ""}`}
+    </p>
+  );
+}
+
 export default function BranchStudentsPage() {
   const params = useParams();
   const branchName = decodeURIComponent(params.id as string);
@@ -40,6 +54,18 @@ export default function BranchStudentsPage() {
   const { data: totalCount } = useQuery({
     queryKey: ["director-branch-student-count", branchName],
     queryFn: () => getStudentCountForBranch(branchName),
+    staleTime: 120_000,
+  });
+
+  const { data: activeCount } = useQuery({
+    queryKey: ["director-branch-active-students", branchName],
+    queryFn: () => getActiveStudentCountForBranch(branchName),
+    staleTime: 120_000,
+  });
+
+  const { data: discontinuedCount } = useQuery({
+    queryKey: ["director-branch-discontinued-students", branchName],
+    queryFn: () => getDiscontinuedStudentCountForBranch(branchName),
     staleTime: 120_000,
   });
 
@@ -115,13 +141,28 @@ export default function BranchStudentsPage() {
 
       {/* Summary Cards */}
       <motion.div variants={itemVariants} className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-        <Card className="border-border-light">
+        <Card className="border-border-light col-span-2 sm:col-span-1">
           <CardContent className="p-4 text-center">
             <GraduationCap className="h-5 w-5 text-primary mx-auto mb-2" />
             <p className="text-2xl font-bold text-text-primary">
               {totalCount ?? "..."}
             </p>
             <p className="text-xs text-text-tertiary">Total Students</p>
+            <div className="flex justify-center gap-3 mt-2">
+              <div className="text-center">
+                <p className="text-sm font-semibold text-success">
+                  {activeCount ?? "..."}
+                </p>
+                <p className="text-[10px] text-text-tertiary uppercase tracking-wide">Active</p>
+              </div>
+              <div className="w-px bg-border-light" />
+              <div className="text-center">
+                <p className="text-sm font-semibold text-error">
+                  {discontinuedCount ?? "..."}
+                </p>
+                <p className="text-[10px] text-text-tertiary uppercase tracking-wide">Discontinued</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
         <Card className="border-border-light">
@@ -170,7 +211,13 @@ export default function BranchStudentsPage() {
                 key={program}
                 href={`/dashboard/director/branches/${encodedBranch}/students/${encodeURIComponent(program)}`}
               >
-                <motion.div variants={itemVariants} whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }}>
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.35, ease: "easeOut" }}
+                  whileHover={{ y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                >
                   <Card className="h-full hover:shadow-md transition-shadow cursor-pointer border-border-light hover:border-primary/30">
                     <CardContent className="p-5">
                       <div className="flex items-start justify-between mb-3">
@@ -203,6 +250,8 @@ export default function BranchStudentsPage() {
                           </Badge>
                         )}
                       </div>
+
+                      <ProgramStudentCount batchNames={groups.map((g) => g.name)} />
                     </CardContent>
                   </Card>
                 </motion.div>

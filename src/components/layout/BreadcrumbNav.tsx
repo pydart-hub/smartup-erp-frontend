@@ -14,7 +14,8 @@ export function BreadcrumbNav() {
   // Build breadcrumb items
   const breadcrumbs = segments.map((segment, index) => {
     const href = "/" + segments.slice(0, index + 1).join("/");
-    const label = segment
+    const decoded = decodeURIComponent(segment);
+    const label = decoded
       .replace(/-/g, " ")
       .replace(/\b\w/g, (c) => c.toUpperCase());
     return { label, href };

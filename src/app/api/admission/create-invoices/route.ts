@@ -19,6 +19,27 @@ const FRAPPE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL;
 const API_KEY = process.env.FRAPPE_API_KEY;
 const API_SECRET = process.env.FRAPPE_API_SECRET;
 
+/** Retry-aware fetch — retries on socket/network errors (Frappe sometimes drops connections) */
+async function fetchRetry(
+  url: string,
+  init: RequestInit,
+  retries = 2,
+): Promise<Response> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await fetch(url, init);
+    } catch (err: unknown) {
+      const isRetryable =
+        err instanceof TypeError ||
+        (err as { code?: string })?.code === "UND_ERR_SOCKET" ||
+        (err as { cause?: { code?: string } })?.cause?.code === "UND_ERR_SOCKET";
+      if (!isRetryable || attempt >= retries) throw err;
+      // Brief pause before retry
+      await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+    }
+  }
+}
+
 interface ScheduleEntry {
   amount: number;
   dueDate: string;
@@ -50,7 +71,7 @@ export async function POST(request: NextRequest) {
     };
 
     // 1. Fetch the SO to get customer, company, items, etc.
-    const soRes = await fetch(
+    const soRes = await fetchRetry(
       `${FRAPPE_URL}/api/resource/Sales Order/${encodeURIComponent(salesOrderName)}`,
       { headers },
     );
@@ -114,7 +135,7 @@ export async function POST(request: NextRequest) {
       };
 
       // Insert as draft
-      const createRes = await fetch(`${FRAPPE_URL}/api/resource/Sales Invoice`, {
+      const createRes = await fetchRetry(`${FRAPPE_URL}/api/resource/Sales Invoice`, {
         method: "POST",
         headers,
         body: JSON.stringify(invoicePayload),
@@ -131,7 +152,7 @@ export async function POST(request: NextRequest) {
       const invName = created.name;
 
       // Submit the invoice
-      const submitRes = await fetch(
+      const submitRes = await fetchRetry(
         `${FRAPPE_URL}/api/resource/Sales Invoice/${encodeURIComponent(invName)}`,
         {
           method: "PUT",

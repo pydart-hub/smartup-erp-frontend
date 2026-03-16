@@ -7,8 +7,9 @@ const STUDENT_LIST_FIELDS = JSON.stringify([
   "name", "student_name", "first_name", "last_name",
   "student_email_id", "student_mobile_number",
   "gender", "date_of_birth", "image", "enabled",
-  "custom_branch", "custom_branch_abbr", "custom_srr_id", "custom_parent_name",
+  "custom_branch", "custom_branch_abbr", "custom_srr_id", "custom_parent_name", "custom_aadhaar",
   "joining_date", "creation",
+  "custom_discontinuation_date", "custom_discontinuation_reason",
 ]);
 
 // ── List Students ──
@@ -17,6 +18,7 @@ export async function getStudents(params?: {
   enabled?: 0 | 1;        // 1 = active, 0 = disabled (left/dropped)
   custom_branch?: string; // Company name e.g. "Smart Up Chullickal"
   fields?: string;        // override default fields
+  extraFilters?: string[][];  // additional Frappe filters
 } & PaginationParams): Promise<FrappeListResponse<Student>> {
   const searchParams = new URLSearchParams();
 
@@ -32,6 +34,7 @@ export async function getStudents(params?: {
   if (params?.search) {
     filters.push(["student_name", "like", `%${params.search}%`]);
   }
+  if (params?.extraFilters) filters.push(...params.extraFilters);
   if (filters.length) searchParams.set("filters", JSON.stringify(filters));
 
   const { data } = await apiClient.get(`/resource/Student?${searchParams.toString()}`);

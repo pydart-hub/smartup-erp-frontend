@@ -23,6 +23,7 @@ interface InstalmentTimelineProps {
   parentName?: string;
   parentEmail?: string;
   onPaymentSuccess: () => void;
+  disabled?: boolean;
 }
 
 function formatCurrency(amount: number) {
@@ -102,6 +103,7 @@ export default function InstalmentTimeline({
   parentName,
   parentEmail,
   onPaymentSuccess,
+  disabled,
 }: InstalmentTimelineProps) {
   const [partialModalInst, setPartialModalInst] = useState<InstalmentItem | null>(null);
 
@@ -139,6 +141,15 @@ export default function InstalmentTimeline({
 
   return (
     <div className="space-y-4">
+      {disabled && (
+        <div className="flex items-center gap-3 rounded-[12px] border border-error/20 bg-error-light p-3">
+          <AlertCircle className="h-4 w-4 text-error flex-shrink-0" />
+          <p className="text-xs text-text-secondary">
+            This student&apos;s enrollment has been discontinued. Payments are no longer accepted.
+          </p>
+        </div>
+      )}
+
       {/* Progress bar */}
       <div className="space-y-1.5">
         <div className="flex justify-between text-xs text-text-secondary">
@@ -165,6 +176,7 @@ export default function InstalmentTimeline({
           const instPaidAmount = inst.amount - inst.outstandingAmount;
           const instPct = inst.amount > 0 ? Math.round((instPaidAmount / inst.amount) * 100) : 0;
           const showPayButton =
+            !disabled &&
             inst.outstandingAmount > 0 &&
             (inst.status === "overdue" || inst.status === "due-today" || inst.status === "partially-paid" ||
               // Also show for earliest upcoming

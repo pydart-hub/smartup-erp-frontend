@@ -21,6 +21,7 @@ export interface PendingInvoiceRow {
   name: string;
   customer: string;
   customer_name: string;
+  student?: string;
   item_code: string;
   outstanding_amount: number;
   grand_total: number;

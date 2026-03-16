@@ -92,20 +92,52 @@ async function frappeCancel(doctype: string, name: string): Promise<boolean> {
   return res.ok;
 }
 
-/** Force-delete via frappe.client.delete — bypasses LinkExistsError */
+/** Force-delete via frappe.client.delete — logs actual Frappe error on failure */
 async function frappeForceDelete(doctype: string, name: string): Promise<boolean> {
+  const { ok } = await frappeForceDeleteVerbose(doctype, name);
+  return ok;
+}
+
+/** Same as frappeForceDelete but also returns the Frappe error string on failure */
+async function frappeForceDeleteVerbose(
+  doctype: string,
+  name: string,
+): Promise<{ ok: boolean; errorMsg: string }> {
+  const extractMsg = (body: Record<string, unknown>, status: number): string => {
+    let raw = body?._server_messages || body?.message || body?.exc_type || String(status);
+    // _server_messages is often a JSON-encoded array
+    if (typeof raw === "string" && raw.startsWith("[")) {
+      try { raw = (JSON.parse(raw) as string[]).join(" | "); } catch { /* keep raw */ }
+    }
+    return String(raw).slice(0, 400);
+  };
+
   const res = await fetch(`${FRAPPE_URL}/api/method/frappe.client.delete`, {
     method: "POST",
     headers: ADMIN_HEADERS,
     body: JSON.stringify({ doctype, name }),
   });
-  if (res.ok) return true;
+  if (res.ok) return { ok: true, errorMsg: "" };
+  let err1 = "";
+  try {
+    const body = await res.clone().json() as Record<string, unknown>;
+    err1 = extractMsg(body, res.status);
+    console.warn(`[delete-student] frappe.client.delete failed for ${doctype}/${name}:`, err1);
+  } catch { /* ignore parse error */ }
+
   // Fallback to REST DELETE
   const res2 = await fetch(
     `${FRAPPE_URL}/api/resource/${encodeURIComponent(doctype)}/${encodeURIComponent(name)}`,
     { method: "DELETE", headers: ADMIN_HEADERS },
   );
-  return res2.ok;
+  if (res2.ok) return { ok: true, errorMsg: "" };
+  let err2 = "";
+  try {
+    const body2 = await res2.clone().json() as Record<string, unknown>;
+    err2 = extractMsg(body2, res2.status);
+    console.warn(`[delete-student] REST DELETE also failed for ${doctype}/${name}:`, err2);
+  } catch { /* ignore parse error */ }
+  return { ok: false, errorMsg: err2 || err1 };
 }
 
 async function frappePut(
@@ -125,6 +157,7 @@ interface DeletionLog {
   step: string;
   detail: string;
   ok: boolean;
+  error?: string;
 }
 
 async function cancelAndDelete(
@@ -214,7 +247,25 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // ── 3. Cancel + delete Sales Orders ──
+    // ── 3. Delete Student Branch Transfer records ──
+    // Must happen BEFORE deleting SOs and Program Enrollments because
+    // the transfer record holds link fields (new_sales_order, new_program_enrollment)
+    // that block Frappe from deleting those documents.
+    const transfers = (await frappeGetList(
+      "Student Branch Transfer",
+      [["student", "=", studentId]],
+      ["name", "docstatus"],
+    )) as { name: string; docstatus: number }[];
+    for (const tr of transfers) {
+      // Clear link fields first so Frappe doesn't complain about child links
+      await frappePut("Student Branch Transfer", tr.name, {
+        new_sales_order: "",
+        new_program_enrollment: "",
+      });
+      await cancelAndDelete("Student Branch Transfer", tr.name, tr.docstatus, "transfer", log);
+    }
+
+    // ── 4. Cancel + delete Sales Orders ──
     if (customerName) {
       const orders = (await frappeGetList(
         "Sales Order",
@@ -283,14 +334,116 @@ export async function POST(request: NextRequest) {
       await cancelAndDelete("Program Enrollment", pe.name, pe.docstatus, "pe", log);
     }
 
-    // ── 9. Delete Student FIRST (so Guardian + Customer are no longer linked) ──
-    const studentDeleted = await frappeForceDelete("Student", studentId);
-    log.push({ step: "delete_student", detail: studentId, ok: studentDeleted });
+    // ── 9. Cancel + delete remaining Education module records that link to Student ──
+    // Student Log, Assessment Result, Student Leave Application, Student Activity
+    // are NOT covered above but Frappe's link-check will block Student deletion if any exist.
+    for (const edDoctype of [
+      "Student Log",
+      "Student Activity",
+      "Assessment Result",
+      "Student Leave Application",
+      "Assessment Plan",
+      "LMS Enrollment",
+      "Examination Result",
+      "Student Batch Attendance",
+    ]) {
+      try {
+        const edDocs = (await frappeGetList(
+          edDoctype,
+          [["student", "=", studentId]],
+          ["name", "docstatus"],
+        )) as { name: string; docstatus: number }[];
+        for (const doc of edDocs) {
+          await cancelAndDelete(edDoctype, doc.name, doc.docstatus, "ed_record", log);
+        }
+      } catch {
+        // Doctype may not exist in this Frappe instance — skip silently
+      }
+    }
 
-    // ── 10. Delete Guardians (only if not shared with other students) ──
+    // ── 9b. Unlink Student from Student Applicant records ──
+    // Student Applicant has a `student` Link field populated at enrollment.
+    // Frappe's link-check will block Student deletion while this reference exists.
+    // We clear the field (not delete) to preserve the application history.
+    try {
+      const applicants = (await frappeGetList(
+        "Student Applicant",
+        [["student", "=", studentId]],
+        ["name"],
+      )) as { name: string }[];
+      for (const app of applicants) {
+        const ok = await frappePut("Student Applicant", app.name, { student: "" });
+        log.push({ step: "unlink_applicant", detail: app.name, ok });
+      }
+    } catch {
+      // Doctype may not exist — skip silently
+    }
+
+    // ── 10. Unlink Customer + User from Student ──
+    // Clear link fields so Frappe's link-check allows deletion of both Student and User.
+    // Also unlink `user` field since it blocks User deletion if Student still references it.
+    const unlinkFields: Record<string, string> = {};
+    if (customerName) unlinkFields.customer = "";
+    if (studentUser) unlinkFields.user = "";
+    if (Object.keys(unlinkFields).length > 0) {
+      await frappePut("Student", studentId, unlinkFields);
+    }
+
+    // ── 10. Delete Address + Contact linked to Customer ──
+    if (customerName) {
+      const addresses = (await frappeGetList(
+        "Address",
+        [["Dynamic Link", "link_doctype", "=", "Customer"], ["Dynamic Link", "link_name", "=", customerName]],
+        ["name"],
+      )) as { name: string }[];
+      for (const addr of addresses) {
+        const ok = await frappeForceDelete("Address", addr.name);
+        log.push({ step: "delete_address", detail: addr.name, ok });
+      }
+
+      const contacts = (await frappeGetList(
+        "Contact",
+        [["Dynamic Link", "link_doctype", "=", "Customer"], ["Dynamic Link", "link_name", "=", customerName]],
+        ["name"],
+      )) as { name: string }[];
+      for (const contact of contacts) {
+        const ok = await frappeForceDelete("Contact", contact.name);
+        log.push({ step: "delete_contact", detail: contact.name, ok });
+      }
+    }
+
+    // ── 11. Delete Customer BEFORE Student (removes the link that blocks Student deletion) ──
+    // Also search by Dynamic Link in case customerName was already cleared in a previous partial run
+    const customersToDelete = new Set<string>();
+    if (customerName) customersToDelete.add(customerName);
+    try {
+      const linkedCustomers = (await frappeGetList(
+        "Dynamic Link",
+        [["link_doctype", "=", "Student"], ["link_name", "=", studentId], ["parenttype", "=", "Customer"]],
+        ["parent"],
+      )) as { parent: string }[];
+      for (const lc of linkedCustomers) {
+        if (lc.parent) customersToDelete.add(lc.parent);
+      }
+    } catch { /* Dynamic Link query may not be supported — fall through */ }
+
+    for (const cust of customersToDelete) {
+      const ok = await frappeForceDelete("Customer", cust);
+      log.push({ step: "delete_customer", detail: cust, ok });
+    }
+
+    // ── 12. Delete Student (Customer is now gone — link blocker removed) ──
+    const { ok: studentDeleted, errorMsg: studentDeleteErr } = await frappeForceDeleteVerbose("Student", studentId);
+    log.push({
+      step: "delete_student",
+      detail: studentDeleteErr ? `${studentId} — ${studentDeleteErr}` : studentId,
+      ok: studentDeleted,
+      ...(studentDeleteErr ? { error: studentDeleteErr } : {}),
+    });
+
+    // ── 13. Delete Guardians (only if not shared with other students) ──
     for (const row of guardianRows) {
       if (!row.guardian) continue;
-      // Check if this guardian is linked to any OTHER student
       const otherStudents = await frappeGetList(
         "Student",
         [["Student Guardian", "guardian", "=", row.guardian]],
@@ -306,16 +459,14 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
-      // Get guardian email before deleting (needed for step 11)
       const guardianDoc = await frappeGetDoc("Guardian", row.guardian);
       const guardianEmail = (guardianDoc?.email_address as string) || "";
 
       const deleted = await frappeForceDelete("Guardian", row.guardian);
       log.push({ step: "delete_guardian", detail: row.guardian, ok: deleted });
 
-      // ── 11. Delete Parent User (the guardian's login account) ──
+      // ── 14. Delete Parent User (the guardian's login account) ──
       if (deleted && guardianEmail) {
-        // Check the user exists and isn't also an admin/staff
         const userDoc = await frappeGetDoc("User", guardianEmail);
         if (userDoc) {
           const userRoles = (userDoc.roles ?? []) as { role: string }[];
@@ -338,7 +489,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // ── 12. Delete Student User (student's own login if it exists) ──
+    // ── 15. Delete Student User (student's own login if it exists) ──
     const userEmail = studentUser || studentEmail;
     if (userEmail) {
       const userDoc = await frappeGetDoc("User", userEmail);
@@ -362,15 +513,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // ── 13. Delete Customer ──
-    if (customerName) {
-      const ok = await frappeForceDelete("Customer", customerName);
-      log.push({ step: "delete_customer", detail: customerName, ok });
-    }
-
-    // ── Result ──
+    // ── Result — customer / student-user failures are non-critical ──
+    // delete_customer: leaves an orphaned Customer shell with no Student — harmless
+    // delete_student_user: Frappe blocks User deletion when the user has created/submitted
+    //   documents. The student is already fully deactivated (no SO/SI/PE). Non-critical.
+    const NON_CRITICAL_STEPS = new Set(["delete_customer", "delete_student_user"]);
+    const criticalFailed = log.filter(
+      (l) => !l.ok && !NON_CRITICAL_STEPS.has(l.step),
+    );
+    const allOk = criticalFailed.length === 0;
     const failedSteps = log.filter((l) => !l.ok);
-    const allOk = failedSteps.length === 0;
 
     console.log(
       `[delete-student] ${studentId}: ${log.length} steps, ${failedSteps.length} failed`,
@@ -381,9 +533,9 @@ export async function POST(request: NextRequest) {
         success: allOk,
         message: allOk
           ? `Student ${studentId} and all related records deleted successfully.`
-          : `Student deletion partially completed. ${failedSteps.length} step(s) failed.`,
+          : `Student deletion partially completed. ${criticalFailed.length} step(s) failed.`,
         log,
-        failed: failedSteps,
+        failed: criticalFailed,
       },
       { status: allOk ? 200 : 207 },
     );

@@ -26,6 +26,9 @@ import {
   Tag,
   Send,
   HandCoins,
+  Fingerprint,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Button } from "@/components/ui/Button";
@@ -83,6 +86,7 @@ export default function NewStudentPage() {
 
   // Post-admission payment dialog state
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [admissionResult, setAdmissionResult] = useState<{
     studentName: string;
     customerName: string;
@@ -328,6 +332,7 @@ export default function NewStudentPage() {
         blood_group: data.blood_group,
         student_email_id: data.student_email_id,
         student_mobile_number: data.student_mobile_number,
+        custom_aadhaar: data.aadhaar_number || undefined,
         custom_branch: data.custom_branch,
         custom_branch_abbr: (branchObj as { abbr?: string })?.abbr,
         custom_srr_id: data.custom_srr_id,
@@ -604,7 +609,21 @@ export default function NewStudentPage() {
                       label="Mobile Number"
                       placeholder="9876543210"
                       leftIcon={<Phone className="h-4 w-4" />}
+                      maxLength={10}
+                      inputMode="numeric"
+                      onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace','Delete','Tab','ArrowLeft','ArrowRight','Home','End'].includes(e.key) && !e.ctrlKey && !e.metaKey) e.preventDefault(); }}
                       {...register("student_mobile_number")}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Input
+                      label="Aadhaar Number"
+                      placeholder="123456789012"
+                      maxLength={12}
+                      leftIcon={<Fingerprint className="h-4 w-4" />}
+                      error={errors.aadhaar_number?.message}
+                      {...register("aadhaar_number")}
                     />
                   </div>
                 </motion.div>
@@ -641,6 +660,9 @@ export default function NewStudentPage() {
                       label="Guardian Mobile *"
                       placeholder="9876543210"
                       leftIcon={<Phone className="h-4 w-4" />}
+                      maxLength={10}
+                      inputMode="numeric"
+                      onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace','Delete','Tab','ArrowLeft','ArrowRight','Home','End'].includes(e.key) && !e.ctrlKey && !e.metaKey) e.preventDefault(); }}
                       error={errors.guardian_mobile?.message}
                       {...register("guardian_mobile")}
                     />
@@ -657,9 +679,14 @@ export default function NewStudentPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Input
                       label="Parent Login Password *"
-                      type="password"
+                      type={showPassword ? "text" : "password"}
                       placeholder="Min 8 characters"
                       leftIcon={<Lock className="h-4 w-4" />}
+                      rightIcon={
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="cursor-pointer">
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      }
                       error={errors.guardian_password?.message}
                       hint="This will be used to create a parent login account"
                       {...register("guardian_password")}

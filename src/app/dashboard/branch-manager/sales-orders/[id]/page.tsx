@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 import {
   ArrowLeft, FileText, AlertCircle, ShoppingCart,
   Package, Receipt, CheckCircle2, Banknote, X, Loader2, RefreshCw,
-  CreditCard, Smartphone, Building2, Wallet,
+  CreditCard, Smartphone, Building2, Wallet, ArrowRight,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Button } from "@/components/ui/Button";
@@ -17,6 +17,7 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Input } from "@/components/ui/Input";
 import { getSalesOrder, getSalesInvoices, cancelSalesOrder } from "@/lib/api/sales";
+import { getStudent } from "@/lib/api/students";
 import { formatDate, formatCurrency } from "@/lib/utils/formatters";
 import { INSTALMENT_DUE_DATES } from "@/lib/utils/constants";
 import { toast } from "sonner";
@@ -135,6 +136,32 @@ export default function SalesOrderDetailPage() {
   });
   const linkedInvoices = invoicesRes?.data ?? [];
 
+  // ── Check if this SO was created by a branch transfer ──
+  const { data: transferRes } = useQuery({
+    queryKey: ["so-transfer", decodedId],
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/transfer/by-so?so=${encodeURIComponent(decodedId)}`,
+        { credentials: "include" },
+      );
+      if (!res.ok) return { transfer: null };
+      return res.json();
+    },
+    enabled: !!so,
+    staleTime: 300_000,
+  });
+  const transferInfo = transferRes?.transfer ?? null;
+
+  // ── Check if student is discontinued ──
+  const studentId = so?.student;
+  const { data: studentRes } = useQuery({
+    queryKey: ["student-status", studentId],
+    queryFn: () => getStudent(studentId!),
+    enabled: !!studentId,
+    staleTime: 60_000,
+  });
+  const isDiscontinued = studentRes?.data?.enabled === 0 && !!studentRes?.data?.custom_discontinuation_date;
+
   // Sort invoices by due date ascending
   const sortedInvoices = useMemo(
     () =>
@@ -251,7 +278,13 @@ export default function SalesOrderDetailPage() {
   const billedAmount = so.grand_total * (perBilled / 100);
   const unbilledAmount = so.grand_total - billedAmount;
   const totalOutstanding = linkedInvoices.reduce((sum, inv) => sum + (inv.outstanding_amount ?? 0), 0);
-  const totalPaid = linkedInvoices.reduce((sum, inv) => sum + (inv.grand_total - (inv.outstanding_amount ?? 0)), 0);
+  // Use Math.floor to avoid phantom "paid" amounts caused by Frappe's rounded_total:
+  // outstanding_amount = round(grand_total), so grand_total - outstanding can show ~₹0.33 per invoice
+  // without any real payment. Math.floor(0.33) = 0; Math.floor(500.00) = 500 — safe.
+  const totalPaid = linkedInvoices.reduce((sum, inv) => {
+    const paid = inv.grand_total - (inv.outstanding_amount ?? 0);
+    return sum + Math.max(0, Math.floor(paid));
+  }, 0);
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 max-w-5xl mx-auto">
@@ -272,6 +305,9 @@ export default function SalesOrderDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          {transferInfo && (
+            <Badge variant="info">Transferred</Badge>
+          )}
           <Badge variant={STATUS_COLORS[status] ?? "default"}>{status}</Badge>
           {canCreateInvoice && (
             <Link href={`/dashboard/branch-manager/invoices/new?so=${encodeURIComponent(so.name)}`}>
@@ -334,6 +370,62 @@ export default function SalesOrderDetailPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Branch Transfer Info */}
+      {transferInfo && (
+        <Card className="border border-info/30 bg-info/5">
+          <CardContent className="p-5">
+            <div className="flex items-center gap-2 mb-4 pb-3 border-b border-border-light">
+              <Building2 className="h-4 w-4 text-info" />
+              <h3 className="font-semibold text-text-primary">Branch Transfer</h3>
+              <Badge variant="info">Completed</Badge>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <p className="text-xs text-text-tertiary mb-1">From Branch</p>
+                <p className="text-xs font-medium text-text-primary leading-tight">{transferInfo.from_branch}</p>
+              </div>
+              <div>
+                <p className="text-xs text-text-tertiary mb-1">To Branch</p>
+                <p className="text-xs font-medium text-text-primary leading-tight flex items-center gap-1">
+                  <ArrowRight className="h-3 w-3 text-info flex-shrink-0" />
+                  {transferInfo.to_branch}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-text-tertiary mb-1">Transfer Date</p>
+                <p className="text-sm font-medium text-text-primary">
+                  {transferInfo.completion_date ? formatDate(transferInfo.completion_date) : "—"}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-text-tertiary mb-1">Credit Applied</p>
+                <p className="text-sm font-semibold text-success">
+                  {formatCurrency(transferInfo.amount_already_paid || 0)}
+                </p>
+              </div>
+            </div>
+            {(transferInfo.amount_already_paid > 0) && (
+              <div className="mt-3 pt-3 border-t border-border-light">
+                <p className="text-xs text-text-secondary">
+                  Original fee{" "}
+                  <span className="font-medium text-text-primary">
+                    {formatCurrency(transferInfo.new_total_amount || 0)}
+                  </span>
+                  {" "}−{" "}credit{" "}
+                  <span className="font-medium text-success">
+                    {formatCurrency(transferInfo.amount_already_paid || 0)}
+                  </span>
+                  {" "}={" "}net charged{" "}
+                  <span className="font-semibold text-primary">
+                    {formatCurrency(transferInfo.adjusted_amount || 0)}
+                  </span>
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Order Details */}
@@ -416,6 +508,18 @@ export default function SalesOrderDetailPage() {
             )}
           </div>
 
+          {isDiscontinued && (
+            <div className="flex items-center gap-3 rounded-[12px] border border-error/20 bg-error-light p-4 mb-4">
+              <AlertCircle className="h-5 w-5 text-error flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-error">Student Discontinued</p>
+                <p className="text-xs text-text-secondary mt-0.5">
+                  This student has been discontinued. Payments are blocked and outstanding amounts have been written off as credit notes.
+                </p>
+              </div>
+            </div>
+          )}
+
           {linkedInvoices.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 text-text-tertiary">
               <FileText className="h-8 w-8 mb-2 opacity-40" />
@@ -473,7 +577,7 @@ export default function SalesOrderDetailPage() {
                       </Badge>
                     </td>
                     <td className="py-2 text-right">
-                      {inv.outstanding_amount > 0 && (
+                      {inv.outstanding_amount > 0 && !isDiscontinued && (
                         <Button variant="outline" size="sm" onClick={() => openPaymentModal(inv)}>
                           <Banknote className="h-3.5 w-3.5" /> Pay
                         </Button>

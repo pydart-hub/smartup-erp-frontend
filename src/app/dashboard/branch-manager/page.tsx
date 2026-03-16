@@ -26,7 +26,6 @@ import { getStudentGroups, getBatchEnrollmentCounts, getRecentEnrollments } from
 import { getStudentCount } from "@/lib/api/students";
 import { getAttendance } from "@/lib/api/attendance";
 import { getEmployeeAttendance } from "@/lib/api/employees";
-import { getSalesStats } from "@/lib/api/sales";
 import { formatCurrency } from "@/lib/utils/formatters";
 
 const quickActions = [
@@ -76,6 +75,16 @@ export default function BranchManagerDashboard() {
     staleTime: 60_000,
   });
 
+  const { data: discontinuedCount } = useQuery({
+    queryKey: ["dashboard-discontinued-count", defaultCompany],
+    queryFn: () => {
+      const filters: string[][] = [["enabled", "=", "0"], ["custom_discontinuation_date", "is", "set"]];
+      if (defaultCompany) filters.push(["custom_branch", "=", defaultCompany]);
+      return getStudentCount(filters);
+    },
+    staleTime: 60_000,
+  });
+
   const { data: studentGroupsRes, isLoading: loadingGroups } = useQuery({
     queryKey: ["dashboard-student-groups", defaultCompany, selectedYear],
     queryFn: () =>
@@ -106,7 +115,11 @@ export default function BranchManagerDashboard() {
 
   const { data: salesStats, isLoading: loadingSales } = useQuery({
     queryKey: ["dashboard-sales-stats", defaultCompany],
-    queryFn: () => getSalesStats(defaultCompany || undefined),
+    queryFn: () =>
+      fetch(
+        `/api/fees/report-summary${defaultCompany ? `?company=${encodeURIComponent(defaultCompany)}` : ""}`,
+        { credentials: "include" }
+      ).then((r) => r.ok ? r.json() : null),
     staleTime: 300_000,
   });
 
@@ -228,6 +241,23 @@ export default function BranchManagerDashboard() {
           color="primary"
           loading={loadingStudents}
           href="/dashboard/branch-manager/students"
+          subtitle={
+            !loadingStudents ? (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[11px] text-success font-medium">
+                  {studentCount ?? 0} active
+                </span>
+                {(discontinuedCount ?? 0) > 0 && (
+                  <>
+                    <span className="text-[11px] text-text-tertiary">·</span>
+                    <span className="text-[11px] text-error font-medium">
+                      {discontinuedCount} discontinued
+                    </span>
+                  </>
+                )}
+              </div>
+            ) : undefined
+          }
         />
         <StatsCard
           title="Student Attendance"
