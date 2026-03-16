@@ -7,6 +7,7 @@ const ROLE_DASHBOARD_MAP: Record<string, string> = {
   "Branch Manager": "/dashboard/branch-manager",
   "HR Manager": "/dashboard/hr-manager",
   "Instructor": "/dashboard/instructor",
+  "Sales User": "/dashboard/sales-user",
   "Batch Coordinator": "/dashboard/batch-coordinator",
   "Teacher": "/dashboard/teacher",
   "Administrator": "/dashboard/admin",
@@ -68,6 +69,13 @@ export function middleware(request: NextRequest) {
     if (roles.includes("Parent") && !roles.includes("Branch Manager") && !roles.includes("Administrator")) {
       if (pathname.startsWith("/dashboard/") && !pathname.startsWith("/dashboard/parent")) {
         return NextResponse.redirect(new URL("/dashboard/parent", request.url));
+      }
+    }
+
+    // Sales Users can only access /dashboard/sales-user/*
+    if (roles.includes("Sales User") && !roles.includes("Branch Manager") && !roles.includes("Administrator") && !roles.includes("Director")) {
+      if (pathname.startsWith("/dashboard/") && !pathname.startsWith("/dashboard/sales-user")) {
+        return NextResponse.redirect(new URL("/dashboard/sales-user", request.url));
       }
     }
   } catch {

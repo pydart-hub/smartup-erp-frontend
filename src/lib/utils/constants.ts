@@ -74,6 +74,7 @@ export const ROLES = {
   TEACHER: "Teacher",
   ADMIN: "Administrator",
   HR_MANAGER: "HR Manager",
+  SALES_USER: "Sales User",
 } as const;
 
 // ── Role to Dashboard Route Mapping ──
@@ -86,6 +87,7 @@ export const ROLE_DASHBOARD_MAP: Record<string, string> = {
   "Administrator": "/dashboard/admin",
   "HR Manager": "/dashboard/hr-manager",
   "Instructor": "/dashboard/instructor",
+  "Sales User": "/dashboard/sales-user",
   "Parent": "/dashboard/parent",
 };
 
@@ -158,6 +160,12 @@ export const HR_MANAGER_NAV: NavItem[] = [
   { label: "Leaves", href: "/dashboard/hr-manager/leaves", icon: "CalendarDays" },
   { label: "Payroll", href: "/dashboard/hr-manager/payroll", icon: "IndianRupee" },
   { label: "Expense Claims", href: "/dashboard/hr-manager/expense-claims", icon: "FileText" },
+];
+
+export const SALES_USER_NAV: NavItem[] = [
+  { label: "Dashboard", href: "/dashboard/sales-user", icon: "LayoutDashboard" },
+  { label: "New Admission", href: "/dashboard/sales-user/admit", icon: "UserPlus" },
+  { label: "Students", href: "/dashboard/sales-user/students", icon: "GraduationCap" },
 ];
 
 

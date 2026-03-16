@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/lib/hooks/useAuth";
-import { getEmployees, getInstructors } from "@/lib/api/employees";
+import { getEmployees, getInstructors, getInstructorsWithCourses } from "@/lib/api/employees";
 
 export default function TeachersPage() {
   const { defaultCompany } = useAuth();
@@ -39,6 +39,28 @@ export default function TeachersPage() {
     queryFn: () => getInstructors({ limit_page_length: 500 }),
     staleTime: 5 * 60_000,
   });
+
+  // Fetch instructors with full instructor_log (courses)
+  const { data: instrWithCoursesRes } = useQuery({
+    queryKey: ["instructors-with-courses", defaultCompany],
+    queryFn: () => getInstructorsWithCourses(defaultCompany!),
+    staleTime: 10 * 60_000,
+    enabled: !!defaultCompany,
+  });
+
+  // Build map: instructor name → unique course list
+  const coursesMap = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const instr of instrWithCoursesRes ?? []) {
+      const courses = [...new Set(
+        (instr.instructor_log ?? [])
+          .map((log) => log.course)
+          .filter((c): c is string => !!c)
+      )];
+      map.set(instr.name, courses);
+    }
+    return map;
+  }, [instrWithCoursesRes]);
 
   const isLoading = empLoading || instrLoading;
 
@@ -209,6 +231,20 @@ export default function TeachersPage() {
                           <div className="flex items-center gap-1.5 text-xs text-text-secondary">
                             <Building2 className="h-3 w-3 text-text-tertiary" />
                             <span className="truncate text-primary">{teacher.custom_company}</span>
+                          </div>
+                        )}
+
+                        {/* Subjects */}
+                        {(coursesMap.get(teacher.name) ?? []).length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 pt-2 mt-1 border-t border-border-light">
+                            {(coursesMap.get(teacher.name) ?? []).map((course) => (
+                              <span
+                                key={course}
+                                className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-primary/10 text-primary border border-primary/20"
+                              >
+                                {course}
+                              </span>
+                            ))}
                           </div>
                         )}
                       </div>

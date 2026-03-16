@@ -6,7 +6,7 @@ import { Topbar } from "@/components/layout/Topbar";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import { useAuthStore } from "@/lib/stores/authStore";
-import { PARENT_NAV, INSTRUCTOR_NAV, DIRECTOR_NAV, HR_MANAGER_NAV } from "@/lib/utils/constants";
+import { PARENT_NAV, INSTRUCTOR_NAV, DIRECTOR_NAV, HR_MANAGER_NAV, SALES_USER_NAV } from "@/lib/utils/constants";
 
 function makeQueryClient() {
   return new QueryClient({
@@ -32,17 +32,20 @@ export default function DashboardLayout({
   const isInstructor = storeIsInstructor || role === "Instructor";
   const isDirector = role === "Director" || role === "Management";
   const isHRManager = role === "HR Manager";
+  const isSalesUser = role === "Sales User";
 
   // Determine sidebar nav items based on role
   const sidebarNav = isDirector
     ? DIRECTOR_NAV
     : isHRManager
       ? HR_MANAGER_NAV
-      : isParent
-        ? PARENT_NAV
-        : isInstructor
-          ? INSTRUCTOR_NAV
-          : undefined;
+      : isSalesUser
+        ? SALES_USER_NAV
+        : isParent
+          ? PARENT_NAV
+          : isInstructor
+            ? INSTRUCTOR_NAV
+            : undefined;
 
   return (
     <QueryClientProvider client={queryClient}>

@@ -16,6 +16,7 @@ const APP_ROLE_PRIORITY = [
   "Instructor",
   "Batch Coordinator",
   "Teacher",
+  "Sales User",
   "Accounts User",
   "Parent",
 ];

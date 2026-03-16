@@ -148,9 +148,9 @@ export default function BatchDetailPage() {
             </Card>
             <Card>
               <CardContent className="py-4">
-                <p className="text-xs text-text-secondary">Batch Code</p>
-                <p className="text-2xl font-bold text-text-primary mt-1">
-                  {batch.batch || "—"}
+                <p className="text-xs text-text-secondary">Active Students</p>
+                <p className="text-2xl font-bold text-success mt-1">
+                  {activeStudents.length}
                 </p>
               </CardContent>
             </Card>

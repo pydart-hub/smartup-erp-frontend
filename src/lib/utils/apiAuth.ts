@@ -73,4 +73,5 @@ export const STAFF_ROLES = [
   "Branch Manager",
   "Director",
   "System Manager",
+  "Sales User",
 ];
