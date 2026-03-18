@@ -219,6 +219,59 @@ export async function getTotalInvoiceStats(): Promise<{
 }
 
 /**
+ * Break down total collected amount into Online (Razorpay) vs Cash/Offline.
+ * Razorpay payments have reference_no starting with "pay_".
+ * Cash/offline payments have mode_of_payment set explicitly.
+ */
+export async function getCollectedByMode(): Promise<{
+  online: number;
+  cash: number;
+}> {
+  const params = new URLSearchParams({
+    fields: JSON.stringify(["mode_of_payment", "reference_no", "paid_amount"]),
+    filters: JSON.stringify([["docstatus", "=", "1"], ["payment_type", "=", "Receive"]]),
+    limit_page_length: "1000",
+  });
+  const { data } = await apiClient.get(`/resource/Payment Entry?${params}`);
+  const entries: { mode_of_payment: string | null; reference_no: string | null; paid_amount: number }[] =
+    data?.data ?? [];
+  let online = 0;
+  let cash = 0;
+  for (const pe of entries) {
+    if (pe.reference_no?.startsWith("pay_")) {
+      online += pe.paid_amount ?? 0;
+    } else {
+      cash += pe.paid_amount ?? 0;
+    }
+  }
+  return { online, cash };
+}
+
+export async function getBranchCollectedByMode(branch: string): Promise<{
+  online: number;
+  cash: number;
+}> {
+  const params = new URLSearchParams({
+    fields: JSON.stringify(["mode_of_payment", "reference_no", "paid_amount"]),
+    filters: JSON.stringify([["docstatus", "=", "1"], ["payment_type", "=", "Receive"], ["company", "=", branch]]),
+    limit_page_length: "1000",
+  });
+  const { data } = await apiClient.get(`/resource/Payment Entry?${params}`);
+  const entries: { mode_of_payment: string | null; reference_no: string | null; paid_amount: number }[] =
+    data?.data ?? [];
+  let online = 0;
+  let cash = 0;
+  for (const pe of entries) {
+    if (pe.reference_no?.startsWith("pay_")) {
+      online += pe.paid_amount ?? 0;
+    } else {
+      cash += pe.paid_amount ?? 0;
+    }
+  }
+  return { online, cash };
+}
+
+/**
  * Total outstanding fees for all discontinued students.
  * Step 1: fetch discontinued student IDs, Step 2: sum their invoice outstanding amounts.
  */
@@ -370,6 +423,65 @@ export async function getBranchProgramFeeStats(branch: string): Promise<ProgramF
   return results
     .filter((r) => r.count > 0)
     .sort((a, b) => b.totalInvoiced - a.totalInvoiced);
+}
+
+export interface StudentFeeRow {
+  studentName: string;
+  studentId: string;
+  totalInvoiced: number;
+  totalCollected: number;
+  totalOutstanding: number;
+  invoiceCount: number;
+  enabled: number; // 1 = active, 0 = discontinued
+  feePlan?: string; // "Basic" | "Advanced" from Sales Order
+  paymentMode?: string; // "Cash" | "Online" derived from Payment Entries
+}
+
+/**
+ * Get student-level fee details for a specific branch + program.
+ * Calls the server-side /api/director/program-students route which uses
+ * admin credentials, bypassing any Frappe role-permission gaps for the
+ * Director user token.
+ */
+export async function getBranchProgramStudentFees(
+  branch: string,
+  program: string
+): Promise<StudentFeeRow[]> {
+  const params = new URLSearchParams({ branch, program });
+  const { data } = await apiClient.get(
+    `/director/program-students?${params}`,
+    { baseURL: "/api" }
+  );
+  return (data?.data ?? []) as StudentFeeRow[];
+}
+
+// ── Batch student fees ──
+
+export interface BatchStudentFeeRow {
+  studentId: string;
+  studentName: string;
+  active: number;
+  totalFee: number;
+  paidFee: number;
+  pendingFee: number;
+  invoiceCount: number;
+  plan: string | null; // "Basic" | "Intermediate" | "Advanced"
+}
+
+/**
+ * Get per-student fee summary + plan label for a specific batch.
+ * Calls /api/director/batch-students-fees with admin credentials.
+ */
+export async function getBatchStudentFees(
+  batch: string,
+  branch: string
+): Promise<BatchStudentFeeRow[]> {
+  const params = new URLSearchParams({ batch, branch });
+  const { data } = await apiClient.get(
+    `/director/batch-students-fees?${params}`,
+    { baseURL: "/api" }
+  );
+  return (data?.data ?? []) as BatchStudentFeeRow[];
 }
 
 /** Get invoice stats for a specific branch */
@@ -552,6 +664,9 @@ export interface BranchInstructor {
   instructor_name: string;
   employee: string;
   department: string;
+  designation?: string;
+  /** Unique courses this instructor teaches at this branch */
+  subjects: string[];
 }
 
 export async function getBranchInstructors(
@@ -559,7 +674,7 @@ export async function getBranchInstructors(
 ): Promise<BranchInstructor[]> {
   // First get employees for this branch
   const empParams = new URLSearchParams({
-    fields: JSON.stringify(["name", "employee_name"]),
+    fields: JSON.stringify(["name", "employee_name", "designation"]),
     filters: JSON.stringify([
       ["company", "=", branch],
       ["status", "=", "Active"],
@@ -569,9 +684,13 @@ export async function getBranchInstructors(
   const { data: empData } = await apiClient.get(
     `/resource/Employee?${empParams}`
   );
-  const employees: { name: string; employee_name: string }[] =
+  const employees: { name: string; employee_name: string; designation?: string }[] =
     empData.data ?? [];
   if (!employees.length) return [];
+
+  const empDesignationMap = new Map(
+    employees.map((e) => [e.name, e.designation ?? ""])
+  );
 
   // Then get instructors linked to those employees
   const empNames = employees.map((e) => e.name);
@@ -588,7 +707,37 @@ export async function getBranchInstructors(
   const { data: instrData } = await apiClient.get(
     `/resource/Instructor?${instrParams}`
   );
-  return instrData.data ?? [];
+  const instructors: Omit<BranchInstructor, "designation" | "subjects">[] = instrData.data ?? [];
+  if (!instructors.length) return [];
+
+  // Fetch each Instructor's full doc in parallel to get instructor_log (subjects)
+  const fullDocs = await Promise.all(
+    instructors.map((i) =>
+      apiClient
+        .get(`/resource/Instructor/${encodeURIComponent(i.name)}`)
+        .then((r) => r.data?.data)
+        .catch(() => null)
+    )
+  );
+
+  return instructors.map((i, idx) => {
+    const doc = fullDocs[idx];
+    const log: { course?: string; custom_branch?: string }[] =
+      doc?.instructor_log ?? [];
+    // Only keep courses assigned to this branch, deduplicated
+    const subjects = [
+      ...new Set(
+        log
+          .filter((entry) => entry.custom_branch === branch && entry.course)
+          .map((entry) => entry.course as string)
+      ),
+    ];
+    return {
+      ...i,
+      designation: empDesignationMap.get(i.employee) || "Instructor",
+      subjects,
+    };
+  });
 }
 
 export interface BranchSchedule {

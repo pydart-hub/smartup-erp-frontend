@@ -15,11 +15,13 @@ import {
   CircleCheck,
   Clock,
   TriangleAlert,
+  Wifi,
+  Banknote,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { getBranchInvoiceStats, getBranchProgramFeeStats, getBranchForfeitedFees } from "@/lib/api/director";
+import { getBranchInvoiceStats, getBranchProgramFeeStats, getBranchForfeitedFees, getBranchCollectedByMode } from "@/lib/api/director";
 import { formatCurrency } from "@/lib/utils/formatters";
 
 const containerVariants = {
@@ -47,6 +49,12 @@ export default function BranchFeesPage() {
   const { data: forfeitedTotal, isLoading: loadForfeited } = useQuery({
     queryKey: ["director-branch-forfeited-fees", branchName],
     queryFn: () => getBranchForfeitedFees(branchName),
+    staleTime: 120_000,
+  });
+
+  const { data: collectedByMode, isLoading: loadCollectedByMode } = useQuery({
+    queryKey: ["director-branch-collected-by-mode", branchName],
+    queryFn: () => getBranchCollectedByMode(branchName),
     staleTime: 120_000,
   });
 
@@ -117,6 +125,27 @@ export default function BranchFeesPage() {
               {loadInvoices ? "..." : formatCurrency(totalCollected)}
             </p>
             <p className="text-xs text-text-tertiary">Collected</p>
+            <div className="flex justify-center gap-3 mt-2">
+              <div className="text-center">
+                <div className="flex items-center justify-center gap-0.5">
+                  <Wifi className="h-3 w-3 text-blue-500" />
+                  <p className="text-xs font-semibold text-blue-600">
+                    {loadCollectedByMode ? "..." : formatCurrency(collectedByMode?.online ?? 0)}
+                  </p>
+                </div>
+                <p className="text-[10px] text-text-tertiary uppercase tracking-wide">Online</p>
+              </div>
+              <div className="w-px bg-border-light" />
+              <div className="text-center">
+                <div className="flex items-center justify-center gap-0.5">
+                  <Banknote className="h-3 w-3 text-green-500" />
+                  <p className="text-xs font-semibold text-green-600">
+                    {loadCollectedByMode ? "..." : formatCurrency(collectedByMode?.cash ?? 0)}
+                  </p>
+                </div>
+                <p className="text-[10px] text-text-tertiary uppercase tracking-wide">Cash</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
         <Card className="border-error/20">
@@ -161,66 +190,53 @@ export default function BranchFeesPage() {
         ) : (
           <div className="space-y-3">
             {programStats.map((p) => (
-              <div
+              <Link
                 key={p.program}
-                className="flex items-center gap-3 p-3 rounded-[10px] border border-border-light bg-surface"
+                href={`/dashboard/director/branches/${encodedBranch}/fees/${encodeURIComponent(p.program)}`}
               >
-                <div className="w-9 h-9 rounded-lg bg-brand-wash flex items-center justify-center shrink-0">
-                  <School className="h-4 w-4 text-primary" />
+                <div className="flex items-center gap-3 p-3 rounded-[10px] border border-border-light bg-surface hover:border-primary/30 hover:shadow-sm transition-all cursor-pointer">
+                  <div className="w-9 h-9 rounded-lg bg-brand-wash flex items-center justify-center shrink-0">
+                    <School className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-text-primary">{p.program}</p>
+                    <p className="text-xs text-text-tertiary">{p.count} invoice{p.count !== 1 ? "s" : ""}</p>
+                  </div>
+                  <div className="flex items-center gap-4 shrink-0">
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-text-primary">{formatCurrency(p.totalInvoiced)}</p>
+                      <p className="text-[10px] text-text-tertiary">total</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-success">{formatCurrency(p.totalCollected)}</p>
+                      <p className="text-[10px] text-success/70 flex items-center justify-end gap-0.5">
+                        <CircleCheck className="h-2.5 w-2.5" /> collected
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-error">{formatCurrency(p.totalOutstanding - p.forfeitedFees)}</p>
+                      <p className="text-[10px] text-error/70 flex items-center justify-end gap-0.5">
+                        <Clock className="h-2.5 w-2.5" /> pending
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className={`text-sm font-bold ${p.forfeitedFees > 0 ? "text-amber-600" : "text-text-tertiary"}`}>
+                        {formatCurrency(p.forfeitedFees)}
+                      </p>
+                      <p className="text-[10px] text-amber-500/80 flex items-center justify-end gap-0.5">
+                        <TriangleAlert className="h-2.5 w-2.5" /> forfeited
+                      </p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-text-tertiary ml-1" />
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-text-primary">{p.program}</p>
-                  <p className="text-xs text-text-tertiary">{p.count} invoice{p.count !== 1 ? "s" : ""}</p>
-                </div>
-                <div className="flex items-center gap-4 shrink-0">
-                  <div className="text-right">
-                    <p className="text-sm font-bold text-text-primary">{formatCurrency(p.totalInvoiced)}</p>
-                    <p className="text-[10px] text-text-tertiary">total</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-bold text-success">{formatCurrency(p.totalCollected)}</p>
-                    <p className="text-[10px] text-success/70 flex items-center justify-end gap-0.5">
-                      <CircleCheck className="h-2.5 w-2.5" /> collected
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-bold text-error">{formatCurrency(p.totalOutstanding - p.forfeitedFees)}</p>
-                    <p className="text-[10px] text-error/70 flex items-center justify-end gap-0.5">
-                      <Clock className="h-2.5 w-2.5" /> pending
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className={`text-sm font-bold ${p.forfeitedFees > 0 ? "text-amber-600" : "text-text-tertiary"}`}>
-                      {formatCurrency(p.forfeitedFees)}
-                    </p>
-                    <p className="text-[10px] text-amber-500/80 flex items-center justify-end gap-0.5">
-                      <TriangleAlert className="h-2.5 w-2.5" /> forfeited
-                    </p>
-                  </div>
-                </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}
       </motion.div>
 
-      {/* Quick Link to Sales Orders */}
-      <motion.div variants={itemVariants}>
-        <Link href={`/dashboard/director/branches/${encodedBranch}/sales-orders`}>
-          <Card className="hover:shadow-md transition-shadow cursor-pointer border-border-light hover:border-primary/30">
-            <CardContent className="p-5 flex items-center gap-4">
-              <div className="w-10 h-10 rounded-[10px] bg-brand-wash flex items-center justify-center shrink-0">
-                <IndianRupee className="h-5 w-5 text-primary" />
-              </div>
-              <div className="flex-1">
-                <p className="font-medium text-text-primary">View Sales Orders</p>
-                <p className="text-xs text-text-tertiary">Browse sales orders for this branch</p>
-              </div>
-              <ChevronRight className="h-4 w-4 text-text-tertiary shrink-0" />
-            </CardContent>
-          </Card>
-        </Link>
-      </motion.div>
+
     </motion.div>
   );
 }

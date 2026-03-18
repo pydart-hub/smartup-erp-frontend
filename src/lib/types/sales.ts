@@ -72,7 +72,6 @@ export interface SalesOrderFormData {
   student?: string;
   custom_no_of_instalments?: string;
   custom_plan?: string;
-  custom_mode_of_payment?: string;
 }
 
 /** Payment Schedule child table row on Sales Order */

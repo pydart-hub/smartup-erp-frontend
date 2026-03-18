@@ -33,19 +33,24 @@ export default function DashboardLayout({
   const isDirector = role === "Director" || role === "Management";
   const isHRManager = role === "HR Manager";
   const isSalesUser = role === "Sales User";
+  const isBranchManager = role === "Branch Manager";
 
   // Determine sidebar nav items based on role
+  // Branch Manager takes priority over Instructor — a user who is both
+  // should see the full Branch Manager sidebar, not the limited Instructor one.
   const sidebarNav = isDirector
     ? DIRECTOR_NAV
     : isHRManager
       ? HR_MANAGER_NAV
-      : isSalesUser
-        ? SALES_USER_NAV
-        : isParent
-          ? PARENT_NAV
-          : isInstructor
-            ? INSTRUCTOR_NAV
-            : undefined;
+      : isBranchManager
+        ? undefined  // falls through to default BRANCH_MANAGER_NAV in Sidebar
+        : isSalesUser
+          ? SALES_USER_NAV
+          : isParent
+            ? PARENT_NAV
+            : isInstructor
+              ? INSTRUCTOR_NAV
+              : undefined;
 
   return (
     <QueryClientProvider client={queryClient}>

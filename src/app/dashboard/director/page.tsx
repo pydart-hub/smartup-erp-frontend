@@ -16,6 +16,8 @@ import {
   CircleCheck,
   Clock,
   TriangleAlert,
+  Wifi,
+  Banknote,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -31,6 +33,7 @@ import {
   getDiscontinuedStudentCount,
   getTotalStaffCount,
   getTotalInvoiceStats,
+  getCollectedByMode,
   getDiscontinuedStudentForfeitedFees,
 } from "@/lib/api/director";
 import { formatCurrency } from "@/lib/utils/formatters";
@@ -211,6 +214,13 @@ export default function DirectorDashboard() {
     refetchInterval: 60_000,
   });
 
+  const { data: collectedByMode, isLoading: loadCollectedByMode } = useQuery({
+    queryKey: ["director-collected-by-mode"],
+    queryFn: getCollectedByMode,
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+  });
+
   return (
     <motion.div
       variants={containerVariants}
@@ -324,6 +334,29 @@ export default function DirectorDashboard() {
                 </p>
               )}
               <p className="text-xs text-text-tertiary">Collected</p>
+              {!errInvoiceStats && (
+                <div className="flex justify-center gap-3 mt-2">
+                  <div className="text-center">
+                    <div className="flex items-center justify-center gap-0.5">
+                      <Wifi className="h-3 w-3 text-blue-500" />
+                      <p className="text-xs font-semibold text-blue-600">
+                        {loadCollectedByMode ? "..." : formatCurrency(collectedByMode?.online ?? 0)}
+                      </p>
+                    </div>
+                    <p className="text-[10px] text-text-tertiary uppercase tracking-wide">Online</p>
+                  </div>
+                  <div className="w-px bg-border-light" />
+                  <div className="text-center">
+                    <div className="flex items-center justify-center gap-0.5">
+                      <Banknote className="h-3 w-3 text-green-500" />
+                      <p className="text-xs font-semibold text-green-600">
+                        {loadCollectedByMode ? "..." : formatCurrency(collectedByMode?.cash ?? 0)}
+                      </p>
+                    </div>
+                    <p className="text-[10px] text-text-tertiary uppercase tracking-wide">Cash</p>
+                  </div>
+                </div>
+              )}
               <ChevronRight className="h-3.5 w-3.5 text-text-tertiary mx-auto mt-1" />
             </CardContent>
           </Card>

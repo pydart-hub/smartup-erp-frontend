@@ -10,6 +10,7 @@ import {
   UserCheck,
   Loader2,
   AlertCircle,
+  BookOpen,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -92,9 +93,14 @@ export default function BranchTeachersPage() {
                     <UserCheck className="h-5 w-5 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-text-primary text-sm truncate">
-                      {instr.instructor_name}
-                    </p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-medium text-text-primary text-sm truncate">
+                        {instr.instructor_name}
+                      </p>
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0">
+                        {instr.designation || "Instructor"}
+                      </Badge>
+                    </div>
                     <p className="text-xs text-text-tertiary truncate">
                       {instr.name}
                     </p>
@@ -102,6 +108,19 @@ export default function BranchTeachersPage() {
                       <p className="text-xs text-text-tertiary">
                         Employee: {instr.employee}
                       </p>
+                    )}
+                    {instr.subjects && instr.subjects.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        <BookOpen className="h-3 w-3 text-text-tertiary mt-0.5 shrink-0" />
+                        {instr.subjects.map((subject) => (
+                          <span
+                            key={subject}
+                            className="inline-block rounded-md bg-brand-wash px-1.5 py-0.5 text-[10px] font-medium text-primary"
+                          >
+                            {subject}
+                          </span>
+                        ))}
+                      </div>
                     )}
                   </div>
                 </div>

@@ -989,7 +989,6 @@ export async function admitStudent(
         student: student.name,
         custom_no_of_instalments: form.custom_no_of_instalments || undefined,
         custom_plan: form.custom_plan || undefined,
-        custom_mode_of_payment: form.custom_mode_of_payment || undefined,
       };
       const soRes = await createSalesOrder(soPayload);
       salesOrderName = soRes.data.name;

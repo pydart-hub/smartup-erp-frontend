@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueries } from "@tanstack/react-query";
 import {
   ArrowLeft,
   School,
@@ -16,7 +16,7 @@ import {
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { getBranchBatches } from "@/lib/api/director";
+import { getBranchBatches, getBatchStudents } from "@/lib/api/director";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -46,6 +46,27 @@ export default function BranchBatchesPage() {
 
   const batches = batchesRes?.data ?? [];
   const activeBatches = batches.filter((b) => !b.disabled);
+
+  // Fetch student counts per batch
+  const studentQueries = useQueries({
+    queries: activeBatches.map((b) => ({
+      queryKey: ["batch-students", b.name],
+      queryFn: () => getBatchStudents(b.name),
+      staleTime: 120_000,
+      enabled: activeBatches.length > 0,
+    })),
+  });
+
+  const studentCountMap = React.useMemo(() => {
+    const map: Record<string, number> = {};
+    activeBatches.forEach((b, i) => {
+      const res = studentQueries[i];
+      if (res.data) {
+        map[b.name] = res.data.students.filter((s) => s.active).length;
+      }
+    });
+    return map;
+  }, [activeBatches, studentQueries]);
 
   // Group by program
   const grouped = activeBatches.reduce(
@@ -108,7 +129,12 @@ export default function BranchBatchesPage() {
           <p className="text-sm text-text-tertiary">No batches found</p>
         </div>
       ) : (
-        <div className="space-y-6">
+        <motion.div
+          className="space-y-6"
+          initial="hidden"
+          animate="visible"
+          variants={containerVariants}
+        >
           {Object.entries(grouped)
             .sort(([a], [b]) => a.localeCompare(b))
             .map(([program, groups]) => (
@@ -140,6 +166,12 @@ export default function BranchBatchesPage() {
                               </p>
                               <div className="flex items-center gap-2 text-xs text-text-tertiary">
                                 <span>{batch.academic_year}</span>
+                                {studentCountMap[batch.name] !== undefined && (
+                                  <>
+                                    <span>·</span>
+                                    <span>{studentCountMap[batch.name]} student{studentCountMap[batch.name] !== 1 ? "s" : ""}</span>
+                                  </>
+                                )}
                                 {batch.max_strength && (
                                   <>
                                     <span>·</span>
@@ -157,7 +189,7 @@ export default function BranchBatchesPage() {
                 </Card>
               </motion.div>
             ))}
-        </div>
+        </motion.div>
       )}
     </motion.div>
   );

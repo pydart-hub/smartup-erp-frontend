@@ -292,6 +292,45 @@ export async function createSalesPayment(
   return data.data;
 }
 
+/**
+ * Derive payment mode per customer from Payment Entries.
+ * Returns a Map of customer → "Cash" | "Online" | mode_of_payment string.
+ * Razorpay payments have reference_no starting with "pay_"; cash/offline
+ * payments have mode_of_payment set explicitly.
+ */
+export async function getPaymentModesByCustomers(
+  customerNames: string[],
+  company?: string
+): Promise<Map<string, string>> {
+  if (!customerNames.length) return new Map();
+  const filters: (string | string[])[][] = [
+    ["docstatus", "=", "1"],
+    ["party", "in", customerNames],
+  ];
+  if (company) filters.push(["company", "=", company]);
+  const query = new URLSearchParams({
+    fields: JSON.stringify(["party", "mode_of_payment", "reference_no"]),
+    filters: JSON.stringify(filters),
+    limit_page_length: "1000",
+    order_by: "creation desc",
+  });
+  const { data } = await apiClient.get(`/resource/Payment Entry?${query}`);
+  const entries: { party: string; mode_of_payment: string | null; reference_no: string | null }[] =
+    data?.data ?? [];
+  const result = new Map<string, string>();
+  for (const pe of entries) {
+    if (!pe.party || result.has(pe.party)) continue;
+    if (pe.mode_of_payment && pe.mode_of_payment !== "Online" && pe.mode_of_payment !== "Razorpay") {
+      result.set(pe.party, pe.mode_of_payment); // "Cash", "UPI", "Bank Transfer", "Cheque"
+    } else if (pe.reference_no?.startsWith("pay_")) {
+      result.set(pe.party, "Online");
+    } else if (pe.mode_of_payment) {
+      result.set(pe.party, pe.mode_of_payment);
+    }
+  }
+  return result;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Customer
 // ─────────────────────────────────────────────────────────────────────────────

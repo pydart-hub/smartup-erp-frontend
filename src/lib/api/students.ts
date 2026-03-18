@@ -8,7 +8,7 @@ const STUDENT_LIST_FIELDS = JSON.stringify([
   "student_email_id", "student_mobile_number",
   "gender", "date_of_birth", "image", "enabled",
   "custom_branch", "custom_branch_abbr", "custom_srr_id", "custom_parent_name", "custom_aadhaar",
-  "joining_date", "creation",
+  "joining_date", "creation", "customer",
   "custom_discontinuation_date", "custom_discontinuation_reason",
 ]);
 

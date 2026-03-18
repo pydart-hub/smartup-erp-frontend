@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
@@ -12,6 +12,8 @@ import {
   RefreshCw,
   User,
   Search,
+  IndianRupee,
+  Download,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Button } from "@/components/ui/Button";
@@ -19,16 +21,76 @@ import { Badge } from "@/components/ui/Badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { getBatch } from "@/lib/api/batches";
+import { getBatchStudentFees } from "@/lib/api/director";
+import type { BatchStudentFeeRow } from "@/lib/api/director";
 import type { Batch, BatchStudent } from "@/lib/types/batch";
+import { useAuthStore } from "@/lib/stores/authStore";
+
+function formatCurrency(amount: number): string {
+  if (!amount) return "—";
+  return "₹" + amount.toLocaleString("en-IN");
+}
+
+function planBadgeVariant(plan: string | null) {
+  switch (plan) {
+    case "Advanced":
+      return "info" as const;
+    case "Intermediate":
+      return "warning" as const;
+    case "Basic":
+      return "outline" as const;
+    default:
+      return "outline" as const;
+  }
+}
+
+type PlanFilter = "All" | "Basic" | "Intermediate" | "Advanced";
+type StatusFilter = "All" | "Active" | "Inactive";
+type PaymentFilter = "All" | "Fully Paid" | "Partial" | "Unpaid";
+
+function FilterSelect<T extends string>({
+  options,
+  value,
+  onChange,
+  label,
+}: {
+  options: T[];
+  value: T;
+  onChange: (v: T) => void;
+  label: string;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-xs font-medium text-text-secondary whitespace-nowrap">{label}</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value as T)}
+        className="h-8 rounded-lg border border-border-light bg-surface px-2.5 text-xs text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer"
+      >
+        {options.map((opt) => (
+          <option key={opt} value={opt}>{opt}</option>
+        ))}
+      </select>
+    </div>
+  );
+}
 
 export default function BatchDetailPage() {
   const { id } = useParams<{ id: string }>();
   const decodedId = decodeURIComponent(id);
+  const branchName = useAuthStore((s) => s.defaultCompany);
 
   const [batch, setBatch] = useState<Batch | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [planFilter, setPlanFilter] = useState<PlanFilter>("All");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
+  const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>("All");
+
+  // Fee data
+  const [feeRows, setFeeRows] = useState<BatchStudentFeeRow[]>([]);
+  const [feesLoading, setFeesLoading] = useState(false);
 
   function loadBatch() {
     setLoading(true);
@@ -43,20 +105,102 @@ export default function BatchDetailPage() {
     loadBatch();
   }, [decodedId]);
 
-  // Filter students by search
+  // Fetch fee data when batch loads
+  useEffect(() => {
+    if (!batch?.students?.length || !branchName) return;
+    setFeesLoading(true);
+    getBatchStudentFees(decodedId, branchName)
+      .then((rows) => setFeeRows(rows))
+      .catch(() => setFeeRows([]))
+      .finally(() => setFeesLoading(false));
+  }, [batch, branchName, decodedId]);
+
   const students: BatchStudent[] = batch?.students ?? [];
   const activeStudents = students.filter((s) => s.active !== 0);
-  const filteredStudents = search
-    ? activeStudents.filter(
-        (s) =>
-          (s.student_name ?? "").toLowerCase().includes(search.toLowerCase()) ||
-          s.student.toLowerCase().includes(search.toLowerCase())
-      )
-    : activeStudents;
+
+  // Fee lookup map
+  const feeMap = useMemo(() => {
+    const m = new Map<string, BatchStudentFeeRow>();
+    for (const r of feeRows) m.set(r.studentId, r);
+    return m;
+  }, [feeRows]);
+
+  // Filtered students
+  const filteredStudents = useMemo(() => {
+    return students.filter((s) => {
+      // Search
+      if (search) {
+        const q = search.toLowerCase();
+        if (
+          !(s.student_name ?? "").toLowerCase().includes(q) &&
+          !s.student.toLowerCase().includes(q)
+        )
+          return false;
+      }
+      // Status
+      if (statusFilter === "Active" && s.active === 0) return false;
+      if (statusFilter === "Inactive" && s.active !== 0) return false;
+      // Plan
+      if (planFilter !== "All") {
+        const fee = feeMap.get(s.student);
+        if (fee?.plan !== planFilter) return false;
+      }
+      // Payment
+      if (paymentFilter !== "All") {
+        const fee = feeMap.get(s.student);
+        if (!fee || !fee.totalFee) return paymentFilter === "Unpaid";
+        const paid = fee.paidFee;
+        const pending = fee.pendingFee;
+        if (paymentFilter === "Fully Paid" && pending > 0) return false;
+        if (paymentFilter === "Partial" && (paid === 0 || pending === 0)) return false;
+        if (paymentFilter === "Unpaid" && paid > 0) return false;
+      }
+      return true;
+    });
+  }, [students, feeMap, search, planFilter, statusFilter, paymentFilter]);
+
+  const isFiltered = search || planFilter !== "All" || statusFilter !== "All" || paymentFilter !== "All";
+
+  // Fee totals
+  const totalFee = feeRows.reduce((sum, r) => sum + r.totalFee, 0);
+  const totalPaid = feeRows.reduce((sum, r) => sum + r.paidFee, 0);
+  const totalPending = feeRows.reduce((sum, r) => sum + r.pendingFee, 0);
 
   const backHref = batch?.program
     ? `/dashboard/branch-manager/batches?program=${encodeURIComponent(batch.program)}`
     : "/dashboard/branch-manager/batches";
+
+  function downloadCSV() {
+    const headers = ["#", "Student ID", "Name", "Plan", "Total Fee", "Paid", "Pending", "Status"];
+    const rows = filteredStudents.map((student, index) => {
+      const fee = feeMap.get(student.student);
+      return [
+        index + 1,
+        student.student,
+        student.student_name || "",
+        fee?.plan || "",
+        fee?.totalFee ?? 0,
+        fee?.paidFee ?? 0,
+        fee?.pendingFee ?? 0,
+        student.active === 1 ? "Active" : "Inactive",
+      ];
+    });
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row) =>
+        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+      ),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${decodedId}-students-report.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
 
   return (
     <motion.div
@@ -129,26 +273,18 @@ export default function BatchDetailPage() {
           </div>
 
           {/* Stats row */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
             <Card>
               <CardContent className="py-4">
                 <p className="text-xs text-text-secondary">Total Students</p>
                 <p className="text-2xl font-bold text-text-primary mt-1">
-                  {activeStudents.length}
+                  {students.length}
                 </p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="py-4">
-                <p className="text-xs text-text-secondary">Max Strength</p>
-                <p className="text-2xl font-bold text-text-primary mt-1">
-                  {batch.max_strength || "—"}
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="py-4">
-                <p className="text-xs text-text-secondary">Active Students</p>
+                <p className="text-xs text-text-secondary">Active</p>
                 <p className="text-2xl font-bold text-success mt-1">
                   {activeStudents.length}
                 </p>
@@ -162,31 +298,97 @@ export default function BatchDetailPage() {
                 </p>
               </CardContent>
             </Card>
+            <Card>
+              <CardContent className="py-4">
+                <p className="text-xs text-text-secondary">Total Fee</p>
+                <p className="text-lg font-bold text-text-primary mt-1">
+                  {feesLoading ? "…" : formatCurrency(totalFee)}
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="py-4">
+                <p className="text-xs text-text-secondary">Paid</p>
+                <p className="text-lg font-bold text-success mt-1">
+                  {feesLoading ? "…" : formatCurrency(totalPaid)}
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="py-4">
+                <p className="text-xs text-text-secondary">Pending</p>
+                <p className="text-lg font-bold text-error mt-1">
+                  {feesLoading ? "…" : formatCurrency(totalPending)}
+                </p>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Students Table */}
           <Card>
-            <CardHeader>
+            <CardHeader className="space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <CardTitle className="flex items-center gap-2">
                   <Users className="h-5 w-5 text-primary" />
-                  Students ({filteredStudents.length})
+                  Students
+                  {isFiltered && (
+                    <span className="text-sm font-normal text-text-tertiary">
+                      ({filteredStudents.length} of {students.length})
+                    </span>
+                  )}
+                  {!isFiltered && (
+                    <span className="text-sm font-normal text-text-tertiary">
+                      ({students.length})
+                    </span>
+                  )}
                 </CardTitle>
-                <div className="relative w-full sm:w-64">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-tertiary" />
-                  <Input
-                    placeholder="Search students..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="pl-9"
-                  />
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <div className="relative flex-1 sm:w-64">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-tertiary" />
+                    <Input
+                      placeholder="Search students..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={downloadCSV}
+                    disabled={filteredStudents.length === 0 || feesLoading}
+                    title="Download CSV report"
+                  >
+                    <Download className="h-4 w-4" />
+                    <span className="hidden sm:inline ml-1.5">Download</span>
+                  </Button>
                 </div>
+              </div>
+              <div className="flex flex-wrap gap-4">
+                <FilterSelect
+                  label="Plan"
+                  options={["All", "Basic", "Intermediate", "Advanced"] as PlanFilter[]}
+                  value={planFilter}
+                  onChange={setPlanFilter}
+                />
+                <FilterSelect
+                  label="Status"
+                  options={["All", "Active", "Inactive"] as StatusFilter[]}
+                  value={statusFilter}
+                  onChange={setStatusFilter}
+                />
+                <FilterSelect
+                  label="Payment"
+                  options={["All", "Fully Paid", "Partial", "Unpaid"] as PaymentFilter[]}
+                  value={paymentFilter}
+                  onChange={setPaymentFilter}
+                />
               </div>
             </CardHeader>
             <CardContent>
               {filteredStudents.length === 0 ? (
                 <p className="text-center text-text-secondary text-sm py-8">
-                  {search ? "No students match your search." : "No students in this batch."}
+                  {isFiltered ? "No students match the current filters." : "No students in this batch."}
                 </p>
               ) : (
                 <div className="overflow-x-auto">
@@ -202,16 +404,27 @@ export default function BatchDetailPage() {
                         <th className="text-left pb-3 font-semibold text-text-secondary">
                           Name
                         </th>
-                        <th className="text-left pb-3 font-semibold text-text-secondary">
-                          Roll No
+                        <th className="text-center pb-3 font-semibold text-text-secondary">
+                          Plan
                         </th>
-                        <th className="text-left pb-3 font-semibold text-text-secondary">
+                        <th className="text-right pb-3 font-semibold text-text-secondary">
+                          Total Fee
+                        </th>
+                        <th className="text-right pb-3 font-semibold text-text-secondary">
+                          Paid
+                        </th>
+                        <th className="text-right pb-3 font-semibold text-text-secondary">
+                          Pending
+                        </th>
+                        <th className="text-center pb-3 font-semibold text-text-secondary">
                           Status
                         </th>
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredStudents.map((student, index) => (
+                      {filteredStudents.map((student, index) => {
+                        const fee = feeMap.get(student.student);
+                        return (
                         <motion.tr
                           key={student.student}
                           initial={{ opacity: 0 }}
@@ -234,10 +447,34 @@ export default function BatchDetailPage() {
                             <User className="h-3.5 w-3.5 text-text-tertiary flex-shrink-0" />
                             {student.student_name || "—"}
                           </td>
-                          <td className="py-2.5 text-text-secondary">
-                            {student.batch_roll_number ?? student.group_roll_number ?? "—"}
+                          <td className="py-2.5 text-center">
+                            {feesLoading ? (
+                              <span className="text-text-tertiary text-xs">…</span>
+                            ) : fee?.plan ? (
+                              <Badge
+                                variant={planBadgeVariant(fee.plan)}
+                                className="text-[10px]"
+                              >
+                                {fee.plan}
+                              </Badge>
+                            ) : (
+                              <span className="text-text-tertiary text-xs">—</span>
+                            )}
                           </td>
-                          <td className="py-2.5">
+                          <td className="py-2.5 text-right font-mono text-xs">
+                            {feesLoading ? "…" : formatCurrency(fee?.totalFee ?? 0)}
+                          </td>
+                          <td className="py-2.5 text-right font-mono text-xs text-success">
+                            {feesLoading ? "…" : formatCurrency(fee?.paidFee ?? 0)}
+                          </td>
+                          <td className="py-2.5 text-right font-mono text-xs text-error">
+                            {feesLoading
+                              ? "…"
+                              : fee?.pendingFee
+                              ? formatCurrency(fee.pendingFee)
+                              : "—"}
+                          </td>
+                          <td className="py-2.5 text-center">
                             <Badge
                               variant={
                                 student.active === 1 ? "success" : "error"
@@ -247,7 +484,8 @@ export default function BatchDetailPage() {
                             </Badge>
                           </td>
                         </motion.tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

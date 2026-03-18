@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { LoginForm } from "@/components/auth/LoginForm";
+import { ContactInfo } from "@/components/legal/ContactInfo";
+import { PolicyLinks } from "@/components/legal/PolicyLinks";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -61,29 +63,38 @@ export default function LoginPage() {
       </div>
 
       {/* Right Panel — Login Form */}
-      <div className="flex-1 flex items-center justify-center p-8">
-        <div className="w-full max-w-md">
-          {/* Mobile Logo */}
-          <div className="lg:hidden text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-[16px] mb-4 p-2">
-              <Image src="/smartup-logo.png" alt="SmartUp" width={48} height={48} className="object-contain" />
+      <div className="flex-1 flex flex-col min-h-screen overflow-y-auto">
+        {/* Centered Form Area */}
+        <div className="flex-1 flex items-center justify-center px-6 py-10 sm:px-8">
+          <div className="w-full max-w-[420px]">
+            {/* Mobile Logo */}
+            <div className="lg:hidden text-center mb-8">
+              <div className="inline-flex items-center justify-center w-14 h-14 bg-primary rounded-[14px] mb-3 p-1.5">
+                <Image src="/smartup-logo.png" alt="SmartUp" width={44} height={44} className="object-contain" />
+              </div>
+              <h1 className="text-xl font-bold text-text-primary">Smartup ERP</h1>
             </div>
-            <h1 className="text-2xl font-bold text-text-primary">Smartup ERP</h1>
-          </div>
 
-          {/* Form Card */}
-          <div className="bg-surface rounded-[20px] shadow-card p-8 border border-border-light">
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-text-primary">Welcome back</h2>
-              <p className="text-text-secondary mt-1">Sign in to your account to continue</p>
+            {/* Form Card */}
+            <div className="bg-surface rounded-[18px] shadow-card p-7 sm:p-8 border border-border-light">
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold text-text-primary">Welcome back</h2>
+                <p className="text-text-secondary mt-1 text-sm">Sign in to your account to continue</p>
+              </div>
+              <LoginForm />
             </div>
-            <LoginForm />
           </div>
+        </div>
 
-          {/* Footer */}
-          <p className="text-center text-xs text-text-tertiary mt-6">
-            Smartup Education Platform &copy; {new Date().getFullYear()}
-          </p>
+        {/* Bottom Footer — Contact, Policies, Copyright */}
+        <div className="shrink-0 border-t border-border-light bg-surface/50 px-6 py-5 sm:px-8">
+          <div className="max-w-[420px] mx-auto space-y-3">
+            <ContactInfo />
+            <PolicyLinks />
+            <p className="text-center text-[11px] text-text-tertiary pt-1">
+              Smartup Education Platform &copy; {new Date().getFullYear()}
+            </p>
+          </div>
         </div>
       </div>
     </div>

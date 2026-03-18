@@ -13,6 +13,11 @@ import {
   Clock,
   UserX,
   ChevronDown,
+  ChevronRight,
+  Banknote,
+  Wifi,
+  School,
+  Users,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { StatsCard } from "@/components/dashboard/StatsCard";
@@ -21,7 +26,8 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { getPayments } from "@/lib/api/fees";
-import { getSalesInvoices } from "@/lib/api/sales";
+import { getSalesInvoices, getPaymentModesByCustomers } from "@/lib/api/sales";
+import { getBranchCollectedByMode } from "@/lib/api/director";
 import type { PaymentEntry, FeeReportSummary } from "@/lib/types/fee";
 import type { SalesInvoice } from "@/lib/types/sales";
 import { useAuth } from "@/lib/hooks/useAuth";
@@ -56,6 +62,12 @@ export default function FeesPage() {
     }[];
     total_written_off: number;
   } | null>(null);
+
+  // Student → payment mode map from Payment Entries
+  const [paymentModeMap, setPaymentModeMap] = useState<Map<string, string>>(new Map());
+
+  // Online/Cash collected split
+  const [collectedByMode, setCollectedByMode] = useState<{ online: number; cash: number } | null>(null);
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -98,7 +110,7 @@ export default function FeesPage() {
         .then((r) => r.ok ? r.json() : null)
         .catch(() => null),
     ])
-      .then(([summaryData, invoicesRes, paymentsRes, discData]) => {
+      .then(async ([summaryData, invoicesRes, paymentsRes, discData]) => {
         if (summaryData) setSummary({
           total_fees: summaryData.total_fees ?? 0,
           total_collected: summaryData.total_collected ?? 0,
@@ -108,6 +120,21 @@ export default function FeesPage() {
         setPendingFees(invoicesRes.data);
         setRecentPayments(paymentsRes.data);
         if (discData) setDiscontinuedData(discData);
+        // Build customer → payment mode map from Payment Entries
+        try {
+          const customerNames = [...new Set((invoicesRes.data as { customer_name?: string; customer?: string }[]).map(inv => inv.customer_name || inv.customer || "").filter(Boolean))];
+          const modeMap = await getPaymentModesByCustomers(customerNames, defaultCompany || undefined);
+          setPaymentModeMap(modeMap);
+        } catch {
+          // non-critical
+        }
+        // Online/Cash collected split
+        try {
+          const modes = await getBranchCollectedByMode(defaultCompany || "");
+          setCollectedByMode(modes);
+        } catch {
+          // non-critical
+        }
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -144,6 +171,24 @@ export default function FeesPage() {
               value={formatCurrency(summary?.total_collected ?? 0)}
               icon={<TrendingUp className="h-5 w-5" />}
               color="success"
+              subtitle={
+                collectedByMode ? (
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-0.5">
+                      <Wifi className="h-3 w-3 text-blue-500" />
+                      <span className="text-xs font-semibold text-blue-600">
+                        {formatCurrency(collectedByMode.online)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-0.5">
+                      <Banknote className="h-3 w-3 text-green-500" />
+                      <span className="text-xs font-semibold text-green-600">
+                        {formatCurrency(collectedByMode.cash)}
+                      </span>
+                    </div>
+                  </div>
+                ) : undefined
+              }
             />
             <StatsCard
               title="Pending"
@@ -178,7 +223,7 @@ export default function FeesPage() {
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Pending Fees — grouped by student */}
+        {/* Pending Fees — class-grouped */}
         <motion.div variants={itemVariants} className="lg:col-span-2">
           <Card>
             <CardHeader>
@@ -191,17 +236,15 @@ export default function FeesPage() {
                 </Link>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               {loading ? (
                 <div className="flex items-center justify-center h-32">
                   <Loader2 className="h-5 w-5 animate-spin text-primary" />
                 </div>
-              ) : activePendingFees.length === 0 ? (
-                <p className="text-center text-text-secondary text-sm py-8">No pending fees found.</p>
               ) : (
-                <StudentGroupedFees
-                  invoices={activePendingFees}
-                  discontinuedStudents={[]}
+                <ClassGroupedPendingFees
+                  company={defaultCompany || ""}
+                  paymentModeMap={paymentModeMap}
                 />
               )}
             </CardContent>
@@ -233,9 +276,16 @@ export default function FeesPage() {
                     >
                       <div>
                         <p className="text-sm font-medium text-text-primary">{payment.party_name || payment.party}</p>
-                        <p className="text-xs text-text-tertiary">
-                          {payment.mode_of_payment || "—"} &middot; {payment.posting_date}
-                        </p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          {payment.mode_of_payment && (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                              {payment.mode_of_payment}
+                            </Badge>
+                          )}
+                          <span className="text-xs text-text-tertiary">
+                            {payment.posting_date}
+                          </span>
+                        </div>
                       </div>
                       <span className="text-sm font-bold text-success">
                         {formatCurrency(payment.paid_amount)}
@@ -313,133 +363,259 @@ export default function FeesPage() {
   );
 }
 
-// ── Student-grouped pending fees with accordion ──────────────────
+// ── Class → Student two-level pending fees accordion ─────────────
+
+interface ClassRow {
+  item_code: string;
+  student_count: number;
+  total_outstanding: number;
+}
+
+interface StudentPendingInvoice {
+  name: string;
+  customer: string;
+  customer_name: string;
+  student?: string;
+  item_code?: string;
+  outstanding_amount: number;
+  grand_total: number;
+  due_date?: string;
+  status: string;
+}
 
 interface StudentGroup {
   studentName: string;
   studentId?: string;
-  invoices: SalesInvoice[];
-  totalOutstanding: number;
-  isDiscontinued: boolean;
+  invoices: StudentPendingInvoice[];
+  total: number;
 }
 
-function StudentGroupedFees({
-  invoices,
-  discontinuedStudents,
+function ClassGroupedPendingFees({
+  company,
+  paymentModeMap,
 }: {
-  invoices: SalesInvoice[];
-  discontinuedStudents: { student_id: string; student_name: string }[];
+  company: string;
+  paymentModeMap?: Map<string, string>;
 }) {
+  const [classes, setClasses] = useState<ClassRow[]>([]);
+  const [loadingClasses, setLoadingClasses] = useState(true);
+
+  // expanded class → student rows
+  const [expandedClass, setExpandedClass] = useState<string | null>(null);
+  const [studentsByClass, setStudentsByClass] = useState<Record<string, StudentGroup[]>>({});
+  const [loadingStudents, setLoadingStudents] = useState<Record<string, boolean>>({});
+
+  // expanded student within a class
   const [expandedStudent, setExpandedStudent] = useState<string | null>(null);
-
-  const discontinuedIds = useMemo(
-    () => new Set(discontinuedStudents.map((s) => s.student_id)),
-    [discontinuedStudents],
-  );
-
-  const groups: StudentGroup[] = useMemo(() => {
-    const map = new Map<string, StudentGroup>();
-    for (const inv of invoices) {
-      const key = inv.customer_name || inv.customer;
-      if (!map.has(key)) {
-        map.set(key, {
-          studentName: key,
-          studentId: inv.student,
-          invoices: [],
-          totalOutstanding: 0,
-          isDiscontinued: !!inv.student && discontinuedIds.has(inv.student),
-        });
-      }
-      const group = map.get(key)!;
-      group.invoices.push(inv);
-      group.totalOutstanding += inv.outstanding_amount;
-    }
-    return Array.from(map.values());
-  }, [invoices, discontinuedIds]);
 
   const today = new Date().toISOString().split("T")[0];
 
+  useEffect(() => {
+    setLoadingClasses(true);
+    fetch(`/api/fees/class-summary${company ? `?company=${encodeURIComponent(company)}` : ""}`, { credentials: "include" })
+      .then((r) => r.ok ? r.json() : { data: [] })
+      .then((d) => setClasses(d.data ?? []))
+      .catch(() => setClasses([]))
+      .finally(() => setLoadingClasses(false));
+  }, [company]);
+
+  async function toggleClass(itemCode: string) {
+    if (expandedClass === itemCode) {
+      setExpandedClass(null);
+      return;
+    }
+    setExpandedClass(itemCode);
+    setExpandedStudent(null);
+    if (studentsByClass[itemCode]) return; // already loaded
+
+    setLoadingStudents((prev) => ({ ...prev, [itemCode]: true }));
+    try {
+      const params = new URLSearchParams({ item_code: itemCode });
+      if (company) params.set("company", company);
+      const r = await fetch(`/api/fees/pending-invoices?${params}`, { credentials: "include" });
+      const d = r.ok ? await r.json() : { data: [] };
+      const invoices: StudentPendingInvoice[] = d.data ?? [];
+
+      // group by customer
+      const map = new Map<string, StudentGroup>();
+      for (const inv of invoices) {
+        const key = inv.customer_name || inv.customer;
+        if (!map.has(key)) {
+          map.set(key, { studentName: key, studentId: inv.student, invoices: [], total: 0 });
+        }
+        const g = map.get(key)!;
+        g.invoices.push(inv);
+        g.total += inv.outstanding_amount;
+      }
+      setStudentsByClass((prev) => ({ ...prev, [itemCode]: Array.from(map.values()) }));
+    } catch {
+      setStudentsByClass((prev) => ({ ...prev, [itemCode]: [] }));
+    } finally {
+      setLoadingStudents((prev) => ({ ...prev, [itemCode]: false }));
+    }
+  }
+
+  if (loadingClasses) {
+    return (
+      <div className="flex items-center justify-center h-32">
+        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!classes.length) {
+    return <p className="text-center text-text-secondary text-sm py-8 px-4">No pending fees found.</p>;
+  }
+
   return (
     <div className="divide-y divide-border-light">
-      {groups.map((group) => {
-        const isOpen = expandedStudent === group.studentName;
-        const hasOverdue = group.invoices.some((inv) => !!inv.due_date && inv.due_date < today);
+      {classes.map((cls) => {
+        const isClassOpen = expandedClass === cls.item_code;
+        const students = studentsByClass[cls.item_code] ?? [];
+        const isLoadingStudents = loadingStudents[cls.item_code];
 
         return (
-          <div key={group.studentName}>
-            {/* Student row — click to expand */}
+          <div key={cls.item_code}>
+            {/* Class row */}
             <button
               type="button"
-              onClick={() => setExpandedStudent(isOpen ? null : group.studentName)}
-              className="w-full flex items-center justify-between py-3 px-1 hover:bg-brand-wash/30 transition-colors text-left"
+              onClick={() => toggleClass(cls.item_code)}
+              className="w-full flex items-center justify-between py-3 px-4 hover:bg-brand-wash/30 transition-colors text-left"
             >
-              <div className="flex items-center gap-2 min-w-0">
-                <ChevronDown
-                  className={`h-4 w-4 text-text-tertiary shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
-                />
-                <span className="text-sm font-semibold text-text-primary truncate">
-                  {group.studentName}
-                </span>
-                {group.isDiscontinued && (
-                  <Badge variant="error">Discontinued</Badge>
-                )}
-                {hasOverdue && !group.isDiscontinued && (
-                  <Badge variant="error">Overdue</Badge>
-                )}
-                <span className="text-xs text-text-tertiary">
-                  {group.invoices.length} invoice{group.invoices.length !== 1 ? "s" : ""}
-                </span>
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-7 h-7 rounded-lg bg-brand-wash flex items-center justify-center shrink-0">
+                  <School className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-text-primary truncate">{cls.item_code}</p>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <Users className="h-3 w-3 text-text-tertiary" />
+                    <span className="text-xs text-text-tertiary">{cls.student_count} student{cls.student_count !== 1 ? "s" : ""}</span>
+                  </div>
+                </div>
               </div>
-              <span className={`text-sm font-bold shrink-0 ml-3 ${group.isDiscontinued ? "text-error line-through" : "text-warning"}`}>
-                {formatCurrency(group.totalOutstanding)}
-              </span>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-sm font-bold text-warning">{formatCurrency(cls.total_outstanding)}</span>
+                <ChevronDown
+                  className={`h-4 w-4 text-text-tertiary transition-transform duration-200 ${isClassOpen ? "rotate-180" : ""}`}
+                />
+              </div>
             </button>
 
-            {/* Expanded invoice list */}
+            {/* Expanded: student list */}
             <AnimatePresence>
-              {isOpen && (
+              {isClassOpen && (
                 <motion.div
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: "auto", opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
                   transition={{ duration: 0.2 }}
-                  className="overflow-hidden"
+                  className="overflow-hidden bg-app-bg"
                 >
-                  <div className="pl-7 pr-1 pb-3 space-y-1.5">
-                    {group.invoices.map((inv) => {
-                      const dueDate = inv.due_date || inv.posting_date;
-                      const isOverdue = !!inv.due_date && inv.due_date < today;
-                      return (
-                        <div
-                          key={inv.name}
-                          className="flex items-center justify-between py-2 px-3 rounded-lg bg-app-bg text-xs"
-                        >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <span className="font-mono text-text-secondary">{inv.name}</span>
-                            <span className={isOverdue ? "text-error font-semibold" : "text-text-tertiary"}>
-                              {dueDate
-                                ? new Date(dueDate).toLocaleDateString("en-IN", {
-                                    day: "numeric", month: "short", year: "numeric",
-                                  })
-                                : "—"}
-                              {isOverdue && <span className="ml-1 text-[10px] font-bold">OVERDUE</span>}
-                            </span>
-                            <Badge variant={
-                              inv.status === "Overdue" ? "error"
-                                : inv.status === "Partly Paid" ? "warning"
-                                : inv.status === "Unpaid" ? "warning"
-                                : "info"
-                            }>
-                              {inv.status}
-                            </Badge>
+                  {isLoadingStudents ? (
+                    <div className="flex items-center justify-center py-4">
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    </div>
+                  ) : students.length === 0 ? (
+                    <p className="text-xs text-text-tertiary px-10 py-3">No students found.</p>
+                  ) : (
+                    <div className="divide-y divide-border-light/60">
+                      {students.map((stu) => {
+                        const isStuOpen = expandedStudent === `${cls.item_code}:${stu.studentName}`;
+                        const hasOverdue = stu.invoices.some((inv) => !!inv.due_date && inv.due_date < today);
+                        const mode = paymentModeMap?.get(stu.studentName);
+
+                        return (
+                          <div key={stu.studentName}>
+                            {/* Student row */}
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setExpandedStudent(isStuOpen ? null : `${cls.item_code}:${stu.studentName}`)
+                              }
+                              className="w-full flex items-center justify-between py-2.5 pl-10 pr-4 hover:bg-brand-wash/40 transition-colors text-left"
+                            >
+                              <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                                <ChevronRight
+                                  className={`h-3.5 w-3.5 text-text-tertiary shrink-0 transition-transform duration-200 ${isStuOpen ? "rotate-90" : ""}`}
+                                />
+                                <span className="text-sm font-medium text-text-primary truncate">
+                                  {stu.studentName}
+                                </span>
+                                {hasOverdue && (
+                                  <Badge variant="error" className="text-[10px]">Overdue</Badge>
+                                )}
+                                {mode && (
+                                  <Badge
+                                    variant="outline"
+                                    className={`text-[10px] px-1.5 py-0 gap-0.5 ${
+                                      mode === "Online" ? "border-blue-300 text-blue-600" : "border-green-300 text-green-600"
+                                    }`}
+                                  >
+                                    {mode === "Online" ? <Wifi className="h-2.5 w-2.5" /> : <Banknote className="h-2.5 w-2.5" />}
+                                    {mode}
+                                  </Badge>
+                                )}
+                                <span className="text-xs text-text-tertiary">
+                                  {stu.invoices.length} invoice{stu.invoices.length !== 1 ? "s" : ""}
+                                </span>
+                              </div>
+                              <span className="text-sm font-bold text-warning shrink-0 ml-2">
+                                {formatCurrency(stu.total)}
+                              </span>
+                            </button>
+
+                            {/* Invoice rows */}
+                            <AnimatePresence>
+                              {isStuOpen && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: "auto", opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  transition={{ duration: 0.15 }}
+                                  className="overflow-hidden"
+                                >
+                                  <div className="pl-16 pr-4 pb-3 space-y-1.5">
+                                    {stu.invoices.map((inv) => {
+                                      const dueDate = inv.due_date;
+                                      const isOverdue = !!dueDate && dueDate < today;
+                                      return (
+                                        <div
+                                          key={inv.name}
+                                          className="flex items-center justify-between py-2 px-3 rounded-lg border border-border-light bg-surface text-xs"
+                                        >
+                                          <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                                            <span className="font-mono text-text-secondary">{inv.name}</span>
+                                            {dueDate && (
+                                              <span className={isOverdue ? "text-error font-semibold" : "text-text-tertiary"}>
+                                                {new Date(dueDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                                                {isOverdue && <span className="ml-1 text-[10px] font-bold">OVERDUE</span>}
+                                              </span>
+                                            )}
+                                            <Badge variant={
+                                              inv.status === "Overdue" ? "error"
+                                                : inv.status === "Partly Paid" ? "warning"
+                                                : inv.status === "Unpaid" ? "warning"
+                                                : "info"
+                                            }>
+                                              {inv.status}
+                                            </Badge>
+                                          </div>
+                                          <span className="font-semibold text-text-primary shrink-0 ml-2">
+                                            {formatCurrency(inv.outstanding_amount)}
+                                          </span>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
                           </div>
-                          <span className="font-semibold text-text-primary ml-2 shrink-0">
-                            {formatCurrency(inv.outstanding_amount)}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>

@@ -7,7 +7,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   UserPlus, Search, Eye, Pencil, Trash2, ArrowRightLeft,
   ChevronLeft, ChevronRight, Loader2, AlertCircle,
-  X, AlertTriangle, UserX,
+  X, AlertTriangle, UserX, CircleCheck, Star,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Button } from "@/components/ui/Button";
@@ -75,6 +75,26 @@ async function fetchEnrollmentMap(
     if (!map[row.student]) {
       map[row.student] = { program: row.program, student_batch_name: row.student_batch_name, custom_fee_structure: row.custom_fee_structure, custom_plan: row.custom_plan };
     }
+  }
+  return map;
+}
+
+// Fetch outstanding totals per customer (to detect "fully paid")
+async function fetchOutstandingMap(
+  customers: string[]
+): Promise<Record<string, number>> {
+  if (!customers.length) return {};
+  const { data } = await apiClient.get("/resource/Sales Invoice", {
+    params: {
+      fields: JSON.stringify(["customer", "sum(outstanding_amount) as total_out"]),
+      filters: JSON.stringify([["docstatus", "=", 1], ["customer", "in", customers]]),
+      group_by: "customer",
+      limit_page_length: customers.length,
+    },
+  });
+  const map: Record<string, number> = {};
+  for (const row of data.data ?? []) {
+    map[row.customer] = row.total_out ?? 0;
   }
   return map;
 }
@@ -168,7 +188,14 @@ export default function StudentsPage() {
     enabled: studentIds.length > 0,
     staleTime: 60_000,
   });
-
+  // ── Query 3: outstanding amounts per student ────────────────
+  const customerIds = students.map((s) => s.customer).filter(Boolean) as string[];
+  const { data: outstandingMap = {} } = useQuery({
+    queryKey: ["outstanding-map", customerIds],
+    queryFn: () => fetchOutstandingMap(customerIds),
+    enabled: customerIds.length > 0,
+    staleTime: 60_000,
+  });
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
       <BreadcrumbNav />
@@ -238,7 +265,6 @@ export default function StudentsPage() {
                   <th className="text-left px-5 py-3 font-semibold text-text-secondary">Student</th>
                   <th className="text-left px-5 py-3 font-semibold text-text-secondary">Class</th>
                   <th className="text-left px-5 py-3 font-semibold text-text-secondary">Batch</th>
-                  <th className="text-left px-5 py-3 font-semibold text-text-secondary">Fee Plan</th>
                   <th className="text-left px-5 py-3 font-semibold text-text-secondary">Branch</th>
                   <th className="text-left px-5 py-3 font-semibold text-text-secondary">Mobile</th>
                   <th className="text-left px-5 py-3 font-semibold text-text-secondary">Joined</th>
@@ -248,9 +274,9 @@ export default function StudentsPage() {
               </thead>
               <tbody>
                 {isLoading
-                  ? Array.from({ length: 9 }).map((_, i) => (
+                  ? Array.from({ length: 8 }).map((_, i) => (
                       <tr key={i} className="border-b border-border-light">
-                        {Array.from({ length: 9 }).map((_, j) => (
+                        {Array.from({ length: 8 }).map((_, j) => (
                           <td key={j} className="px-5 py-3">
                             <Skeleton className="h-4 w-full rounded" />
                           </td>
@@ -260,13 +286,15 @@ export default function StudentsPage() {
                   : students.length === 0
                   ? (
                       <tr>
-                        <td colSpan={9} className="px-5 py-16 text-center text-text-tertiary text-sm">
+                        <td colSpan={8} className="px-5 py-16 text-center text-text-tertiary text-sm">
                           No students found{search ? ` matching "${search}"` : ""}.
                         </td>
                       </tr>
                     )
                   : students.map((student, index) => {
                       const enr = enrollmentMap[student.name];
+                      const outstanding = student.customer ? (outstandingMap[student.customer] ?? null) : null;
+                      const isFullyPaid = outstanding !== null && outstanding <= 0;
                       return (
                         <motion.tr
                           key={student.name}
@@ -275,16 +303,40 @@ export default function StudentsPage() {
                           transition={{ delay: index * 0.02 }}
                           className="border-b border-border-light hover:bg-brand-wash/30 transition-colors"
                         >
-                          {/* Student name + ID */}
+                          {/* Student name + ID + badges */}
                           <td className="px-5 py-3">
                             <div className="flex items-center gap-3">
                               <div className="w-8 h-8 rounded-full bg-primary-light text-primary flex items-center justify-center text-xs font-bold flex-shrink-0">
                                 {initials(student.student_name || student.first_name || "?")}
                               </div>
                               <div className="min-w-0">
-                                <p className="font-medium text-text-primary truncate">
-                                  {student.student_name}
-                                </p>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <p className="font-medium text-text-primary truncate">
+                                    {student.student_name}
+                                  </p>
+                                  {enr?.custom_plan && (
+                                    <Badge
+                                      variant="outline"
+                                      className={`text-[10px] px-1.5 py-0 gap-0.5 ${
+                                        enr.custom_plan === "Advanced"
+                                          ? "border-indigo-300 text-indigo-600"
+                                          : "border-gray-300 text-gray-500"
+                                      }`}
+                                    >
+                                      {enr.custom_plan === "Advanced" && <Star className="h-2.5 w-2.5" />}
+                                      {enr.custom_plan}
+                                    </Badge>
+                                  )}
+                                  {isFullyPaid && (
+                                    <Badge
+                                      variant="outline"
+                                      className="text-[10px] px-1.5 py-0 gap-0.5 border-green-300 text-green-600"
+                                    >
+                                      <CircleCheck className="h-2.5 w-2.5" />
+                                      Fully Paid
+                                    </Badge>
+                                  )}
+                                </div>
                                 <p className="text-xs text-text-tertiary truncate">{student.name}</p>
                               </div>
                             </div>
@@ -298,13 +350,6 @@ export default function StudentsPage() {
                           {/* Batch code */}
                           <td className="px-5 py-3 text-text-secondary">
                             {enr?.student_batch_name ?? <span className="text-text-tertiary text-xs">—</span>}
-                          </td>
-
-                          {/* Fee Plan */}
-                          <td className="px-5 py-3 text-text-secondary text-xs">
-                            {enr?.custom_plan
-                              ? <span>{enr.custom_plan}{enr.custom_fee_structure ? <span className="text-text-tertiary"> · {enr.custom_fee_structure}</span> : ""}</span>
-                              : <span className="text-text-tertiary">—</span>}
                           </td>
 
                           {/* Branch */}

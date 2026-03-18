@@ -15,6 +15,8 @@ import {
   User,
   ChevronDown,
   ChevronRight,
+  Banknote,
+  Wifi,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -24,6 +26,7 @@ import { Badge } from "@/components/ui/Badge";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { getPendingInvoices, type PendingInvoiceRow } from "@/lib/api/fees";
 import { getBatch } from "@/lib/api/batches";
+import { getPaymentModesByCustomers } from "@/lib/api/sales";
 import { useAuth } from "@/lib/hooks/useAuth";
 import type { Batch } from "@/lib/types/batch";
 
@@ -48,6 +51,7 @@ export default function StudentPendingFeesPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [expandedStudent, setExpandedStudent] = useState<string | null>(null);
+  const [paymentModeMap, setPaymentModeMap] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
     if (!decodedClass) return;
@@ -102,6 +106,15 @@ export default function StudentPendingFeesPage() {
           setInvoices(
             allInvoices.filter((inv) => batchStudentNames.has(inv.customer_name || inv.customer))
           );
+        }
+
+        // Fetch payment mode per customer from Payment Entries
+        try {
+          const customerNames = [...new Set(allInvoices.map(inv => inv.customer_name || inv.customer || "").filter(Boolean))];
+          const modeMap = await getPaymentModesByCustomers(customerNames, defaultCompany || undefined);
+          setPaymentModeMap(modeMap);
+        } catch {
+          // non-critical, ignore
         }
       } catch (err) {
         console.error(err);
@@ -269,9 +282,28 @@ export default function StudentPendingFeesPage() {
                         <User className="h-4 w-4 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-text-primary truncate">
-                          {student.name}
-                        </p>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-semibold text-text-primary truncate">
+                            {student.name}
+                          </p>
+                          {paymentModeMap.get(student.name) && (
+                            <Badge
+                              variant="outline"
+                              className={`text-[10px] px-1.5 py-0 gap-0.5 ${
+                                paymentModeMap.get(student.name) === "Online"
+                                  ? "border-blue-300 text-blue-600"
+                                  : "border-green-300 text-green-600"
+                              }`}
+                            >
+                              {paymentModeMap.get(student.name) === "Online" ? (
+                                <Wifi className="h-2.5 w-2.5" />
+                              ) : (
+                                <Banknote className="h-2.5 w-2.5" />
+                              )}
+                              {paymentModeMap.get(student.name)}
+                            </Badge>
+                          )}
+                        </div>
                         <p className="text-xs text-text-tertiary">
                           {student.invoices.length} invoice{student.invoices.length !== 1 ? "s" : ""}
                         </p>

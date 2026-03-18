@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
@@ -168,6 +168,14 @@ export default function NewCourseSchedulePage() {
     staleTime: 10 * 60_000,
   });
   const rooms = roomRes?.data ?? [];
+
+  // Auto-select Offline room and lock it
+  useEffect(() => {
+    if (rooms.length > 0 && !form.room) {
+      const offlineRoom = rooms.find((r) => r.room_name.toLowerCase() === "offline");
+      if (offlineRoom) setForm((f) => ({ ...f, room: offlineRoom.name }));
+    }
+  }, [rooms]);
 
   // ── Submit ─────────────────────────────────────────────────────────────────
 
@@ -377,7 +385,8 @@ export default function NewCourseSchedulePage() {
                   <select
                     value={form.room}
                     onChange={set("room")}
-                    className={`${selectCls} ${errors.room ? "border-error focus:ring-error/30" : ""}`}
+                    disabled
+                    className={`${selectCls} opacity-70 cursor-not-allowed ${errors.room ? "border-error focus:ring-error/30" : ""}`}
                   >
                     <option value="">Select a room…</option>
                     {rooms.map((r) => (
