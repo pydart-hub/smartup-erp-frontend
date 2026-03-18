@@ -700,17 +700,35 @@ export default function SalesOrderDetailPage() {
                 />
 
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-medium text-text-secondary">Mode of Payment</label>
-                  <div className="grid grid-cols-1 gap-2">
-                    <button
-                      type="button"
-                      className="flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium border-primary bg-primary/5 text-primary"
-                      disabled
-                    >
-                      <Banknote className="h-4 w-4" />
-                      Cash
-                    </button>
+                  <label className="text-sm font-medium text-text-secondary">Payment Method</label>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {(["Cash", "UPI", "Bank Transfer", "Cheque"] as const).map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => { setPayMode(m); if (m === "Cash") setPayRef(""); }}
+                        className={`px-2 py-2.5 text-xs font-medium rounded-xl border transition-all ${
+                          payMode === m
+                            ? "border-primary bg-primary/5 text-primary"
+                            : "border-border-light bg-surface text-text-secondary hover:border-primary/40"
+                        }`}
+                      >
+                        {m}
+                      </button>
+                    ))}
                   </div>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <Input
+                    label={payMode === "Cash" ? "Receipt number (optional)" : payMode === "UPI" ? "UTR Number" : payMode === "Cheque" ? "Cheque Number" : "Transaction Reference"}
+                    placeholder={payMode === "Cash" ? "Receipt number (optional)" : payMode === "UPI" ? "UTR Number" : payMode === "Cheque" ? "Cheque Number" : "Transaction Reference"}
+                    value={payRef}
+                    onChange={(e) => setPayRef(e.target.value)}
+                  />
+                  {payMode !== "Cash" && !payRef.trim() && (
+                    <p className="text-xs text-error">Required for {payMode} payments</p>
+                  )}
                 </div>
 
                 <Input
@@ -721,8 +739,6 @@ export default function SalesOrderDetailPage() {
                   className="cursor-not-allowed opacity-70"
                 />
 
-
-
                 <div className="flex gap-3 mt-2">
                   <Button variant="outline" size="md" onClick={closePaymentModal} className="flex-1">
                     Cancel
@@ -731,7 +747,7 @@ export default function SalesOrderDetailPage() {
                     variant="primary"
                     size="md"
                     className="flex-1"
-                    disabled={paymentMutation.isPending || !payAmount || Number(payAmount) <= 0 || Number(payAmount) > paymentInvoice.outstanding_amount}
+                    disabled={paymentMutation.isPending || !payAmount || Number(payAmount) <= 0 || Number(payAmount) > paymentInvoice.outstanding_amount || (payMode !== "Cash" && !payRef.trim())}
                     onClick={() => paymentMutation.mutate()}
                   >
                     {paymentMutation.isPending ? (

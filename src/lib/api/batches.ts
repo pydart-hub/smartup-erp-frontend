@@ -45,6 +45,23 @@ export async function createClass(classData: Partial<ClassLevel>): Promise<Frapp
   return data;
 }
 
+// ── Student counts per batch (from child table) ──
+export async function getBatchStudentCounts(batchNames: string[]): Promise<Record<string, number>> {
+  if (!batchNames.length) return {};
+  const query = new URLSearchParams({
+    fields: JSON.stringify(["parent", "count(name) as cnt"]),
+    filters: JSON.stringify([["parent", "in", batchNames], ["active", "=", 1]]),
+    group_by: "parent",
+    limit_page_length: "0",
+  });
+  const { data } = await apiClient.get(`/resource/Student Group Student?${query}`);
+  const counts: Record<string, number> = {};
+  for (const row of data.data ?? []) {
+    if (row.parent) counts[row.parent] = row.cnt ?? 0;
+  }
+  return counts;
+}
+
 // ── List Batches (Student Groups) ──
 // Batches = Student Groups where group_based_on = "Batch"
 // Filter by custom_branch (Company), program, or batch code

@@ -171,6 +171,7 @@ export default function FeesPage() {
               value={formatCurrency(summary?.total_collected ?? 0)}
               icon={<TrendingUp className="h-5 w-5" />}
               color="success"
+              href="/dashboard/branch-manager/fees/collected"
               subtitle={
                 collectedByMode ? (
                   <div className="flex items-center gap-3">

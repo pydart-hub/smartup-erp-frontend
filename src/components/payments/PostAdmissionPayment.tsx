@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import RazorpayPayButton from "@/components/payments/RazorpayPayButton";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { PAYMENT_MODES } from "@/lib/utils/constants";
 
 /* ──────────────────────────────────────────────────────── */
 /* Types                                                    */
@@ -112,16 +113,51 @@ function CashPaymentForm({
     }
   }, [invoice, amount, maxAmount, isPartial, mode, referenceNo, today, onPaid]);
 
+  const OFFLINE_MODES = PAYMENT_MODES.filter((m) => m !== "Card");
+  const refLabel: Record<string, string> = {
+    Cash: "Receipt number (optional)",
+    UPI: "UTR Number",
+    "Bank Transfer": "Transaction Reference",
+    Cheque: "Cheque Number",
+  };
+  const needsRef = mode !== "Cash";
+
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-1 gap-2">
-        <button
-          type="button"
-          className="px-3 py-2 text-xs font-medium rounded-[8px] border transition-all border-primary bg-primary/5 text-primary"
-          disabled
-        >
-          Cash
-        </button>
+      {/* Mode selector */}
+      <div>
+        <label className="text-xs text-text-secondary mb-1 block">Payment Method</label>
+        <div className="grid grid-cols-4 gap-1.5">
+          {OFFLINE_MODES.map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => { setMode(m); if (m === "Cash") setReferenceNo(""); }}
+              className={`px-2 py-2 text-xs font-medium rounded-[8px] border transition-all ${
+                mode === m
+                  ? "border-primary bg-primary/5 text-primary"
+                  : "border-border-light bg-surface text-text-secondary hover:border-primary/40"
+              }`}
+            >
+              {m}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Transaction ID / Reference */}
+      <div>
+        <label className="text-xs text-text-secondary mb-1 block">
+          {refLabel[mode] ?? "Reference"}{needsRef ? "" : ""}
+        </label>
+        <Input
+          placeholder={refLabel[mode] ?? "Reference"}
+          value={referenceNo}
+          onChange={(e) => setReferenceNo(e.target.value)}
+        />
+        {needsRef && !referenceNo.trim() && (
+          <p className="text-xs text-error mt-1">Required for {mode} payments</p>
+        )}
       </div>
 
       {/* Editable amount */}
@@ -144,18 +180,12 @@ function CashPaymentForm({
         )}
       </div>
 
-      <Input
-        placeholder="Receipt / UTR number (optional)"
-        value={referenceNo}
-        onChange={(e) => setReferenceNo(e.target.value)}
-      />
-
       <Button
         variant="primary"
         className="w-full"
         onClick={handleRecordCash}
         loading={loading}
-        disabled={loading || amount <= 0 || amount > maxAmount}
+        disabled={loading || amount <= 0 || amount > maxAmount || (needsRef && !referenceNo.trim())}
       >
         {loading ? (
           <><Loader2 className="h-4 w-4 animate-spin" /> Recording…</>

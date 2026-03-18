@@ -9,7 +9,7 @@ import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
-import { getBatches } from "@/lib/api/batches";
+import { getBatches, getBatchStudentCounts } from "@/lib/api/batches";
 import type { Batch } from "@/lib/types/batch";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useAcademicYearStore } from "@/lib/stores/academicYearStore";
@@ -20,6 +20,7 @@ export function BatchesContent() {
   const searchParams = useSearchParams();
   const programFilter = searchParams.get("program") || "";
   const [batches, setBatches] = useState<Batch[]>([]);
+  const [studentCounts, setStudentCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,7 +33,12 @@ export function BatchesContent() {
       ...(programFilter ? { program: programFilter } : {}),
       academic_year: selectedYear,
     })
-      .then((res) => setBatches(res.data))
+      .then(async (res) => {
+        setBatches(res.data);
+        const names = res.data.map((b) => b.name);
+        const counts = await getBatchStudentCounts(names);
+        setStudentCounts(counts);
+      })
       .catch(() => setError("Failed to load batches from server."))
       .finally(() => setLoading(false));
   }
@@ -117,7 +123,7 @@ export function BatchesContent() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {programBatches.map((batch, index) => {
                 const max = batch.max_strength ?? 60;
-                const enrolled = batch.students?.filter((s) => s.active !== 0).length ?? 0;
+                const enrolled = studentCounts[batch.name] ?? 0;
                 const percentage = max > 0 ? (enrolled / max) * 100 : 0;
                 const isFull = enrolled >= max && max > 0;
 
@@ -147,7 +153,7 @@ export function BatchesContent() {
                       <div className="space-y-2 text-sm">
                         <div className="flex items-center gap-2 text-text-secondary">
                           <Users className="h-3.5 w-3.5 text-text-tertiary" />
-                          <span>Max {max} students</span>
+                          <span>{enrolled} / {max} students</span>
                         </div>
                         {batch.batch && (
                           <div className="flex items-center gap-2 text-text-secondary">
