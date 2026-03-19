@@ -14,6 +14,7 @@ import {
   IndianRupee,
   Search,
   Download,
+  CalendarClock,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -156,9 +157,10 @@ export default function BatchDetailPage() {
   const totalFee = feeData?.reduce((sum, r) => sum + r.totalFee, 0) ?? 0;
   const totalPaid = feeData?.reduce((sum, r) => sum + r.paidFee, 0) ?? 0;
   const totalPending = feeData?.reduce((sum, r) => sum + r.pendingFee, 0) ?? 0;
+  const totalDues = feeData?.reduce((sum, r) => sum + r.duesTillToday, 0) ?? 0;
 
   function downloadCSV() {
-    const headers = ["#", "Student ID", "Name", "Plan", "Total Fee", "Paid", "Pending", "Status"];
+    const headers = ["#", "Student ID", "Name", "Plan", "Total Fee", "Paid", "Pending", "Overdue", "Status"];
     const rows = filteredStudents.map((s, idx) => {
       const fee = feeMap.get(s.student);
       return [
@@ -169,6 +171,7 @@ export default function BatchDetailPage() {
         fee?.totalFee ?? 0,
         fee?.paidFee ?? 0,
         fee?.pendingFee ?? 0,
+        fee?.duesTillToday ?? 0,
         s.active ? "Active" : "Discontinued",
       ];
     });
@@ -225,7 +228,7 @@ export default function BatchDetailPage() {
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4">
         <Card>
           <CardContent className="p-4 text-center">
             <GraduationCap className="h-5 w-5 text-primary mx-auto mb-2" />
@@ -274,6 +277,15 @@ export default function BatchDetailPage() {
               {feesLoading ? "…" : formatCurrency(totalPending)}
             </p>
             <p className="text-xs text-text-tertiary">Pending</p>
+          </CardContent>
+        </Card>
+        <Card className={`border-orange-200/60 ${totalDues > 0 ? '' : 'opacity-60'}`}>
+          <CardContent className="p-4 text-center">
+            <CalendarClock className="h-5 w-5 text-orange-500 mx-auto mb-2" />
+            <p className={`text-lg font-bold ${totalDues > 0 ? 'text-orange-600' : 'text-text-tertiary'}`}>
+              {feesLoading ? "…" : formatCurrency(totalDues)}
+            </p>
+            <p className="text-xs text-text-tertiary">Overdue</p>
           </CardContent>
         </Card>
       </div>
@@ -380,6 +392,9 @@ export default function BatchDetailPage() {
                     <th className="text-right px-4 py-3 font-medium text-text-secondary">
                       Pending
                     </th>
+                    <th className="text-right px-4 py-3 font-medium text-orange-500">
+                      Overdue
+                    </th>
                     <th className="text-center px-4 py-3 font-medium text-text-secondary">
                       Status
                     </th>
@@ -430,6 +445,13 @@ export default function BatchDetailPage() {
                             : fee?.pendingFee
                             ? formatCurrency(fee.pendingFee)
                             : "—"}
+                        </td>
+                        <td className="px-4 py-3 text-right font-mono text-xs">
+                          {feesLoading
+                            ? "…"
+                            : fee?.duesTillToday
+                            ? <span className="text-orange-600 font-semibold">{formatCurrency(fee.duesTillToday)}</span>
+                            : <span className="text-text-tertiary">—</span>}
                         </td>
                         <td className="px-4 py-3 text-center">
                           <Badge

@@ -108,6 +108,17 @@
 - **Lesson**: Frappe's resource API supports `sum()`, `count()`, `avg()` etc. in the `fields` parameter (e.g., `["sum(grand_total) as total"]`). This works well for dashboard stats. However, if ANY field in the query is restricted, the entire query fails — not just that field.
 - **Rule**: Keep aggregate queries minimal. If one field is restricted, the whole query fails silently (returns error → defaults to 0). Test each field individually.
 
+## Frappe Child Doctype Queries — PermissionError on frappe.client.get_list
+- **Date**: 2026-03-19
+- **Issue**: Querying child doctypes (e.g., `Student Group Student`, `Sales Invoice Item`) directly via `frappe.client.get_list` POST throws `PermissionError` — Frappe's `check_parent_permission()` blocks direct access to child tables even with admin API token.
+- **Root Cause**: Frappe's security model doesn't allow `get_list` on child doctypes. The `check_parent_permission` function raises `PermissionError` when you try to query a child table without going through its parent doctype.
+- **Fix**: Instead of querying child tables directly:
+  1. Fetch the parent doctype list (e.g., `GET /api/resource/Student Group?filters=...`)
+  2. Fetch each parent document individually (e.g., `GET /api/resource/Student Group/Kadavanthara-10th%20CBSE-A`) which includes child arrays (e.g., `.students`)
+  3. Build mappings in JavaScript from the child data embedded in parent docs
+- **Also**: Child doctypes do NOT have their own `docstatus` column — filtering by `docstatus` on a child table (e.g., `Sales Invoice Item`) causes SQL errors. Use `parenttype` or `parent` filters instead.
+- **Rule**: NEVER use `frappe.client.get_list` on child doctypes. Always go through the parent document. Use `Promise.all()` to parallelize parent doc fetches for performance.
+
 ## Next.js allowedDevOrigins — LAN Access Breaks Client Components
 - **Date**: 2026-06-XX
 - **Issue**: When accessing the Next.js dev server from a LAN IP (e.g. `192.168.1.66:3000` instead of `localhost:3000`), Next.js 16 blocks `/_next/*` resource loading (JS bundles, chunks, HMR websocket) as cross-origin. The HTML shell loads, but React components never hydrate — so `useEffect` never fires, `fetch()` calls are never made, and the page appears "empty" despite HTML being present in the DOM.

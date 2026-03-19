@@ -356,9 +356,10 @@ export async function getBranchProgramFeeStats(branch: string): Promise<ProgramF
   const allStudentNames = students.map((s) => s.name);
 
   // Step 2: Get latest Program Enrollment per student (sorted desc by date, first wins)
+  // Include draft (0) and submitted (1) enrollments; exclude only cancelled (2)
   const enrollParams = new URLSearchParams({
     fields: JSON.stringify(["student", "program", "enrollment_date"]),
-    filters: JSON.stringify([["student", "in", allStudentNames], ["docstatus", "=", "1"]]),
+    filters: JSON.stringify([["student", "in", allStudentNames], ["docstatus", "!=", "2"]]),
     limit_page_length: "1000",
     order_by: "enrollment_date desc",
   });
@@ -434,8 +435,10 @@ export interface StudentFeeRow {
   totalOutstanding: number;
   invoiceCount: number;
   enabled: number; // 1 = active, 0 = discontinued
-  feePlan?: string; // "Basic" | "Advanced" from Sales Order
+  feePlan?: string; // "Basic" | "Intermediate" | "Advanced" from Sales Order
   paymentMode?: string; // "Cash" | "Online" derived from Payment Entries
+  noOfInstalments?: string; // "1" | "4" | "6" | "8" from Sales Order
+  duesTillToday: number; // overdue amount (due_date <= today)
 }
 
 /**
@@ -467,6 +470,7 @@ export interface BatchStudentFeeRow {
   pendingFee: number;
   invoiceCount: number;
   plan: string | null; // "Basic" | "Intermediate" | "Advanced"
+  duesTillToday: number; // overdue amount (due_date <= today)
 }
 
 /**
@@ -908,4 +912,84 @@ export async function getBranchFeeSchedules(
   });
   const { data } = await apiClient.get(`/resource/Fee Schedule?${params}`);
   return data.data ?? [];
+}
+
+// ── Dues Till Today ──
+
+export interface DuesTodayTotal {
+  total_dues: number;
+  invoice_count: number;
+  student_count: number;
+}
+
+export interface DuesTodayBranchRow {
+  branch: string;
+  total_dues: number;
+  invoice_count: number;
+  student_count: number;
+}
+
+export interface DuesTodayClassRow {
+  item_code: string;
+  total_dues: number;
+  invoice_count: number;
+  student_count: number;
+}
+
+export interface DuesTodayBatchRow {
+  batch_id: string;
+  batch_name: string;
+  total_dues: number;
+  student_count: number;
+}
+
+export interface DuesTodayStudentRow {
+  student_id: string;
+  student_name: string;
+  total_dues: number;
+  plan: string;
+  no_of_instalments: string;
+  overdue_invoices: { name: string; amount: number; grand_total: number; due_date: string; instalment_label: string }[];
+}
+
+/** Get total overdue dues across all branches */
+export async function getDuesTodayTotal(): Promise<DuesTodayTotal> {
+  const res = await fetch("/api/fees/dues-till-today?level=total", { credentials: "include" });
+  if (!res.ok) throw new Error(`dues-till-today failed: ${res.status}`);
+  return res.json();
+}
+
+/** Get branch-wise dues breakdown */
+export async function getDuesTodayByBranch(): Promise<DuesTodayBranchRow[]> {
+  const res = await fetch("/api/fees/dues-till-today?level=branch", { credentials: "include" });
+  if (!res.ok) throw new Error(`dues-till-today failed: ${res.status}`);
+  const json = await res.json();
+  return json.data ?? [];
+}
+
+/** Get class-wise dues for a specific branch */
+export async function getDuesTodayByClass(branch: string): Promise<DuesTodayClassRow[]> {
+  const params = new URLSearchParams({ level: "class", branch });
+  const res = await fetch(`/api/fees/dues-till-today?${params}`, { credentials: "include" });
+  if (!res.ok) throw new Error(`dues-till-today failed: ${res.status}`);
+  const json = await res.json();
+  return json.data ?? [];
+}
+
+/** Get batch-wise dues for a specific branch + class */
+export async function getDuesTodayByBatch(branch: string, itemCode: string): Promise<DuesTodayBatchRow[]> {
+  const params = new URLSearchParams({ level: "batch", branch, item_code: itemCode });
+  const res = await fetch(`/api/fees/dues-till-today?${params}`, { credentials: "include" });
+  if (!res.ok) throw new Error(`dues-till-today failed: ${res.status}`);
+  const json = await res.json();
+  return json.data ?? [];
+}
+
+/** Get student-wise dues for a specific batch */
+export async function getDuesTodayByStudent(branch: string, batch: string): Promise<DuesTodayStudentRow[]> {
+  const params = new URLSearchParams({ level: "student", branch, batch });
+  const res = await fetch(`/api/fees/dues-till-today?${params}`, { credentials: "include" });
+  if (!res.ok) throw new Error(`dues-till-today failed: ${res.status}`);
+  const json = await res.json();
+  return json.data ?? [];
 }

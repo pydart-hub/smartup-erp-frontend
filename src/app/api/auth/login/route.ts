@@ -171,9 +171,9 @@ export async function POST(request: NextRequest) {
           instructorName = instrData.name;
           instructorDisplayName = instrData.instructor_name || empData.employee_name || "";
 
-          // Only apply instructor-specific role changes for pure instructors.
-          // Users with higher-priority roles (Branch Manager, Director, etc.)
-          // should keep their primary role untouched.
+          // Pure instructors: move "Instructor" to position 0 for frontend
+          // role detection. Users with higher-priority roles keep their primary
+          // role untouched — the frontend picks the best role from store.
           const HIGHER_ROLES = ["Director", "Management", "Branch Manager", "HR Manager", "Administrator"];
           const hasPrimaryRole = HIGHER_ROLES.some((r) => roles.includes(r));
 
@@ -182,40 +182,41 @@ export async function POST(request: NextRequest) {
             const existingIdx = roles.indexOf("Instructor");
             if (existingIdx > -1) roles.splice(existingIdx, 1);
             roles.unshift("Instructor");
+          }
 
-            // 6b. Ensure the instructor has "Academics User" role in Frappe.
-            //     Course Schedule and Student Attendance DocType permissions only
-            //     grant write/create to "Academics User" — without this role the
-            //     instructor cannot create schedules or mark attendance.
-            if (!roles.includes("Academics User")) {
-              try {
-                const existingRoleRows = (userData.roles || []).map(
-                  (r: { role: string; name?: string }) => ({
-                    role: r.role,
-                    ...(r.name ? { name: r.name } : {}),
-                  })
-                );
-                existingRoleRows.push({ role: "Academics User" });
-                await axios.put(
-                  `${FRAPPE_URL}/api/resource/User/${encodeURIComponent(email)}`,
-                  { roles: existingRoleRows },
-                  {
-                    headers: {
-                      Authorization: adminAuth,
-                      "Content-Type": "application/json",
-                    },
-                  }
-                );
-                roles.push("Academics User");
-                console.log(
-                  `[login] Added "Academics User" role to instructor ${email}`
-                );
-              } catch (roleErr) {
-                console.warn(
-                  `[login] Could not add Academics User role to ${email}:`,
-                  roleErr
-                );
-              }
+          // 6b. Ensure ALL instructors (including BM+Instructor) have
+          //     "Academics User" role in Frappe.  Course Schedule and Student
+          //     Attendance DocType permissions require this role for
+          //     write/create — without it, the user cannot create schedules
+          //     or mark attendance even when acting in instructor mode.
+          if (!roles.includes("Academics User")) {
+            try {
+              const existingRoleRows = (userData.roles || []).map(
+                (r: { role: string; name?: string }) => ({
+                  role: r.role,
+                  ...(r.name ? { name: r.name } : {}),
+                })
+              );
+              existingRoleRows.push({ role: "Academics User" });
+              await axios.put(
+                `${FRAPPE_URL}/api/resource/User/${encodeURIComponent(email)}`,
+                { roles: existingRoleRows },
+                {
+                  headers: {
+                    Authorization: adminAuth,
+                    "Content-Type": "application/json",
+                  },
+                }
+              );
+              roles.push("Academics User");
+              console.log(
+                `[login] Added "Academics User" role to instructor ${email}`
+              );
+            } catch (roleErr) {
+              console.warn(
+                `[login] Could not add Academics User role to ${email}:`,
+                roleErr
+              );
             }
           }
         }

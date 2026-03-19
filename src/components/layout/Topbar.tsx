@@ -1,15 +1,25 @@
 "use client";
 
 import React from "react";
-import { Menu, Search, LogOut, ChevronDown } from "lucide-react";
+import { Menu, Search, LogOut, ChevronDown, ArrowLeftRight, GraduationCap, Building2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useUIStore } from "@/lib/stores/uiStore";
 import { getInitials } from "@/lib/utils/formatters";
 import { NotificationDropdown } from "@/components/layout/NotificationDropdown";
 
+const ROLE_ICONS: Record<string, React.ReactNode> = {
+  "Branch Manager": <Building2 className="h-4 w-4" />,
+  "Instructor": <GraduationCap className="h-4 w-4" />,
+};
+
+const ROLE_LABELS: Record<string, string> = {
+  "Branch Manager": "Branch Manager",
+  "Instructor": "Instructor",
+};
+
 export function Topbar() {
-  const { user, role, logout } = useAuth();
+  const { user, role, activeRole, switchableRoles, switchRole, logout } = useAuth();
   const { toggleSidebar } = useUIStore();
   const [showUserMenu, setShowUserMenu] = React.useState(false);
   const menuRef = React.useRef<HTMLDivElement>(null);
@@ -24,6 +34,9 @@ export function Topbar() {
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
+
+  const displayRole = activeRole || role;
+  const canSwitch = switchableRoles.length > 1;
 
   return (
     <header className="h-16 bg-surface border-b border-border-light flex items-center justify-between px-4 lg:px-6 shrink-0 sticky top-0 z-30">
@@ -47,8 +60,28 @@ export function Topbar() {
         </div>
       </div>
 
-      {/* Right: Notifications + User */}
+      {/* Right: Role Switcher + Notifications + User */}
       <div className="flex items-center gap-2">
+        {/* Role Switcher — only for dual-role users */}
+        {canSwitch && (
+          <div className="flex items-center bg-app-bg rounded-[10px] p-0.5 border border-border-light">
+            {switchableRoles.map((r) => (
+              <button
+                key={r}
+                onClick={() => switchRole(r)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-xs font-medium transition-all ${
+                  displayRole === r
+                    ? "bg-primary text-white shadow-sm"
+                    : "text-text-secondary hover:text-text-primary hover:bg-surface"
+                }`}
+              >
+                {ROLE_ICONS[r]}
+                <span className="hidden sm:inline">{ROLE_LABELS[r] || r}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Notification Bell */}
         <NotificationDropdown />
 
@@ -65,7 +98,7 @@ export function Topbar() {
               <p className="text-sm font-medium text-text-primary leading-tight">
                 {user?.full_name || "User"}
               </p>
-              <p className="text-xs text-text-tertiary leading-tight">{role || "—"}</p>
+              <p className="text-xs text-text-tertiary leading-tight">{displayRole || "—"}</p>
             </div>
             <ChevronDown className="h-4 w-4 text-text-tertiary hidden sm:block" />
           </button>
@@ -83,6 +116,34 @@ export function Topbar() {
                 <p className="text-sm font-medium text-text-primary">{user?.full_name}</p>
                 <p className="text-xs text-text-tertiary truncate">{user?.email}</p>
               </div>
+
+              {/* Role switch options in dropdown (mobile-friendly duplicate) */}
+              {canSwitch && (
+                <div className="p-1 border-b border-border-light">
+                  <p className="px-3 py-1 text-xs text-text-tertiary font-medium">Switch Role</p>
+                  {switchableRoles.map((r) => (
+                    <button
+                      key={r}
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        switchRole(r);
+                      }}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-[8px] transition-colors ${
+                        displayRole === r
+                          ? "text-primary bg-primary-light font-medium"
+                          : "text-text-secondary hover:bg-app-bg"
+                      }`}
+                    >
+                      {ROLE_ICONS[r]}
+                      {ROLE_LABELS[r] || r}
+                      {displayRole === r && (
+                        <span className="ml-auto text-xs text-primary">Active</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               <div className="p-1">
                 <button
                   onClick={() => {

@@ -18,6 +18,7 @@ import {
   TriangleAlert,
   Wifi,
   Banknote,
+  CalendarClock,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -35,6 +36,7 @@ import {
   getTotalInvoiceStats,
   getCollectedByMode,
   getDiscontinuedStudentForfeitedFees,
+  getDuesTodayTotal,
 } from "@/lib/api/director";
 import { formatCurrency } from "@/lib/utils/formatters";
 
@@ -221,6 +223,13 @@ export default function DirectorDashboard() {
     refetchInterval: 60_000,
   });
 
+  const { data: duesToday, isLoading: loadDuesToday, isError: errDuesToday } = useQuery({
+    queryKey: ["director-dues-today"],
+    queryFn: getDuesTodayTotal,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+  });
+
   return (
     <motion.div
       variants={containerVariants}
@@ -248,7 +257,7 @@ export default function DirectorDashboard() {
       </motion.div>
 
       {/* Summary Stats — Clickable Cards */}
-      <motion.div variants={itemVariants} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+      <motion.div variants={itemVariants} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4">
         <Link href="/dashboard/director/students">
           <Card className="h-full hover:shadow-md transition-shadow cursor-pointer border-border-light hover:border-primary/30">
             <CardContent className="p-4 text-center">
@@ -375,6 +384,29 @@ export default function DirectorDashboard() {
                 </p>
               )}
               <p className="text-xs text-text-tertiary">Pending Fees</p>
+              <ChevronRight className="h-3.5 w-3.5 text-text-tertiary mx-auto mt-1" />
+            </CardContent>
+          </Card>
+        </Link>
+        <Link href="/dashboard/director/dues">
+          <Card className="h-full hover:shadow-md transition-shadow cursor-pointer border-border-light hover:border-orange-400/40 border-orange-200/60">
+            <CardContent className="p-4 text-center">
+              <CalendarClock className="h-5 w-5 text-orange-500 mx-auto mb-2" />
+              {errDuesToday ? (
+                <p className="text-sm text-error flex items-center justify-center gap-1">
+                  <AlertCircle className="h-4 w-4" /> Error
+                </p>
+              ) : (
+                <p className="text-2xl font-bold text-orange-600">
+                  {loadDuesToday ? "..." : formatCurrency(duesToday?.total_dues ?? 0)}
+                </p>
+              )}
+              <p className="text-xs text-text-tertiary">Dues Till Today</p>
+              {!errDuesToday && (
+                <p className="text-[10px] text-text-tertiary mt-0.5">
+                  {loadDuesToday ? "..." : `${duesToday?.student_count ?? 0} students`}
+                </p>
+              )}
               <ChevronRight className="h-3.5 w-3.5 text-text-tertiary mx-auto mt-1" />
             </CardContent>
           </Card>

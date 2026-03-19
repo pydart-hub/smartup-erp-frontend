@@ -86,11 +86,12 @@ export async function GET(request: NextRequest) {
     const allStudentNames = students.map((s) => s.name);
 
     // Step 2: fetch program enrollments for these students
+    // Include draft (0) and submitted (1) enrollments; exclude only cancelled (2)
     const enrollJson = await frappeGet("resource/Program Enrollment", {
       fields: JSON.stringify(["student", "program", "enrollment_date"]),
       filters: JSON.stringify([
         ["student", "in", allStudentNames],
-        ["docstatus", "=", "1"],
+        ["docstatus", "!=", "2"],
       ]),
       limit_page_length: "1000",
       order_by: "enrollment_date desc",
@@ -114,9 +115,9 @@ export async function GET(request: NextRequest) {
 
     const studentIdList = programStudents.map((s) => s.name);
 
-    // Step 3: fetch invoices for these students
+    // Step 3: fetch invoices for these students (include due_date for overdue calc)
     const invJson = await frappeGet("resource/Sales Invoice", {
-      fields: JSON.stringify(["student", "customer", "grand_total", "outstanding_amount"]),
+      fields: JSON.stringify(["student", "customer", "grand_total", "outstanding_amount", "due_date"]),
       filters: JSON.stringify([
         ["docstatus", "=", "1"],
         ["student", "in", studentIdList],
@@ -129,7 +130,17 @@ export async function GET(request: NextRequest) {
       customer: string;
       grand_total: number;
       outstanding_amount: number;
+      due_date: string;
     }[] = invJson?.data ?? [];
+
+    // Compute per-student overdue dues (due_date <= today AND outstanding > 0)
+    const todayDate = new Date().toISOString().split("T")[0];
+    const duesMap = new Map<string, number>();
+    for (const inv of invoices) {
+      if (inv.due_date <= todayDate && inv.outstanding_amount > 0) {
+        duesMap.set(inv.student, (duesMap.get(inv.student) ?? 0) + inv.outstanding_amount);
+      }
+    }
 
     // Build student → customer mapping from invoices (needed for PE lookup)
     const studentToCustomer = new Map<string, string>();
@@ -176,11 +187,12 @@ export async function GET(request: NextRequest) {
       // Payment mode is non-critical — silently skip
     }
 
-    // Step 5: fetch Sales Orders for fee plan (non-critical)
+    // Step 5: fetch Sales Orders for fee plan + instalment count (non-critical)
     const feePlanMap = new Map<string, string>();
+    const feeInstalmentMap = new Map<string, string>();
     try {
       const soJson = await frappeGet("resource/Sales Order", {
-        fields: JSON.stringify(["student", "custom_plan"]),
+        fields: JSON.stringify(["student", "custom_plan", "custom_no_of_instalments"]),
         filters: JSON.stringify([
           ["docstatus", "=", "1"],
           ["student", "in", studentIdList],
@@ -192,10 +204,12 @@ export async function GET(request: NextRequest) {
       const salesOrders: {
         student: string;
         custom_plan?: string;
+        custom_no_of_instalments?: string;
       }[] = soJson?.data ?? [];
       for (const so of salesOrders) {
-        if (so.student && so.custom_plan && !feePlanMap.has(so.student)) {
-          feePlanMap.set(so.student, so.custom_plan);
+        if (so.student && !feePlanMap.has(so.student)) {
+          if (so.custom_plan) feePlanMap.set(so.student, so.custom_plan);
+          if (so.custom_no_of_instalments) feeInstalmentMap.set(so.student, so.custom_no_of_instalments);
         }
       }
     } catch {
@@ -235,6 +249,8 @@ export async function GET(request: NextRequest) {
           enabled: s.enabled,
           paymentMode: customer ? paymentModeMap.get(customer) : undefined,
           feePlan: feePlanMap.get(s.name),
+          noOfInstalments: feeInstalmentMap.get(s.name),
+          duesTillToday: duesMap.get(s.name) ?? 0,
         };
       })
       .sort((a, b) => a.studentName.localeCompare(b.studentName));

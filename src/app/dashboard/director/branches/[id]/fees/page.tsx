@@ -15,13 +15,14 @@ import {
   CircleCheck,
   Clock,
   TriangleAlert,
+  CalendarClock,
   Wifi,
   Banknote,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { getBranchInvoiceStats, getBranchProgramFeeStats, getBranchForfeitedFees, getBranchCollectedByMode } from "@/lib/api/director";
+import { getBranchInvoiceStats, getBranchProgramFeeStats, getBranchForfeitedFees, getBranchCollectedByMode, getDuesTodayByClass } from "@/lib/api/director";
 import { formatCurrency } from "@/lib/utils/formatters";
 
 const containerVariants = {
@@ -68,6 +69,21 @@ export default function BranchFeesPage() {
     staleTime: 120_000,
   });
 
+  const { data: dueClasses, isLoading: loadDues } = useQuery({
+    queryKey: ["director-dues-classes", branchName],
+    queryFn: () => getDuesTodayByClass(branchName),
+    staleTime: 30_000,
+  });
+
+  const duesToday = (dueClasses ?? []).reduce((s, c) => s + c.total_dues, 0);
+  const dueStudentCount = (dueClasses ?? []).reduce((s, c) => s + c.student_count, 0);
+
+  // Build a lookup: program name → dues amount
+  const duesByProgram = new Map<string, number>();
+  for (const c of dueClasses ?? []) {
+    duesByProgram.set(c.item_code.replace(" Tuition Fee", ""), c.total_dues);
+  }
+
   const totalFees = invoiceStats?.totalInvoiced ?? 0;
   const totalCollected = invoiceStats?.totalCollected ?? 0;
   const forfeited = forfeitedTotal ?? 0;
@@ -108,7 +124,7 @@ export default function BranchFeesPage() {
       </motion.div>
 
       {/* Summary Cards */}
-      <motion.div variants={itemVariants} className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <motion.div variants={itemVariants} className="grid grid-cols-2 sm:grid-cols-5 gap-4">
         <Card className="border-border-light">
           <CardContent className="p-4 text-center">
             <IndianRupee className="h-5 w-5 text-primary mx-auto mb-2" />
@@ -167,6 +183,21 @@ export default function BranchFeesPage() {
             <p className="text-[10px] text-text-tertiary">Discontinued</p>
           </CardContent>
         </Card>
+        <Link href={`/dashboard/director/dues/${encodedBranch}`}>
+          <Card className="h-full border-orange-200/60 hover:shadow-md hover:border-orange-300 transition-all cursor-pointer">
+            <CardContent className="p-4 text-center">
+              <CalendarClock className="h-5 w-5 text-orange-500 mx-auto mb-2" />
+              <p className="text-2xl font-bold text-orange-600">
+                {loadDues ? "..." : formatCurrency(duesToday)}
+              </p>
+              <p className="text-xs text-text-tertiary">Dues Till Today</p>
+              {!loadDues && dueStudentCount > 0 && (
+                <p className="text-[10px] text-orange-500 mt-1">{dueStudentCount} student{dueStudentCount !== 1 ? "s" : ""}</p>
+              )}
+              <ChevronRight className="h-3.5 w-3.5 text-orange-400 mx-auto mt-1" />
+            </CardContent>
+          </Card>
+        </Link>
       </motion.div>
 
       {/* Program-wise breakdown */}
@@ -219,6 +250,19 @@ export default function BranchFeesPage() {
                         <Clock className="h-2.5 w-2.5" /> pending
                       </p>
                     </div>
+                    {(() => {
+                      const dues = duesByProgram.get(p.program) ?? 0;
+                      return (
+                        <div className="text-right">
+                          <p className={`text-sm font-bold ${dues > 0 ? "text-orange-600" : "text-text-tertiary"}`}>
+                            {formatCurrency(dues)}
+                          </p>
+                          <p className="text-[10px] text-orange-500/80 flex items-center justify-end gap-0.5">
+                            <CalendarClock className="h-2.5 w-2.5" /> overdue
+                          </p>
+                        </div>
+                      );
+                    })()}
                     <div className="text-right">
                       <p className={`text-sm font-bold ${p.forfeitedFees > 0 ? "text-amber-600" : "text-text-tertiary"}`}>
                         {formatCurrency(p.forfeitedFees)}

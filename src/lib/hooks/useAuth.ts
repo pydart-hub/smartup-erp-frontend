@@ -10,11 +10,11 @@ import type { LoginCredentials } from "@/lib/types/user";
 export function useAuth() {
   const router = useRouter();
   const {
-    user, isAuthenticated, isLoading, role,
+    user, isAuthenticated, isLoading, role, activeRole, switchableRoles,
     allowedCompanies, defaultCompany,
     isInstructor, instructorName, instructorDisplayName,
     allowedBatches, defaultBatch,
-    setUser, setLoading, clearAuth,
+    setUser, setLoading, setActiveRole: storeSetActiveRole, clearAuth,
   } = useAuthStore();
 
   // Check session on mount
@@ -53,6 +53,13 @@ export function useAuth() {
     router.push("/auth/login");
   }
 
+  /** Switch to a different role and navigate to its dashboard */
+  function switchRole(newRole: string) {
+    storeSetActiveRole(newRole);
+    const route = ROLE_DASHBOARD_MAP[newRole] || "/dashboard/branch-manager";
+    router.push(route);
+  }
+
   function getDashboardRoute(): string {
     return role ? ROLE_DASHBOARD_MAP[role] || "/dashboard/branch-manager" : "/auth/login";
   }
@@ -62,6 +69,8 @@ export function useAuth() {
     isAuthenticated,
     isLoading,
     role,
+    activeRole,
+    switchableRoles,
     allowedCompanies,
     defaultCompany,
     isInstructor,
@@ -71,6 +80,7 @@ export function useAuth() {
     defaultBatch,
     login,
     logout,
+    switchRole,
     getDashboardRoute,
   };
 }

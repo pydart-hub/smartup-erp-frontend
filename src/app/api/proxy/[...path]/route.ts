@@ -54,7 +54,9 @@ async function proxyRequest(request: NextRequest, method: string) {
     const allowedCompanies: string[] = sessionData.allowed_companies || [];
     const defaultCompany: string = sessionData.default_company || "";
     const isAdmin = roles.includes("Administrator");
+    const isBranchManager = roles.includes("Branch Manager");
     const isInstructor = !!sessionData.instructor_name;
+    const isPureInstructor = isInstructor && !isBranchManager && !isAdmin;
     const hasUserToken = !!(sessionData.api_key && sessionData.api_secret);
 
     // If an instructor doesn't have their own token (generate_keys may have
@@ -62,7 +64,7 @@ async function proxyRequest(request: NextRequest, method: string) {
     // The admin-token fallback is less ideal (Frappe can't enforce User
     // Permissions), but blocking would make the app unusable. The frontend
     // hooks already scope data to the instructor's allowed batches.
-    if (isInstructor && !isAdmin && !hasUserToken) {
+    if (isPureInstructor && !hasUserToken) {
       console.warn(
         `[PROXY] Instructor ${sessionData.email} has no personal API token — falling back to admin credentials. ` +
         `User-level Frappe permissions will NOT be enforced server-side for this request.`
@@ -73,11 +75,14 @@ async function proxyRequest(request: NextRequest, method: string) {
     // For non-admin users who DON'T have a personal token, inject a company
     // filter so they only see their branch data.  Instructors with their own
     // token skip this — Frappe enforces scoping natively via User Permissions.
+    // BM+Instructors still need company scoping (they are Branch Managers).
+    // Only pure instructors with their own token skip this — Frappe handles
+    // their scoping natively via User Permissions.
     const needsCompanyScoping =
       method === "GET" &&
       !isAdmin &&
       allowedCompanies.length > 0 &&
-      !(isInstructor && hasUserToken);   // instructor with own token → Frappe handles it
+      !(isPureInstructor && hasUserToken);
 
     if (needsCompanyScoping) {
       // Check if this is a resource list request (e.g. resource/Employee)
@@ -128,12 +133,11 @@ async function proxyRequest(request: NextRequest, method: string) {
     }
 
     // ── Instructor write-guard ──
-    // Block instructors from modifying Student Group docs directly (only
-    // Branch Managers / Admins can do that). Attendance writes are allowed
-    // and Frappe's own permissions will scope them to the instructor's batches.
+    // Block PURE instructors from modifying Student Group docs directly (only
+    // Branch Managers / Admins can do that). BM+Instructors are allowed.
     // Note: instructors are auto-granted "Academics User" role at login,
     // which gives broad write/delete access — so we must also block DELETE.
-    if (isInstructor && !isAdmin && (method === "PUT" || method === "POST" || method === "DELETE")) {
+    if (isPureInstructor && (method === "PUT" || method === "POST" || method === "DELETE")) {
       const resourceSingleMatch = proxyPath.match(/^resource\/([^/]+)\/(.+)$/);
       if (resourceSingleMatch) {
         const doctype = decodeURIComponent(resourceSingleMatch[1]);

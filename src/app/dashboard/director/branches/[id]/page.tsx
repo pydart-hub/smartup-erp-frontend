@@ -18,6 +18,7 @@ import {
   ChevronRight,
   Loader2,
   AlertCircle,
+  CalendarClock,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -31,6 +32,7 @@ import {
   getBranchBatches,
   getBranchSalesSummary,
   getBranchInvoiceStats,
+  getDuesTodayByClass,
 } from "@/lib/api/director";
 import { formatCurrency } from "@/lib/utils/formatters";
 
@@ -103,6 +105,15 @@ export default function BranchDetailPage() {
     queryFn: () => getBranchInvoiceStats(branchName),
     staleTime: 120_000,
   });
+
+  // ── Dues Till Today ──
+  const { data: dueClasses, isLoading: loadDues } = useQuery({
+    queryKey: ["director-dues-classes", branchName],
+    queryFn: () => getDuesTodayByClass(branchName),
+    staleTime: 30_000,
+  });
+
+  const duesToday = (dueClasses ?? []).reduce((s, c) => s + c.total_dues, 0);
 
   const batches = batchesRes?.data ?? [];
   const activeBatches = batches.filter((b) => !b.disabled);
@@ -204,7 +215,7 @@ export default function BranchDetailPage() {
       </motion.div>
 
       {/* Stats Cards — Clickable */}
-      <motion.div variants={itemVariants} className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <motion.div variants={itemVariants} className="grid grid-cols-2 sm:grid-cols-5 gap-4">
         <Link href={`/dashboard/director/branches/${encodedBranch}/students`}>
           <Card className="h-full hover:shadow-md transition-shadow cursor-pointer border-border-light hover:border-primary/30">
             <CardContent className="p-4 text-center">
@@ -250,6 +261,18 @@ export default function BranchDetailPage() {
               </p>
               <p className="text-xs text-text-tertiary">Total Revenue</p>
               <ChevronRight className="h-3.5 w-3.5 text-text-tertiary mx-auto mt-1" />
+            </CardContent>
+          </Card>
+        </Link>
+        <Link href={`/dashboard/director/dues/${encodedBranch}`}>
+          <Card className="h-full hover:shadow-md transition-shadow cursor-pointer border-orange-200/60 hover:border-orange-300">
+            <CardContent className="p-4 text-center">
+              <CalendarClock className="h-5 w-5 text-orange-500 mx-auto mb-2" />
+              <p className={`text-2xl font-bold ${duesToday > 0 ? "text-orange-600" : "text-text-primary"}`}>
+                {loadDues ? "…" : formatCurrency(duesToday)}
+              </p>
+              <p className="text-xs text-text-tertiary">Dues Today</p>
+              <ChevronRight className="h-3.5 w-3.5 text-orange-400 mx-auto mt-1" />
             </CardContent>
           </Card>
         </Link>

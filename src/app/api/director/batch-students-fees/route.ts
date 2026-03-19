@@ -83,12 +83,13 @@ export async function GET(request: NextRequest) {
 
     const studentIds = sgStudents.map((s) => s.student);
 
-    // Step 2: Fetch Sales Invoices for these students
+    // Step 2: Fetch Sales Invoices for these students (include due_date for overdue calc)
     const invJson = await frappeGet("resource/Sales Invoice", {
       fields: JSON.stringify([
         "student",
         "grand_total",
         "outstanding_amount",
+        "due_date",
       ]),
       filters: JSON.stringify([
         ["docstatus", "=", "1"],
@@ -101,7 +102,17 @@ export async function GET(request: NextRequest) {
       student: string;
       grand_total: number;
       outstanding_amount: number;
+      due_date: string;
     }[] = invJson?.data ?? [];
+
+    // Compute per-student overdue dues (due_date <= today AND outstanding > 0)
+    const todayDate = new Date().toISOString().split("T")[0];
+    const duesMap = new Map<string, number>();
+    for (const inv of invoices) {
+      if (inv.due_date <= todayDate && inv.outstanding_amount > 0) {
+        duesMap.set(inv.student, (duesMap.get(inv.student) ?? 0) + inv.outstanding_amount);
+      }
+    }
 
     // Aggregate invoices per student
     const aggMap = new Map<
@@ -157,6 +168,7 @@ export async function GET(request: NextRequest) {
         pendingFee: agg.outstanding,
         invoiceCount: agg.count,
         plan: feePlanMap.get(s.student) || null,
+        duesTillToday: duesMap.get(s.student) ?? 0,
       };
     });
 

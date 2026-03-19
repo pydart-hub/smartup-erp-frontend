@@ -27,13 +27,13 @@ export default function DashboardLayout({
 }) {
   // useState keeps the same QueryClient across HMR / Fast Refresh cycles
   const [queryClient] = useState(makeQueryClient);
-  const { role, isInstructor: storeIsInstructor } = useAuthStore();
-  const isParent = role === "Parent";
-  const isInstructor = storeIsInstructor || role === "Instructor";
-  const isDirector = role === "Director" || role === "Management";
-  const isHRManager = role === "HR Manager";
-  const isSalesUser = role === "Sales User";
-  const isBranchManager = role === "Branch Manager";
+  const { activeRole, isInstructor: storeIsInstructor } = useAuthStore();
+  const isParent = activeRole === "Parent";
+  const isInstructor = activeRole === "Instructor" || (!activeRole && storeIsInstructor);
+  const isDirector = activeRole === "Director" || activeRole === "Management";
+  const isHRManager = activeRole === "HR Manager";
+  const isSalesUser = activeRole === "Sales User";
+  const isBranchManager = activeRole === "Branch Manager";
 
   // Determine sidebar nav items based on role
   // Branch Manager takes priority over Instructor — a user who is both
