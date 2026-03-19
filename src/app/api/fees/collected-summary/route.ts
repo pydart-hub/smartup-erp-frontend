@@ -2,9 +2,12 @@
  * GET /api/fees/collected-summary?company=Smart+Up+Chullickal
  *
  * Returns:
- *   by_class  — class-wise collected totals (item_code, student_count, total_collected)
- *   by_mode   — { Cash: n, UPI: n, "Bank Transfer": n, Cheque: n, Online: n }
- *   total     — overall collected amount
+ *   by_class           — class-wise collected totals
+ *   total              — overall collected amount
+ *   offline_total      — sum of all non-Razorpay payments
+ *   razorpay_total     — sum of all Razorpay/online payments
+ *   offline_breakdown  — { Cash: n, UPI: n, ... } per offline mode
+ *   students_paid      — distinct paying customer count
  *
  * Uses admin token server-side for aggregate queries.
  * Excludes discontinued students.
@@ -109,12 +112,23 @@ export async function GET(request: NextRequest) {
     const discSet = new Set(discCustomers);
     const activePE = allPE.filter((pe) => !pe.party || !discSet.has(pe.party));
 
-    // 3. Build by_mode breakdown
-    const byMode: Record<string, number> = {};
+    // 3. Build offline vs razorpay breakdown
+    let razorpayTotal = 0;
+    let offlineTotal = 0;
+    const offlineBreakdown: Record<string, number> = {};
+    const payingParties = new Set<string>();
+
     for (const pe of activePE) {
-      const isOnline = pe.reference_no?.startsWith("pay_");
-      const mode = isOnline ? "Online" : (pe.mode_of_payment || "Cash");
-      byMode[mode] = (byMode[mode] || 0) + (pe.paid_amount ?? 0);
+      const isOnline = pe.reference_no?.startsWith("pay_") || pe.mode_of_payment === "Razorpay";
+      const amount = pe.paid_amount ?? 0;
+      if (isOnline) {
+        razorpayTotal += amount;
+      } else {
+        const mode = pe.mode_of_payment || "Cash";
+        offlineBreakdown[mode] = (offlineBreakdown[mode] || 0) + amount;
+        offlineTotal += amount;
+      }
+      if (pe.party) payingParties.add(pe.party);
     }
 
     const total = activePE.reduce((s, pe) => s + (pe.paid_amount ?? 0), 0);
@@ -167,7 +181,14 @@ export async function GET(request: NextRequest) {
         }));
     }
 
-    return NextResponse.json({ by_class: byClass, by_mode: byMode, total });
+    return NextResponse.json({
+      by_class: byClass,
+      total,
+      offline_total: offlineTotal,
+      razorpay_total: razorpayTotal,
+      offline_breakdown: offlineBreakdown,
+      students_paid: payingParties.size,
+    });
   } catch (error: unknown) {
     const err = error as { message?: string };
     console.error("[collected-summary] Error:", err.message);

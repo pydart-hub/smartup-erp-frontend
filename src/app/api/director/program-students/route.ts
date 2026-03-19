@@ -163,7 +163,7 @@ export async function GET(request: NextRequest) {
 
         for (const pe of entries) {
           if (!pe.party || paymentModeMap.has(pe.party)) continue;
-          if (pe.mode_of_payment && pe.mode_of_payment !== "Online" && pe.mode_of_payment !== "Razorpay") {
+          if (pe.mode_of_payment && pe.mode_of_payment !== "Online" && pe.mode_of_payment !== "Razorpay" && pe.mode_of_payment !== "Razorpay") {
             paymentModeMap.set(pe.party, pe.mode_of_payment); // e.g. "Cash", "UPI", "Bank Transfer"
           } else if (pe.reference_no?.startsWith("pay_")) {
             paymentModeMap.set(pe.party, "Online");

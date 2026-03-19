@@ -12,9 +12,6 @@ import {
   AlertTriangle,
   Search,
   Banknote,
-  Smartphone,
-  Landmark,
-  FileText,
   Wifi,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
@@ -30,19 +27,13 @@ interface ClassCollected {
   total_collected: number;
 }
 
-const MODE_CONFIG: Record<string, { icon: React.ReactNode; color: string; border: string }> = {
-  Cash:            { icon: <Banknote className="h-5 w-5" />,    color: "text-green-600 bg-green-50",   border: "border-l-green-500" },
-  UPI:             { icon: <Smartphone className="h-5 w-5" />,  color: "text-violet-600 bg-violet-50", border: "border-l-violet-500" },
-  "Bank Transfer": { icon: <Landmark className="h-5 w-5" />,    color: "text-blue-600 bg-blue-50",     border: "border-l-blue-500" },
-  Cheque:          { icon: <FileText className="h-5 w-5" />,    color: "text-amber-600 bg-amber-50",   border: "border-l-amber-500" },
-  Online:          { icon: <Wifi className="h-5 w-5" />,        color: "text-indigo-600 bg-indigo-50", border: "border-l-indigo-500" },
-};
-
 export default function CollectedFeesPage() {
   const { defaultCompany } = useAuth();
   const [byClass, setByClass] = useState<ClassCollected[]>([]);
-  const [byMode, setByMode] = useState<Record<string, number>>({});
+  const [offlineTotal, setOfflineTotal] = useState(0);
+  const [razorpayTotal, setRazorpayTotal] = useState(0);
   const [total, setTotal] = useState(0);
+  const [studentsPaid, setStudentsPaid] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -60,8 +51,10 @@ export default function CollectedFeesPage() {
       })
       .then((data) => {
         setByClass(data.by_class ?? []);
-        setByMode(data.by_mode ?? {});
+        setOfflineTotal(data.offline_total ?? 0);
+        setRazorpayTotal(data.razorpay_total ?? 0);
         setTotal(data.total ?? 0);
+        setStudentsPaid(data.students_paid ?? 0);
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -77,12 +70,6 @@ export default function CollectedFeesPage() {
     const q = search.toLowerCase();
     return byClass.filter((c) => c.item_code.toLowerCase().includes(q));
   }, [byClass, search]);
-
-  // Sort modes: show ones with value first, in a fixed order
-  const modeOrder = ["Cash", "UPI", "Bank Transfer", "Cheque", "Online"];
-  const sortedModes = modeOrder
-    .filter((m) => (byMode[m] ?? 0) > 0)
-    .concat(Object.keys(byMode).filter((m) => !modeOrder.includes(m) && byMode[m] > 0));
 
   return (
     <div className="space-y-6">
@@ -156,50 +143,69 @@ export default function CollectedFeesPage() {
                     Students Paid
                   </p>
                   <p className="text-xl font-bold text-text-primary">
-                    {totalStudents}
+                    {studentsPaid}
                   </p>
                 </div>
               </CardContent>
             </Card>
           </motion.div>
 
-          {/* Mode-wise breakdown cards */}
-          {sortedModes.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.05 }}
-            >
-              <h2 className="text-sm font-semibold text-text-secondary mb-3 uppercase tracking-wide">
-                By Payment Method
-              </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                {sortedModes.map((mode) => {
-                  const cfg = MODE_CONFIG[mode] ?? MODE_CONFIG.Cash;
-                  return (
-                    <Link
-                      key={mode}
-                      href={`/dashboard/branch-manager/fees/collected/mode/${encodeURIComponent(mode)}`}
-                    >
-                      <Card className={`border-l-4 ${cfg.border} cursor-pointer hover:shadow-md transition-all group`}>
-                        <CardContent className="py-4">
-                          <div className="flex items-center gap-2 mb-2">
-                            <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${cfg.color}`}>
-                              {cfg.icon}
-                            </div>
-                            <span className="text-sm font-medium text-text-secondary group-hover:text-text-primary transition-colors">{mode}</span>
-                          </div>
-                          <p className="text-lg font-bold text-text-primary">
-                            {formatCurrency(byMode[mode])}
-                          </p>
-                        </CardContent>
-                      </Card>
-                    </Link>
-                  );
-                })}
-              </div>
-            </motion.div>
-          )}
+          {/* Payment Type: Offline & Razorpay */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+          >
+            <h2 className="text-sm font-semibold text-text-secondary mb-3 uppercase tracking-wide">
+              By Payment Method
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Link href="/dashboard/branch-manager/fees/collected/offline">
+                <Card className="border-l-4 border-l-green-500 cursor-pointer hover:shadow-md transition-all group">
+                  <CardContent className="py-5">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="h-10 w-10 rounded-xl bg-green-50 flex items-center justify-center">
+                        <Banknote className="h-5 w-5 text-green-600" />
+                      </div>
+                      <div>
+                        <p className="text-base font-semibold text-text-primary group-hover:text-green-700 transition-colors">
+                          Offline
+                        </p>
+                        <p className="text-xs text-text-tertiary">
+                          Cash, UPI, Cheque, Bank Transfer &amp; more
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-2xl font-bold text-text-primary">
+                      {formatCurrency(offlineTotal)}
+                    </p>
+                  </CardContent>
+                </Card>
+              </Link>
+              <Link href="/dashboard/branch-manager/fees/collected/mode/Online">
+                <Card className="border-l-4 border-l-indigo-500 cursor-pointer hover:shadow-md transition-all group">
+                  <CardContent className="py-5">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="h-10 w-10 rounded-xl bg-indigo-50 flex items-center justify-center">
+                        <Wifi className="h-5 w-5 text-indigo-600" />
+                      </div>
+                      <div>
+                        <p className="text-base font-semibold text-text-primary group-hover:text-indigo-700 transition-colors">
+                          Razorpay
+                        </p>
+                        <p className="text-xs text-text-tertiary">
+                          Online payments via Razorpay gateway
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-2xl font-bold text-text-primary">
+                      {formatCurrency(razorpayTotal)}
+                    </p>
+                  </CardContent>
+                </Card>
+              </Link>
+            </div>
+          </motion.div>
 
           {/* Search */}
           <div>

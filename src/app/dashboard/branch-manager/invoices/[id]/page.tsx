@@ -42,7 +42,7 @@ function statusIcon(status: SalesInvoiceStatus) {
   return <Clock className="h-4 w-4" />;
 }
 
-const MODES = ["Cash", "Bank Transfer", "UPI", "Cheque", "Card"];
+const MODES = ["Cash", "Bank Transfer", "UPI", "Cheque", "Razorpay"];
 
 const selectCls =
   "h-10 rounded-[10px] border border-border-input bg-surface px-3 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary w-full";

@@ -130,20 +130,20 @@ export default function BranchFeesPage() {
                 <div className="flex items-center justify-center gap-0.5">
                   <Wifi className="h-3 w-3 text-blue-500" />
                   <p className="text-xs font-semibold text-blue-600">
-                    {loadCollectedByMode ? "..." : formatCurrency(collectedByMode?.online ?? 0)}
+                    {loadCollectedByMode ? "..." : formatCurrency(collectedByMode?.razorpay ?? 0)}
                   </p>
                 </div>
-                <p className="text-[10px] text-text-tertiary uppercase tracking-wide">Online</p>
+                <p className="text-[10px] text-text-tertiary uppercase tracking-wide">Razorpay</p>
               </div>
               <div className="w-px bg-border-light" />
               <div className="text-center">
                 <div className="flex items-center justify-center gap-0.5">
                   <Banknote className="h-3 w-3 text-green-500" />
                   <p className="text-xs font-semibold text-green-600">
-                    {loadCollectedByMode ? "..." : formatCurrency(collectedByMode?.cash ?? 0)}
+                    {loadCollectedByMode ? "..." : formatCurrency(collectedByMode?.offline ?? 0)}
                   </p>
                 </div>
-                <p className="text-[10px] text-text-tertiary uppercase tracking-wide">Cash</p>
+                <p className="text-[10px] text-text-tertiary uppercase tracking-wide">Offline</p>
               </div>
             </div>
           </CardContent>

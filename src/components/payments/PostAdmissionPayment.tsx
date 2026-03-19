@@ -113,7 +113,7 @@ function CashPaymentForm({
     }
   }, [invoice, amount, maxAmount, isPartial, mode, referenceNo, today, onPaid]);
 
-  const OFFLINE_MODES = PAYMENT_MODES.filter((m) => m !== "Card");
+  const OFFLINE_MODES = PAYMENT_MODES.filter((m) => m !== "Razorpay");
   const refLabel: Record<string, string> = {
     Cash: "Receipt number (optional)",
     UPI: "UTR Number",

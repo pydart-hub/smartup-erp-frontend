@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
     // Filter by mode + exclude discontinued
     const entries = allPE.filter((pe) => {
       if (pe.party && discCustomers.has(pe.party)) return false;
-      const isOnline = pe.reference_no?.startsWith("pay_");
+      const isOnline = pe.reference_no?.startsWith("pay_") || pe.mode_of_payment === "Razorpay";
       if (mode === "Online") return isOnline;
       return !isOnline && (pe.mode_of_payment || "Cash") === mode;
     });

@@ -145,6 +145,7 @@ export async function POST(request: NextRequest) {
       const mappedPE = getPeData.message;
 
       // Step 2: Add Razorpay-specific fields to the mapped doc
+      mappedPE.mode_of_payment = "Razorpay";
       mappedPE.reference_no = razorpay_payment_id;
       mappedPE.reference_date = new Date().toISOString().split("T")[0];
       mappedPE.remarks = `Online payment via Razorpay. Order: ${razorpay_order_id}, Payment: ${razorpay_payment_id}. Student: ${student_name || ""}. Parent email: ${email}`;

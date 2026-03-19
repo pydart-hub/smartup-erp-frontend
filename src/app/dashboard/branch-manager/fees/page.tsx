@@ -66,8 +66,8 @@ export default function FeesPage() {
   // Student → payment mode map from Payment Entries
   const [paymentModeMap, setPaymentModeMap] = useState<Map<string, string>>(new Map());
 
-  // Online/Cash collected split
-  const [collectedByMode, setCollectedByMode] = useState<{ online: number; cash: number } | null>(null);
+  // Razorpay/Offline collected split
+  const [collectedByMode, setCollectedByMode] = useState<{ razorpay: number; offline: number } | null>(null);
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -128,7 +128,7 @@ export default function FeesPage() {
         } catch {
           // non-critical
         }
-        // Online/Cash collected split
+        // Razorpay/Offline collected split
         try {
           const modes = await getBranchCollectedByMode(defaultCompany || "");
           setCollectedByMode(modes);
@@ -178,13 +178,13 @@ export default function FeesPage() {
                     <div className="flex items-center gap-0.5">
                       <Wifi className="h-3 w-3 text-blue-500" />
                       <span className="text-xs font-semibold text-blue-600">
-                        {formatCurrency(collectedByMode.online)}
+                        {formatCurrency(collectedByMode.razorpay)}
                       </span>
                     </div>
                     <div className="flex items-center gap-0.5">
                       <Banknote className="h-3 w-3 text-green-500" />
                       <span className="text-xs font-semibold text-green-600">
-                        {formatCurrency(collectedByMode.cash)}
+                        {formatCurrency(collectedByMode.offline)}
                       </span>
                     </div>
                   </div>

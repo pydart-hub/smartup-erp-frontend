@@ -15,6 +15,9 @@ import {
   Landmark,
   FileText,
   Wifi,
+  CreditCard,
+  ArrowLeftRight,
+  Receipt,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -38,6 +41,9 @@ const MODE_ICONS: Record<string, React.ReactNode> = {
   "Bank Transfer": <Landmark className="h-3.5 w-3.5" />,
   Cheque:          <FileText className="h-3.5 w-3.5" />,
   Online:          <Wifi className="h-3.5 w-3.5" />,
+  "Credit Card":   <CreditCard className="h-3.5 w-3.5" />,
+  "Wire Transfer": <ArrowLeftRight className="h-3.5 w-3.5" />,
+  "Bank Draft":    <Receipt className="h-3.5 w-3.5" />,
 };
 
 export default function ModeDetailPage() {

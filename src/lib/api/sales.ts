@@ -320,7 +320,7 @@ export async function getPaymentModesByCustomers(
   const result = new Map<string, string>();
   for (const pe of entries) {
     if (!pe.party || result.has(pe.party)) continue;
-    if (pe.mode_of_payment && pe.mode_of_payment !== "Online" && pe.mode_of_payment !== "Razorpay") {
+    if (pe.mode_of_payment && pe.mode_of_payment !== "Online" && pe.mode_of_payment !== "Razorpay" && pe.mode_of_payment !== "Razorpay") {
       result.set(pe.party, pe.mode_of_payment); // "Cash", "UPI", "Bank Transfer", "Cheque"
     } else if (pe.reference_no?.startsWith("pay_")) {
       result.set(pe.party, "Online");

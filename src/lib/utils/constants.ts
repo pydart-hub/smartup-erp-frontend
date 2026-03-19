@@ -26,7 +26,7 @@ export const BATCH_NAMES = ["A", "B", "C", "D", "E", "F", "G", "H"] as const;
 export const ATTENDANCE_STATUSES = ["Present", "Absent", "Late"] as const;
 
 // ── Fee Payment Modes ──
-export const PAYMENT_MODES = ["Cash", "Bank Transfer", "UPI", "Cheque", "Card"] as const;
+export const PAYMENT_MODES = ["Cash", "Bank Transfer", "UPI", "Cheque", "Razorpay"] as const;
 
 // ── Instalment Due Date Schedule ──
 // Month (0-indexed) and day for each instalment option.

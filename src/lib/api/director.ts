@@ -219,13 +219,12 @@ export async function getTotalInvoiceStats(): Promise<{
 }
 
 /**
- * Break down total collected amount into Online (Razorpay) vs Cash/Offline.
- * Razorpay payments have reference_no starting with "pay_".
- * Cash/offline payments have mode_of_payment set explicitly.
+ * Break down total collected amount into Razorpay (online) vs Offline.
+ * Razorpay payments have reference_no starting with "pay_" or mode_of_payment = "Razorpay".
  */
 export async function getCollectedByMode(): Promise<{
-  online: number;
-  cash: number;
+  razorpay: number;
+  offline: number;
 }> {
   const params = new URLSearchParams({
     fields: JSON.stringify(["mode_of_payment", "reference_no", "paid_amount"]),
@@ -235,21 +234,22 @@ export async function getCollectedByMode(): Promise<{
   const { data } = await apiClient.get(`/resource/Payment Entry?${params}`);
   const entries: { mode_of_payment: string | null; reference_no: string | null; paid_amount: number }[] =
     data?.data ?? [];
-  let online = 0;
-  let cash = 0;
+  let razorpay = 0;
+  let offline = 0;
   for (const pe of entries) {
-    if (pe.reference_no?.startsWith("pay_")) {
-      online += pe.paid_amount ?? 0;
+    const isOnline = pe.reference_no?.startsWith("pay_") || pe.mode_of_payment === "Razorpay";
+    if (isOnline) {
+      razorpay += pe.paid_amount ?? 0;
     } else {
-      cash += pe.paid_amount ?? 0;
+      offline += pe.paid_amount ?? 0;
     }
   }
-  return { online, cash };
+  return { razorpay, offline };
 }
 
 export async function getBranchCollectedByMode(branch: string): Promise<{
-  online: number;
-  cash: number;
+  razorpay: number;
+  offline: number;
 }> {
   const params = new URLSearchParams({
     fields: JSON.stringify(["mode_of_payment", "reference_no", "paid_amount"]),
@@ -259,16 +259,17 @@ export async function getBranchCollectedByMode(branch: string): Promise<{
   const { data } = await apiClient.get(`/resource/Payment Entry?${params}`);
   const entries: { mode_of_payment: string | null; reference_no: string | null; paid_amount: number }[] =
     data?.data ?? [];
-  let online = 0;
-  let cash = 0;
+  let razorpay = 0;
+  let offline = 0;
   for (const pe of entries) {
-    if (pe.reference_no?.startsWith("pay_")) {
-      online += pe.paid_amount ?? 0;
+    const isOnline = pe.reference_no?.startsWith("pay_") || pe.mode_of_payment === "Razorpay";
+    if (isOnline) {
+      razorpay += pe.paid_amount ?? 0;
     } else {
-      cash += pe.paid_amount ?? 0;
+      offline += pe.paid_amount ?? 0;
     }
   }
-  return { online, cash };
+  return { razorpay, offline };
 }
 
 /**
