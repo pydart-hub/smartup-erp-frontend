@@ -1,8 +1,6 @@
 "use client";
 
-export const dynamic = "force-dynamic";
-
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { Suspense, useState, useMemo, useEffect, useRef } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import type { FieldErrors } from "react-hook-form";
@@ -80,6 +78,14 @@ const PLAN_OPTIONS = [
 ];
 
 export default function SalesUserAdmitPage() {
+  return (
+    <Suspense>
+      <AdmitPageContent />
+    </Suspense>
+  );
+}
+
+function AdmitPageContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
