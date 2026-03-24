@@ -58,7 +58,7 @@ const itemVariants = {
 };
 
 // ── Branch card with live stats ──
-function BranchCard({ branch }: { branch: { name: string; company_name: string; abbr: string } }) {
+function BranchCard({ branch, index: _index }: { branch: { name: string; company_name: string; abbr: string }; index?: number }) {
   const { data: studentCount, isLoading: loadingStudents } = useQuery({
     queryKey: ["director-branch-students", branch.name],
     queryFn: () => getStudentCountForBranch(branch.name),
