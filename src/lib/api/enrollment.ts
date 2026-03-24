@@ -553,6 +553,7 @@ export interface AdmitStudentForm {
   student_email_id?: string;
   student_mobile_number?: string;
   custom_aadhaar?: string;         // Aadhaar number (12 digits)
+  custom_disabilities?: string;  // Disabilities / Special Needs
   joining_date?: string;
   custom_branch: string;         // Company name
   custom_branch_abbr?: string;   // Company abbreviation for unique email generation
@@ -574,6 +575,8 @@ export interface AdmitStudentForm {
   custom_plan?: string;          // "Basic" | "Intermediate" | "Advanced"
   custom_no_of_instalments?: string; // "1" | "4" | "6" | "8"
   custom_mode_of_payment?: string;   // "Cash" | "Online"
+  // Subject-wise admission context (not sent to Frappe, only for fee config lookup)
+  custom_subject?: string;       // e.g. "Physics", "Phy-Chem"
   // Instalment schedule (from feeSchedule generator)
   instalmentSchedule?: { amount: number; dueDate: string; label: string }[];
 }
@@ -751,6 +754,7 @@ export async function admitStudent(
     if (form.blood_group) payload.blood_group = form.blood_group;
     if (form.student_mobile_number) payload.student_mobile_number = form.student_mobile_number;
     if (form.custom_aadhaar) payload.custom_aadhaar = form.custom_aadhaar;
+    if (form.custom_disabilities) payload.custom_disabilities = form.custom_disabilities;
     return payload;
   }
 

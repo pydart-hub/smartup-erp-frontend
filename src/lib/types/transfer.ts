@@ -9,6 +9,7 @@ export interface StudentBranchTransfer {
   name: string;                    // SBT-00001
   student: string;                 // Link → Student
   student_name?: string;
+  custom_disabilities?: string;
   program: string;                 // Link → Program
   academic_year: string;           // Link → Academic Year
   from_branch: string;             // Link → Company

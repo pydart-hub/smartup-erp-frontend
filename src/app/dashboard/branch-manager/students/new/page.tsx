@@ -333,6 +333,7 @@ export default function NewStudentPage() {
         student_email_id: data.student_email_id,
         student_mobile_number: data.student_mobile_number,
         custom_aadhaar: data.aadhaar_number || undefined,
+        custom_disabilities: data.disabilities || undefined,
         custom_branch: data.custom_branch,
         custom_branch_abbr: (branchObj as { abbr?: string })?.abbr,
         custom_srr_id: data.custom_srr_id,
@@ -624,6 +625,16 @@ export default function NewStudentPage() {
                       leftIcon={<Fingerprint className="h-4 w-4" />}
                       error={errors.aadhaar_number?.message}
                       {...register("aadhaar_number")}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-text-secondary mb-1.5">Disabilities / Special Needs</label>
+                    <textarea
+                      className="w-full rounded-xl border border-border-medium bg-surface-primary px-4 py-2.5 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
+                      rows={3}
+                      placeholder="e.g. Hearing impairment — seat in front row"
+                      {...register("disabilities")}
                     />
                   </div>
                 </motion.div>

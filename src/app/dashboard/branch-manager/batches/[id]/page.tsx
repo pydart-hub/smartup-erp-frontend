@@ -25,6 +25,7 @@ import { getBatchStudentFees } from "@/lib/api/director";
 import type { BatchStudentFeeRow } from "@/lib/api/director";
 import type { Batch, BatchStudent } from "@/lib/types/batch";
 import { useAuthStore } from "@/lib/stores/authStore";
+import apiClient from "@/lib/api/client";
 
 function formatCurrency(amount: number): string {
   if (!amount) return "—";
@@ -91,6 +92,7 @@ export default function BatchDetailPage() {
   // Fee data
   const [feeRows, setFeeRows] = useState<BatchStudentFeeRow[]>([]);
   const [feesLoading, setFeesLoading] = useState(false);
+  const [disabilityMap, setDisabilityMap] = useState<Record<string, string>>({});
 
   function loadBatch() {
     setLoading(true);
@@ -114,6 +116,28 @@ export default function BatchDetailPage() {
       .catch(() => setFeeRows([]))
       .finally(() => setFeesLoading(false));
   }, [batch, branchName, decodedId]);
+
+  // Fetch disabilities for students
+  useEffect(() => {
+    const ids = batch?.students?.map((s) => s.student) ?? [];
+    if (!ids.length) return;
+    apiClient
+      .get("/resource/Student", {
+        params: {
+          fields: JSON.stringify(["name", "custom_disabilities"]),
+          filters: JSON.stringify([["name", "in", ids]]),
+          limit_page_length: ids.length,
+        },
+      })
+      .then(({ data }) => {
+        const map: Record<string, string> = {};
+        for (const s of data.data ?? []) {
+          if (s.custom_disabilities) map[s.name] = s.custom_disabilities;
+        }
+        setDisabilityMap(map);
+      })
+      .catch(() => {});
+  }, [batch]);
 
   const students: BatchStudent[] = batch?.students ?? [];
   const activeStudents = students.filter((s) => s.active !== 0);
@@ -446,6 +470,9 @@ export default function BatchDetailPage() {
                           <td className="py-2.5 font-medium text-text-primary flex items-center gap-2">
                             <User className="h-3.5 w-3.5 text-text-tertiary flex-shrink-0" />
                             {student.student_name || "—"}
+                            {disabilityMap[student.student] && (
+                              <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">{disabilityMap[student.student]}</span>
+                            )}
                           </td>
                           <td className="py-2.5 text-center">
                             {feesLoading ? (

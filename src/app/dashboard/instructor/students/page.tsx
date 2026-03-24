@@ -10,11 +10,13 @@ import {
   User,
   School,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { useInstructorBatches } from "@/lib/hooks/useInstructorBatches";
+import apiClient from "@/lib/api/client";
 import type { BatchStudent } from "@/lib/types/batch";
 
 interface StudentWithBatch extends BatchStudent {
@@ -42,6 +44,29 @@ export default function InstructorStudentsPage() {
     }
     return students;
   }, [batches]);
+
+  // Fetch disabilities for all student IDs
+  const studentIds = useMemo(() => allStudents.map((s) => s.student), [allStudents]);
+  const { data: disabilityMap = {} } = useQuery({
+    queryKey: ["student-disabilities", studentIds],
+    queryFn: async () => {
+      if (!studentIds.length) return {};
+      const { data } = await apiClient.get("/resource/Student", {
+        params: {
+          fields: JSON.stringify(["name", "custom_disabilities"]),
+          filters: JSON.stringify([["name", "in", studentIds]]),
+          limit_page_length: studentIds.length,
+        },
+      });
+      const map: Record<string, string> = {};
+      for (const s of data.data ?? []) {
+        if (s.custom_disabilities) map[s.name] = s.custom_disabilities;
+      }
+      return map;
+    },
+    enabled: studentIds.length > 0,
+    staleTime: 60_000,
+  });
 
   const filteredStudents = search
     ? allStudents.filter(
@@ -140,6 +165,9 @@ export default function InstructorStudentsPage() {
                           <div className="flex items-center gap-2">
                             <User className="h-3.5 w-3.5 text-text-tertiary flex-shrink-0" />
                             {student.student_name || "—"}
+                            {disabilityMap[student.student] && (
+                              <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">{disabilityMap[student.student]}</span>
+                            )}
                           </div>
                         </td>
                         <td className="py-2.5 text-text-secondary">

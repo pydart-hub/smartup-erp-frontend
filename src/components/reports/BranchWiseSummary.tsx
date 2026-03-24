@@ -49,14 +49,13 @@ export function BranchWiseSummary({ onSelectBranch }: Props) {
     (acc, r) => ({
       totalStudents: acc.totalStudents + r.totalStudents,
       active: acc.active + r.active,
-      inactive: acc.inactive + r.inactive,
       discontinued: acc.discontinued + r.discontinued,
       staff: acc.staff + r.staff,
       totalFee: acc.totalFee + r.totalFee,
       collectedFee: acc.collectedFee + r.collectedFee,
       pendingFee: acc.pendingFee + r.pendingFee,
     }),
-    { totalStudents: 0, active: 0, inactive: 0, discontinued: 0, staff: 0, totalFee: 0, collectedFee: 0, pendingFee: 0 },
+    { totalStudents: 0, active: 0, discontinued: 0, staff: 0, totalFee: 0, collectedFee: 0, pendingFee: 0 },
   );
 
   const handleExport = async (format: "xlsx" | "csv") => {
@@ -147,7 +146,6 @@ export function BranchWiseSummary({ onSelectBranch }: Props) {
               <th className="px-3 py-2.5 text-left text-xs font-semibold text-text-secondary uppercase tracking-wider">Branch</th>
               <th className="px-3 py-2.5 text-right text-xs font-semibold text-text-secondary uppercase tracking-wider">Total</th>
               <th className="px-3 py-2.5 text-right text-xs font-semibold text-text-secondary uppercase tracking-wider">Active</th>
-              <th className="px-3 py-2.5 text-right text-xs font-semibold text-text-secondary uppercase tracking-wider">Inactive</th>
               <th className="px-3 py-2.5 text-right text-xs font-semibold text-text-secondary uppercase tracking-wider">Discontinued</th>
               <th className="px-3 py-2.5 text-right text-xs font-semibold text-text-secondary uppercase tracking-wider">Staff</th>
               <th className="px-3 py-2.5 text-right text-xs font-semibold text-text-secondary uppercase tracking-wider">Total Fee</th>
@@ -168,7 +166,6 @@ export function BranchWiseSummary({ onSelectBranch }: Props) {
                 </td>
                 <td className="px-3 py-2 text-right text-text-primary">{row.totalStudents}</td>
                 <td className="px-3 py-2 text-right text-success">{row.active}</td>
-                <td className="px-3 py-2 text-right text-warning">{row.inactive}</td>
                 <td className="px-3 py-2 text-right text-error">{row.discontinued}</td>
                 <td className="px-3 py-2 text-right text-text-primary">{row.staff}</td>
                 <td className="px-3 py-2 text-right text-text-primary whitespace-nowrap">{formatCurrency(row.totalFee)}</td>
@@ -186,7 +183,6 @@ export function BranchWiseSummary({ onSelectBranch }: Props) {
                 <td className="px-3 py-2.5 text-text-primary">TOTAL</td>
                 <td className="px-3 py-2.5 text-right text-text-primary">{totals.totalStudents}</td>
                 <td className="px-3 py-2.5 text-right text-success">{totals.active}</td>
-                <td className="px-3 py-2.5 text-right text-warning">{totals.inactive}</td>
                 <td className="px-3 py-2.5 text-right text-error">{totals.discontinued}</td>
                 <td className="px-3 py-2.5 text-right text-text-primary">{totals.staff}</td>
                 <td className="px-3 py-2.5 text-right text-text-primary whitespace-nowrap">{formatCurrency(totals.totalFee)}</td>

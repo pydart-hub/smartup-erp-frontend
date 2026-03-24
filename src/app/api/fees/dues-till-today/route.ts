@@ -101,7 +101,8 @@ export async function GET(request: NextRequest) {
     const branch = sp.get("branch") || "";
     const itemCode = sp.get("item_code") || "";
     const batch = sp.get("batch") || "";
-    const todayDate = today();
+    const asOf = sp.get("as_of") || "";
+    const todayDate = asOf && /^\d{4}-\d{2}-\d{2}$/.test(asOf) ? asOf : today();
 
     const bt = "`"; // backtick helper for Frappe SQL
 

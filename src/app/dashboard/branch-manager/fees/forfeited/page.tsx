@@ -186,9 +186,14 @@ export default function ForfeitedFeesPage() {
                                       <UserX className="h-3.5 w-3.5 text-error" />
                                     </div>
                                     <div>
-                                      <p className="text-sm font-medium text-text-primary">
-                                        {student.student_name}
-                                      </p>
+                                      <div className="flex items-center gap-1.5">
+                                        <p className="text-sm font-medium text-text-primary">
+                                          {student.student_name}
+                                        </p>
+                                        {student.disabilities && (
+                                          <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">{student.disabilities}</span>
+                                        )}
+                                      </div>
                                       <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                                         <Badge variant="error" className="text-[10px] px-1.5 py-0">
                                           Discontinued

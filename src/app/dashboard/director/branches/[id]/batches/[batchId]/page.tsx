@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { getBatchStudents, getBatchStudentFees } from "@/lib/api/director";
 import type { BatchStudentFeeRow } from "@/lib/api/director";
+import apiClient from "@/lib/api/client";
 
 function formatCurrency(amount: number): string {
   if (!amount) return "—";
@@ -102,6 +103,29 @@ export default function BatchDetailPage() {
 
   const students = batchRes?.students ?? [];
   const activeStudents = students.filter((s) => s.active);
+
+  // Fetch disabilities for all student IDs
+  const studentIds = useMemo(() => students.map((s) => s.student), [students]);
+  const { data: disabilityMap = {} } = useQuery({
+    queryKey: ["student-disabilities", studentIds],
+    queryFn: async () => {
+      if (!studentIds.length) return {};
+      const { data } = await apiClient.get("/resource/Student", {
+        params: {
+          fields: JSON.stringify(["name", "custom_disabilities"]),
+          filters: JSON.stringify([["name", "in", studentIds]]),
+          limit_page_length: studentIds.length,
+        },
+      });
+      const map: Record<string, string> = {};
+      for (const s of data.data ?? []) {
+        if (s.custom_disabilities) map[s.name] = s.custom_disabilities;
+      }
+      return map;
+    },
+    enabled: studentIds.length > 0,
+    staleTime: 60_000,
+  });
 
   // Build a lookup map from fee data
   const feeMap = new Map<string, BatchStudentFeeRow>();
@@ -418,6 +442,9 @@ export default function BatchDetailPage() {
                         </td>
                         <td className="px-4 py-3 font-medium text-text-primary">
                           {s.student_name}
+                          {disabilityMap[s.student] && (
+                            <span className="ml-2 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">{disabilityMap[s.student]}</span>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-center">
                           {feesLoading ? (

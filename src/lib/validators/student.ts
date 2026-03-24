@@ -9,6 +9,7 @@ export const studentSchema = z.object({
   student_email_id: z.union([z.string().email("Invalid email"), z.literal("")]).optional(),
   student_mobile_number: z.string().regex(/^\d{10}$/, "Mobile number must be exactly 10 digits").optional().or(z.literal("")),
   aadhaar_number: z.string().regex(/^\d{12}$/, "Aadhaar number must be exactly 12 digits").optional().or(z.literal("")),
+  disabilities: z.string().optional(),
 
   // Step 2 — Guardian
   guardian_name: z.string().min(1, "Guardian name is required"),

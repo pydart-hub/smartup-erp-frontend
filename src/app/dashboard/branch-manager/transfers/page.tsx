@@ -175,7 +175,12 @@ export default function TransfersPage() {
                     >
                       <td className="px-5 py-3">
                         <div>
-                          <p className="text-sm font-medium text-text-primary">{t.student_name}</p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-sm font-medium text-text-primary">{t.student_name}</p>
+                            {t.custom_disabilities && (
+                              <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">{t.custom_disabilities}</span>
+                            )}
+                          </div>
                           <p className="text-xs text-text-tertiary">{t.student} · {t.program}</p>
                         </div>
                       </td>

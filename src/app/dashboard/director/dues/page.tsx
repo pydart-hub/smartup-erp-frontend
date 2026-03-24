@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
@@ -27,16 +27,41 @@ const itemVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" as const } },
 };
 
+function getLocalToday(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+const todayISO = getLocalToday();
+
+function formatDisplayDate(iso: string): string {
+  return new Date(iso + "T00:00:00").toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 export default function DuesBranchPage() {
+  const [asOf, setAsOf] = useState(todayISO);
+  const isToday = asOf === todayISO;
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setAsOf(e.target.value || todayISO);
+  };
+
   const { data: branches, isLoading, isError } = useQuery({
-    queryKey: ["director-dues-branches"],
-    queryFn: getDuesTodayByBranch,
+    queryKey: ["director-dues-branches", asOf],
+    queryFn: () => getDuesTodayByBranch(isToday ? undefined : asOf),
     staleTime: 30_000,
     refetchInterval: 30_000,
   });
 
   const totalDues = (branches ?? []).reduce((s, b) => s + b.total_dues, 0);
   const totalStudents = (branches ?? []).reduce((s, b) => s + b.student_count, 0);
+
+  // Build query string for child links
+  const childQs = isToday ? "" : `?as_of=${asOf}`;
 
   return (
     <motion.div
@@ -47,11 +72,35 @@ export default function DuesBranchPage() {
     >
       <BreadcrumbNav />
 
-      <motion.div variants={itemVariants}>
-        <h1 className="text-2xl font-bold text-text-primary">Dues Till Today</h1>
-        <p className="text-sm text-text-secondary mt-0.5">
-          Overdue instalments where due date has passed — branch-wise breakdown
-        </p>
+      <motion.div variants={itemVariants} className="flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-bold text-text-primary">
+            {isToday ? "Dues Till Today" : `Dues Till ${formatDisplayDate(asOf)}`}
+          </h1>
+          <p className="text-sm text-text-secondary mt-0.5">
+            Overdue instalments where due date has passed — branch-wise breakdown
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <label htmlFor="as-of-date" className="text-sm text-text-secondary whitespace-nowrap">
+            As of
+          </label>
+          <input
+            id="as-of-date"
+            type="date"
+            value={asOf}
+            onChange={handleDateChange}
+            className="text-sm rounded-lg border border-border-input bg-surface px-3 py-1.5 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+          />
+          {!isToday && (
+            <button
+              onClick={() => setAsOf(todayISO)}
+              className="text-xs text-primary hover:text-primary/80 underline underline-offset-2"
+            >
+              Reset
+            </button>
+          )}
+        </div>
       </motion.div>
 
       {/* Summary card */}
@@ -93,12 +142,12 @@ export default function DuesBranchPage() {
           <p className="text-sm text-success font-medium">No overdue dues — all caught up!</p>
         </div>
       ) : (
-        <motion.div initial="hidden" animate="visible" variants={containerVariants} className="space-y-2">
+        <motion.div key={asOf} initial="hidden" animate="visible" variants={containerVariants} className="space-y-2">
           {branches.map((branch) => {
             const shortName = branch.branch.replace("Smart Up ", "").replace("Smart Up", "HQ");
             return (
               <motion.div key={branch.branch} variants={itemVariants}>
-                <Link href={`/dashboard/director/dues/${encodeURIComponent(branch.branch)}`}>
+                <Link href={`/dashboard/director/dues/${encodeURIComponent(branch.branch)}${childQs}`}>
                   <div className="flex items-center gap-3 p-4 rounded-[10px] border border-border-light hover:border-orange-300/50 hover:shadow-sm transition-all cursor-pointer bg-surface">
                     <div className="w-10 h-10 rounded-lg bg-brand-wash flex items-center justify-center shrink-0">
                       <Building2 className="h-5 w-5 text-primary" />

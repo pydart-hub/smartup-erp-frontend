@@ -27,7 +27,7 @@ import { Button } from "@/components/ui/Button";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { getPayments } from "@/lib/api/fees";
 import { getSalesInvoices, getPaymentModesByCustomers } from "@/lib/api/sales";
-import { getBranchCollectedByMode } from "@/lib/api/director";
+import { getBranchCollectedByMode, type CollectedByMode } from "@/lib/api/director";
 import type { PaymentEntry, FeeReportSummary } from "@/lib/types/fee";
 import type { SalesInvoice } from "@/lib/types/sales";
 import { useAuth } from "@/lib/hooks/useAuth";
@@ -67,7 +67,7 @@ export default function FeesPage() {
   const [paymentModeMap, setPaymentModeMap] = useState<Map<string, string>>(new Map());
 
   // Razorpay/Offline collected split
-  const [collectedByMode, setCollectedByMode] = useState<{ razorpay: number; offline: number } | null>(null);
+  const [collectedByMode, setCollectedByMode] = useState<CollectedByMode | null>(null);
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -184,7 +184,7 @@ export default function FeesPage() {
                     <div className="flex items-center gap-0.5">
                       <Banknote className="h-3 w-3 text-green-500" />
                       <span className="text-xs font-semibold text-green-600">
-                        {formatCurrency(collectedByMode.offline)}
+                        {formatCurrency(collectedByMode.total - collectedByMode.razorpay)}
                       </span>
                     </div>
                   </div>

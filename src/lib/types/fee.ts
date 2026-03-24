@@ -137,6 +137,7 @@ export interface PaymentOptionSummary {
   total: number;         // total amount for this option
   schedule: InstalmentEntry[];
   savings?: number;      // savings vs annual_fee (if applicable)
+  referralDiscount?: number; // 5% discount amount (only for referred admissions)
 }
 
 export interface FeeReportSummary {

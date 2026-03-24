@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
@@ -17,6 +17,7 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { getBranchAttendance } from "@/lib/api/director";
+import apiClient from "@/lib/api/client";
 
 export default function BranchAttendancePage() {
   const params = useParams();
@@ -53,6 +54,29 @@ export default function BranchAttendancePage() {
     },
     {} as Record<string, typeof records>
   );
+
+  // Fetch disabilities for all students in records
+  const studentIds = useMemo(() => [...new Set(records.map((r) => r.student))], [records]);
+  const { data: disabilityMap = {} } = useQuery({
+    queryKey: ["student-disabilities", studentIds],
+    queryFn: async () => {
+      if (!studentIds.length) return {};
+      const { data } = await apiClient.get("/resource/Student", {
+        params: {
+          fields: JSON.stringify(["name", "custom_disabilities"]),
+          filters: JSON.stringify([["name", "in", studentIds]]),
+          limit_page_length: studentIds.length,
+        },
+      });
+      const map: Record<string, string> = {};
+      for (const s of data.data ?? []) {
+        if (s.custom_disabilities) map[s.name] = s.custom_disabilities;
+      }
+      return map;
+    },
+    enabled: studentIds.length > 0,
+    staleTime: 60_000,
+  });
 
   return (
     <motion.div
@@ -174,8 +198,9 @@ export default function BranchAttendancePage() {
                                 : "bg-warning/5 border-warning/20 text-warning"
                           }`}
                         >
-                          {r.student_name}
-                        </div>
+                          {r.student_name}                          {disabilityMap[r.student] && (
+                            <span className="ml-1 inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-medium text-amber-700">{disabilityMap[r.student]}</span>
+                          )}                        </div>
                       ))}
                     </div>
                   </CardContent>

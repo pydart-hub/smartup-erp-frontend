@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { getStudents } from "@/lib/api/students";
+import { DisabilityBadge } from "@/components/ui/DisabilityBadge";
 import { getAllBranches, getActiveStudentCountForBranch } from "@/lib/api/director";
 import apiClient from "@/lib/api/client";
 import type { Student } from "@/lib/types/student";
@@ -228,9 +229,12 @@ export default function SalesUserStudentsPage() {
                                 {initials(student.student_name || student.first_name || "?")}
                               </div>
                               <div className="min-w-0">
-                                <p className="font-medium text-text-primary truncate">
-                                  {student.student_name}
-                                </p>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <p className="font-medium text-text-primary truncate">
+                                    {student.student_name}
+                                  </p>
+                                  <DisabilityBadge disabilities={student.custom_disabilities} />
+                                </div>
                                 <p className="text-xs text-text-tertiary truncate">{student.name}</p>
                               </div>
                             </div>

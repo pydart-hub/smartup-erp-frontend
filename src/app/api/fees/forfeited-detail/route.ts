@@ -62,6 +62,7 @@ export interface ForfeitedStudent {
   reason: string;
   outstanding_amount: number;
   invoice_count: number;
+  disabilities: string;
 }
 
 export interface ForfeitedBatch {
@@ -91,6 +92,7 @@ export async function GET(request: NextRequest) {
       [
         "name", "student_name", "customer", "custom_branch",
         "custom_discontinuation_date", "custom_discontinuation_reason",
+        "custom_disabilities",
       ],
       500,
       "custom_discontinuation_date desc",
@@ -162,6 +164,7 @@ export async function GET(request: NextRequest) {
         reason: (stu.custom_discontinuation_reason as string) || "",
         outstanding_amount: totals.total,
         invoice_count: totals.count,
+        disabilities: (stu.custom_disabilities as string) || "",
       };
 
       if (!batchMap.has(batchName)) {

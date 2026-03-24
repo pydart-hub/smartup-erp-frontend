@@ -24,6 +24,7 @@ import { getCourseSchedules } from "@/lib/api/courseSchedule";
 import type { BatchStudent } from "@/lib/types/batch";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useInstructorBatches } from "@/lib/hooks/useInstructorBatches";
+import apiClient from "@/lib/api/client";
 
 type AttendanceStatus = "Present" | "Absent" | "Late";
 
@@ -54,6 +55,7 @@ export default function InstructorAttendancePage() {
   const [attendance, setAttendance] = useState<Record<string, AttendanceStatus>>({});
   const [dataLoading, setDataLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [disabilityMap, setDisabilityMap] = useState<Record<string, string>>({});
 
   // Auto-select first batch once loaded
   useEffect(() => {
@@ -174,6 +176,28 @@ export default function InstructorAttendancePage() {
   }, [selectedBatchId, selectedDate]);
 
   useEffect(() => { loadAttendanceData(); }, [loadAttendanceData]);
+
+  // Fetch disabilities for loaded students
+  useEffect(() => {
+    const ids = students.map((s) => s.student);
+    if (!ids.length) return;
+    apiClient
+      .get("/resource/Student", {
+        params: {
+          fields: JSON.stringify(["name", "custom_disabilities"]),
+          filters: JSON.stringify([["name", "in", ids]]),
+          limit_page_length: ids.length,
+        },
+      })
+      .then(({ data }) => {
+        const map: Record<string, string> = {};
+        for (const s of data.data ?? []) {
+          if (s.custom_disabilities) map[s.name] = s.custom_disabilities;
+        }
+        setDisabilityMap(map);
+      })
+      .catch(() => {});
+  }, [students]);
 
   const presentCount = Object.values(attendance).filter((s) => s === "Present").length;
   const absentCount  = Object.values(attendance).filter((s) => s === "Absent").length;
@@ -378,6 +402,9 @@ export default function InstructorAttendancePage() {
                         <p className="text-sm font-medium text-text-primary truncate">
                           {student.student_name || student.student}
                         </p>
+                        {disabilityMap[student.student] && (
+                          <p className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700 mt-0.5">{disabilityMap[student.student]}</p>
+                        )}
                         <p className="text-xs text-text-tertiary">{student.student}</p>
                       </div>
                       <Badge

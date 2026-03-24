@@ -72,6 +72,9 @@ export default function TransferDetailPage() {
           </h1>
           <p className="text-sm text-text-secondary mt-1">
             {transfer.student_name} · {transfer.program}
+            {transfer.custom_disabilities && (
+              <span className="ml-1.5 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">{transfer.custom_disabilities}</span>
+            )}
           </p>
         </div>
         <TransferStatusBadge status={transfer.status} />

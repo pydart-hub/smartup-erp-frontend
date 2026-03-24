@@ -10,6 +10,7 @@ const STUDENT_LIST_FIELDS = JSON.stringify([
   "custom_branch", "custom_branch_abbr", "custom_srr_id", "custom_parent_name", "custom_aadhaar",
   "joining_date", "creation", "customer",
   "custom_discontinuation_date", "custom_discontinuation_reason",
+  "custom_disabilities",
 ]);
 
 // ── List Students ──

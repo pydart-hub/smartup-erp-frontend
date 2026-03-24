@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -31,12 +31,15 @@ const itemVariants = {
 
 export default function DuesClassPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const branch = decodeURIComponent(params.branch as string);
   const shortName = branch.replace("Smart Up ", "").replace("Smart Up", "HQ");
+  const asOf = searchParams.get("as_of") || undefined;
+  const childQs = asOf ? `?as_of=${asOf}` : "";
 
   const { data: classes, isLoading, isError } = useQuery({
-    queryKey: ["director-dues-classes", branch],
-    queryFn: () => getDuesTodayByClass(branch),
+    queryKey: ["director-dues-classes", branch, asOf],
+    queryFn: () => getDuesTodayByClass(branch, asOf),
     staleTime: 30_000,
     refetchInterval: 30_000,
   });
@@ -54,7 +57,7 @@ export default function DuesClassPage() {
       <BreadcrumbNav />
 
       <motion.div variants={itemVariants} className="flex items-center gap-3">
-        <Link href="/dashboard/director/dues" className="text-text-tertiary hover:text-primary transition-colors">
+        <Link href={`/dashboard/director/dues${childQs}`} className="text-text-tertiary hover:text-primary transition-colors">
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
@@ -110,7 +113,7 @@ export default function DuesClassPage() {
             return (
               <motion.div key={cls.item_code} variants={itemVariants}>
                 <Link
-                  href={`/dashboard/director/dues/${encodeURIComponent(branch)}/${encodeURIComponent(cls.item_code)}`}
+                  href={`/dashboard/director/dues/${encodeURIComponent(branch)}/${encodeURIComponent(cls.item_code)}${childQs}`}
                 >
                   <div className="flex items-center gap-3 p-4 rounded-[10px] border border-border-light hover:border-orange-300/50 hover:shadow-sm transition-all cursor-pointer bg-surface">
                     <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">

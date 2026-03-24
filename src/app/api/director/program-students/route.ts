@@ -72,11 +72,11 @@ export async function GET(request: NextRequest) {
 
     // Step 1: fetch students in this branch
     const studentJson = await frappeGet("resource/Student", {
-      fields: JSON.stringify(["name", "student_name", "enabled"]),
+      fields: JSON.stringify(["name", "student_name", "enabled", "custom_disabilities"]),
       filters: JSON.stringify([["custom_branch", "=", branch]]),
       limit_page_length: "500",
     });
-    const students: { name: string; student_name: string; enabled: number }[] =
+    const students: { name: string; student_name: string; enabled: number; custom_disabilities?: string }[] =
       studentJson?.data ?? [];
 
     if (!students.length) {
@@ -115,17 +115,19 @@ export async function GET(request: NextRequest) {
 
     const studentIdList = programStudents.map((s) => s.name);
 
-    // Step 3: fetch invoices for these students (include due_date for overdue calc)
+    // Step 3: fetch invoices for these students (include due_date for overdue calc + name for instalment details)
     const invJson = await frappeGet("resource/Sales Invoice", {
-      fields: JSON.stringify(["student", "customer", "grand_total", "outstanding_amount", "due_date"]),
+      fields: JSON.stringify(["name", "student", "customer", "grand_total", "outstanding_amount", "due_date"]),
       filters: JSON.stringify([
         ["docstatus", "=", "1"],
         ["student", "in", studentIdList],
         ["company", "=", branch],
       ]),
       limit_page_length: "1000",
+      order_by: "due_date asc",
     });
     const invoices: {
+      name: string;
       student: string;
       customer: string;
       grand_total: number;
@@ -216,10 +218,14 @@ export async function GET(request: NextRequest) {
       // Fee plan is non-critical — silently skip
     }
 
-    // Aggregate invoices per student
+    // Aggregate invoices per student + build per-student invoice list
     const aggMap = new Map<
       string,
       { invoiced: number; outstanding: number; count: number }
+    >();
+    const studentInvoicesMap = new Map<
+      string,
+      { name: string; grand_total: number; outstanding_amount: number; due_date: string; paid: number }[]
     >();
     for (const inv of invoices) {
       const existing = aggMap.get(inv.student) ?? {
@@ -231,6 +237,16 @@ export async function GET(request: NextRequest) {
         invoiced: existing.invoiced + (inv.grand_total ?? 0),
         outstanding: existing.outstanding + (inv.outstanding_amount ?? 0),
         count: existing.count + 1,
+      });
+
+      // Collect individual invoices per student (ordered by due_date asc)
+      if (!studentInvoicesMap.has(inv.student)) studentInvoicesMap.set(inv.student, []);
+      studentInvoicesMap.get(inv.student)!.push({
+        name: inv.name,
+        grand_total: inv.grand_total ?? 0,
+        outstanding_amount: inv.outstanding_amount ?? 0,
+        due_date: inv.due_date,
+        paid: (inv.grand_total ?? 0) - (inv.outstanding_amount ?? 0),
       });
     }
 
@@ -251,6 +267,8 @@ export async function GET(request: NextRequest) {
           feePlan: feePlanMap.get(s.name),
           noOfInstalments: feeInstalmentMap.get(s.name),
           duesTillToday: duesMap.get(s.name) ?? 0,
+          instalments: studentInvoicesMap.get(s.name) ?? [],
+          disabilities: s.custom_disabilities || "",
         };
       })
       .sort((a, b) => a.studentName.localeCompare(b.studentName));

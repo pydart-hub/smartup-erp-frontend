@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -56,17 +56,20 @@ function formatDate(iso: string): string {
 
 export default function DuesStudentPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const branch = decodeURIComponent(params.branch as string);
   const classId = decodeURIComponent(params.classId as string);
   const batch = decodeURIComponent(params.batch as string);
   const shortBranch = branch.replace("Smart Up ", "").replace("Smart Up", "HQ");
+  const asOf = searchParams.get("as_of") || undefined;
+  const childQs = asOf ? `?as_of=${asOf}` : "";
 
   const [planFilter, setPlanFilter] = useState<string>("all");
   const [frequencyFilter, setFrequencyFilter] = useState<string>("all");
 
   const { data: students, isLoading, isError } = useQuery({
-    queryKey: ["director-dues-students", branch, batch],
-    queryFn: () => getDuesTodayByStudent(branch, batch),
+    queryKey: ["director-dues-students", branch, batch, asOf],
+    queryFn: () => getDuesTodayByStudent(branch, batch, asOf),
     staleTime: 30_000,
     refetchInterval: 30_000,
   });
@@ -109,7 +112,7 @@ export default function DuesStudentPage() {
 
       <motion.div variants={itemVariants} className="flex items-center gap-3">
         <Link
-          href={`/dashboard/director/dues/${encodeURIComponent(branch)}/${encodeURIComponent(classId)}`}
+          href={`/dashboard/director/dues/${encodeURIComponent(branch)}/${encodeURIComponent(classId)}${childQs}`}
           className="text-text-tertiary hover:text-primary transition-colors"
         >
           <ArrowLeft className="h-5 w-5" />

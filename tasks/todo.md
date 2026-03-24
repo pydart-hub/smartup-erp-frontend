@@ -1,6 +1,18 @@
 # SmartUp ERP — Task Tracker
 
-## Current: Student Branch Transfer Feature (Completed)
+## Current: Subject-Wise Admission (Fee Structure Only)
+
+- [ ] Update live fee_structure_parsed.json with subject-wise entries
+- [ ] Add subject-wise PROGRAM_MAP entries in feeSchedule.ts
+- [ ] Add subject-wise toggle + subject dropdown in admission form Step 3
+- [ ] Override fee-config lookup to use subject key when subject-wise is ON
+- [ ] Create Frappe backend records (Programs, Fee Structures, Items, Student Groups)
+- [ ] Test end-to-end subject-wise admission flow
+- [ ] TypeScript clean compile verification
+
+---
+
+## Previous: Student Branch Transfer Feature (Completed)
 
 ### Implementation Summary
 - [x] Frappe DocType "Student Branch Transfer" created on cloud (SBT-.##### autoname, 32 fields)

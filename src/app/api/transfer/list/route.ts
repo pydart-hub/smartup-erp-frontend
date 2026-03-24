@@ -95,6 +95,30 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Enrich with disabilities from Student doctype
+    const studentIds = [...new Set(transfers.map((t: { student: string }) => t.student).filter(Boolean))] as string[];
+    if (studentIds.length > 0) {
+      const sq = new URLSearchParams({
+        fields: JSON.stringify(["name", "custom_disabilities"]),
+        filters: JSON.stringify([["name", "in", studentIds]]),
+        limit_page_length: String(studentIds.length),
+      });
+      const sr = await fetch(
+        `${FRAPPE_URL}/api/resource/Student?${sq}`,
+        { headers: { Authorization: `token ${API_KEY}:${API_SECRET}` } },
+      );
+      if (sr.ok) {
+        const stuData = (await sr.json()).data || [];
+        const disMap = new Map<string, string>();
+        for (const s of stuData) {
+          if (s.custom_disabilities) disMap.set(s.name, s.custom_disabilities);
+        }
+        for (const t of transfers) {
+          t.custom_disabilities = disMap.get(t.student) ?? "";
+        }
+      }
+    }
+
     return NextResponse.json({ data: transfers });
   } catch (err) {
     console.error("[transfer/list] Error:", err);

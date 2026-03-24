@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -30,14 +30,17 @@ const itemVariants = {
 
 export default function DuesBatchPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const branch = decodeURIComponent(params.branch as string);
   const classId = decodeURIComponent(params.classId as string);
   const shortBranch = branch.replace("Smart Up ", "").replace("Smart Up", "HQ");
   const displayClass = classId.replace(" Tuition Fee", "");
+  const asOf = searchParams.get("as_of") || undefined;
+  const childQs = asOf ? `?as_of=${asOf}` : "";
 
   const { data: batches, isLoading, isError } = useQuery({
-    queryKey: ["director-dues-batches", branch, classId],
-    queryFn: () => getDuesTodayByBatch(branch, classId),
+    queryKey: ["director-dues-batches", branch, classId, asOf],
+    queryFn: () => getDuesTodayByBatch(branch, classId, asOf),
     staleTime: 30_000,
     refetchInterval: 30_000,
   });
@@ -56,7 +59,7 @@ export default function DuesBatchPage() {
 
       <motion.div variants={itemVariants} className="flex items-center gap-3">
         <Link
-          href={`/dashboard/director/dues/${encodeURIComponent(branch)}`}
+          href={`/dashboard/director/dues/${encodeURIComponent(branch)}${childQs}`}
           className="text-text-tertiary hover:text-primary transition-colors"
         >
           <ArrowLeft className="h-5 w-5" />
@@ -112,7 +115,7 @@ export default function DuesBatchPage() {
           {batches.map((batch) => (
             <motion.div key={batch.batch_id} variants={itemVariants}>
               <Link
-                href={`/dashboard/director/dues/${encodeURIComponent(branch)}/${encodeURIComponent(classId)}/${encodeURIComponent(batch.batch_id)}`}
+                href={`/dashboard/director/dues/${encodeURIComponent(branch)}/${encodeURIComponent(classId)}/${encodeURIComponent(batch.batch_id)}${childQs}`}
               >
                 <div className="flex items-center gap-3 p-4 rounded-[10px] border border-border-light hover:border-orange-300/50 hover:shadow-sm transition-all cursor-pointer bg-surface">
                   <div className="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center shrink-0">

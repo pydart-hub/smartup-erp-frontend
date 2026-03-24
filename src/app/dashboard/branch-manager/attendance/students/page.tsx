@@ -17,6 +17,7 @@ import { getAttendance, bulkMarkAttendance } from "@/lib/api/attendance";
 import type { Batch, BatchStudent } from "@/lib/types/batch";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useAcademicYearStore } from "@/lib/stores/academicYearStore";
+import apiClient from "@/lib/api/client";
 
 type AttendanceStatus = "Present" | "Absent" | "Late";
 
@@ -48,6 +49,7 @@ export default function AttendancePage() {
   const [attendance, setAttendance] = useState<Record<string, AttendanceStatus>>({});
   const [dataLoading, setDataLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [disabilityMap, setDisabilityMap] = useState<Record<string, string>>({});
 
   // ── Batches list ──
   const { data: batchesRes } = useQuery({
@@ -177,6 +179,28 @@ export default function AttendancePage() {
   useEffect(() => {
     if (viewMode === "batch" && selectedBatchId) loadBatchAttendance();
   }, [viewMode, loadBatchAttendance, selectedBatchId]);
+
+  // Fetch disabilities for loaded students
+  useEffect(() => {
+    const ids = students.map((s) => s.student);
+    if (!ids.length) return;
+    apiClient
+      .get("/resource/Student", {
+        params: {
+          fields: JSON.stringify(["name", "custom_disabilities"]),
+          filters: JSON.stringify([["name", "in", ids]]),
+          limit_page_length: ids.length,
+        },
+      })
+      .then(({ data }) => {
+        const map: Record<string, string> = {};
+        for (const s of data.data ?? []) {
+          if (s.custom_disabilities) map[s.name] = s.custom_disabilities;
+        }
+        setDisabilityMap(map);
+      })
+      .catch(() => {});
+  }, [students]);
 
   // Open class detail
   function openClassAttendance(batchId: string) {
@@ -536,6 +560,9 @@ export default function AttendancePage() {
                               <p className="text-sm font-medium text-text-primary truncate">
                                 {student.student_name || student.student}
                               </p>
+                              {disabilityMap[student.student] && (
+                                <p className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700 mt-0.5">{disabilityMap[student.student]}</p>
+                              )}
                               <p className="text-xs text-text-tertiary">{student.student}</p>
                             </div>
                             <Badge

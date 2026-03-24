@@ -13,6 +13,7 @@ export interface Student {
   student_email_id: string;        // required
   student_mobile_number?: string;
   custom_aadhaar?: string;          // Aadhaar number (12 digits)
+  custom_disabilities?: string;     // Disabilities / Special Needs
   nationality?: string;
   address_line_1?: string;
   address_line_2?: string;

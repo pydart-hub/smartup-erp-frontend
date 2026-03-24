@@ -32,7 +32,7 @@ const quickActions = [
   {
     label: "Add New Student",
     description: "Create student profile & admission",
-    href: "/dashboard/branch-manager/students/new",
+    href: "/dashboard/branch-manager/new-admission",
     icon: <UserPlus className="h-5 w-5" />,
     color: "primary" as const,
   },

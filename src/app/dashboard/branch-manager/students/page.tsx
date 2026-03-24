@@ -21,6 +21,7 @@ import type { Student } from "@/lib/types/student";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { TransferRequestModal } from "@/components/transfers/TransferRequestModal";
 import { DiscontinueStudentModal } from "@/components/students/DiscontinueStudentModal";
+import { DisabilityBadge } from "@/components/ui/DisabilityBadge";
 // Academic year store not needed — students list always shows latest enrollment
 
 const PAGE_SIZE = 25;
@@ -208,7 +209,7 @@ export default function StudentsPage() {
             {isLoading ? "Loading…" : `${page * PAGE_SIZE + students.length} students shown`}
           </p>
         </div>
-        <Link href="/dashboard/branch-manager/students/new">
+        <Link href="/dashboard/branch-manager/new-admission">
             <Button variant="primary" size="md">
               <UserPlus className="h-4 w-4" />
               Add Student
@@ -336,6 +337,7 @@ export default function StudentsPage() {
                                       Fully Paid
                                     </Badge>
                                   )}
+                                  <DisabilityBadge disabilities={student.custom_disabilities} />
                                 </div>
                                 <p className="text-xs text-text-tertiary truncate">{student.name}</p>
                               </div>

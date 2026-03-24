@@ -102,6 +102,7 @@ export interface NavItem {
 
 export const BRANCH_MANAGER_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard/branch-manager", icon: "LayoutDashboard" },
+  { label: "New Admission", href: "/dashboard/branch-manager/new-admission", icon: "UserPlus" },
   {
     label: "Students", href: "/dashboard/branch-manager/students", icon: "GraduationCap",
     children: [
@@ -131,7 +132,12 @@ export const DIRECTOR_NAV: NavItem[] = [
     ],
   },
   { label: "Teachers", href: "/dashboard/director/teachers", icon: "UserCheck" },
-  { label: "Attendance", href: "/dashboard/director/attendance", icon: "ClipboardCheck" },
+  { label: "Attendance", href: "/dashboard/director/attendance", icon: "ClipboardCheck",
+    children: [
+      { label: "Students", href: "/dashboard/director/attendance/students", icon: "GraduationCap" },
+      { label: "Staff", href: "/dashboard/director/attendance/staff", icon: "Briefcase" },
+    ],
+  },
   { label: "Course Schedule", href: "/dashboard/director/course-schedule", icon: "CalendarDays" },
   { label: "Fees", href: "/dashboard/director/fees", icon: "IndianRupee" },
   { label: "Sales Orders", href: "/dashboard/director/sales-orders", icon: "ShoppingCart" },
@@ -165,7 +171,7 @@ export const HR_MANAGER_NAV: NavItem[] = [
 
 export const SALES_USER_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard/sales-user", icon: "LayoutDashboard" },
-  { label: "New Admission", href: "/dashboard/sales-user/admit", icon: "UserPlus" },
+  { label: "New Admission", href: "/dashboard/sales-user/new-admission", icon: "UserPlus" },
   { label: "Students", href: "/dashboard/sales-user/students", icon: "GraduationCap" },
 ];
 

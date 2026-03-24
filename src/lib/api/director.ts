@@ -247,10 +247,17 @@ export async function getCollectedByMode(): Promise<{
   return { razorpay, offline };
 }
 
-export async function getBranchCollectedByMode(branch: string): Promise<{
+export interface CollectedByMode {
   razorpay: number;
-  offline: number;
-}> {
+  cash: number;
+  upi: number;
+  bank_transfer: number;
+  cheque: number;
+  other: number;
+  total: number;
+}
+
+export async function getBranchCollectedByMode(branch: string): Promise<CollectedByMode> {
   const params = new URLSearchParams({
     fields: JSON.stringify(["mode_of_payment", "reference_no", "paid_amount"]),
     filters: JSON.stringify([["docstatus", "=", "1"], ["payment_type", "=", "Receive"], ["company", "=", branch]]),
@@ -259,17 +266,23 @@ export async function getBranchCollectedByMode(branch: string): Promise<{
   const { data } = await apiClient.get(`/resource/Payment Entry?${params}`);
   const entries: { mode_of_payment: string | null; reference_no: string | null; paid_amount: number }[] =
     data?.data ?? [];
-  let razorpay = 0;
-  let offline = 0;
+  const result: CollectedByMode = { razorpay: 0, cash: 0, upi: 0, bank_transfer: 0, cheque: 0, other: 0, total: 0 };
   for (const pe of entries) {
+    const amt = pe.paid_amount ?? 0;
+    result.total += amt;
     const isOnline = pe.reference_no?.startsWith("pay_") || pe.mode_of_payment === "Razorpay";
     if (isOnline) {
-      razorpay += pe.paid_amount ?? 0;
+      result.razorpay += amt;
     } else {
-      offline += pe.paid_amount ?? 0;
+      const mode = (pe.mode_of_payment ?? "").toLowerCase().trim();
+      if (mode === "cash") result.cash += amt;
+      else if (mode === "upi") result.upi += amt;
+      else if (mode === "bank transfer") result.bank_transfer += amt;
+      else if (mode === "cheque") result.cheque += amt;
+      else result.other += amt;
     }
   }
-  return { razorpay, offline };
+  return result;
 }
 
 /**
@@ -427,6 +440,14 @@ export async function getBranchProgramFeeStats(branch: string): Promise<ProgramF
     .sort((a, b) => b.totalInvoiced - a.totalInvoiced);
 }
 
+export interface InstalmentDetail {
+  name: string;
+  grand_total: number;
+  outstanding_amount: number;
+  due_date: string;
+  paid: number;
+}
+
 export interface StudentFeeRow {
   studentName: string;
   studentId: string;
@@ -439,6 +460,8 @@ export interface StudentFeeRow {
   paymentMode?: string; // "Cash" | "Online" derived from Payment Entries
   noOfInstalments?: string; // "1" | "4" | "6" | "8" from Sales Order
   duesTillToday: number; // overdue amount (due_date <= today)
+  instalments: InstalmentDetail[]; // individual invoice breakdown sorted by due_date
+  disabilities?: string;
 }
 
 /**
@@ -953,23 +976,28 @@ export interface DuesTodayStudentRow {
 }
 
 /** Get total overdue dues across all branches */
-export async function getDuesTodayTotal(): Promise<DuesTodayTotal> {
-  const res = await fetch("/api/fees/dues-till-today?level=total", { credentials: "include" });
+export async function getDuesTodayTotal(asOf?: string): Promise<DuesTodayTotal> {
+  const params = new URLSearchParams({ level: "total" });
+  if (asOf) params.set("as_of", asOf);
+  const res = await fetch(`/api/fees/dues-till-today?${params}`, { credentials: "include" });
   if (!res.ok) throw new Error(`dues-till-today failed: ${res.status}`);
   return res.json();
 }
 
 /** Get branch-wise dues breakdown */
-export async function getDuesTodayByBranch(): Promise<DuesTodayBranchRow[]> {
-  const res = await fetch("/api/fees/dues-till-today?level=branch", { credentials: "include" });
+export async function getDuesTodayByBranch(asOf?: string): Promise<DuesTodayBranchRow[]> {
+  const params = new URLSearchParams({ level: "branch" });
+  if (asOf) params.set("as_of", asOf);
+  const res = await fetch(`/api/fees/dues-till-today?${params}`, { credentials: "include" });
   if (!res.ok) throw new Error(`dues-till-today failed: ${res.status}`);
   const json = await res.json();
   return json.data ?? [];
 }
 
 /** Get class-wise dues for a specific branch */
-export async function getDuesTodayByClass(branch: string): Promise<DuesTodayClassRow[]> {
+export async function getDuesTodayByClass(branch: string, asOf?: string): Promise<DuesTodayClassRow[]> {
   const params = new URLSearchParams({ level: "class", branch });
+  if (asOf) params.set("as_of", asOf);
   const res = await fetch(`/api/fees/dues-till-today?${params}`, { credentials: "include" });
   if (!res.ok) throw new Error(`dues-till-today failed: ${res.status}`);
   const json = await res.json();
@@ -977,8 +1005,9 @@ export async function getDuesTodayByClass(branch: string): Promise<DuesTodayClas
 }
 
 /** Get batch-wise dues for a specific branch + class */
-export async function getDuesTodayByBatch(branch: string, itemCode: string): Promise<DuesTodayBatchRow[]> {
+export async function getDuesTodayByBatch(branch: string, itemCode: string, asOf?: string): Promise<DuesTodayBatchRow[]> {
   const params = new URLSearchParams({ level: "batch", branch, item_code: itemCode });
+  if (asOf) params.set("as_of", asOf);
   const res = await fetch(`/api/fees/dues-till-today?${params}`, { credentials: "include" });
   if (!res.ok) throw new Error(`dues-till-today failed: ${res.status}`);
   const json = await res.json();
@@ -986,8 +1015,9 @@ export async function getDuesTodayByBatch(branch: string, itemCode: string): Pro
 }
 
 /** Get student-wise dues for a specific batch */
-export async function getDuesTodayByStudent(branch: string, batch: string): Promise<DuesTodayStudentRow[]> {
+export async function getDuesTodayByStudent(branch: string, batch: string, asOf?: string): Promise<DuesTodayStudentRow[]> {
   const params = new URLSearchParams({ level: "student", branch, batch });
+  if (asOf) params.set("as_of", asOf);
   const res = await fetch(`/api/fees/dues-till-today?${params}`, { credentials: "include" });
   if (!res.ok) throw new Error(`dues-till-today failed: ${res.status}`);
   const json = await res.json();

@@ -84,63 +84,66 @@ function BranchCard({ branch }: { branch: { name: string; company_name: string; 
 
   return (
     <Link href={`/dashboard/director/branches/${encodeURIComponent(branch.name)}`}>
-      <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: "easeOut" }} whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }}>
-        <Card className="h-full hover:shadow-md transition-shadow cursor-pointer border-border-light hover:border-primary/30">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, ease: "easeOut" }}
+        whileHover={{ y: -3, transition: { duration: 0.15 } }}
+        whileTap={{ scale: 0.98 }}
+      >
+        <Card className="h-full cursor-pointer border-border-light hover:border-primary/30 hover:shadow-md transition-all duration-200 group">
           <CardContent className="p-5">
             {/* Header */}
-            <div className="flex items-start justify-between mb-4">
+            <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-[10px] bg-brand-wash flex items-center justify-center">
                   <Building2 className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-text-primary text-sm">{shortName}</h3>
-                  <p className="text-xs text-text-tertiary">{branch.abbr}</p>
+                  <h3 className="font-semibold text-text-primary text-sm leading-tight">{shortName}</h3>
+                  <p className="text-[11px] text-text-tertiary mt-0.5">{branch.abbr}</p>
                 </div>
               </div>
-              <ChevronRight className="h-4 w-4 text-text-tertiary" />
+              <ChevronRight className="h-4 w-4 text-text-tertiary group-hover:text-primary transition-colors" />
             </div>
 
-            {/* Stats row */}
-            <div className="grid grid-cols-3 gap-3">
-              <div className="text-center">
-                <div className="flex items-center justify-center gap-1 mb-1">
-                  <GraduationCap className="h-3.5 w-3.5 text-primary" />
-                </div>
-                <p className="text-lg font-bold text-text-primary">
+            {/* Divider */}
+            <div className="border-t border-border-light mb-4" />
+
+            {/* Stats grid */}
+            <div className="grid grid-cols-3 gap-2">
+              <div className="rounded-lg bg-app-bg px-3 py-2.5 text-center">
+                <GraduationCap className="h-4 w-4 text-primary mx-auto mb-1.5" />
+                <p className="text-base font-bold text-text-primary leading-none tabular-nums">
                   {loadingStudents ? (
-                    <span className="inline-block w-6 h-5 bg-border-light rounded animate-pulse" />
+                    <span className="inline-block w-5 h-4 bg-border-light rounded animate-pulse" />
                   ) : (
                     studentCount ?? 0
                   )}
                 </p>
-                <p className="text-[10px] text-text-tertiary uppercase tracking-wide">Students</p>
+                <p className="text-[10px] text-text-tertiary mt-1 uppercase tracking-wider">Students</p>
               </div>
-              <div className="text-center">
-                <div className="flex items-center justify-center gap-1 mb-1">
-                  <Users className="h-3.5 w-3.5 text-secondary" />
-                </div>
-                <p className="text-lg font-bold text-text-primary">
+              <div className="rounded-lg bg-app-bg px-3 py-2.5 text-center">
+                <Users className="h-4 w-4 text-secondary mx-auto mb-1.5" />
+                <p className="text-base font-bold text-text-primary leading-none tabular-nums">
                   {loadingBatches ? (
-                    <span className="inline-block w-6 h-5 bg-border-light rounded animate-pulse" />
+                    <span className="inline-block w-5 h-4 bg-border-light rounded animate-pulse" />
                   ) : (
                     batchCount ?? 0
                   )}
                 </p>
-                <p className="text-[10px] text-text-tertiary uppercase tracking-wide">Batches</p>
+                <p className="text-[10px] text-text-tertiary mt-1 uppercase tracking-wider">Batches</p>
               </div>
-              <div className="text-center">
-                <div className="flex items-center justify-center gap-1 mb-1">
-                  <UserCheck className="h-3.5 w-3.5 text-info" />
-                </div>
-                <p className="text-lg font-bold text-text-primary">
+              <div className="rounded-lg bg-app-bg px-3 py-2.5 text-center">
+                <UserCheck className="h-4 w-4 text-info mx-auto mb-1.5" />
+                <p className="text-base font-bold text-text-primary leading-none tabular-nums">
                   {loadingInstructors ? (
-                    <span className="inline-block w-6 h-5 bg-border-light rounded animate-pulse" />
+                    <span className="inline-block w-5 h-4 bg-border-light rounded animate-pulse" />
                   ) : (
                     instructorCount ?? 0
                   )}
                 </p>
-                <p className="text-[10px] text-text-tertiary uppercase tracking-wide">Staff</p>
+                <p className="text-[10px] text-text-tertiary mt-1 uppercase tracking-wider">Staff</p>
               </div>
             </div>
           </CardContent>
@@ -225,7 +228,7 @@ export default function DirectorDashboard() {
 
   const { data: duesToday, isLoading: loadDuesToday, isError: errDuesToday } = useQuery({
     queryKey: ["director-dues-today"],
-    queryFn: getDuesTodayTotal,
+    queryFn: () => getDuesTodayTotal(),
     staleTime: 30_000,
     refetchInterval: 30_000,
   });
@@ -433,16 +436,42 @@ export default function DirectorDashboard() {
 
       {/* Branches Grid */}
       <motion.div variants={itemVariants}>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-text-primary">All Branches</h2>
-          <Badge variant="outline" className="text-xs">
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Building2 className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-text-primary leading-tight">All Branches</h2>
+              <p className="text-xs text-text-tertiary">Tap a branch to view details</p>
+            </div>
+          </div>
+          <Badge variant="outline" className="text-xs font-medium">
             {totalBranches} branches
           </Badge>
         </div>
 
         {isLoading ? (
-          <div className="flex items-center justify-center h-48">
-            <Loader2 className="animate-spin h-6 w-6 text-primary" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[...Array(6)].map((_, i) => (
+              <Card key={i} className="border-border-light overflow-hidden">
+                <div className="h-1 bg-border-light" />
+                <CardContent className="p-5 space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-xl bg-border-light animate-pulse" />
+                    <div className="space-y-2">
+                      <div className="w-24 h-4 bg-border-light rounded animate-pulse" />
+                      <div className="w-14 h-3 bg-border-light rounded animate-pulse" />
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="w-full h-3 bg-border-light rounded animate-pulse" />
+                    <div className="w-full h-3 bg-border-light rounded animate-pulse" />
+                    <div className="w-full h-3 bg-border-light rounded animate-pulse" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         ) : isError ? (
           <div className="flex flex-col items-center justify-center h-48 gap-3">
@@ -454,10 +483,10 @@ export default function DirectorDashboard() {
             variants={containerVariants}
             initial="hidden"
             animate="visible"
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
           >
-            {activeBranches.map((branch) => (
-              <BranchCard key={branch.name} branch={branch} />
+            {activeBranches.map((branch, idx) => (
+              <BranchCard key={branch.name} branch={branch} index={idx} />
             ))}
           </motion.div>
         )}

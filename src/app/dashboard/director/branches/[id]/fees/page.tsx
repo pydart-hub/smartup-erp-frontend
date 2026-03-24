@@ -1,9 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -18,12 +18,26 @@ import {
   CalendarClock,
   Wifi,
   Banknote,
+  X,
+  Smartphone,
+  Building2,
+  FileText,
+  HelpCircle,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { getBranchInvoiceStats, getBranchProgramFeeStats, getBranchForfeitedFees, getBranchCollectedByMode, getDuesTodayByClass } from "@/lib/api/director";
+import type { CollectedByMode } from "@/lib/api/director";
 import { formatCurrency } from "@/lib/utils/formatters";
+
+const OFFLINE_MODES: { key: keyof CollectedByMode; label: string; icon: React.ElementType; color: string; bg: string; bar: string }[] = [
+  { key: "cash", label: "Cash", icon: Banknote, color: "text-emerald-600", bg: "bg-emerald-50", bar: "bg-emerald-500" },
+  { key: "upi", label: "UPI", icon: Smartphone, color: "text-violet-600", bg: "bg-violet-50", bar: "bg-violet-500" },
+  { key: "bank_transfer", label: "Bank Transfer", icon: Building2, color: "text-sky-600", bg: "bg-sky-50", bar: "bg-sky-500" },
+  { key: "cheque", label: "Cheque", icon: FileText, color: "text-amber-600", bg: "bg-amber-50", bar: "bg-amber-500" },
+  { key: "other", label: "Other", icon: HelpCircle, color: "text-gray-500", bg: "bg-gray-50", bar: "bg-gray-400" },
+];
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -40,6 +54,8 @@ export default function BranchFeesPage() {
   const branchName = decodeURIComponent(params.id as string);
   const shortName = branchName.replace("Smart Up ", "").replace("Smart Up", "HQ");
   const encodedBranch = encodeURIComponent(branchName);
+  const [showCollectedModal, setShowCollectedModal] = useState(false);
+  const [offlineExpanded, setOfflineExpanded] = useState(false);
 
   const { data: invoiceStats, isLoading: loadInvoices } = useQuery({
     queryKey: ["director-branch-invoice-stats", branchName],
@@ -134,7 +150,10 @@ export default function BranchFeesPage() {
             <p className="text-xs text-text-tertiary">Total Fees</p>
           </CardContent>
         </Card>
-        <Card className="border-success/20">
+        <Card
+          className="border-success/20 hover:shadow-md hover:border-success/40 transition-all cursor-pointer"
+          onClick={() => setShowCollectedModal(true)}
+        >
           <CardContent className="p-4 text-center">
             <CircleCheck className="h-5 w-5 text-success mx-auto mb-2" />
             <p className="text-2xl font-bold text-success">
@@ -156,12 +175,13 @@ export default function BranchFeesPage() {
                 <div className="flex items-center justify-center gap-0.5">
                   <Banknote className="h-3 w-3 text-green-500" />
                   <p className="text-xs font-semibold text-green-600">
-                    {loadCollectedByMode ? "..." : formatCurrency(collectedByMode?.offline ?? 0)}
+                    {loadCollectedByMode ? "..." : formatCurrency(collectedByMode?.razorpay != null ? (collectedByMode.total - collectedByMode.razorpay) : 0)}
                   </p>
                 </div>
                 <p className="text-[10px] text-text-tertiary uppercase tracking-wide">Offline</p>
               </div>
             </div>
+            <p className="text-[10px] text-primary mt-2 font-medium">Tap for details</p>
           </CardContent>
         </Card>
         <Card className="border-error/20">
@@ -280,6 +300,225 @@ export default function BranchFeesPage() {
         )}
       </motion.div>
 
+      {/* Collected Breakdown Modal */}
+      <AnimatePresence>
+        {showCollectedModal && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => { setShowCollectedModal(false); setOfflineExpanded(false); }}
+              className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
+            />
+            {/* Modal */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: "spring", duration: 0.4, bounce: 0.15 }}
+              className="fixed inset-x-4 top-[12%] sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 sm:w-full sm:max-w-md z-50"
+            >
+              <div className="bg-surface rounded-2xl border border-border-light shadow-2xl overflow-hidden">
+                {/* Header */}
+                <div className="relative bg-gradient-to-br from-success/10 via-emerald-50 to-teal-50 dark:from-success/5 dark:via-success/5 dark:to-success/5 px-6 pt-5 pb-4">
+                  <button
+                    onClick={() => { setShowCollectedModal(false); setOfflineExpanded(false); }}
+                    className="absolute top-3 right-3 p-1.5 rounded-lg hover:bg-black/5 transition-colors"
+                  >
+                    <X className="h-4 w-4 text-text-tertiary" />
+                  </button>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-success/15 flex items-center justify-center">
+                      <CircleCheck className="h-5 w-5 text-success" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-text-primary">Collection Breakdown</h3>
+                      <p className="text-xs text-text-secondary">{shortName}</p>
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <p className="text-3xl font-extrabold text-success tracking-tight">
+                      {formatCurrency(collectedByMode?.total ?? totalCollected)}
+                    </p>
+                    <p className="text-xs text-text-tertiary mt-0.5">Total collected</p>
+                  </div>
+                </div>
+
+                {/* Two-level breakdown */}
+                <div className="px-6 py-4 space-y-3">
+                  {loadCollectedByMode ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="animate-spin h-5 w-5 text-text-tertiary" />
+                    </div>
+                  ) : (() => {
+                    const total = collectedByMode?.total || 1;
+                    const razorpayAmt = collectedByMode?.razorpay ?? 0;
+                    const offlineAmt = total - razorpayAmt;
+                    const razorpayPct = Math.round((razorpayAmt / total) * 100);
+                    const offlinePct = 100 - razorpayPct;
+
+                    if (total <= 1) {
+                      return (
+                        <div className="text-center py-8">
+                          <Banknote className="h-8 w-8 text-text-tertiary mx-auto mb-2" />
+                          <p className="text-sm text-text-tertiary">No payments recorded</p>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <>
+                        {/* Razorpay row */}
+                        <motion.div
+                          initial={{ opacity: 0, x: -12 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.05 }}
+                        >
+                          <div className="flex items-center gap-3 p-3 rounded-xl bg-blue-50/60 border border-blue-100">
+                            <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
+                              <Wifi className="h-5 w-5 text-blue-600" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between mb-1.5">
+                                <span className="text-sm font-semibold text-text-primary">Razorpay</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-base font-bold text-blue-600">{formatCurrency(razorpayAmt)}</span>
+                                  <span className="text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">
+                                    {razorpayPct}%
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="w-full h-2.5 bg-blue-100 rounded-full overflow-hidden">
+                                <motion.div
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${razorpayPct}%` }}
+                                  transition={{ delay: 0.25, duration: 0.6, ease: "easeOut" }}
+                                  className="h-full rounded-full bg-blue-500"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+
+                        {/* Offline row (expandable) */}
+                        <motion.div
+                          initial={{ opacity: 0, x: -12 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.12 }}
+                        >
+                          <button
+                            onClick={() => setOfflineExpanded((prev) => !prev)}
+                            className="w-full text-left"
+                          >
+                            <div className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                              offlineExpanded
+                                ? "bg-emerald-50/80 border-emerald-200 shadow-sm"
+                                : "bg-emerald-50/50 border-emerald-100 hover:border-emerald-200 hover:shadow-sm"
+                            }`}>
+                              <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
+                                <Banknote className="h-5 w-5 text-emerald-600" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between mb-1.5">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm font-semibold text-text-primary">Offline</span>
+                                    <ChevronRight className={`h-3.5 w-3.5 text-text-tertiary transition-transform duration-200 ${
+                                      offlineExpanded ? "rotate-90" : ""
+                                    }`} />
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-base font-bold text-emerald-600">{formatCurrency(offlineAmt)}</span>
+                                    <span className="text-xs font-semibold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">
+                                      {offlinePct}%
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="w-full h-2.5 bg-emerald-100 rounded-full overflow-hidden">
+                                  <motion.div
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${offlinePct}%` }}
+                                    transition={{ delay: 0.32, duration: 0.6, ease: "easeOut" }}
+                                    className="h-full rounded-full bg-emerald-500"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </button>
+
+                          {/* Offline sub-modes (expandable) */}
+                          <AnimatePresence>
+                            {offlineExpanded && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: "auto", opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.25, ease: "easeInOut" }}
+                                className="overflow-hidden"
+                              >
+                                <div className="ml-5 mt-2 pl-5 border-l-2 border-emerald-200 space-y-2">
+                                  {OFFLINE_MODES
+                                    .map((m) => ({ ...m, amount: collectedByMode?.[m.key] ?? 0 }))
+                                    .filter((m) => m.amount > 0)
+                                    .sort((a, b) => b.amount - a.amount)
+                                    .map((m, i) => {
+                                      const subPct = offlineAmt > 0 ? Math.round((m.amount / offlineAmt) * 100) : 0;
+                                      const Icon = m.icon;
+                                      return (
+                                        <motion.div
+                                          key={m.key}
+                                          initial={{ opacity: 0, x: -8 }}
+                                          animate={{ opacity: 1, x: 0 }}
+                                          transition={{ delay: i * 0.05 }}
+                                          className="flex items-center gap-2.5 py-2 px-3 rounded-lg hover:bg-white/60 transition-colors"
+                                        >
+                                          <div className={`w-8 h-8 rounded-lg ${m.bg} flex items-center justify-center shrink-0`}>
+                                            <Icon className={`h-3.5 w-3.5 ${m.color}`} />
+                                          </div>
+                                          <div className="flex-1 min-w-0">
+                                            <div className="flex items-center justify-between">
+                                              <span className="text-xs font-medium text-text-primary">{m.label}</span>
+                                              <div className="flex items-center gap-1.5">
+                                                <span className="text-sm font-bold text-text-primary">{formatCurrency(m.amount)}</span>
+                                                <span className={`text-[10px] font-semibold ${m.color} px-1.5 py-0.5 rounded-md bg-white/70`}>
+                                                  {subPct}%
+                                                </span>
+                                              </div>
+                                            </div>
+                                            <div className="w-full h-1.5 bg-border-light/40 rounded-full overflow-hidden mt-1">
+                                              <motion.div
+                                                initial={{ width: 0 }}
+                                                animate={{ width: `${subPct}%` }}
+                                                transition={{ delay: i * 0.05 + 0.15, duration: 0.4, ease: "easeOut" }}
+                                                className={`h-full rounded-full ${m.bar}`}
+                                              />
+                                            </div>
+                                          </div>
+                                        </motion.div>
+                                      );
+                                    })}
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </motion.div>
+                      </>
+                    );
+                  })()}
+                </div>
+
+                {/* Footer */}
+                <div className="px-6 py-3 border-t border-border-light bg-app-bg/50">
+                  <p className="text-[10px] text-text-tertiary text-center">
+                    Based on submitted Payment Entry records
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
     </motion.div>
   );

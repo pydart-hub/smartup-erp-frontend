@@ -234,6 +234,9 @@ export default function SalesUserStudentDetailPage() {
           <InfoRow label="Blood Group" value={student.blood_group} />
           <InfoRow label="Email" value={student.student_email_id} icon={<Mail className="h-3.5 w-3.5" />} />
           <InfoRow label="Mobile" value={student.student_mobile_number} icon={<Phone className="h-3.5 w-3.5" />} />
+          {student.custom_disabilities && (
+            <InfoRow label="Disabilities / Special Needs" value={student.custom_disabilities} icon={<AlertCircle className="h-3.5 w-3.5" />} />
+          )}
         </SectionCard>
 
         {/* Academic Info */}

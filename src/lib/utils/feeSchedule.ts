@@ -114,6 +114,23 @@ export function getAllPaymentOptions(
   });
 }
 
+/**
+ * Apply a 5% referral discount to payment options.
+ * The discount is deducted entirely from the first instalment.
+ */
+export function applyReferralDiscount(
+  options: PaymentOptionSummary[],
+): PaymentOptionSummary[] {
+  return options.map((opt) => {
+    const discount = Math.round(opt.total * 0.05);
+    const newTotal = opt.total - discount;
+    const newSchedule = opt.schedule.map((s, i) =>
+      i === 0 ? { ...s, amount: s.amount - discount } : s,
+    );
+    return { ...opt, total: newTotal, schedule: newSchedule, referralDiscount: discount };
+  });
+}
+
 // ── Branch & Program Mapping ──
 // Maps Frappe company names to XLSX branch keys.
 
@@ -156,4 +173,81 @@ export function buildFeeConfigKey(
   const cls = PROGRAM_MAP[program];
   if (!branch || !cls) return null;
   return `${branch}|${plan}|${cls}`;
+}
+
+// ── Subject-Wise Admission Helpers ──
+
+/** Levels for subject-wise admission */
+export type SubjectLevel = "Plus One" | "Plus Two" | "10 CBSE";
+
+/** Subjects available per level */
+export const LEVEL_SUBJECTS: Record<SubjectLevel, string[]> = {
+  "Plus One":  ["Physics", "Chemistry", "Maths", "Phy-Chem", "Phy-Maths", "Chem-Maths"],
+  "Plus Two":  ["Physics", "Chemistry", "Maths", "Phy-Chem", "Phy-Maths", "Chem-Maths"],
+  "10 CBSE":   ["10 Cbse Maths"],
+};
+
+/** Frappe programs each level maps to (for enrollment & batch lookup) */
+export const LEVEL_PROGRAMS: Record<SubjectLevel, string[]> = {
+  "Plus One":  ["11th Science State", "11th Science CBSE"],
+  "Plus Two":  ["12th Science State", "12th Science CBSE"],
+  "10 CBSE":   ["10th CBSE"],
+};
+
+/** All Frappe programs that subject-wise students can be enrolled into */
+export const HSS_PROGRAMS = [
+  "11th Science State", "11th Science CBSE",
+  "12th Science State", "12th Science CBSE",
+  "10th CBSE",
+];
+
+/** Branches that support subject-wise admission and their available subjects (all levels combined) */
+export const SUBJECT_BY_BRANCH: Record<string, string[]> = {
+  "Kadavanthra":    ["Physics", "Chemistry", "Maths", "Phy-Chem", "Phy-Maths", "Chem-Maths", "10 Cbse Maths"],
+  "Vennala":        ["Physics", "Chemistry", "Maths", "Phy-Chem", "Phy-Maths", "Chem-Maths", "10 Cbse Maths"],
+  "Edappally":      ["Physics", "Chemistry", "Maths", "Phy-Chem", "Phy-Maths", "Chem-Maths", "10 Cbse Maths"],
+  "Thoppumpady":    ["Phy-Chem"],
+  "Tier 1 (Chullikal, Fortkochi, Eraveli, Palluruthi)": ["Phy-Chem"],
+};
+
+/** Get all subjects at a branch (all levels combined) */
+export function getSubjectsForBranch(company: string): string[] {
+  const branch = BRANCH_MAP[company];
+  if (!branch) return [];
+  return SUBJECT_BY_BRANCH[branch] ?? [];
+}
+
+/** Get which levels are available at a branch (checks that subjects exist) */
+export function getLevelsForBranch(company: string): SubjectLevel[] {
+  const allSubjects = getSubjectsForBranch(company);
+  if (allSubjects.length === 0) return [];
+  const levels: SubjectLevel[] = [];
+  for (const level of Object.keys(LEVEL_SUBJECTS) as SubjectLevel[]) {
+    if (LEVEL_SUBJECTS[level].some((s) => allSubjects.includes(s))) {
+      levels.push(level);
+    }
+  }
+  return levels;
+}
+
+/** Get subjects available at a branch for a specific level */
+export function getSubjectsForBranchLevel(company: string, level: SubjectLevel): string[] {
+  const allSubjects = getSubjectsForBranch(company);
+  return LEVEL_SUBJECTS[level].filter((s) => allSubjects.includes(s));
+}
+
+/** Get Frappe programs for a level that actually exist at a branch (from Student Groups) */
+export function getProgramsForLevel(level: SubjectLevel): string[] {
+  return LEVEL_PROGRAMS[level] ?? [];
+}
+
+/** Build fee config key for subject-wise lookup */
+export function buildSubjectFeeConfigKey(
+  company: string,
+  subject: string,
+  plan: string,
+): string | null {
+  const branch = BRANCH_MAP[company];
+  if (!branch) return null;
+  return `${branch}|${plan}|${subject}`;
 }

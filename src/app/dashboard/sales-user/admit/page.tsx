@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import type { FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -38,7 +38,7 @@ import { studentSchema, type StudentFormValues } from "@/lib/validators/student"
 import { admitStudent, getAcademicYears, getBranches, getStudentGroups, getNextSrrId } from "@/lib/api/enrollment";
 import { getFeeStructures } from "@/lib/api/fees";
 import type { FeeConfigEntry, PaymentOptionSummary } from "@/lib/types/fee";
-import { getAllPaymentOptions } from "@/lib/utils/feeSchedule";
+import { getAllPaymentOptions, applyReferralDiscount } from "@/lib/utils/feeSchedule";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/hooks/useAuth";
 import PostAdmissionPayment from "@/components/payments/PostAdmissionPayment";
@@ -79,6 +79,10 @@ const PLAN_OPTIONS = [
 
 export default function SalesUserAdmitPage() {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const isReferred = searchParams.get("referred") === "true";
+  const basePath = pathname.includes("/branch-manager") ? "/dashboard/branch-manager" : "/dashboard/sales-user";
   const { defaultCompany } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [paymentAction, setPaymentAction] = useState<"pay_now" | "send_to_parent" | null>(null);
@@ -268,8 +272,9 @@ export default function SalesUserAdmitPage() {
   const selectedEnrollmentDate = watch("enrollment_date");
   const paymentOptions: PaymentOptionSummary[] = useMemo(() => {
     if (!feeConfig) return [];
-    return getAllPaymentOptions(feeConfig, selectedAcademicYear, selectedEnrollmentDate);
-  }, [feeConfig, selectedAcademicYear, selectedEnrollmentDate]);
+    const options = getAllPaymentOptions(feeConfig, selectedAcademicYear, selectedEnrollmentDate);
+    return isReferred ? applyReferralDiscount(options) : options;
+  }, [feeConfig, selectedAcademicYear, selectedEnrollmentDate, isReferred]);
 
   const selectedOption: PaymentOptionSummary | null = useMemo(() => {
     if (!selectedInstalments || paymentOptions.length === 0) return null;
@@ -321,6 +326,7 @@ export default function SalesUserAdmitPage() {
         student_email_id: data.student_email_id,
         student_mobile_number: data.student_mobile_number,
         custom_aadhaar: data.aadhaar_number || undefined,
+        custom_disabilities: data.disabilities || undefined,
         custom_branch: data.custom_branch,
         custom_branch_abbr: (branchObj as { abbr?: string })?.abbr,
         custom_srr_id: data.custom_srr_id,
@@ -398,7 +404,7 @@ export default function SalesUserAdmitPage() {
         });
         setShowPaymentDialog(true);
       } else {
-        router.push("/dashboard/sales-user/students");
+        router.push(`${basePath}/students`);
       }
     } catch (err: unknown) {
       const typedErr = err as { __type?: string; stages?: unknown[]; student?: unknown; warnings?: string[]; message?: string };
@@ -463,8 +469,8 @@ export default function SalesUserAdmitPage() {
           <ArrowLeft className="h-5 w-5" />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-text-primary">New Student Admission</h1>
-          <p className="text-sm text-text-secondary">Fill in the details to register a new student</p>
+          <h1 className="text-2xl font-bold text-text-primary">{isReferred ? "Referred Student Admission" : "New Student Admission"}</h1>
+          <p className="text-sm text-text-secondary">{isReferred ? "5% referral discount applied on first instalment" : "Fill in the details to register a new student"}</p>
         </div>
       </div>
 
@@ -599,6 +605,16 @@ export default function SalesUserAdmitPage() {
                       leftIcon={<Fingerprint className="h-4 w-4" />}
                       error={errors.aadhaar_number?.message}
                       {...register("aadhaar_number")}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-text-secondary mb-1.5">Disabilities / Special Needs</label>
+                    <textarea
+                      className="w-full rounded-xl border border-border-medium bg-surface-primary px-4 py-2.5 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
+                      rows={3}
+                      placeholder="e.g. Hearing impairment — seat in front row"
+                      {...register("disabilities")}
                     />
                   </div>
                 </motion.div>
@@ -817,6 +833,16 @@ export default function SalesUserAdmitPage() {
                     </p>
                   </div>
 
+                  {isReferred && (
+                    <div className="bg-green-50 rounded-[10px] p-4 border border-green-200 flex items-start gap-2">
+                      <Tag className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium text-green-700">5% Referral Discount Applied</p>
+                        <p className="text-xs text-green-600 mt-0.5">The discount is deducted from the first instalment. For one-time payment, it&apos;s deducted from the total.</p>
+                      </div>
+                    </div>
+                  )}
+
                   {selectedBranch && selectedProgram && !loadingFeeStructures && feeStructures.length === 0 && (
                     <div className="bg-warning/10 rounded-[10px] p-4 border border-warning/20 flex items-start gap-2">
                       <AlertCircle className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
@@ -896,7 +922,7 @@ export default function SalesUserAdmitPage() {
                             return (
                               <label
                                 key={opt.instalments}
-                                className={`relative flex flex-col p-4 rounded-[12px] border-2 cursor-pointer transition-all ${
+                                className={`relative flex flex-col justify-between p-4 rounded-[12px] border-2 cursor-pointer transition-all ${
                                   isSelected
                                     ? "border-primary bg-primary/5"
                                     : "border-border-input bg-surface hover:border-primary/30"
@@ -908,29 +934,41 @@ export default function SalesUserAdmitPage() {
                                   {...register("custom_no_of_instalments")}
                                   className="sr-only"
                                 />
-                                {isBestValue && (
-                                  <span className="absolute -top-2.5 left-3 px-2 py-0.5 text-[10px] font-bold uppercase bg-green-500 text-white rounded-full">
-                                    Best Value
-                                  </span>
-                                )}
-                                <div className="flex items-center justify-between mb-1">
-                                  <span className={`text-sm font-semibold ${isSelected ? "text-primary" : "text-text-primary"}`}>
-                                    {opt.label}
-                                  </span>
-                                  <span className={`text-base font-bold ${isSelected ? "text-primary" : "text-text-primary"}`}>
-                                    ₹{opt.total.toLocaleString("en-IN")}
-                                  </span>
-                                </div>
-                                {(opt.savings ?? 0) > 0 && (
-                                  <div className="flex items-center gap-1 mb-1">
-                                    <Tag className="h-3 w-3 text-green-600" />
-                                    <span className="text-xs text-green-600 font-medium">
-                                      Save ₹{(opt.savings ?? 0).toLocaleString("en-IN")} vs annual fee
-                                    </span>
+                                <div>
+                                  <div className="flex items-start justify-between mb-1">
+                                    <div>
+                                      <span className={`text-sm font-semibold ${isSelected ? "text-primary" : "text-text-primary"}`}>
+                                        {opt.label}
+                                      </span>
+                                      <span className={`block text-base font-bold mt-0.5 ${isSelected ? "text-primary" : "text-text-primary"}`}>
+                                        ₹{opt.total.toLocaleString("en-IN")}
+                                      </span>
+                                    </div>
                                   </div>
-                                )}
+                                  {isBestValue && (
+                                    <span className="inline-block mb-1 px-2 py-0.5 text-[10px] font-bold uppercase bg-green-500 text-white rounded-full">
+                                      Best Value
+                                    </span>
+                                  )}
+                                  {isReferred && opt.referralDiscount && (
+                                    <div className="flex items-center gap-1 mb-1">
+                                      <Tag className="h-3 w-3 text-green-600" />
+                                      <span className="text-xs text-green-600 font-medium">
+                                        Referral discount: −₹{opt.referralDiscount.toLocaleString("en-IN")}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {(opt.savings ?? 0) > 0 && (
+                                    <div className="flex items-center gap-1 mb-1">
+                                      <Tag className="h-3 w-3 text-green-600" />
+                                      <span className="text-xs text-green-600 font-medium">
+                                        Save ₹{(opt.savings ?? 0).toLocaleString("en-IN")} vs annual fee
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
                                 {opt.instalments > 1 && (
-                                  <div className="text-xs text-text-tertiary mt-1">
+                                  <div className="text-xs text-text-tertiary mt-2">
                                     {opt.schedule.map((s, i) => (
                                       <span key={i}>
                                         {s.label}: ₹{s.amount.toLocaleString("en-IN")}
@@ -1168,7 +1206,12 @@ export default function SalesUserAdmitPage() {
                       }
                     </p>
                     {selectedOption && (
-                      <p><span className="text-text-tertiary w-36 inline-block">Total Fee:</span> <span className="font-semibold text-primary">₹{selectedOption.total.toLocaleString("en-IN")}</span></p>
+                      <>
+                        {isReferred && selectedOption.referralDiscount && (
+                          <p><span className="text-text-tertiary w-36 inline-block">Referral Discount:</span> <span className="font-semibold text-green-600">- ₹{selectedOption.referralDiscount.toLocaleString("en-IN")}</span></p>
+                        )}
+                        <p><span className="text-text-tertiary w-36 inline-block">Total Fee:</span> <span className="font-semibold text-primary">₹{selectedOption.total.toLocaleString("en-IN")}</span></p>
+                      </>
                     )}
                   </div>
                 </motion.div>
@@ -1213,7 +1256,7 @@ export default function SalesUserAdmitPage() {
           onClose={() => {
             setShowPaymentDialog(false);
             setAdmissionResult(null);
-            router.push("/dashboard/sales-user/students");
+            router.push(`${basePath}/students`);
           }}
           studentName={admissionResult.studentName}
           customerName={admissionResult.customerName}
