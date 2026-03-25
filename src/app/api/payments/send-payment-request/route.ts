@@ -19,8 +19,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireRole, STAFF_ROLES } from "@/lib/utils/apiAuth";
 import { sendEmail } from "@/lib/utils/email";
 import { sendTemplate } from "@/lib/utils/whatsapp";
+import { generateToken } from "@/lib/utils/invoiceToken";
+import { buildInvoiceGenerated } from "@/lib/utils/whatsappTemplates";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://erp.smartup.in";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://smartuplearning.net";
+const FRAPPE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL;
+const FRAPPE_API_KEY = process.env.FRAPPE_API_KEY;
+const FRAPPE_API_SECRET = process.env.FRAPPE_API_SECRET;
 
 interface InvoiceDetail {
   invoice_id: string;
@@ -168,28 +173,83 @@ export async function POST(request: NextRequest) {
 
     console.log(`[send-payment-request] Payment request sent to ${guardian_email} for ${student_name}`);
 
-    // WhatsApp payment reminder (non-blocking, approved smartup_payment_reminder template)
-    const firstInv = invoices?.[0];
-    if (guardian_phone && firstInv) {
-      const dueDateFormatted = new Date(firstInv.due_date).toLocaleDateString("en-IN", {
-        day: "numeric", month: "short", year: "numeric",
-      });
-      sendTemplate({
-        to: guardian_phone,
-        templateName: "smartup_payment_reminder",
-        components: [
-          {
-            type: "body",
-            parameters: [
-              { type: "text", text: guardian_name || "Parent" },
-              { type: "text", text: `₹${total_amount.toLocaleString("en-IN")}` },
-              { type: "text", text: student_name },
-              { type: "text", text: dueDateFormatted },
-              { type: "text", text: firstInv.invoice_id },
-            ],
-          },
-        ],
-      }).catch((err) => console.warn("[send-payment-request] WhatsApp failed:", err));
+    // WhatsApp payment notification with magic-link (non-blocking)
+    if (guardian_phone && sales_order) {
+      // Fetch SO details for the invoice template (program/branch/academic year)
+      const adminAuth = `token ${FRAPPE_API_KEY}:${FRAPPE_API_SECRET}`;
+      let programName = "";
+      let branchName = "";
+      let academicYear = "";
+
+      try {
+        const soRes = await fetch(
+          `${FRAPPE_URL}/api/resource/Sales Order/${encodeURIComponent(sales_order)}?fields=${encodeURIComponent(JSON.stringify(["company", "custom_academic_year", "items"]))}`,
+          { headers: { Authorization: adminAuth } },
+        );
+        if (soRes.ok) {
+          const soData = (await soRes.json()).data;
+          branchName = (soData?.company || "").replace(/^Smart Up\s*/i, "");
+          academicYear = soData?.custom_academic_year || "";
+          // Item description contains the program name (e.g., "Tuition Fee - BCA")
+          const firstItem = soData?.items?.[0];
+          if (firstItem?.item_name) {
+            programName = firstItem.item_name.replace(/^Tuition Fee\s*[-–—]\s*/i, "").trim() || firstItem.item_name;
+          }
+        }
+      } catch (fetchErr) {
+        console.warn("[send-payment-request] Failed to fetch SO details for WhatsApp:", fetchErr);
+      }
+
+      // Build instalment summary from the invoices array
+      const instalmentSummary = (invoices || [])
+        .map((inv: InvoiceDetail, i: number) => {
+          const dueFormatted = new Date(inv.due_date).toLocaleDateString("en-IN", {
+            day: "numeric", month: "short", year: "numeric",
+          });
+          return `${i + 1}. ${inv.label || `Instalment ${i + 1}`} — ₹${inv.amount.toLocaleString("en-IN")} (Due: ${dueFormatted})`;
+        })
+        .join("\n");
+
+      // Generate magic-link token (90-day expiry)
+      const token = generateToken(sales_order);
+      const payUrl = `${APP_URL}/pay/${token}`;
+
+      const templateOpts = buildInvoiceGenerated(guardian_phone, {
+        guardianName: guardian_name || "Parent",
+        studentName: student_name,
+        programName: programName || "Your Program",
+        branchName: branchName || "SmartUp",
+        academicYear: academicYear || "2026-2027",
+        totalAmount: total_amount,
+        instalmentSummary: instalmentSummary || "Please check the link below for details.",
+      }, payUrl);
+
+      sendTemplate(templateOpts)
+        .catch((err) => console.warn("[send-payment-request] WhatsApp failed:", err));
+    } else if (guardian_phone) {
+      // Fallback: no sales_order — use simple payment reminder (no magic-link)
+      const firstInv = invoices?.[0];
+      if (firstInv) {
+        const dueDateFormatted = new Date(firstInv.due_date).toLocaleDateString("en-IN", {
+          day: "numeric", month: "short", year: "numeric",
+        });
+        sendTemplate({
+          to: guardian_phone,
+          templateName: "smartup_payment_reminder",
+          components: [
+            {
+              type: "body",
+              parameters: [
+                { type: "text", text: guardian_name || "Parent" },
+                { type: "text", text: `₹${total_amount.toLocaleString("en-IN")}` },
+                { type: "text", text: student_name },
+                { type: "text", text: dueDateFormatted },
+                { type: "text", text: firstInv.invoice_id },
+              ],
+            },
+          ],
+        }).catch((err) => console.warn("[send-payment-request] WhatsApp failed:", err));
+      }
     }
 
     return NextResponse.json({ success: true, recipient: guardian_email });
