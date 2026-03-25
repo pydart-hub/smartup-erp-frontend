@@ -21,8 +21,8 @@ const admissionTypes = [
     hoverColor: "hover:border-emerald-400 hover:shadow-emerald-100",
   },
   {
-    title: "Referred Admission",
-    description: "Referred student enrollment — same as regular admission with a 5% referral discount on fees.",
+    title: "Siblings Admission",
+    description: "Sibling enrollment — same as regular admission with a 5% sibling discount on fees.",
     icon: UserCheck,
     href: "/dashboard/branch-manager/admit?referred=true",
     color: "bg-purple-50 text-purple-600 border-purple-200",

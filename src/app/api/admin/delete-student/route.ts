@@ -236,12 +236,16 @@ export async function POST(request: NextRequest) {
     }
 
     // ── 2. Cancel + delete Sales Invoices ──
+    // Credit Notes (is_return=1) MUST be cancelled before the invoices they
+    // reference, otherwise Frappe blocks cancellation of the original invoice.
     if (customerName) {
       const invoices = (await frappeGetList(
         "Sales Invoice",
         [["customer", "=", customerName]],
-        ["name", "docstatus"],
-      )) as { name: string; docstatus: number }[];
+        ["name", "docstatus", "is_return"],
+      )) as { name: string; docstatus: number; is_return: number }[];
+      // Sort: credit notes first, then regular invoices
+      invoices.sort((a, b) => (b.is_return || 0) - (a.is_return || 0));
       for (const inv of invoices) {
         await cancelAndDelete("Sales Invoice", inv.name, inv.docstatus, "sinv", log);
       }
@@ -427,9 +431,43 @@ export async function POST(request: NextRequest) {
       }
     } catch { /* Dynamic Link query may not be supported — fall through */ }
 
+    // Before deleting each Customer, remove Dynamic Link entries that reference
+    // this Student — otherwise Frappe's link-check blocks the Customer deletion.
+    // Also remove Dynamic Links on the Customer that point to the Student (reverse direction).
     for (const cust of customersToDelete) {
+      try {
+        // Remove Dynamic Link rows on the Customer that point to this Student
+        const dynLinks = (await frappeGetList(
+          "Dynamic Link",
+          [
+            ["link_doctype", "=", "Student"],
+            ["link_name", "=", studentId],
+            ["parenttype", "=", "Customer"],
+            ["parent", "=", cust],
+          ],
+          ["name"],
+        )) as { name: string }[];
+        for (const dl of dynLinks) {
+          await frappeForceDelete("Dynamic Link", dl.name);
+        }
+      } catch { /* Dynamic Link cleanup may not be supported — continue */ }
+
       const ok = await frappeForceDelete("Customer", cust);
       log.push({ step: "delete_customer", detail: cust, ok });
+    }
+
+    // ── 11b. Clear sibling links — other students may reference this one
+    //         via custom_sibling_of, which blocks Frappe from deleting it.
+    const siblingRefs = (await frappeGetList(
+      "Student",
+      [["custom_sibling_of", "=", studentId]],
+      ["name"],
+    )) as { name: string }[];
+    for (const sib of siblingRefs) {
+      await frappePut("Student", sib.name, {
+        custom_sibling_of: "",
+        custom_sibling_group: "",
+      });
     }
 
     // ── 12. Delete Student (Customer is now gone — link blocker removed) ──

@@ -533,7 +533,7 @@ export async function getRecentEnrollments(params?: {
 
 export type AdmissionStage =
   | "guardian" | "parent_user" | "student" | "enrollment"
-  | "batch_assign" | "sales_order" | "invoices";
+  | "batch_assign" | "sales_order" | "invoices" | "sibling_discount";
 
 export interface AdmissionStageStatus {
   stage: AdmissionStage;
@@ -579,6 +579,10 @@ export interface AdmitStudentForm {
   custom_subject?: string;       // e.g. "Physics", "Phy-Chem"
   // Instalment schedule (from feeSchedule generator)
   instalmentSchedule?: { amount: number; dueDate: string; label: string }[];
+  // Sibling admission fields
+  siblingOf?: string;            // Student ID of existing sibling e.g. "EDU-STU-2025-00012"
+  siblingGroup?: string;         // Shared family group ID e.g. "FAM-CHL-1717..."
+  existingGuardianName?: string; // Existing Guardian name to reuse (skip guardian creation)
 }
 
 export interface AdmitStudentResult {
@@ -636,6 +640,7 @@ export async function admitStudent(
     { stage: "batch_assign", label: "Batch Assignment", status: "pending" },
     { stage: "sales_order", label: "Sales Order & Fees", status: "pending" },
     { stage: "invoices", label: "Creating Invoices", status: "pending" },
+    { stage: "sibling_discount", label: "Sibling Discount (Existing)", status: "pending" },
   ];
 
   function updateStage(
@@ -654,28 +659,38 @@ export async function admitStudent(
   const warnings: string[] = [];
 
   // ───────────────────────────────────────────────────
-  // Step 1 — Create Guardian
+  // Step 1 — Create Guardian (or reuse existing for sibling)
   // ───────────────────────────────────────────────────
   updateStage("guardian", "in_progress");
   let guardianName: string;
-  try {
-    const { data: guardianRes } = await apiClient.post("/resource/Guardian", {
-      guardian_name: form.guardian_name,
-      email_address: form.guardian_email,
-      mobile_number: form.guardian_mobile,
-    });
-    guardianName = guardianRes.data.name;
+  if (form.existingGuardianName) {
+    // Sibling admission — reuse the existing guardian record
+    guardianName = form.existingGuardianName;
     updateStage("guardian", "success");
-  } catch (err) {
-    const msg = extractFrappeError(err, "Failed to create guardian");
-    updateStage("guardian", "failed", msg);
-    throw Object.assign(new Error(msg), { __type: "guardian_failed", stages });
+  } else {
+    try {
+      const { data: guardianRes } = await apiClient.post("/resource/Guardian", {
+        guardian_name: form.guardian_name,
+        email_address: form.guardian_email,
+        mobile_number: form.guardian_mobile,
+      });
+      guardianName = guardianRes.data.name;
+      updateStage("guardian", "success");
+    } catch (err) {
+      const msg = extractFrappeError(err, "Failed to create guardian");
+      updateStage("guardian", "failed", msg);
+      throw Object.assign(new Error(msg), { __type: "guardian_failed", stages });
+    }
   }
 
   // ───────────────────────────────────────────────────
   // Step 1.5 — Create Frappe User with "Parent" role
+  //            (skipped for sibling admission — parent user already exists)
   // ───────────────────────────────────────────────────
-  updateStage("parent_user", "in_progress");
+  if (form.existingGuardianName) {
+    updateStage("parent_user", "skipped");
+  } else {
+    updateStage("parent_user", "in_progress");
   try {
     const parentUserRes = await fetch("/api/auth/create-parent-user", {
       method: "POST",
@@ -707,6 +722,7 @@ export async function admitStudent(
     warnings.push(`Parent login creation failed: ${msg}. Can be created later.`);
     updateStage("parent_user", "failed", msg);
   }
+  } // end of else (non-sibling) for parent user creation
 
   // ───────────────────────────────────────────────────
   // Step 2 — Create Student (linked to guardian)
@@ -755,6 +771,10 @@ export async function admitStudent(
     if (form.student_mobile_number) payload.student_mobile_number = form.student_mobile_number;
     if (form.custom_aadhaar) payload.custom_aadhaar = form.custom_aadhaar;
     if (form.custom_disabilities) payload.custom_disabilities = form.custom_disabilities;
+    // Sibling custom fields
+    if (form.siblingOf) payload.custom_sibling_of = form.siblingOf;
+    if (form.siblingGroup) payload.custom_sibling_group = form.siblingGroup;
+    if (form.siblingOf) payload.custom_sibling_discount_applied = 1;
     return payload;
   }
 
@@ -845,6 +865,27 @@ export async function admitStudent(
     throw Object.assign(new Error(msg), { __type: "student_failed", stages });
   }
   updateStage("student", "success");
+
+  // ───────────────────────────────────────────────────
+  // Step 2.1 — Link sibling group on existing sibling (non-blocking)
+  // ───────────────────────────────────────────────────
+  if (form.siblingOf && form.siblingGroup) {
+    try {
+      // Set sibling_group on the existing sibling if not already set
+      const { data: existingSib } = await apiClient.get(
+        `/resource/Student/${encodeURIComponent(form.siblingOf)}?fields=["custom_sibling_group"]`
+      );
+      if (!existingSib.data?.custom_sibling_group) {
+        await apiClient.put(`/resource/Student/${encodeURIComponent(form.siblingOf)}`, {
+          custom_sibling_group: form.siblingGroup,
+        });
+        console.log(`[admitStudent] Set sibling_group ${form.siblingGroup} on existing sibling ${form.siblingOf}`);
+      }
+    } catch (sibErr) {
+      console.warn("[admitStudent] Failed to update sibling group on existing sibling (non-blocking):", sibErr);
+      warnings.push("Could not update sibling group on existing sibling. You can link them manually.");
+    }
+  }
 
   // ───────────────────────────────────────────────────
   // Step 2.5 — Send welcome email to student (non-blocking)
@@ -1051,6 +1092,45 @@ export async function admitStudent(
     updateStage("invoices", "skipped");
   } else {
     updateStage("invoices", "skipped");
+  }
+
+  // ───────────────────────────────────────────────────
+  // Step 7 — Apply retroactive sibling discount to existing sibling
+  //          (5% of existing sibling's total fee via Credit Note)
+  // ───────────────────────────────────────────────────
+  if (form.siblingOf) {
+    updateStage("sibling_discount", "in_progress");
+    try {
+      const discountRes = await fetch("/api/admission/apply-sibling-discount", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ existingSiblingId: form.siblingOf }),
+      });
+      if (discountRes.ok) {
+        const discountData = await discountRes.json();
+        if (discountData.skipped) {
+          console.log("[admitStudent] Sibling discount skipped:", discountData.message);
+          warnings.push(`Existing sibling discount: ${discountData.message}`);
+          updateStage("sibling_discount", "skipped");
+        } else {
+          console.log(`[admitStudent] Sibling discount applied: Credit Note ${discountData.creditNote} for ₹${discountData.discountAmount}`);
+          updateStage("sibling_discount", "success");
+        }
+      } else {
+        const errBody = await discountRes.text();
+        console.warn("[admitStudent] Sibling discount failed:", discountRes.status, errBody);
+        warnings.push(`Existing sibling discount failed (HTTP ${discountRes.status}). Can be applied manually later.`);
+        updateStage("sibling_discount", "failed", `HTTP ${discountRes.status}`);
+      }
+    } catch (discountErr) {
+      const msg = discountErr instanceof Error ? discountErr.message : String(discountErr);
+      console.warn("[admitStudent] Sibling discount error (non-blocking):", discountErr);
+      warnings.push(`Existing sibling discount failed: ${msg}. Can be applied manually later.`);
+      updateStage("sibling_discount", "failed", msg);
+    }
+  } else {
+    updateStage("sibling_discount", "skipped");
   }
 
   return { student, programEnrollment, salesOrder: salesOrderName, invoices: invoiceNames, warnings, stages };

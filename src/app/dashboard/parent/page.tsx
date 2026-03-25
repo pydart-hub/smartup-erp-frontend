@@ -35,6 +35,9 @@ export interface ChildInfo {
   custom_parent_name: string;
   joining_date: string;
   enabled: number;
+  custom_sibling_of?: string;
+  custom_sibling_group?: string;
+  custom_sibling_discount_applied?: 0 | 1;
 }
 
 export interface EnrollmentInfo {
@@ -375,6 +378,9 @@ export default function ParentDashboardPage() {
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
+                        {child.custom_sibling_group && (
+                          <Badge variant="default">Sibling</Badge>
+                        )}
                         {outstanding > 0 && (
                           <Badge variant="error">Due {formatCurrency(outstanding)}</Badge>
                         )}

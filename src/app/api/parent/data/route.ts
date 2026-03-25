@@ -147,6 +147,7 @@ export async function GET(request: NextRequest) {
       "custom_branch", "custom_branch_abbr", "custom_srr_id",
       "customer", "student_email_id", "student_mobile_number",
       "custom_parent_name", "joining_date", "enabled",
+      "custom_sibling_of", "custom_sibling_group", "custom_sibling_discount_applied",
     ];
 
     // First try the singular form (standard Frappe Education)

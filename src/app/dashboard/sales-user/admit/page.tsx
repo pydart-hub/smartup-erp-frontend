@@ -29,6 +29,9 @@ import {
   Fingerprint,
   Eye,
   EyeOff,
+  Search,
+  UserPlus,
+  X,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Button } from "@/components/ui/Button";
@@ -71,11 +74,42 @@ const STEPS = [
   { id: 4, label: "Fee Details", icon: CreditCard },
 ];
 
+const SIBLING_STEPS = [
+  { id: 0, label: "Sibling", icon: UserPlus },
+  { id: 1, label: "Student Info", icon: User },
+  { id: 2, label: "Guardian", icon: Users },
+  { id: 3, label: "Academic", icon: School },
+  { id: 4, label: "Fee Details", icon: CreditCard },
+];
+
 const PLAN_OPTIONS = [
   { value: "Basic", label: "Basic", description: "Standard curriculum" },
   { value: "Intermediate", label: "Intermediate", description: "Enhanced learning" },
   { value: "Advanced", label: "Advanced", description: "Premium programme" },
 ];
+
+// ── Sibling search types ──────────────────────────────────────
+interface SiblingSearchResult {
+  name: string;
+  student_name: string;
+  custom_srr_id: string;
+  custom_branch: string;
+  custom_branch_abbr?: string;
+  student_email_id?: string;
+  student_mobile_number?: string;
+  custom_parent_name?: string;
+  program?: string;
+  academic_year?: string;
+  batch?: string;
+}
+
+interface SiblingGuardianInfo {
+  name: string;
+  guardian_name: string;
+  email_address: string;
+  mobile_number: string;
+  relation: string;
+}
 
 export default function SalesUserAdmitPage() {
   return (
@@ -92,9 +126,19 @@ function AdmitPageContent() {
   const isReferred = searchParams.get("referred") === "true";
   const basePath = pathname.includes("/branch-manager") ? "/dashboard/branch-manager" : "/dashboard/sales-user";
   const { defaultCompany } = useAuth();
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(isReferred ? 0 : 1);
   const [paymentAction, setPaymentAction] = useState<"pay_now" | "send_to_parent" | null>(null);
   const [advanceAmount, setAdvanceAmount] = useState<number | null>(null);
+
+  // ── Sibling selection state (only for referred/sibling flow) ──
+  const [siblingQuery, setSiblingQuery] = useState("");
+  const [siblingSearchResults, setSiblingSearchResults] = useState<SiblingSearchResult[]>([]);
+  const [siblingSearching, setSiblingSearching] = useState(false);
+  const [selectedSibling, setSelectedSibling] = useState<SiblingSearchResult | null>(null);
+  const [siblingGuardian, setSiblingGuardian] = useState<SiblingGuardianInfo | null>(null);
+  const [siblingGroup, setSiblingGroup] = useState<string | null>(null);
+  const siblingSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activeSteps = isReferred ? SIBLING_STEPS : STEPS;
 
   // Post-admission payment dialog state
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
@@ -109,6 +153,72 @@ function AdmitPageContent() {
     salesOrderName?: string;
     invoices: InvoiceForPayment[];
   } | null>(null);
+
+  // ── Sibling search handler (debounced) ───────────────────────
+  function handleSiblingSearch(query: string) {
+    setSiblingQuery(query);
+    if (siblingSearchTimer.current) clearTimeout(siblingSearchTimer.current);
+    if (query.trim().length < 2) {
+      setSiblingSearchResults([]);
+      return;
+    }
+    setSiblingSearching(true);
+    siblingSearchTimer.current = setTimeout(async () => {
+      try {
+        const params = new URLSearchParams({ q: query.trim() });
+        const res = await fetch(`/api/admission/search-sibling?${params}`, { credentials: "include" });
+        if (res.ok) {
+          const json = await res.json();
+          setSiblingSearchResults(json.data ?? []);
+        }
+      } catch { /* ignore */ }
+      setSiblingSearching(false);
+    }, 350);
+  }
+
+  // ── When a sibling is selected, fetch guardian details ────────
+  async function handleSiblingSelect(sibling: SiblingSearchResult) {
+    setSelectedSibling(sibling);
+    setSiblingSearchResults([]);
+    setSiblingQuery("");
+    try {
+      const res = await fetch(
+        `/api/admission/sibling-details?student=${encodeURIComponent(sibling.name)}`,
+        { credentials: "include" }
+      );
+      if (res.ok) {
+        const json = await res.json();
+        if (json.guardian) {
+          const g = json.guardian as SiblingGuardianInfo;
+          setSiblingGuardian(g);
+          // Auto-fill guardian form fields
+          setValue("guardian_name", g.guardian_name || "");
+          setValue("guardian_email", g.email_address || "");
+          setValue("guardian_mobile", g.mobile_number || "");
+          setValue("guardian_relation", g.relation || "Father");
+          // Set a default password the sales user can change
+          setValue("guardian_password", "SmartUp@123");
+        }
+        if (json.siblingGroup) {
+          setSiblingGroup(json.siblingGroup);
+        }
+      }
+    } catch {
+      toast.error("Failed to fetch sibling details");
+    }
+  }
+
+  function clearSelectedSibling() {
+    setSelectedSibling(null);
+    setSiblingGuardian(null);
+    setSiblingGroup(null);
+    // Clear auto-filled guardian fields
+    setValue("guardian_name", "");
+    setValue("guardian_email", "");
+    setValue("guardian_mobile", "");
+    setValue("guardian_relation", "");
+    setValue("guardian_password", "");
+  }
 
   const {
     register,
@@ -357,6 +467,12 @@ function AdmitPageContent() {
           dueDate: s.dueDate,
           label: s.label,
         })),
+        // Sibling fields
+        ...(isReferred && selectedSibling ? {
+          siblingOf: selectedSibling.name,
+          siblingGroup: siblingGroup || undefined,
+          existingGuardianName: siblingGuardian?.name,
+        } : {}),
       });
 
       const soMsg = result.salesOrder ? ` SO: ${result.salesOrder}.` : "";
@@ -427,6 +543,12 @@ function AdmitPageContent() {
   }
 
   async function nextStep() {
+    // Step 0 (sibling selection) — no form validation needed, just ensure sibling is selected
+    if (currentStep === 0) {
+      if (isReferred && !selectedSibling) return;
+      setCurrentStep(1);
+      return;
+    }
     const fieldsToValidate: Record<number, (keyof StudentFormValues)[]> = {
       1: ["full_name", "date_of_birth", "gender"],
       2: ["guardian_name", "guardian_mobile", "guardian_relation", "guardian_email", "guardian_password"],
@@ -461,7 +583,8 @@ function AdmitPageContent() {
   }
 
   function prevStep() {
-    setCurrentStep((prev) => Math.max(prev - 1, 1));
+    const minStep = isReferred ? 0 : 1;
+    setCurrentStep((prev) => Math.max(prev - 1, minStep));
   }
 
   return (
@@ -477,14 +600,14 @@ function AdmitPageContent() {
           <ArrowLeft className="h-5 w-5" />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-text-primary">{isReferred ? "Referred Student Admission" : "New Student Admission"}</h1>
-          <p className="text-sm text-text-secondary">{isReferred ? "5% referral discount applied on first instalment" : "Fill in the details to register a new student"}</p>
+          <h1 className="text-2xl font-bold text-text-primary">{isReferred ? "Siblings Admission" : "New Student Admission"}</h1>
+          <p className="text-sm text-text-secondary">{isReferred ? "5% sibling discount applied on first instalment" : "Fill in the details to register a new student"}</p>
         </div>
       </div>
 
       {/* Step Indicator */}
       <div className="flex items-center justify-center gap-2">
-        {STEPS.map((step, index) => {
+        {activeSteps.map((step, index) => {
           const Icon = step.icon;
           const isActive = currentStep === step.id;
           const isCompleted = currentStep > step.id;
@@ -528,6 +651,119 @@ function AdmitPageContent() {
         <Card>
           <CardContent className="p-6">
             <AnimatePresence mode="wait">
+              {/* Step 0: Sibling Selection (only for referred/sibling flow) */}
+              {currentStep === 0 && isReferred && (
+                <motion.div
+                  key="step0"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="space-y-5"
+                >
+                  <div>
+                    <h3 className="text-lg font-semibold text-text-primary">Select Existing Sibling</h3>
+                    <p className="text-sm text-text-secondary mt-0.5">
+                      Search for the existing student who is a sibling of the new student being admitted
+                    </p>
+                  </div>
+
+                  {/* Search input */}
+                  <div className="relative">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-tertiary" />
+                      <input
+                        type="text"
+                        placeholder="Search by student name or SRR ID..."
+                        value={siblingQuery}
+                        onChange={(e) => handleSiblingSearch(e.target.value)}
+                        className="w-full h-11 pl-10 pr-4 rounded-[10px] border border-border-input bg-surface text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                      />
+                      {siblingSearching && (
+                        <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-text-tertiary" />
+                      )}
+                    </div>
+
+                    {/* Search results dropdown */}
+                    {siblingSearchResults.length > 0 && !selectedSibling && (
+                      <div className="absolute z-10 mt-1 w-full bg-surface border border-border-light rounded-[10px] shadow-lg max-h-64 overflow-y-auto">
+                        {siblingSearchResults.map((s) => (
+                          <button
+                            key={s.name}
+                            type="button"
+                            onClick={() => handleSiblingSelect(s)}
+                            className="w-full flex items-start gap-3 p-3 hover:bg-app-bg transition-colors text-left border-b border-border-light last:border-0"
+                          >
+                            <div className="w-9 h-9 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center flex-shrink-0">
+                              <User className="h-4 w-4" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-text-primary truncate">{s.student_name}</p>
+                              <p className="text-xs text-text-tertiary">
+                                SRR: {s.custom_srr_id} · {s.custom_branch?.replace("Smart Up ", "")}
+                                {s.program ? ` · ${s.program}` : ""}
+                              </p>
+                              {s.custom_parent_name && (
+                                <p className="text-xs text-text-tertiary">Guardian: {s.custom_parent_name}</p>
+                              )}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Selected sibling card */}
+                  {selectedSibling && (
+                    <div className="bg-purple-50 rounded-[12px] border-2 border-purple-200 p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center">
+                            <UserPlus className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-text-primary">{selectedSibling.student_name}</p>
+                            <p className="text-xs text-text-secondary mt-0.5">
+                              ID: {selectedSibling.name} · SRR: {selectedSibling.custom_srr_id}
+                            </p>
+                            <p className="text-xs text-text-secondary">
+                              {selectedSibling.custom_branch?.replace("Smart Up ", "")}
+                              {selectedSibling.program ? ` · ${selectedSibling.program}` : ""}
+                              {selectedSibling.academic_year ? ` · ${selectedSibling.academic_year}` : ""}
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={clearSelectedSibling}
+                          className="p-1 rounded-full hover:bg-purple-200 transition-colors"
+                        >
+                          <X className="h-4 w-4 text-purple-600" />
+                        </button>
+                      </div>
+
+                      {/* Guardian auto-filled preview */}
+                      {siblingGuardian && (
+                        <div className="mt-3 pt-3 border-t border-purple-200 space-y-1">
+                          <p className="text-xs font-medium text-purple-700">Guardian details will be auto-filled:</p>
+                          <p className="text-xs text-purple-600">
+                            {siblingGuardian.guardian_name} ({siblingGuardian.relation}) · {siblingGuardian.mobile_number} · {siblingGuardian.email_address}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Hint when nothing selected */}
+                  {!selectedSibling && siblingSearchResults.length === 0 && !siblingSearching && (
+                    <div className="bg-app-bg rounded-[10px] p-4 border border-border-light">
+                      <p className="text-sm text-text-tertiary text-center">
+                        Search for an existing student to link as a sibling. Guardian details will be auto-filled from the selected sibling&apos;s record.
+                      </p>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+
               {/* Step 1: Student Info */}
               {currentStep === 1 && (
                 <motion.div
@@ -845,7 +1081,7 @@ function AdmitPageContent() {
                     <div className="bg-green-50 rounded-[10px] p-4 border border-green-200 flex items-start gap-2">
                       <Tag className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
                       <div>
-                        <p className="text-sm font-medium text-green-700">5% Referral Discount Applied</p>
+                        <p className="text-sm font-medium text-green-700">5% Sibling Discount Applied</p>
                         <p className="text-xs text-green-600 mt-0.5">The discount is deducted from the first instalment. For one-time payment, it&apos;s deducted from the total.</p>
                       </div>
                     </div>
@@ -962,7 +1198,7 @@ function AdmitPageContent() {
                                     <div className="flex items-center gap-1 mb-1">
                                       <Tag className="h-3 w-3 text-green-600" />
                                       <span className="text-xs text-green-600 font-medium">
-                                        Referral discount: −₹{opt.referralDiscount.toLocaleString("en-IN")}
+                                        Sibling discount: −₹{opt.referralDiscount.toLocaleString("en-IN")}
                                       </span>
                                     </div>
                                   )}
@@ -1190,6 +1426,9 @@ function AdmitPageContent() {
                   {/* Admission summary */}
                   <div className="bg-app-bg rounded-[10px] p-4 border border-border-light text-sm space-y-1.5 text-text-secondary">
                     <p className="font-semibold text-text-primary mb-2">Admission Summary</p>
+                    {isReferred && selectedSibling && (
+                      <p><span className="text-text-tertiary w-36 inline-block">Sibling Of:</span> <span className="font-medium text-purple-600">{selectedSibling.student_name} ({selectedSibling.custom_srr_id})</span></p>
+                    )}
                     <p><span className="text-text-tertiary w-36 inline-block">Student:</span> {watch("full_name") || "—"}</p>
                     <p><span className="text-text-tertiary w-36 inline-block">Guardian:</span> {watch("guardian_name") || "—"}{watch("guardian_relation") ? ` (${watch("guardian_relation")})` : ""}</p>
                     <p><span className="text-text-tertiary w-36 inline-block">Branch:</span> {watch("custom_branch") || "—"}</p>
@@ -1216,7 +1455,7 @@ function AdmitPageContent() {
                     {selectedOption && (
                       <>
                         {isReferred && selectedOption.referralDiscount && (
-                          <p><span className="text-text-tertiary w-36 inline-block">Referral Discount:</span> <span className="font-semibold text-green-600">- ₹{selectedOption.referralDiscount.toLocaleString("en-IN")}</span></p>
+                          <p><span className="text-text-tertiary w-36 inline-block">Sibling Discount:</span> <span className="font-semibold text-green-600">- ₹{selectedOption.referralDiscount.toLocaleString("en-IN")}</span></p>
                         )}
                         <p><span className="text-text-tertiary w-36 inline-block">Total Fee:</span> <span className="font-semibold text-primary">₹{selectedOption.total.toLocaleString("en-IN")}</span></p>
                       </>
@@ -1232,14 +1471,19 @@ function AdmitPageContent() {
                 type="button"
                 variant="outline"
                 onClick={prevStep}
-                disabled={currentStep === 1}
+                disabled={currentStep === (isReferred ? 0 : 1)}
               >
                 <ArrowLeft className="h-4 w-4" />
                 Previous
               </Button>
 
               {currentStep < 4 ? (
-                <Button type="button" variant="primary" onClick={nextStep}>
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={nextStep}
+                  disabled={currentStep === 0 && isReferred && !selectedSibling}
+                >
                   Next
                   <ArrowRight className="h-4 w-4" />
                 </Button>

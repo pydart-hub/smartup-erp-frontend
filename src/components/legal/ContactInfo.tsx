@@ -33,9 +33,6 @@ export function ContactInfo() {
         </a>
       </div>
 
-      <p className="text-[11px] text-text-tertiary">
-        GST: <span className="font-mono">{COMPANY_INFO.gst}</span>
-      </p>
     </div>
   );
 }

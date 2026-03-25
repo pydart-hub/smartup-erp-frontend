@@ -36,6 +36,11 @@ export interface Student {
   // Guardians child table
   guardians?: StudentGuardianLink[];
 
+  // Sibling fields (custom)
+  custom_sibling_of?: string;          // Link → Student (existing sibling)
+  custom_sibling_group?: string;       // Shared family ID e.g. "FAM-CHL-00001"
+  custom_sibling_discount_applied?: 0 | 1;
+
   // Discontinuation fields (custom)
   custom_discontinuation_date?: string;
   custom_discontinuation_reason?: string;
