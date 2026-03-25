@@ -235,6 +235,52 @@ const TEMPLATES = [
       },
     ],
   },
+
+  // 6. Invoice Generated (with magic-link pay button)
+  {
+    name: "smartup_invoice_generated",
+    language: "en",
+    category: "UTILITY",
+    components: [
+      {
+        type: "HEADER",
+        format: "TEXT",
+        text: "Fee Invoices Generated",
+      },
+      {
+        type: "BODY",
+        text: "Hi {{1}},\n\nFee invoices have been generated for *{{2}}*.\n\n🎓 *Program:* {{3}}\n🏫 *Branch:* {{4}}\n📅 *Academic Year:* {{5}}\n💰 *Total Fee:* ₹{{6}}\n\n📋 *Instalments:*\n{{7}}\n\nYou can view and pay your fees directly using the button below — no login required.",
+        example: {
+          body_text: [
+            [
+              "Ravi Kumar",
+              "Arjun Ravi",
+              "BCA",
+              "Vennala",
+              "2026-2027",
+              "75,000",
+              "1. Q1 — ₹25,000 (Due: 15 Jan 2026)\n2. Q2 — ₹25,000 (Due: 15 Apr 2026)\n3. Q3 — ₹25,000 (Due: 15 Jul 2026)",
+            ],
+          ],
+        },
+      },
+      {
+        type: "FOOTER",
+        text: "SmartUp Learning Ventures",
+      },
+      {
+        type: "BUTTONS",
+        buttons: [
+          {
+            type: "URL",
+            text: "View & Pay Fees",
+            url: "https://smartuplearning.net/pay/{{1}}",
+            example: ["sample-token-abc123"],
+          },
+        ],
+      },
+    ],
+  },
 ];
 
 // ── Submit each template ────────────────────────────────────────────────

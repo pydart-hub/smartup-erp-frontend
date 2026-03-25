@@ -235,6 +235,70 @@ export const TEMPLATE_DEFINITIONS = {
       },
     ],
   },
+
+  // ─────────────────────────────────────────────────────────────────────
+  // 5. INVOICE GENERATED (smartup_invoice_generated)
+  //    Sent when invoices are created after admission.
+  //    Includes magic-link URL for direct payment without login.
+  // ─────────────────────────────────────────────────────────────────────
+  invoice_generated: {
+    name: "smartup_invoice_generated",
+    language: "en",
+    category: "UTILITY",
+    components: [
+      {
+        type: "HEADER",
+        format: "TEXT",
+        text: "Fee Invoices Generated",
+      },
+      {
+        type: "BODY",
+        text: [
+          "Hi {{1}},",
+          "",
+          "Fee invoices have been generated for *{{2}}*.",
+          "",
+          "🎓 *Program:* {{3}}",
+          "🏫 *Branch:* {{4}}",
+          "📅 *Academic Year:* {{5}}",
+          "💰 *Total Fee:* ₹{{6}}",
+          "",
+          "📋 *Instalments:*",
+          "{{7}}",
+          "",
+          "You can view and pay your fees directly using the button below — no login required.",
+        ].join("\n"),
+        example: {
+          body_text: [
+            [
+              "Ravi Kumar",
+              "Arjun Ravi",
+              "BCA",
+              "Vennala",
+              "2026-2027",
+              "75,000",
+              "1. Q1 — ₹25,000 (Due: 15 Jan 2026)\n2. Q2 — ₹25,000 (Due: 15 Apr 2026)\n3. Q3 — ₹25,000 (Due: 15 Jul 2026)",
+            ],
+          ],
+        },
+      },
+      {
+        type: "FOOTER",
+        text: "SmartUp Learning Ventures",
+      },
+      {
+        type: "BUTTONS",
+        buttons: [
+          {
+            type: "URL",
+            text: "View & Pay Fees",
+            url: "https://smartuplearning.net/pay/{{1}}",
+            example: ["sample-token-abc123"],
+          },
+        ],
+      },
+    ],
+  },
 } as const;
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -395,6 +459,56 @@ export function buildFeeReminder(
           txt(formatINR(p.amountDue)),
           txt(formatDate(p.dueDate)),
         ],
+      },
+    ],
+  };
+}
+
+// ---------------------------------------------------------------------------
+// 5. Invoice Generated (with magic-link URL button)
+// ---------------------------------------------------------------------------
+
+export interface InvoiceGeneratedParams {
+  guardianName: string;
+  studentName: string;
+  programName: string;
+  branchName: string;
+  academicYear: string;
+  totalAmount: number;
+  instalmentSummary: string;
+}
+
+export function buildInvoiceGenerated(
+  phone: string,
+  p: InvoiceGeneratedParams,
+  payUrl: string,
+): SendTemplateOptions {
+  // Extract the token suffix from the full URL for the dynamic URL button
+  // Template URL: https://smartuplearning.net/pay/{{1}}
+  // We need to pass just the token part as the suffix
+  const tokenSuffix = payUrl.replace(/^https?:\/\/[^/]+\/pay\//, "");
+
+  return {
+    to: phone,
+    templateName: "smartup_invoice_generated",
+    components: [
+      {
+        type: "body",
+        parameters: [
+          txt(p.guardianName),
+          txt(p.studentName),
+          txt(p.programName),
+          txt(p.branchName),
+          txt(p.academicYear),
+          txt(formatINR(p.totalAmount)),
+          txt(p.instalmentSummary),
+        ],
+      },
+      {
+        type: "button",
+        sub_type: "url",
+        index: 0,
+        parameters: [txt(tokenSuffix)],
       },
     ],
   };

@@ -14,7 +14,7 @@ const ROLE_DASHBOARD_MAP: Record<string, string> = {
   "Parent": "/dashboard/parent",
 };
 
-const PUBLIC_PATHS = ["/auth/login", "/auth/forgot-password", "/api/"];
+const PUBLIC_PATHS = ["/auth/login", "/auth/forgot-password", "/api/", "/pay/"];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
