@@ -416,44 +416,34 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // ── 11. Delete Customer BEFORE Student (removes the link that blocks Student deletion) ──
-    // Also search by Dynamic Link in case customerName was already cleared in a previous partial run
-    const customersToDelete = new Set<string>();
-    if (customerName) customersToDelete.add(customerName);
+    // ── 11. Remove Student links from ALL Customers, then delete the student's own Customer ──
+    // A Customer's `links` child table may contain Dynamic Link rows pointing to
+    // this Student (e.g. sibling's Customer). We MUST update those Customers to
+    // remove the link — you can't delete child-table rows as standalone docs.
+    // We only DELETE the student's own Customer; other Customers just get unlinked.
     try {
-      const linkedCustomers = (await frappeGetList(
-        "Dynamic Link",
-        [["link_doctype", "=", "Student"], ["link_name", "=", studentId], ["parenttype", "=", "Customer"]],
-        ["parent"],
-      )) as { parent: string }[];
-      for (const lc of linkedCustomers) {
-        if (lc.parent) customersToDelete.add(lc.parent);
-      }
-    } catch { /* Dynamic Link query may not be supported — fall through */ }
-
-    // Before deleting each Customer, remove Dynamic Link entries that reference
-    // this Student — otherwise Frappe's link-check blocks the Customer deletion.
-    // Also remove Dynamic Links on the Customer that point to the Student (reverse direction).
-    for (const cust of customersToDelete) {
-      try {
-        // Remove Dynamic Link rows on the Customer that point to this Student
-        const dynLinks = (await frappeGetList(
-          "Dynamic Link",
-          [
-            ["link_doctype", "=", "Student"],
-            ["link_name", "=", studentId],
-            ["parenttype", "=", "Customer"],
-            ["parent", "=", cust],
-          ],
-          ["name"],
-        )) as { name: string }[];
-        for (const dl of dynLinks) {
-          await frappeForceDelete("Dynamic Link", dl.name);
+      const custWithStudentLink = (await frappeGetList(
+        "Customer",
+        [["Dynamic Link", "link_doctype", "=", "Student"], ["Dynamic Link", "link_name", "=", studentId]],
+        ["name"],
+      )) as { name: string }[];
+      for (const cust of custWithStudentLink) {
+        const custDoc = await frappeGetDoc("Customer", cust.name);
+        if (custDoc) {
+          const links = (custDoc.links ?? []) as { link_doctype: string; link_name: string }[];
+          const filtered = links.filter(
+            (l) => !(l.link_doctype === "Student" && l.link_name === studentId),
+          );
+          const ok = await frappePut("Customer", cust.name, { links: filtered });
+          log.push({ step: "unlink_student_from_customer", detail: cust.name, ok });
         }
-      } catch { /* Dynamic Link cleanup may not be supported — continue */ }
+      }
+    } catch { /* Child-table filter may not be supported — fall through to manual approach */ }
 
-      const ok = await frappeForceDelete("Customer", cust);
-      log.push({ step: "delete_customer", detail: cust, ok });
+    // Delete only the student's own Customer
+    if (customerName) {
+      const ok = await frappeForceDelete("Customer", customerName);
+      log.push({ step: "delete_customer", detail: customerName, ok });
     }
 
     // ── 11b. Clear sibling links — other students may reference this one
@@ -470,7 +460,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // ── 12. Delete Student (Customer is now gone — link blocker removed) ──
+    // ── 12. Delete Student ──
     const { ok: studentDeleted, errorMsg: studentDeleteErr } = await frappeForceDeleteVerbose("Student", studentId);
     log.push({
       step: "delete_student",
