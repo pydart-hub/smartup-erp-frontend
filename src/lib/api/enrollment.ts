@@ -1094,46 +1094,7 @@ export async function admitStudent(
     updateStage("invoices", "skipped");
   }
 
-  // ───────────────────────────────────────────────────
-  // Step 6b — Send WhatsApp invoice notification (non-blocking)
-  // ───────────────────────────────────────────────────
-  if (salesOrderName && invoiceNames?.length && form.guardian_mobile) {
-    try {
-      const studentFullName = [form.first_name, form.middle_name, form.last_name]
-        .filter(Boolean)
-        .join(" ");
-      const scheduleSum = (form.instalmentSchedule || []).reduce(
-        (s: number, inst: { amount: number }) => s + inst.amount,
-        0,
-      );
-      fetch("/api/admission/send-invoice-notification", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          salesOrderName,
-          studentName: studentFullName,
-          guardianName: form.guardian_name,
-          guardianMobile: form.guardian_mobile,
-          programName: form.program,
-          branchName: form.custom_branch,
-          academicYear: form.academic_year || "2026-2027",
-          totalAmount: scheduleSum,
-          instalments: (form.instalmentSchedule || []).map(
-            (inst: { label?: string; amount: number; dueDate: string }, i: number) => ({
-              label: inst.label || `Instalment ${i + 1}`,
-              amount: inst.amount,
-              dueDate: inst.dueDate,
-            }),
-          ),
-        }),
-      }).catch((err) => {
-        console.warn("[admitStudent] WhatsApp invoice notification failed (non-blocking):", err);
-      });
-    } catch (notifErr) {
-      console.warn("[admitStudent] WhatsApp notification setup failed:", notifErr);
-    }
-  }
+  // Step 6b — WhatsApp notification is now handled inside create-invoices API directly
 
   // ───────────────────────────────────────────────────
   // Step 7 — Apply retroactive sibling discount to existing sibling

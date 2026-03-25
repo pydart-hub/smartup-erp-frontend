@@ -14,10 +14,14 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole, STAFF_ROLES } from "@/lib/utils/apiAuth";
+import { generateToken } from "@/lib/utils/invoiceToken";
+import { sendTemplate } from "@/lib/utils/whatsapp";
+import { buildInvoiceGenerated } from "@/lib/utils/whatsappTemplates";
 
 const FRAPPE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL;
 const API_KEY = process.env.FRAPPE_API_KEY;
 const API_SECRET = process.env.FRAPPE_API_SECRET;
+const APP_BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://smartuplearning.net";
 
 /** Retry-aware fetch — retries on socket/network errors (Frappe sometimes drops connections) */
 async function fetchRetry(
@@ -169,6 +173,70 @@ export async function POST(request: NextRequest) {
         failedInstalments.push({ index: i, label: inst.label, error: `Created as draft but submission failed: ${submitErr}` });
       } else {
         createdInvoices.push(invName);
+      }
+    }
+
+    // ── Send WhatsApp notification to guardian (non-blocking) ──────────
+    if (createdInvoices.length > 0) {
+      try {
+        // Look up Student → Guardian mobile
+        let guardianMobile = "";
+        let guardianName = "";
+        let studentName = soData.customer_name || "";
+
+        if (soData.student) {
+          const stuRes = await fetchRetry(
+            `${FRAPPE_URL}/api/resource/Student/${encodeURIComponent(soData.student)}`,
+            { headers },
+          );
+          if (stuRes.ok) {
+            const stuData = (await stuRes.json()).data;
+            studentName = stuData.student_name || studentName;
+            const guardian = stuData.guardians?.[0];
+            if (guardian) {
+              guardianMobile = guardian.mobile_number || "";
+              guardianName = guardian.guardian_name || "";
+            }
+          }
+        }
+
+        if (guardianMobile) {
+          const branchName = (soData.company || "").replace(/^Smart Up\s*/i, "");
+          const academicYear = soData.custom_academic_year || "";
+          const firstItem = soData.items?.[0];
+          const programName = firstItem?.item_name
+            ? firstItem.item_name.replace(/^Tuition Fee\s*[-–—]\s*/i, "").trim() || firstItem.item_name
+            : "";
+          const totalAmount = schedule.reduce((s: number, inst: ScheduleEntry) => s + inst.amount, 0);
+
+          const instalmentSummary = schedule
+            .map((inst: ScheduleEntry, i: number) => {
+              const dueFormatted = new Date(inst.dueDate).toLocaleDateString("en-IN", {
+                day: "numeric", month: "short", year: "numeric",
+              });
+              return `${i + 1}. ${inst.label} — ₹${inst.amount.toLocaleString("en-IN")} (Due: ${dueFormatted})`;
+            })
+            .join("\n");
+
+          const token = generateToken(salesOrderName);
+          const payUrl = `${APP_BASE_URL}/pay/${token}`;
+
+          const templateOpts = buildInvoiceGenerated(guardianMobile, {
+            guardianName: guardianName || "Parent",
+            studentName,
+            programName: programName || "Your Program",
+            branchName: branchName || "SmartUp",
+            academicYear: academicYear || "2026-2027",
+            totalAmount,
+            instalmentSummary,
+          }, payUrl);
+
+          sendTemplate(templateOpts).catch((err) =>
+            console.warn("[create-invoices] WhatsApp notification failed:", err),
+          );
+        }
+      } catch (notifErr) {
+        console.warn("[create-invoices] WhatsApp notification setup failed:", notifErr);
       }
     }
 

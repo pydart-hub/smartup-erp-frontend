@@ -238,7 +238,7 @@ const TEMPLATES = [
 
   // 6. Invoice Generated (with magic-link pay button)
   {
-    name: "smartup_invoice_generated",
+    name: "smartup_fee_invoice",
     language: "en",
     category: "UTILITY",
     components: [
@@ -249,7 +249,7 @@ const TEMPLATES = [
       },
       {
         type: "BODY",
-        text: "Hi {{1}},\n\nFee invoices have been generated for *{{2}}*.\n\n🎓 *Program:* {{3}}\n🏫 *Branch:* {{4}}\n📅 *Academic Year:* {{5}}\n💰 *Total Fee:* ₹{{6}}\n\n📋 *Instalments:*\n{{7}}\n\nYou can view and pay your fees directly using the button below — no login required.",
+        text: "Hi {{1}},\n\nFee invoices have been generated for *{{2}}*.\n\n🎓 *Program:* {{3}}\n🏫 *Branch:* {{4}}\n📅 *Academic Year:* {{5}}\n💰 *Total Fee:* ₹{{6}}\n\n📋 *Instalments:*\n{{7}}\n\nTap *Pay Now* to pay directly — no login required. Or tap *View Invoice* to see full details in your parent portal.",
         example: {
           body_text: [
             [
@@ -273,9 +273,14 @@ const TEMPLATES = [
         buttons: [
           {
             type: "URL",
-            text: "View & Pay Fees",
+            text: "Pay Now",
             url: "https://smartuplearning.net/pay/{{1}}",
             example: ["sample-token-abc123"],
+          },
+          {
+            type: "URL",
+            text: "View Invoice",
+            url: "https://smartuplearning.net/dashboard/parent/fees",
           },
         ],
       },

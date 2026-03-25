@@ -237,12 +237,12 @@ export const TEMPLATE_DEFINITIONS = {
   },
 
   // ─────────────────────────────────────────────────────────────────────
-  // 5. INVOICE GENERATED (smartup_invoice_generated)
+  // 5. INVOICE GENERATED (smartup_fee_invoice)
   //    Sent when invoices are created after admission.
   //    Includes magic-link URL for direct payment without login.
   // ─────────────────────────────────────────────────────────────────────
   invoice_generated: {
-    name: "smartup_invoice_generated",
+    name: "smartup_fee_invoice",
     language: "en",
     category: "UTILITY",
     components: [
@@ -266,7 +266,7 @@ export const TEMPLATE_DEFINITIONS = {
           "📋 *Instalments:*",
           "{{7}}",
           "",
-          "You can view and pay your fees directly using the button below — no login required.",
+          "Tap *Pay Now* to pay directly — no login required. Or tap *View Invoice* to see full details in your parent portal.",
         ].join("\n"),
         example: {
           body_text: [
@@ -291,9 +291,14 @@ export const TEMPLATE_DEFINITIONS = {
         buttons: [
           {
             type: "URL",
-            text: "View & Pay Fees",
+            text: "Pay Now",
             url: "https://smartuplearning.net/pay/{{1}}",
             example: ["sample-token-abc123"],
+          },
+          {
+            type: "URL",
+            text: "View Invoice",
+            url: "https://smartuplearning.net/dashboard/parent/fees",
           },
         ],
       },
@@ -490,7 +495,7 @@ export function buildInvoiceGenerated(
 
   return {
     to: phone,
-    templateName: "smartup_invoice_generated",
+    templateName: "smartup_fee_invoice",
     components: [
       {
         type: "body",
@@ -510,6 +515,7 @@ export function buildInvoiceGenerated(
         index: 0,
         parameters: [txt(tokenSuffix)],
       },
+      // Button index 1 (View Invoice) is a static URL — no parameters needed
     ],
   };
 }
