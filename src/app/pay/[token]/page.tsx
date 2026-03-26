@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { CheckCircle2, Clock, AlertCircle, CircleDot, Loader2, XCircle, IndianRupee, Lock, FileText } from "lucide-react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
@@ -255,9 +255,8 @@ export default function PayPage() {
   const progressPct = data.grandTotal > 0 ? Math.round((totalPaid / data.grandTotal) * 100) : 0;
 
   // Sequential payment: only the first unpaid instalment can be paid
-  const firstUnpaidIndex = useMemo(
-    () => data.invoices.findIndex((inv) => inv.outstanding_amount > 0 && !paidInvoices.has(inv.name)),
-    [data.invoices, paidInvoices],
+  const firstUnpaidIndex = data.invoices.findIndex(
+    (inv) => inv.outstanding_amount > 0 && !paidInvoices.has(inv.name),
   );
 
   return (
