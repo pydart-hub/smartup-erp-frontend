@@ -32,6 +32,9 @@ function verifyPdfToken(
     .update(`${invoiceId}:${exp}`)
     .digest("hex");
 
+  // timingSafeEqual requires same-length buffers
+  if (token.length !== expected.length) return false;
+
   return crypto.timingSafeEqual(
     Buffer.from(expected, "utf-8"),
     Buffer.from(token, "utf-8"),
