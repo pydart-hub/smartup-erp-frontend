@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
         (inst: { label: string; amount: number; dueDate: string }, i: number) =>
           `${i + 1}. ${inst.label} — ₹${inst.amount.toLocaleString("en-IN")} (Due: ${new Date(inst.dueDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })})`,
       )
-      .join("\n");
+      .join(" | ");
 
     const templateParams: InvoiceGeneratedParams = {
       guardianName: guardian || "Parent",

@@ -749,7 +749,7 @@ export async function POST(request: NextRequest) {
                 });
                 return `${i + 1}. ${inst.label} — ₹${inst.amount.toLocaleString("en-IN")} (Due: ${dueFormatted})`;
               })
-              .join("\n");
+              .join(" | ");
 
             const token = generateToken(newSORef);
             const payUrl = `${APP_BASE}/pay/${token}`;

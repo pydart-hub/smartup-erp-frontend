@@ -228,7 +228,7 @@ export async function POST(request: NextRequest) {
               });
               return `${i + 1}. ${inst.label} — ₹${inst.amount.toLocaleString("en-IN")} (Due: ${dueFormatted})`;
             })
-            .join("\n");
+            .join(" | ");
 
           const token = generateToken(salesOrderName);
           const payUrl = `${APP_BASE_URL}/pay/${token}`;

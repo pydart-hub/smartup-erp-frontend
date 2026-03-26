@@ -393,7 +393,7 @@ export function buildPaymentRequest(
       (inv, i) =>
         `${i + 1}. ${inv.label} — ₹${formatINR(inv.amount)} (Due: ${formatDate(inv.dueDate)})`,
     )
-    .join("\n");
+    .join(" | ");
 
   return {
     to: phone,

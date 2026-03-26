@@ -208,7 +208,7 @@ export async function POST(request: NextRequest) {
           });
           return `${i + 1}. ${inv.label || `Instalment ${i + 1}`} — ₹${inv.amount.toLocaleString("en-IN")} (Due: ${dueFormatted})`;
         })
-        .join("\n");
+        .join(" | ");
 
       // Generate magic-link token (90-day expiry)
       const token = generateToken(sales_order);
