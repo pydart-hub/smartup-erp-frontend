@@ -16,6 +16,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/utils/apiAuth";
 import { sendEmail, fetchInvoicePDF } from "@/lib/utils/email";
 import { sendTemplate } from "@/lib/utils/whatsapp";
+import { generatePdfUrl } from "@/app/api/payments/invoice-pdf/[id]/route";
 
 const FRAPPE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL;
 const API_KEY = process.env.FRAPPE_API_KEY;
@@ -505,7 +506,7 @@ export async function POST(request: NextRequest) {
       attachments,
     });
 
-    // WhatsApp payment receipt (non-blocking, approved smartup_payment_done template)
+    // WhatsApp payment receipt with invoice PDF (smartup_payment_done_v2)
     if (ctx.guardianPhone) {
       const amountPaid =
         ctx.paymentEntry?.paid_amount ??
@@ -516,15 +517,26 @@ export async function POST(request: NextRequest) {
         ctx.paymentEntry?.posting_date ||
         ctx.invoice.posting_date ||
         new Date().toISOString().slice(0, 10);
+      const pdfLink = generatePdfUrl(invoice_id);
       sendTemplate({
         to: ctx.guardianPhone,
-        templateName: "smartup_payment_done",
+        templateName: "smartup_payment_done_v2",
         components: [
+          {
+            type: "header",
+            parameters: [
+              {
+                type: "document",
+                document: { link: pdfLink, filename: `${invoice_id}.pdf` },
+              },
+            ],
+          },
           {
             type: "body",
             parameters: [
               { type: "text", text: ctx.guardianName },
               { type: "text", text: `₹${amountPaid.toLocaleString("en-IN")}` },
+              { type: "text", text: invoice_id },
               { type: "text", text: txRef },
               { type: "text", text: txDate },
             ],
