@@ -689,6 +689,31 @@ export async function admitStudent(
   // ───────────────────────────────────────────────────
   if (form.existingGuardianName) {
     updateStage("parent_user", "skipped");
+    // Sibling admission — still notify the parent about new enrollment
+    try {
+      const parentUserRes = await fetch("/api/auth/create-parent-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          email: form.guardian_email,
+          full_name: form.guardian_name,
+          password: form.guardian_password || "SmartUp@123",
+          phone: form.guardian_mobile || undefined,
+          student_name: [form.first_name, form.middle_name, form.last_name].filter(Boolean).join(" "),
+          program: form.program || undefined,
+          branch: form.custom_branch || undefined,
+        }),
+      });
+      if (parentUserRes.ok) {
+        console.log("[admitStudent] Sibling enrollment notification sent to existing parent");
+      } else {
+        console.warn("[admitStudent] Sibling enrollment notification failed:", parentUserRes.status);
+      }
+    } catch (notifErr) {
+      // Non-blocking — sibling flow continues
+      console.warn("[admitStudent] Sibling enrollment notification failed (non-blocking):", notifErr);
+    }
   } else {
     updateStage("parent_user", "in_progress");
   try {
@@ -1074,6 +1099,12 @@ export async function admitStudent(
           updateStage("invoices", "failed", `${invData.failed.length} failed`);
         } else {
           updateStage("invoices", "success");
+        }
+        // Surface WhatsApp notification status to the user
+        if (invData.whatsappError) {
+          warnings.push(`Invoice WhatsApp notification failed: ${invData.whatsappError}`);
+        } else if (invData.whatsappWarning) {
+          warnings.push(`Invoice notification: ${invData.whatsappWarning}`);
         }
       } else {
         const errBody = await invRes.text();

@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, useRef } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import React, { Suspense, useState, useMemo, useEffect, useRef } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import type { FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -30,6 +30,9 @@ import {
   Eye,
   EyeOff,
   BookOpen,
+  Search,
+  UserPlus,
+  X,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Button } from "@/components/ui/Button";
@@ -39,7 +42,7 @@ import { subjectStudentSchema, type SubjectStudentFormValues } from "@/lib/valid
 import { admitStudent, getAcademicYears, getBranches, getStudentGroups, getNextSrrId } from "@/lib/api/enrollment";
 import { getFeeStructures } from "@/lib/api/fees";
 import type { FeeConfigEntry, PaymentOptionSummary } from "@/lib/types/fee";
-import { getAllPaymentOptions, getSubjectsForBranch, getLevelsForBranch, getSubjectsForBranchLevel, getProgramsForLevel, HSS_PROGRAMS, type SubjectLevel } from "@/lib/utils/feeSchedule";
+import { getAllPaymentOptions, applyReferralDiscount, getSubjectsForBranch, getLevelsForBranch, getSubjectsForBranchLevel, getProgramsForLevel, HSS_PROGRAMS, type SubjectLevel } from "@/lib/utils/feeSchedule";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/hooks/useAuth";
 import PostAdmissionPayment from "@/components/payments/PostAdmissionPayment";
@@ -72,19 +75,70 @@ const STEPS = [
   { id: 4, label: "Fee Details", icon: CreditCard },
 ];
 
+const SIBLING_STEPS = [
+  { id: 0, label: "Sibling", icon: UserPlus },
+  { id: 1, label: "Student Info", icon: User },
+  { id: 2, label: "Guardian", icon: Users },
+  { id: 3, label: "Subject & Batch", icon: BookOpen },
+  { id: 4, label: "Fee Details", icon: CreditCard },
+];
+
+// ── Sibling search types ──────────────────────────────────────
+interface SiblingSearchResult {
+  name: string;
+  student_name: string;
+  custom_srr_id: string;
+  custom_branch: string;
+  custom_branch_abbr?: string;
+  student_email_id?: string;
+  student_mobile_number?: string;
+  custom_parent_name?: string;
+  program?: string;
+  academic_year?: string;
+  batch?: string;
+}
+
+interface SiblingGuardianInfo {
+  name: string;
+  guardian_name: string;
+  email_address: string;
+  mobile_number: string;
+  relation: string;
+}
+
 const PLAN_OPTIONS = [
   { value: "Basic", label: "Basic", description: "Standard curriculum" },
   { value: "Advanced", label: "Advanced", description: "Premium programme" },
 ];
 
 export default function SubjectAdmissionPage() {
+  return (
+    <Suspense>
+      <SubjectAdmitPageContent />
+    </Suspense>
+  );
+}
+
+function SubjectAdmitPageContent() {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const isReferred = searchParams.get("referred") === "true";
   const basePath = pathname.includes("/branch-manager") ? "/dashboard/branch-manager" : "/dashboard/sales-user";
   const { defaultCompany } = useAuth();
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(isReferred ? 0 : 1);
   const [paymentAction, setPaymentAction] = useState<"pay_now" | "send_to_parent" | null>(null);
   const [advanceAmount, setAdvanceAmount] = useState<number | null>(null);
+
+  // ── Sibling selection state (only for referred/sibling flow) ──
+  const [siblingQuery, setSiblingQuery] = useState("");
+  const [siblingSearchResults, setSiblingSearchResults] = useState<SiblingSearchResult[]>([]);
+  const [siblingSearching, setSiblingSearching] = useState(false);
+  const [selectedSibling, setSelectedSibling] = useState<SiblingSearchResult | null>(null);
+  const [siblingGuardian, setSiblingGuardian] = useState<SiblingGuardianInfo | null>(null);
+  const [siblingGroup, setSiblingGroup] = useState<string | null>(null);
+  const siblingSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activeSteps = isReferred ? SIBLING_STEPS : STEPS;
 
   // Post-admission payment dialog state
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
@@ -99,6 +153,69 @@ export default function SubjectAdmissionPage() {
     salesOrderName?: string;
     invoices: InvoiceForPayment[];
   } | null>(null);
+
+  // ── Sibling search handler (debounced) ───────────────────────
+  function handleSiblingSearch(query: string) {
+    setSiblingQuery(query);
+    if (siblingSearchTimer.current) clearTimeout(siblingSearchTimer.current);
+    if (query.trim().length < 2) {
+      setSiblingSearchResults([]);
+      return;
+    }
+    setSiblingSearching(true);
+    siblingSearchTimer.current = setTimeout(async () => {
+      try {
+        const params = new URLSearchParams({ q: query.trim() });
+        const res = await fetch(`/api/admission/search-sibling?${params}`, { credentials: "include" });
+        if (res.ok) {
+          const json = await res.json();
+          setSiblingSearchResults(json.data ?? []);
+        }
+      } catch { /* ignore */ }
+      setSiblingSearching(false);
+    }, 350);
+  }
+
+  // ── When a sibling is selected, fetch guardian details ────────
+  async function handleSiblingSelect(sibling: SiblingSearchResult) {
+    setSelectedSibling(sibling);
+    setSiblingSearchResults([]);
+    setSiblingQuery("");
+    try {
+      const res = await fetch(
+        `/api/admission/sibling-details?student=${encodeURIComponent(sibling.name)}`,
+        { credentials: "include" }
+      );
+      if (res.ok) {
+        const json = await res.json();
+        if (json.guardian) {
+          const g = json.guardian as SiblingGuardianInfo;
+          setSiblingGuardian(g);
+          setValue("guardian_name", g.guardian_name || "");
+          setValue("guardian_email", g.email_address || "");
+          setValue("guardian_mobile", g.mobile_number || "");
+          setValue("guardian_relation", g.relation || "Father");
+          setValue("guardian_password", "SmartUp@123");
+        }
+        if (json.siblingGroup) {
+          setSiblingGroup(json.siblingGroup);
+        }
+      }
+    } catch {
+      toast.error("Failed to fetch sibling details");
+    }
+  }
+
+  function clearSelectedSibling() {
+    setSelectedSibling(null);
+    setSiblingGuardian(null);
+    setSiblingGroup(null);
+    setValue("guardian_name", "");
+    setValue("guardian_email", "");
+    setValue("guardian_mobile", "");
+    setValue("guardian_relation", "");
+    setValue("guardian_password", "");
+  }
 
   const {
     register,
@@ -336,8 +453,9 @@ export default function SubjectAdmissionPage() {
   const selectedEnrollmentDate = watch("enrollment_date");
   const paymentOptions: PaymentOptionSummary[] = useMemo(() => {
     if (!feeConfig) return [];
-    return getAllPaymentOptions(feeConfig, selectedAcademicYear, selectedEnrollmentDate);
-  }, [feeConfig, selectedAcademicYear, selectedEnrollmentDate]);
+    const options = getAllPaymentOptions(feeConfig, selectedAcademicYear, selectedEnrollmentDate);
+    return isReferred ? applyReferralDiscount(options) : options;
+  }, [feeConfig, selectedAcademicYear, selectedEnrollmentDate, isReferred]);
 
   const selectedOption: PaymentOptionSummary | null = useMemo(() => {
     if (!selectedInstalments || paymentOptions.length === 0) return null;
@@ -414,6 +532,12 @@ export default function SubjectAdmissionPage() {
           dueDate: s.dueDate,
           label: s.label,
         })),
+        // Sibling fields
+        ...(isReferred && selectedSibling ? {
+          siblingOf: selectedSibling.name,
+          siblingGroup: siblingGroup || undefined,
+          existingGuardianName: siblingGuardian?.name,
+        } : {}),
       });
 
       const soMsg = result.salesOrder ? ` SO: ${result.salesOrder}.` : "";
@@ -484,6 +608,12 @@ export default function SubjectAdmissionPage() {
   }
 
   async function nextStep() {
+    // Step 0 (sibling selection) — no form validation needed, just ensure sibling is selected
+    if (currentStep === 0) {
+      if (isReferred && !selectedSibling) return;
+      setCurrentStep(1);
+      return;
+    }
     const fieldsToValidate: Record<number, (keyof SubjectStudentFormValues)[]> = {
       1: ["full_name", "date_of_birth", "gender"],
       2: ["guardian_name", "guardian_mobile", "guardian_relation", "guardian_email", "guardian_password"],
@@ -504,6 +634,9 @@ export default function SubjectAdmissionPage() {
     const step3Keys: (keyof SubjectStudentFormValues)[] = [
       "custom_branch", "level", "subject", "program", "academic_year", "enrollment_date", "custom_srr_id", "student_batch_name",
     ];
+    const step4Keys: (keyof SubjectStudentFormValues)[] = [
+      "custom_plan", "custom_no_of_instalments", "custom_mode_of_payment",
+    ];
     const errorKeys = Object.keys(formErrors) as (keyof SubjectStudentFormValues)[];
     if (errorKeys.some((k) => step1Keys.includes(k))) {
       setCurrentStep(1);
@@ -514,11 +647,15 @@ export default function SubjectAdmissionPage() {
     } else if (errorKeys.some((k) => step3Keys.includes(k))) {
       setCurrentStep(3);
       toast.error("Please fix the errors in Subject & Batch Details (Step 3)");
+    } else if (errorKeys.some((k) => step4Keys.includes(k))) {
+      setCurrentStep(4);
+      toast.error("Please complete the Fee Details (Step 4)");
     }
   }
 
   function prevStep() {
-    setCurrentStep((prev) => Math.max(prev - 1, 1));
+    const minStep = isReferred ? 0 : 1;
+    setCurrentStep((prev) => Math.max(prev - 1, minStep));
   }
 
   return (
@@ -534,14 +671,14 @@ export default function SubjectAdmissionPage() {
           <ArrowLeft className="h-5 w-5" />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-text-primary">Subject-Wise Tuition Admission</h1>
-          <p className="text-sm text-text-secondary">Enrol a student for individual subject tuition (HSS level)</p>
+          <h1 className="text-2xl font-bold text-text-primary">{isReferred ? "Subject-Wise Sibling Admission" : "Subject-Wise Tuition Admission"}</h1>
+          <p className="text-sm text-text-secondary">{isReferred ? "5% sibling discount applied on first instalment" : "Enrol a student for individual subject tuition (HSS level)"}</p>
         </div>
       </div>
 
       {/* Step Indicator */}
       <div className="flex items-center justify-center gap-2">
-        {STEPS.map((step, index) => {
+        {activeSteps.map((step, index) => {
           const Icon = step.icon;
           const isActive = currentStep === step.id;
           const isCompleted = currentStep > step.id;
@@ -585,6 +722,119 @@ export default function SubjectAdmissionPage() {
         <Card>
           <CardContent className="p-6">
             <AnimatePresence mode="wait">
+              {/* Step 0: Sibling Selection (only for referred/sibling flow) */}
+              {currentStep === 0 && isReferred && (
+                <motion.div
+                  key="step0"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="space-y-5"
+                >
+                  <div>
+                    <h3 className="text-lg font-semibold text-text-primary">Select Existing Sibling</h3>
+                    <p className="text-sm text-text-secondary mt-0.5">
+                      Search for the existing student who is a sibling of the new student being admitted
+                    </p>
+                  </div>
+
+                  {/* Search input */}
+                  <div className="relative">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-tertiary" />
+                      <input
+                        type="text"
+                        placeholder="Search by student name or SRR ID..."
+                        value={siblingQuery}
+                        onChange={(e) => handleSiblingSearch(e.target.value)}
+                        className="w-full h-11 pl-10 pr-4 rounded-[10px] border border-border-input bg-surface text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                      />
+                      {siblingSearching && (
+                        <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-text-tertiary" />
+                      )}
+                    </div>
+
+                    {/* Search results dropdown */}
+                    {siblingSearchResults.length > 0 && !selectedSibling && (
+                      <div className="absolute z-10 mt-1 w-full bg-surface border border-border-light rounded-[10px] shadow-lg max-h-64 overflow-y-auto">
+                        {siblingSearchResults.map((s) => (
+                          <button
+                            key={s.name}
+                            type="button"
+                            onClick={() => handleSiblingSelect(s)}
+                            className="w-full flex items-start gap-3 p-3 hover:bg-app-bg transition-colors text-left border-b border-border-light last:border-0"
+                          >
+                            <div className="w-9 h-9 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center flex-shrink-0">
+                              <User className="h-4 w-4" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-text-primary truncate">{s.student_name}</p>
+                              <p className="text-xs text-text-tertiary">
+                                SRR: {s.custom_srr_id} · {s.custom_branch?.replace("Smart Up ", "")}
+                                {s.program ? ` · ${s.program}` : ""}
+                              </p>
+                              {s.custom_parent_name && (
+                                <p className="text-xs text-text-tertiary">Guardian: {s.custom_parent_name}</p>
+                              )}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Selected sibling card */}
+                  {selectedSibling && (
+                    <div className="bg-purple-50 rounded-[12px] border-2 border-purple-200 p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center">
+                            <UserPlus className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-text-primary">{selectedSibling.student_name}</p>
+                            <p className="text-xs text-text-secondary mt-0.5">
+                              ID: {selectedSibling.name} · SRR: {selectedSibling.custom_srr_id}
+                            </p>
+                            <p className="text-xs text-text-secondary">
+                              {selectedSibling.custom_branch?.replace("Smart Up ", "")}
+                              {selectedSibling.program ? ` · ${selectedSibling.program}` : ""}
+                              {selectedSibling.academic_year ? ` · ${selectedSibling.academic_year}` : ""}
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={clearSelectedSibling}
+                          className="p-1 rounded-full hover:bg-purple-200 transition-colors"
+                        >
+                          <X className="h-4 w-4 text-purple-600" />
+                        </button>
+                      </div>
+
+                      {/* Guardian auto-filled preview */}
+                      {siblingGuardian && (
+                        <div className="mt-3 pt-3 border-t border-purple-200 space-y-1">
+                          <p className="text-xs font-medium text-purple-700">Guardian details will be auto-filled:</p>
+                          <p className="text-xs text-purple-600">
+                            {siblingGuardian.guardian_name} ({siblingGuardian.relation}) · {siblingGuardian.mobile_number} · {siblingGuardian.email_address}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Hint when nothing selected */}
+                  {!selectedSibling && siblingSearchResults.length === 0 && !siblingSearching && (
+                    <div className="bg-app-bg rounded-[10px] p-4 border border-border-light">
+                      <p className="text-sm text-text-tertiary text-center">
+                        Search for an existing student to link as a sibling. Guardian details will be auto-filled from the selected sibling&apos;s record.
+                      </p>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+
               {/* Step 1: Student Info — identical to regular admission */}
               {currentStep === 1 && (
                 <motion.div
@@ -952,28 +1202,15 @@ export default function SubjectAdmissionPage() {
                     </p>
                   </div>
 
-                  {selectedBranch && selectedProgram && !loadingFeeStructures && feeStructures.length === 0 && (
-                    <div className="bg-warning/10 rounded-[10px] p-4 border border-warning/20 flex items-start gap-2">
-                      <AlertCircle className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
-                      <p className="text-sm text-warning">
-                        No fee structures found for {selectedProgram} at {selectedBranch.replace("Smart Up ", "")} ({selectedAcademicYear}). Please contact the administrator.
-                      </p>
-                    </div>
-                  )}
+                  {/* Fee structure matching is best-effort for subject-wise admission;
+                      pricing comes from the local fee config JSON, not Frappe. */}
 
-                  {loadingFeeStructures && (
-                    <div className="flex items-center justify-center py-8 gap-2 text-text-tertiary">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span className="text-sm">Loading fee structures…</span>
-                    </div>
-                  )}
-
-                  {/* Plan selection — only Basic and Advanced for subjects */}
-                  {feeStructures.length > 0 && (
+                  {/* Plan selection — always show for subject-wise when branch + subject are selected */}
+                  {selectedBranch && selectedSubject && (
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-text-secondary">Fee Plan *</label>
                       <div className="grid grid-cols-2 gap-3">
-                        {PLAN_OPTIONS.filter((p) => availablePlans.includes(p.value)).map((plan) => {
+                        {PLAN_OPTIONS.map((plan) => {
                           const isSelected = selectedPlan === plan.value;
                           return (
                             <label
@@ -1010,7 +1247,7 @@ export default function SubjectAdmissionPage() {
                   )}
 
                   {/* Payment Option Selection */}
-                  {selectedPlan && paymentOptions.length > 0 && (
+                  {selectedPlan && (loadingFeeConfig || paymentOptions.length > 0) && (
                     <motion.div
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
@@ -1022,6 +1259,13 @@ export default function SubjectAdmissionPage() {
                         <div className="flex items-center justify-center py-6 gap-2 text-text-tertiary">
                           <Loader2 className="h-4 w-4 animate-spin" />
                           <span className="text-sm">Loading pricing…</span>
+                        </div>
+                      ) : paymentOptions.length === 0 ? (
+                        <div className="bg-warning/10 rounded-[10px] p-4 border border-warning/20 flex items-start gap-2">
+                          <AlertCircle className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
+                          <p className="text-sm text-warning">
+                            No pricing found for <span className="font-medium">{selectedSubject}</span> ({selectedPlan} plan) at {selectedBranch.replace("Smart Up ", "")}. Please contact the administrator.
+                          </p>
                         </div>
                       ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1318,14 +1562,19 @@ export default function SubjectAdmissionPage() {
                 type="button"
                 variant="outline"
                 onClick={prevStep}
-                disabled={currentStep === 1}
+                disabled={currentStep === (isReferred ? 0 : 1)}
               >
                 <ArrowLeft className="h-4 w-4" />
                 Previous
               </Button>
 
               {currentStep < 4 ? (
-                <Button type="button" variant="primary" onClick={nextStep}>
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={nextStep}
+                  disabled={currentStep === 0 && isReferred && !selectedSibling}
+                >
                   Next
                   <ArrowRight className="h-4 w-4" />
                 </Button>

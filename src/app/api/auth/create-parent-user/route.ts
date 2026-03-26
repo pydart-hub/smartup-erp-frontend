@@ -112,6 +112,29 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // Still send enrollment notification even for existing users
+      const loginUrl = process.env.NEXT_PUBLIC_APP_URL
+        || process.env.VERCEL_URL
+        || "https://smartuplearning.net";
+
+      if (phone) {
+        sendTemplate({
+          to: phone,
+          templateName: "smartup_user_setup",
+          components: [
+            {
+              type: "body",
+              parameters: [
+                { type: "text", text: full_name },
+                { type: "text", text: "Parent" },
+                { type: "text", text: loginUrl },
+                { type: "text", text: email },
+              ],
+            },
+          ],
+        }).catch((err) => console.warn("[create-parent-user] WhatsApp failed (existing user):", err));
+      }
+
       return NextResponse.json({
         message: "User already exists — Parent role ensured",
         user: email,
@@ -243,16 +266,20 @@ export async function POST(request: NextRequest) {
         </div>
       `;
 
-      // Send directly via SMTP (nodemailer)
-      await sendEmail({
-        to: email,
-        subject: "Welcome to SmartUp Parent Portal",
-        html: emailBody,
-      });
+      // Send directly via SMTP (nodemailer) — independent of WhatsApp
+      try {
+        await sendEmail({
+          to: email,
+          subject: "Welcome to SmartUp Parent Portal",
+          html: emailBody,
+        });
+        console.log(`[create-parent-user] Login credentials email sent to ${email}`);
+      } catch (emailError) {
+        // Non-blocking — user creation already succeeded
+        console.warn("[create-parent-user] Email sending failed (non-blocking):", emailError);
+      }
 
-      console.log(`[create-parent-user] Login credentials email sent to ${email}`);
-
-      // WhatsApp portal notification (non-blocking, approved smartup_user_setup template)
+      // WhatsApp portal notification (independent of email, non-blocking)
       if (phone) {
         sendTemplate({
           to: phone,
@@ -270,9 +297,9 @@ export async function POST(request: NextRequest) {
           ],
         }).catch((err) => console.warn("[create-parent-user] WhatsApp failed:", err));
       }
-    } catch (emailError) {
-      // Non-blocking — user creation already succeeded
-      console.warn("[create-parent-user] Email sending failed (non-blocking):", emailError);
+    } catch (outerErr) {
+      // Non-blocking — user creation already succeeded, notification setup failed
+      console.warn("[create-parent-user] Notification setup failed (non-blocking):", outerErr);
     }
 
     return NextResponse.json({
