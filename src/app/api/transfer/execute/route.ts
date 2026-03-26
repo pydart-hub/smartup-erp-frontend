@@ -742,14 +742,14 @@ export async function POST(request: NextRequest) {
             const branchName = (transfer.to_branch || "").replace(/^Smart Up\s*/i, "");
             const programName = transfer.program || "Your Program";
             const totalAmount = schedule.reduce((s: number, inst: { amount: number }) => s + inst.amount, 0);
-            const instalmentSummary = schedule
-              .map((inst: { label: string; amount: number; dueDate: string }, i: number) => {
-                const dueFormatted = new Date(inst.dueDate).toLocaleDateString("en-IN", {
-                  day: "numeric", month: "short", year: "numeric",
-                });
-                return `${i + 1}. ${inst.label} — ₹${inst.amount.toLocaleString("en-IN")} (Due: ${dueFormatted})`;
-              })
-              .join(" | ");
+            const instalmentSummary = schedule.length === 1
+              ? `Full payment — ₹${schedule[0].amount.toLocaleString("en-IN")}`
+              : schedule
+                .map((inst: { label: string; amount: number; dueDate: string }, i: number) => {
+                  const mon = new Date(inst.dueDate).toLocaleDateString("en-IN", { month: "short", year: "2-digit" });
+                  return `${i + 1}. ₹${inst.amount.toLocaleString("en-IN")} (${mon})`;
+                })
+                .join(", ");
 
             const token = generateToken(newSORef);
             const payUrl = `${APP_BASE}/pay/${token}`;

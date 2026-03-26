@@ -92,12 +92,16 @@ export async function POST(request: NextRequest) {
     const payUrl = `${APP_BASE_URL}/pay/${token}`;
 
     // Build instalment summary text
-    const instalmentText = (instalments || [])
-      .map(
-        (inst: { label: string; amount: number; dueDate: string }, i: number) =>
-          `${i + 1}. ${inst.label} — ₹${inst.amount.toLocaleString("en-IN")} (Due: ${new Date(inst.dueDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })})`,
-      )
-      .join(" | ");
+    const instalmentText = (instalments || []).length === 1
+      ? `Full payment — ₹${instalments[0].amount.toLocaleString("en-IN")}`
+      : (instalments || [])
+          .map(
+            (inst: { label: string; amount: number; dueDate: string }, i: number) => {
+              const mon = new Date(inst.dueDate).toLocaleDateString("en-IN", { month: "short", year: "2-digit" });
+              return `${i + 1}. ₹${inst.amount.toLocaleString("en-IN")} (${mon})`;
+            },
+          )
+          .join(", ");
 
     const templateParams: InvoiceGeneratedParams = {
       guardianName: guardian || "Parent",

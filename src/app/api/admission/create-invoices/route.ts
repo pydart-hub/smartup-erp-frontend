@@ -221,14 +221,14 @@ export async function POST(request: NextRequest) {
             : "";
           const totalAmount = schedule.reduce((s: number, inst: ScheduleEntry) => s + inst.amount, 0);
 
-          const instalmentSummary = schedule
-            .map((inst: ScheduleEntry, i: number) => {
-              const dueFormatted = new Date(inst.dueDate).toLocaleDateString("en-IN", {
-                day: "numeric", month: "short", year: "numeric",
-              });
-              return `${i + 1}. ${inst.label} — ₹${inst.amount.toLocaleString("en-IN")} (Due: ${dueFormatted})`;
-            })
-            .join(" | ");
+          const instalmentSummary = schedule.length === 1
+            ? `Full payment — ₹${schedule[0].amount.toLocaleString("en-IN")}`
+            : schedule
+              .map((inst: ScheduleEntry, i: number) => {
+                const mon = new Date(inst.dueDate).toLocaleDateString("en-IN", { month: "short", year: "2-digit" });
+                return `${i + 1}. ₹${inst.amount.toLocaleString("en-IN")} (${mon})`;
+              })
+              .join(", ");
 
           const token = generateToken(salesOrderName);
           const payUrl = `${APP_BASE_URL}/pay/${token}`;

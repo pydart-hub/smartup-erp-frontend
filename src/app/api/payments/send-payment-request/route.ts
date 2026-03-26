@@ -201,14 +201,14 @@ export async function POST(request: NextRequest) {
       }
 
       // Build instalment summary from the invoices array
-      const instalmentSummary = (invoices || [])
-        .map((inv: InvoiceDetail, i: number) => {
-          const dueFormatted = new Date(inv.due_date).toLocaleDateString("en-IN", {
-            day: "numeric", month: "short", year: "numeric",
-          });
-          return `${i + 1}. ${inv.label || `Instalment ${i + 1}`} — ₹${inv.amount.toLocaleString("en-IN")} (Due: ${dueFormatted})`;
-        })
-        .join(" | ");
+      const instalmentSummary = (invoices || []).length === 1
+        ? `Full payment — ₹${invoices[0].amount.toLocaleString("en-IN")}`
+        : (invoices || [])
+            .map((inv: InvoiceDetail, i: number) => {
+              const mon = new Date(inv.due_date).toLocaleDateString("en-IN", { month: "short", year: "2-digit" });
+              return `${i + 1}. ₹${inv.amount.toLocaleString("en-IN")} (${mon})`;
+            })
+            .join(", ");
 
       // Generate magic-link token (90-day expiry)
       const token = generateToken(sales_order);

@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
     ]);
     const invFields = JSON.stringify([
       "name", "posting_date", "due_date", "grand_total",
-      "outstanding_amount", "status", "custom_instalment_label",
+      "outstanding_amount", "status",
     ]);
     const invRes = await fetch(
       `${FRAPPE_URL}/api/resource/Sales Invoice?filters=${encodeURIComponent(invFilters)}&fields=${encodeURIComponent(invFields)}&order_by=due_date asc&limit_page_length=50`,
@@ -101,15 +101,22 @@ export async function POST(request: NextRequest) {
 
     if (invRes.ok) {
       const invData = await invRes.json();
-      invoices = (invData.data || []).map((inv: Record<string, unknown>, idx: number) => ({
-        name: inv.name as string,
-        posting_date: inv.posting_date as string,
-        due_date: inv.due_date as string,
-        grand_total: inv.grand_total as number,
-        outstanding_amount: inv.outstanding_amount as number,
-        status: inv.status as string,
-        label: (inv.custom_instalment_label as string) || `Instalment ${idx + 1}`,
-      }));
+      const sorted = (invData.data || []) as Record<string, unknown>[];
+      invoices = sorted.map((inv, idx) => {
+        let label: string;
+        if (sorted.length === 1) label = "Full Payment";
+        else if (sorted.length === 4) label = `Q${idx + 1}`;
+        else label = `Instalment ${idx + 1}`;
+        return {
+          name: inv.name as string,
+          posting_date: inv.posting_date as string,
+          due_date: inv.due_date as string,
+          grand_total: inv.grand_total as number,
+          outstanding_amount: inv.outstanding_amount as number,
+          status: inv.status as string,
+          label,
+        };
+      });
     }
 
     return NextResponse.json({

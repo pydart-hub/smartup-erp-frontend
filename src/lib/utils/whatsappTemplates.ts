@@ -388,12 +388,16 @@ export function buildPaymentRequest(
   phone: string,
   p: PaymentRequestParams,
 ): SendTemplateOptions {
-  const instalmentList = p.invoices
-    .map(
-      (inv, i) =>
-        `${i + 1}. ${inv.label} — ₹${formatINR(inv.amount)} (Due: ${formatDate(inv.dueDate)})`,
-    )
-    .join(" | ");
+  const instalmentList = p.invoices.length === 1
+    ? `Full payment — ₹${formatINR(p.invoices[0].amount)}`
+    : p.invoices
+        .map(
+          (inv, i) => {
+            const mon = new Date(inv.dueDate).toLocaleDateString("en-IN", { month: "short", year: "2-digit" });
+            return `${i + 1}. ₹${formatINR(inv.amount)} (${mon})`;
+          },
+        )
+        .join(", ");
 
   return {
     to: phone,
