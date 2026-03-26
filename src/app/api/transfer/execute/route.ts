@@ -23,6 +23,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole, STAFF_ROLES } from "@/lib/utils/apiAuth";
 import { generateInstalmentSchedule, buildFeeConfigKey, getOptionTotal } from "@/lib/utils/feeSchedule";
+import { generateToken } from "@/lib/utils/invoiceToken";
+import { sendTemplate } from "@/lib/utils/whatsapp";
+import { buildInvoiceGenerated } from "@/lib/utils/whatsappTemplates";
 import feeConfigData from "@/../docs/fee_structure_parsed.json";
 import type { FeeConfigEntry } from "@/lib/types/fee";
 
@@ -715,6 +718,61 @@ export async function POST(request: NextRequest) {
         }
       }
       step(`  Created ${createdSIs.length}/${schedule.length} invoices`);
+
+      // ── Step 11b: Send WhatsApp notification to guardian ──
+      if (createdSIs.length > 0) {
+        try {
+          const stuDoc = await frappeGet(
+            `/api/resource/Student/${encodeURIComponent(transfer.student)}`,
+          );
+          const guardianRow = stuDoc.guardians?.[0];
+          // mobile_number is on the Guardian document, not the child table row
+          let guardianMobile = "";
+          let guardianFullName = guardianRow?.guardian_name || "Parent";
+          if (guardianRow?.guardian) {
+            try {
+              const gDoc = await frappeGet(`/api/resource/Guardian/${encodeURIComponent(guardianRow.guardian)}`);
+              guardianMobile = gDoc.mobile_number || "";
+              guardianFullName = gDoc.guardian_name || guardianFullName;
+            } catch { /* non-fatal */ }
+          }
+
+          if (guardianMobile) {
+            const APP_BASE = process.env.NEXT_PUBLIC_APP_URL || "https://smartuplearning.net";
+            const branchName = (transfer.to_branch || "").replace(/^Smart Up\s*/i, "");
+            const programName = transfer.program || "Your Program";
+            const totalAmount = schedule.reduce((s: number, inst: { amount: number }) => s + inst.amount, 0);
+            const instalmentSummary = schedule
+              .map((inst: { label: string; amount: number; dueDate: string }, i: number) => {
+                const dueFormatted = new Date(inst.dueDate).toLocaleDateString("en-IN", {
+                  day: "numeric", month: "short", year: "numeric",
+                });
+                return `${i + 1}. ${inst.label} — ₹${inst.amount.toLocaleString("en-IN")} (Due: ${dueFormatted})`;
+              })
+              .join("\n");
+
+            const token = generateToken(newSORef);
+            const payUrl = `${APP_BASE}/pay/${token}`;
+
+            const templateOpts = buildInvoiceGenerated(guardianMobile, {
+              guardianName: guardianFullName,
+              studentName: transfer.student_name || stuDoc.student_name || "",
+              programName,
+              branchName: branchName || "SmartUp",
+              academicYear: transfer.academic_year || "2026-2027",
+              totalAmount,
+              instalmentSummary,
+            }, payUrl);
+
+            await sendTemplate(templateOpts);
+            step("  WhatsApp invoice notification sent");
+          } else {
+            step("  WARNING: No guardian mobile — WhatsApp not sent");
+          }
+        } catch (waErr) {
+          step(`  WARNING: WhatsApp notification failed: ${waErr}`);
+        }
+      }
     } else {
       step("  No adjusted amount — skipping SO/SI creation");
     }

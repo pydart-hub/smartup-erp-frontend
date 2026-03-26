@@ -238,7 +238,7 @@ const TEMPLATES = [
 
   // 6. Invoice Generated (with magic-link pay button)
   {
-    name: "smartup_fee_invoice",
+    name: "smartup_fee_invoice_v2",
     language: "en",
     category: "UTILITY",
     components: [
@@ -280,7 +280,8 @@ const TEMPLATES = [
           {
             type: "URL",
             text: "View Invoice",
-            url: "https://smartuplearning.net/dashboard/parent/fees",
+            url: "https://smartuplearning.net/pay/{{1}}",
+            example: ["sample-token-abc123"],
           },
         ],
       },

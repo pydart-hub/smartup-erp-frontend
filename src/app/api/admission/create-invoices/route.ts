@@ -176,7 +176,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // ── Send WhatsApp notification to guardian (non-blocking) ──────────
+    // ── Send WhatsApp notification to guardian ──────────────────────────
+    let whatsappSent = false;
+    let whatsappError: string | undefined;
+    let whatsappWarning: string | undefined;
+
     if (createdInvoices.length > 0) {
       try {
         // Look up Student → Guardian mobile
@@ -192,10 +196,18 @@ export async function POST(request: NextRequest) {
           if (stuRes.ok) {
             const stuData = (await stuRes.json()).data;
             studentName = stuData.student_name || studentName;
-            const guardian = stuData.guardians?.[0];
-            if (guardian) {
-              guardianMobile = guardian.mobile_number || "";
-              guardianName = guardian.guardian_name || "";
+            const guardianRow = stuData.guardians?.[0];
+            if (guardianRow?.guardian) {
+              // mobile_number is NOT on the child table row — it lives on the Guardian document
+              const guardianDocRes = await fetchRetry(
+                `${FRAPPE_URL}/api/resource/Guardian/${encodeURIComponent(guardianRow.guardian)}`,
+                { headers },
+              );
+              if (guardianDocRes.ok) {
+                const guardianDoc = (await guardianDocRes.json()).data;
+                guardianMobile = guardianDoc.mobile_number || "";
+                guardianName = guardianDoc.guardian_name || guardianRow.guardian_name || "";
+              }
             }
           }
         }
@@ -231,12 +243,16 @@ export async function POST(request: NextRequest) {
             instalmentSummary,
           }, payUrl);
 
-          sendTemplate(templateOpts).catch((err) =>
-            console.warn("[create-invoices] WhatsApp notification failed:", err),
-          );
+          await sendTemplate(templateOpts);
+          whatsappSent = true;
+          console.log(`[create-invoices] WhatsApp sent to ${guardianMobile} for SO ${salesOrderName}`);
+        } else {
+          whatsappWarning = "No guardian mobile number found — WhatsApp not sent";
+          console.warn(`[create-invoices] ${whatsappWarning} for SO ${salesOrderName}`);
         }
       } catch (notifErr) {
-        console.warn("[create-invoices] WhatsApp notification setup failed:", notifErr);
+        whatsappError = notifErr instanceof Error ? notifErr.message : String(notifErr);
+        console.error("[create-invoices] WhatsApp notification failed:", notifErr);
       }
     }
 
@@ -244,6 +260,9 @@ export async function POST(request: NextRequest) {
       invoices: createdInvoices,
       ...(draftInvoices.length > 0 && { drafts: draftInvoices }),
       ...(failedInstalments.length > 0 && { failed: failedInstalments }),
+      whatsappSent,
+      ...(whatsappError && { whatsappError }),
+      ...(whatsappWarning && { whatsappWarning }),
     });
   } catch (err) {
     console.error("[create-invoices] Error:", err);
