@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
-import { CheckCircle2, Clock, AlertCircle, CircleDot, Loader2, XCircle, IndianRupee } from "lucide-react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
+import { CheckCircle2, Clock, AlertCircle, CircleDot, Loader2, XCircle, IndianRupee, Lock, FileText } from "lucide-react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 
 // ── Razorpay types ──
 declare global {
@@ -253,6 +254,12 @@ export default function PayPage() {
   const totalOutstanding = data.invoices.reduce((s, i) => s + i.outstanding_amount, 0);
   const progressPct = data.grandTotal > 0 ? Math.round((totalPaid / data.grandTotal) * 100) : 0;
 
+  // Sequential payment: only the first unpaid instalment can be paid
+  const firstUnpaidIndex = useMemo(
+    () => data.invoices.findIndex((inv) => inv.outstanding_amount > 0 && !paidInvoices.has(inv.name)),
+    [data.invoices, paidInvoices],
+  );
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -310,12 +317,22 @@ export default function PayPage() {
 
         {/* Invoices */}
         <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-gray-700">Instalments</h3>
-          {data.invoices.map((inv) => {
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-gray-700">Instalments</h3>
+            <Link
+              href={`/pay/${token}/invoice`}
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
+            >
+              <FileText className="h-3.5 w-3.5" />
+              View Invoice
+            </Link>
+          </div>
+          {data.invoices.map((inv, index) => {
             const status = paidInvoices.has(inv.name) ? "paid" : getInvoiceStatus(inv);
             const config = statusConfig[status];
             const Icon = config.icon;
-            const canPay = !data.discontinued && inv.outstanding_amount > 0 && !paidInvoices.has(inv.name);
+            const canPay = !data.discontinued && index === firstUnpaidIndex && !paidInvoices.has(inv.name);
+            const isLocked = !data.discontinued && inv.outstanding_amount > 0 && !paidInvoices.has(inv.name) && index !== firstUnpaidIndex;
             const isPaying = payingInvoice === inv.name;
 
             return (
@@ -371,6 +388,13 @@ export default function PayPage() {
                         </>
                       )}
                     </button>
+                  )}
+
+                  {isLocked && (
+                    <span className="text-xs text-gray-400 font-medium flex items-center gap-1">
+                      <Lock className="h-3.5 w-3.5" />
+                      Pay previous first
+                    </span>
                   )}
 
                   {status === "paid" && (

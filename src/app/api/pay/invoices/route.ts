@@ -89,6 +89,13 @@ export async function POST(request: NextRequest) {
       { headers },
     );
 
+    interface InvoiceItem {
+      item_name: string;
+      qty: number;
+      rate: number;
+      amount: number;
+    }
+
     let invoices: Array<{
       name: string;
       posting_date: string;
@@ -97,26 +104,54 @@ export async function POST(request: NextRequest) {
       outstanding_amount: number;
       status: string;
       label: string;
+      items: InvoiceItem[];
     }> = [];
 
     if (invRes.ok) {
       const invData = await invRes.json();
       const sorted = (invData.data || []) as Record<string, unknown>[];
-      invoices = sorted.map((inv, idx) => {
-        let label: string;
-        if (sorted.length === 1) label = "Full Payment";
-        else if (sorted.length === 4) label = `Q${idx + 1}`;
-        else label = `Instalment ${idx + 1}`;
-        return {
-          name: inv.name as string,
-          posting_date: inv.posting_date as string,
-          due_date: inv.due_date as string,
-          grand_total: inv.grand_total as number,
-          outstanding_amount: inv.outstanding_amount as number,
-          status: inv.status as string,
-          label,
-        };
-      });
+
+      // Fetch items for each invoice in parallel
+      const invoicesWithItems = await Promise.all(
+        sorted.map(async (inv, idx) => {
+          let label: string;
+          if (sorted.length === 1) label = "Full Payment";
+          else if (sorted.length === 4) label = `Q${idx + 1}`;
+          else label = `Instalment ${idx + 1}`;
+
+          // Fetch the full invoice document to get items
+          let items: InvoiceItem[] = [];
+          try {
+            const detailRes = await fetch(
+              `${FRAPPE_URL}/api/resource/Sales Invoice/${encodeURIComponent(inv.name as string)}?fields=["items"]`,
+              { headers },
+            );
+            if (detailRes.ok) {
+              const detailData = (await detailRes.json()).data;
+              items = (detailData?.items || []).map((item: Record<string, unknown>) => ({
+                item_name: item.item_name as string,
+                qty: item.qty as number,
+                rate: item.rate as number,
+                amount: item.amount as number,
+              }));
+            }
+          } catch {
+            // If items fetch fails, continue with empty items
+          }
+
+          return {
+            name: inv.name as string,
+            posting_date: inv.posting_date as string,
+            due_date: inv.due_date as string,
+            grand_total: inv.grand_total as number,
+            outstanding_amount: inv.outstanding_amount as number,
+            status: inv.status as string,
+            label,
+            items,
+          };
+        }),
+      );
+      invoices = invoicesWithItems;
     }
 
     return NextResponse.json({
