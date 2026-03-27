@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft, Search, ChevronLeft, ChevronRight,
   Loader2, AlertCircle, Star, CircleCheck,
-  Download, FileText, FileSpreadsheet, ChevronDown,
+  Download, FileText, FileSpreadsheet, ChevronDown, Calendar,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -42,9 +42,12 @@ function getEnabledParam(f: StatusFilter): 0 | 1 | undefined {
   return undefined;
 }
 
-function getExtraFilters(f: StatusFilter): string[][] {
-  if (f === "discontinued") return [["custom_discontinuation_date", "is", "set"]];
-  return [];
+function getExtraFilters(f: StatusFilter, dateFrom?: string, dateTo?: string): string[][] {
+  const filters: string[][] = [];
+  if (f === "discontinued") filters.push(["custom_discontinuation_date", "is", "set"]);
+  if (dateFrom) filters.push(["joining_date", ">=", dateFrom]);
+  if (dateTo) filters.push(["joining_date", "<=", dateTo]);
+  return filters;
 }
 
 async function fetchEnrollmentMap(
@@ -119,6 +122,8 @@ export default function DirectorAllStudentsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [branchFilter, setBranchFilter] = useState<string>("");
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
   const [page, setPage] = useState(0);
   const [exportOpen, setExportOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -130,7 +135,7 @@ export default function DirectorAllStudentsPage() {
     return () => clearTimeout(t);
   }, [searchInput]);
 
-  useEffect(() => { setPage(0); }, [statusFilter, branchFilter]);
+  useEffect(() => { setPage(0); }, [statusFilter, branchFilter, dateFrom, dateTo]);
 
   // Total count
   const { data: totalCount } = useQuery({
@@ -149,12 +154,12 @@ export default function DirectorAllStudentsPage() {
 
   // Students query
   const { data: studentsRes, isLoading, isError, error } = useQuery({
-    queryKey: ["director-all-students", search, statusFilter, branchFilter, page],
+    queryKey: ["director-all-students", search, statusFilter, branchFilter, dateFrom, dateTo, page],
     queryFn: () =>
       getStudents({
         search: search || undefined,
         enabled: getEnabledParam(statusFilter),
-        extraFilters: getExtraFilters(statusFilter),
+        extraFilters: getExtraFilters(statusFilter, dateFrom, dateTo),
         custom_branch: branchFilter || undefined,
         limit_start: page * PAGE_SIZE,
         limit_page_length: PAGE_SIZE,
@@ -213,7 +218,7 @@ export default function DirectorAllStudentsPage() {
       const res = await getStudents({
         search: search || undefined,
         enabled: getEnabledParam(statusFilter),
-        extraFilters: getExtraFilters(statusFilter),
+        extraFilters: getExtraFilters(statusFilter, dateFrom, dateTo),
         custom_branch: branchFilter || undefined,
         limit_start: offset,
         limit_page_length: batchSize,
@@ -232,7 +237,7 @@ export default function DirectorAllStudentsPage() {
     // Fetch guardian info for all
     const gInfo = ids.length ? await fetchGuardianMap(ids) : {} as Record<string, { parentName: string; parentMobile: string }>;
     return { students: allStudents, enrollments: enrMap, fees, guardianInfo: gInfo };
-  }, [search, statusFilter, branchFilter]);
+  }, [search, statusFilter, branchFilter, dateFrom, dateTo]);
 
   const handleExportExcel = useCallback(async () => {
     setExporting(true);
@@ -435,6 +440,35 @@ export default function DirectorAllStudentsPage() {
                 </option>
               ))}
             </select>
+            {/* Date range filter */}
+            <div className="flex items-center gap-1.5">
+              <Calendar className="h-4 w-4 text-text-tertiary flex-shrink-0" />
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="h-10 px-2.5 rounded-[8px] border border-border-input bg-surface text-sm text-text-primary
+                  focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary w-[130px]"
+                title="Admitted from"
+              />
+              <span className="text-text-tertiary text-xs">to</span>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="h-10 px-2.5 rounded-[8px] border border-border-input bg-surface text-sm text-text-primary
+                  focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary w-[130px]"
+                title="Admitted to"
+              />
+              {(dateFrom || dateTo) && (
+                <button
+                  onClick={() => { setDateFrom(""); setDateTo(""); }}
+                  className="text-xs text-primary hover:underline ml-1"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
             {/* Status tabs */}
             <div className="flex gap-2 flex-shrink-0">
               {STATUS_TABS.map((tab) => (
