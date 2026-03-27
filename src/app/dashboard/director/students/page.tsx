@@ -12,13 +12,14 @@ import {
   AlertCircle,
   ChevronLeft,
   ChevronRight,
+  Users,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { getAllBranches, getActiveStudentCountForBranch, getDiscontinuedStudentCountForBranch } from "@/lib/api/director";
+import { getAllBranches, getActiveStudentCountForBranch, getDiscontinuedStudentCountForBranch, getActiveStudentCount } from "@/lib/api/director";
 
 function BranchStudentRow({
   branch,
@@ -91,6 +92,12 @@ export default function DirectorStudentsPage() {
     staleTime: 300_000,
   });
 
+  const { data: totalActive } = useQuery({
+    queryKey: ["director-total-active-students"],
+    queryFn: getActiveStudentCount,
+    staleTime: 120_000,
+  });
+
   const [search, setSearch] = useState("");
 
   const activeBranches = (branches ?? []).filter(
@@ -111,11 +118,24 @@ export default function DirectorStudentsPage() {
     >
       <BreadcrumbNav />
 
-      <div>
-        <h1 className="text-2xl font-bold text-text-primary">Students</h1>
-        <p className="text-sm text-text-secondary mt-0.5">
-          Select a branch to view its students
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-text-primary">Students</h1>
+          <p className="text-sm text-text-secondary mt-0.5">
+            Select a branch to view its students
+          </p>
+        </div>
+        <Link href="/dashboard/director/students/all">
+          <Button variant="primary" size="md" className="gap-2">
+            <Users className="h-4 w-4" />
+            All Students
+            {totalActive !== undefined && (
+              <span className="ml-1 px-2 py-0.5 rounded-full bg-white/20 text-xs font-semibold">
+                {totalActive}
+              </span>
+            )}
+          </Button>
+        </Link>
       </div>
 
       {/* Search */}

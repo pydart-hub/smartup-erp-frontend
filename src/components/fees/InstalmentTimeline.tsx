@@ -175,15 +175,12 @@ export default function InstalmentTimeline({
           const isPartial = inst.outstandingAmount > 0 && inst.outstandingAmount < inst.amount;
           const instPaidAmount = inst.amount - inst.outstandingAmount;
           const instPct = inst.amount > 0 ? Math.round((instPaidAmount / inst.amount) * 100) : 0;
+          // Sequential payment: only allow paying the first unpaid instalment
+          const firstUnpaidIdx = instalments.findIndex((i) => i.outstandingAmount > 0);
           const showPayButton =
             !disabled &&
             inst.outstandingAmount > 0 &&
-            (inst.status === "overdue" || inst.status === "due-today" || inst.status === "partially-paid" ||
-              // Also show for earliest upcoming
-              (inst.status === "upcoming" &&
-                instalments.findIndex(
-                  (i) => i.outstandingAmount > 0 && i.status === "upcoming"
-                ) === idx));
+            idx === firstUnpaidIdx;
 
           return (
             <div key={inst.invoiceId} className="flex gap-3">

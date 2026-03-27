@@ -135,6 +135,49 @@ export async function POST(request: NextRequest) {
         }).catch((err) => console.warn("[create-parent-user] WhatsApp failed (existing user):", err));
       }
 
+      // Save password to Guardian for sibling visibility too
+      try {
+        const cfCheck = await fetch(
+          `${FRAPPE_URL}/api/resource/Custom Field/${encodeURIComponent("Guardian-custom_portal_password")}`,
+          { headers: { Authorization: adminAuth }, cache: "no-store" },
+        );
+        if (!cfCheck.ok) {
+          await fetch(`${FRAPPE_URL}/api/resource/Custom Field`, {
+            method: "POST",
+            headers: { Authorization: adminAuth, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              doctype: "Custom Field", dt: "Guardian",
+              fieldname: "custom_portal_password", label: "Portal Password",
+              fieldtype: "Data", insert_after: "email_address", hidden: 1,
+            }),
+            cache: "no-store",
+          });
+        }
+        const gRes = await fetch(
+          `${FRAPPE_URL}/api/resource/Guardian?filters=${encodeURIComponent(
+            JSON.stringify([["email_address", "=", email]]),
+          )}&fields=["name","custom_portal_password"]&limit_page_length=1`,
+          { headers: { Authorization: adminAuth }, cache: "no-store" },
+        );
+        if (gRes.ok) {
+          const gData = await gRes.json();
+          const g = gData.data?.[0];
+          if (g?.name && !g.custom_portal_password) {
+            await fetch(`${FRAPPE_URL}/api/method/frappe.client.set_value`, {
+              method: "POST",
+              headers: { Authorization: adminAuth, "Content-Type": "application/json" },
+              body: JSON.stringify({
+                doctype: "Guardian", name: g.name,
+                fieldname: "custom_portal_password", value: password || "SmartUp@123",
+              }),
+              cache: "no-store",
+            });
+          }
+        }
+      } catch (err) {
+        console.warn("[create-parent-user] Failed to save password to Guardian (existing):", err);
+      }
+
       return NextResponse.json({
         message: "User already exists — Parent role ensured",
         user: email,
@@ -207,6 +250,51 @@ export async function POST(request: NextRequest) {
       }
     } catch (pwdErr) {
       console.warn("[create-parent-user] Password set_value failed:", pwdErr);
+    }
+
+    // ── Save password to Guardian's custom_portal_password ──────
+    try {
+      // Ensure custom field exists
+      const cfCheck = await fetch(
+        `${FRAPPE_URL}/api/resource/Custom Field/${encodeURIComponent("Guardian-custom_portal_password")}`,
+        { headers: { Authorization: adminAuth }, cache: "no-store" },
+      );
+      if (!cfCheck.ok) {
+        await fetch(`${FRAPPE_URL}/api/resource/Custom Field`, {
+          method: "POST",
+          headers: { Authorization: adminAuth, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            doctype: "Custom Field", dt: "Guardian",
+            fieldname: "custom_portal_password", label: "Portal Password",
+            fieldtype: "Data", insert_after: "email_address", hidden: 1,
+          }),
+          cache: "no-store",
+        });
+      }
+      // Find Guardian by email
+      const gRes = await fetch(
+        `${FRAPPE_URL}/api/resource/Guardian?filters=${encodeURIComponent(
+          JSON.stringify([["email_address", "=", email]]),
+        )}&fields=["name"]&limit_page_length=1`,
+        { headers: { Authorization: adminAuth }, cache: "no-store" },
+      );
+      if (gRes.ok) {
+        const gData = await gRes.json();
+        const gName = gData.data?.[0]?.name;
+        if (gName) {
+          await fetch(`${FRAPPE_URL}/api/method/frappe.client.set_value`, {
+            method: "POST",
+            headers: { Authorization: adminAuth, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              doctype: "Guardian", name: gName,
+              fieldname: "custom_portal_password", value: password,
+            }),
+            cache: "no-store",
+          });
+        }
+      }
+    } catch (err) {
+      console.warn("[create-parent-user] Failed to save password to Guardian:", err);
     }
 
     // ── Send login credentials email to parent ──────────────────

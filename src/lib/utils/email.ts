@@ -2,38 +2,100 @@
  * Shared email utility — sends emails directly via SMTP using nodemailer.
  * Bypasses Frappe's email queue entirely for reliable, immediate delivery.
  *
- * Required env vars:
- *   SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM
+ * Supports up to 3 SMTP accounts with automatic failover:
+ *   Account 1 fails → tries Account 2 → tries Account 3.
+ *
+ * Env vars (per account, suffix _1 / _2 / _3):
+ *   SMTP_HOST_1, SMTP_PORT_1, SMTP_USER_1, SMTP_PASS_1, SMTP_FROM_1
+ *   SMTP_HOST_2, SMTP_PORT_2, SMTP_USER_2, SMTP_PASS_2, SMTP_FROM_2
+ *   SMTP_HOST_3, SMTP_PORT_3, SMTP_USER_3, SMTP_PASS_3, SMTP_FROM_3
+ *
+ * Backward-compatible: falls back to legacy SMTP_HOST/SMTP_USER/… if _1 vars are missing.
  */
 
 import nodemailer from "nodemailer";
 
-const SMTP_HOST = process.env.SMTP_HOST || "smtp.gmail.com";
-const SMTP_PORT = parseInt(process.env.SMTP_PORT || "587", 10);
-const SMTP_USER = process.env.SMTP_USER;
-const SMTP_PASS = process.env.SMTP_PASS;
-const SMTP_FROM = process.env.SMTP_FROM || SMTP_USER || "";
+/* ------------------------------------------------------------------ */
+/*  SMTP account types & loading                                      */
+/* ------------------------------------------------------------------ */
 
-// Reusable transporter (connection pooling across requests)
-let _transporter: nodemailer.Transporter | null = null;
+interface SmtpAccount {
+  host: string;
+  port: number;
+  user: string;
+  pass: string;
+  from: string;
+}
 
-function getTransporter(): nodemailer.Transporter {
-  if (!_transporter) {
-    if (!SMTP_USER || !SMTP_PASS) {
-      throw new Error("SMTP_USER and SMTP_PASS env vars are required for email sending");
-    }
-    _transporter = nodemailer.createTransport({
-      host: SMTP_HOST,
-      port: SMTP_PORT,
-      secure: SMTP_PORT === 465, // true for 465, false for 587
-      auth: {
-        user: SMTP_USER,
-        pass: SMTP_PASS,
-      },
+/** Read accounts from env once, cache in module scope. */
+let _accounts: SmtpAccount[] | null = null;
+
+function loadSmtpAccounts(): SmtpAccount[] {
+  if (_accounts) return _accounts;
+
+  const accounts: SmtpAccount[] = [];
+
+  for (const suffix of ["_1", "_2", "_3"]) {
+    const user = process.env[`SMTP_USER${suffix}`];
+    const pass = process.env[`SMTP_PASS${suffix}`];
+    if (!user || !pass) continue;
+
+    accounts.push({
+      host: process.env[`SMTP_HOST${suffix}`] || "smtp.gmail.com",
+      port: parseInt(process.env[`SMTP_PORT${suffix}`] || "587", 10),
+      user,
+      pass,
+      from: process.env[`SMTP_FROM${suffix}`] || user,
     });
   }
-  return _transporter;
+
+  // Backward compat: accept legacy SMTP_USER / SMTP_PASS if no _1 vars
+  if (accounts.length === 0) {
+    const user = process.env.SMTP_USER;
+    const pass = process.env.SMTP_PASS;
+    if (user && pass) {
+      accounts.push({
+        host: process.env.SMTP_HOST || "smtp.gmail.com",
+        port: parseInt(process.env.SMTP_PORT || "587", 10),
+        user,
+        pass,
+        from: process.env.SMTP_FROM || user,
+      });
+    }
+  }
+
+  if (accounts.length === 0) {
+    throw new Error("No SMTP accounts configured. Set SMTP_USER_1/SMTP_PASS_1 (or legacy SMTP_USER/SMTP_PASS).");
+  }
+
+  _accounts = accounts;
+  console.log(`[email] Loaded ${accounts.length} SMTP account(s): ${accounts.map((a) => a.user).join(", ")}`);
+  return _accounts;
 }
+
+/* ------------------------------------------------------------------ */
+/*  Transporter cache (one per account)                               */
+/* ------------------------------------------------------------------ */
+
+const _transporters = new Map<string, nodemailer.Transporter>();
+
+function getTransporter(account: SmtpAccount): nodemailer.Transporter {
+  let t = _transporters.get(account.user);
+  if (!t) {
+    t = nodemailer.createTransport({
+      host: account.host,
+      port: account.port,
+      secure: account.port === 465,
+      auth: { user: account.user, pass: account.pass },
+    });
+    _transporters.set(account.user, t);
+  }
+  return t;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Public API                                                        */
+/* ------------------------------------------------------------------ */
 
 export interface SendEmailOptions {
   to: string;
@@ -47,22 +109,40 @@ export interface SendEmailOptions {
 }
 
 /**
- * Send an email immediately via SMTP.
- * Returns the messageId on success, throws on failure.
+ * Send an email with automatic failover across configured SMTP accounts.
+ * Tries each account sequentially; returns on the first success.
+ * Throws only when ALL accounts fail.
  */
 export async function sendEmail(opts: SendEmailOptions): Promise<{ messageId: string }> {
-  const transporter = getTransporter();
+  const accounts = loadSmtpAccounts();
+  const errors: Array<{ user: string; error: string }> = [];
 
-  const info = await transporter.sendMail({
-    from: SMTP_FROM,
-    to: opts.to,
-    subject: opts.subject,
-    html: opts.html,
-    attachments: opts.attachments,
-  });
+  for (const account of accounts) {
+    try {
+      const transporter = getTransporter(account);
+      const info = await transporter.sendMail({
+        from: account.from,
+        to: opts.to,
+        subject: opts.subject,
+        html: opts.html,
+        attachments: opts.attachments,
+      });
 
-  console.log(`[email] Sent to ${opts.to} — messageId: ${info.messageId}`);
-  return { messageId: info.messageId };
+      console.log(`[email] Sent to ${opts.to} via ${account.user} — messageId: ${info.messageId}`);
+      return { messageId: info.messageId };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`[email] Account ${account.user} failed for ${opts.to}: ${msg}`);
+      errors.push({ user: account.user, error: msg });
+
+      // Reset cached transporter so next request gets a fresh connection
+      _transporters.delete(account.user);
+    }
+  }
+
+  // All accounts exhausted
+  const detail = errors.map((e) => `${e.user}: ${e.error}`).join(" | ");
+  throw new Error(`All ${accounts.length} SMTP account(s) failed to send to ${opts.to}. Details → ${detail}`);
 }
 
 /**

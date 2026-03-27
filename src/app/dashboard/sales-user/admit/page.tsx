@@ -879,9 +879,9 @@ function AdmitPageContent() {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Input label="Guardian Name *" placeholder="Full name" error={errors.guardian_name?.message} {...register("guardian_name")} />
+                    <Input label="Guardian Name *" placeholder="Full name" error={errors.guardian_name?.message} disabled={!!siblingGuardian} {...register("guardian_name")} />
                     <SelectField label="Relation" required error={errors.guardian_relation?.message}>
-                      <select className={selectCls} {...register("guardian_relation")}>
+                      <select className={selectCls} disabled={!!siblingGuardian} {...register("guardian_relation")}>
                         <option value="">Select relation</option>
                         <option value="Father">Father</option>
                         <option value="Mother">Mother</option>
@@ -897,6 +897,7 @@ function AdmitPageContent() {
                       leftIcon={<Phone className="h-4 w-4" />}
                       maxLength={10}
                       inputMode="numeric"
+                      disabled={!!siblingGuardian}
                       onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace','Delete','Tab','ArrowLeft','ArrowRight','Home','End'].includes(e.key) && !e.ctrlKey && !e.metaKey) e.preventDefault(); }}
                       error={errors.guardian_mobile?.message}
                       {...register("guardian_mobile")}
@@ -906,6 +907,7 @@ function AdmitPageContent() {
                       type="email"
                       placeholder="guardian@email.com"
                       leftIcon={<Mail className="h-4 w-4" />}
+                      disabled={!!siblingGuardian}
                       error={errors.guardian_email?.message}
                       {...register("guardian_email")}
                     />
@@ -917,13 +919,14 @@ function AdmitPageContent() {
                       type={showPassword ? "text" : "password"}
                       placeholder="Min 8 characters"
                       leftIcon={<Lock className="h-4 w-4" />}
+                      disabled={!!siblingGuardian}
                       rightIcon={
                         <button type="button" onClick={() => setShowPassword(!showPassword)} className="cursor-pointer">
                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       }
                       error={errors.guardian_password?.message}
-                      hint="This will be used to create a parent login account"
+                      hint={siblingGuardian ? "Using existing parent account" : "This will be used to create a parent login account"}
                       {...register("guardian_password")}
                     />
                   </div>

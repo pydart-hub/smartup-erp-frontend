@@ -1,10 +1,10 @@
 @import "tailwindcss";
 
 /* ═══════════════════════════════════════════════
-   SMARTUP ERP — Design Tokens (Light Mode Only)
+   SMARTUP ERP — Design Tokens (Light Mode)
    ═══════════════════════════════════════════════ */
 
-@theme inline {
+@theme {
   /* ── Backgrounds & Surfaces ── */
   --color-app-bg: #F4F7F6;
   --color-surface: #FFFFFF;
@@ -56,6 +56,47 @@
   --radius-full: 9999px;
 }
 
+/* ═══════════════════════════════════════════════
+   SMARTUP ERP — Dark Mode Overrides
+   ═══════════════════════════════════════════════ */
+
+.dark {
+  --color-app-bg: #0B1120;
+  --color-surface: #111827;
+  --color-brand-wash: #0F2624;
+
+  --color-text-primary: #F9FAFB;
+  --color-text-secondary: #D1D5DB;
+  --color-text-tertiary: #6B7280;
+
+  --color-primary: #2DD4BF;
+  --color-primary-hover: #14B8A6;
+  --color-primary-light: #0F2624;
+  --color-secondary: #86EFAC;
+  --color-secondary-hover: #4ADE80;
+  --color-secondary-light: #0C1F15;
+
+  --color-border-light: #1F2937;
+  --color-border-input: #374151;
+  --color-border-focus: #2DD4BF;
+
+  --color-success: #34D399;
+  --color-success-light: #064E3B;
+  --color-warning: #FBBF24;
+  --color-warning-light: #451A03;
+  --color-error: #F87171;
+  --color-error-light: #450A0A;
+  --color-info: #60A5FA;
+  --color-info-light: #172554;
+
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.3);
+  --shadow-card-hover: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+  --shadow-dropdown: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.3);
+  --shadow-modal: 0 20px 25px -5px rgb(0 0 0 / 0.5), 0 8px 10px -6px rgb(0 0 0 / 0.5);
+
+  color-scheme: dark;
+}
+
 /* ── Base Styles ── */
 body {
   background: var(--color-app-bg);
@@ -63,6 +104,45 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Theme transition ─ smooth color crossfade on toggle ── */
+html.theme-transitioning,
+html.theme-transitioning *,
+html.theme-transitioning *::before,
+html.theme-transitioning *::after {
+  transition: background-color 0.5s ease, color 0.35s ease,
+    border-color 0.4s ease, box-shadow 0.4s ease, fill 0.35s ease,
+    stroke 0.35s ease !important;
+}
+
+/* ── Brief flash overlay for visual punch ── */
+.theme-flash {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.25), transparent 70%);
+  animation: theme-flash-anim 0.5s ease-out forwards;
+}
+
+.dark .theme-flash {
+  background: radial-gradient(circle at 50% 50%, rgba(45,212,191,0.12), transparent 70%);
+}
+
+@keyframes theme-flash-anim {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.2);
+  }
 }
 
 /* ── Focus ring utility ── */

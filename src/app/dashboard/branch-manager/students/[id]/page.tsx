@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 import {
   ArrowLeft, Pencil, User, School, Users, Phone, Mail,
   Calendar, Hash, Building2, AlertCircle, Loader2, IndianRupee, FileText,
-  Clock, CreditCard, ExternalLink, UserX,
+  Clock, CreditCard, ExternalLink, UserX, KeyRound, Eye, EyeOff, RotateCcw, Copy, Check,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Button } from "@/components/ui/Button";
@@ -57,6 +57,12 @@ export default function StudentViewPage() {
   // ── Discontinue modal state ───────────────────────────────
   const [showDiscontinue, setShowDiscontinue] = useState(false);
 
+  // ── Parent login password state ───────────────────────────
+  const [parentPassword, setParentPassword] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [resettingPwd, setResettingPwd] = useState(false);
+  const [copiedPwd, setCopiedPwd] = useState(false);
+
   // ── Student data ──────────────────────────────────────────
   const { data: studentRes, isLoading, isError } = useQuery({
     queryKey: ["student", id],
@@ -89,6 +95,10 @@ export default function StudentViewPage() {
     queryKey: ["guardian", guardianLink?.guardian],
     queryFn: async () => {
       const { data } = await apiClient.get(`/resource/Guardian/${encodeURIComponent(guardianLink!.guardian)}`);
+      // Sync stored password to state
+      if (data.data?.custom_portal_password) {
+        setParentPassword(data.data.custom_portal_password);
+      }
       return data.data;
     },
     enabled: !!guardianLink?.guardian,
@@ -321,6 +331,89 @@ export default function StudentViewPage() {
               ) : (
                 <div className="flex items-center gap-2 py-2 text-xs text-text-tertiary">
                   <Loader2 className="h-3 w-3 animate-spin" /> Loading guardian details…
+                </div>
+              )}
+
+              {/* Parent Login Credentials */}
+              {guardian?.email_address && (
+                <div className="mt-3 pt-3 border-t border-border-light">
+                  <div className="flex items-center gap-2 mb-2">
+                    <KeyRound className="h-3.5 w-3.5 text-primary" />
+                    <span className="text-xs font-semibold text-text-primary">Parent Login</span>
+                  </div>
+                  <div className="rounded-lg bg-app-bg border border-border-light p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-[10px] text-text-tertiary">Login Email</p>
+                        <p className="text-sm font-medium text-text-primary">{guardian.email_address}</p>
+                      </div>
+                    </div>
+                    {parentPassword ? (
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-[10px] text-text-tertiary">Password</p>
+                          <p className="text-sm font-mono font-medium text-text-primary">
+                            {showPassword ? parentPassword : "••••••••••"}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => setShowPassword((v) => !v)}
+                            className="p-1.5 rounded-md hover:bg-border-light transition-colors text-text-secondary"
+                            title={showPassword ? "Hide" : "Show"}
+                          >
+                            {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                          </button>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(parentPassword);
+                              setCopiedPwd(true);
+                              setTimeout(() => setCopiedPwd(false), 2000);
+                            }}
+                            className="p-1.5 rounded-md hover:bg-border-light transition-colors text-text-secondary"
+                            title="Copy password"
+                          >
+                            {copiedPwd ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-text-tertiary italic">No password stored. Click Reset to set one.</p>
+                    )}
+                    <button
+                      disabled={resettingPwd}
+                      onClick={async () => {
+                        setResettingPwd(true);
+                        try {
+                          const res = await fetch("/api/admin/reset-parent-password", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            credentials: "include",
+                            body: JSON.stringify({ email: guardian.email_address }),
+                          });
+                          const data = await res.json();
+                          if (res.ok) {
+                            setParentPassword(data.password);
+                            setShowPassword(true);
+                          } else {
+                            alert(data.error || "Failed to reset password");
+                          }
+                        } catch {
+                          alert("Network error");
+                        } finally {
+                          setResettingPwd(false);
+                        }
+                      }}
+                      className="flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary-hover disabled:opacity-50 transition-colors"
+                    >
+                      {resettingPwd ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <RotateCcw className="h-3 w-3" />
+                      )}
+                      {parentPassword ? "Reset Password" : "Set Password"}
+                    </button>
+                  </div>
                 </div>
               )}
             </>

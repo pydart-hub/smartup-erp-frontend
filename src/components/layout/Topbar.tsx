@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/hooks/useAuth";
 import { useUIStore } from "@/lib/stores/uiStore";
 import { getInitials } from "@/lib/utils/formatters";
 import { NotificationDropdown } from "@/components/layout/NotificationDropdown";
+import { ThemeToggle } from "@/components/layout/ThemeToggle";
 
 const ROLE_ICONS: Record<string, React.ReactNode> = {
   "Branch Manager": <Building2 className="h-4 w-4" />,
@@ -84,6 +85,9 @@ export function Topbar() {
 
         {/* Notification Bell */}
         <NotificationDropdown />
+
+        {/* Theme Toggle */}
+        <ThemeToggle />
 
         {/* User Menu */}
         <div className="relative" ref={menuRef}>
