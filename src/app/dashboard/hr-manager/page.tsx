@@ -21,6 +21,7 @@ import {
   getLeaveApplications,
 } from "@/lib/api/hr";
 import { formatCurrency } from "@/lib/utils/formatters";
+import { AnimatedNumber, AnimatedCurrency, AnimatedName } from "@/components/dashboard/AnimatedValue";
 import { getSalarySlips } from "@/lib/api/hr";
 
 const quickActions = [
@@ -136,11 +137,14 @@ export default function HRManagerDashboard() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div>
             <h1 className="text-2xl font-bold text-text-primary">
-              Welcome back, {user?.full_name?.split(" ")[0] || "HR Manager"}
+              <motion.span initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }}>
+                Welcome back,{" "}
+              </motion.span>
+              <AnimatedName name={user?.full_name?.split(" ")[0] || "HR Manager"} />
             </h1>
-            <p className="text-text-secondary text-sm mt-0.5">
+            <motion.p className="text-text-secondary text-sm mt-0.5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8, duration: 0.5 }}>
               Here&apos;s your HR overview for today.
-            </p>
+            </motion.p>
           </div>
           <Badge variant="default" className="self-start px-3 py-1 text-sm">
             HR Manager
@@ -288,23 +292,23 @@ export default function HRManagerDashboard() {
                     <div className="text-center">
                       <p className="text-xs text-text-tertiary mb-1">Slips</p>
                       <p className="text-xl font-bold text-text-primary">
-                        {(recentSalarySlips?.data ?? []).length}
+                        <AnimatedNumber value={(recentSalarySlips?.data ?? []).length} />
                       </p>
                     </div>
                     <div className="text-center">
                       <p className="text-xs text-text-tertiary mb-1">Total Net Pay</p>
                       <p className="text-xl font-bold text-text-primary">
-                        {formatCurrency(totalPayroll)}
+                        <AnimatedCurrency value={totalPayroll} />
                       </p>
                     </div>
                     <div className="text-center">
                       <p className="text-xs text-text-tertiary mb-1">Avg Net Pay</p>
                       <p className="text-xl font-bold text-text-primary">
-                        {formatCurrency(
+                        <AnimatedCurrency value={
                           (recentSalarySlips?.data ?? []).length > 0
                             ? totalPayroll / (recentSalarySlips?.data ?? []).length
                             : 0
-                        )}
+                        } />
                       </p>
                     </div>
                   </div>

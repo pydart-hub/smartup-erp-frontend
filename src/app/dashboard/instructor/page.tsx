@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { StatsCard } from "@/components/dashboard/StatsCard";
+import { AnimatedNumber, AnimatedName } from "@/components/dashboard/AnimatedValue";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { useAuth } from "@/lib/hooks/useAuth";
@@ -72,29 +73,32 @@ export default function InstructorDashboard() {
       {/* Welcome Header */}
       <motion.div variants={itemVariants}>
         <h1 className="text-2xl font-bold text-text-primary">
-          Welcome, {instructorDisplayName || user?.full_name || "Instructor"}
+          <motion.span initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }}>
+            Welcome,{" "}
+          </motion.span>
+          <AnimatedName name={instructorDisplayName || user?.full_name || "Instructor"} />
         </h1>
-        <p className="text-sm text-text-secondary mt-1">
+        <motion.p className="text-sm text-text-secondary mt-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8, duration: 0.5 }}>
           {defaultCompany && (
             <span className="mr-3">{defaultCompany.replace("Smart Up ", "")}</span>
           )}
           {allowedBatches.length > 0 && (
             <Badge variant="outline">{allowedBatches.join(", ")}</Badge>
           )}
-        </p>
+        </motion.p>
       </motion.div>
 
       {/* Stats Row */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatsCard
           title="My Batches"
-          value={loadingBatches ? "..." : String(activeBatches.length)}
+          value={loadingBatches ? "..." : <AnimatedNumber value={activeBatches.length} />}
           icon={<Users className="h-5 w-5" />}
           trend={{ value: batches.length, label: "total" }}
         />
         <StatsCard
           title="Total Students"
-          value={loadingBatches ? "..." : String(totalStudents)}
+          value={loadingBatches ? "..." : <AnimatedNumber value={totalStudents} />}
           icon={<GraduationCap className="h-5 w-5" />}
           trend={{ value: activeBatches.length, label: "batches" }}
         />

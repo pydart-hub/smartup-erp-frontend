@@ -8,7 +8,7 @@ import { TrendingUp, TrendingDown, Minus, ArrowRight } from "lucide-react";
 
 interface StatsCardProps {
   title: string;
-  value: string | number;
+  value: string | number | React.ReactNode;
   icon: React.ReactNode;
   subtitle?: React.ReactNode;
   trend?: { value: number; label: string };

@@ -19,6 +19,7 @@ import {
   Wifi,
   Banknote,
   CalendarClock,
+  UserPlus,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -37,8 +38,12 @@ import {
   getCollectedByMode,
   getDiscontinuedStudentForfeitedFees,
   getDuesTodayTotal,
+  getTodaysAdmissions,
+  getTodaysBilled,
+  getTodaysCollected,
 } from "@/lib/api/director";
 import { formatCurrency } from "@/lib/utils/formatters";
+import { AnimatedNumber, AnimatedCurrency, AnimatedName } from "@/components/dashboard/AnimatedValue";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -233,6 +238,27 @@ export default function DirectorDashboard() {
     refetchInterval: 30_000,
   });
 
+  const { data: todaysAdmissions, isLoading: loadTodaysAdmissions } = useQuery({
+    queryKey: ["director-todays-admissions"],
+    queryFn: getTodaysAdmissions,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+  });
+
+  const { data: todaysBilled, isLoading: loadTodaysBilled } = useQuery({
+    queryKey: ["director-todays-billed"],
+    queryFn: getTodaysBilled,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+  });
+
+  const { data: todaysCollected, isLoading: loadTodaysCollected } = useQuery({
+    queryKey: ["director-todays-collected"],
+    queryFn: getTodaysCollected,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+  });
+
   return (
     <motion.div
       variants={containerVariants}
@@ -247,16 +273,84 @@ export default function DirectorDashboard() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div>
             <h1 className="text-2xl font-bold text-text-primary">
-              Welcome, {user?.full_name?.split(" ")[0] || "Director"}
+              <motion.span
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5 }}
+              >
+                Welcome,{" "}
+              </motion.span>
+              <AnimatedName name={user?.full_name?.split(" ")[0] || "Director"} />
             </h1>
-            <p className="text-text-secondary text-sm mt-0.5">
+            <motion.p
+              className="text-text-secondary text-sm mt-0.5"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.8, duration: 0.5 }}
+            >
               Overview of all your branches and operations
-            </p>
+            </motion.p>
           </div>
           <Badge variant="default" className="self-start px-3 py-1 text-sm">
             Director
           </Badge>
         </div>
+      </motion.div>
+
+      {/* Today's Snapshot — compact highlight bar */}
+      <motion.div variants={itemVariants}>
+        <Link href="/dashboard/director/today">
+        <Card className="border-emerald-500/30 bg-gradient-to-r from-emerald-500/5 via-transparent to-teal-500/5 hover:shadow-md transition-shadow cursor-pointer">
+          <CardContent className="py-3 px-5 flex items-center gap-6 flex-wrap">
+            {/* Admissions */}
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
+                <UserPlus className="h-4 w-4 text-emerald-500" />
+              </div>
+              <div>
+                <span className="text-lg font-bold text-emerald-600 tabular-nums">
+                  {loadTodaysAdmissions ? "..." : <AnimatedNumber value={todaysAdmissions ?? 0} />}
+                </span>
+                <span className="text-xs text-text-tertiary ml-1.5">
+                  {(todaysAdmissions ?? 0) === 1 ? "admission" : "admissions"}
+                </span>
+              </div>
+            </div>
+
+            <div className="w-px h-7 bg-border-light" />
+
+            {/* Today Billed */}
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full bg-yellow-500/15 flex items-center justify-center flex-shrink-0">
+                <IndianRupee className="h-4 w-4 text-yellow-500" />
+              </div>
+              <div>
+                <span className="text-lg font-bold text-yellow-600 tabular-nums">
+                  {loadTodaysBilled ? "..." : <AnimatedCurrency value={todaysBilled ?? 0} />}
+                </span>
+                <span className="text-xs text-text-tertiary ml-1.5">billed</span>
+              </div>
+            </div>
+
+            <div className="w-px h-7 bg-border-light" />
+
+            {/* Today Collected */}
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full bg-green-500/15 flex items-center justify-center flex-shrink-0">
+                <CircleCheck className="h-4 w-4 text-green-500" />
+              </div>
+              <div>
+                <span className="text-lg font-bold text-green-600 tabular-nums">
+                  {loadTodaysCollected ? "..." : <AnimatedCurrency value={todaysCollected ?? 0} />}
+                </span>
+                <span className="text-xs text-text-tertiary ml-1.5">collected</span>
+              </div>
+            </div>
+
+            <span className="text-[10px] text-text-tertiary ml-auto uppercase tracking-wider">Today</span>
+          </CardContent>
+        </Card>
+        </Link>
       </motion.div>
 
       {/* Summary Stats — Clickable Cards */}
@@ -271,7 +365,7 @@ export default function DirectorDashboard() {
                 </p>
               ) : (
                 <p className="text-2xl font-bold text-text-primary">
-                  {loadTotalStudents ? "..." : (totalStudents ?? 0).toLocaleString()}
+                  {loadTotalStudents ? "..." : <AnimatedNumber value={totalStudents ?? 0} />}
                 </p>
               )}
               <p className="text-xs text-text-tertiary">Total Students</p>
@@ -279,14 +373,14 @@ export default function DirectorDashboard() {
                 <div className="flex justify-center gap-3 mt-2">
                   <div className="text-center">
                     <p className="text-sm font-semibold text-success">
-                      {loadActiveStudents ? "..." : (activeStudents ?? 0).toLocaleString()}
+                      {loadActiveStudents ? "..." : <AnimatedNumber value={activeStudents ?? 0} />}
                     </p>
                     <p className="text-[10px] text-text-tertiary uppercase tracking-wide">Active</p>
                   </div>
                   <div className="w-px bg-border-light" />
                   <div className="text-center">
                     <p className="text-sm font-semibold text-error">
-                      {loadDiscontinuedStudents ? "..." : (discontinuedStudents ?? 0).toLocaleString()}
+                      {loadDiscontinuedStudents ? "..." : <AnimatedNumber value={discontinuedStudents ?? 0} />}
                     </p>
                     <p className="text-[10px] text-text-tertiary uppercase tracking-wide">Discontinued</p>
                   </div>
@@ -306,7 +400,7 @@ export default function DirectorDashboard() {
                 </p>
               ) : (
                 <p className="text-2xl font-bold text-text-primary">
-                  {loadTotalStaff ? "..." : (totalStaff ?? 0).toLocaleString()}
+                  {loadTotalStaff ? "..." : <AnimatedNumber value={totalStaff ?? 0} />}
                 </p>
               )}
               <p className="text-xs text-text-tertiary">Total Staff</p>
@@ -324,7 +418,7 @@ export default function DirectorDashboard() {
                 </p>
               ) : (
                 <p className="text-2xl font-bold text-text-primary">
-                  {loadInvoiceStats ? "..." : formatCurrency(invoiceStats?.totalInvoiced ?? 0)}
+                  {loadInvoiceStats ? "..." : <AnimatedCurrency value={invoiceStats?.totalInvoiced ?? 0} />}
                 </p>
               )}
               <p className="text-xs text-text-tertiary">Total Billed</p>
@@ -342,7 +436,7 @@ export default function DirectorDashboard() {
                 </p>
               ) : (
                 <p className="text-2xl font-bold text-success">
-                  {loadInvoiceStats ? "..." : formatCurrency(invoiceStats?.totalCollected ?? 0)}
+                  {loadInvoiceStats ? "..." : <AnimatedCurrency value={invoiceStats?.totalCollected ?? 0} />}
                 </p>
               )}
               <p className="text-xs text-text-tertiary">Collected</p>
@@ -352,7 +446,7 @@ export default function DirectorDashboard() {
                     <div className="flex items-center justify-center gap-0.5">
                       <Wifi className="h-3 w-3 text-blue-500" />
                       <p className="text-xs font-semibold text-blue-600">
-                        {loadCollectedByMode ? "..." : formatCurrency(collectedByMode?.razorpay ?? 0)}
+                        {loadCollectedByMode ? "..." : <AnimatedCurrency value={collectedByMode?.razorpay ?? 0} />}
                       </p>
                     </div>
                     <p className="text-[10px] text-text-tertiary uppercase tracking-wide">Razorpay</p>
@@ -362,7 +456,7 @@ export default function DirectorDashboard() {
                     <div className="flex items-center justify-center gap-0.5">
                       <Banknote className="h-3 w-3 text-green-500" />
                       <p className="text-xs font-semibold text-green-600">
-                        {loadCollectedByMode ? "..." : formatCurrency(collectedByMode?.offline ?? 0)}
+                        {loadCollectedByMode ? "..." : <AnimatedCurrency value={collectedByMode?.offline ?? 0} />}
                       </p>
                     </div>
                     <p className="text-[10px] text-text-tertiary uppercase tracking-wide">Offline</p>
@@ -383,7 +477,7 @@ export default function DirectorDashboard() {
                 </p>
               ) : (
                 <p className="text-2xl font-bold text-error">
-                  {loadInvoiceStats || loadForfeitedFees ? "..." : formatCurrency((invoiceStats?.totalOutstanding ?? 0) - (forfeitedFees ?? 0))}
+                  {loadInvoiceStats || loadForfeitedFees ? "..." : <AnimatedCurrency value={(invoiceStats?.totalOutstanding ?? 0) - (forfeitedFees ?? 0)} />}
                 </p>
               )}
               <p className="text-xs text-text-tertiary">Pending Fees</p>
@@ -401,7 +495,7 @@ export default function DirectorDashboard() {
                 </p>
               ) : (
                 <p className="text-2xl font-bold text-orange-600">
-                  {loadDuesToday ? "..." : formatCurrency(duesToday?.total_dues ?? 0)}
+                  {loadDuesToday ? "..." : <AnimatedCurrency value={duesToday?.total_dues ?? 0} />}
                 </p>
               )}
               <p className="text-xs text-text-tertiary">Dues Till Today</p>
@@ -424,7 +518,7 @@ export default function DirectorDashboard() {
                 </p>
               ) : (
                 <p className="text-2xl font-bold text-amber-600">
-                  {loadForfeitedFees ? "..." : formatCurrency(forfeitedFees ?? 0)}
+                  {loadForfeitedFees ? "..." : <AnimatedCurrency value={forfeitedFees ?? 0} />}
                 </p>
               )}
               <p className="text-xs text-text-tertiary">Forfeited Fees</p>

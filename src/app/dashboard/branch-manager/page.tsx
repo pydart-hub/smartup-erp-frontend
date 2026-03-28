@@ -27,6 +27,7 @@ import { getStudentCount } from "@/lib/api/students";
 import { getAttendance } from "@/lib/api/attendance";
 import { getEmployeeAttendance } from "@/lib/api/employees";
 import { formatCurrency } from "@/lib/utils/formatters";
+import { AnimatedNumber, AnimatedCurrency, AnimatedName } from "@/components/dashboard/AnimatedValue";
 
 const quickActions = [
   {
@@ -213,11 +214,14 @@ export default function BranchManagerDashboard() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div>
             <h1 className="text-2xl font-bold text-text-primary">
-              Welcome back, {user?.full_name?.split(" ")[0] || "Manager"}
+              <motion.span initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }}>
+                Welcome back,{" "}
+              </motion.span>
+              <AnimatedName name={user?.full_name?.split(" ")[0] || "Manager"} />
             </h1>
-            <p className="text-text-secondary text-sm mt-0.5">
+            <motion.p className="text-text-secondary text-sm mt-0.5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8, duration: 0.5 }}>
               Here&apos;s what&apos;s happening at your branch today.
-            </p>
+            </motion.p>
           </div>
           <div className="flex flex-col items-start sm:items-end gap-1">
             <Badge variant="default" className="px-3 py-1 text-sm">
@@ -236,7 +240,7 @@ export default function BranchManagerDashboard() {
       <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
           title="Total Students"
-          value={loadingStudents ? "…" : (studentCount ?? 0)}
+          value={loadingStudents ? "…" : <AnimatedNumber value={studentCount ?? 0} />}
           icon={<GraduationCap className="h-5 w-5" />}
           color="primary"
           loading={loadingStudents}
@@ -279,7 +283,7 @@ export default function BranchManagerDashboard() {
         />
         <StatsCard
           title="Outstanding Fees"
-          value={loadingSales ? "…" : formatCurrency(outstandingFees)}
+          value={loadingSales ? "…" : <AnimatedCurrency value={outstandingFees} />}
           icon={<IndianRupee className="h-5 w-5" />}
           color="warning"
           trend={collectionRate > 0 ? { value: Math.round(collectionRate), label: "collected" } : undefined}
@@ -394,19 +398,19 @@ export default function BranchManagerDashboard() {
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                       <div className="text-center">
                         <p className="text-xs text-text-tertiary mb-1">Total Orders</p>
-                        <p className="text-xl font-bold text-text-primary">{salesStats?.total_orders ?? 0}</p>
+                        <p className="text-xl font-bold text-text-primary"><AnimatedNumber value={salesStats?.total_orders ?? 0} /></p>
                       </div>
                       <div className="text-center">
                         <p className="text-xs text-text-tertiary mb-1">Total Invoiced</p>
-                        <p className="text-xl font-bold text-text-primary">{formatCurrency(salesStats?.total_invoiced ?? 0)}</p>
+                        <p className="text-xl font-bold text-text-primary"><AnimatedCurrency value={salesStats?.total_invoiced ?? 0} /></p>
                       </div>
                       <div className="text-center">
                         <p className="text-xs text-text-tertiary mb-1">Outstanding</p>
-                        <p className="text-xl font-bold text-warning">{formatCurrency(outstandingFees)}</p>
+                        <p className="text-xl font-bold text-warning"><AnimatedCurrency value={outstandingFees} /></p>
                       </div>
                       <div className="text-center">
                         <p className="text-xs text-text-tertiary mb-1">Collection Rate</p>
-                        <p className="text-xl font-bold text-success">{Math.round(collectionRate)}%</p>
+                        <p className="text-xl font-bold text-success"><AnimatedNumber value={Math.round(collectionRate)} />%</p>
                       </div>
                     </div>
                     <div className="mt-4">

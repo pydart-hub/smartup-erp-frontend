@@ -1023,3 +1023,54 @@ export async function getDuesTodayByStudent(branch: string, batch: string, asOf?
   const json = await res.json();
   return json.data ?? [];
 }
+
+// ── Today's Snapshot ──
+
+/** Count students admitted (created) today */
+export async function getTodaysAdmissions(): Promise<number> {
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  const params = new URLSearchParams({
+    doctype: "Student",
+    filters: JSON.stringify([
+      ["creation", ">=", `${today} 00:00:00`],
+      ["creation", "<=", `${today} 23:59:59`],
+    ]),
+  });
+  const { data } = await apiClient.get(
+    `/method/frappe.client.get_count?${params}`
+  );
+  return data.message ?? 0;
+}
+
+/** Total billed (grand_total) from invoices created today */
+export async function getTodaysBilled(): Promise<number> {
+  const today = new Date().toISOString().slice(0, 10);
+  const params = new URLSearchParams({
+    fields: JSON.stringify(["sum(grand_total) as total"]),
+    filters: JSON.stringify([
+      ["docstatus", "=", 1],
+      ["creation", ">=", `${today} 00:00:00`],
+      ["creation", "<=", `${today} 23:59:59`],
+    ]),
+    limit_page_length: "1",
+  });
+  const { data } = await apiClient.get(`/resource/Sales Invoice?${params}`);
+  return data?.data?.[0]?.total ?? 0;
+}
+
+/** Total collected (paid_amount) from payment entries created today */
+export async function getTodaysCollected(): Promise<number> {
+  const today = new Date().toISOString().slice(0, 10);
+  const params = new URLSearchParams({
+    fields: JSON.stringify(["sum(paid_amount) as total"]),
+    filters: JSON.stringify([
+      ["docstatus", "=", 1],
+      ["payment_type", "=", "Receive"],
+      ["creation", ">=", `${today} 00:00:00`],
+      ["creation", "<=", `${today} 23:59:59`],
+    ]),
+    limit_page_length: "1",
+  });
+  const { data } = await apiClient.get(`/resource/Payment Entry?${params}`);
+  return data?.data?.[0]?.total ?? 0;
+}

@@ -18,6 +18,7 @@ import {
 import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { StatsCard } from "@/components/dashboard/StatsCard";
+import { AnimatedNumber, AnimatedCurrency, AnimatedName } from "@/components/dashboard/AnimatedValue";
 import { Badge } from "@/components/ui/Badge";
 import { useAuth } from "@/lib/hooks/useAuth";
 
@@ -230,7 +231,9 @@ export default function ParentDashboardPage() {
       {/* Header */}
       <motion.div variants={item}>
         <h1 className="text-2xl font-bold text-text-primary">
-          Welcome, {user?.full_name?.split(" ")[0] || "Parent"} 👋
+          <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>Welcome, </motion.span>
+          <AnimatedName name={user?.full_name?.split(" ")[0] || "Parent"} />
+          <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}> 👋</motion.span>
         </h1>
         <p className="text-sm text-text-secondary mt-1">
           Here&apos;s an overview of your child&apos;s academic progress and fees
@@ -241,7 +244,7 @@ export default function ParentDashboardPage() {
       <motion.div variants={item} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
           title="Children Enrolled"
-          value={children.length}
+          value={<AnimatedNumber value={children.length} />}
           icon={<GraduationCap className="h-5 w-5" />}
           color="primary"
           loading={isLoading}
@@ -257,7 +260,7 @@ export default function ParentDashboardPage() {
         />
         <StatsCard
           title="Total Fees"
-          value={displayTotalFees > 0 ? formatCurrency(displayTotalFees) : "—"}
+          value={displayTotalFees > 0 ? <AnimatedCurrency value={displayTotalFees} /> : "—"}
           icon={<IndianRupee className="h-5 w-5" />}
           color="info"
           loading={isLoading}
@@ -265,7 +268,7 @@ export default function ParentDashboardPage() {
         />
         <StatsCard
           title="Outstanding"
-          value={displayOutstanding > 0 ? formatCurrency(displayOutstanding) : displayTotalFees > 0 ? "All Paid" : "—"}
+          value={displayOutstanding > 0 ? <AnimatedCurrency value={displayOutstanding} /> : displayTotalFees > 0 ? "All Paid" : "—"}
           icon={<AlertCircle className="h-5 w-5" />}
           color={displayOutstanding > 0 ? "error" : "success"}
           loading={isLoading}
@@ -505,11 +508,11 @@ export default function ParentDashboardPage() {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-success-light rounded-[10px] p-3 text-center">
                       <p className="text-xs text-text-secondary">Paid</p>
-                      <p className="text-lg font-bold text-success">{formatCurrency(displayPaid)}</p>
+                      <p className="text-lg font-bold text-success"><AnimatedCurrency value={displayPaid} /></p>
                     </div>
                     <div className="bg-error-light rounded-[10px] p-3 text-center">
                       <p className="text-xs text-text-secondary">Pending</p>
-                      <p className="text-lg font-bold text-error">{formatCurrency(displayOutstanding)}</p>
+                      <p className="text-lg font-bold text-error"><AnimatedCurrency value={displayOutstanding} /></p>
                     </div>
                   </div>
                   <div className="space-y-2 max-h-40 overflow-y-auto">

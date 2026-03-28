@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { StatsCard } from "@/components/dashboard/StatsCard";
+import { AnimatedNumber, AnimatedName } from "@/components/dashboard/AnimatedValue";
 import { QuickActions } from "@/components/dashboard/QuickActions";
 import { RecentActivity, type ActivityItem } from "@/components/dashboard/RecentActivity";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -50,7 +51,7 @@ function BranchCountRow({
           {isLoading ? (
             <Loader2 className="h-3 w-3 animate-spin text-text-tertiary" />
           ) : (
-            <span className="text-sm font-bold text-text-primary tabular-nums">{count ?? 0}</span>
+            <span className="text-sm font-bold text-text-primary tabular-nums"><AnimatedNumber value={count ?? 0} /></span>
           )}
         </div>
         <div className="w-full h-1.5 bg-border-light rounded-full overflow-hidden">
@@ -195,7 +196,8 @@ export default function SalesUserDashboard() {
       {/* Header */}
       <motion.div variants={itemVariants}>
         <h1 className="text-2xl font-bold text-text-primary">
-          Welcome, {user?.full_name?.split(" ")[0] ?? "Sales User"}
+          <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>Welcome, </motion.span>
+          <AnimatedName name={user?.full_name?.split(" ")[0] ?? "Sales User"} />
         </h1>
         <p className="text-sm text-text-secondary mt-0.5">
           {branchLabel} — Admissions Dashboard
@@ -211,19 +213,19 @@ export default function SalesUserDashboard() {
       <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatsCard
           title="Today's Admissions"
-          value={todayCount ?? 0}
+          value={<AnimatedNumber value={todayCount ?? 0} />}
           icon={<CalendarDays className="h-5 w-5" />}
           loading={loadingToday}
         />
         <StatsCard
           title="This Month"
-          value={monthCount ?? 0}
+          value={<AnimatedNumber value={monthCount ?? 0} />}
           icon={<TrendingUp className="h-5 w-5" />}
           loading={loadingMonth}
         />
         <StatsCard
           title="Total Active Students"
-          value={totalStudents ?? 0}
+          value={<AnimatedNumber value={totalStudents ?? 0} />}
           icon={<GraduationCap className="h-5 w-5" />}
           loading={loadingTotal}
         />
