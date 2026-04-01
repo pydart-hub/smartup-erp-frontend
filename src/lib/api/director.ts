@@ -530,6 +530,34 @@ export async function getBranchProgramStudentFees(
   return (data?.data ?? []) as StudentFeeRow[];
 }
 
+// ── Branch leaderboard ──
+
+export interface LeaderboardBranch {
+  branch: string;
+  branchShort: string;
+  activeStudents: number;
+  newAdmissions: number;
+  totalBilled: number;
+  totalCollected: number;
+  pendingFees: number;
+  overdueAmount: number;
+  studentsWithDues: number;
+  collectionRate: number;
+  batchCount: number;
+  staffCount: number;
+  totalRevenue: number;
+}
+
+export async function getLeaderboardData(
+  period: "month" | "quarter" | "year" | "all" = "all"
+): Promise<{ data: LeaderboardBranch[]; period: string }> {
+  const { data } = await apiClient.get(
+    `/director/leaderboard?period=${period}`,
+    { baseURL: "/api" }
+  );
+  return data as { data: LeaderboardBranch[]; period: string };
+}
+
 // ── Batch student fees ──
 
 export interface BatchStudentFeeRow {

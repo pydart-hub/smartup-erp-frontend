@@ -28,6 +28,7 @@ import {
   ArrowRightLeft,
   FileBarChart,
   MessageSquareWarning,
+  Trophy,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useUIStore } from "@/lib/stores/uiStore";
@@ -54,6 +55,7 @@ const iconMap: Record<string, React.ElementType> = {
   ArrowRightLeft,
   FileBarChart,
   MessageSquareWarning,
+  Trophy,
 };
 
 interface SidebarProps {
