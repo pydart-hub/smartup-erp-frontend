@@ -23,7 +23,7 @@ import {
   getBranchBankOverview,
   type AccountBalance,
 } from "@/lib/api/director";
-import { formatCurrency } from "@/lib/utils/formatters";
+import { formatCurrencyExact } from "@/lib/utils/formatters";
 
 /* ── helpers ── */
 const Pulse = ({ w = "w-14" }: { w?: string }) => (
@@ -113,7 +113,7 @@ function BranchBankCard({
             <Pulse w="w-24" />
           ) : (
             <p className="text-xl font-bold text-text-primary">
-              {formatCurrency(cat?.total ?? 0)}
+              {formatCurrencyExact(cat?.total ?? 0)}
             </p>
           )}
           <p className="text-[10px] text-text-tertiary">Total Balance</p>
@@ -129,7 +129,7 @@ function BranchBankCard({
               <Pulse />
             ) : (
               <p className="text-sm font-bold text-emerald-600">
-                {formatCurrency(cat?.cash ?? 0)}
+                {formatCurrencyExact(cat?.cash ?? 0)}
               </p>
             )}
           </div>
@@ -141,7 +141,7 @@ function BranchBankCard({
               <Pulse />
             ) : (
               <p className="text-sm font-bold text-sky-600">
-                {formatCurrency(cat?.bank ?? 0)}
+                {formatCurrencyExact(cat?.bank ?? 0)}
               </p>
             )}
           </div>
@@ -153,7 +153,7 @@ function BranchBankCard({
               <Pulse />
             ) : (
               <p className="text-sm font-bold text-blue-600">
-                {formatCurrency(cat?.razorpay ?? 0)}
+                {formatCurrencyExact(cat?.razorpay ?? 0)}
               </p>
             )}
           </div>
@@ -165,7 +165,7 @@ function BranchBankCard({
               <Pulse />
             ) : (
               <p className="text-sm font-bold text-violet-600">
-                {formatCurrency(cat?.upi ?? 0)}
+                {formatCurrencyExact(cat?.upi ?? 0)}
               </p>
             )}
           </div>
@@ -205,35 +205,35 @@ function SummaryCards({ branches }: { branches: { name: string }[] }) {
   const cards = [
     {
       label: "Total Balance",
-      value: formatCurrency(totals.total),
+      value: formatCurrencyExact(totals.total),
       icon: Wallet,
       color: "text-text-primary",
       bg: "bg-border-light",
     },
     {
       label: "Cash",
-      value: formatCurrency(totals.cash),
+      value: formatCurrencyExact(totals.cash),
       icon: Banknote,
       color: "text-emerald-600",
       bg: "bg-emerald-500/10",
     },
     {
       label: "Bank",
-      value: formatCurrency(totals.bank),
+      value: formatCurrencyExact(totals.bank),
       icon: Landmark,
       color: "text-sky-600",
       bg: "bg-sky-500/10",
     },
     {
       label: "Razorpay",
-      value: formatCurrency(totals.razorpay),
+      value: formatCurrencyExact(totals.razorpay),
       icon: Wifi,
       color: "text-blue-600",
       bg: "bg-blue-500/10",
     },
     {
       label: "UPI",
-      value: formatCurrency(totals.upi),
+      value: formatCurrencyExact(totals.upi),
       icon: Smartphone,
       color: "text-violet-600",
       bg: "bg-violet-500/10",

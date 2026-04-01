@@ -32,7 +32,7 @@ import {
   type PaymentEntryRow,
   type JournalEntryRow,
 } from "@/lib/api/director";
-import { formatCurrency, formatDate } from "@/lib/utils/formatters";
+import { formatCurrencyExact, formatDate } from "@/lib/utils/formatters";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -151,7 +151,7 @@ function GLEntryTable({
               <td className="py-2.5 px-3 text-right">
                 {e.debit > 0 ? (
                   <span className="text-emerald-600 font-semibold">
-                    {formatCurrency(e.debit)}
+                    {formatCurrencyExact(e.debit)}
                   </span>
                 ) : (
                   <span className="text-text-tertiary">—</span>
@@ -160,7 +160,7 @@ function GLEntryTable({
               <td className="py-2.5 px-3 text-right">
                 {e.credit > 0 ? (
                   <span className="text-error font-semibold">
-                    {formatCurrency(e.credit)}
+                    {formatCurrencyExact(e.credit)}
                   </span>
                 ) : (
                   <span className="text-text-tertiary">—</span>
@@ -242,7 +242,7 @@ function PaymentEntryTable({
               </td>
               <td className="py-2.5 px-3 text-right">
                 <span className="text-emerald-600 font-semibold">
-                  {formatCurrency(pe.paid_amount)}
+                  {formatCurrencyExact(pe.paid_amount)}
                 </span>
               </td>
               <td className="py-2.5 px-3">
@@ -337,12 +337,12 @@ function JournalEntryTable({
               </td>
               <td className="py-2.5 px-3 text-right">
                 <span className="text-emerald-600 font-semibold">
-                  {formatCurrency(je.total_debit)}
+                  {formatCurrencyExact(je.total_debit)}
                 </span>
               </td>
               <td className="py-2.5 px-3 text-right">
                 <span className="text-error font-semibold">
-                  {formatCurrency(je.total_credit)}
+                  {formatCurrencyExact(je.total_credit)}
                 </span>
               </td>
               <td className="py-2.5 px-3 text-xs text-text-tertiary max-w-[200px] truncate">
@@ -480,7 +480,7 @@ export default function BranchBankPage() {
           <CardContent className="p-4 text-center">
             <Wallet className="h-5 w-5 text-text-primary mx-auto mb-2" />
             <p className="text-2xl font-bold text-text-primary">
-              {loadGL ? "..." : formatCurrency(cat.total)}
+              {loadGL ? "..." : formatCurrencyExact(cat.total)}
             </p>
             <p className="text-xs text-text-tertiary">Total Balance</p>
           </CardContent>
@@ -489,7 +489,7 @@ export default function BranchBankPage() {
           <CardContent className="p-4 text-center">
             <Banknote className="h-5 w-5 text-emerald-600 mx-auto mb-2" />
             <p className="text-2xl font-bold text-emerald-600">
-              {loadGL ? "..." : formatCurrency(cat.cash)}
+              {loadGL ? "..." : formatCurrencyExact(cat.cash)}
             </p>
             <p className="text-xs text-text-tertiary">Cash</p>
           </CardContent>
@@ -498,7 +498,7 @@ export default function BranchBankPage() {
           <CardContent className="p-4 text-center">
             <Landmark className="h-5 w-5 text-sky-600 mx-auto mb-2" />
             <p className="text-2xl font-bold text-sky-600">
-              {loadGL ? "..." : formatCurrency(cat.bank)}
+              {loadGL ? "..." : formatCurrencyExact(cat.bank)}
             </p>
             <p className="text-xs text-text-tertiary truncate" title={entityName ?? "Bank"}>{entityName ?? "Bank"}</p>
           </CardContent>
@@ -507,7 +507,7 @@ export default function BranchBankPage() {
           <CardContent className="p-4 text-center">
             <Wifi className="h-5 w-5 text-blue-600 mx-auto mb-2" />
             <p className="text-2xl font-bold text-blue-600">
-              {loadGL ? "..." : formatCurrency(cat.razorpay)}
+              {loadGL ? "..." : formatCurrencyExact(cat.razorpay)}
             </p>
             <p className="text-xs text-text-tertiary">Razorpay</p>
           </CardContent>
@@ -516,7 +516,7 @@ export default function BranchBankPage() {
           <CardContent className="p-4 text-center">
             <Smartphone className="h-5 w-5 text-violet-600 mx-auto mb-2" />
             <p className="text-2xl font-bold text-violet-600">
-              {loadGL ? "..." : formatCurrency(cat.upi)}
+              {loadGL ? "..." : formatCurrencyExact(cat.upi)}
             </p>
             <p className="text-xs text-text-tertiary">UPI</p>
           </CardContent>
@@ -557,7 +557,7 @@ export default function BranchBankPage() {
                 <span
                   className={`text-sm font-bold ${a.balance >= 0 ? "text-emerald-600" : "text-error"}`}
                 >
-                  {formatCurrency(a.balance)}
+                  {formatCurrencyExact(a.balance)}
                 </span>
               </button>
             ))}
