@@ -542,6 +542,9 @@ export interface BatchStudentFeeRow {
   invoiceCount: number;
   plan: string | null; // "Basic" | "Intermediate" | "Advanced"
   duesTillToday: number; // overdue amount (due_date <= today)
+  joiningDate: string | null; // YYYY-MM-DD
+  noOfInstalments: string | null; // "1" | "4" | "6" | "8"
+  siblingDiscount: boolean;
 }
 
 /**

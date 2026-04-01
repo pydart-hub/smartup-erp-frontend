@@ -15,6 +15,7 @@ import {
   Search,
   Download,
   CalendarClock,
+  Calendar,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -29,6 +30,26 @@ function formatCurrency(amount: number): string {
   if (!amount) return "—";
   return "₹" + amount.toLocaleString("en-IN");
 }
+
+function formatShortDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return "—";
+  try {
+    return new Date(dateStr).toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  } catch {
+    return "—";
+  }
+}
+
+const INSTALMENT_LABELS: Record<string, string> = {
+  "1": "One-Time",
+  "4": "Quarterly",
+  "6": "6 Inst.",
+  "8": "8 Inst.",
+};
 
 function planBadgeVariant(plan: string | null) {
   switch (plan) {
@@ -184,7 +205,7 @@ export default function BatchDetailPage() {
   const totalDues = feeData?.reduce((sum, r) => sum + r.duesTillToday, 0) ?? 0;
 
   function downloadCSV() {
-    const headers = ["#", "Student ID", "Name", "Plan", "Total Fee", "Paid", "Pending", "Overdue", "Status"];
+    const headers = ["#", "Student ID", "Name", "Plan", "Joining Date", "Payment", "Sibling Discount", "Total Fee", "Paid", "Pending", "Overdue", "Status"];
     const rows = filteredStudents.map((s, idx) => {
       const fee = feeMap.get(s.student);
       return [
@@ -192,6 +213,9 @@ export default function BatchDetailPage() {
         s.student,
         s.student_name || "",
         fee?.plan || "",
+        fee?.joiningDate || "",
+        fee?.noOfInstalments ? (INSTALMENT_LABELS[fee.noOfInstalments] ?? fee.noOfInstalments) : "",
+        fee?.siblingDiscount ? "Yes" : "No",
         fee?.totalFee ?? 0,
         fee?.paidFee ?? 0,
         fee?.pendingFee ?? 0,
@@ -407,6 +431,15 @@ export default function BatchDetailPage() {
                     <th className="text-center px-4 py-3 font-medium text-text-secondary">
                       Plan
                     </th>
+                    <th className="text-left px-4 py-3 font-medium text-text-secondary">
+                      Joined
+                    </th>
+                    <th className="text-center px-4 py-3 font-medium text-text-secondary">
+                      Payment
+                    </th>
+                    <th className="text-center px-4 py-3 font-medium text-text-secondary">
+                      Offers
+                    </th>
                     <th className="text-right px-4 py-3 font-medium text-text-secondary">
                       Total Fee
                     </th>
@@ -458,6 +491,47 @@ export default function BatchDetailPage() {
                             </Badge>
                           ) : (
                             <span className="text-text-tertiary text-xs">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-text-secondary whitespace-nowrap">
+                          {feesLoading ? "…" : (
+                            fee?.joiningDate ? (
+                              <span className="inline-flex items-center gap-1">
+                                <Calendar className="h-3 w-3 text-text-tertiary" />
+                                {formatShortDate(fee.joiningDate)}
+                              </span>
+                            ) : "—"
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {feesLoading ? (
+                            <span className="text-text-tertiary text-xs">…</span>
+                          ) : fee?.noOfInstalments ? (
+                            <Badge
+                              variant={fee.noOfInstalments === "1" ? "success" : "outline"}
+                              className="text-[10px]"
+                            >
+                              {INSTALMENT_LABELS[fee.noOfInstalments] ?? `${fee.noOfInstalments} Inst.`}
+                            </Badge>
+                          ) : (
+                            <span className="text-text-tertiary text-xs">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {feesLoading ? (
+                            <span className="text-text-tertiary text-xs">…</span>
+                          ) : (
+                            <div className="flex items-center justify-center gap-1 flex-wrap">
+                              {fee?.noOfInstalments === "1" && (
+                                <Badge variant="success" className="text-[10px]">Early Bird</Badge>
+                              )}
+                              {fee?.siblingDiscount && (
+                                <Badge variant="info" className="text-[10px]">Sibling</Badge>
+                              )}
+                              {fee?.noOfInstalments !== "1" && !fee?.siblingDiscount && (
+                                <span className="text-text-tertiary text-xs">—</span>
+                              )}
+                            </div>
                           )}
                         </td>
                         <td className="px-4 py-3 text-right font-mono text-xs">

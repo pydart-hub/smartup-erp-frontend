@@ -132,11 +132,12 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Step 3: Fetch Sales Orders for fee plan (non-critical)
+    // Step 3: Fetch Sales Orders for fee plan + instalments (non-critical)
     const feePlanMap = new Map<string, string>();
+    const feeInstalmentMap = new Map<string, string>();
     try {
       const soJson = await frappeGet("resource/Sales Order", {
-        fields: JSON.stringify(["student", "custom_plan"]),
+        fields: JSON.stringify(["student", "custom_plan", "custom_no_of_instalments"]),
         filters: JSON.stringify([
           ["docstatus", "=", "1"],
           ["student", "in", studentIds],
@@ -145,15 +146,37 @@ export async function GET(request: NextRequest) {
         limit_page_length: "500",
         order_by: "creation desc",
       });
-      const salesOrders: { student: string; custom_plan?: string }[] =
+      const salesOrders: { student: string; custom_plan?: string; custom_no_of_instalments?: string }[] =
         soJson?.data ?? [];
       for (const so of salesOrders) {
         if (so.student && so.custom_plan && !feePlanMap.has(so.student)) {
           feePlanMap.set(so.student, so.custom_plan);
         }
+        if (so.student && so.custom_no_of_instalments && !feeInstalmentMap.has(so.student)) {
+          feeInstalmentMap.set(so.student, so.custom_no_of_instalments);
+        }
       }
     } catch {
       // Fee plan is non-critical
+    }
+
+    // Step 4: Fetch Student records for joining_date + sibling discount (non-critical)
+    const joiningDateMap = new Map<string, string>();
+    const siblingDiscountMap = new Map<string, boolean>();
+    try {
+      const stuJson = await frappeGet("resource/Student", {
+        fields: JSON.stringify(["name", "joining_date", "custom_sibling_discount_applied"]),
+        filters: JSON.stringify([["name", "in", studentIds]]),
+        limit_page_length: String(studentIds.length),
+      });
+      const stuRecords: { name: string; joining_date?: string; custom_sibling_discount_applied?: number }[] =
+        stuJson?.data ?? [];
+      for (const stu of stuRecords) {
+        if (stu.joining_date) joiningDateMap.set(stu.name, stu.joining_date);
+        if (stu.custom_sibling_discount_applied === 1) siblingDiscountMap.set(stu.name, true);
+      }
+    } catch {
+      // Non-critical
     }
 
     // Build rows
@@ -169,6 +192,9 @@ export async function GET(request: NextRequest) {
         invoiceCount: agg.count,
         plan: feePlanMap.get(s.student) || null,
         duesTillToday: duesMap.get(s.student) ?? 0,
+        joiningDate: joiningDateMap.get(s.student) || null,
+        noOfInstalments: feeInstalmentMap.get(s.student) || null,
+        siblingDiscount: siblingDiscountMap.get(s.student) ?? false,
       };
     });
 
