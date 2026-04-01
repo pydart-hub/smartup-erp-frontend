@@ -1,15 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import Razorpay from "razorpay";
 import { verifyToken } from "@/lib/utils/invoiceToken";
+import { createRazorpayInstance, getRazorpayKeys, getSalesOrderCompany } from "@/lib/utils/razorpay";
 
 const FRAPPE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL;
 const FRAPPE_API_KEY = process.env.FRAPPE_API_KEY;
 const FRAPPE_API_SECRET = process.env.FRAPPE_API_SECRET;
-
-const razorpay = new Razorpay({
-  key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
-  key_secret: process.env.RAZORPAY_KEY_SECRET!,
-});
 
 /**
  * POST /api/pay/create-order
@@ -67,6 +62,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // ── Resolve branch Razorpay keys from Sales Order company ──
+    const company = await getSalesOrderCompany(payload.so, FRAPPE_URL!, adminAuth);
+    const razorpay = createRazorpayInstance(company || "");
+    const { keyId } = getRazorpayKeys(company || "");
+
     // Razorpay expects paise
     const amountInPaise = Math.round(amount * 100);
 
@@ -80,6 +80,7 @@ export async function POST(request: NextRequest) {
         customer: customer || "",
         source: "whatsapp_magic_link",
         sales_order: payload.so,
+        company: company || "",
       },
     });
 
@@ -87,7 +88,7 @@ export async function POST(request: NextRequest) {
       order_id: order.id,
       amount: order.amount,
       currency: order.currency,
-      key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+      key_id: keyId,
     });
   } catch (error: unknown) {
     console.error("[pay/create-order] Error:", error);

@@ -34,6 +34,7 @@ import {
   getActiveStudentCount,
   getDiscontinuedStudentCount,
   getTotalStaffCount,
+  getStudentCountByPlan,
   getTotalInvoiceStats,
   getCollectedByMode,
   getDiscontinuedStudentForfeitedFees,
@@ -199,6 +200,13 @@ export default function DirectorDashboard() {
   const { data: discontinuedStudents, isLoading: loadDiscontinuedStudents } = useQuery({
     queryKey: ["director-discontinued-students"],
     queryFn: getDiscontinuedStudentCount,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+  });
+
+  const { data: planCounts, isLoading: loadPlanCounts } = useQuery({
+    queryKey: ["director-student-plan-counts"],
+    queryFn: getStudentCountByPlan,
     staleTime: 30_000,
     refetchInterval: 30_000,
   });
@@ -383,6 +391,30 @@ export default function DirectorDashboard() {
                       {loadDiscontinuedStudents ? "..." : <AnimatedNumber value={discontinuedStudents ?? 0} />}
                     </p>
                     <p className="text-[10px] text-text-tertiary uppercase tracking-wide">Discontinued</p>
+                  </div>
+                </div>
+              )}
+              {!errTotalStudents && (
+                <div className="flex justify-center gap-2 mt-2 pt-2 border-t border-border-light">
+                  <div className="text-center">
+                    <p className="text-xs font-semibold text-purple-600">
+                      {loadPlanCounts ? "..." : <AnimatedNumber value={planCounts?.advanced ?? 0} />}
+                    </p>
+                    <p className="text-[9px] text-text-tertiary uppercase tracking-wide">Adv</p>
+                  </div>
+                  <div className="w-px bg-border-light" />
+                  <div className="text-center">
+                    <p className="text-xs font-semibold text-blue-600">
+                      {loadPlanCounts ? "..." : <AnimatedNumber value={planCounts?.intermediate ?? 0} />}
+                    </p>
+                    <p className="text-[9px] text-text-tertiary uppercase tracking-wide">Int</p>
+                  </div>
+                  <div className="w-px bg-border-light" />
+                  <div className="text-center">
+                    <p className="text-xs font-semibold text-emerald-600">
+                      {loadPlanCounts ? "..." : <AnimatedNumber value={planCounts?.basic ?? 0} />}
+                    </p>
+                    <p className="text-[9px] text-text-tertiary uppercase tracking-wide">Basic</p>
                   </div>
                 </div>
               )}

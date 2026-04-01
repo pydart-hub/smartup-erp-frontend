@@ -1,14 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import Razorpay from "razorpay";
+import { createRazorpayInstance, getRazorpayKeys, getInvoiceCompany } from "@/lib/utils/razorpay";
 
 const FRAPPE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL;
 const FRAPPE_API_KEY = process.env.FRAPPE_API_KEY;
 const FRAPPE_API_SECRET = process.env.FRAPPE_API_SECRET;
-
-const razorpay = new Razorpay({
-  key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
-  key_secret: process.env.RAZORPAY_KEY_SECRET!,
-});
 
 /**
  * POST /api/payments/create-order
@@ -87,6 +82,12 @@ export async function POST(request: NextRequest) {
       // Non-blocking — proceed if lookup fails
     }
 
+    // ── Resolve branch Razorpay keys from invoice company ──
+    const adminAuth = `token ${FRAPPE_API_KEY}:${FRAPPE_API_SECRET}`;
+    const company = await getInvoiceCompany(invoice_id, FRAPPE_URL!, adminAuth);
+    const razorpay = createRazorpayInstance(company || "");
+    const { keyId } = getRazorpayKeys(company || "");
+
     // Razorpay expects amount in paise (1 INR = 100 paise)
     const amountInPaise = Math.round(amount * 100);
 
@@ -99,6 +100,7 @@ export async function POST(request: NextRequest) {
         student_name: student_name || "",
         customer: customer || "",
         parent_email: email,
+        company: company || "",
       },
     });
 
@@ -106,7 +108,7 @@ export async function POST(request: NextRequest) {
       order_id: order.id,
       amount: order.amount,
       currency: order.currency,
-      key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+      key_id: keyId,
     });
   } catch (error: unknown) {
     console.error("[payments/create-order] Error:", error);

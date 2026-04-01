@@ -17,7 +17,7 @@ import {
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { getBranchBatches, getBatchStudents } from "@/lib/api/director";
+import { getBranchBatches, getBatchStudents, getPlanCountsForBatches } from "@/lib/api/director";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -33,9 +33,11 @@ const itemVariants = {
 function BatchCard({
   batch,
   encodedBranch,
+  branchName,
 }: {
   batch: { name: string; student_group_name: string; academic_year: string; max_strength: number };
   encodedBranch: string;
+  branchName: string;
 }) {
   const { data: batchRes, isLoading } = useQuery({
     queryKey: ["director-batch-students", batch.name],
@@ -43,8 +45,15 @@ function BatchCard({
     staleTime: 120_000,
   });
 
+  const { data: planCounts, isLoading: loadingPlans } = useQuery({
+    queryKey: ["director-batch-plan-counts", branchName, batch.name],
+    queryFn: () => getPlanCountsForBatches([batch.name], branchName),
+    staleTime: 120_000,
+  });
+
   const students = batchRes?.students ?? [];
   const activeStudents = students.filter((s) => s.active);
+  const hasPlan = !loadingPlans && planCounts && (planCounts.advanced + planCounts.intermediate + planCounts.basic > 0);
 
   return (
     <Link
@@ -101,6 +110,21 @@ function BatchCard({
                 <p className="text-[10px] text-text-tertiary uppercase">Discontinued</p>
               </div>
             </div>
+
+            {/* Plan breakdown */}
+            {hasPlan && (
+              <div className="flex items-center justify-center gap-1.5 mt-3 pt-3 border-t border-border-light">
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-purple-50 text-[10px] font-semibold text-purple-700">
+                  <span className="w-1 h-1 rounded-full bg-purple-500" />{planCounts.advanced} Adv
+                </span>
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-50 text-[10px] font-semibold text-blue-700">
+                  <span className="w-1 h-1 rounded-full bg-blue-500" />{planCounts.intermediate} Int
+                </span>
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 text-[10px] font-semibold text-emerald-700">
+                  <span className="w-1 h-1 rounded-full bg-emerald-500" />{planCounts.basic} Basic
+                </span>
+              </div>
+            )}
           </CardContent>
         </Card>
       </motion.div>
@@ -215,6 +239,7 @@ export default function ProgramStudentsPage() {
                 key={batch.name}
                 batch={batch}
                 encodedBranch={encodedBranch}
+                branchName={branchName}
               />
             ))}
           </div>

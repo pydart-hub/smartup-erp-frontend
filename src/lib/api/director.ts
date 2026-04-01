@@ -121,6 +121,54 @@ export async function getTotalStaffCount(): Promise<number> {
   return getCount("Employee", { status: "Active" });
 }
 
+/** Get student count grouped by plan (Advanced / Intermediate / Basic) from Sales Orders */
+export async function getStudentCountByPlan(): Promise<{
+  advanced: number;
+  intermediate: number;
+  basic: number;
+}> {
+  const params = new URLSearchParams({
+    fields: JSON.stringify(["custom_plan as plan", "count(name) as count"]),
+    filters: JSON.stringify([["docstatus", "=", 1]]),
+    group_by: "custom_plan",
+    limit_page_length: "0",
+  });
+  const { data } = await apiClient.get(`/resource/Sales Order?${params}`);
+  const rows = data?.data ?? [];
+  const result = { advanced: 0, intermediate: 0, basic: 0 };
+  for (const row of rows) {
+    const plan = (row.plan || "").toLowerCase();
+    if (plan === "advanced") result.advanced = row.count ?? 0;
+    else if (plan === "intermediate") result.intermediate = row.count ?? 0;
+    else if (plan === "basic") result.basic = row.count ?? 0;
+  }
+  return result;
+}
+
+/** Get student count grouped by plan for a specific branch */
+export async function getStudentCountByPlanForBranch(branch: string): Promise<{
+  advanced: number;
+  intermediate: number;
+  basic: number;
+}> {
+  const params = new URLSearchParams({
+    fields: JSON.stringify(["custom_plan as plan", "count(name) as count"]),
+    filters: JSON.stringify([["docstatus", "=", 1], ["company", "=", branch]]),
+    group_by: "custom_plan",
+    limit_page_length: "0",
+  });
+  const { data } = await apiClient.get(`/resource/Sales Order?${params}`);
+  const rows = data?.data ?? [];
+  const result = { advanced: 0, intermediate: 0, basic: 0 };
+  for (const row of rows) {
+    const plan = (row.plan || "").toLowerCase();
+    if (plan === "advanced") result.advanced = row.count ?? 0;
+    else if (plan === "intermediate") result.intermediate = row.count ?? 0;
+    else if (plan === "basic") result.basic = row.count ?? 0;
+  }
+  return result;
+}
+
 export async function getTotalBatchCount(): Promise<number> {
   return getCount("Student Group");
 }
@@ -687,6 +735,44 @@ export async function getProgramBatchesStudentStats(
   return { active, inactive };
 }
 
+/** Get plan counts (Advanced/Intermediate/Basic) for students in given batches */
+export async function getPlanCountsForBatches(
+  batchNames: string[],
+  branch: string
+): Promise<{ advanced: number; intermediate: number; basic: number }> {
+  const result = { advanced: 0, intermediate: 0, basic: 0 };
+  if (!batchNames.length) return result;
+  // 1. Collect all student IDs from the batches
+  const batchResults = await Promise.all(batchNames.map((name) => getBatchStudents(name)));
+  const studentIds: string[] = [];
+  for (const res of batchResults) {
+    for (const s of res.students) {
+      if (s.student && !studentIds.includes(s.student)) studentIds.push(s.student);
+    }
+  }
+  if (!studentIds.length) return result;
+  // 2. Query Sales Orders for these students grouped by plan
+  const params = new URLSearchParams({
+    fields: JSON.stringify(["custom_plan as plan", "count(name) as count"]),
+    filters: JSON.stringify([
+      ["docstatus", "=", 1],
+      ["company", "=", branch],
+      ["student", "in", studentIds],
+    ]),
+    group_by: "custom_plan",
+    limit_page_length: "0",
+  });
+  const { data } = await apiClient.get(`/resource/Sales Order?${params}`);
+  const rows = data?.data ?? [];
+  for (const row of rows) {
+    const plan = (row.plan || "").toLowerCase();
+    if (plan === "advanced") result.advanced = row.count ?? 0;
+    else if (plan === "intermediate") result.intermediate = row.count ?? 0;
+    else if (plan === "basic") result.basic = row.count ?? 0;
+  }
+  return result;
+}
+
 export interface BranchInstructor {
   name: string;
   instructor_name: string;
@@ -1073,4 +1159,137 @@ export async function getTodaysCollected(): Promise<number> {
   });
   const { data } = await apiClient.get(`/resource/Payment Entry?${params}`);
   return data?.data?.[0]?.total ?? 0;
+}
+
+// ── Bank / Account Balance ──
+
+export interface AccountBalance {
+  account: string;
+  account_name: string;
+  account_type: string;
+  balance: number;
+}
+
+export interface BranchBankOverview {
+  accounts: AccountBalance[];
+}
+
+export interface GLEntryRow {
+  name: string;
+  posting_date: string;
+  account: string;
+  debit: number;
+  credit: number;
+  voucher_type: string;
+  voucher_no: string;
+  against: string;
+  party_type: string | null;
+  party: string | null;
+}
+
+export interface PaymentEntryRow {
+  name: string;
+  posting_date: string;
+  payment_type: string;
+  party: string;
+  party_name: string;
+  paid_amount: number;
+  paid_from: string;
+  paid_to: string;
+  mode_of_payment: string;
+  reference_no: string;
+}
+
+export interface JournalEntryRow {
+  name: string;
+  posting_date: string;
+  voucher_type: string;
+  title: string;
+  total_debit: number;
+  total_credit: number;
+  user_remark: string | null;
+}
+
+/** Get bank/cash account balances for a branch */
+export async function getBranchBankOverview(
+  branch: string,
+): Promise<BranchBankOverview> {
+  const params = new URLSearchParams({ branch, mode: "overview" });
+  const res = await fetch(`/api/director/bank?${params}`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(`bank overview failed: ${res.status}`);
+  return res.json();
+}
+
+/** Get GL entries for bank/cash accounts of a branch */
+export async function getBranchGLEntries(
+  branch: string,
+  opts?: {
+    from_date?: string;
+    to_date?: string;
+    account?: string;
+    voucher_type?: string;
+    limit?: number;
+    offset?: number;
+  },
+): Promise<{ accounts: AccountBalance[]; gl_entries: GLEntryRow[] }> {
+  const params = new URLSearchParams({ branch, mode: "gl" });
+  if (opts?.from_date) params.set("from_date", opts.from_date);
+  if (opts?.to_date) params.set("to_date", opts.to_date);
+  if (opts?.account) params.set("account", opts.account);
+  if (opts?.voucher_type) params.set("voucher_type", opts.voucher_type);
+  if (opts?.limit) params.set("limit", String(opts.limit));
+  if (opts?.offset) params.set("offset", String(opts.offset));
+  const res = await fetch(`/api/director/bank?${params}`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(`bank gl failed: ${res.status}`);
+  return res.json();
+}
+
+/** Get payment entries for a branch */
+export async function getBranchPaymentEntries(
+  branch: string,
+  opts?: {
+    from_date?: string;
+    to_date?: string;
+    limit?: number;
+    offset?: number;
+  },
+): Promise<PaymentEntryRow[]> {
+  const params = new URLSearchParams({ branch, mode: "payments" });
+  if (opts?.from_date) params.set("from_date", opts.from_date);
+  if (opts?.to_date) params.set("to_date", opts.to_date);
+  if (opts?.limit) params.set("limit", String(opts.limit));
+  if (opts?.offset) params.set("offset", String(opts.offset));
+  const res = await fetch(`/api/director/bank?${params}`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(`bank payments failed: ${res.status}`);
+  const json = await res.json();
+  return json.payment_entries ?? [];
+}
+
+/** Get journal entries for a branch */
+export async function getBranchJournalEntries(
+  branch: string,
+  opts?: {
+    from_date?: string;
+    to_date?: string;
+    limit?: number;
+    offset?: number;
+  },
+): Promise<JournalEntryRow[]> {
+  const params = new URLSearchParams({ branch, mode: "journals" });
+  if (opts?.from_date) params.set("from_date", opts.from_date);
+  if (opts?.to_date) params.set("to_date", opts.to_date);
+  if (opts?.limit) params.set("limit", String(opts.limit));
+  if (opts?.offset) params.set("offset", String(opts.offset));
+  const res = await fetch(`/api/director/bank?${params}`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(`bank journals failed: ${res.status}`);
+  const json = await res.json();
+  return json.journal_entries ?? [];
 }

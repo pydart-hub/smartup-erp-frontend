@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
+import { getRazorpayKeys, getInvoiceCompany } from "@/lib/utils/razorpay";
 
 const FRAPPE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL;
 const FRAPPE_API_KEY = process.env.FRAPPE_API_KEY;
 const FRAPPE_API_SECRET = process.env.FRAPPE_API_SECRET;
-const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET!;
 
 /**
  * POST /api/payments/verify
@@ -59,9 +59,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // ── Resolve branch Razorpay keys from invoice company ──
+    const adminAuth = `token ${FRAPPE_API_KEY}:${FRAPPE_API_SECRET}`;
+    const company = await getInvoiceCompany(invoice_id, FRAPPE_URL!, adminAuth);
+    const { keySecret } = getRazorpayKeys(company || "");
+
     // ── Verify signature ──
     const expectedSignature = crypto
-      .createHmac("sha256", RAZORPAY_KEY_SECRET)
+      .createHmac("sha256", keySecret)
       .update(`${razorpay_order_id}|${razorpay_payment_id}`)
       .digest("hex");
 
@@ -73,13 +78,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ── Check if student is discontinued ──
-    const adminAuth = `token ${FRAPPE_API_KEY}:${FRAPPE_API_SECRET}`;
     const headers = {
       Authorization: adminAuth,
       "Content-Type": "application/json",
     };
 
+    // ── Check if student is discontinued ──
     const actualInvoiceId = invoice_id;
 
     try {

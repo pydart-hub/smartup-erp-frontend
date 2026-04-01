@@ -19,7 +19,7 @@ import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { getBranchBatches, getStudentCountForBranch, getActiveStudentCountForBranch, getDiscontinuedStudentCountForBranch, getProgramBatchesStudentStats } from "@/lib/api/director";
+import { getBranchBatches, getStudentCountForBranch, getActiveStudentCountForBranch, getDiscontinuedStudentCountForBranch, getProgramBatchesStudentStats, getStudentCountByPlanForBranch, getPlanCountsForBatches } from "@/lib/api/director";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -31,17 +31,38 @@ const itemVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" as const } },
 };
 
-function ProgramStudentCount({ batchNames }: { batchNames: string[] }) {
+function ProgramStudentCount({ batchNames, branchName }: { batchNames: string[]; branchName: string }) {
   const { data, isLoading } = useQuery({
     queryKey: ["director-program-student-stats", ...batchNames.slice().sort()],
     queryFn: () => getProgramBatchesStudentStats(batchNames),
     staleTime: 120_000,
   });
+  const { data: planCounts, isLoading: loadingPlans } = useQuery({
+    queryKey: ["director-program-plan-counts", branchName, ...batchNames.slice().sort()],
+    queryFn: () => getPlanCountsForBatches(batchNames, branchName),
+    staleTime: 120_000,
+  });
   const total = (data?.active ?? 0) + (data?.inactive ?? 0);
+  const hasPlan = !loadingPlans && planCounts && (planCounts.advanced + planCounts.intermediate + planCounts.basic > 0);
   return (
-    <p className="text-xs text-text-tertiary mt-2">
-      {isLoading ? "..." : `${total} student${total !== 1 ? "s" : ""}`}
-    </p>
+    <div className="mt-2 space-y-1.5">
+      <p className="text-xs text-text-tertiary">
+        {isLoading ? "..." : `${total} student${total !== 1 ? "s" : ""}`}
+      </p>
+      {hasPlan && (
+        <div className="flex items-center gap-1.5">
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-purple-50 text-[10px] font-semibold text-purple-700">
+            <span className="w-1 h-1 rounded-full bg-purple-500" />{planCounts.advanced} Adv
+          </span>
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-50 text-[10px] font-semibold text-blue-700">
+            <span className="w-1 h-1 rounded-full bg-blue-500" />{planCounts.intermediate} Int
+          </span>
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 text-[10px] font-semibold text-emerald-700">
+            <span className="w-1 h-1 rounded-full bg-emerald-500" />{planCounts.basic} Basic
+          </span>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -66,6 +87,12 @@ export default function BranchStudentsPage() {
   const { data: discontinuedCount } = useQuery({
     queryKey: ["director-branch-discontinued-students", branchName],
     queryFn: () => getDiscontinuedStudentCountForBranch(branchName),
+    staleTime: 120_000,
+  });
+
+  const { data: planCounts } = useQuery({
+    queryKey: ["director-branch-plan-counts", branchName],
+    queryFn: () => getStudentCountByPlanForBranch(branchName),
     staleTime: 120_000,
   });
 
@@ -163,6 +190,22 @@ export default function BranchStudentsPage() {
                 <p className="text-[10px] text-text-tertiary uppercase tracking-wide">Discontinued</p>
               </div>
             </div>
+            {planCounts && (planCounts.advanced + planCounts.intermediate + planCounts.basic > 0) && (
+              <div className="flex justify-center gap-2 mt-2 pt-2 border-t border-border-light">
+                <div className="rounded-md bg-purple-50 px-2.5 py-1 text-center">
+                  <p className="text-xs font-bold text-purple-700 tabular-nums">{planCounts.advanced}</p>
+                  <p className="text-[9px] text-purple-400 font-medium uppercase tracking-wider">Adv</p>
+                </div>
+                <div className="rounded-md bg-blue-50 px-2.5 py-1 text-center">
+                  <p className="text-xs font-bold text-blue-700 tabular-nums">{planCounts.intermediate}</p>
+                  <p className="text-[9px] text-blue-400 font-medium uppercase tracking-wider">Int</p>
+                </div>
+                <div className="rounded-md bg-emerald-50 px-2.5 py-1 text-center">
+                  <p className="text-xs font-bold text-emerald-700 tabular-nums">{planCounts.basic}</p>
+                  <p className="text-[9px] text-emerald-400 font-medium uppercase tracking-wider">Basic</p>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
         <Card className="border-border-light">
@@ -251,7 +294,7 @@ export default function BranchStudentsPage() {
                         )}
                       </div>
 
-                      <ProgramStudentCount batchNames={groups.map((g) => g.name)} />
+                      <ProgramStudentCount batchNames={groups.map((g) => g.name)} branchName={branchName} />
                     </CardContent>
                   </Card>
                 </motion.div>
