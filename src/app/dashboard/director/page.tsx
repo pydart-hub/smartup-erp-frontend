@@ -362,9 +362,9 @@ export default function DirectorDashboard() {
       </motion.div>
 
       {/* Summary Stats — Clickable Cards */}
-      <motion.div variants={itemVariants} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4">
-        <Link href="/dashboard/director/students">
-          <Card className="h-full hover:shadow-md transition-shadow cursor-pointer border-border-light hover:border-primary/30">
+      <motion.div variants={itemVariants} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-7 gap-3 xl:gap-4">
+        <Link href="/dashboard/director/students" className="min-w-0">
+          <Card className="h-full hover:shadow-md transition-shadow cursor-pointer border-border-light hover:border-primary/30 overflow-hidden">
             <CardContent className="p-4 text-center">
               <GraduationCap className="h-5 w-5 text-primary mx-auto mb-2" />
               {errTotalStudents ? (
@@ -422,8 +422,8 @@ export default function DirectorDashboard() {
             </CardContent>
           </Card>
         </Link>
-        <Link href="/dashboard/director/teachers">
-          <Card className="h-full hover:shadow-md transition-shadow cursor-pointer border-border-light hover:border-primary/30">
+        <Link href="/dashboard/director/teachers" className="min-w-0">
+          <Card className="h-full hover:shadow-md transition-shadow cursor-pointer border-border-light hover:border-primary/30 overflow-hidden">
             <CardContent className="p-4 text-center">
               <UserCheck className="h-5 w-5 text-info mx-auto mb-2" />
               {errTotalStaff ? (
@@ -440,8 +440,8 @@ export default function DirectorDashboard() {
             </CardContent>
           </Card>
         </Link>
-        <Link href="/dashboard/director/fees">
-          <Card className="h-full hover:shadow-md transition-shadow cursor-pointer border-border-light hover:border-primary/30">
+        <Link href="/dashboard/director/fees" className="min-w-0">
+          <Card className="h-full hover:shadow-md transition-shadow cursor-pointer border-border-light hover:border-primary/30 overflow-hidden">
             <CardContent className="p-4 text-center">
               <IndianRupee className="h-5 w-5 text-warning mx-auto mb-2" />
               {errInvoiceStats ? (
@@ -449,7 +449,7 @@ export default function DirectorDashboard() {
                   <AlertCircle className="h-4 w-4" /> Error
                 </p>
               ) : (
-                <p className="text-2xl font-bold text-text-primary">
+                <p className="text-2xl font-bold text-text-primary truncate">
                   {loadInvoiceStats ? "..." : <AnimatedCurrency value={invoiceStats?.totalInvoiced ?? 0} />}
                 </p>
               )}
@@ -458,8 +458,8 @@ export default function DirectorDashboard() {
             </CardContent>
           </Card>
         </Link>
-        <Link href="/dashboard/director/fees">
-          <Card className="h-full hover:shadow-md transition-shadow cursor-pointer border-border-light hover:border-success/30 border-success/20">
+        <Link href="/dashboard/director/fees" className="min-w-0">
+          <Card className="h-full hover:shadow-md transition-shadow cursor-pointer border-border-light hover:border-success/30 border-success/20 overflow-hidden">
             <CardContent className="p-4 text-center">
               <CircleCheck className="h-5 w-5 text-success mx-auto mb-2" />
               {errInvoiceStats ? (
@@ -467,7 +467,7 @@ export default function DirectorDashboard() {
                   <AlertCircle className="h-4 w-4" /> Error
                 </p>
               ) : (
-                <p className="text-2xl font-bold text-success">
+                <p className="text-2xl font-bold text-success truncate">
                   {loadInvoiceStats ? "..." : <AnimatedCurrency value={invoiceStats?.totalCollected ?? 0} />}
                 </p>
               )}
@@ -499,8 +499,8 @@ export default function DirectorDashboard() {
             </CardContent>
           </Card>
         </Link>
-        <Link href="/dashboard/director/fees">
-          <Card className="h-full hover:shadow-md transition-shadow cursor-pointer border-border-light hover:border-error/30 border-error/20">
+        <Link href="/dashboard/director/fees" className="min-w-0">
+          <Card className="h-full hover:shadow-md transition-shadow cursor-pointer border-border-light hover:border-error/30 border-error/20 overflow-hidden">
             <CardContent className="p-4 text-center">
               <Clock className="h-5 w-5 text-error mx-auto mb-2" />
               {errInvoiceStats ? (
@@ -508,7 +508,7 @@ export default function DirectorDashboard() {
                   <AlertCircle className="h-4 w-4" /> Error
                 </p>
               ) : (
-                <p className="text-2xl font-bold text-error">
+                <p className="text-2xl font-bold text-error truncate">
                   {loadInvoiceStats || loadForfeitedFees ? "..." : <AnimatedCurrency value={(invoiceStats?.totalOutstanding ?? 0) - (forfeitedFees ?? 0)} />}
                 </p>
               )}
@@ -517,8 +517,8 @@ export default function DirectorDashboard() {
             </CardContent>
           </Card>
         </Link>
-        <Link href="/dashboard/director/dues">
-          <Card className="h-full hover:shadow-md transition-shadow cursor-pointer border-border-light hover:border-orange-400/40 border-orange-200/60">
+        <Link href="/dashboard/director/dues" className="min-w-0">
+          <Card className="h-full hover:shadow-md transition-shadow cursor-pointer border-border-light hover:border-orange-400/40 border-orange-200/60 overflow-hidden">
             <CardContent className="p-4 text-center">
               <CalendarClock className="h-5 w-5 text-orange-500 mx-auto mb-2" />
               {errDuesToday ? (
@@ -526,7 +526,7 @@ export default function DirectorDashboard() {
                   <AlertCircle className="h-4 w-4" /> Error
                 </p>
               ) : (
-                <p className="text-2xl font-bold text-orange-600">
+                <p className="text-2xl font-bold text-orange-600 truncate">
                   {loadDuesToday ? "..." : <AnimatedCurrency value={duesToday?.total_dues ?? 0} />}
                 </p>
               )}
@@ -540,8 +540,8 @@ export default function DirectorDashboard() {
             </CardContent>
           </Card>
         </Link>
-        <Link href="/dashboard/director/students">
-          <Card className="h-full hover:shadow-md transition-shadow cursor-pointer border-amber-200/60 hover:border-amber-400/50">
+        <Link href="/dashboard/director/students" className="min-w-0">
+          <Card className="h-full hover:shadow-md transition-shadow cursor-pointer border-amber-200/60 hover:border-amber-400/50 overflow-hidden">
             <CardContent className="p-4 text-center">
               <TriangleAlert className="h-5 w-5 text-amber-500 mx-auto mb-2" />
               {errForfeitedFees ? (
@@ -549,7 +549,7 @@ export default function DirectorDashboard() {
                   <AlertCircle className="h-4 w-4" /> Error
                 </p>
               ) : (
-                <p className="text-2xl font-bold text-amber-600">
+                <p className="text-2xl font-bold text-amber-600 truncate">
                   {loadForfeitedFees ? "..." : <AnimatedCurrency value={forfeitedFees ?? 0} />}
                 </p>
               )}
