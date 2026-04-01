@@ -164,9 +164,9 @@ export async function GET(request: NextRequest) {
       const branchName = b.name as string;
       const shortName = (branchName).replace("Smart Up ", "");
 
-      // Students
+      // Students — count all enrolled (matching dashboard behaviour)
       const branchStudents = students.filter((s) => s.custom_branch === branchName);
-      const activeStudents = branchStudents.filter((s) => s.enabled === 1).length;
+      const activeStudents = branchStudents.length;
 
       // New admissions in period
       let newAdmissions = 0;

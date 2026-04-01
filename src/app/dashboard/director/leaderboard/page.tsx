@@ -10,7 +10,6 @@ import {
   IndianRupee,
   TrendingUp,
   AlertTriangle,
-  Loader2,
   AlertCircle,
   Crown,
   Target,
@@ -21,7 +20,6 @@ import {
   Medal,
   ChevronUp,
   ChevronDown,
-  Building2,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import {
@@ -215,79 +213,50 @@ function WinnerCard({
   );
 }
 
-/* ── Branch row card (4th+) ── */
-function BranchRowCard({
-  branch,
-  rank,
-  idx,
-  perfType,
+/* ── Sort header ── */
+type SortKey =
+  | "score"
+  | "activeStudents"
+  | "newAdmissions"
+  | "totalCollected"
+  | "collectionRate"
+  | "pendingFees"
+  | "overdueAmount"
+  | "batchCount"
+  | "staffCount";
+
+function SortHeader({
+  label,
+  sortKey,
+  activeSortKey,
+  sortDir,
+  onSort,
+  className = "",
 }: {
-  branch: LeaderboardBranch & { score: number };
-  rank: number;
-  idx: number;
-  perfType: PerfType;
+  label: string;
+  sortKey: SortKey;
+  activeSortKey: SortKey;
+  sortDir: "asc" | "desc";
+  onSort: (k: SortKey) => void;
+  className?: string;
 }) {
-  const mainMetric =
-    perfType === "collection" ? `${branch.collectionRate}%`
-    : perfType === "admissions" ? `${branch.newAdmissions}`
-    : perfType === "fees" ? formatCurrency(branch.totalCollected)
-    : `${branch.score}pts`;
-
+  const active = sortKey === activeSortKey;
   return (
-    <motion.div
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: 0.3 + idx * 0.06 }}
-      whileHover={{ x: 4 }}
-      className="flex items-center gap-4 p-3.5 rounded-xl border border-border-light bg-surface hover:border-primary/30 hover:bg-brand-wash/20 transition-all group cursor-default"
+    <th
+      onClick={() => onSort(sortKey)}
+      className={`px-3 py-3 text-[10px] font-bold uppercase tracking-wider cursor-pointer select-none transition-colors whitespace-nowrap ${
+        active ? "text-primary" : "text-text-tertiary hover:text-text-secondary"
+      } ${className}`}
     >
-      {/* Rank */}
-      <div className="w-9 h-9 rounded-xl bg-app-bg border border-border-light flex items-center justify-center text-sm font-bold text-text-secondary group-hover:border-primary/30 group-hover:text-primary transition-colors">
-        {rank}
-      </div>
-
-      {/* Branch */}
-      <div className="flex items-center gap-2.5 min-w-[120px]">
-        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-          <Building2 className="h-4 w-4 text-primary" />
-        </div>
-        <span className="text-sm font-bold text-text-primary">{branch.branchShort}</span>
-      </div>
-
-      {/* Score ring */}
-      <ScoreRing score={branch.score} size={40} stroke={4} color="var(--color-primary)" />
-
-      {/* Stats */}
-      <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-3 ml-2">
-        <div>
-          <p className="text-[10px] text-text-tertiary uppercase tracking-wide">Students</p>
-          <p className="text-sm font-bold text-text-primary">{branch.activeStudents}</p>
-        </div>
-        <div>
-          <p className="text-[10px] text-text-tertiary uppercase tracking-wide">Collected</p>
-          <p className="text-sm font-bold text-success">{formatCurrency(branch.totalCollected)}</p>
-        </div>
-        <div>
-          <p className="text-[10px] text-text-tertiary uppercase tracking-wide">Pending</p>
-          <p className="text-sm font-bold text-error">{formatCurrency(branch.pendingFees)}</p>
-        </div>
-        <div>
-          <p className="text-[10px] text-text-tertiary uppercase tracking-wide">Collect %</p>
-          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold ${
-            branch.collectionRate >= 80 ? "bg-success/10 text-success"
-            : branch.collectionRate >= 50 ? "bg-warning/10 text-warning"
-            : "bg-error/10 text-error"
-          }`}>
-            {branch.collectionRate}%
-          </span>
-        </div>
-      </div>
-
-      {/* Main metric highlight */}
-      <div className="text-right min-w-[60px]">
-        <p className="text-base font-extrabold text-primary">{mainMetric}</p>
-      </div>
-    </motion.div>
+      <span className="inline-flex items-center gap-1">
+        {label}
+        {active ? (
+          sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+        ) : (
+          <ChevronDown className="h-3 w-3 opacity-30" />
+        )}
+      </span>
+    </th>
   );
 }
 
@@ -315,6 +284,17 @@ function StatPill({ icon: Icon, label, value, color }: { icon: React.ElementType
 export default function LeaderboardPage() {
   const [period, setPeriod] = useState<Period>("all");
   const [perfType, setPerfType] = useState<PerfType>("overall");
+  const [sortKey, setSortKey] = useState<SortKey>("score");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+  const handleSort = (key: SortKey) => {
+    if (key === sortKey) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("desc");
+    }
+  };
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["director-leaderboard", period],
@@ -335,8 +315,18 @@ export default function LeaderboardPage() {
     return scored;
   }, [branches, perfType, maxAdm, maxCollected]);
 
+  // Table-sorted version (sortable by any column)
+  const tableSorted = useMemo(() => {
+    const arr = [...ranked];
+    arr.sort((a, b) => {
+      const av = a[sortKey] as number;
+      const bv = b[sortKey] as number;
+      return sortDir === "asc" ? av - bv : bv - av;
+    });
+    return arr;
+  }, [ranked, sortKey, sortDir]);
+
   const top3 = ranked.slice(0, 3);
-  const rest = ranked.slice(3);
 
   // Totals
   const totals = useMemo(() => branches.reduce(
@@ -494,26 +484,113 @@ export default function LeaderboardPage() {
               </div>
             </div>
 
-            {/* ── Rest of branches ── */}
-            {rest.length > 0 && (
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <Star className="h-4 w-4 text-text-tertiary" />
-                  <h2 className="text-sm font-bold text-text-primary">Other Branches</h2>
-                </div>
-                <div className="space-y-2">
-                  {rest.map((b, idx) => (
-                    <BranchRowCard
-                      key={b.branch}
-                      branch={b}
-                      rank={idx + 4}
-                      idx={idx}
-                      perfType={perfType}
-                    />
-                  ))}
-                </div>
+            {/* ── Full Ranking Table ── */}
+            <div className="rounded-2xl border border-border-light bg-surface overflow-hidden">
+              <div className="flex items-center gap-2 px-5 pt-4 pb-2">
+                <Medal className="h-4 w-4 text-primary" />
+                <h2 className="text-sm font-bold text-text-primary">Full Rankings</h2>
+                <span className="text-[10px] text-text-tertiary bg-app-bg border border-border-light px-2 py-0.5 rounded-full">
+                  {tableSorted.length} branches
+                </span>
               </div>
-            )}
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[900px]">
+                  <thead>
+                    <tr className="border-b border-border-light bg-app-bg/50">
+                      <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-text-tertiary text-left w-10">#</th>
+                      <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-text-tertiary text-left">Branch</th>
+                      <SortHeader label="Score" sortKey="score" activeSortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="text-right" />
+                      <SortHeader label="Students" sortKey="activeStudents" activeSortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="text-right" />
+                      <SortHeader label="Admissions" sortKey="newAdmissions" activeSortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="text-right" />
+                      <SortHeader label="Collected" sortKey="totalCollected" activeSortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="text-right" />
+                      <SortHeader label="Collect %" sortKey="collectionRate" activeSortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="text-right" />
+                      <SortHeader label="Pending" sortKey="pendingFees" activeSortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="text-right" />
+                      <SortHeader label="Overdue" sortKey="overdueAmount" activeSortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="text-right" />
+                      <SortHeader label="Batches" sortKey="batchCount" activeSortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="text-right" />
+                      <SortHeader label="Staff" sortKey="staffCount" activeSortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="text-right" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tableSorted.map((b, idx) => {
+                      const rank = ranked.indexOf(b) + 1;
+                      const isTop3 = rank <= 3;
+                      return (
+                        <motion.tr
+                          key={b.branch}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: idx * 0.03 }}
+                          className={`border-b border-border-light/60 transition-colors ${
+                            isTop3
+                              ? "bg-yellow-500/[0.03] hover:bg-yellow-500/[0.07]"
+                              : "hover:bg-brand-wash/20"
+                          }`}
+                        >
+                          <td className="px-3 py-3 text-center">
+                            <span className={`text-xs font-bold tabular-nums ${
+                              rank === 1 ? "text-yellow-500" : rank === 2 ? "text-slate-400" : rank === 3 ? "text-orange-500" : "text-text-tertiary"
+                            }`}>
+                              {rank}
+                            </span>
+                          </td>
+                          <td className="px-3 py-3">
+                            <div className="flex items-center gap-2">
+                              {isTop3 && (
+                                <span className={`text-xs ${
+                                  rank === 1 ? "text-yellow-500" : rank === 2 ? "text-slate-400" : "text-orange-500"
+                                }`}>
+                                  {rank === 1 ? "🥇" : rank === 2 ? "🥈" : "🥉"}
+                                </span>
+                              )}
+                              <span className="text-sm font-bold text-text-primary">{b.branchShort}</span>
+                            </div>
+                          </td>
+                          <td className="px-3 py-3 text-right">
+                            <ScoreRing score={b.score} size={36} stroke={3} color={isTop3 ? "#eab308" : "var(--color-primary)"} />
+                          </td>
+                          <td className="px-3 py-3 text-right text-sm font-semibold text-text-primary tabular-nums">{b.activeStudents}</td>
+                          <td className="px-3 py-3 text-right text-sm font-semibold text-blue-500 tabular-nums">{b.newAdmissions}</td>
+                          <td className="px-3 py-3 text-right text-sm font-semibold text-success tabular-nums">{formatCurrency(b.totalCollected)}</td>
+                          <td className="px-3 py-3 text-right">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold ${
+                              b.collectionRate >= 80 ? "bg-success/10 text-success"
+                              : b.collectionRate >= 50 ? "bg-warning/10 text-warning"
+                              : "bg-error/10 text-error"
+                            }`}>
+                              {b.collectionRate}%
+                            </span>
+                          </td>
+                          <td className="px-3 py-3 text-right text-sm font-semibold text-error tabular-nums">{formatCurrency(b.pendingFees)}</td>
+                          <td className="px-3 py-3 text-right text-sm font-semibold text-orange-500 tabular-nums">{formatCurrency(b.overdueAmount)}</td>
+                          <td className="px-3 py-3 text-right text-sm font-semibold text-text-primary tabular-nums">{b.batchCount}</td>
+                          <td className="px-3 py-3 text-right text-sm font-semibold text-text-primary tabular-nums">{b.staffCount}</td>
+                        </motion.tr>
+                      );
+                    })}
+                  </tbody>
+                  {/* Totals row */}
+                  <tfoot>
+                    <tr className="bg-app-bg/80 border-t-2 border-border-light">
+                      <td className="px-3 py-3" />
+                      <td className="px-3 py-3 text-xs font-black uppercase text-text-secondary">Totals</td>
+                      <td className="px-3 py-3" />
+                      <td className="px-3 py-3 text-right text-sm font-black text-text-primary tabular-nums">{totals.students}</td>
+                      <td className="px-3 py-3 text-right text-sm font-black text-blue-500 tabular-nums">{totals.admissions}</td>
+                      <td className="px-3 py-3 text-right text-sm font-black text-success tabular-nums">{formatCurrency(totals.collected)}</td>
+                      <td className="px-3 py-3 text-right">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-black bg-primary/10 text-primary">
+                          {pct(totals.collected, totals.collected + totals.pending)}%
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 text-right text-sm font-black text-error tabular-nums">{formatCurrency(totals.pending)}</td>
+                      <td className="px-3 py-3 text-right text-sm font-black text-orange-500 tabular-nums">{formatCurrency(totals.overdue)}</td>
+                      <td className="px-3 py-3" />
+                      <td className="px-3 py-3" />
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
 
             {/* ── Collection Race ── */}
             <div className="rounded-2xl border border-border-light bg-surface p-5">
