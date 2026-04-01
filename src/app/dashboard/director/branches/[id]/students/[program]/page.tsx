@@ -59,7 +59,7 @@ function BatchCard({
     <Link
       href={`/dashboard/director/branches/${encodedBranch}/batches/${encodeURIComponent(batch.name)}`}
     >
-      <motion.div variants={itemVariants} whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }}>
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: "easeOut" }} whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }}>
         <Card className="h-full hover:shadow-md transition-shadow cursor-pointer border-border-light hover:border-primary/30">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-3">
