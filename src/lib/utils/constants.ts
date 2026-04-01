@@ -143,6 +143,7 @@ export const DIRECTOR_NAV: NavItem[] = [
   { label: "Bank", href: "/dashboard/director/bank", icon: "Landmark" },
   { label: "Sales Orders", href: "/dashboard/director/sales-orders", icon: "ShoppingCart" },
   { label: "Reports", href: "/dashboard/director/reports", icon: "FileBarChart" },
+  { label: "Complaints", href: "/dashboard/director/complaints", icon: "MessageSquareWarning" },
   { label: "Transfers", href: "/dashboard/branch-manager/transfers", icon: "ArrowRightLeft" },
 ];
 
@@ -159,6 +160,7 @@ export const PARENT_NAV: NavItem[] = [
   { label: "Children", href: "/dashboard/parent/children", icon: "Users" },
   { label: "Attendance", href: "/dashboard/parent/attendance", icon: "ClipboardCheck" },
   { label: "Fees", href: "/dashboard/parent/fees", icon: "IndianRupee" },
+  { label: "Complaints", href: "/dashboard/parent/complaints", icon: "MessageSquareWarning" },
 ];
 
 export const HR_MANAGER_NAV: NavItem[] = [
