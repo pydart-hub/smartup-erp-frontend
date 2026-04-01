@@ -141,7 +141,6 @@ export const DIRECTOR_NAV: NavItem[] = [
   { label: "Course Schedule", href: "/dashboard/director/course-schedule", icon: "CalendarDays" },
   { label: "Fees", href: "/dashboard/director/fees", icon: "IndianRupee" },
   { label: "Bank", href: "/dashboard/director/bank", icon: "Landmark" },
-  { label: "Sales Orders", href: "/dashboard/director/sales-orders", icon: "ShoppingCart" },
   { label: "Reports", href: "/dashboard/director/reports", icon: "FileBarChart" },
   { label: "Complaints", href: "/dashboard/director/complaints", icon: "MessageSquareWarning" },
   { label: "Transfers", href: "/dashboard/branch-manager/transfers", icon: "ArrowRightLeft" },
