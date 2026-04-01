@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { getRazorpayKeys, getInvoiceCompany } from "@/lib/utils/razorpay";
+import { resolveAccountPaidTo } from "@/lib/utils/accountMapping";
 
 const FRAPPE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL;
 const FRAPPE_API_KEY = process.env.FRAPPE_API_KEY;
@@ -153,6 +154,17 @@ export async function POST(request: NextRequest) {
       mappedPE.reference_no = razorpay_payment_id;
       mappedPE.reference_date = new Date().toISOString().split("T")[0];
       mappedPE.remarks = `Online payment via Razorpay. Order: ${razorpay_order_id}, Payment: ${razorpay_payment_id}. Student: ${student_name || ""}. Parent email: ${email}`;
+
+      // ── Resolve correct "Account Paid To" from Mode of Payment mapping ──
+      if (company) {
+        const resolved = await resolveAccountPaidTo("Razorpay", company, FRAPPE_URL!, adminAuth);
+        if (resolved) {
+          mappedPE.paid_to = resolved.account;
+          mappedPE.paid_to_account_type = resolved.accountType;
+        } else {
+          console.warn(`[payments/verify] No account mapping for Razorpay, company=${company}`);
+        }
+      }
 
       // Override allocated amount in references to match actual payment
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

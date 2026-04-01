@@ -17,6 +17,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole, STAFF_ROLES } from "@/lib/utils/apiAuth";
+import { resolveAccountPaidTo } from "@/lib/utils/accountMapping";
 
 const FRAPPE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL;
 const API_KEY = process.env.FRAPPE_API_KEY;
@@ -83,6 +84,20 @@ export async function POST(request: NextRequest) {
       // Non-blocking — proceed if lookup fails
     }
 
+    // ── Resolve company (branch) from the invoice ──
+    let company: string | null = null;
+    try {
+      const compRes = await fetch(
+        `${FRAPPE_URL}/api/resource/Sales Invoice/${encodeURIComponent(invoice_id)}?fields=["company"]`,
+        { headers },
+      );
+      if (compRes.ok) {
+        company = (await compRes.json()).data?.company ?? null;
+      }
+    } catch {
+      // Non-blocking
+    }
+
     // 1. Use Frappe's get_payment_entry to get a fully mapped PE
     const getPeRes = await fetch(
       `${FRAPPE_URL}/api/method/erpnext.accounts.doctype.payment_entry.payment_entry.get_payment_entry`,
@@ -117,6 +132,17 @@ export async function POST(request: NextRequest) {
     mappedPE.paid_amount = amount;
     mappedPE.received_amount = amount;
     mappedPE.remarks = `${mode_of_payment} payment recorded by ${email} on ${posting_date}.${reference_no ? ` Ref: ${reference_no}` : ""}`;
+
+    // ── Resolve correct "Account Paid To" from Mode of Payment mapping ──
+    if (company) {
+      const resolved = await resolveAccountPaidTo(mode_of_payment, company, FRAPPE_URL!, `token ${API_KEY}:${API_SECRET}`);
+      if (resolved) {
+        mappedPE.paid_to = resolved.account;
+        mappedPE.paid_to_account_type = resolved.accountType;
+      } else {
+        console.warn(`[record-cash] No account mapping for mode=${mode_of_payment}, company=${company}`);
+      }
+    }
 
     // Override allocated amount in references
     if (mappedPE.references && Array.isArray(mappedPE.references)) {
