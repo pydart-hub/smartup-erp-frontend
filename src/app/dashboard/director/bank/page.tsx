@@ -15,6 +15,7 @@ import {
   Smartphone,
   Wifi,
   Wallet,
+  FileBarChart,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Input } from "@/components/ui/Input";
@@ -299,13 +300,22 @@ export default function DirectorBankPage() {
       className="space-y-6"
     >
       <BreadcrumbNav />
-      <div>
-        <h1 className="text-2xl font-bold text-text-primary">
-          Bank & Cash Overview
-        </h1>
-        <p className="text-sm text-text-secondary mt-0.5">
-          Account balances across all branches
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-text-primary">
+            Bank & Cash Overview
+          </h1>
+          <p className="text-sm text-text-secondary mt-0.5">
+            Account balances across all branches
+          </p>
+        </div>
+        <Link
+          href="/dashboard/director/bank/consolidated"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm w-fit"
+        >
+          <FileBarChart className="h-4 w-4" />
+          Consolidated Report
+        </Link>
       </div>
 
       {/* Aggregate summary */}

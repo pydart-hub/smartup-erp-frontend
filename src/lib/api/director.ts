@@ -1324,3 +1324,42 @@ export async function getBranchJournalEntries(
   const json = await res.json();
   return json.journal_entries ?? [];
 }
+
+// ── Consolidated Bank Report ──
+
+export interface ConsolidatedBranchRow {
+  branch: string;
+  abbr: string;
+  cash: number;
+  bank: number;
+  bank_entity_name: string;
+  razorpay: number;
+  upi: number;
+  total: number;
+  accounts: AccountBalance[];
+}
+
+export interface ConsolidatedBankReport {
+  branches: ConsolidatedBranchRow[];
+  grand_total: {
+    cash: number;
+    bank: number;
+    razorpay: number;
+    upi: number;
+    total: number;
+  };
+}
+
+/** Get consolidated bank balances across all branches */
+export async function getConsolidatedBankReport(
+  opts?: { from_date?: string; to_date?: string },
+): Promise<ConsolidatedBankReport> {
+  const params = new URLSearchParams();
+  if (opts?.from_date) params.set("from_date", opts.from_date);
+  if (opts?.to_date) params.set("to_date", opts.to_date);
+  const res = await fetch(`/api/director/bank/consolidated?${params}`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(`consolidated bank failed: ${res.status}`);
+  return res.json();
+}

@@ -1,0 +1,4006 @@
+﻿============================================================
+QUERY 1: GL ENTRY COUNT PER COMPANY
+============================================================
+  Smart Up: 96
+  Smart Up Kadavanthara: 22
+  Smart Up Chullickal: 384
+  Smart Up Edappally: 23
+  Smart Up Fortkochi: 25
+  Smart Up Vennala: 139
+  Smart Up Moolamkuzhi: 229
+  Smart Up Palluruthy: 18
+  Smart Up Thopumpadi: 82
+  Smart Up Eraveli: 18
+
+============================================================
+QUERY 2: GL ENTRIES WITH DEBIT > 0 (top 100 by debit desc)
+============================================================
+[
+  {
+    "name": "ACC-GLE-2026-12155",
+    "company": "Smart Up",
+    "account": "Renovation - SU",
+    "debit": 200000.0,
+    "posting_date": "2026-03-03",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00013",
+    "remarks": "Note: Adv for joseph worker\n"
+  },
+  {
+    "name": "ACC-GLE-2026-12141",
+    "company": "Smart Up",
+    "account": "Chair - SU",
+    "debit": 199462.0,
+    "posting_date": "2025-12-29",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00006",
+    "remarks": "Note: chair purchase for head office"
+  },
+  {
+    "name": "ACC-GLE-2026-12257",
+    "company": "Smart Up",
+    "account": "Bench and Desk - SU",
+    "debit": 150000.0,
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00044-1",
+    "remarks": "Note: joseph ettan ( Bench and desk )\n"
+  },
+  {
+    "name": "ACC-GLE-2026-12617",
+    "company": "Smart Up Chullickal",
+    "account": "VERDIAN INSTITUTE  L L P - SU CHL",
+    "debit": 120792.3,
+    "posting_date": "2026-03-31",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00058",
+    "remarks": "Note: OPENING"
+  },
+  {
+    "name": "ACC-GLE-2026-12159",
+    "company": "Smart Up",
+    "account": "Renovation - SU",
+    "debit": 100000.0,
+    "posting_date": "2026-03-03",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00015",
+    "remarks": "Note: stage 3 for joseph\n"
+  },
+  {
+    "name": "ACC-GLE-2026-12161",
+    "company": "Smart Up",
+    "account": "Renovation - SU",
+    "debit": 100000.0,
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00017",
+    "remarks": "Note: stage 4 for joseph\n"
+  },
+  {
+    "name": "ACC-GLE-2026-12205",
+    "company": "Smart Up",
+    "account": "Renovation - SU",
+    "debit": 100000.0,
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00035",
+    "remarks": "Note: additional cost for first floor joseph\n"
+  },
+  {
+    "name": "ACC-GLE-2026-12575",
+    "company": "Smart Up Vennala",
+    "account": "LUMIERA LEARNING LLP - SU VYT",
+    "debit": 96956.4,
+    "posting_date": "2026-03-31",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00054-2",
+    "remarks": "Note: OPENING ( CASH IN HAND INCLUDES CHEQUE)"
+  },
+  {
+    "name": "ACC-GLE-2026-12612",
+    "company": "Smart Up Moolamkuzhi",
+    "account": "BRAINYBUNCH LEARNING VENTURES LLP - SU MMK",
+    "debit": 89859.08,
+    "posting_date": "2026-03-31",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00057-1",
+    "remarks": "Note: OPENING"
+  },
+  {
+    "name": "ACC-GLE-2026-12171",
+    "company": "Smart Up",
+    "account": "Boards and fittings - SU",
+    "debit": 83500.0,
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00019-1",
+    "remarks": "Note: name board, flex and lightboard\n"
+  },
+  {
+    "name": "ACC-GLE-2026-12211",
+    "company": "Smart Up",
+    "account": "Renovation - SU",
+    "debit": 75000.0,
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00038",
+    "remarks": "Note: glass work adv ground floor (joseph)\n"
+  },
+  {
+    "name": "ACC-GLE-2026-12215",
+    "company": "Smart Up",
+    "account": "Renovation - SU",
+    "debit": 75000.0,
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00040",
+    "remarks": "Note: joseph ettan ( ground floor glass adv )\n"
+  },
+  {
+    "name": "ACC-GLE-2026-12263",
+    "company": "Smart Up",
+    "account": "Renovation - SU",
+    "debit": 75000.0,
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00047",
+    "remarks": "Note: joseph ettan ground floor bal\n"
+  },
+  {
+    "name": "ACC-GLE-2026-12143",
+    "company": "Smart Up",
+    "account": "Air Conditioner - SU",
+    "debit": 68050.0,
+    "posting_date": "2026-03-17",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00007",
+    "remarks": "Note: advance paid for purchase of air conditioner"
+  },
+  {
+    "name": "ACC-GLE-2026-11707",
+    "company": "Smart Up Kadavanthara",
+    "account": "Debtors - SU KDV",
+    "debit": 50400.0,
+    "posting_date": "2026-03-19",
+    "voucher_type": "Sales Invoice",
+    "voucher_no": "ACC-SINV-2026-01883",
+    "remarks": "No Remarks"
+  },
+  {
+    "name": "ACC-GLE-2026-12163",
+    "company": "Smart Up",
+    "account": "Renovation - SU",
+    "debit": 50000.0,
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00018",
+    "remarks": "Note: stage 5 for joseph"
+  },
+  {
+    "name": "ACC-GLE-2026-12167",
+    "company": "Smart Up",
+    "account": "Renovation - SU",
+    "debit": 50000.0,
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00020",
+    "remarks": "Note: joseph for ground work\n"
+  },
+  {
+    "name": "ACC-GLE-2026-12173",
+    "company": "Smart Up",
+    "account": "Renovation - SU",
+    "debit": 50000.0,
+    "posting_date": "2025-12-24",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00021",
+    "remarks": "Note:  KDV Work - Joseph \n"
+  },
+  {
+    "name": "ACC-GLE-2026-12261",
+    "company": "Smart Up",
+    "account": "Bench and Desk - SU",
+    "debit": 50000.0,
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00046",
+    "remarks": "Note: joseph ettan (bench &desk)\n"
+  },
+  {
+    "name": "ACC-GLE-2026-12267",
+    "company": "Smart Up",
+    "account": "Renovation - SU",
+    "debit": 50000.0,
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00049",
+    "remarks": "Note: JOSEPH ETANN VENNALA"
+  },
+  {
+    "name": "ACC-GLE-2026-12145",
+    "company": "Smart Up",
+    "account": "Advertisement Expense - SU",
+    "debit": 48000.0,
+    "posting_date": "2026-03-17",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00008",
+    "remarks": "Note: sunpack board"
+  },
+  {
+    "name": "ACC-GLE-2026-12275",
+    "company": "Smart Up",
+    "account": "Laptop - SU",
+    "debit": 40700.0,
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00051-1",
+    "remarks": "Note: store 11 (lap)\n"
+  },
+  {
+    "name": "ACC-GLE-2026-11903",
+    "company": "Smart Up",
+    "account": "CCTV - SU",
+    "debit": 40000.0,
+    "posting_date": "2026-03-25",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00003",
+    "remarks": ""
+  },
+  {
+    "name": "ACC-GLE-2026-11587",
+    "company": "Smart Up Vennala",
+    "account": "Debtors - SU VYT",
+    "debit": 39400.0,
+    "posting_date": "2026-03-16",
+    "voucher_type": "Sales Invoice",
+    "voucher_no": "ACC-SINV-2026-01837",
+    "remarks": "No Remarks"
+  },
+  {
+    "name": "ACC-GLE-2026-11590",
+    "company": "Smart Up Vennala",
+    "account": "Cash - SU VYT",
+    "debit": 39400.0,
+    "posting_date": "2026-03-16",
+    "voucher_type": "Payment Entry",
+    "voucher_no": "ACC-PAY-2026-03898",
+    "remarks": "Amount INR 39400.0 received from MUHAMMED FARHAN KK\nTransaction reference no pay_SRuJ90vzrNF41I dated 2026-03-16\nAmount INR 39400.0 against Sales Invoice ACC-SINV-2026-01837"
+  },
+  {
+    "name": "ACC-GLE-2026-11591",
+    "company": "Smart Up Vennala",
+    "account": "Debtors - SU VYT",
+    "debit": 39400.0,
+    "posting_date": "2026-03-16",
+    "voucher_type": "Sales Invoice",
+    "voucher_no": "ACC-SINV-2026-01838",
+    "remarks": "No Remarks"
+  },
+  {
+    "name": "ACC-GLE-2026-11594",
+    "company": "Smart Up Vennala",
+    "account": "Cash - SU VYT",
+    "debit": 39400.0,
+    "posting_date": "2026-03-16",
+    "voucher_type": "Payment Entry",
+    "voucher_no": "ACC-PAY-2026-03899",
+    "remarks": "Amount INR 39400.0 received from SHAHZIN SHIHAB K\nTransaction reference no CASH-1773668962895 dated 2026-03-16\nAmount INR 39400.0 against Sales Invoice ACC-SINV-2026-01838"
+  },
+  {
+    "name": "ACC-GLE-2026-12153",
+    "company": "Smart Up",
+    "account": "Out Station Travel  Expense - SU",
+    "debit": 33700.0,
+    "posting_date": "2026-03-03",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00012",
+    "remarks": "Note:  GCC TICKET - RAYEES \n"
+  },
+  {
+    "name": "ACC-GLE-2026-12139",
+    "company": "Smart Up",
+    "account": "Advertisement Expense - SU",
+    "debit": 33500.0,
+    "posting_date": "2025-12-24",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00005",
+    "remarks": "Note:  Flux Board - KDV \n"
+  },
+  {
+    "name": "ACC-GLE-2026-12157",
+    "company": "Smart Up",
+    "account": "Invertor - SU",
+    "debit": 32500.0,
+    "posting_date": "2026-03-03",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00014",
+    "remarks": ""
+  },
+  {
+    "name": "ACC-GLE-2026-12179",
+    "company": "Smart Up",
+    "account": "Air Conditioner - SU",
+    "debit": 32500.0,
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00024",
+    "remarks": "Note: new ac"
+  },
+  {
+    "name": "ACC-GLE-2026-12259",
+    "company": "Smart Up",
+    "account": "Boards and fittings - SU",
+    "debit": 30000.0,
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00045",
+    "remarks": "Note: edappalli board adv\n"
+  },
+  {
+    "name": "ACC-GLE-2026-12393",
+    "company": "Smart Up Vennala",
+    "account": "Debtors - SU VYT",
+    "debit": 28400.0,
+    "posting_date": "2026-03-30",
+    "voucher_type": "Sales Invoice",
+    "voucher_no": "ACC-SINV-2026-02179",
+    "remarks": "No Remarks"
+  },
+  {
+    "name": "ACC-GLE-2026-12396",
+    "company": "Smart Up Vennala",
+    "account": "Cash - SU VYT",
+    "debit": 28400.0,
+    "posting_date": "2026-03-30",
+    "voucher_type": "Payment Entry",
+    "voucher_no": "ACC-PAY-2026-03946",
+    "remarks": "Amount INR 28400.0 received from VARUN RAJEEV\nTransaction reference no pay_SXSL6x1elvf6Ho dated 2026-03-30\nAmount INR 28400.0 against Sales Invoice ACC-SINV-2026-02179"
+  },
+  {
+    "name": "ACC-GLE-2026-12576",
+    "company": "Smart Up Vennala",
+    "account": "Razorpay - SU VYT",
+    "debit": 28400.0,
+    "posting_date": "2026-03-31",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00054-2",
+    "remarks": "Note: OPENING ( CASH IN HAND INCLUDES CHEQUE)"
+  },
+  {
+    "name": "ACC-GLE-2026-12618",
+    "company": "Smart Up Chullickal",
+    "account": "Razorpay - SU CHL - SU CHL",
+    "debit": 24799.0,
+    "posting_date": "2026-03-31",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00058",
+    "remarks": "Note: OPENING"
+  },
+  {
+    "name": "ACC-GLE-2026-11583",
+    "company": "Smart Up Chullickal",
+    "account": "Debtors - SU CHL",
+    "debit": 22900.0,
+    "posting_date": "2026-03-16",
+    "voucher_type": "Sales Invoice",
+    "voucher_no": "ACC-SINV-2026-01836",
+    "remarks": "No Remarks"
+  },
+  {
+    "name": "ACC-GLE-2026-11871",
+    "company": "Smart Up Chullickal",
+    "account": "Debtors - SU CHL",
+    "debit": 22900.0,
+    "posting_date": "2026-03-25",
+    "voucher_type": "Sales Invoice",
+    "voucher_no": "ACC-SINV-2026-01953",
+    "remarks": "No Remarks"
+  },
+  {
+    "name": "ACC-GLE-2026-11873",
+    "company": "Smart Up Chullickal",
+    "account": "Debtors - SU CHL",
+    "debit": 22900.0,
+    "posting_date": "2026-03-25",
+    "voucher_type": "Sales Invoice",
+    "voucher_no": "ACC-SINV-2026-01954",
+    "remarks": "No Remarks"
+  },
+  {
+    "name": "ACC-GLE-2026-11939",
+    "company": "Smart Up Chullickal",
+    "account": "Debtors - SU CHL",
+    "debit": 22900.0,
+    "posting_date": "2026-03-25",
+    "voucher_type": "Sales Invoice",
+    "voucher_no": "ACC-SINV-2026-02001",
+    "remarks": "No Remarks"
+  },
+  {
+    "name": "ACC-GLE-2026-11942",
+    "company": "Smart Up Chullickal",
+    "account": "Cash - SU CHL",
+    "debit": 22900.0,
+    "posting_date": "2026-03-25",
+    "voucher_type": "Payment Entry",
+    "voucher_no": "ACC-PAY-2026-03922",
+    "remarks": "Amount INR 22900.0 received from NETLIN RUFUS\nTransaction reference no pay_SVSYCqWzc69XaT dated 2026-03-25\nAmount INR 22900.0 against Sales Invoice ACC-SINV-2026-02001"
+  },
+  {
+    "name": "ACC-GLE-2026-12023",
+    "company": "Smart Up Moolamkuzhi",
+    "account": "Debtors - SU MMK",
+    "debit": 22900.0,
+    "posting_date": "2026-03-25",
+    "voucher_type": "Sales Invoice",
+    "voucher_no": "ACC-SINV-2026-02036",
+    "remarks": "No Remarks"
+  },
+  {
+    "name": "ACC-GLE-2026-12026",
+    "company": "Smart Up Moolamkuzhi",
+    "account": "Cash - SU MMK",
+    "debit": 22900.0,
+    "posting_date": "2026-03-25",
+    "voucher_type": "Payment Entry",
+    "voucher_no": "ACC-PAY-2026-03929",
+    "remarks": "Amount INR 22900.0 received from EVANIYA GRACE K A\nTransaction reference no pay_SVU9gBZqHWfN1K dated 2026-03-25\nAmount INR 22900.0 against Sales Invoice ACC-SINV-2026-02036"
+  },
+  {
+    "name": "ACC-GLE-2026-12040",
+    "company": "Smart Up Chullickal",
+    "account": "Cash - SU CHL",
+    "debit": 22900.0,
+    "posting_date": "2026-03-25",
+    "voucher_type": "Payment Entry",
+    "voucher_no": "ACC-PAY-2026-03932",
+    "remarks": "Amount INR 22900.0 received from AFIYA S\nTransaction reference no pay_SVVjQZM6AOTG4P dated 2026-03-25\nAmount INR 22900.0 against Sales Invoice ACC-SINV-2026-01954"
+  },
+  {
+    "name": "ACC-GLE-2026-12070",
+    "company": "Smart Up Chullickal",
+    "account": "Cash - SU CHL",
+    "debit": 22900.0,
+    "posting_date": "2026-03-26",
+    "voucher_type": "Payment Entry",
+    "voucher_no": "ACC-PAY-2026-03933",
+    "remarks": "Amount INR 22900.0 received from Jezza Najeeb\nTransaction reference no pay_SVkXtJiwbd0tcA dated 2026-03-26\nAmount INR 22900.0 against Sales Invoice ACC-SINV-2026-01953"
+  },
+  {
+    "name": "ACC-GLE-2026-12361",
+    "company": "Smart Up Moolamkuzhi",
+    "account": "Debtors - SU MMK",
+    "debit": 22900.0,
+    "posting_date": "2026-03-30",
+    "voucher_type": "Sales Invoice",
+    "voucher_no": "ACC-SINV-2026-02170",
+    "remarks": "No Remarks"
+  },
+  {
+    "name": "ACC-GLE-2026-12623",
+    "company": "Smart Up Chullickal",
+    "account": "Debtors - SU CHL",
+    "debit": 22900.0,
+    "posting_date": "2026-04-01",
+    "voucher_type": "Sales Invoice",
+    "voucher_no": "ACC-SINV-2026-02262",
+    "remarks": "No Remarks"
+  },
+  {
+    "name": "e20bc4af26",
+    "company": "Smart Up Kadavanthara",
+    "account": "l - Loan to Inspiromind - SU KDV",
+    "debit": 21775.12,
+    "posting_date": "2026-03-31",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00062",
+    "remarks": "Note: opening"
+  },
+  {
+    "name": "ACC-GLE-2026-12177",
+    "company": "Smart Up",
+    "account": "Air Conditioner - SU",
+    "debit": 20950.0,
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00023",
+    "remarks": "Note: ac installation  my fix\n"
+  },
+  {
+    "name": "ACC-GLE-2026-12269",
+    "company": "Smart Up",
+    "account": "cwc expense - SU",
+    "debit": 20000.0,
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00050",
+    "remarks": "Note: Influencer salih valancherry \n"
+  },
+  {
+    "name": "ACC-GLE-2026-12705",
+    "company": "Smart Up Edappally",
+    "account": "Debtors - SU EDPLY",
+    "debit": 18400.0,
+    "posting_date": "2026-04-01",
+    "voucher_type": "Sales Invoice",
+    "voucher_no": "ACC-SINV-2026-02295",
+    "remarks": "No Remarks"
+  },
+  {
+    "name": "ACC-GLE-2026-12750",
+    "company": "Smart Up Edappally",
+    "account": "Razorpay - SU EDPLY",
+    "debit": 18400.0,
+    "posting_date": "2026-04-01",
+    "voucher_type": "Payment Entry",
+    "voucher_no": "ACC-PAY-2026-03969",
+    "remarks": "Amount INR 18400.0 received from Mohammed Dua zain\nTransaction reference no pay_SYFiv5PZceUzrA dated 2026-04-01\nAmount INR 18400.0 against Sales Invoice ACC-SINV-2026-02295"
+  },
+  {
+    "name": "ACC-GLE-2026-11711",
+    "company": "Smart Up Kadavanthara",
+    "account": "Debtors - SU KDV",
+    "debit": 18300.0,
+    "posting_date": "2026-03-19",
+    "voucher_type": "Sales Invoice",
+    "voucher_no": "ACC-SINV-2026-01884",
+    "remarks": "No Remarks"
+  },
+  {
+    "name": "ACC-GLE-2026-11720",
+    "company": "Smart Up Kadavanthara",
+    "account": "Cash - SU KDV",
+    "debit": 18300.0,
+    "posting_date": "2026-03-19",
+    "voucher_type": "Payment Entry",
+    "voucher_no": "ACC-PAY-2026-03908",
+    "remarks": "Amount INR 18300.0 received from SREEHARI K S\nTransaction reference no S2072746/S73405246 dated 2026-03-19\nAmount INR 18300.0 against Sales Invoice ACC-SINV-2026-01884"
+  },
+  {
+    "name": "ACC-GLE-2026-12436",
+    "company": "Smart Up Moolamkuzhi",
+    "account": "Cash - SU MMK",
+    "debit": 17900.0,
+    "posting_date": "2026-03-31",
+    "voucher_type": "Payment Entry",
+    "voucher_no": "ACC-PAY-2026-03950",
+    "remarks": "Amount INR 17900.0 received from SAJAY FRANSON K F\nTransaction reference no CASH-1774957135087 dated 2026-03-31\nAmount INR 17900.0 against Sales Invoice ACC-SINV-2026-02170"
+  },
+  {
+    "name": "ACC-GLE-2026-11757",
+    "company": "Smart Up Chullickal",
+    "account": "Debtors - SU CHL",
+    "debit": 17400.0,
+    "posting_date": "2026-03-23",
+    "voucher_type": "Sales Invoice",
+    "voucher_no": "ACC-SINV-2026-01901",
+    "remarks": "No Remarks"
+  },
+  {
+    "name": "ACC-GLE-2026-11760",
+    "company": "Smart Up Chullickal",
+    "account": "Cash - SU CHL",
+    "debit": 16530.0,
+    "posting_date": "2026-03-23",
+    "voucher_type": "Payment Entry",
+    "voucher_no": "ACC-PAY-2026-03913",
+    "remarks": "Amount INR 16530.0 received from MOHAMMED AYAN SHIRAS\nTransaction reference no pay_SUcdzKjeWonJQq dated 2026-03-23\nAmount INR 16530.0 against Sales Invoice ACC-SINV-2026-01901"
+  },
+  {
+    "name": "ACC-GLE-2026-11753",
+    "company": "Smart Up Chullickal",
+    "account": "Debtors - SU CHL",
+    "debit": 16300.0,
+    "posting_date": "2026-03-23",
+    "voucher_type": "Sales Invoice",
+    "voucher_no": "ACC-SINV-2026-01900",
+    "remarks": "No Remarks"
+  },
+  {
+    "name": "ACC-GLE-2026-12621",
+    "company": "Smart Up Chullickal",
+    "account": "Cash - SU CHL",
+    "debit": 16201.0,
+    "posting_date": "2026-03-31",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00058",
+    "remarks": "Note: OPENING"
+  },
+  {
+    "name": "ACC-GLE-2026-11710",
+    "company": "Smart Up Kadavanthara",
+    "account": "Cash - SU KDV",
+    "debit": 16000.0,
+    "posting_date": "2026-03-19",
+    "voucher_type": "Payment Entry",
+    "voucher_no": "ACC-PAY-2026-03907",
+    "remarks": "Amount INR 16000.0 received from Advaith Krishna S prabhu\nTransaction reference no S22813514 dated 2026-03-19\nAmount INR 16000.0 against Sales Invoice ACC-SINV-2026-01883"
+  },
+  {
+    "name": "ACC-GLE-2026-12147",
+    "company": "Smart Up",
+    "account": "Mobile Phone - SU",
+    "debit": 16000.0,
+    "posting_date": "2026-03-17",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00009",
+    "remarks": "Note: 8000/ phone(8000*2=16000)"
+  },
+  {
+    "name": "ACC-GLE-2026-11756",
+    "company": "Smart Up Chullickal",
+    "account": "Cash - SU CHL",
+    "debit": 15485.0,
+    "posting_date": "2026-03-23",
+    "voucher_type": "Payment Entry",
+    "voucher_no": "ACC-PAY-2026-03912",
+    "remarks": "Amount INR 15485.0 received from AFREEN SHIRAS\nTransaction reference no pay_SUcYrwWWn5eUtE dated 2026-03-23\nAmount INR 15485.0 against Sales Invoice ACC-SINV-2026-01900"
+  },
+  {
+    "name": "ACC-GLE-2026-12235",
+    "company": "Smart Up",
+    "account": "CCTV - SU",
+    "debit": 15000.0,
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00043",
+    "remarks": "Note: first floor cctv"
+  },
+  {
+    "name": "ACC-GLE-2026-12344",
+    "company": "Smart Up Chullickal",
+    "account": "Cash - SU CHL",
+    "debit": 15000.0,
+    "posting_date": "2026-03-28",
+    "voucher_type": "Payment Entry",
+    "voucher_no": "ACC-PAY-2026-03940",
+    "remarks": "Amount INR 15000.0 received from ADHARSH M A\nTransaction reference no pay_SWa8YXHclngNuI dated 2026-03-28\nAmount INR 15000.0 against Sales Invoice ACC-SINV-2026-01836"
+  },
+  {
+    "name": "ACC-GLE-2026-11415",
+    "company": "Smart Up Vennala",
+    "account": "Debtors - SU VYT",
+    "debit": 14400.0,
+    "posting_date": "2026-03-11",
+    "voucher_type": "Sales Invoice",
+    "voucher_no": "ACC-SINV-2026-01733",
+    "remarks": "No Remarks"
+  },
+  {
+    "name": "ACC-GLE-2026-11424",
+    "company": "Smart Up Vennala",
+    "account": "Cash - SU VYT",
+    "debit": 14400.0,
+    "posting_date": "2026-03-11",
+    "voucher_type": "Payment Entry",
+    "voucher_no": "ACC-PAY-2026-03891",
+    "remarks": "Amount INR 14400.0 received from RIDA FATHIMA VR - 1\nTransaction reference no pay_SPu5txrKsZK6IB dated 2026-03-11\nAmount INR 14400.0 against Sales Invoice ACC-SINV-2026-01733"
+  },
+  {
+    "name": "ACC-GLE-2026-11723",
+    "company": "Smart Up Edappally",
+    "account": "Debtors - SU EDPLY",
+    "debit": 14300.0,
+    "posting_date": "2026-03-19",
+    "voucher_type": "Sales Invoice",
+    "voucher_no": "ACC-SINV-2026-01888",
+    "remarks": "No Remarks"
+  },
+  {
+    "name": "ACC-GLE-2026-12199",
+    "company": "Smart Up",
+    "account": "PRINTER - SU",
+    "debit": 14250.0,
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00032",
+    "remarks": ""
+  },
+  {
+    "name": "ACC-GLE-2026-12193",
+    "company": "Smart Up",
+    "account": "BIOMETRIC - SU",
+    "debit": 14000.0,
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00029",
+    "remarks": "Note: BIOMETRIC"
+  },
+  {
+    "name": "ACC-GLE-2026-12265",
+    "company": "Smart Up",
+    "account": "Advertisement Expense - SU",
+    "debit": 14000.0,
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00048",
+    "remarks": "Note: Edappally flex bal\n"
+  },
+  {
+    "name": "ACC-GLE-2026-12207",
+    "company": "Smart Up",
+    "account": "Renovation - SU",
+    "debit": 13250.0,
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00036",
+    "remarks": "Note: glass13250"
+  },
+  {
+    "name": "ACC-GLE-2026-11713",
+    "company": "Smart Up Kadavanthara",
+    "account": "Debtors - SU KDV",
+    "debit": 13100.0,
+    "posting_date": "2026-03-19",
+    "voucher_type": "Sales Invoice",
+    "voucher_no": "ACC-SINV-2026-01885",
+    "remarks": "No Remarks"
+  },
+  {
+    "name": "ACC-GLE-2026-11715",
+    "company": "Smart Up Kadavanthara",
+    "account": "Debtors - SU KDV",
+    "debit": 13100.0,
+    "posting_date": "2026-03-19",
+    "voucher_type": "Sales Invoice",
+    "voucher_no": "ACC-SINV-2026-01886",
+    "remarks": "No Remarks"
+  },
+  {
+    "name": "ACC-GLE-2026-12707",
+    "company": "Smart Up Edappally",
+    "account": "Debtors - SU EDPLY",
+    "debit": 13000.0,
+    "posting_date": "2026-04-01",
+    "voucher_type": "Sales Invoice",
+    "voucher_no": "ACC-SINV-2026-02296",
+    "remarks": "No Remarks"
+  },
+  {
+    "name": "ACC-GLE-2026-12709",
+    "company": "Smart Up Edappally",
+    "account": "Debtors - SU EDPLY",
+    "debit": 13000.0,
+    "posting_date": "2026-04-01",
+    "voucher_type": "Sales Invoice",
+    "voucher_no": "ACC-SINV-2026-02297",
+    "remarks": "No Remarks"
+  },
+  {
+    "name": "91bdc014ac",
+    "company": "Smart Up Kadavanthara",
+    "account": "SMARTUP LEARNING VENTURES PRIVATE LIMITED - SU KDV",
+    "debit": 12527.86,
+    "posting_date": "2026-03-31",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00062",
+    "remarks": "Note: opening"
+  },
+  {
+    "name": "ACC-GLE-2026-11417",
+    "company": "Smart Up Vennala",
+    "account": "Debtors - SU VYT",
+    "debit": 10200.0,
+    "posting_date": "2026-03-11",
+    "voucher_type": "Sales Invoice",
+    "voucher_no": "ACC-SINV-2026-01734",
+    "remarks": "No Remarks"
+  },
+  {
+    "name": "ACC-GLE-2026-11419",
+    "company": "Smart Up Vennala",
+    "account": "Debtors - SU VYT",
+    "debit": 10200.0,
+    "posting_date": "2026-03-11",
+    "voucher_type": "Sales Invoice",
+    "voucher_no": "ACC-SINV-2026-01735",
+    "remarks": "No Remarks"
+  },
+  {
+    "name": "ACC-GLE-2026-11725",
+    "company": "Smart Up Edappally",
+    "account": "Debtors - SU EDPLY",
+    "debit": 10200.0,
+    "posting_date": "2026-03-19",
+    "voucher_type": "Sales Invoice",
+    "voucher_no": "ACC-SINV-2026-01889",
+    "remarks": "No Remarks"
+  },
+  {
+    "name": "ACC-GLE-2026-11727",
+    "company": "Smart Up Edappally",
+    "account": "Debtors - SU EDPLY",
+    "debit": 10200.0,
+    "posting_date": "2026-03-19",
+    "voucher_type": "Sales Invoice",
+    "voucher_no": "ACC-SINV-2026-01890",
+    "remarks": "No Remarks"
+  },
+  {
+    "name": "ACC-GLE-2026-12137",
+    "company": "Smart Up",
+    "account": "Inauguration Expense - SU",
+    "debit": 10184.0,
+    "posting_date": "2025-12-23",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00004",
+    "remarks": ""
+  },
+  {
+    "name": "ACC-GLE-2026-12601",
+    "company": "Smart Up Edappally",
+    "account": "COGNIVIEW LEARNING LLP - SU EDPLY",
+    "debit": 10001.0,
+    "posting_date": "2026-03-31",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00056",
+    "remarks": "Note: OPENING"
+  },
+  {
+    "name": "ACC-GLE-2026-11732",
+    "company": "Smart Up Edappally",
+    "account": "Cash - SU EDPLY",
+    "debit": 10000.0,
+    "posting_date": "2026-03-19",
+    "voucher_type": "Payment Entry",
+    "voucher_no": "ACC-PAY-2026-03909",
+    "remarks": "Amount INR 10000.0 received from AYSHA ZEHRA\nTransaction reference no S77753011 dated 2026-03-19\nAmount INR 10000.0 against Sales Invoice ACC-SINV-2026-01888"
+  },
+  {
+    "name": "ACC-GLE-2026-12083",
+    "company": "Smart Up Vennala",
+    "account": "Debtors - SU VYT",
+    "debit": 9000.0,
+    "posting_date": "2026-03-26",
+    "voucher_type": "Sales Invoice",
+    "voucher_no": "ACC-SINV-2026-02093",
+    "remarks": "No Remarks"
+  },
+  {
+    "name": "ACC-GLE-2026-12092",
+    "company": "Smart Up Vennala",
+    "account": "Cash - SU VYT",
+    "debit": 9000.0,
+    "posting_date": "2026-03-26",
+    "voucher_type": "Payment Entry",
+    "voucher_no": "ACC-PAY-2026-03934",
+    "remarks": "Amount INR 9000.0 received from ADHIL PN\nTransaction reference no pay_SVr6yLUyIUTkWx dated 2026-03-26\nAmount INR 9000.0 against Sales Invoice ACC-SINV-2026-02093"
+  },
+  {
+    "name": "ACC-GLE-2026-12185",
+    "company": "Smart Up",
+    "account": "Electronics - SU",
+    "debit": 8400.0,
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00025-1",
+    "remarks": "Note: electronics"
+  },
+  {
+    "name": "0b46cb3465",
+    "company": "Smart Up Kadavanthara",
+    "account": "SMARTUP LEARNING VENTURES PRIVATE LIMITED - SU KDV",
+    "debit": 8300.0,
+    "posting_date": "2026-03-31",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00060",
+    "remarks": "Note: fort kochi fee deposited in smartup"
+  },
+  {
+    "name": "73fd84a4fc",
+    "company": "Smart Up Kadavanthara",
+    "account": "Loan -curiokids - SU KDV",
+    "debit": 8300.0,
+    "posting_date": "2026-04-02",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00061",
+    "remarks": "Note: loan amount paid to curiokids account"
+  },
+  {
+    "name": "ACC-GLE-2026-11573",
+    "company": "Smart Up Chullickal",
+    "account": "Debtors - SU CHL",
+    "debit": 8300.0,
+    "posting_date": "2026-03-16",
+    "voucher_type": "Sales Invoice",
+    "voucher_no": "ACC-SINV-2026-01832",
+    "remarks": "No Remarks"
+  },
+  {
+    "name": "ACC-GLE-2026-11733",
+    "company": "Smart Up Fortkochi",
+    "account": "Debtors - SU FKO",
+    "debit": 8300.0,
+    "posting_date": "2026-03-21",
+    "voucher_type": "Sales Invoice",
+    "voucher_no": "ACC-SINV-2026-01892",
+    "remarks": "No Remarks"
+  },
+  {
+    "name": "ACC-GLE-2026-11742",
+    "company": "Smart Up Fortkochi",
+    "account": "Cash - SU FKO",
+    "debit": 8300.0,
+    "posting_date": "2026-03-21",
+    "voucher_type": "Payment Entry",
+    "voucher_no": "ACC-PAY-2026-03910",
+    "remarks": "Amount INR 8300.0 received from IZZA FATHIMA N S\nTransaction reference no 001 dated 2026-03-21\nAmount INR 8300.0 against Sales Invoice ACC-SINV-2026-01892"
+  },
+  {
+    "name": "ACC-GLE-2026-11743",
+    "company": "Smart Up Fortkochi",
+    "account": "Debtors - SU FKO",
+    "debit": 8300.0,
+    "posting_date": "2026-03-22",
+    "voucher_type": "Sales Invoice",
+    "voucher_no": "ACC-SINV-2026-01896",
+    "remarks": "No Remarks"
+  },
+  {
+    "name": "ACC-GLE-2026-11752",
+    "company": "Smart Up Fortkochi",
+    "account": "Cash - SU FKO",
+    "debit": 8300.0,
+    "posting_date": "2026-03-22",
+    "voucher_type": "Payment Entry",
+    "voucher_no": "ACC-PAY-2026-03911",
+    "remarks": "Amount INR 8300.0 received from AYRA RAHMATH\nTransaction reference no pay_SUEVgMjumnMngt dated 2026-03-22\nAmount INR 8300.0 against Sales Invoice ACC-SINV-2026-01896"
+  },
+  {
+    "name": "ACC-GLE-2026-11779",
+    "company": "Smart Up Chullickal",
+    "account": "Debtors - SU CHL",
+    "debit": 8300.0,
+    "posting_date": "2026-03-23",
+    "voucher_type": "Sales Invoice",
+    "voucher_no": "ACC-SINV-2026-01910",
+    "remarks": "No Remarks"
+  },
+  {
+    "name": "ACC-GLE-2026-11788",
+    "company": "Smart Up Chullickal",
+    "account": "Cash - SU CHL",
+    "debit": 8300.0,
+    "posting_date": "2026-03-23",
+    "voucher_type": "Payment Entry",
+    "voucher_no": "ACC-PAY-2026-03915",
+    "remarks": "Amount INR 8300.0 received from NUVEL JOHN K J\nTransaction reference no pay_SUgc83vpRmFez2 dated 2026-03-23\nAmount INR 8300.0 against Sales Invoice ACC-SINV-2026-01910"
+  },
+  {
+    "name": "ACC-GLE-2026-11861",
+    "company": "Smart Up Moolamkuzhi",
+    "account": "Debtors - SU MMK",
+    "debit": 8300.0,
+    "posting_date": "2026-03-24",
+    "voucher_type": "Sales Invoice",
+    "voucher_no": "ACC-SINV-2026-01946",
+    "remarks": "No Remarks"
+  },
+  {
+    "name": "ACC-GLE-2026-11870",
+    "company": "Smart Up Moolamkuzhi",
+    "account": "Cash - SU MMK",
+    "debit": 8300.0,
+    "posting_date": "2026-03-24",
+    "voucher_type": "Payment Entry",
+    "voucher_no": "ACC-PAY-2026-03920",
+    "remarks": "Amount INR 8300.0 received from BRINTA K B\nTransaction reference no CASH-1774361663867 dated 2026-03-24\nAmount INR 8300.0 against Sales Invoice ACC-SINV-2026-01946"
+  },
+  {
+    "name": "ACC-GLE-2026-11943",
+    "company": "Smart Up Moolamkuzhi",
+    "account": "Debtors - SU MMK",
+    "debit": 8300.0,
+    "posting_date": "2026-03-25",
+    "voucher_type": "Sales Invoice",
+    "voucher_no": "ACC-SINV-2026-02002",
+    "remarks": "No Remarks"
+  },
+  {
+    "name": "ACC-GLE-2026-11953",
+    "company": "Smart Up Moolamkuzhi",
+    "account": "Debtors - SU MMK",
+    "debit": 8300.0,
+    "posting_date": "2026-03-25",
+    "voucher_type": "Sales Invoice",
+    "voucher_no": "ACC-SINV-2026-02006",
+    "remarks": "No Remarks"
+  },
+  {
+    "name": "ACC-GLE-2026-12029",
+    "company": "Smart Up Moolamkuzhi",
+    "account": "Debtors - SU MMK",
+    "debit": 8300.0,
+    "posting_date": "2026-03-25",
+    "voucher_type": "Sales Invoice",
+    "voucher_no": "ACC-SINV-2026-02037",
+    "remarks": "No Remarks"
+  }
+]
+
+============================================================
+QUERY 3: PARENT COMPANY 'Smart Up' GL ENTRIES (last 200)
+============================================================
+[
+  {
+    "name": "ACC-GLE-2026-12161",
+    "posting_date": "2026-03-27",
+    "account": "Renovation - SU",
+    "debit": 100000.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00017"
+  },
+  {
+    "name": "ACC-GLE-2026-12162",
+    "posting_date": "2026-03-27",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 100000.0,
+    "against": "Renovation - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00017"
+  },
+  {
+    "name": "ACC-GLE-2026-12163",
+    "posting_date": "2026-03-27",
+    "account": "Renovation - SU",
+    "debit": 50000.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00018"
+  },
+  {
+    "name": "ACC-GLE-2026-12164",
+    "posting_date": "2026-03-27",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 50000.0,
+    "against": "Renovation - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00018"
+  },
+  {
+    "name": "ACC-GLE-2026-12167",
+    "posting_date": "2026-03-27",
+    "account": "Renovation - SU",
+    "debit": 50000.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00020"
+  },
+  {
+    "name": "ACC-GLE-2026-12168",
+    "posting_date": "2026-03-27",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 50000.0,
+    "against": "Renovation - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00020"
+  },
+  {
+    "name": "ACC-GLE-2026-12171",
+    "posting_date": "2026-03-27",
+    "account": "Boards and fittings - SU",
+    "debit": 83500.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00019-1"
+  },
+  {
+    "name": "ACC-GLE-2026-12172",
+    "posting_date": "2026-03-27",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 83500.0,
+    "against": "Boards and fittings - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00019-1"
+  },
+  {
+    "name": "ACC-GLE-2026-12175",
+    "posting_date": "2026-03-27",
+    "account": "Housekeeping expense - SU",
+    "debit": 6000.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00022"
+  },
+  {
+    "name": "ACC-GLE-2026-12176",
+    "posting_date": "2026-03-27",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 6000.0,
+    "against": "Housekeeping expense - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00022"
+  },
+  {
+    "name": "ACC-GLE-2026-12177",
+    "posting_date": "2026-03-27",
+    "account": "Air Conditioner - SU",
+    "debit": 20950.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00023"
+  },
+  {
+    "name": "ACC-GLE-2026-12178",
+    "posting_date": "2026-03-27",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 20950.0,
+    "against": "Air Conditioner - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00023"
+  },
+  {
+    "name": "ACC-GLE-2026-12179",
+    "posting_date": "2026-03-27",
+    "account": "Air Conditioner - SU",
+    "debit": 32500.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00024"
+  },
+  {
+    "name": "ACC-GLE-2026-12180",
+    "posting_date": "2026-03-27",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 32500.0,
+    "against": "Air Conditioner - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00024"
+  },
+  {
+    "name": "ACC-GLE-2026-12185",
+    "posting_date": "2026-03-27",
+    "account": "Electronics - SU",
+    "debit": 8400.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00025-1"
+  },
+  {
+    "name": "ACC-GLE-2026-12186",
+    "posting_date": "2026-03-27",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 8400.0,
+    "against": "Electronics - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00025-1"
+  },
+  {
+    "name": "ACC-GLE-2026-12187",
+    "posting_date": "2026-03-27",
+    "account": "Blinds - SU",
+    "debit": 7500.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00026"
+  },
+  {
+    "name": "ACC-GLE-2026-12188",
+    "posting_date": "2026-03-27",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 7500.0,
+    "against": "Blinds - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00026"
+  },
+  {
+    "name": "ACC-GLE-2026-12189",
+    "posting_date": "2026-03-27",
+    "account": "Office Expense - SU",
+    "debit": 850.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00027"
+  },
+  {
+    "name": "ACC-GLE-2026-12190",
+    "posting_date": "2026-03-27",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 850.0,
+    "against": "Office Expense - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00027"
+  },
+  {
+    "name": "ACC-GLE-2026-12191",
+    "posting_date": "2026-03-27",
+    "account": "Miscellaneous Expenses - SU",
+    "debit": 4360.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00028"
+  },
+  {
+    "name": "ACC-GLE-2026-12192",
+    "posting_date": "2026-03-27",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 4360.0,
+    "against": "Miscellaneous Expenses - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00028"
+  },
+  {
+    "name": "ACC-GLE-2026-12193",
+    "posting_date": "2026-03-27",
+    "account": "BIOMETRIC - SU",
+    "debit": 14000.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00029"
+  },
+  {
+    "name": "ACC-GLE-2026-12194",
+    "posting_date": "2026-03-27",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 14000.0,
+    "against": "BIOMETRIC - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00029"
+  },
+  {
+    "name": "ACC-GLE-2026-12195",
+    "posting_date": "2026-03-27",
+    "account": "Inauguration Expense - SU",
+    "debit": 3936.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00030"
+  },
+  {
+    "name": "ACC-GLE-2026-12196",
+    "posting_date": "2026-03-27",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 3936.0,
+    "against": "Inauguration Expense - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00030"
+  },
+  {
+    "name": "ACC-GLE-2026-12197",
+    "posting_date": "2026-03-27",
+    "account": "Inauguration Expense - SU",
+    "debit": 5000.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00031"
+  },
+  {
+    "name": "ACC-GLE-2026-12198",
+    "posting_date": "2026-03-27",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 5000.0,
+    "against": "Inauguration Expense - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00031"
+  },
+  {
+    "name": "ACC-GLE-2026-12199",
+    "posting_date": "2026-03-27",
+    "account": "PRINTER - SU",
+    "debit": 14250.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00032"
+  },
+  {
+    "name": "ACC-GLE-2026-12200",
+    "posting_date": "2026-03-27",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 14250.0,
+    "against": "PRINTER - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00032"
+  },
+  {
+    "name": "ACC-GLE-2026-12201",
+    "posting_date": "2026-03-27",
+    "account": "Recruitment Expense - SU",
+    "debit": 3395.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00033"
+  },
+  {
+    "name": "ACC-GLE-2026-12202",
+    "posting_date": "2026-03-27",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 3395.0,
+    "against": "Recruitment Expense - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00033"
+  },
+  {
+    "name": "ACC-GLE-2026-12203",
+    "posting_date": "2026-03-27",
+    "account": "Advertisement Expense - SU",
+    "debit": 490.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00034"
+  },
+  {
+    "name": "ACC-GLE-2026-12204",
+    "posting_date": "2026-03-27",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 490.0,
+    "against": "Advertisement Expense - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00034"
+  },
+  {
+    "name": "ACC-GLE-2026-12205",
+    "posting_date": "2026-03-27",
+    "account": "Renovation - SU",
+    "debit": 100000.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00035"
+  },
+  {
+    "name": "ACC-GLE-2026-12206",
+    "posting_date": "2026-03-27",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 100000.0,
+    "against": "Renovation - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00035"
+  },
+  {
+    "name": "ACC-GLE-2026-12207",
+    "posting_date": "2026-03-27",
+    "account": "Renovation - SU",
+    "debit": 13250.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00036"
+  },
+  {
+    "name": "ACC-GLE-2026-12208",
+    "posting_date": "2026-03-27",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 13250.0,
+    "against": "Renovation - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00036"
+  },
+  {
+    "name": "ACC-GLE-2026-12209",
+    "posting_date": "2026-03-27",
+    "account": "Housekeeping expense - SU",
+    "debit": 3800.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00037"
+  },
+  {
+    "name": "ACC-GLE-2026-12210",
+    "posting_date": "2026-03-27",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 3800.0,
+    "against": "Housekeeping expense - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00037"
+  },
+  {
+    "name": "ACC-GLE-2026-12211",
+    "posting_date": "2026-03-27",
+    "account": "Renovation - SU",
+    "debit": 75000.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00038"
+  },
+  {
+    "name": "ACC-GLE-2026-12212",
+    "posting_date": "2026-03-27",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 75000.0,
+    "against": "Renovation - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00038"
+  },
+  {
+    "name": "ACC-GLE-2026-12213",
+    "posting_date": "2026-03-27",
+    "account": "switch board - SU",
+    "debit": 4400.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00039"
+  },
+  {
+    "name": "ACC-GLE-2026-12214",
+    "posting_date": "2026-03-27",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 4400.0,
+    "against": "switch board - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00039"
+  },
+  {
+    "name": "ACC-GLE-2026-12215",
+    "posting_date": "2026-03-27",
+    "account": "Renovation - SU",
+    "debit": 75000.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00040"
+  },
+  {
+    "name": "ACC-GLE-2026-12216",
+    "posting_date": "2026-03-27",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 75000.0,
+    "against": "Renovation - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00040"
+  },
+  {
+    "name": "ACC-GLE-2026-12229",
+    "posting_date": "2026-03-27",
+    "account": "Housekeeping expense - SU",
+    "debit": 300.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00041"
+  },
+  {
+    "name": "ACC-GLE-2026-12230",
+    "posting_date": "2026-03-27",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 300.0,
+    "against": "Housekeeping expense - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00041"
+  },
+  {
+    "name": "ACC-GLE-2026-12231",
+    "posting_date": "2026-03-27",
+    "account": "Recruitment Expense - SU",
+    "debit": 4095.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00042"
+  },
+  {
+    "name": "ACC-GLE-2026-12232",
+    "posting_date": "2026-03-27",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 4095.0,
+    "against": "Recruitment Expense - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00042"
+  },
+  {
+    "name": "ACC-GLE-2026-12235",
+    "posting_date": "2026-03-27",
+    "account": "CCTV - SU",
+    "debit": 15000.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00043"
+  },
+  {
+    "name": "ACC-GLE-2026-12236",
+    "posting_date": "2026-03-27",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 15000.0,
+    "against": "CCTV - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00043"
+  },
+  {
+    "name": "ACC-GLE-2026-12257",
+    "posting_date": "2026-03-27",
+    "account": "Bench and Desk - SU",
+    "debit": 150000.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00044-1"
+  },
+  {
+    "name": "ACC-GLE-2026-12258",
+    "posting_date": "2026-03-27",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 150000.0,
+    "against": "Bench and Desk - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00044-1"
+  },
+  {
+    "name": "ACC-GLE-2026-12259",
+    "posting_date": "2026-03-27",
+    "account": "Boards and fittings - SU",
+    "debit": 30000.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00045"
+  },
+  {
+    "name": "ACC-GLE-2026-12260",
+    "posting_date": "2026-03-27",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 30000.0,
+    "against": "Boards and fittings - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00045"
+  },
+  {
+    "name": "ACC-GLE-2026-12261",
+    "posting_date": "2026-03-27",
+    "account": "Bench and Desk - SU",
+    "debit": 50000.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00046"
+  },
+  {
+    "name": "ACC-GLE-2026-12262",
+    "posting_date": "2026-03-27",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 50000.0,
+    "against": "Bench and Desk - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00046"
+  },
+  {
+    "name": "ACC-GLE-2026-12263",
+    "posting_date": "2026-03-27",
+    "account": "Renovation - SU",
+    "debit": 75000.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00047"
+  },
+  {
+    "name": "ACC-GLE-2026-12264",
+    "posting_date": "2026-03-27",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 75000.0,
+    "against": "Renovation - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00047"
+  },
+  {
+    "name": "ACC-GLE-2026-12265",
+    "posting_date": "2026-03-27",
+    "account": "Advertisement Expense - SU",
+    "debit": 14000.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00048"
+  },
+  {
+    "name": "ACC-GLE-2026-12266",
+    "posting_date": "2026-03-27",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 14000.0,
+    "against": "Advertisement Expense - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00048"
+  },
+  {
+    "name": "ACC-GLE-2026-12267",
+    "posting_date": "2026-03-27",
+    "account": "Renovation - SU",
+    "debit": 50000.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00049"
+  },
+  {
+    "name": "ACC-GLE-2026-12268",
+    "posting_date": "2026-03-27",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 50000.0,
+    "against": "Renovation - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00049"
+  },
+  {
+    "name": "ACC-GLE-2026-12269",
+    "posting_date": "2026-03-27",
+    "account": "cwc expense - SU",
+    "debit": 20000.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00050"
+  },
+  {
+    "name": "ACC-GLE-2026-12270",
+    "posting_date": "2026-03-27",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 20000.0,
+    "against": "cwc expense - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00050"
+  },
+  {
+    "name": "ACC-GLE-2026-12275",
+    "posting_date": "2026-03-27",
+    "account": "Laptop - SU",
+    "debit": 40700.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00051-1"
+  },
+  {
+    "name": "ACC-GLE-2026-12276",
+    "posting_date": "2026-03-27",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 40700.0,
+    "against": "Laptop - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00051-1"
+  },
+  {
+    "name": "ACC-GLE-2026-11903",
+    "posting_date": "2026-03-25",
+    "account": "CCTV - SU",
+    "debit": 40000.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00003"
+  },
+  {
+    "name": "ACC-GLE-2026-11904",
+    "posting_date": "2026-03-25",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 40000.0,
+    "against": "CCTV - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00003"
+  },
+  {
+    "name": "ACC-GLE-2026-12143",
+    "posting_date": "2026-03-17",
+    "account": "Air Conditioner - SU",
+    "debit": 68050.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00007"
+  },
+  {
+    "name": "ACC-GLE-2026-12144",
+    "posting_date": "2026-03-17",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 68050.0,
+    "against": "Air Conditioner - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00007"
+  },
+  {
+    "name": "ACC-GLE-2026-12145",
+    "posting_date": "2026-03-17",
+    "account": "Advertisement Expense - SU",
+    "debit": 48000.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00008"
+  },
+  {
+    "name": "ACC-GLE-2026-12146",
+    "posting_date": "2026-03-17",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 48000.0,
+    "against": "Advertisement Expense - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00008"
+  },
+  {
+    "name": "ACC-GLE-2026-12147",
+    "posting_date": "2026-03-17",
+    "account": "Mobile Phone - SU",
+    "debit": 16000.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00009"
+  },
+  {
+    "name": "ACC-GLE-2026-12148",
+    "posting_date": "2026-03-17",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 16000.0,
+    "against": "Mobile Phone - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00009"
+  },
+  {
+    "name": "ACC-GLE-2026-12149",
+    "posting_date": "2026-03-03",
+    "account": "Professional Fees - SU",
+    "debit": 4500.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00010"
+  },
+  {
+    "name": "ACC-GLE-2026-12150",
+    "posting_date": "2026-03-03",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 4500.0,
+    "against": "Professional Fees - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00010"
+  },
+  {
+    "name": "ACC-GLE-2026-12151",
+    "posting_date": "2026-03-03",
+    "account": "Professional Fees - SU",
+    "debit": 4500.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00011"
+  },
+  {
+    "name": "ACC-GLE-2026-12152",
+    "posting_date": "2026-03-03",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 4500.0,
+    "against": "Professional Fees - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00011"
+  },
+  {
+    "name": "ACC-GLE-2026-12153",
+    "posting_date": "2026-03-03",
+    "account": "Out Station Travel  Expense - SU",
+    "debit": 33700.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00012"
+  },
+  {
+    "name": "ACC-GLE-2026-12154",
+    "posting_date": "2026-03-03",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 33700.0,
+    "against": "Out Station Travel  Expense - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00012"
+  },
+  {
+    "name": "ACC-GLE-2026-12155",
+    "posting_date": "2026-03-03",
+    "account": "Renovation - SU",
+    "debit": 200000.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00013"
+  },
+  {
+    "name": "ACC-GLE-2026-12156",
+    "posting_date": "2026-03-03",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 200000.0,
+    "against": "Renovation - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00013"
+  },
+  {
+    "name": "ACC-GLE-2026-12157",
+    "posting_date": "2026-03-03",
+    "account": "Invertor - SU",
+    "debit": 32500.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00014"
+  },
+  {
+    "name": "ACC-GLE-2026-12158",
+    "posting_date": "2026-03-03",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 32500.0,
+    "against": "Invertor - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00014"
+  },
+  {
+    "name": "ACC-GLE-2026-12159",
+    "posting_date": "2026-03-03",
+    "account": "Renovation - SU",
+    "debit": 100000.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00015"
+  },
+  {
+    "name": "ACC-GLE-2026-12160",
+    "posting_date": "2026-03-03",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 100000.0,
+    "against": "Renovation - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00015"
+  },
+  {
+    "name": "ACC-GLE-2026-12141",
+    "posting_date": "2025-12-29",
+    "account": "Chair - SU",
+    "debit": 199462.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00006"
+  },
+  {
+    "name": "ACC-GLE-2026-12142",
+    "posting_date": "2025-12-29",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 199462.0,
+    "against": "Chair - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00006"
+  },
+  {
+    "name": "ACC-GLE-2026-12139",
+    "posting_date": "2025-12-24",
+    "account": "Advertisement Expense - SU",
+    "debit": 33500.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00005"
+  },
+  {
+    "name": "ACC-GLE-2026-12140",
+    "posting_date": "2025-12-24",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 33500.0,
+    "against": "Advertisement Expense - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00005"
+  },
+  {
+    "name": "ACC-GLE-2026-12173",
+    "posting_date": "2025-12-24",
+    "account": "Renovation - SU",
+    "debit": 50000.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00021"
+  },
+  {
+    "name": "ACC-GLE-2026-12174",
+    "posting_date": "2025-12-24",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 50000.0,
+    "against": "Renovation - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00021"
+  },
+  {
+    "name": "ACC-GLE-2026-12137",
+    "posting_date": "2025-12-23",
+    "account": "Inauguration Expense - SU",
+    "debit": 10184.0,
+    "credit": 0.0,
+    "against": "DIRECTORS LOAN - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00004"
+  },
+  {
+    "name": "ACC-GLE-2026-12138",
+    "posting_date": "2025-12-23",
+    "account": "DIRECTORS LOAN - SU",
+    "debit": 0.0,
+    "credit": 10184.0,
+    "against": "Inauguration Expense - SU",
+    "voucher_type": "Journal Entry",
+    "voucher_no": "ACC-JV-2026-00004"
+  }
+]
+
+============================================================
+QUERY 4: JOURNAL ENTRY COUNT PER COMPANY
+============================================================
+  Smart Up: 48
+  Smart Up Kadavanthara: 3
+  Smart Up Chullickal: 1
+  Smart Up Edappally: 1
+  Smart Up Fortkochi: 2
+  Smart Up Vennala: 1
+  Smart Up Moolamkuzhi: 1
+  Smart Up Palluruthy: 0
+  Smart Up Thopumpadi: 0
+  Smart Up Eraveli: 0
+
+============================================================
+QUERY 5: SAMPLE 20 JVs FROM BUSIEST COMPANY: Smart Up (48 JVs)
+============================================================
+[
+  {
+    "name": "ACC-JV-2026-00017",
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "total_debit": 100000.0,
+    "remark": "Note: stage 4 for joseph\n",
+    "user_remark": "stage 4 for joseph\n"
+  },
+  {
+    "name": "ACC-JV-2026-00018",
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "total_debit": 50000.0,
+    "remark": "Note: stage 5 for joseph",
+    "user_remark": "stage 5 for joseph"
+  },
+  {
+    "name": "ACC-JV-2026-00020",
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "total_debit": 50000.0,
+    "remark": "Note: joseph for ground work\n",
+    "user_remark": "joseph for ground work\n"
+  },
+  {
+    "name": "ACC-JV-2026-00022",
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "total_debit": 6000.0,
+    "remark": "Note: urban mop",
+    "user_remark": "urban mop"
+  },
+  {
+    "name": "ACC-JV-2026-00023",
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "total_debit": 20950.0,
+    "remark": "Note: ac installation  my fix\n",
+    "user_remark": "ac installation  my fix\n"
+  },
+  {
+    "name": "ACC-JV-2026-00024",
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "total_debit": 32500.0,
+    "remark": "Note: new ac",
+    "user_remark": "new ac"
+  },
+  {
+    "name": "ACC-JV-2026-00026",
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "total_debit": 7500.0,
+    "remark": "Note: BLIND ADVANCE",
+    "user_remark": "BLIND ADVANCE"
+  },
+  {
+    "name": "ACC-JV-2026-00027",
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "total_debit": 850.0,
+    "remark": null,
+    "user_remark": null
+  },
+  {
+    "name": "ACC-JV-2026-00028",
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "total_debit": 4360.0,
+    "remark": "Note: misc",
+    "user_remark": "misc"
+  },
+  {
+    "name": "ACC-JV-2026-00029",
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "total_debit": 14000.0,
+    "remark": "Note: BIOMETRIC",
+    "user_remark": "BIOMETRIC"
+  },
+  {
+    "name": "ACC-JV-2026-00030",
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "total_debit": 3936.0,
+    "remark": "Note: opening day food brindhavan\n",
+    "user_remark": "opening day food brindhavan\n"
+  },
+  {
+    "name": "ACC-JV-2026-00031",
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "total_debit": 5000.0,
+    "remark": "Note: CHENDAMELAM",
+    "user_remark": "CHENDAMELAM"
+  },
+  {
+    "name": "ACC-JV-2026-00032",
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "total_debit": 14250.0,
+    "remark": null,
+    "user_remark": null
+  },
+  {
+    "name": "ACC-JV-2026-00033",
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "total_debit": 3395.0,
+    "remark": null,
+    "user_remark": null
+  },
+  {
+    "name": "ACC-JV-2026-00034",
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "total_debit": 490.0,
+    "remark": "Note: flex",
+    "user_remark": "flex"
+  },
+  {
+    "name": "ACC-JV-2026-00035",
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "total_debit": 100000.0,
+    "remark": "Note: additional cost for first floor joseph\n",
+    "user_remark": "additional cost for first floor joseph\n"
+  },
+  {
+    "name": "ACC-JV-2026-00036",
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "total_debit": 13250.0,
+    "remark": "Note: glass13250",
+    "user_remark": "glass13250"
+  },
+  {
+    "name": "ACC-JV-2026-00037",
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "total_debit": 3800.0,
+    "remark": "Note: waste management\n",
+    "user_remark": "waste management\n"
+  },
+  {
+    "name": "ACC-JV-2026-00038",
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "total_debit": 75000.0,
+    "remark": "Note: glass work adv ground floor (joseph)\n",
+    "user_remark": "glass work adv ground floor (joseph)\n"
+  },
+  {
+    "name": "ACC-JV-2026-00039",
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "total_debit": 4400.0,
+    "remark": null,
+    "user_remark": null
+  }
+]
+
+============================================================
+QUERY 6: PAYMENT ENTRIES OF TYPE 'Pay' (top 50)
+============================================================
+[]
+
+============================================================
+QUERY 7: LOOKING FOR EXPENSE-RELATED JVs
+============================================================
+
+  Found JVs with 'purchase' in remark:
+[
+  {
+    "name": "ACC-JV-2026-00006",
+    "company": "Smart Up",
+    "posting_date": "2025-12-29",
+    "total_debit": 199462.0,
+    "user_remark": "chair purchase for head office"
+  },
+  {
+    "name": "ACC-JV-2026-00007",
+    "company": "Smart Up",
+    "posting_date": "2026-03-17",
+    "total_debit": 68050.0,
+    "user_remark": "advance paid for purchase of air conditioner"
+  }
+]
+
+  Full doc for ACC-JV-2026-00006:
+{
+  "name": "ACC-JV-2026-00006",
+  "owner": "muhammedahsan218@gmail.com",
+  "creation": "2026-03-27 00:15:45.366405",
+  "modified": "2026-03-27 00:16:02.133373",
+  "modified_by": "muhammedahsan218@gmail.com",
+  "docstatus": 1,
+  "idx": 0,
+  "is_system_generated": 0,
+  "title": "Chair - SU",
+  "voucher_type": "Journal Entry",
+  "naming_series": "ACC-JV-.YYYY.-",
+  "company": "Smart Up",
+  "posting_date": "2025-12-29",
+  "apply_tds": 0,
+  "user_remark": "chair purchase for head office",
+  "total_debit": 199462.0,
+  "total_credit": 199462.0,
+  "difference": 0.0,
+  "multi_currency": 0,
+  "total_amount": 0.0,
+  "total_amount_in_words": "INR Zero only.",
+  "remark": "Note: chair purchase for head office",
+  "write_off_based_on": "Accounts Receivable",
+  "write_off_amount": 0.0,
+  "party_not_required": 0,
+  "is_opening": "No",
+  "doctype": "Journal Entry",
+  "accounts": [
+    {
+      "name": "1t3tnna9c5",
+      "owner": "muhammedahsan218@gmail.com",
+      "creation": "2026-03-27 00:15:45.366405",
+      "modified": "2026-03-27 00:16:02.133373",
+      "modified_by": "muhammedahsan218@gmail.com",
+      "docstatus": 1,
+      "idx": 1,
+      "account": "Chair - SU",
+      "account_type": "Fixed Asset",
+      "party_type": "",
+      "party": "",
+      "cost_center": "Main - SU",
+      "account_currency": "INR",
+      "exchange_rate": 1.0,
+      "debit_in_account_currency": 199462.0,
+      "debit": 199462.0,
+      "credit_in_account_currency": 0.0,
+      "credit": 0.0,
+      "is_advance": "No",
+      "against_account": "DIRECTORS LOAN - SU",
+      "parent": "ACC-JV-2026-00006",
+      "parentfield": "accounts",
+      "parenttype": "Journal Entry",
+      "doctype": "Journal Entry Account"
+    },
+    {
+      "name": "1t3t9mosbc",
+      "owner": "muhammedahsan218@gmail.com",
+      "creation": "2026-03-27 00:15:45.366405",
+      "modified": "2026-03-27 00:16:02.133373",
+      "modified_by": "muhammedahsan218@gmail.com",
+      "docstatus": 1,
+      "idx": 2,
+      "account": "DIRECTORS LOAN - SU",
+      "account_type": "Liability",
+      "party_type": "",
+      "party": "",
+      "cost_center": "Main - SU",
+      "account_currency": "INR",
+      "exchange_rate": 1.0,
+      "debit_in_account_currency": 0.0,
+      "debit": 0.0,
+      "credit_in_account_currency": 199462.0,
+      "credit": 199462.0,
+      "is_advance": "No",
+      "against_account": "Chair - SU",
+      "parent": "ACC-JV-2026-00006",
+      "parentfield": "accounts",
+      "parenttype": "Journal Entry",
+      "doctype": "Journal Entry Account"
+    }
+  ]
+}
+
+============================================================
+QUERY 8: GL ENTRIES WITH SALARY-LIKE ACCOUNTS (debit > 0)
+============================================================
+[]
+
+============================================================
+QUERY 9: GL ENTRIES FOR RENT / UTILITY / MARKETING ACCOUNTS
+============================================================
+  'Rent' ù 0 entries
+  'Utility' ù 0 entries
+  'Marketing' ù 0 entries
+
+  'Office' ù 1 entries:
+[
+  {
+    "name": "ACC-GLE-2026-12189",
+    "company": "Smart Up",
+    "account": "Office Expense - SU",
+    "debit": 850.0,
+    "posting_date": "2026-03-27",
+    "voucher_no": "ACC-JV-2026-00027"
+  }
+]
+
+  'Travel' ù 1 entries:
+[
+  {
+    "name": "ACC-GLE-2026-12153",
+    "company": "Smart Up",
+    "account": "Out Station Travel  Expense - SU",
+    "debit": 33700.0,
+    "posting_date": "2026-03-03",
+    "voucher_no": "ACC-JV-2026-00012"
+  }
+]
+  'Telephone' ù 0 entries
+  'Internet' ù 0 entries
+  'Insurance' ù 0 entries
+
+  'Professional' ù 2 entries:
+[
+  {
+    "name": "ACC-GLE-2026-12149",
+    "company": "Smart Up",
+    "account": "Professional Fees - SU",
+    "debit": 4500.0,
+    "posting_date": "2026-03-03",
+    "voucher_no": "ACC-JV-2026-00010"
+  },
+  {
+    "name": "ACC-GLE-2026-12151",
+    "company": "Smart Up",
+    "account": "Professional Fees - SU",
+    "debit": 4500.0,
+    "posting_date": "2026-03-03",
+    "voucher_no": "ACC-JV-2026-00011"
+  }
+]
+
+============================================================
+QUERY 10: TOTAL JOURNAL ENTRY COUNT (all companies)
+============================================================
+  Total submitted JVs: 57
+
+============================================================
+QUERY 11: MOST RECENT 30 JVs (all companies)
+============================================================
+[
+  {
+    "name": "ACC-JV-2026-00062",
+    "company": "Smart Up Kadavanthara",
+    "posting_date": "2026-03-31",
+    "voucher_type": "Journal Entry",
+    "total_debit": 34302.98,
+    "remark": "Note: opening"
+  },
+  {
+    "name": "ACC-JV-2026-00061",
+    "company": "Smart Up Kadavanthara",
+    "posting_date": "2026-04-02",
+    "voucher_type": "Journal Entry",
+    "total_debit": 8300.0,
+    "remark": "Note: loan amount paid to curiokids account"
+  },
+  {
+    "name": "ACC-JV-2026-00060",
+    "company": "Smart Up Kadavanthara",
+    "posting_date": "2026-03-31",
+    "voucher_type": "Journal Entry",
+    "total_debit": 8300.0,
+    "remark": "Note: fort kochi fee deposited in smartup"
+  },
+  {
+    "name": "ACC-JV-2026-00059",
+    "company": "Smart Up Fortkochi",
+    "posting_date": "2026-04-02",
+    "voucher_type": "Journal Entry",
+    "total_debit": 8300.0,
+    "remark": "Note: NEW STUDENT FEE"
+  },
+  {
+    "name": "ACC-JV-2026-00058",
+    "company": "Smart Up Chullickal",
+    "posting_date": "2026-03-31",
+    "voucher_type": "Journal Entry",
+    "total_debit": 164616.0,
+    "remark": "Note: OPENING"
+  },
+  {
+    "name": "ACC-JV-2026-00057-1",
+    "company": "Smart Up Moolamkuzhi",
+    "posting_date": "2026-03-31",
+    "voucher_type": "Journal Entry",
+    "total_debit": 90501.0,
+    "remark": "Note: OPENING"
+  },
+  {
+    "name": "ACC-JV-2026-00056",
+    "company": "Smart Up Edappally",
+    "posting_date": "2026-03-31",
+    "voucher_type": "Journal Entry",
+    "total_debit": 10001.0,
+    "remark": "Note: OPENING"
+  },
+  {
+    "name": "ACC-JV-2026-00055",
+    "company": "Smart Up Fortkochi",
+    "posting_date": "2026-03-31",
+    "voucher_type": "Journal Entry",
+    "total_debit": 8300.0,
+    "remark": "Note: OPENING"
+  },
+  {
+    "name": "ACC-JV-2026-00054-2",
+    "company": "Smart Up Vennala",
+    "posting_date": "2026-03-31",
+    "voucher_type": "Journal Entry",
+    "total_debit": 127601.0,
+    "remark": "Note: OPENING ( CASH IN HAND INCLUDES CHEQUE)"
+  },
+  {
+    "name": "ACC-JV-2026-00051-1",
+    "company": "Smart Up",
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "total_debit": 40700.0,
+    "remark": "Note: store 11 (lap)\n"
+  },
+  {
+    "name": "ACC-JV-2026-00050",
+    "company": "Smart Up",
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "total_debit": 20000.0,
+    "remark": "Note: Influencer salih valancherry \n"
+  },
+  {
+    "name": "ACC-JV-2026-00049",
+    "company": "Smart Up",
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "total_debit": 50000.0,
+    "remark": "Note: JOSEPH ETANN VENNALA"
+  },
+  {
+    "name": "ACC-JV-2026-00048",
+    "company": "Smart Up",
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "total_debit": 14000.0,
+    "remark": "Note: Edappally flex bal\n"
+  },
+  {
+    "name": "ACC-JV-2026-00047",
+    "company": "Smart Up",
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "total_debit": 75000.0,
+    "remark": "Note: joseph ettan ground floor bal\n"
+  },
+  {
+    "name": "ACC-JV-2026-00046",
+    "company": "Smart Up",
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "total_debit": 50000.0,
+    "remark": "Note: joseph ettan (bench &desk)\n"
+  },
+  {
+    "name": "ACC-JV-2026-00045",
+    "company": "Smart Up",
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "total_debit": 30000.0,
+    "remark": "Note: edappalli board adv\n"
+  },
+  {
+    "name": "ACC-JV-2026-00044-1",
+    "company": "Smart Up",
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "total_debit": 150000.0,
+    "remark": "Note: joseph ettan ( Bench and desk )\n"
+  },
+  {
+    "name": "ACC-JV-2026-00043",
+    "company": "Smart Up",
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "total_debit": 15000.0,
+    "remark": "Note: first floor cctv"
+  },
+  {
+    "name": "ACC-JV-2026-00042",
+    "company": "Smart Up",
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "total_debit": 4095.0,
+    "remark": "Note: food exp for teachers (hr drive )\n"
+  },
+  {
+    "name": "ACC-JV-2026-00041",
+    "company": "Smart Up",
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "total_debit": 300.0,
+    "remark": "Note: waste managment"
+  },
+  {
+    "name": "ACC-JV-2026-00040",
+    "company": "Smart Up",
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "total_debit": 75000.0,
+    "remark": "Note: joseph ettan ( ground floor glass adv )\n"
+  },
+  {
+    "name": "ACC-JV-2026-00039",
+    "company": "Smart Up",
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "total_debit": 4400.0,
+    "remark": null
+  },
+  {
+    "name": "ACC-JV-2026-00038",
+    "company": "Smart Up",
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "total_debit": 75000.0,
+    "remark": "Note: glass work adv ground floor (joseph)\n"
+  },
+  {
+    "name": "ACC-JV-2026-00037",
+    "company": "Smart Up",
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "total_debit": 3800.0,
+    "remark": "Note: waste management\n"
+  },
+  {
+    "name": "ACC-JV-2026-00036",
+    "company": "Smart Up",
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "total_debit": 13250.0,
+    "remark": "Note: glass13250"
+  },
+  {
+    "name": "ACC-JV-2026-00035",
+    "company": "Smart Up",
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "total_debit": 100000.0,
+    "remark": "Note: additional cost for first floor joseph\n"
+  },
+  {
+    "name": "ACC-JV-2026-00034",
+    "company": "Smart Up",
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "total_debit": 490.0,
+    "remark": "Note: flex"
+  },
+  {
+    "name": "ACC-JV-2026-00033",
+    "company": "Smart Up",
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "total_debit": 3395.0,
+    "remark": null
+  },
+  {
+    "name": "ACC-JV-2026-00032",
+    "company": "Smart Up",
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "total_debit": 14250.0,
+    "remark": null
+  },
+  {
+    "name": "ACC-JV-2026-00031",
+    "company": "Smart Up",
+    "posting_date": "2026-03-27",
+    "voucher_type": "Journal Entry",
+    "total_debit": 5000.0,
+    "remark": "Note: CHENDAMELAM"
+  }
+]
+
+============================================================
+BONUS: ALL EXPENSE-TYPE ACCOUNTS IN THE SYSTEM
+============================================================
+[
+  {
+    "name": "Administrative Expenses - SU",
+    "company": "Smart Up",
+    "account_name": "Administrative Expenses",
+    "parent_account": "Indirect Expenses - SU",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Administrative Expenses - SU CHL",
+    "company": "Smart Up Chullickal",
+    "account_name": "Administrative Expenses",
+    "parent_account": "Indirect Expenses - SU CHL",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Administrative Expenses - SU EDPLY",
+    "company": "Smart Up Edappally",
+    "account_name": "Administrative Expenses",
+    "parent_account": "Indirect Expenses - SU EDPLY",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Administrative Expenses - SU ERV",
+    "company": "Smart Up Eraveli",
+    "account_name": "Administrative Expenses",
+    "parent_account": "Indirect Expenses - SU ERV",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Administrative Expenses - SU FKO",
+    "company": "Smart Up Fortkochi",
+    "account_name": "Administrative Expenses",
+    "parent_account": "Indirect Expenses - SU FKO",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Administrative Expenses - SU KDV",
+    "company": "Smart Up Kadavanthara",
+    "account_name": "Administrative Expenses",
+    "parent_account": "Indirect Expenses - SU KDV",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Administrative Expenses - SU MMK",
+    "company": "Smart Up Moolamkuzhi",
+    "account_name": "Administrative Expenses",
+    "parent_account": "Indirect Expenses - SU MMK",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Administrative Expenses - SU PLR",
+    "company": "Smart Up Palluruthy",
+    "account_name": "Administrative Expenses",
+    "parent_account": "Indirect Expenses - SU PLR",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Administrative Expenses - SU THP",
+    "company": "Smart Up Thopumpadi",
+    "account_name": "Administrative Expenses",
+    "parent_account": "Indirect Expenses - SU THP",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Administrative Expenses - SU VYT",
+    "company": "Smart Up Vennala",
+    "account_name": "Administrative Expenses",
+    "parent_account": "Indirect Expenses - SU VYT",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Advertisement Expense - SU",
+    "company": "Smart Up",
+    "account_name": "Advertisement Expense",
+    "parent_account": "Indirect Expenses - SU",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Advertisement Expense - SU CHL",
+    "company": "Smart Up Chullickal",
+    "account_name": "Advertisement Expense",
+    "parent_account": "Indirect Expenses - SU CHL",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Advertisement Expense - SU EDPLY",
+    "company": "Smart Up Edappally",
+    "account_name": "Advertisement Expense",
+    "parent_account": "Indirect Expenses - SU EDPLY",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Advertisement Expense - SU ERV",
+    "company": "Smart Up Eraveli",
+    "account_name": "Advertisement Expense",
+    "parent_account": "Indirect Expenses - SU ERV",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Advertisement Expense - SU FKO",
+    "company": "Smart Up Fortkochi",
+    "account_name": "Advertisement Expense",
+    "parent_account": "Indirect Expenses - SU FKO",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Advertisement Expense - SU KDV",
+    "company": "Smart Up Kadavanthara",
+    "account_name": "Advertisement Expense",
+    "parent_account": "Indirect Expenses - SU KDV",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Advertisement Expense - SU MMK",
+    "company": "Smart Up Moolamkuzhi",
+    "account_name": "Advertisement Expense",
+    "parent_account": "Indirect Expenses - SU MMK",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Advertisement Expense - SU PLR",
+    "company": "Smart Up Palluruthy",
+    "account_name": "Advertisement Expense",
+    "parent_account": "Indirect Expenses - SU PLR",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Advertisement Expense - SU THP",
+    "company": "Smart Up Thopumpadi",
+    "account_name": "Advertisement Expense",
+    "parent_account": "Indirect Expenses - SU THP",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Advertisement Expense - SU VYT",
+    "company": "Smart Up Vennala",
+    "account_name": "Advertisement Expense",
+    "parent_account": "Indirect Expenses - SU VYT",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Commission on Sales - SU",
+    "company": "Smart Up",
+    "account_name": "Commission on Sales",
+    "parent_account": "Indirect Expenses - SU",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Commission on Sales - SU CHL",
+    "company": "Smart Up Chullickal",
+    "account_name": "Commission on Sales",
+    "parent_account": "Indirect Expenses - SU CHL",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Commission on Sales - SU EDPLY",
+    "company": "Smart Up Edappally",
+    "account_name": "Commission on Sales",
+    "parent_account": "Indirect Expenses - SU EDPLY",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Commission on Sales - SU ERV",
+    "company": "Smart Up Eraveli",
+    "account_name": "Commission on Sales",
+    "parent_account": "Indirect Expenses - SU ERV",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Commission on Sales - SU FKO",
+    "company": "Smart Up Fortkochi",
+    "account_name": "Commission on Sales",
+    "parent_account": "Indirect Expenses - SU FKO",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Commission on Sales - SU KDV",
+    "company": "Smart Up Kadavanthara",
+    "account_name": "Commission on Sales",
+    "parent_account": "Indirect Expenses - SU KDV",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Commission on Sales - SU MMK",
+    "company": "Smart Up Moolamkuzhi",
+    "account_name": "Commission on Sales",
+    "parent_account": "Indirect Expenses - SU MMK",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Commission on Sales - SU PLR",
+    "company": "Smart Up Palluruthy",
+    "account_name": "Commission on Sales",
+    "parent_account": "Indirect Expenses - SU PLR",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Commission on Sales - SU THP",
+    "company": "Smart Up Thopumpadi",
+    "account_name": "Commission on Sales",
+    "parent_account": "Indirect Expenses - SU THP",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Commission on Sales - SU VYT",
+    "company": "Smart Up Vennala",
+    "account_name": "Commission on Sales",
+    "parent_account": "Indirect Expenses - SU VYT",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Cost of Goods Sold - SU",
+    "company": "Smart Up",
+    "account_name": "Cost of Goods Sold",
+    "parent_account": "Stock Expenses - SU",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Cost of Goods Sold - SU CHL",
+    "company": "Smart Up Chullickal",
+    "account_name": "Cost of Goods Sold",
+    "parent_account": "Stock Expenses - SU CHL",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Cost of Goods Sold - SU EDPLY",
+    "company": "Smart Up Edappally",
+    "account_name": "Cost of Goods Sold",
+    "parent_account": "Stock Expenses - SU EDPLY",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Cost of Goods Sold - SU ERV",
+    "company": "Smart Up Eraveli",
+    "account_name": "Cost of Goods Sold",
+    "parent_account": "Stock Expenses - SU ERV",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Cost of Goods Sold - SU FKO",
+    "company": "Smart Up Fortkochi",
+    "account_name": "Cost of Goods Sold",
+    "parent_account": "Stock Expenses - SU FKO",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Cost of Goods Sold - SU KDV",
+    "company": "Smart Up Kadavanthara",
+    "account_name": "Cost of Goods Sold",
+    "parent_account": "Stock Expenses - SU KDV",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Cost of Goods Sold - SU MMK",
+    "company": "Smart Up Moolamkuzhi",
+    "account_name": "Cost of Goods Sold",
+    "parent_account": "Stock Expenses - SU MMK",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Cost of Goods Sold - SU PLR",
+    "company": "Smart Up Palluruthy",
+    "account_name": "Cost of Goods Sold",
+    "parent_account": "Stock Expenses - SU PLR",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Cost of Goods Sold - SU THP",
+    "company": "Smart Up Thopumpadi",
+    "account_name": "Cost of Goods Sold",
+    "parent_account": "Stock Expenses - SU THP",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Cost of Goods Sold - SU VYT",
+    "company": "Smart Up Vennala",
+    "account_name": "Cost of Goods Sold",
+    "parent_account": "Stock Expenses - SU VYT",
+    "root_type": "Expense"
+  },
+  {
+    "name": "cwc expense - SU",
+    "company": "Smart Up",
+    "account_name": "cwc expense",
+    "parent_account": "Indirect Expenses - SU",
+    "root_type": "Expense"
+  },
+  {
+    "name": "cwc expense - SU CHL",
+    "company": "Smart Up Chullickal",
+    "account_name": "cwc expense",
+    "parent_account": "Indirect Expenses - SU CHL",
+    "root_type": "Expense"
+  },
+  {
+    "name": "cwc expense - SU EDPLY",
+    "company": "Smart Up Edappally",
+    "account_name": "cwc expense",
+    "parent_account": "Indirect Expenses - SU EDPLY",
+    "root_type": "Expense"
+  },
+  {
+    "name": "cwc expense - SU ERV",
+    "company": "Smart Up Eraveli",
+    "account_name": "cwc expense",
+    "parent_account": "Indirect Expenses - SU ERV",
+    "root_type": "Expense"
+  },
+  {
+    "name": "cwc expense - SU FKO",
+    "company": "Smart Up Fortkochi",
+    "account_name": "cwc expense",
+    "parent_account": "Indirect Expenses - SU FKO",
+    "root_type": "Expense"
+  },
+  {
+    "name": "cwc expense - SU KDV",
+    "company": "Smart Up Kadavanthara",
+    "account_name": "cwc expense",
+    "parent_account": "Indirect Expenses - SU KDV",
+    "root_type": "Expense"
+  },
+  {
+    "name": "cwc expense - SU MMK",
+    "company": "Smart Up Moolamkuzhi",
+    "account_name": "cwc expense",
+    "parent_account": "Indirect Expenses - SU MMK",
+    "root_type": "Expense"
+  },
+  {
+    "name": "cwc expense - SU PLR",
+    "company": "Smart Up Palluruthy",
+    "account_name": "cwc expense",
+    "parent_account": "Indirect Expenses - SU PLR",
+    "root_type": "Expense"
+  },
+  {
+    "name": "cwc expense - SU THP",
+    "company": "Smart Up Thopumpadi",
+    "account_name": "cwc expense",
+    "parent_account": "Indirect Expenses - SU THP",
+    "root_type": "Expense"
+  },
+  {
+    "name": "cwc expense - SU VYT",
+    "company": "Smart Up Vennala",
+    "account_name": "cwc expense",
+    "parent_account": "Indirect Expenses - SU VYT",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Depreciation - SU",
+    "company": "Smart Up",
+    "account_name": "Depreciation",
+    "parent_account": "Indirect Expenses - SU",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Depreciation - SU CHL",
+    "company": "Smart Up Chullickal",
+    "account_name": "Depreciation",
+    "parent_account": "Indirect Expenses - SU CHL",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Depreciation - SU EDPLY",
+    "company": "Smart Up Edappally",
+    "account_name": "Depreciation",
+    "parent_account": "Indirect Expenses - SU EDPLY",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Depreciation - SU ERV",
+    "company": "Smart Up Eraveli",
+    "account_name": "Depreciation",
+    "parent_account": "Indirect Expenses - SU ERV",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Depreciation - SU FKO",
+    "company": "Smart Up Fortkochi",
+    "account_name": "Depreciation",
+    "parent_account": "Indirect Expenses - SU FKO",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Depreciation - SU KDV",
+    "company": "Smart Up Kadavanthara",
+    "account_name": "Depreciation",
+    "parent_account": "Indirect Expenses - SU KDV",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Depreciation - SU MMK",
+    "company": "Smart Up Moolamkuzhi",
+    "account_name": "Depreciation",
+    "parent_account": "Indirect Expenses - SU MMK",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Depreciation - SU PLR",
+    "company": "Smart Up Palluruthy",
+    "account_name": "Depreciation",
+    "parent_account": "Indirect Expenses - SU PLR",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Depreciation - SU THP",
+    "company": "Smart Up Thopumpadi",
+    "account_name": "Depreciation",
+    "parent_account": "Indirect Expenses - SU THP",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Depreciation - SU VYT",
+    "company": "Smart Up Vennala",
+    "account_name": "Depreciation",
+    "parent_account": "Indirect Expenses - SU VYT",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Drinking Water - SU CHL",
+    "company": "Smart Up Chullickal",
+    "account_name": "Drinking Water",
+    "parent_account": "Indirect Expenses - SU CHL",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Entertainment Expenses - SU",
+    "company": "Smart Up",
+    "account_name": "Entertainment Expenses",
+    "parent_account": "Indirect Expenses - SU",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Entertainment Expenses - SU CHL",
+    "company": "Smart Up Chullickal",
+    "account_name": "Entertainment Expenses",
+    "parent_account": "Indirect Expenses - SU CHL",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Entertainment Expenses - SU EDPLY",
+    "company": "Smart Up Edappally",
+    "account_name": "Entertainment Expenses",
+    "parent_account": "Indirect Expenses - SU EDPLY",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Entertainment Expenses - SU ERV",
+    "company": "Smart Up Eraveli",
+    "account_name": "Entertainment Expenses",
+    "parent_account": "Indirect Expenses - SU ERV",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Entertainment Expenses - SU FKO",
+    "company": "Smart Up Fortkochi",
+    "account_name": "Entertainment Expenses",
+    "parent_account": "Indirect Expenses - SU FKO",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Entertainment Expenses - SU KDV",
+    "company": "Smart Up Kadavanthara",
+    "account_name": "Entertainment Expenses",
+    "parent_account": "Indirect Expenses - SU KDV",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Entertainment Expenses - SU MMK",
+    "company": "Smart Up Moolamkuzhi",
+    "account_name": "Entertainment Expenses",
+    "parent_account": "Indirect Expenses - SU MMK",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Entertainment Expenses - SU PLR",
+    "company": "Smart Up Palluruthy",
+    "account_name": "Entertainment Expenses",
+    "parent_account": "Indirect Expenses - SU PLR",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Entertainment Expenses - SU THP",
+    "company": "Smart Up Thopumpadi",
+    "account_name": "Entertainment Expenses",
+    "parent_account": "Indirect Expenses - SU THP",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Entertainment Expenses - SU VYT",
+    "company": "Smart Up Vennala",
+    "account_name": "Entertainment Expenses",
+    "parent_account": "Indirect Expenses - SU VYT",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Exchange Gain/Loss - SU",
+    "company": "Smart Up",
+    "account_name": "Exchange Gain/Loss",
+    "parent_account": "Indirect Expenses - SU",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Exchange Gain/Loss - SU CHL",
+    "company": "Smart Up Chullickal",
+    "account_name": "Exchange Gain/Loss",
+    "parent_account": "Indirect Expenses - SU CHL",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Exchange Gain/Loss - SU EDPLY",
+    "company": "Smart Up Edappally",
+    "account_name": "Exchange Gain/Loss",
+    "parent_account": "Indirect Expenses - SU EDPLY",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Exchange Gain/Loss - SU ERV",
+    "company": "Smart Up Eraveli",
+    "account_name": "Exchange Gain/Loss",
+    "parent_account": "Indirect Expenses - SU ERV",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Exchange Gain/Loss - SU FKO",
+    "company": "Smart Up Fortkochi",
+    "account_name": "Exchange Gain/Loss",
+    "parent_account": "Indirect Expenses - SU FKO",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Exchange Gain/Loss - SU KDV",
+    "company": "Smart Up Kadavanthara",
+    "account_name": "Exchange Gain/Loss",
+    "parent_account": "Indirect Expenses - SU KDV",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Exchange Gain/Loss - SU MMK",
+    "company": "Smart Up Moolamkuzhi",
+    "account_name": "Exchange Gain/Loss",
+    "parent_account": "Indirect Expenses - SU MMK",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Exchange Gain/Loss - SU PLR",
+    "company": "Smart Up Palluruthy",
+    "account_name": "Exchange Gain/Loss",
+    "parent_account": "Indirect Expenses - SU PLR",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Exchange Gain/Loss - SU THP",
+    "company": "Smart Up Thopumpadi",
+    "account_name": "Exchange Gain/Loss",
+    "parent_account": "Indirect Expenses - SU THP",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Exchange Gain/Loss - SU VYT",
+    "company": "Smart Up Vennala",
+    "account_name": "Exchange Gain/Loss",
+    "parent_account": "Indirect Expenses - SU VYT",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Expenses Included In Asset Valuation - SU EDPLY",
+    "company": "Smart Up Edappally",
+    "account_name": "Expenses Included In Asset Valuation",
+    "parent_account": "Stock Expenses - SU EDPLY",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Expenses Included In Asset Valuation - SU FKO",
+    "company": "Smart Up Fortkochi",
+    "account_name": "Expenses Included In Asset Valuation",
+    "parent_account": "Stock Expenses - SU FKO",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Expenses Included In Valuation - SU",
+    "company": "Smart Up",
+    "account_name": "Expenses Included In Valuation",
+    "parent_account": "Stock Expenses - SU",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Expenses Included In Valuation - SU CHL",
+    "company": "Smart Up Chullickal",
+    "account_name": "Expenses Included In Valuation",
+    "parent_account": "Stock Expenses - SU CHL",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Expenses Included In Valuation - SU EDPLY",
+    "company": "Smart Up Edappally",
+    "account_name": "Expenses Included In Valuation",
+    "parent_account": "Stock Expenses - SU EDPLY",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Expenses Included In Valuation - SU ERV",
+    "company": "Smart Up Eraveli",
+    "account_name": "Expenses Included In Valuation",
+    "parent_account": "Stock Expenses - SU ERV",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Expenses Included In Valuation - SU FKO",
+    "company": "Smart Up Fortkochi",
+    "account_name": "Expenses Included In Valuation",
+    "parent_account": "Stock Expenses - SU FKO",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Expenses Included In Valuation - SU KDV",
+    "company": "Smart Up Kadavanthara",
+    "account_name": "Expenses Included In Valuation",
+    "parent_account": "Stock Expenses - SU KDV",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Expenses Included In Valuation - SU MMK",
+    "company": "Smart Up Moolamkuzhi",
+    "account_name": "Expenses Included In Valuation",
+    "parent_account": "Stock Expenses - SU MMK",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Expenses Included In Valuation - SU PLR",
+    "company": "Smart Up Palluruthy",
+    "account_name": "Expenses Included In Valuation",
+    "parent_account": "Stock Expenses - SU PLR",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Expenses Included In Valuation - SU THP",
+    "company": "Smart Up Thopumpadi",
+    "account_name": "Expenses Included In Valuation",
+    "parent_account": "Stock Expenses - SU THP",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Expenses Included In Valuation - SU VYT",
+    "company": "Smart Up Vennala",
+    "account_name": "Expenses Included In Valuation",
+    "parent_account": "Stock Expenses - SU VYT",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Freight and Forwarding Charges - SU",
+    "company": "Smart Up",
+    "account_name": "Freight and Forwarding Charges",
+    "parent_account": "Indirect Expenses - SU",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Freight and Forwarding Charges - SU CHL",
+    "company": "Smart Up Chullickal",
+    "account_name": "Freight and Forwarding Charges",
+    "parent_account": "Indirect Expenses - SU CHL",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Freight and Forwarding Charges - SU EDPLY",
+    "company": "Smart Up Edappally",
+    "account_name": "Freight and Forwarding Charges",
+    "parent_account": "Indirect Expenses - SU EDPLY",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Freight and Forwarding Charges - SU ERV",
+    "company": "Smart Up Eraveli",
+    "account_name": "Freight and Forwarding Charges",
+    "parent_account": "Indirect Expenses - SU ERV",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Freight and Forwarding Charges - SU FKO",
+    "company": "Smart Up Fortkochi",
+    "account_name": "Freight and Forwarding Charges",
+    "parent_account": "Indirect Expenses - SU FKO",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Freight and Forwarding Charges - SU KDV",
+    "company": "Smart Up Kadavanthara",
+    "account_name": "Freight and Forwarding Charges",
+    "parent_account": "Indirect Expenses - SU KDV",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Freight and Forwarding Charges - SU MMK",
+    "company": "Smart Up Moolamkuzhi",
+    "account_name": "Freight and Forwarding Charges",
+    "parent_account": "Indirect Expenses - SU MMK",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Freight and Forwarding Charges - SU PLR",
+    "company": "Smart Up Palluruthy",
+    "account_name": "Freight and Forwarding Charges",
+    "parent_account": "Indirect Expenses - SU PLR",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Freight and Forwarding Charges - SU THP",
+    "company": "Smart Up Thopumpadi",
+    "account_name": "Freight and Forwarding Charges",
+    "parent_account": "Indirect Expenses - SU THP",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Freight and Forwarding Charges - SU VYT",
+    "company": "Smart Up Vennala",
+    "account_name": "Freight and Forwarding Charges",
+    "parent_account": "Indirect Expenses - SU VYT",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Gain/Loss on Asset Disposal - SU",
+    "company": "Smart Up",
+    "account_name": "Gain/Loss on Asset Disposal",
+    "parent_account": "Indirect Expenses - SU",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Gain/Loss on Asset Disposal - SU CHL",
+    "company": "Smart Up Chullickal",
+    "account_name": "Gain/Loss on Asset Disposal",
+    "parent_account": "Indirect Expenses - SU CHL",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Gain/Loss on Asset Disposal - SU EDPLY",
+    "company": "Smart Up Edappally",
+    "account_name": "Gain/Loss on Asset Disposal",
+    "parent_account": "Indirect Expenses - SU EDPLY",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Gain/Loss on Asset Disposal - SU ERV",
+    "company": "Smart Up Eraveli",
+    "account_name": "Gain/Loss on Asset Disposal",
+    "parent_account": "Indirect Expenses - SU ERV",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Gain/Loss on Asset Disposal - SU FKO",
+    "company": "Smart Up Fortkochi",
+    "account_name": "Gain/Loss on Asset Disposal",
+    "parent_account": "Indirect Expenses - SU FKO",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Gain/Loss on Asset Disposal - SU KDV",
+    "company": "Smart Up Kadavanthara",
+    "account_name": "Gain/Loss on Asset Disposal",
+    "parent_account": "Indirect Expenses - SU KDV",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Gain/Loss on Asset Disposal - SU MMK",
+    "company": "Smart Up Moolamkuzhi",
+    "account_name": "Gain/Loss on Asset Disposal",
+    "parent_account": "Indirect Expenses - SU MMK",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Gain/Loss on Asset Disposal - SU PLR",
+    "company": "Smart Up Palluruthy",
+    "account_name": "Gain/Loss on Asset Disposal",
+    "parent_account": "Indirect Expenses - SU PLR",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Gain/Loss on Asset Disposal - SU THP",
+    "company": "Smart Up Thopumpadi",
+    "account_name": "Gain/Loss on Asset Disposal",
+    "parent_account": "Indirect Expenses - SU THP",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Gain/Loss on Asset Disposal - SU VYT",
+    "company": "Smart Up Vennala",
+    "account_name": "Gain/Loss on Asset Disposal",
+    "parent_account": "Indirect Expenses - SU VYT",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Housekeeping expense - SU",
+    "company": "Smart Up",
+    "account_name": "Housekeeping expense",
+    "parent_account": "Indirect Expenses - SU",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Housekeeping expense - SU CHL",
+    "company": "Smart Up Chullickal",
+    "account_name": "Housekeeping expense",
+    "parent_account": "Indirect Expenses - SU CHL",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Housekeeping expense - SU EDPLY",
+    "company": "Smart Up Edappally",
+    "account_name": "Housekeeping expense",
+    "parent_account": "Indirect Expenses - SU EDPLY",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Housekeeping expense - SU ERV",
+    "company": "Smart Up Eraveli",
+    "account_name": "Housekeeping expense",
+    "parent_account": "Indirect Expenses - SU ERV",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Housekeeping expense - SU FKO",
+    "company": "Smart Up Fortkochi",
+    "account_name": "Housekeeping expense",
+    "parent_account": "Indirect Expenses - SU FKO",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Housekeeping expense - SU KDV",
+    "company": "Smart Up Kadavanthara",
+    "account_name": "Housekeeping expense",
+    "parent_account": "Indirect Expenses - SU KDV",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Housekeeping expense - SU MMK",
+    "company": "Smart Up Moolamkuzhi",
+    "account_name": "Housekeeping expense",
+    "parent_account": "Indirect Expenses - SU MMK",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Housekeeping expense - SU PLR",
+    "company": "Smart Up Palluruthy",
+    "account_name": "Housekeeping expense",
+    "parent_account": "Indirect Expenses - SU PLR",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Housekeeping expense - SU THP",
+    "company": "Smart Up Thopumpadi",
+    "account_name": "Housekeeping expense",
+    "parent_account": "Indirect Expenses - SU THP",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Housekeeping expense - SU VYT",
+    "company": "Smart Up Vennala",
+    "account_name": "Housekeeping expense",
+    "parent_account": "Indirect Expenses - SU VYT",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Impairment - SU",
+    "company": "Smart Up",
+    "account_name": "Impairment",
+    "parent_account": "Indirect Expenses - SU",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Impairment - SU CHL",
+    "company": "Smart Up Chullickal",
+    "account_name": "Impairment",
+    "parent_account": "Indirect Expenses - SU CHL",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Impairment - SU EDPLY",
+    "company": "Smart Up Edappally",
+    "account_name": "Impairment",
+    "parent_account": "Indirect Expenses - SU EDPLY",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Impairment - SU ERV",
+    "company": "Smart Up Eraveli",
+    "account_name": "Impairment",
+    "parent_account": "Indirect Expenses - SU ERV",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Impairment - SU FKO",
+    "company": "Smart Up Fortkochi",
+    "account_name": "Impairment",
+    "parent_account": "Indirect Expenses - SU FKO",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Impairment - SU KDV",
+    "company": "Smart Up Kadavanthara",
+    "account_name": "Impairment",
+    "parent_account": "Indirect Expenses - SU KDV",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Impairment - SU MMK",
+    "company": "Smart Up Moolamkuzhi",
+    "account_name": "Impairment",
+    "parent_account": "Indirect Expenses - SU MMK",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Impairment - SU PLR",
+    "company": "Smart Up Palluruthy",
+    "account_name": "Impairment",
+    "parent_account": "Indirect Expenses - SU PLR",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Impairment - SU THP",
+    "company": "Smart Up Thopumpadi",
+    "account_name": "Impairment",
+    "parent_account": "Indirect Expenses - SU THP",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Impairment - SU VYT",
+    "company": "Smart Up Vennala",
+    "account_name": "Impairment",
+    "parent_account": "Indirect Expenses - SU VYT",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Inauguration Expense - SU",
+    "company": "Smart Up",
+    "account_name": "Inauguration Expense",
+    "parent_account": "Indirect Expenses - SU",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Inauguration Expense - SU CHL",
+    "company": "Smart Up Chullickal",
+    "account_name": "Inauguration Expense",
+    "parent_account": "Indirect Expenses - SU CHL",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Inauguration Expense - SU EDPLY",
+    "company": "Smart Up Edappally",
+    "account_name": "Inauguration Expense",
+    "parent_account": "Indirect Expenses - SU EDPLY",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Inauguration Expense - SU ERV",
+    "company": "Smart Up Eraveli",
+    "account_name": "Inauguration Expense",
+    "parent_account": "Indirect Expenses - SU ERV",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Inauguration Expense - SU FKO",
+    "company": "Smart Up Fortkochi",
+    "account_name": "Inauguration Expense",
+    "parent_account": "Indirect Expenses - SU FKO",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Inauguration Expense - SU KDV",
+    "company": "Smart Up Kadavanthara",
+    "account_name": "Inauguration Expense",
+    "parent_account": "Indirect Expenses - SU KDV",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Inauguration Expense - SU MMK",
+    "company": "Smart Up Moolamkuzhi",
+    "account_name": "Inauguration Expense",
+    "parent_account": "Indirect Expenses - SU MMK",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Inauguration Expense - SU PLR",
+    "company": "Smart Up Palluruthy",
+    "account_name": "Inauguration Expense",
+    "parent_account": "Indirect Expenses - SU PLR",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Inauguration Expense - SU THP",
+    "company": "Smart Up Thopumpadi",
+    "account_name": "Inauguration Expense",
+    "parent_account": "Indirect Expenses - SU THP",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Inauguration Expense - SU VYT",
+    "company": "Smart Up Vennala",
+    "account_name": "Inauguration Expense",
+    "parent_account": "Indirect Expenses - SU VYT",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Legal Expenses - SU",
+    "company": "Smart Up",
+    "account_name": "Legal Expenses",
+    "parent_account": "Indirect Expenses - SU",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Legal Expenses - SU CHL",
+    "company": "Smart Up Chullickal",
+    "account_name": "Legal Expenses",
+    "parent_account": "Indirect Expenses - SU CHL",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Legal Expenses - SU EDPLY",
+    "company": "Smart Up Edappally",
+    "account_name": "Legal Expenses",
+    "parent_account": "Indirect Expenses - SU EDPLY",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Legal Expenses - SU ERV",
+    "company": "Smart Up Eraveli",
+    "account_name": "Legal Expenses",
+    "parent_account": "Indirect Expenses - SU ERV",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Legal Expenses - SU FKO",
+    "company": "Smart Up Fortkochi",
+    "account_name": "Legal Expenses",
+    "parent_account": "Indirect Expenses - SU FKO",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Legal Expenses - SU KDV",
+    "company": "Smart Up Kadavanthara",
+    "account_name": "Legal Expenses",
+    "parent_account": "Indirect Expenses - SU KDV",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Legal Expenses - SU MMK",
+    "company": "Smart Up Moolamkuzhi",
+    "account_name": "Legal Expenses",
+    "parent_account": "Indirect Expenses - SU MMK",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Legal Expenses - SU PLR",
+    "company": "Smart Up Palluruthy",
+    "account_name": "Legal Expenses",
+    "parent_account": "Indirect Expenses - SU PLR",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Legal Expenses - SU THP",
+    "company": "Smart Up Thopumpadi",
+    "account_name": "Legal Expenses",
+    "parent_account": "Indirect Expenses - SU THP",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Legal Expenses - SU VYT",
+    "company": "Smart Up Vennala",
+    "account_name": "Legal Expenses",
+    "parent_account": "Indirect Expenses - SU VYT",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Marketing Expenses - SU",
+    "company": "Smart Up",
+    "account_name": "Marketing Expenses",
+    "parent_account": "Indirect Expenses - SU",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Marketing Expenses - SU CHL",
+    "company": "Smart Up Chullickal",
+    "account_name": "Marketing Expenses",
+    "parent_account": "Indirect Expenses - SU CHL",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Marketing Expenses - SU EDPLY",
+    "company": "Smart Up Edappally",
+    "account_name": "Marketing Expenses",
+    "parent_account": "Indirect Expenses - SU EDPLY",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Marketing Expenses - SU ERV",
+    "company": "Smart Up Eraveli",
+    "account_name": "Marketing Expenses",
+    "parent_account": "Indirect Expenses - SU ERV",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Marketing Expenses - SU FKO",
+    "company": "Smart Up Fortkochi",
+    "account_name": "Marketing Expenses",
+    "parent_account": "Indirect Expenses - SU FKO",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Marketing Expenses - SU KDV",
+    "company": "Smart Up Kadavanthara",
+    "account_name": "Marketing Expenses",
+    "parent_account": "Indirect Expenses - SU KDV",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Marketing Expenses - SU MMK",
+    "company": "Smart Up Moolamkuzhi",
+    "account_name": "Marketing Expenses",
+    "parent_account": "Indirect Expenses - SU MMK",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Marketing Expenses - SU PLR",
+    "company": "Smart Up Palluruthy",
+    "account_name": "Marketing Expenses",
+    "parent_account": "Indirect Expenses - SU PLR",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Marketing Expenses - SU THP",
+    "company": "Smart Up Thopumpadi",
+    "account_name": "Marketing Expenses",
+    "parent_account": "Indirect Expenses - SU THP",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Marketing Expenses - SU VYT",
+    "company": "Smart Up Vennala",
+    "account_name": "Marketing Expenses",
+    "parent_account": "Indirect Expenses - SU VYT",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Miscellaneous Expenses - SU",
+    "company": "Smart Up",
+    "account_name": "Miscellaneous Expenses",
+    "parent_account": "Indirect Expenses - SU",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Miscellaneous Expenses - SU CHL",
+    "company": "Smart Up Chullickal",
+    "account_name": "Miscellaneous Expenses",
+    "parent_account": "Indirect Expenses - SU CHL",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Miscellaneous Expenses - SU EDPLY",
+    "company": "Smart Up Edappally",
+    "account_name": "Miscellaneous Expenses",
+    "parent_account": "Indirect Expenses - SU EDPLY",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Miscellaneous Expenses - SU ERV",
+    "company": "Smart Up Eraveli",
+    "account_name": "Miscellaneous Expenses",
+    "parent_account": "Indirect Expenses - SU ERV",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Miscellaneous Expenses - SU FKO",
+    "company": "Smart Up Fortkochi",
+    "account_name": "Miscellaneous Expenses",
+    "parent_account": "Indirect Expenses - SU FKO",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Miscellaneous Expenses - SU KDV",
+    "company": "Smart Up Kadavanthara",
+    "account_name": "Miscellaneous Expenses",
+    "parent_account": "Indirect Expenses - SU KDV",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Miscellaneous Expenses - SU MMK",
+    "company": "Smart Up Moolamkuzhi",
+    "account_name": "Miscellaneous Expenses",
+    "parent_account": "Indirect Expenses - SU MMK",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Miscellaneous Expenses - SU PLR",
+    "company": "Smart Up Palluruthy",
+    "account_name": "Miscellaneous Expenses",
+    "parent_account": "Indirect Expenses - SU PLR",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Miscellaneous Expenses - SU THP",
+    "company": "Smart Up Thopumpadi",
+    "account_name": "Miscellaneous Expenses",
+    "parent_account": "Indirect Expenses - SU THP",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Miscellaneous Expenses - SU VYT",
+    "company": "Smart Up Vennala",
+    "account_name": "Miscellaneous Expenses",
+    "parent_account": "Indirect Expenses - SU VYT",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Office Expense - SU",
+    "company": "Smart Up",
+    "account_name": "Office Expense",
+    "parent_account": "Indirect Expenses - SU",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Office Expense - SU CHL",
+    "company": "Smart Up Chullickal",
+    "account_name": "Office Expense",
+    "parent_account": "Indirect Expenses - SU CHL",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Office Expense - SU EDPLY",
+    "company": "Smart Up Edappally",
+    "account_name": "Office Expense",
+    "parent_account": "Indirect Expenses - SU EDPLY",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Office Expense - SU ERV",
+    "company": "Smart Up Eraveli",
+    "account_name": "Office Expense",
+    "parent_account": "Indirect Expenses - SU ERV",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Office Expense - SU FKO",
+    "company": "Smart Up Fortkochi",
+    "account_name": "Office Expense",
+    "parent_account": "Indirect Expenses - SU FKO",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Office Expense - SU KDV",
+    "company": "Smart Up Kadavanthara",
+    "account_name": "Office Expense",
+    "parent_account": "Indirect Expenses - SU KDV",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Office Expense - SU MMK",
+    "company": "Smart Up Moolamkuzhi",
+    "account_name": "Office Expense",
+    "parent_account": "Indirect Expenses - SU MMK",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Office Expense - SU PLR",
+    "company": "Smart Up Palluruthy",
+    "account_name": "Office Expense",
+    "parent_account": "Indirect Expenses - SU PLR",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Office Expense - SU THP",
+    "company": "Smart Up Thopumpadi",
+    "account_name": "Office Expense",
+    "parent_account": "Indirect Expenses - SU THP",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Office Expense - SU VYT",
+    "company": "Smart Up Vennala",
+    "account_name": "Office Expense",
+    "parent_account": "Indirect Expenses - SU VYT",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Office Maintenance Expenses - SU",
+    "company": "Smart Up",
+    "account_name": "Office Maintenance Expenses",
+    "parent_account": "Indirect Expenses - SU",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Office Maintenance Expenses - SU CHL",
+    "company": "Smart Up Chullickal",
+    "account_name": "Office Maintenance Expenses",
+    "parent_account": "Indirect Expenses - SU CHL",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Office Maintenance Expenses - SU EDPLY",
+    "company": "Smart Up Edappally",
+    "account_name": "Office Maintenance Expenses",
+    "parent_account": "Indirect Expenses - SU EDPLY",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Office Maintenance Expenses - SU ERV",
+    "company": "Smart Up Eraveli",
+    "account_name": "Office Maintenance Expenses",
+    "parent_account": "Indirect Expenses - SU ERV",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Office Maintenance Expenses - SU FKO",
+    "company": "Smart Up Fortkochi",
+    "account_name": "Office Maintenance Expenses",
+    "parent_account": "Indirect Expenses - SU FKO",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Office Maintenance Expenses - SU KDV",
+    "company": "Smart Up Kadavanthara",
+    "account_name": "Office Maintenance Expenses",
+    "parent_account": "Indirect Expenses - SU KDV",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Office Maintenance Expenses - SU MMK",
+    "company": "Smart Up Moolamkuzhi",
+    "account_name": "Office Maintenance Expenses",
+    "parent_account": "Indirect Expenses - SU MMK",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Office Maintenance Expenses - SU PLR",
+    "company": "Smart Up Palluruthy",
+    "account_name": "Office Maintenance Expenses",
+    "parent_account": "Indirect Expenses - SU PLR",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Office Maintenance Expenses - SU THP",
+    "company": "Smart Up Thopumpadi",
+    "account_name": "Office Maintenance Expenses",
+    "parent_account": "Indirect Expenses - SU THP",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Office Maintenance Expenses - SU VYT",
+    "company": "Smart Up Vennala",
+    "account_name": "Office Maintenance Expenses",
+    "parent_account": "Indirect Expenses - SU VYT",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Office Rent - SU",
+    "company": "Smart Up",
+    "account_name": "Office Rent",
+    "parent_account": "Indirect Expenses - SU",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Office Rent - SU CHL",
+    "company": "Smart Up Chullickal",
+    "account_name": "Office Rent",
+    "parent_account": "Indirect Expenses - SU CHL",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Office Rent - SU EDPLY",
+    "company": "Smart Up Edappally",
+    "account_name": "Office Rent",
+    "parent_account": "Indirect Expenses - SU EDPLY",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Office Rent - SU ERV",
+    "company": "Smart Up Eraveli",
+    "account_name": "Office Rent",
+    "parent_account": "Indirect Expenses - SU ERV",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Office Rent - SU FKO",
+    "company": "Smart Up Fortkochi",
+    "account_name": "Office Rent",
+    "parent_account": "Indirect Expenses - SU FKO",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Office Rent - SU KDV",
+    "company": "Smart Up Kadavanthara",
+    "account_name": "Office Rent",
+    "parent_account": "Indirect Expenses - SU KDV",
+    "root_type": "Expense"
+  },
+  {
+    "name": "Office Rent - SU MMK",
+    "company": "Smart Up Moolamkuzhi",
+    "account_name": "Office Rent",
+    "parent_account": "Indirect Expenses - SU MMK",
+    "root_type": "Expense"
+  }
+]
+
+============================================================
+BONUS: GL ENTRIES AGAINST ANY EXPENSE ROOT_TYPE ACCOUNT (top 100)
+============================================================
+  Checking first 5 expense accounts: ['Administrative Expenses - SU', 'Administrative Expenses - SU CHL', 'Administrative Expenses - SU EDPLY', 'Administrative Expenses - SU ERV', 'Administrative Expenses - SU FKO']
+  Account 'Administrative Expenses - SU' ù 0 entries
+  Account 'Administrative Expenses - SU CHL' ù 0 entries
+  Account 'Administrative Expenses - SU EDPLY' ù 0 entries
+  Account 'Administrative Expenses - SU ERV' ù 0 entries
+  Account 'Administrative Expenses - SU FKO' ù 0 entries
+
+
+DONE.
