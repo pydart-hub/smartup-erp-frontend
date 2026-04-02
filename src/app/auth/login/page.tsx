@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { LoginForm } from "@/components/auth/LoginForm";
+import { LoginFooter } from "@/components/auth/LoginFooter";
 
 const HERO_IMAGES = [
   "/login-slide-1.jpg",
@@ -205,12 +206,8 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="relative z-10 text-center pb-6 px-6">
-          <p className="text-white/20 text-xs">
-            SmartUp Learning &middot; Crafting the future since 2014
-          </p>
-        </div>
+        {/* Footer — Legal & Contact */}
+        <LoginFooter />
       </div>
     </div>
   );
