@@ -11,7 +11,6 @@ import {
   Download,
   FileSpreadsheet,
   FileText,
-  Calendar,
   Wallet,
   Banknote,
   Landmark,
@@ -278,25 +277,13 @@ function ExportDropdown({
 
 /* ── Page ── */
 export default function ConsolidatedBankReportPage() {
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
-
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["consolidated-bank", fromDate, toDate],
-    queryFn: () =>
-      getConsolidatedBankReport({
-        from_date: fromDate || undefined,
-        to_date: toDate || undefined,
-      }),
+    queryKey: ["consolidated-bank"],
+    queryFn: () => getConsolidatedBankReport(),
     staleTime: 60_000,
   });
 
-  const dateLabel = useMemo(() => {
-    if (fromDate && toDate) return `${fromDate}_to_${toDate}`;
-    if (fromDate) return `from_${fromDate}`;
-    if (toDate) return `to_${toDate}`;
-    return new Date().toISOString().split("T")[0];
-  }, [fromDate, toDate]);
+  const dateLabel = new Date().toISOString().split("T")[0];
 
   const handleExportExcel = useCallback(() => {
     if (!data) return;
@@ -346,42 +333,6 @@ export default function ConsolidatedBankReportPage() {
             onExportExcel={handleExportExcel}
             onExportPDF={handleExportPDF}
           />
-        )}
-      </div>
-
-      {/* Date filters */}
-      <div className="flex flex-wrap items-end gap-3">
-        <div>
-          <label className="text-xs text-text-secondary mb-1 block">From Date</label>
-          <div className="relative">
-            <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-tertiary pointer-events-none" />
-            <input
-              type="date"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-              className="pl-8 pr-3 py-2 text-sm rounded-lg border border-border-light bg-surface text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
-            />
-          </div>
-        </div>
-        <div>
-          <label className="text-xs text-text-secondary mb-1 block">To Date</label>
-          <div className="relative">
-            <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-tertiary pointer-events-none" />
-            <input
-              type="date"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-              className="pl-8 pr-3 py-2 text-sm rounded-lg border border-border-light bg-surface text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
-            />
-          </div>
-        </div>
-        {(fromDate || toDate) && (
-          <button
-            onClick={() => { setFromDate(""); setToDate(""); }}
-            className="px-3 py-2 text-xs text-text-secondary hover:text-text-primary hover:bg-surface-secondary rounded-lg transition-colors"
-          >
-            Clear dates
-          </button>
         )}
       </div>
 
