@@ -28,15 +28,23 @@ import { formatCurrencyExact } from "@/lib/utils/formatters";
 
 /* ── Export helpers (client-side) ── */
 
+/** Format number in Indian locale without ₹ symbol (jsPDF can't render ₹) */
+function fmtINR(n: number): string {
+  return n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 function exportToExcel(
   branches: ConsolidatedBranchRow[],
   grandTotal: { cash: number; bank: number; razorpay: number; upi: number; total: number },
   dateLabel: string,
 ) {
   // Build CSV content (Excel-compatible)
-  const headers = ["Branch", "Cash", "Bank", "Razorpay", "UPI", "Total Balance"];
-  const rows = branches.map((b) => [
+  const headers = ["#", "Branch", "Bank Entity", "Cash", "Bank", "Razorpay", "UPI", "Total Balance"];
+  const sorted = [...branches].sort((a, b) => b.total - a.total);
+  const rows = sorted.map((b, i) => [
+    String(i + 1),
     b.branch.replace("Smart Up ", ""),
+    b.bank_entity_name || "-",
     b.cash.toFixed(2),
     b.bank.toFixed(2),
     b.razorpay.toFixed(2),
@@ -44,7 +52,9 @@ function exportToExcel(
     b.total.toFixed(2),
   ]);
   rows.push([
+    "",
     "GRAND TOTAL",
+    "",
     grandTotal.cash.toFixed(2),
     grandTotal.bank.toFixed(2),
     grandTotal.razorpay.toFixed(2),
@@ -76,63 +86,104 @@ function exportToPDF(
       const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
       const autoTable = autoTableModule.default;
 
-      // Title
-      doc.setFontSize(16);
-      doc.setFont("helvetica", "bold");
-      doc.text("SmartUp - Consolidated Bank Report", 14, 18);
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.text(`Generated: ${dateLabel}`, 14, 25);
+      // SmartUp brand colors
+      const TEAL = [26, 158, 143] as const;        // #1A9E8F
+      const TEAL_DARK = [18, 120, 108] as const;   // darker teal for text
+      const TEAL_LIGHT = [224, 245, 242] as const;  // #E0F5F2 light teal bg
+      const WHITE = [255, 255, 255] as const;
+      const TEXT_DARK = [30, 41, 59] as const;       // slate-800
 
-      // Table data
-      const tableRows = branches.map((b) => [
+      // ── Header bar ──
+      doc.setFillColor(...TEAL);
+      doc.rect(0, 0, 297, 28, "F");
+      doc.setFontSize(18);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(...WHITE);
+      doc.text("SmartUp", 14, 14);
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "normal");
+      doc.text("Consolidated Bank Report", 14, 21);
+      // Date on right
+      doc.setFontSize(9);
+      doc.text(`Generated: ${dateLabel}`, 283, 14, { align: "right" });
+
+      // Sort branches by total (desc)
+      const sorted = [...branches].sort((a, b) => b.total - a.total);
+
+      // Table data — use fmtINR (no ₹ symbol, Indian number format)
+      const tableRows = sorted.map((b, i) => [
+        String(i + 1),
         b.branch.replace("Smart Up ", ""),
-        formatCurrencyExact(b.cash),
-        formatCurrencyExact(b.bank),
-        formatCurrencyExact(b.razorpay),
-        formatCurrencyExact(b.upi),
-        formatCurrencyExact(b.total),
+        b.bank_entity_name || "-",
+        fmtINR(b.cash),
+        fmtINR(b.bank),
+        fmtINR(b.razorpay),
+        fmtINR(b.upi),
+        fmtINR(b.total),
       ]);
 
       // Grand total row
       tableRows.push([
+        "",
         "GRAND TOTAL",
-        formatCurrencyExact(grandTotal.cash),
-        formatCurrencyExact(grandTotal.bank),
-        formatCurrencyExact(grandTotal.razorpay),
-        formatCurrencyExact(grandTotal.upi),
-        formatCurrencyExact(grandTotal.total),
+        "",
+        fmtINR(grandTotal.cash),
+        fmtINR(grandTotal.bank),
+        fmtINR(grandTotal.razorpay),
+        fmtINR(grandTotal.upi),
+        fmtINR(grandTotal.total),
       ]);
 
       autoTable(doc, {
-        startY: 32,
-        head: [["Branch", "Cash", "Bank", "Razorpay", "UPI", "Total Balance"]],
+        startY: 34,
+        head: [["#", "Branch", "Bank Entity", "Cash (Rs.)", "Bank (Rs.)", "Razorpay (Rs.)", "UPI (Rs.)", "Total Balance (Rs.)"]],
         body: tableRows,
-        styles: { fontSize: 9, cellPadding: 3 },
+        theme: "grid",
+        styles: {
+          fontSize: 8.5,
+          cellPadding: { top: 2.5, bottom: 2.5, left: 3, right: 3 },
+          lineColor: [200, 200, 200],
+          lineWidth: 0.2,
+          textColor: [...TEXT_DARK],
+        },
         headStyles: {
-          fillColor: [37, 99, 235],
-          textColor: [255, 255, 255],
+          fillColor: [...TEAL],
+          textColor: [...WHITE],
           fontStyle: "bold",
+          fontSize: 8.5,
           halign: "center",
         },
-        columnStyles: {
-          0: { halign: "left", cellWidth: 55 },
-          1: { halign: "right", cellWidth: 38 },
-          2: { halign: "right", cellWidth: 38 },
-          3: { halign: "right", cellWidth: 38 },
-          4: { halign: "right", cellWidth: 38 },
-          5: { halign: "right", cellWidth: 45, fontStyle: "bold" },
+        alternateRowStyles: {
+          fillColor: [248, 250, 252],  // very light gray
         },
-        // Style the last row (grand total) differently
+        columnStyles: {
+          0: { halign: "center", cellWidth: 10 },
+          1: { halign: "left", cellWidth: 38 },
+          2: { halign: "left", cellWidth: 42, fontSize: 7.5, textColor: [100, 116, 139] },
+          3: { halign: "right", cellWidth: 30 },
+          4: { halign: "right", cellWidth: 30 },
+          5: { halign: "right", cellWidth: 30 },
+          6: { halign: "right", cellWidth: 30 },
+          7: { halign: "right", cellWidth: 38, fontStyle: "bold" },
+        },
+        // Style the grand total row
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         didParseCell: (data: any) => {
           if (data.row.index === tableRows.length - 1) {
-            data.cell.styles.fillColor = [219, 234, 254];
+            data.cell.styles.fillColor = [...TEAL_LIGHT];
             data.cell.styles.fontStyle = "bold";
-            data.cell.styles.textColor = [30, 64, 175];
+            data.cell.styles.textColor = [...TEAL_DARK];
+            data.cell.styles.fontSize = 9;
           }
         },
       });
+
+      // Footer
+      const pageHeight = doc.internal.pageSize.getHeight();
+      doc.setFontSize(7);
+      doc.setTextColor(150, 150, 150);
+      doc.text("Smart Up Learning Ventures | smartuplearningventures@gmail.com | +91 7356072106", 14, pageHeight - 8);
+      doc.text("All amounts in Indian Rupees (INR)", 283, pageHeight - 8, { align: "right" });
 
       doc.save(`Consolidated_Bank_Report_${dateLabel}.pdf`);
     });
