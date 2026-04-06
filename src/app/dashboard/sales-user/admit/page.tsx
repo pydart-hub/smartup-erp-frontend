@@ -29,6 +29,8 @@ import {
   Fingerprint,
   Eye,
   EyeOff,
+  MapPin,
+  GraduationCap,
   Search,
   UserPlus,
   X,
@@ -445,6 +447,8 @@ function AdmitPageContent() {
         student_mobile_number: data.student_mobile_number,
         custom_aadhaar: data.aadhaar_number || undefined,
         custom_disabilities: data.disabilities || undefined,
+        custom_place: data.custom_place || undefined,
+        custom_school_name: data.custom_school_name || undefined,
         custom_branch: data.custom_branch,
         custom_branch_abbr: (branchObj as { abbr?: string })?.abbr,
         custom_srr_id: data.custom_srr_id,
@@ -849,6 +853,21 @@ function AdmitPageContent() {
                       leftIcon={<Fingerprint className="h-4 w-4" />}
                       error={errors.aadhaar_number?.message}
                       {...register("aadhaar_number")}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Input
+                      label="Place"
+                      placeholder="e.g. Ernakulam"
+                      leftIcon={<MapPin className="h-4 w-4" />}
+                      {...register("custom_place")}
+                    />
+                    <Input
+                      label="School Name"
+                      placeholder="e.g. St. Mary's School"
+                      leftIcon={<GraduationCap className="h-4 w-4" />}
+                      {...register("custom_school_name")}
                     />
                   </div>
 

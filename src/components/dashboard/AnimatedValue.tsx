@@ -33,9 +33,11 @@ export function AnimatedNumber({
 export function AnimatedCurrency({
   value,
   className,
+  decimals = false,
 }: {
   value: number;
   className?: string;
+  decimals?: boolean;
 }) {
   const ref = useRef<HTMLSpanElement>(null);
   const inView = useInView(ref, { once: true });
@@ -44,8 +46,9 @@ export function AnimatedCurrency({
     new Intl.NumberFormat("en-IN", {
       style: "currency",
       currency: "INR",
-      maximumFractionDigits: 0,
-    }).format(Math.round(v))
+      minimumFractionDigits: decimals ? 2 : 0,
+      maximumFractionDigits: decimals ? 2 : 0,
+    }).format(decimals ? v : Math.round(v))
   );
 
   useEffect(() => {

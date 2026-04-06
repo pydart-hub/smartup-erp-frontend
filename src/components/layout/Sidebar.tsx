@@ -11,30 +11,30 @@ import {
   School,
   Users,
   ClipboardCheck,
-  ClipboardList,
-  ClipboardEdit,
   CalendarDays,
   IndianRupee,
   ShoppingCart,
-  FileText,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
   X,
   UserCheck,
-  BookOpen,
+  UserPlus,
   Receipt,
   Briefcase,
   ArrowRightLeft,
   FileBarChart,
   MessageSquareWarning,
   Trophy,
+  Coins,
+  Baby,
+  TreePalm,
+  Landmark,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useUIStore } from "@/lib/stores/uiStore";
 import { BRANCH_MANAGER_NAV, type NavItem } from "@/lib/utils/constants";
 import { useTransferNotifications } from "@/lib/hooks/useTransferNotifications";
-
 
 const iconMap: Record<string, React.ElementType> = {
   LayoutDashboard,
@@ -42,20 +42,21 @@ const iconMap: Record<string, React.ElementType> = {
   School,
   Users,
   ClipboardCheck,
-  ClipboardList,
+  CalendarDays,
   IndianRupee,
   ShoppingCart,
-  FileText,
   UserCheck,
-  BookOpen,
-  ClipboardEdit,
-  CalendarDays,
+  UserPlus,
   Receipt,
   Briefcase,
   ArrowRightLeft,
   FileBarChart,
   MessageSquareWarning,
   Trophy,
+  Coins,
+  Baby,
+  TreePalm,
+  Landmark,
 };
 
 interface SidebarProps {
@@ -99,8 +100,25 @@ export function Sidebar({ navItems = BRANCH_MANAGER_NAV }: SidebarProps) {
   // Logo link: first nav item's href (works for any role)
   const homeHref = navItems[0]?.href ?? "/dashboard/branch-manager";
 
+  const renderIcon = (iconName: string, emoji: string, isActive: boolean, isChild = false) => {
+    if (isActive) {
+      return (
+        <motion.span
+          className={cn("shrink-0 flex items-center justify-center", isChild ? "text-base" : "text-lg")}
+          animate={{ y: [0, -3, 0] }}
+          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+        >
+          {emoji}
+        </motion.span>
+      );
+    }
+
+    const IconComp = iconMap[iconName] || LayoutDashboard;
+    const sizeClass = isChild ? "h-4 w-4" : "h-5 w-5";
+    return <IconComp className={cn(sizeClass, "shrink-0 text-text-tertiary group-hover:text-text-secondary")} />;
+  };
+
   const renderNavLink = (item: NavItem, isChild = false) => {
-    const Icon = iconMap[item.icon] || LayoutDashboard;
     const isActive = pathname === item.href;
 
     return (
@@ -124,7 +142,7 @@ export function Sidebar({ navItems = BRANCH_MANAGER_NAV }: SidebarProps) {
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
           />
         )}
-        <Icon className={cn("h-5 w-5 shrink-0", isChild ? "h-4 w-4" : "", isActive ? "text-primary" : "text-text-tertiary group-hover:text-text-secondary")} />
+        {renderIcon(item.icon, item.emoji, isActive, isChild)}
         {!sidebarCollapsed && <span>{item.label}</span>}
         {item.badge && !sidebarCollapsed && (
           <span className="ml-auto text-xs bg-error text-white rounded-full px-2 py-0.5">
@@ -199,7 +217,6 @@ export function Sidebar({ navItems = BRANCH_MANAGER_NAV }: SidebarProps) {
           {visibleNavItems.map((item) => {
             // Items with children → collapsible group
             if (item.children?.length) {
-              const Icon = iconMap[item.icon] || LayoutDashboard;
               const isOpen = !!openGroups[item.href];
               const isParentActive = pathname === item.href;
               const isChildActive = item.children.some((c) => pathname.startsWith(c.href));
@@ -228,7 +245,7 @@ export function Sidebar({ navItems = BRANCH_MANAGER_NAV }: SidebarProps) {
                           transition={{ type: "spring", stiffness: 300, damping: 30 }}
                         />
                       )}
-                      <Icon className={cn("h-5 w-5 shrink-0", (isParentActive || isChildActive) ? "text-primary" : "text-text-tertiary group-hover:text-text-secondary")} />
+                      {renderIcon(item.icon, item.emoji, isParentActive)}
                       {!sidebarCollapsed && <span>{item.label}</span>}
                       {sidebarCollapsed && (
                         <div className="absolute left-full ml-2 px-2.5 py-1.5 bg-text-primary text-white text-xs rounded-[8px] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-lg">

@@ -41,6 +41,10 @@ export interface Student {
   custom_sibling_group?: string;       // Shared family ID e.g. "FAM-CHL-00001"
   custom_sibling_discount_applied?: 0 | 1;
 
+  // Place & School (custom)
+  custom_place?: string;                 // Student's place/locality
+  custom_school_name?: string;           // Previous/current school name
+
   // Discontinuation fields (custom)
   custom_discontinuation_date?: string;
   custom_discontinuation_reason?: string;

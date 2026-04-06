@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -8,6 +8,7 @@ import {
   UserPlus, Search, Eye, Pencil, Trash2, ArrowRightLeft,
   ChevronLeft, ChevronRight, Loader2, AlertCircle,
   X, AlertTriangle, UserX, CircleCheck, Star,
+  ArrowUpDown, Filter, ChevronDown,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Button } from "@/components/ui/Button";
@@ -27,6 +28,8 @@ import { DisabilityBadge } from "@/components/ui/DisabilityBadge";
 const PAGE_SIZE = 25;
 
 type StatusFilter = "all" | "active" | "inactive" | "discontinued";
+type PlanFilter = "all" | "Advanced" | "Intermediate" | "Basic";
+type SortOption = "name_asc" | "name_desc" | "newest" | "oldest";
 
 const STATUS_TABS: { value: StatusFilter; label: string }[] = [
   { value: "all", label: "All" },
@@ -34,6 +37,29 @@ const STATUS_TABS: { value: StatusFilter; label: string }[] = [
   { value: "inactive", label: "Inactive" },
   { value: "discontinued", label: "Discontinued" },
 ];
+
+const PLAN_OPTIONS: { value: PlanFilter; label: string }[] = [
+  { value: "all", label: "All Plans" },
+  { value: "Advanced", label: "Advanced" },
+  { value: "Intermediate", label: "Intermediate" },
+  { value: "Basic", label: "Basic" },
+];
+
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: "name_asc", label: "Name A–Z" },
+  { value: "name_desc", label: "Name Z–A" },
+  { value: "newest", label: "Newest First" },
+  { value: "oldest", label: "Oldest First" },
+];
+
+function getSortOrderBy(s: SortOption): string {
+  switch (s) {
+    case "name_asc": return "student_name asc";
+    case "name_desc": return "student_name desc";
+    case "newest": return "joining_date desc";
+    case "oldest": return "joining_date asc";
+  }
+}
 
 function initials(name: string) {
   return name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
@@ -107,7 +133,23 @@ export default function StudentsPage() {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");          // debounced
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [planFilter, setPlanFilter] = useState<PlanFilter>("all");
+  const [sortOption, setSortOption] = useState<SortOption>("name_asc");
+  const [showSortMenu, setShowSortMenu] = useState(false);
+  const [showPlanMenu, setShowPlanMenu] = useState(false);
   const [page, setPage] = useState(0);
+
+  // Close dropdowns on outside click
+  const sortRef = useRef<HTMLDivElement>(null);
+  const planRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (sortRef.current && !sortRef.current.contains(e.target as Node)) setShowSortMenu(false);
+      if (planRef.current && !planRef.current.contains(e.target as Node)) setShowPlanMenu(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
 
   // Delete state
   const [deleteTarget, setDeleteTarget] = useState<Student | null>(null);
@@ -159,11 +201,11 @@ export default function StudentsPage() {
   }, [searchInput]);
 
   // Reset page when filter changes
-  useEffect(() => { setPage(0); }, [statusFilter]);
+  useEffect(() => { setPage(0); }, [statusFilter, planFilter, sortOption]);
 
   // ── Query 1: students (filtered by branch) ──────────────────
   const { data: studentsRes, isLoading, isError, error } = useQuery({
-    queryKey: ["students", search, statusFilter, page, defaultCompany],
+    queryKey: ["students", search, statusFilter, page, defaultCompany, sortOption],
     queryFn: () =>
       getStudents({
         search: search || undefined,
@@ -171,17 +213,17 @@ export default function StudentsPage() {
         extraFilters: getExtraFilters(statusFilter),
         limit_start: page * PAGE_SIZE,
         limit_page_length: PAGE_SIZE,
-        order_by: "student_name asc",
+        order_by: getSortOrderBy(sortOption),
         ...(defaultCompany ? { custom_branch: defaultCompany } : {}),
       }),
     staleTime: 30_000,
   });
 
-  const students: Student[] = studentsRes?.data ?? [];
-  const hasMore = students.length === PAGE_SIZE;
+  const allStudents: Student[] = studentsRes?.data ?? [];
+  const hasMore = allStudents.length === PAGE_SIZE;
 
   // ── Query 2: program enrollments for current page ──────────
-  const studentIds = students.map((s) => s.name);
+  const studentIds = allStudents.map((s) => s.name);
   // Don't filter by academic year — always show the latest enrollment's Class/Batch/Fee Plan
   const { data: enrollmentMap = {} } = useQuery({
     queryKey: ["enrollment-map", studentIds],
@@ -189,8 +231,13 @@ export default function StudentsPage() {
     enabled: studentIds.length > 0,
     staleTime: 60_000,
   });
+  // Client-side plan filter (plan lives on Program Enrollment, not Student)
+  const students = planFilter === "all"
+    ? allStudents
+    : allStudents.filter((s) => enrollmentMap[s.name]?.custom_plan === planFilter);
+
   // ── Query 3: outstanding amounts per student ────────────────
-  const customerIds = students.map((s) => s.customer).filter(Boolean) as string[];
+  const customerIds = allStudents.map((s) => s.customer).filter(Boolean) as string[];
   const { data: outstandingMap = {} } = useQuery({
     queryKey: ["outstanding-map", customerIds],
     queryFn: () => fetchOutstandingMap(customerIds),
@@ -247,6 +294,86 @@ export default function StudentsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Sort & Plan Filter Row — outside Card so dropdowns float above the table */}
+      <div className="flex items-center gap-2 flex-wrap -mt-3">
+        {/* Plan Filter Dropdown */}
+        <div className="relative" ref={planRef}>
+          <button
+            onClick={() => { setShowPlanMenu((v) => !v); setShowSortMenu(false); }}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+              planFilter !== "all"
+                ? "border-primary/30 bg-primary/5 text-primary"
+                : "border-border-medium bg-surface-primary text-text-secondary hover:bg-app-bg"
+            }`}
+          >
+            <Filter className="h-3.5 w-3.5" />
+            {PLAN_OPTIONS.find((o) => o.value === planFilter)?.label}
+            <ChevronDown className="h-3 w-3" />
+          </button>
+          {showPlanMenu && (
+            <div className="absolute top-full left-0 mt-1 w-40 bg-surface border border-border-light rounded-xl shadow-xl z-50 py-1">
+              {PLAN_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => { setPlanFilter(opt.value); setShowPlanMenu(false); }}
+                  className={`w-full text-left px-3 py-2 text-xs transition-colors ${
+                    planFilter === opt.value
+                      ? "bg-primary/5 text-primary font-semibold"
+                      : "text-text-secondary hover:bg-app-bg"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Sort Dropdown */}
+        <div className="relative" ref={sortRef}>
+          <button
+            onClick={() => { setShowSortMenu((v) => !v); setShowPlanMenu(false); }}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+              sortOption !== "name_asc"
+                ? "border-primary/30 bg-primary/5 text-primary"
+                : "border-border-medium bg-surface-primary text-text-secondary hover:bg-app-bg"
+            }`}
+          >
+            <ArrowUpDown className="h-3.5 w-3.5" />
+            {SORT_OPTIONS.find((o) => o.value === sortOption)?.label}
+            <ChevronDown className="h-3 w-3" />
+          </button>
+          {showSortMenu && (
+            <div className="absolute top-full left-0 mt-1 w-40 bg-surface border border-border-light rounded-xl shadow-xl z-50 py-1">
+              {SORT_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => { setSortOption(opt.value); setShowSortMenu(false); }}
+                  className={`w-full text-left px-3 py-2 text-xs transition-colors ${
+                    sortOption === opt.value
+                      ? "bg-primary/5 text-primary font-semibold"
+                      : "text-text-secondary hover:bg-app-bg"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Reset button */}
+        {(planFilter !== "all" || sortOption !== "name_asc") && (
+          <button
+            onClick={() => { setPlanFilter("all"); setSortOption("name_asc"); }}
+            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium text-text-tertiary hover:text-error hover:bg-error/5 transition-colors"
+          >
+            <X className="h-3 w-3" />
+            Reset
+          </button>
+        )}
+      </div>
 
       {/* Students Table */}
       <Card>

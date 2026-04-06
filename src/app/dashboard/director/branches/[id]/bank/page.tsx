@@ -441,7 +441,7 @@ export default function BranchBankPage() {
       {/* Back */}
       <motion.div variants={itemVariants}>
         <Link
-          href="/dashboard/director/bank"
+          href="/dashboard/director/accounts/collection"
           className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
         >
           <ArrowLeft className="h-3.5 w-3.5" />

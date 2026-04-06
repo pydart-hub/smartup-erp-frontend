@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import {
   ArrowLeft, User, School, Users, Phone, Mail,
   Calendar, Hash, Building2, AlertCircle, Loader2, IndianRupee, FileText,
-  Clock, CreditCard,
+  Clock, CreditCard, MapPin, GraduationCap,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Badge } from "@/components/ui/Badge";
@@ -234,6 +234,12 @@ export default function SalesUserStudentDetailPage() {
           <InfoRow label="Blood Group" value={student.blood_group} />
           <InfoRow label="Email" value={student.student_email_id} icon={<Mail className="h-3.5 w-3.5" />} />
           <InfoRow label="Mobile" value={student.student_mobile_number} icon={<Phone className="h-3.5 w-3.5" />} />
+          {student.custom_place && (
+            <InfoRow label="Place" value={student.custom_place} icon={<MapPin className="h-3.5 w-3.5" />} />
+          )}
+          {student.custom_school_name && (
+            <InfoRow label="School Name" value={student.custom_school_name} icon={<GraduationCap className="h-3.5 w-3.5" />} />
+          )}
           {student.custom_disabilities && (
             <InfoRow label="Disabilities / Special Needs" value={student.custom_disabilities} icon={<AlertCircle className="h-3.5 w-3.5" />} />
           )}

@@ -554,6 +554,8 @@ export interface AdmitStudentForm {
   student_mobile_number?: string;
   custom_aadhaar?: string;         // Aadhaar number (12 digits)
   custom_disabilities?: string;  // Disabilities / Special Needs
+  custom_place?: string;           // Student's place/locality
+  custom_school_name?: string;     // Previous/current school name
   joining_date?: string;
   custom_branch: string;         // Company name
   custom_branch_abbr?: string;   // Company abbreviation for unique email generation
@@ -796,6 +798,8 @@ export async function admitStudent(
     if (form.student_mobile_number) payload.student_mobile_number = form.student_mobile_number;
     if (form.custom_aadhaar) payload.custom_aadhaar = form.custom_aadhaar;
     if (form.custom_disabilities) payload.custom_disabilities = form.custom_disabilities;
+    if (form.custom_place) payload.custom_place = form.custom_place;
+    if (form.custom_school_name) payload.custom_school_name = form.custom_school_name;
     // Sibling custom fields
     if (form.siblingOf) payload.custom_sibling_of = form.siblingOf;
     if (form.siblingGroup) payload.custom_sibling_group = form.siblingGroup;

@@ -121,7 +121,7 @@ export async function getTotalStaffCount(): Promise<number> {
   return getCount("Employee", { status: "Active" });
 }
 
-/** Get student count grouped by plan (Advanced / Intermediate / Basic) from Sales Orders */
+/** Get student count grouped by plan (Advanced / Intermediate / Basic) from Program Enrollment */
 export async function getStudentCountByPlan(): Promise<{
   advanced: number;
   intermediate: number;
@@ -133,7 +133,7 @@ export async function getStudentCountByPlan(): Promise<{
     group_by: "custom_plan",
     limit_page_length: "0",
   });
-  const { data } = await apiClient.get(`/resource/Sales Order?${params}`);
+  const { data } = await apiClient.get(`/resource/Program Enrollment?${params}`);
   const rows = data?.data ?? [];
   const result = { advanced: 0, intermediate: 0, basic: 0 };
   for (const row of rows) {
@@ -157,7 +157,7 @@ export async function getStudentCountByPlanForBranch(branch: string): Promise<{
     group_by: "custom_plan",
     limit_page_length: "0",
   });
-  const { data } = await apiClient.get(`/resource/Sales Order?${params}`);
+  const { data } = await apiClient.get(`/resource/Program Enrollment?${params}`);
   const rows = data?.data ?? [];
   const result = { advanced: 0, intermediate: 0, basic: 0 };
   for (const row of rows) {

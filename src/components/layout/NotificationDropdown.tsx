@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Bell,
@@ -13,6 +13,8 @@ import {
   AlertCircle,
   ArrowRightLeft,
 } from "lucide-react";
+import { DotLottieReact } from "@lottiefiles/dotlottie-react";
+import type { DotLottie } from "@lottiefiles/dotlottie-react";
 import Link from "next/link";
 import { useClassReminders } from "@/lib/hooks/useClassReminders";
 import { useTransferNotifications } from "@/lib/hooks/useTransferNotifications";
@@ -77,14 +79,28 @@ export function NotificationDropdown() {
   const activeReminders = reminders.filter((r) => !r.dismissed);
   const dismissedReminders = reminders.filter((r) => r.dismissed);
 
+  // Lottie instance ref — play on hover
+  const [dotLottie, setDotLottie] = useState<DotLottie | null>(null);
+  const dotLottieRefCallback = useCallback((instance: DotLottie | null) => {
+    setDotLottie(instance);
+  }, []);
+
   return (
     <div className="relative" ref={ref}>
-      {/* Bell button */}
+      {/* Bell button (Lottie) */}
       <button
         onClick={() => setOpen(!open)}
+        onMouseEnter={() => dotLottie?.play()}
+        onMouseLeave={() => dotLottie?.stop()}
         className="w-10 h-10 rounded-[10px] flex items-center justify-center text-text-secondary hover:bg-app-bg transition-colors relative"
       >
-        <Bell className="h-5 w-5" />
+        <DotLottieReact
+          src="https://lottie.host/13b2cdc8-e2eb-4f7f-985a-bdd185922c77/ijcu68KH9p.lottie"
+          autoplay={false}
+          loop={false}
+          dotLottieRefCallback={dotLottieRefCallback}
+          className="w-6 h-6"
+        />
         {totalUnread > 0 && (
           <span className="absolute top-1.5 right-1.5 flex items-center justify-center min-w-[16px] h-4 px-1 bg-error rounded-full text-[10px] font-bold text-white">
             {totalUnread > 9 ? "9+" : totalUnread}

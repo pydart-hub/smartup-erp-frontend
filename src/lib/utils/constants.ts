@@ -95,87 +95,94 @@ export const ROLE_DASHBOARD_MAP: Record<string, string> = {
 export interface NavItem {
   label: string;
   href: string;
-  icon: string; // Lucide icon name
+  icon: string;    // Lucide icon name (inactive state)
+  emoji: string;   // Colored emoji (active state)
   badge?: string;
   children?: NavItem[];
 }
 
 export const BRANCH_MANAGER_NAV: NavItem[] = [
-  { label: "Dashboard", href: "/dashboard/branch-manager", icon: "LayoutDashboard" },
-  { label: "New Admission", href: "/dashboard/branch-manager/new-admission", icon: "UserPlus" },
+  { label: "Dashboard", href: "/dashboard/branch-manager", icon: "LayoutDashboard", emoji: "📊" },
+  { label: "New Admission", href: "/dashboard/branch-manager/new-admission", icon: "UserPlus", emoji: "🎓" },
   {
-    label: "Students", href: "/dashboard/branch-manager/students", icon: "GraduationCap",
+    label: "Students", href: "/dashboard/branch-manager/students", icon: "GraduationCap", emoji: "👨‍🎓",
     children: [
-      { label: "Classes", href: "/dashboard/branch-manager/classes", icon: "School" },
-      { label: "Batches", href: "/dashboard/branch-manager/batches", icon: "Users" },
+      { label: "Classes", href: "/dashboard/branch-manager/classes", icon: "School", emoji: "🏫" },
+      { label: "Batches", href: "/dashboard/branch-manager/batches", icon: "Users", emoji: "👥" },
     ],
   },
-  { label: "Attendance", href: "/dashboard/branch-manager/attendance", icon: "ClipboardCheck",
+  { label: "Attendance", href: "/dashboard/branch-manager/attendance", icon: "ClipboardCheck", emoji: "✅",
     children: [
-      { label: "Students", href: "/dashboard/branch-manager/attendance/students", icon: "GraduationCap" },
-      { label: "Staff", href: "/dashboard/branch-manager/attendance/staff", icon: "Briefcase" },
+      { label: "Students", href: "/dashboard/branch-manager/attendance/students", icon: "GraduationCap", emoji: "👨‍🎓" },
+      { label: "Staff", href: "/dashboard/branch-manager/attendance/staff", icon: "Briefcase", emoji: "💼" },
     ],
   },
-  { label: "Course Schedule", href: "/dashboard/branch-manager/course-schedule", icon: "CalendarDays" },
-  { label: "Teachers", href: "/dashboard/branch-manager/teachers", icon: "UserCheck" },
-  { label: "Fees", href: "/dashboard/branch-manager/fees", icon: "IndianRupee" },
-  { label: "Sales Orders", href: "/dashboard/branch-manager/sales-orders", icon: "ShoppingCart" },
-  { label: "Transfers", href: "/dashboard/branch-manager/transfers", icon: "ArrowRightLeft" },
+  { label: "Course Schedule", href: "/dashboard/branch-manager/course-schedule", icon: "CalendarDays", emoji: "📅" },
+  { label: "Teachers", href: "/dashboard/branch-manager/teachers", icon: "UserCheck", emoji: "👨‍🏫" },
+  { label: "Fees", href: "/dashboard/branch-manager/fees", icon: "IndianRupee", emoji: "💰" },
+  { label: "Sales Orders", href: "/dashboard/branch-manager/sales-orders", icon: "ShoppingCart", emoji: "🛒" },
+  { label: "Complaints", href: "/dashboard/branch-manager/complaints", icon: "MessageSquareWarning", emoji: "⚠️" },
+  { label: "Transfers", href: "/dashboard/branch-manager/transfers", icon: "ArrowRightLeft", emoji: "🔄" },
 ];
 
 export const DIRECTOR_NAV: NavItem[] = [
-  { label: "Dashboard", href: "/dashboard/director", icon: "LayoutDashboard" },
+  { label: "Dashboard", href: "/dashboard/director", icon: "LayoutDashboard", emoji: "📊" },
   {
-    label: "Students", href: "/dashboard/director/students", icon: "GraduationCap",
+    label: "Students", href: "/dashboard/director/students", icon: "GraduationCap", emoji: "👨‍🎓",
     children: [
-      { label: "Batches", href: "/dashboard/director/batches", icon: "Users" },
+      { label: "Batches", href: "/dashboard/director/batches", icon: "Users", emoji: "👥" },
     ],
   },
-  { label: "Teachers", href: "/dashboard/director/teachers", icon: "UserCheck" },
-  { label: "Attendance", href: "/dashboard/director/attendance", icon: "ClipboardCheck",
+  { label: "Teachers", href: "/dashboard/director/teachers", icon: "UserCheck", emoji: "👨‍🏫" },
+  { label: "Attendance", href: "/dashboard/director/attendance", icon: "ClipboardCheck", emoji: "✅",
     children: [
-      { label: "Students", href: "/dashboard/director/attendance/students", icon: "GraduationCap" },
-      { label: "Staff", href: "/dashboard/director/attendance/staff", icon: "Briefcase" },
+      { label: "Students", href: "/dashboard/director/attendance/students", icon: "GraduationCap", emoji: "👨‍🎓" },
+      { label: "Staff", href: "/dashboard/director/attendance/staff", icon: "Briefcase", emoji: "💼" },
     ],
   },
-  { label: "Course Schedule", href: "/dashboard/director/course-schedule", icon: "CalendarDays" },
-  { label: "Fees", href: "/dashboard/director/fees", icon: "IndianRupee" },
-  { label: "Bank", href: "/dashboard/director/bank", icon: "Landmark" },
-  { label: "Leaderboard", href: "/dashboard/director/leaderboard", icon: "Trophy" },
-  { label: "Reports", href: "/dashboard/director/reports", icon: "FileBarChart" },
-  { label: "Complaints", href: "/dashboard/director/complaints", icon: "MessageSquareWarning" },
-  { label: "Transfers", href: "/dashboard/branch-manager/transfers", icon: "ArrowRightLeft" },
+  { label: "Course Schedule", href: "/dashboard/director/course-schedule", icon: "CalendarDays", emoji: "📅" },
+  { label: "Fees", href: "/dashboard/director/fees", icon: "IndianRupee", emoji: "💰" },
+  { label: "Accounts", href: "/dashboard/director/accounts", icon: "Coins", emoji: "🪙",
+    children: [
+      { label: "Collection", href: "/dashboard/director/accounts/collection", icon: "Landmark", emoji: "🏦" },
+      { label: "Expense", href: "/dashboard/director/accounts/expense", icon: "Receipt", emoji: "🧾" },
+    ],
+  },
+  { label: "Leaderboard", href: "/dashboard/director/leaderboard", icon: "Trophy", emoji: "🏆" },
+  { label: "Reports", href: "/dashboard/director/reports", icon: "FileBarChart", emoji: "📈" },
+  { label: "Complaints", href: "/dashboard/director/complaints", icon: "MessageSquareWarning", emoji: "⚠️" },
+  { label: "Transfers", href: "/dashboard/branch-manager/transfers", icon: "ArrowRightLeft", emoji: "🔄" },
 ];
 
 export const INSTRUCTOR_NAV: NavItem[] = [
-  { label: "Dashboard", href: "/dashboard/instructor", icon: "LayoutDashboard" },
-  { label: "My Batches", href: "/dashboard/instructor/batches", icon: "Users" },
-  { label: "Students", href: "/dashboard/instructor/students", icon: "GraduationCap" },
-  { label: "Attendance", href: "/dashboard/instructor/attendance", icon: "ClipboardCheck" },
-  { label: "Course Schedule", href: "/dashboard/instructor/course-schedule", icon: "CalendarDays" },
+  { label: "Dashboard", href: "/dashboard/instructor", icon: "LayoutDashboard", emoji: "📊" },
+  { label: "My Batches", href: "/dashboard/instructor/batches", icon: "Users", emoji: "👥" },
+  { label: "Students", href: "/dashboard/instructor/students", icon: "GraduationCap", emoji: "👨‍🎓" },
+  { label: "Attendance", href: "/dashboard/instructor/attendance", icon: "ClipboardCheck", emoji: "✅" },
+  { label: "Course Schedule", href: "/dashboard/instructor/course-schedule", icon: "CalendarDays", emoji: "📅" },
 ];
 
 export const PARENT_NAV: NavItem[] = [
-  { label: "Dashboard", href: "/dashboard/parent", icon: "LayoutDashboard" },
-  { label: "Children", href: "/dashboard/parent/children", icon: "Users" },
-  { label: "Attendance", href: "/dashboard/parent/attendance", icon: "ClipboardCheck" },
-  { label: "Fees", href: "/dashboard/parent/fees", icon: "IndianRupee" },
-  { label: "Complaints", href: "/dashboard/parent/complaints", icon: "MessageSquareWarning" },
+  { label: "Dashboard", href: "/dashboard/parent", icon: "LayoutDashboard", emoji: "📊" },
+  { label: "Children", href: "/dashboard/parent/children", icon: "Baby", emoji: "👶" },
+  { label: "Attendance", href: "/dashboard/parent/attendance", icon: "ClipboardCheck", emoji: "✅" },
+  { label: "Fees", href: "/dashboard/parent/fees", icon: "IndianRupee", emoji: "💰" },
+  { label: "Complaints", href: "/dashboard/parent/complaints", icon: "MessageSquareWarning", emoji: "⚠️" },
 ];
 
 export const HR_MANAGER_NAV: NavItem[] = [
-  { label: "Dashboard", href: "/dashboard/hr-manager", icon: "LayoutDashboard" },
-  { label: "Employees", href: "/dashboard/hr-manager/employees", icon: "Users" },
-  { label: "Attendance", href: "/dashboard/hr-manager/attendance", icon: "ClipboardCheck" },
-  { label: "Leaves", href: "/dashboard/hr-manager/leaves", icon: "CalendarDays" },
-  { label: "Payroll", href: "/dashboard/hr-manager/payroll", icon: "IndianRupee" },
-  { label: "Expense Claims", href: "/dashboard/hr-manager/expense-claims", icon: "FileText" },
+  { label: "Dashboard", href: "/dashboard/hr-manager", icon: "LayoutDashboard", emoji: "📊" },
+  { label: "Employees", href: "/dashboard/hr-manager/employees", icon: "Users", emoji: "👥" },
+  { label: "Attendance", href: "/dashboard/hr-manager/attendance", icon: "ClipboardCheck", emoji: "✅" },
+  { label: "Leaves", href: "/dashboard/hr-manager/leaves", icon: "TreePalm", emoji: "🌴" },
+  { label: "Payroll", href: "/dashboard/hr-manager/payroll", icon: "IndianRupee", emoji: "💵" },
+  { label: "Expense Claims", href: "/dashboard/hr-manager/expense-claims", icon: "Receipt", emoji: "🧾" },
 ];
 
 export const SALES_USER_NAV: NavItem[] = [
-  { label: "Dashboard", href: "/dashboard/sales-user", icon: "LayoutDashboard" },
-  { label: "New Admission", href: "/dashboard/sales-user/new-admission", icon: "UserPlus" },
-  { label: "Students", href: "/dashboard/sales-user/students", icon: "GraduationCap" },
+  { label: "Dashboard", href: "/dashboard/sales-user", icon: "LayoutDashboard", emoji: "📊" },
+  { label: "New Admission", href: "/dashboard/sales-user/new-admission", icon: "UserPlus", emoji: "🎓" },
+  { label: "Students", href: "/dashboard/sales-user/students", icon: "GraduationCap", emoji: "👨‍🎓" },
 ];
 
 
