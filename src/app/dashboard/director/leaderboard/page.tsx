@@ -49,16 +49,6 @@ const PERF_TYPES: { value: PerfType; label: string; icon: React.ElementType; gra
 
 const pct = (a: number, b: number) => (b > 0 ? Math.round((a / b) * 100) : 0);
 
-/* ── Score calculator ── */
-function computeScore(b: LeaderboardBranch, type: PerfType, maxAdm: number, maxCollected: number): number {
-  if (type === "collection") return b.collectionRate;
-  if (type === "admissions") return maxAdm > 0 ? Math.round((b.newAdmissions / maxAdm) * 100) : 0;
-  if (type === "fees") return maxCollected > 0 ? Math.round((b.totalCollected / maxCollected) * 100) : 0;
-  const admScore = maxAdm > 0 ? (b.newAdmissions / maxAdm) * 100 : 0;
-  const revScore = maxCollected > 0 ? (b.totalCollected / maxCollected) * 100 : 0;
-  return Math.round(b.collectionRate * 0.4 + admScore * 0.3 + revScore * 0.3);
-}
-
 /* ── Animated counter ── */
 function AnimNum({ value, prefix = "", suffix = "" }: { value: number; prefix?: string; suffix?: string }) {
   return (
@@ -70,37 +60,6 @@ function AnimNum({ value, prefix = "", suffix = "" }: { value: number; prefix?: 
     >
       {prefix}{value.toLocaleString("en-IN")}{suffix}
     </motion.span>
-  );
-}
-
-/* ── Circular progress ring ── */
-function ScoreRing({ score, size = 56, stroke = 5, color }: { score: number; size?: number; stroke?: number; color: string }) {
-  const r = (size - stroke) / 2;
-  const circ = 2 * Math.PI * r;
-  const offset = circ - (score / 100) * circ;
-
-  return (
-    <div className="relative" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="currentColor" strokeWidth={stroke} className="text-border-light" />
-        <motion.circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          fill="none"
-          stroke={color}
-          strokeWidth={stroke}
-          strokeLinecap="round"
-          strokeDasharray={circ}
-          initial={{ strokeDashoffset: circ }}
-          animate={{ strokeDashoffset: offset }}
-          transition={{ duration: 1, ease: "easeOut" }}
-        />
-      </svg>
-      <span className="absolute inset-0 flex items-center justify-center text-xs font-black text-text-primary">
-        {score}
-      </span>
-    </div>
   );
 }
 
@@ -138,13 +97,11 @@ const WINNER_STYLES = [
 function WinnerCard({
   branch,
   rank,
-  score,
   perfType,
   delay,
 }: {
-  branch: LeaderboardBranch & { score: number };
+  branch: LeaderboardBranch;
   rank: number;
-  score: number;
   perfType: PerfType;
   delay: number;
 }) {
@@ -152,10 +109,9 @@ function WinnerCard({
   const Icon = s.icon;
 
   const mainValue =
-    perfType === "collection" ? `${branch.collectionRate}%`
-    : perfType === "admissions" ? `${branch.newAdmissions} students`
+    perfType === "admissions" ? `${branch.newAdmissions} students`
     : perfType === "fees" ? formatCurrency(branch.totalCollected)
-    : `${score} pts`;
+    : `${branch.collectionRate}%`;
 
   return (
     <motion.div
@@ -180,7 +136,6 @@ function WinnerCard({
           <Icon className="h-3 w-3" />
           {s.label}
         </div>
-        <ScoreRing score={score} color={s.ring} />
       </div>
 
       {/* Branch name */}
@@ -215,7 +170,6 @@ function WinnerCard({
 
 /* ── Sort header ── */
 type SortKey =
-  | "score"
   | "activeStudents"
   | "newAdmissions"
   | "totalCollected"
@@ -284,7 +238,7 @@ function StatPill({ icon: Icon, label, value, color }: { icon: React.ElementType
 export default function LeaderboardPage() {
   const [period, setPeriod] = useState<Period>("all");
   const [perfType, setPerfType] = useState<PerfType>("overall");
-  const [sortKey, setSortKey] = useState<SortKey>("score");
+  const [sortKey, setSortKey] = useState<SortKey>("collectionRate");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   const handleSort = (key: SortKey) => {
@@ -303,17 +257,14 @@ export default function LeaderboardPage() {
   });
 
   const branches = data?.data ?? [];
-  const maxAdm = useMemo(() => Math.max(...branches.map((b) => b.newAdmissions), 1), [branches]);
-  const maxCollected = useMemo(() => Math.max(...branches.map((b) => b.totalCollected), 1), [branches]);
 
   const ranked = useMemo(() => {
-    const scored = branches.map((b) => ({
-      ...b,
-      score: computeScore(b, perfType, maxAdm, maxCollected),
-    }));
-    scored.sort((a, b) => b.score - a.score);
-    return scored;
-  }, [branches, perfType, maxAdm, maxCollected]);
+    const arr = [...branches];
+    if (perfType === "admissions") arr.sort((a, b) => b.newAdmissions - a.newAdmissions);
+    else if (perfType === "fees") arr.sort((a, b) => b.totalCollected - a.totalCollected);
+    else arr.sort((a, b) => b.collectionRate - a.collectionRate);
+    return arr;
+  }, [branches, perfType]);
 
   // Table-sorted version (sortable by any column)
   const tableSorted = useMemo(() => {
@@ -476,7 +427,6 @@ export default function LeaderboardPage() {
                     key={b.branch}
                     branch={b}
                     rank={i + 1}
-                    score={b.score}
                     perfType={perfType}
                     delay={i * 0.15}
                   />
@@ -499,7 +449,6 @@ export default function LeaderboardPage() {
                     <tr className="border-b border-border-light bg-app-bg/50">
                       <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-text-tertiary text-left w-10">#</th>
                       <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-text-tertiary text-left">Branch</th>
-                      <SortHeader label="Score" sortKey="score" activeSortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="text-right" />
                       <SortHeader label="Students" sortKey="activeStudents" activeSortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="text-right" />
                       <SortHeader label="Admissions" sortKey="newAdmissions" activeSortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="text-right" />
                       <SortHeader label="Collected" sortKey="totalCollected" activeSortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="text-right" />
@@ -545,9 +494,6 @@ export default function LeaderboardPage() {
                               <span className="text-sm font-bold text-text-primary">{b.branchShort}</span>
                             </div>
                           </td>
-                          <td className="px-3 py-3 text-right">
-                            <ScoreRing score={b.score} size={36} stroke={3} color={isTop3 ? "#eab308" : "var(--color-primary)"} />
-                          </td>
                           <td className="px-3 py-3 text-right text-sm font-semibold text-text-primary tabular-nums">{b.activeStudents}</td>
                           <td className="px-3 py-3 text-right text-sm font-semibold text-blue-500 tabular-nums">{b.newAdmissions}</td>
                           <td className="px-3 py-3 text-right text-sm font-semibold text-success tabular-nums">{formatCurrency(b.totalCollected)}</td>
@@ -573,7 +519,6 @@ export default function LeaderboardPage() {
                     <tr className="bg-app-bg/80 border-t-2 border-border-light">
                       <td className="px-3 py-3" />
                       <td className="px-3 py-3 text-xs font-black uppercase text-text-secondary">Totals</td>
-                      <td className="px-3 py-3" />
                       <td className="px-3 py-3 text-right text-sm font-black text-text-primary tabular-nums">{totals.students}</td>
                       <td className="px-3 py-3 text-right text-sm font-black text-blue-500 tabular-nums">{totals.admissions}</td>
                       <td className="px-3 py-3 text-right text-sm font-black text-success tabular-nums">{formatCurrency(totals.collected)}</td>

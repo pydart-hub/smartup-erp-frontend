@@ -13,6 +13,9 @@ const COMPANY_SCOPED_DOCTYPES: Record<string, string> = {
   "Student Attendance": "custom_branch",
   "Course Schedule": "custom_branch",
   Student: "custom_branch",
+  // Syllabus tracking
+  "Syllabus Configuration": "company",
+  "Syllabus Part Completion": "company",
 };
 
 // ── Frappe-native permission model ──
