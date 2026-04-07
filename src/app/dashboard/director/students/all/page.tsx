@@ -23,6 +23,7 @@ import type { Student } from "@/lib/types/student";
 const PAGE_SIZE = 25;
 
 type StatusFilter = "all" | "active" | "inactive" | "discontinued";
+type TypeFilter = "all" | "Fresher" | "Existing" | "Rejoining";
 
 const STATUS_TABS: { value: StatusFilter; label: string }[] = [
   { value: "all", label: "All" },
@@ -42,11 +43,11 @@ function getEnabledParam(f: StatusFilter): 0 | 1 | undefined {
   return undefined;
 }
 
-function getExtraFilters(f: StatusFilter, dateFrom?: string, dateTo?: string): string[][] {
+function getExtraFilters(f: StatusFilter, typeFilter: TypeFilter, dateFrom?: string): string[][] {
   const filters: string[][] = [];
   if (f === "discontinued") filters.push(["custom_discontinuation_date", "is", "set"]);
+  if (typeFilter !== "all") filters.push(["custom_student_type", "=", typeFilter]);
   if (dateFrom) filters.push(["joining_date", ">=", dateFrom]);
-  if (dateTo) filters.push(["joining_date", "<=", dateTo]);
   return filters;
 }
 
@@ -122,8 +123,8 @@ export default function DirectorAllStudentsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [branchFilter, setBranchFilter] = useState<string>("");
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [dateFrom, setDateFrom] = useState<string>("");
-  const [dateTo, setDateTo] = useState<string>("");
   const [page, setPage] = useState(0);
   const [exportOpen, setExportOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -135,7 +136,7 @@ export default function DirectorAllStudentsPage() {
     return () => clearTimeout(t);
   }, [searchInput]);
 
-  useEffect(() => { setPage(0); }, [statusFilter, branchFilter, dateFrom, dateTo]);
+  useEffect(() => { setPage(0); }, [statusFilter, branchFilter, typeFilter, dateFrom]);
 
   // Total count
   const { data: totalCount } = useQuery({
@@ -154,12 +155,12 @@ export default function DirectorAllStudentsPage() {
 
   // Students query
   const { data: studentsRes, isLoading, isError, error } = useQuery({
-    queryKey: ["director-all-students", search, statusFilter, branchFilter, dateFrom, dateTo, page],
+    queryKey: ["director-all-students", search, statusFilter, branchFilter, typeFilter, dateFrom, page],
     queryFn: () =>
       getStudents({
         search: search || undefined,
         enabled: getEnabledParam(statusFilter),
-        extraFilters: getExtraFilters(statusFilter, dateFrom, dateTo),
+        extraFilters: getExtraFilters(statusFilter, typeFilter, dateFrom),
         custom_branch: branchFilter || undefined,
         limit_start: page * PAGE_SIZE,
         limit_page_length: PAGE_SIZE,
@@ -218,7 +219,7 @@ export default function DirectorAllStudentsPage() {
       const res = await getStudents({
         search: search || undefined,
         enabled: getEnabledParam(statusFilter),
-        extraFilters: getExtraFilters(statusFilter, dateFrom, dateTo),
+        extraFilters: getExtraFilters(statusFilter, typeFilter, dateFrom),
         custom_branch: branchFilter || undefined,
         limit_start: offset,
         limit_page_length: batchSize,
@@ -237,7 +238,7 @@ export default function DirectorAllStudentsPage() {
     // Fetch guardian info for all
     const gInfo = ids.length ? await fetchGuardianMap(ids) : {} as Record<string, { parentName: string; parentMobile: string }>;
     return { students: allStudents, enrollments: enrMap, fees, guardianInfo: gInfo };
-  }, [search, statusFilter, branchFilter, dateFrom, dateTo]);
+  }, [search, statusFilter, branchFilter, typeFilter, dateFrom]);
 
   const handleExportExcel = useCallback(async () => {
     setExporting(true);
@@ -440,7 +441,19 @@ export default function DirectorAllStudentsPage() {
                 </option>
               ))}
             </select>
-            {/* Date range filter */}
+            {/* Type filter */}
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value as TypeFilter)}
+              className="h-10 px-3 rounded-[8px] border border-border-input bg-surface text-sm text-text-primary
+                focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            >
+              <option value="all">All Types</option>
+              <option value="Fresher">Fresher</option>
+              <option value="Existing">Existing</option>
+              <option value="Rejoining">Rejoining</option>
+            </select>
+            {/* Date from filter */}
             <div className="flex items-center gap-1.5">
               <Calendar className="h-4 w-4 text-text-tertiary flex-shrink-0" />
               <input
@@ -448,22 +461,13 @@ export default function DirectorAllStudentsPage() {
                 value={dateFrom}
                 onChange={(e) => setDateFrom(e.target.value)}
                 className="h-10 px-2.5 rounded-[8px] border border-border-input bg-surface text-sm text-text-primary
-                  focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary w-[130px]"
-                title="Admitted from"
+                  focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary w-[140px]"
+                title="Joined from"
               />
-              <span className="text-text-tertiary text-xs">to</span>
-              <input
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                className="h-10 px-2.5 rounded-[8px] border border-border-input bg-surface text-sm text-text-primary
-                  focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary w-[130px]"
-                title="Admitted to"
-              />
-              {(dateFrom || dateTo) && (
+              {dateFrom && (
                 <button
-                  onClick={() => { setDateFrom(""); setDateTo(""); }}
-                  className="text-xs text-primary hover:underline ml-1"
+                  onClick={() => setDateFrom("")}
+                  className="text-xs text-primary hover:underline"
                 >
                   Clear
                 </button>
@@ -505,6 +509,7 @@ export default function DirectorAllStudentsPage() {
               <thead>
                 <tr className="border-b border-border-light">
                   <th className="text-left px-5 py-3 font-semibold text-text-secondary">Student</th>
+                  <th className="text-center px-5 py-3 font-semibold text-text-secondary">Type</th>
                   <th className="text-left px-5 py-3 font-semibold text-text-secondary">Class</th>
                   <th className="text-left px-5 py-3 font-semibold text-text-secondary">Batch</th>
                   <th className="text-left px-5 py-3 font-semibold text-text-secondary">Branch</th>
@@ -520,7 +525,7 @@ export default function DirectorAllStudentsPage() {
                 {isLoading
                   ? Array.from({ length: 8 }).map((_, i) => (
                       <tr key={i} className="border-b border-border-light">
-                        {Array.from({ length: 10 }).map((_, j) => (
+                        {Array.from({ length: 11 }).map((_, j) => (
                           <td key={j} className="px-5 py-3">
                             <div className="h-4 w-full bg-border-light rounded animate-pulse" />
                           </td>
@@ -530,7 +535,7 @@ export default function DirectorAllStudentsPage() {
                   : students.length === 0
                   ? (
                       <tr>
-                        <td colSpan={10} className="px-5 py-16 text-center text-text-tertiary text-sm">
+                        <td colSpan={11} className="px-5 py-16 text-center text-text-tertiary text-sm">
                           No students found{search ? ` matching "${search}"` : ""}.
                         </td>
                       </tr>
@@ -574,6 +579,26 @@ export default function DirectorAllStudentsPage() {
                                 <p className="text-xs text-text-tertiary truncate">{student.name}</p>
                               </div>
                             </div>
+                          </td>
+
+                          {/* Student Type */}
+                          <td className="px-5 py-3 text-center">
+                            {student.custom_student_type ? (
+                              <Badge
+                                variant="outline"
+                                className={`text-[10px] px-2 py-0.5 ${
+                                  student.custom_student_type === "Fresher"
+                                    ? "border-green-300 text-green-700"
+                                    : student.custom_student_type === "Existing"
+                                    ? "border-blue-300 text-blue-700"
+                                    : "border-amber-300 text-amber-700"
+                                }`}
+                              >
+                                {student.custom_student_type}
+                              </Badge>
+                            ) : (
+                              <span className="text-text-tertiary text-xs">—</span>
+                            )}
                           </td>
 
                           {/* Class */}

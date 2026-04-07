@@ -34,6 +34,7 @@ import {
   BookOpen,
   Search,
   UserPlus,
+  RotateCcw,
   X,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
@@ -234,6 +235,7 @@ function SubjectAdmitPageContent() {
       gender: "Male",
       academic_year: "2026-2027",
       custom_branch: defaultCompany || "",
+      student_type: "fresher",
       custom_plan: "",
       custom_no_of_instalments: "",
       level: "",
@@ -512,6 +514,7 @@ function SubjectAdmitPageContent() {
         custom_disabilities: data.disabilities || undefined,
         custom_place: data.custom_place || undefined,
         custom_school_name: data.custom_school_name || undefined,
+        custom_student_type: data.student_type === "fresher" ? "Fresher" : data.student_type === "existing" ? "Existing" : "Rejoining",
         custom_branch: data.custom_branch,
         custom_branch_abbr: (branchObj as { abbr?: string })?.abbr,
         custom_srr_id: data.custom_srr_id,
@@ -619,7 +622,7 @@ function SubjectAdmitPageContent() {
       return;
     }
     const fieldsToValidate: Record<number, (keyof SubjectStudentFormValues)[]> = {
-      1: ["full_name", "date_of_birth", "gender"],
+      1: ["student_type", "full_name", "date_of_birth", "gender"],
       2: ["guardian_name", "guardian_mobile", "guardian_relation", "guardian_email", "guardian_password"],
       3: ["custom_branch", "level", "subject", "program", "academic_year", "enrollment_date"],
     };
@@ -851,6 +854,37 @@ function SubjectAdmitPageContent() {
                   <div>
                     <h3 className="text-lg font-semibold text-text-primary">Student Information</h3>
                     <p className="text-sm text-text-secondary mt-0.5">Basic personal details</p>
+                  </div>
+
+                  {/* Student Type */}
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-medium text-text-secondary">Student Type *</label>
+                    <div className="grid grid-cols-3 gap-3">
+                      {([
+                        { value: "fresher", label: "Fresher", icon: UserPlus, desc: "First time joining" },
+                        { value: "existing", label: "Existing", icon: Users, desc: "Currently enrolled" },
+                        { value: "rejoining", label: "Rejoining", icon: RotateCcw, desc: "Returning after a break" },
+                      ] as const).map(({ value, label, icon: Icon, desc }) => {
+                        const selected = watch("student_type") === value;
+                        return (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() => setValue("student_type", value, { shouldValidate: true })}
+                            className={`flex flex-col items-center gap-2 rounded-[12px] border-2 p-3 transition-all ${
+                              selected
+                                ? "border-primary bg-primary/5 text-primary"
+                                : "border-border-input bg-surface text-text-secondary hover:border-primary/40"
+                            }`}
+                          >
+                            <Icon className="h-5 w-5" />
+                            <span className="text-xs font-bold">{label}</span>
+                            <span className="text-[10px] text-center leading-tight opacity-70">{desc}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {errors.student_type && <p className="text-xs text-error">{errors.student_type.message}</p>}
                   </div>
 
                   <div className="grid grid-cols-1 gap-4">

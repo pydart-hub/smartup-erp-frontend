@@ -18,6 +18,7 @@ import {
   Users,
   TrendingUp,
 } from "lucide-react";
+import { ThemeToggle } from "@/components/layout/ThemeToggle";
 
 const DEMO_BM_NAV = [
   { label: "Dashboard",  href: "/demo/branch-manager",            icon: LayoutDashboard },
@@ -125,6 +126,7 @@ export default function DemoBranchManagerLayout({ children }: { children: React.
           </button>
           <div className="flex-1" />
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             <div className="text-right">
               <p className="text-sm font-medium text-text-primary">Priya Menon</p>
               <p className="text-[11px] text-text-tertiary">Branch Manager • Demo</p>

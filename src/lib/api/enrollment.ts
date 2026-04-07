@@ -556,6 +556,7 @@ export interface AdmitStudentForm {
   custom_disabilities?: string;  // Disabilities / Special Needs
   custom_place?: string;           // Student's place/locality
   custom_school_name?: string;     // Previous/current school name
+  custom_student_type?: string;    // "Fresher" | "Existing" | "Rejoining"
   joining_date?: string;
   custom_branch: string;         // Company name
   custom_branch_abbr?: string;   // Company abbreviation for unique email generation
@@ -800,6 +801,7 @@ export async function admitStudent(
     if (form.custom_disabilities) payload.custom_disabilities = form.custom_disabilities;
     if (form.custom_place) payload.custom_place = form.custom_place;
     if (form.custom_school_name) payload.custom_school_name = form.custom_school_name;
+    if (form.custom_student_type) payload.custom_student_type = form.custom_student_type;
     // Sibling custom fields
     if (form.siblingOf) payload.custom_sibling_of = form.siblingOf;
     if (form.siblingGroup) payload.custom_sibling_group = form.siblingGroup;

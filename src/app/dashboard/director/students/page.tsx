@@ -25,6 +25,7 @@ import {
   getDiscontinuedStudentCount,
   getStudentCountByPlan,
   getStudentCountByPlanForBranch,
+  getStudentCountByTypeForBranch,
 } from "@/lib/api/director";
 import { AnimatedNumber } from "@/components/dashboard/AnimatedValue";
 
@@ -58,8 +59,15 @@ function BranchCard({ branch }: { branch: { name: string; abbr: string } }) {
     staleTime: 120_000,
   });
 
+  const { data: typeCounts, isLoading: loadingTypes } = useQuery({
+    queryKey: ["director-branch-type-counts", branch.name],
+    queryFn: () => getStudentCountByTypeForBranch(branch.name),
+    staleTime: 120_000,
+  });
+
   const shortName = branch.name.replace("Smart Up ", "").replace("Smart Up", "HQ");
   const hasPlan = !loadingPlans && planCounts && (planCounts.advanced + planCounts.intermediate + planCounts.basic > 0);
+  const hasType = !loadingTypes && typeCounts && (typeCounts.fresher + typeCounts.existing + typeCounts.rejoining > 0);
 
   return (
     <Link href={`/dashboard/director/branches/${encodeURIComponent(branch.name)}/students`}>
@@ -128,6 +136,28 @@ function BranchCard({ branch }: { branch: { name: string; abbr: string } }) {
                   <div key={i} className="h-[42px] rounded-[6px] bg-border-light/40 animate-pulse" />
                 ))}
               </div>
+            ) : null}
+
+            {/* Student type distribution */}
+            {hasType ? (
+              <div className="mx-4 mb-3 flex items-center gap-2 flex-wrap">
+                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-green-700 bg-green-50 rounded-full px-2 py-0.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                  {typeCounts.fresher} Fresher
+                </span>
+                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-700 bg-blue-50 rounded-full px-2 py-0.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                  {typeCounts.existing} Existing
+                </span>
+                {typeCounts.rejoining > 0 && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-700 bg-amber-50 rounded-full px-2 py-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                    {typeCounts.rejoining} Rejoining
+                  </span>
+                )}
+              </div>
+            ) : loadingTypes ? (
+              <div className="mx-4 mb-3 h-5 w-2/3 rounded-full bg-border-light/40 animate-pulse" />
             ) : null}
           </CardContent>
         </Card>

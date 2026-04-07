@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { ArrowLeft, GraduationCap, Building2, Users, BookOpen, CreditCard, BarChart3, Bell, MessageSquare } from "lucide-react";
+import { ThemeToggle } from "@/components/layout/ThemeToggle";
 
 const DEMO_ROLES = [
   {
@@ -52,7 +53,7 @@ export default function DemoSelectionPage() {
       <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-violet-500/5 rounded-full blur-[120px] pointer-events-none" />
 
       {/* Header */}
-      <div className="relative z-10 px-6 py-6">
+      <div className="relative z-10 px-6 py-6 flex items-center justify-between">
         <button
           onClick={() => router.push("/auth/login")}
           className="inline-flex items-center gap-2 text-white/40 hover:text-white/70 transition-colors text-sm"
@@ -60,6 +61,7 @@ export default function DemoSelectionPage() {
           <ArrowLeft className="w-4 h-4" />
           Back to Login
         </button>
+        <ThemeToggle />
       </div>
 
       {/* Content */}

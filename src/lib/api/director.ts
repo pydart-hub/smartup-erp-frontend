@@ -146,25 +146,63 @@ export async function getStudentCountByPlan(): Promise<{
 }
 
 /** Get student count grouped by plan for a specific branch */
+export async function getStudentCountByTypeForBranch(branch: string): Promise<{
+  fresher: number;
+  existing: number;
+  rejoining: number;
+}> {
+  const result = { fresher: 0, existing: 0, rejoining: 0 };
+  const { data } = await apiClient.get("/resource/Student", {
+    params: {
+      fields: JSON.stringify(["custom_student_type"]),
+      filters: JSON.stringify([["custom_branch", "=", branch], ["enabled", "=", 1]]),
+      limit_page_length: 500,
+    },
+  });
+  for (const row of data?.data ?? []) {
+    const t = (row.custom_student_type || "").toLowerCase();
+    if (t === "fresher") result.fresher++;
+    else if (t === "existing") result.existing++;
+    else if (t === "rejoining") result.rejoining++;
+  }
+  return result;
+}
+
 export async function getStudentCountByPlanForBranch(branch: string): Promise<{
   advanced: number;
   intermediate: number;
   basic: number;
 }> {
-  const params = new URLSearchParams({
-    fields: JSON.stringify(["custom_plan as plan", "count(name) as count"]),
-    filters: JSON.stringify([["docstatus", "=", 1], ["company", "=", branch]]),
-    group_by: "custom_plan",
-    limit_page_length: "0",
-  });
-  const { data } = await apiClient.get(`/resource/Program Enrollment?${params}`);
-  const rows = data?.data ?? [];
   const result = { advanced: 0, intermediate: 0, basic: 0 };
-  for (const row of rows) {
-    const plan = (row.plan || "").toLowerCase();
-    if (plan === "advanced") result.advanced = row.count ?? 0;
-    else if (plan === "intermediate") result.intermediate = row.count ?? 0;
-    else if (plan === "basic") result.basic = row.count ?? 0;
+  // Step 1: get active student IDs for this branch
+  const studentsRes = await apiClient.get("/resource/Student", {
+    params: {
+      fields: JSON.stringify(["name"]),
+      filters: JSON.stringify([["custom_branch", "=", branch], ["enabled", "=", 1]]),
+      limit_page_length: 500,
+    },
+  });
+  const studentIds: string[] = (studentsRes.data?.data ?? []).map((s: { name: string }) => s.name);
+  if (!studentIds.length) return result;
+
+  // Step 2: count their latest submitted program enrollments by custom_plan
+  const enrRes = await apiClient.get("/resource/Program Enrollment", {
+    params: {
+      fields: JSON.stringify(["student", "custom_plan"]),
+      filters: JSON.stringify([["docstatus", "=", 1], ["student", "in", studentIds]]),
+      order_by: "enrollment_date desc",
+      limit_page_length: studentIds.length * 3,
+    },
+  });
+  // Only count the latest enrollment per student
+  const seen = new Set<string>();
+  for (const row of enrRes.data?.data ?? []) {
+    if (seen.has(row.student)) continue;
+    seen.add(row.student);
+    const plan = (row.custom_plan || "").toLowerCase();
+    if (plan === "advanced") result.advanced++;
+    else if (plan === "intermediate") result.intermediate++;
+    else if (plan === "basic") result.basic++;
   }
   return result;
 }

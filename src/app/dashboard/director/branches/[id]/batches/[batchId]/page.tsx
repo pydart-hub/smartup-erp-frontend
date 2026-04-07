@@ -67,6 +67,7 @@ function planBadgeVariant(plan: string | null) {
 type PlanFilter = "All" | "Basic" | "Intermediate" | "Advanced";
 type StatusFilter = "All" | "Active" | "Discontinued";
 type PaymentFilter = "All" | "Fully Paid" | "Partial" | "Unpaid";
+type TypeFilter = "All" | "Fresher" | "Existing" | "Rejoining";
 
 function FilterSelect<T extends string>({
   options,
@@ -125,7 +126,7 @@ export default function BatchDetailPage() {
   const students = batchRes?.students ?? [];
   const activeStudents = students.filter((s) => s.active);
 
-  // Fetch disabilities for all student IDs
+  // Fetch disabilities + student type for all student IDs
   const studentIds = useMemo(() => students.map((s) => s.student), [students]);
   const { data: disabilityMap = {} } = useQuery({
     queryKey: ["student-disabilities", studentIds],
@@ -148,6 +149,27 @@ export default function BatchDetailPage() {
     staleTime: 60_000,
   });
 
+  const { data: studentTypeMap = {} } = useQuery({
+    queryKey: ["student-types", studentIds],
+    queryFn: async () => {
+      if (!studentIds.length) return {};
+      const { data } = await apiClient.get("/resource/Student", {
+        params: {
+          fields: JSON.stringify(["name", "custom_student_type"]),
+          filters: JSON.stringify([["name", "in", studentIds]]),
+          limit_page_length: studentIds.length,
+        },
+      });
+      const map: Record<string, string> = {};
+      for (const s of data.data ?? []) {
+        if (s.custom_student_type) map[s.name] = s.custom_student_type;
+      }
+      return map;
+    },
+    enabled: studentIds.length > 0,
+    staleTime: 60_000,
+  });
+
   // Build a lookup map from fee data
   const feeMap = new Map<string, BatchStudentFeeRow>();
   if (feeData) {
@@ -161,6 +183,7 @@ export default function BatchDetailPage() {
   const [planFilter, setPlanFilter] = useState<PlanFilter>("All");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
   const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>("All");
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("All");
 
   // Filtered students
   const filteredStudents = useMemo(() => {
@@ -192,11 +215,15 @@ export default function BatchDetailPage() {
         if (paymentFilter === "Partial" && (paid === 0 || pending === 0)) return false;
         if (paymentFilter === "Unpaid" && paid > 0) return false;
       }
+      // Student Type
+      if (typeFilter !== "All") {
+        if (studentTypeMap[s.student] !== typeFilter) return false;
+      }
       return true;
     });
-  }, [students, feeMap, search, planFilter, statusFilter, paymentFilter]);
+  }, [students, feeMap, search, planFilter, statusFilter, paymentFilter, typeFilter, studentTypeMap]);
 
-  const isFiltered = search || planFilter !== "All" || statusFilter !== "All" || paymentFilter !== "All";
+  const isFiltered = search || planFilter !== "All" || statusFilter !== "All" || paymentFilter !== "All" || typeFilter !== "All";
 
   // Totals for the summary cards
   const totalFee = feeData?.reduce((sum, r) => sum + r.totalFee, 0) ?? 0;
@@ -205,13 +232,14 @@ export default function BatchDetailPage() {
   const totalDues = feeData?.reduce((sum, r) => sum + r.duesTillToday, 0) ?? 0;
 
   function downloadCSV() {
-    const headers = ["#", "Student ID", "Name", "Plan", "Joining Date", "Payment", "Sibling Discount", "Total Fee", "Paid", "Pending", "Overdue", "Status"];
+    const headers = ["#", "Student ID", "Name", "Type", "Plan", "Joining Date", "Payment", "Sibling Discount", "Total Fee", "Paid", "Pending", "Overdue", "Status"];
     const rows = filteredStudents.map((s, idx) => {
       const fee = feeMap.get(s.student);
       return [
         s.group_roll_number || idx + 1,
         s.student,
         s.student_name || "",
+        studentTypeMap[s.student] || "",
         fee?.plan || "",
         fee?.joiningDate || "",
         fee?.noOfInstalments ? (INSTALMENT_LABELS[fee.noOfInstalments] ?? fee.noOfInstalments) : "",
@@ -407,6 +435,12 @@ export default function BatchDetailPage() {
                 value={paymentFilter}
                 onChange={setPaymentFilter}
               />
+              <FilterSelect
+                label="Type"
+                options={["All", "Fresher", "Existing", "Rejoining"] as TypeFilter[]}
+                value={typeFilter}
+                onChange={setTypeFilter}
+              />
             </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -427,6 +461,9 @@ export default function BatchDetailPage() {
                     </th>
                     <th className="text-left px-4 py-3 font-medium text-text-secondary">
                       Name
+                    </th>
+                    <th className="text-center px-4 py-3 font-medium text-text-secondary">
+                      Type
                     </th>
                     <th className="text-center px-4 py-3 font-medium text-text-secondary">
                       Plan
@@ -477,6 +514,24 @@ export default function BatchDetailPage() {
                           {s.student_name}
                           {disabilityMap[s.student] && (
                             <span className="ml-2 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">{disabilityMap[s.student]}</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {studentTypeMap[s.student] ? (
+                            <Badge
+                              variant="outline"
+                              className={`text-[10px] ${
+                                studentTypeMap[s.student] === "Fresher"
+                                  ? "border-green-300 text-green-700"
+                                  : studentTypeMap[s.student] === "Existing"
+                                  ? "border-blue-300 text-blue-700"
+                                  : "border-amber-300 text-amber-700"
+                              }`}
+                            >
+                              {studentTypeMap[s.student]}
+                            </Badge>
+                          ) : (
+                            <span className="text-text-tertiary text-xs">—</span>
                           )}
                         </td>
                         <td className="px-4 py-3 text-center">

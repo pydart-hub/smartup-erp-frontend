@@ -29,6 +29,7 @@ const PAGE_SIZE = 25;
 
 type StatusFilter = "all" | "active" | "inactive" | "discontinued";
 type PlanFilter = "all" | "Advanced" | "Intermediate" | "Basic";
+type TypeFilter = "all" | "Fresher" | "Existing" | "Rejoining";
 type SortOption = "name_asc" | "name_desc" | "newest" | "oldest";
 
 const STATUS_TABS: { value: StatusFilter; label: string }[] = [
@@ -43,6 +44,13 @@ const PLAN_OPTIONS: { value: PlanFilter; label: string }[] = [
   { value: "Advanced", label: "Advanced" },
   { value: "Intermediate", label: "Intermediate" },
   { value: "Basic", label: "Basic" },
+];
+
+const TYPE_OPTIONS: { value: TypeFilter; label: string }[] = [
+  { value: "all", label: "All Types" },
+  { value: "Fresher", label: "Fresher" },
+  { value: "Existing", label: "Existing" },
+  { value: "Rejoining", label: "Rejoining" },
 ];
 
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
@@ -137,15 +145,19 @@ export default function StudentsPage() {
   const [sortOption, setSortOption] = useState<SortOption>("name_asc");
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showPlanMenu, setShowPlanMenu] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
+  const [showTypeMenu, setShowTypeMenu] = useState(false);
   const [page, setPage] = useState(0);
 
   // Close dropdowns on outside click
   const sortRef = useRef<HTMLDivElement>(null);
   const planRef = useRef<HTMLDivElement>(null);
+  const typeRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (sortRef.current && !sortRef.current.contains(e.target as Node)) setShowSortMenu(false);
       if (planRef.current && !planRef.current.contains(e.target as Node)) setShowPlanMenu(false);
+      if (typeRef.current && !typeRef.current.contains(e.target as Node)) setShowTypeMenu(false);
     }
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
@@ -201,21 +213,24 @@ export default function StudentsPage() {
   }, [searchInput]);
 
   // Reset page when filter changes
-  useEffect(() => { setPage(0); }, [statusFilter, planFilter, sortOption]);
+  useEffect(() => { setPage(0); }, [statusFilter, planFilter, typeFilter, sortOption]);
 
   // ── Query 1: students (filtered by branch) ──────────────────
   const { data: studentsRes, isLoading, isError, error } = useQuery({
-    queryKey: ["students", search, statusFilter, page, defaultCompany, sortOption],
-    queryFn: () =>
-      getStudents({
+    queryKey: ["students", search, statusFilter, typeFilter, page, defaultCompany, sortOption],
+    queryFn: () => {
+      const extraFilters = getExtraFilters(statusFilter);
+      if (typeFilter !== "all") extraFilters.push(["custom_student_type", "=", typeFilter]);
+      return getStudents({
         search: search || undefined,
         enabled: getEnabledParam(statusFilter),
-        extraFilters: getExtraFilters(statusFilter),
+        extraFilters,
         limit_start: page * PAGE_SIZE,
         limit_page_length: PAGE_SIZE,
         order_by: getSortOrderBy(sortOption),
         ...(defaultCompany ? { custom_branch: defaultCompany } : {}),
-      }),
+      });
+    },
     staleTime: 30_000,
   });
 
@@ -297,10 +312,43 @@ export default function StudentsPage() {
 
       {/* Sort & Plan Filter Row — outside Card so dropdowns float above the table */}
       <div className="flex items-center gap-2 flex-wrap -mt-3">
+        {/* Type Filter Dropdown */}
+        <div className="relative" ref={typeRef}>
+          <button
+            onClick={() => { setShowTypeMenu((v) => !v); setShowPlanMenu(false); setShowSortMenu(false); }}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+              typeFilter !== "all"
+                ? "border-primary/30 bg-primary/5 text-primary"
+                : "border-border-medium bg-surface-primary text-text-secondary hover:bg-app-bg"
+            }`}
+          >
+            <Filter className="h-3.5 w-3.5" />
+            {TYPE_OPTIONS.find((o) => o.value === typeFilter)?.label}
+            <ChevronDown className="h-3 w-3" />
+          </button>
+          {showTypeMenu && (
+            <div className="absolute top-full left-0 mt-1 w-40 bg-surface border border-border-light rounded-xl shadow-xl z-50 py-1">
+              {TYPE_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => { setTypeFilter(opt.value); setShowTypeMenu(false); }}
+                  className={`w-full text-left px-3 py-2 text-xs transition-colors ${
+                    typeFilter === opt.value
+                      ? "bg-primary/5 text-primary font-semibold"
+                      : "text-text-secondary hover:bg-app-bg"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Plan Filter Dropdown */}
         <div className="relative" ref={planRef}>
           <button
-            onClick={() => { setShowPlanMenu((v) => !v); setShowSortMenu(false); }}
+            onClick={() => { setShowPlanMenu((v) => !v); setShowSortMenu(false); setShowTypeMenu(false); }}
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
               planFilter !== "all"
                 ? "border-primary/30 bg-primary/5 text-primary"
@@ -333,7 +381,7 @@ export default function StudentsPage() {
         {/* Sort Dropdown */}
         <div className="relative" ref={sortRef}>
           <button
-            onClick={() => { setShowSortMenu((v) => !v); setShowPlanMenu(false); }}
+            onClick={() => { setShowSortMenu((v) => !v); setShowPlanMenu(false); setShowTypeMenu(false); }}
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
               sortOption !== "name_asc"
                 ? "border-primary/30 bg-primary/5 text-primary"
@@ -364,9 +412,9 @@ export default function StudentsPage() {
         </div>
 
         {/* Reset button */}
-        {(planFilter !== "all" || sortOption !== "name_asc") && (
+        {(typeFilter !== "all" || planFilter !== "all" || sortOption !== "name_asc") && (
           <button
-            onClick={() => { setPlanFilter("all"); setSortOption("name_asc"); }}
+            onClick={() => { setTypeFilter("all"); setPlanFilter("all"); setSortOption("name_asc"); }}
             className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium text-text-tertiary hover:text-error hover:bg-error/5 transition-colors"
           >
             <X className="h-3 w-3" />
@@ -396,6 +444,7 @@ export default function StudentsPage() {
                   <th className="text-left px-5 py-3 font-semibold text-text-secondary">Branch</th>
                   <th className="text-left px-5 py-3 font-semibold text-text-secondary">Mobile</th>
                   <th className="text-left px-5 py-3 font-semibold text-text-secondary">Joined</th>
+                  <th className="text-left px-5 py-3 font-semibold text-text-secondary">Type</th>
                   <th className="text-left px-5 py-3 font-semibold text-text-secondary">Status</th>
                   <th className="text-right px-5 py-3 font-semibold text-text-secondary">Actions</th>
                 </tr>
@@ -404,7 +453,7 @@ export default function StudentsPage() {
                 {isLoading
                   ? Array.from({ length: 8 }).map((_, i) => (
                       <tr key={i} className="border-b border-border-light">
-                        {Array.from({ length: 8 }).map((_, j) => (
+                        {Array.from({ length: 9 }).map((_, j) => (
                           <td key={j} className="px-5 py-3">
                             <Skeleton className="h-4 w-full rounded" />
                           </td>
@@ -414,7 +463,7 @@ export default function StudentsPage() {
                   : students.length === 0
                   ? (
                       <tr>
-                        <td colSpan={8} className="px-5 py-16 text-center text-text-tertiary text-sm">
+                        <td colSpan={9} className="px-5 py-16 text-center text-text-tertiary text-sm">
                           No students found{search ? ` matching "${search}"` : ""}.
                         </td>
                       </tr>
@@ -496,6 +545,26 @@ export default function StudentsPage() {
                           {/* Joined date */}
                           <td className="px-5 py-3 text-text-secondary text-xs">
                             {student.joining_date ?? <span className="text-text-tertiary">—</span>}
+                          </td>
+
+                          {/* Student Type */}
+                          <td className="px-5 py-3">
+                            {student.custom_student_type ? (
+                              <Badge
+                                variant="outline"
+                                className={`text-[10px] px-2 py-0.5 ${
+                                  student.custom_student_type === "Fresher"
+                                    ? "border-green-300 text-green-700"
+                                    : student.custom_student_type === "Existing"
+                                    ? "border-blue-300 text-blue-700"
+                                    : "border-amber-300 text-amber-700"
+                                }`}
+                              >
+                                {student.custom_student_type}
+                              </Badge>
+                            ) : (
+                              <span className="text-text-tertiary text-xs">—</span>
+                            )}
                           </td>
 
                           {/* Status: enabled 1 = Active, 0 = Inactive/Discontinued */}

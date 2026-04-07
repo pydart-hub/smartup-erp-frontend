@@ -272,6 +272,9 @@ export default function StudentViewPage() {
           <InfoRow label="Date of Birth" value={student.date_of_birth} icon={<Calendar className="h-3.5 w-3.5" />} />
           <InfoRow label="Gender" value={student.gender} />
           <InfoRow label="Blood Group" value={student.blood_group} />
+          {student.custom_student_type && (
+            <InfoRow label="Student Type" value={student.custom_student_type} />
+          )}
           <InfoRow label="Email" value={student.student_email_id} icon={<Mail className="h-3.5 w-3.5" />} />
           <InfoRow label="Mobile" value={student.student_mobile_number} icon={<Phone className="h-3.5 w-3.5" />} />
           {student.custom_disabilities && (

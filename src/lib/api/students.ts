@@ -11,7 +11,7 @@ const STUDENT_LIST_FIELDS = JSON.stringify([
   "joining_date", "creation", "customer",
   "custom_discontinuation_date", "custom_discontinuation_reason",
   "custom_disabilities",
-  "custom_place", "custom_school_name",
+  "custom_place", "custom_school_name", "custom_student_type",
 ]);
 
 // ── List Students ──

@@ -36,6 +36,9 @@ export interface Student {
   // Guardians child table
   guardians?: StudentGuardianLink[];
 
+  // Student type (custom)
+  custom_student_type?: "Fresher" | "Existing" | "Rejoining";
+
   // Sibling fields (custom)
   custom_sibling_of?: string;          // Link → Student (existing sibling)
   custom_sibling_group?: string;       // Shared family ID e.g. "FAM-CHL-00001"

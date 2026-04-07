@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const subjectStudentSchema = z.object({
   // Step 1 — Student Info
+  student_type: z.enum(["fresher", "existing", "rejoining"], { message: "Student type is required" }),
   full_name: z.string().min(1, "Name is required"),
   date_of_birth: z.string().min(1, "Date of birth is required"),
   gender: z.enum(["Male", "Female", "Other"], { message: "Gender is required" }),
