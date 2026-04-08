@@ -121,6 +121,7 @@ export const BRANCH_MANAGER_NAV: NavItem[] = [
   { label: "Teachers", href: "/dashboard/branch-manager/teachers", icon: "UserCheck", emoji: "👨‍🏫" },
   { label: "Fees", href: "/dashboard/branch-manager/fees", icon: "IndianRupee", emoji: "💰" },
   { label: "Sales Orders", href: "/dashboard/branch-manager/sales-orders", icon: "ShoppingCart", emoji: "🛒" },
+  { label: "Exams", href: "/dashboard/branch-manager/exams", icon: "ClipboardList", emoji: "📝" },
   { label: "Syllabus", href: "/dashboard/branch-manager/syllabus", icon: "BookOpen", emoji: "📖" },
   { label: "Complaints", href: "/dashboard/branch-manager/complaints", icon: "MessageSquareWarning", emoji: "⚠️" },
   { label: "Transfers", href: "/dashboard/branch-manager/transfers", icon: "ArrowRightLeft", emoji: "🔄" },
@@ -149,6 +150,7 @@ export const DIRECTOR_NAV: NavItem[] = [
       { label: "Expense", href: "/dashboard/director/accounts/expense", icon: "Receipt", emoji: "🧾" },
     ],
   },
+  { label: "Exams", href: "/dashboard/director/exams", icon: "ClipboardList", emoji: "📝" },
   { label: "Leaderboard", href: "/dashboard/director/leaderboard", icon: "Trophy", emoji: "🏆" },
   { label: "Reports", href: "/dashboard/director/reports", icon: "FileBarChart", emoji: "📈" },
   { label: "Complaints", href: "/dashboard/director/complaints", icon: "MessageSquareWarning", emoji: "⚠️" },
@@ -160,6 +162,7 @@ export const INSTRUCTOR_NAV: NavItem[] = [
   { label: "My Batches", href: "/dashboard/instructor/batches", icon: "Users", emoji: "👥" },
   { label: "Students", href: "/dashboard/instructor/students", icon: "GraduationCap", emoji: "👨‍🎓" },
   { label: "Attendance", href: "/dashboard/instructor/attendance", icon: "ClipboardCheck", emoji: "✅" },
+  { label: "Exams", href: "/dashboard/instructor/exams", icon: "ClipboardList", emoji: "📝" },
   { label: "Syllabus", href: "/dashboard/instructor/syllabus", icon: "BookOpen", emoji: "📖" },
   { label: "Course Schedule", href: "/dashboard/instructor/course-schedule", icon: "CalendarDays", emoji: "📅" },
 ];

@@ -16,6 +16,9 @@ const COMPANY_SCOPED_DOCTYPES: Record<string, string> = {
   // Syllabus tracking
   "Syllabus Configuration": "company",
   "Syllabus Part Completion": "company",
+  // Assessment / Exams
+  "Assessment Plan": "custom_branch",
+  "Assessment Result": "custom_branch",
 };
 
 // ── Frappe-native permission model ──
@@ -97,7 +100,8 @@ async function proxyRequest(request: NextRequest, method: string) {
         if (companyField) {
           // Parse existing filters and inject company filter if not already present
           const filtersParam = url.searchParams.get("filters");
-          let filters: string[][] = [];
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          let filters: any[][] = [];
           try {
             filters = filtersParam ? JSON.parse(filtersParam) : [];
           } catch {
@@ -109,19 +113,25 @@ async function proxyRequest(request: NextRequest, method: string) {
           );
 
           if (!hasCompanyFilter) {
-            // Add company filter — use the user's default company
-            const company = defaultCompany || allowedCompanies[0];
-            if (company) {
-              filters.push([companyField, "=", company]);
-              url.searchParams.set("filters", JSON.stringify(filters));
+            // Directors / multi-branch users: use "in" so they see all branches
+            // Branch Managers with one branch: use "=" for exact match
+            if (allowedCompanies.length > 1) {
+              filters.push([companyField, "in", allowedCompanies]);
+            } else {
+              const company = defaultCompany || allowedCompanies[0];
+              if (company) {
+                filters.push([companyField, "=", company]);
+              }
             }
+            url.searchParams.set("filters", JSON.stringify(filters));
           } else {
             // Validate that the requested company is in allowed list
             const requestedCompanyFilter = filters.find(
-              (f) => (f[0] === companyField || f[0] === "company") && f[1] === "="
+              (f) => (f[0] === companyField || f[0] === "company") && (f[1] === "=" || f[1] === "in")
             );
             if (
               requestedCompanyFilter &&
+              requestedCompanyFilter[1] === "=" &&
               requestedCompanyFilter[2] &&
               !allowedCompanies.includes(requestedCompanyFilter[2])
             ) {

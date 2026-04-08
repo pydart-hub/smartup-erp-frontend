@@ -9,6 +9,10 @@ import {
   ClipboardCheck,
   ChevronRight,
   Target,
+  CheckCircle2,
+  AlertCircle,
+  Circle,
+  Sparkles,
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -16,11 +20,13 @@ import {
   DEMO_CHILDREN,
   DEMO_ATTENDANCE,
   DEMO_EXAMS,
+  DEMO_SUBJECT_TOPICS,
   getAttendanceStats,
   getExamsForStudent,
   getOverallAvgPercent,
   getSubjectAverages,
   getPerformanceRating,
+  getTopicStatus,
   type DemoExam,
 } from "../demoData";
 
@@ -70,6 +76,7 @@ function ExamTypeBadge({ type }: { type: DemoExam["type"] }) {
 export default function DemoPerformancePage() {
   const [selectedChild, setSelectedChild] = useState(DEMO_CHILDREN[0].id);
   const [expandedExam, setExpandedExam] = useState<string | null>(null);
+  const [expandedSubject, setExpandedSubject] = useState<string | null>(null);
 
   const child = DEMO_CHILDREN.find((c) => c.id === selectedChild)!;
   const exams = getExamsForStudent(selectedChild);
@@ -160,7 +167,7 @@ export default function DemoPerformancePage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
+            <div className="space-y-1">
               {sorted.map((sub) => {
                 const barColor =
                   sub.avgPercent >= 80
@@ -170,12 +177,75 @@ export default function DemoPerformancePage() {
                     : sub.avgPercent >= 40
                     ? "bg-warning"
                     : "bg-error";
+                const isExpanded = expandedSubject === sub.subject;
+                const topics = DEMO_SUBJECT_TOPICS[sub.subject] ?? [];
+                const topicsSorted = [...topics].sort((a, b) => b.pct - a.pct);
+                const bestTopic = topicsSorted[0];
+                const weakTopic = topicsSorted[topicsSorted.length - 1];
+
                 return (
-                  <div key={sub.subject} className="flex items-center gap-4">
-                    <span className="text-sm text-text-primary w-36 sm:w-44 shrink-0 truncate">{sub.subject}</span>
-                    <div className="flex-1">
-                      <ProgressBar value={sub.avgPercent} max={100} color={barColor} />
-                    </div>
+                  <div key={sub.subject} className="rounded-[10px] overflow-hidden">
+                    <button
+                      onClick={() => setExpandedSubject(isExpanded ? null : sub.subject)}
+                      className="w-full flex items-center gap-4 p-2.5 hover:bg-app-bg/60 transition-colors rounded-[10px]"
+                    >
+                      <span className="text-sm text-text-primary w-36 sm:w-44 shrink-0 truncate text-left">{sub.subject}</span>
+                      <div className="flex-1">
+                        <ProgressBar value={sub.avgPercent} max={100} color={barColor} />
+                      </div>
+                      <ChevronRight className={`h-4 w-4 text-text-tertiary transition-transform shrink-0 ${isExpanded ? "rotate-90" : ""}`} />
+                    </button>
+
+                    {isExpanded && topics.length > 0 && (
+                      <div className="ml-4 sm:ml-8 mr-2 mb-3 mt-1 p-3 bg-app-bg rounded-[10px] border border-border-light">
+                        {/* Quick insight */}
+                        <div className="flex flex-wrap gap-3 mb-3 text-xs text-text-tertiary">
+                          {bestTopic && (
+                            <span className="flex items-center gap-1">
+                              <CheckCircle2 className="h-3.5 w-3.5 text-success" />
+                              Strongest: <span className="text-success font-semibold">{bestTopic.topic}</span>
+                              <span className="text-text-tertiary">({bestTopic.pct}%)</span>
+                            </span>
+                          )}
+                          {weakTopic && weakTopic.topic !== bestTopic?.topic && (
+                            <span className="flex items-center gap-1">
+                              <AlertCircle className="h-3.5 w-3.5 text-warning" />
+                              Focus on: <span className="text-warning font-semibold">{weakTopic.topic}</span>
+                              <span className="text-text-tertiary">({weakTopic.pct}%)</span>
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Topic list */}
+                        <div className="space-y-2">
+                          {topicsSorted.map((t) => {
+                            const status = getTopicStatus(t.pct);
+                            const statusIcon = status === "mastered"
+                              ? <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0" />
+                              : status === "good"
+                              ? <Circle className="h-3.5 w-3.5 text-primary shrink-0" />
+                              : <AlertCircle className="h-3.5 w-3.5 text-warning shrink-0" />;
+                            const statusLabel = status === "mastered" ? "Mastered" : status === "good" ? "Good" : "Needs Study";
+                            const tBarColor = status === "mastered" ? "bg-success" : status === "good" ? "bg-primary" : "bg-warning";
+                            return (
+                              <div key={t.topic} className="flex items-center gap-2.5">
+                                {statusIcon}
+                                <span className="text-xs text-text-secondary w-44 sm:w-52 shrink-0 truncate">{t.topic}</span>
+                                <div className="flex-1 h-1.5 bg-border-light rounded-full overflow-hidden">
+                                  <div className={`h-full rounded-full ${tBarColor}`} style={{ width: `${t.pct}%` }} />
+                                </div>
+                                <span className="text-xs font-semibold text-text-primary w-9 text-right">{t.pct}%</span>
+                                <span className={`text-[10px] w-16 text-right shrink-0 font-medium ${
+                                  status === "mastered" ? "text-success" : status === "good" ? "text-primary" : "text-warning"
+                                }`}>
+                                  {statusLabel}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -291,6 +361,170 @@ export default function DemoPerformancePage() {
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* AI Performance Analysis */}
+      <motion.div variants={item}>
+        <Card className="border-primary/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              AI Performance Analysis
+              <span className="text-[10px] font-normal text-text-tertiary bg-primary/10 text-primary px-2 py-0.5 rounded-full ml-1">Beta</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <AIAnalysisNote
+              childName={child.name}
+              examAvg={examAvg}
+              attPct={attStats.pct}
+              bestSubject={bestSubject}
+              weakestSubject={weakestSubject}
+              subjectAvgs={sorted}
+              exams={exams}
+            />
+          </CardContent>
+        </Card>
+      </motion.div>
     </motion.div>
+  );
+}
+
+function AIAnalysisNote({
+  childName,
+  examAvg,
+  attPct,
+  bestSubject,
+  weakestSubject,
+  subjectAvgs,
+  exams,
+}: {
+  childName: string;
+  examAvg: number;
+  attPct: number;
+  bestSubject: { subject: string; avgPercent: number };
+  weakestSubject: { subject: string; avgPercent: number };
+  subjectAvgs: { subject: string; avgPercent: number }[];
+  exams: DemoExam[];
+}) {
+  // Determine trend
+  const lastTwo = exams.slice(-2);
+  const trending = lastTwo.length === 2
+    ? lastTwo[1].percentage > lastTwo[0].percentage
+      ? "improving"
+      : lastTwo[1].percentage < lastTwo[0].percentage
+      ? "declining"
+      : "stable"
+    : "stable";
+
+  // Subjects needing attention (below 75%)
+  const needsWork = subjectAvgs.filter((s) => s.avgPercent < 75);
+  // Strong subjects (above 85%)
+  const strong = subjectAvgs.filter((s) => s.avgPercent >= 85);
+
+  // Topics needing study across all subjects
+  const weakTopics: { subject: string; topic: string; pct: number }[] = [];
+  for (const sub of subjectAvgs) {
+    const topics = DEMO_SUBJECT_TOPICS[sub.subject] ?? [];
+    for (const t of topics) {
+      if (t.pct < 65) weakTopics.push({ subject: sub.subject, topic: t.topic, pct: t.pct });
+    }
+  }
+  weakTopics.sort((a, b) => a.pct - b.pct);
+
+  return (
+    <div className="space-y-4 text-sm text-text-secondary leading-relaxed">
+      {/* Overall summary */}
+      <div className="flex items-start gap-2.5">
+        <div className="w-1 h-full min-h-[20px] rounded-full bg-primary shrink-0 mt-1" />
+        <p>
+          <span className="font-semibold text-text-primary">{childName}</span> has an overall exam average of{" "}
+          <span className="font-bold text-text-primary">{examAvg}%</span> with{" "}
+          <span className="font-bold text-text-primary">{attPct}%</span> attendance.
+          {trending === "improving" && (
+            <span className="text-success font-medium"> Performance is on an upward trend — great progress!</span>
+          )}
+          {trending === "declining" && (
+            <span className="text-warning font-medium"> Recent performance shows a slight dip — needs attention.</span>
+          )}
+          {trending === "stable" && (
+            <span className="text-primary font-medium"> Performance has been consistently stable.</span>
+          )}
+        </p>
+      </div>
+
+      {/* Strengths */}
+      {strong.length > 0 && (
+        <div className="bg-success/5 border border-success/15 rounded-[10px] p-3">
+          <p className="text-xs font-semibold text-success mb-1.5 flex items-center gap-1.5">
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            Strengths
+          </p>
+          <p className="text-xs text-text-secondary">
+            Excelling in{" "}
+            {strong.map((s, i) => (
+              <span key={s.subject}>
+                <span className="font-semibold text-text-primary">{s.subject}</span> ({s.avgPercent}%)
+                {i < strong.length - 1 ? (i === strong.length - 2 ? " and " : ", ") : ""}
+              </span>
+            ))}
+            . Keep encouraging this momentum.
+          </p>
+        </div>
+      )}
+
+      {/* Areas for improvement */}
+      {needsWork.length > 0 && (
+        <div className="bg-warning/5 border border-warning/15 rounded-[10px] p-3">
+          <p className="text-xs font-semibold text-warning mb-1.5 flex items-center gap-1.5">
+            <AlertCircle className="h-3.5 w-3.5" />
+            Needs Attention
+          </p>
+          <p className="text-xs text-text-secondary">
+            {needsWork.map((s, i) => (
+              <span key={s.subject}>
+                <span className="font-semibold text-text-primary">{s.subject}</span> ({s.avgPercent}%)
+                {i < needsWork.length - 1 ? (i === needsWork.length - 2 ? " and " : ", ") : ""}
+              </span>
+            ))}{" "}
+            {needsWork.length === 1 ? "is" : "are"} below 75% — consider extra coaching or revision sessions.
+          </p>
+        </div>
+      )}
+
+      {/* Weak topics */}
+      {weakTopics.length > 0 && (
+        <div className="bg-app-bg border border-border-light rounded-[10px] p-3">
+          <p className="text-xs font-semibold text-text-primary mb-2 flex items-center gap-1.5">
+            <Target className="h-3.5 w-3.5 text-primary" />
+            Topics to Focus On
+          </p>
+          <div className="space-y-1.5">
+            {weakTopics.slice(0, 5).map((t) => (
+              <div key={`${t.subject}-${t.topic}`} className="flex items-center gap-2 text-xs">
+                <span className="text-warning font-bold w-9 text-right shrink-0">{t.pct}%</span>
+                <span className="text-text-tertiary">•</span>
+                <span className="text-text-secondary">
+                  <span className="font-medium text-text-primary">{t.topic}</span>
+                  <span className="text-text-tertiary"> ({t.subject})</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Recommendation */}
+      <div className="flex items-start gap-2.5 pt-1 border-t border-border-light">
+        <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+        <p className="text-xs text-text-tertiary">
+          <span className="font-semibold text-text-secondary">Recommendation:</span>{" "}
+          {weakestSubject.avgPercent < 75
+            ? `Focus on ${weakestSubject.subject} with dedicated practice sessions. Watch missed class recordings and revise weak topics.`
+            : `${childName} is performing well across all subjects. Encourage participation in advanced topics and competitive practice.`
+          }
+          {attPct < 90 && " Improving attendance will also help strengthen overall understanding."}
+        </p>
+      </div>
+    </div>
   );
 }

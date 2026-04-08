@@ -28,12 +28,12 @@ interface TimetableSlot {
 // Each child has a weekly timetable keyed by day-of-week (1=Mon ... 6=Sat)
 const TIMETABLES: Record<string, Record<number, TimetableSlot>> = {
   [DEMO_CHILDREN[0].id]: { // Akhil — 10th Grade
-    1: { subject: "Mathematics",      topic: "Quadratic Equations",             teacher: "Mr. Arjun Nair",    duration: "45 min", youtubeUrl: "https://www.youtube.com/live/XTPZG0OjQsg?si=eFrKndLqLJdZBiRE" },
-    2: { subject: "Science",          topic: "Light — Reflection & Refraction", teacher: "Mrs. Deepa Menon",  duration: "55 min", youtubeUrl: "https://www.youtube.com/live/XTPZG0OjQsg?si=eFrKndLqLJdZBiRE" },
-    3: { subject: "Social Science",   topic: "Nationalism in Europe",           teacher: "Mr. Rajan K",       duration: "50 min", youtubeUrl: "https://www.youtube.com/live/XTPZG0OjQsg?si=eFrKndLqLJdZBiRE" },
-    4: { subject: "English",          topic: "Tenses & Voice",                  teacher: "Ms. Priya Thomas",  duration: "35 min", youtubeUrl: "https://www.youtube.com/live/XTPZG0OjQsg?si=eFrKndLqLJdZBiRE" },
-    5: { subject: "Mathematics",      topic: "Arithmetic Progressions",         teacher: "Mr. Arjun Nair",    duration: "45 min", youtubeUrl: "https://www.youtube.com/live/XTPZG0OjQsg?si=eFrKndLqLJdZBiRE" },
-    6: { subject: "Computer Science", topic: "Python Basics — Functions",       teacher: "Mr. Sujith M",      duration: "60 min", youtubeUrl: "https://www.youtube.com/live/XTPZG0OjQsg?si=eFrKndLqLJdZBiRE" },
+    1: { subject: "Mathematics",      topic: "Quadratic Equations",             teacher: "Mr. Arjun Nair",    duration: "45 min", youtubeUrl: "https://www.youtube.com/live/T8EmJ9Re3pc?si=ZWXBUiBiBZGOIW0b" },
+    2: { subject: "Science",          topic: "Light — Reflection & Refraction", teacher: "Mrs. Deepa Menon",  duration: "55 min", youtubeUrl: "https://www.youtube.com/live/HZa52Tq7CqQ?si=YcF2R0s58W6NSECH" },
+    3: { subject: "Social Science",   topic: "Nationalism in Europe",           teacher: "Mr. Rajan K",       duration: "50 min", youtubeUrl: "https://www.youtube.com/live/T8EmJ9Re3pc?si=ZWXBUiBiBZGOIW0b" },
+    4: { subject: "English",          topic: "Tenses & Voice",                  teacher: "Ms. Priya Thomas",  duration: "35 min", youtubeUrl: "https://www.youtube.com/live/HZa52Tq7CqQ?si=YcF2R0s58W6NSECH" },
+    5: { subject: "Mathematics",      topic: "Arithmetic Progressions",         teacher: "Mr. Arjun Nair",    duration: "45 min", youtubeUrl: "https://www.youtube.com/live/T8EmJ9Re3pc?si=ZWXBUiBiBZGOIW0b" },
+    6: { subject: "Computer Science", topic: "Python Basics — Functions",       teacher: "Mr. Sujith M",      duration: "60 min", youtubeUrl: "https://www.youtube.com/live/HZa52Tq7CqQ?si=YcF2R0s58W6NSECH" },
   },
 };
 

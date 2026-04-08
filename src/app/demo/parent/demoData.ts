@@ -79,6 +79,37 @@ export const DEMO_ATTENDANCE: Record<string, DemoAttendanceRecord[]> = {
   [DEMO_CHILDREN[0].id]: generateAttendance(DEMO_CHILDREN[0].id, 3),
 };
 
+// ── Missed-day class schedule (what was taught on absent/late days) ──
+
+export interface DemoMissedClass {
+  subject: string;
+  topic: string;
+  teacher: string;
+  duration: string;
+  youtubeUrl: string;
+  videoWatched: boolean;
+}
+
+// Keyed by date string → single class that day (one subject per day)
+export const DEMO_DAILY_SCHEDULE: Record<string, DemoMissedClass[]> = {
+  "2026-02-22": [ // Late (Monday)
+    { subject: "Mathematics", topic: "Quadratic Equations — Completing the Square", teacher: "Mr. Arjun Nair", duration: "45 min", youtubeUrl: "https://www.youtube.com/live/T8EmJ9Re3pc?si=ZWXBUiBiBZGOIW0b", videoWatched: true },
+  ],
+  "2026-02-25": [ // Absent (Thursday)
+    { subject: "English", topic: "Writing Skills — Formal Letter", teacher: "Ms. Priya Thomas", duration: "40 min", youtubeUrl: "https://www.youtube.com/live/HZa52Tq7CqQ?si=YcF2R0s58W6NSECH", videoWatched: false },
+  ],
+  "2026-03-17": [ // Late (Wednesday)
+    { subject: "Social Science", topic: "Nationalism in Europe — French Revolution", teacher: "Mr. Rajan K", duration: "50 min", youtubeUrl: "https://www.youtube.com/live/T8EmJ9Re3pc?si=ZWXBUiBiBZGOIW0b", videoWatched: true },
+  ],
+  "2026-03-20": [ // Absent (Saturday)
+    { subject: "Computer Science", topic: "SQL — Joins & Subqueries", teacher: "Mr. Sujith M", duration: "60 min", youtubeUrl: "https://www.youtube.com/live/HZa52Tq7CqQ?si=YcF2R0s58W6NSECH", videoWatched: false },
+  ],
+};
+
+export function getMissedClassesForDate(date: string): DemoMissedClass[] {
+  return DEMO_DAILY_SCHEDULE[date] ?? [];
+}
+
 export interface DemoFeeInstalment {
   id: string;
   label: string;
@@ -264,6 +295,68 @@ export const DEMO_EXAMS: DemoExam[] = [
   ]),
 
 ];
+
+// ── Subject Topic Breakdown ─────────────────────────────────────
+
+export interface DemoTopicResult {
+  topic: string;
+  pct: number; // 0-100 average across exams
+}
+
+export const DEMO_SUBJECT_TOPICS: Record<string, DemoTopicResult[]> = {
+  Mathematics: [
+    { topic: "Real Numbers", pct: 92 },
+    { topic: "Polynomials", pct: 84 },
+    { topic: "Algebra", pct: 88 },
+    { topic: "Trigonometry", pct: 76 },
+    { topic: "Quadratic Equations", pct: 63 },
+    { topic: "Statistics & Probability", pct: 52 },
+  ],
+  Science: [
+    { topic: "Life Processes", pct: 86 },
+    { topic: "Chemical Reactions", pct: 80 },
+    { topic: "Heredity & Evolution", pct: 83 },
+    { topic: "Carbon Compounds", pct: 72 },
+    { topic: "Light — Optics", pct: 67 },
+    { topic: "Electricity", pct: 58 },
+  ],
+  English: [
+    { topic: "Reading Comprehension", pct: 94 },
+    { topic: "Literature — Prose", pct: 91 },
+    { topic: "Grammar", pct: 88 },
+    { topic: "Writing Skills", pct: 85 },
+    { topic: "Literature — Poetry", pct: 79 },
+    { topic: "Vocabulary", pct: 82 },
+  ],
+  Hindi: [
+    { topic: "पत्र लेखन (Letter Writing)", pct: 80 },
+    { topic: "निबंध लेखन (Essay Writing)", pct: 74 },
+    { topic: "पद्य (Poetry)", pct: 71 },
+    { topic: "गद्य (Prose)", pct: 64 },
+    { topic: "व्याकरण (Grammar)", pct: 55 },
+  ],
+  "Social Science": [
+    { topic: "Disaster Management", pct: 90 },
+    { topic: "History — Nationalism", pct: 86 },
+    { topic: "Political Science", pct: 83 },
+    { topic: "Geography — Resources", pct: 78 },
+    { topic: "Economics", pct: 69 },
+  ],
+  "Computer Science": [
+    { topic: "Python Programming", pct: 98 },
+    { topic: "Database Management", pct: 95 },
+    { topic: "HTML & CSS", pct: 96 },
+    { topic: "Networking Basics", pct: 88 },
+    { topic: "Software Engineering", pct: 82 },
+    { topic: "Cybersecurity Basics", pct: 76 },
+  ],
+};
+
+export function getTopicStatus(pct: number): "mastered" | "good" | "needs-study" {
+  if (pct >= 80) return "mastered";
+  if (pct >= 60) return "good";
+  return "needs-study";
+}
 
 // ── Performance helpers ──
 

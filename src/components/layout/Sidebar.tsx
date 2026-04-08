@@ -31,6 +31,7 @@ import {
   TreePalm,
   Landmark,
   BookOpen,
+  ClipboardList,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useUIStore } from "@/lib/stores/uiStore";
@@ -60,6 +61,7 @@ const iconMap: Record<string, React.ElementType> = {
   TreePalm,
   Landmark,
   BookOpen,
+  ClipboardList,
 };
 
 interface SidebarProps {
