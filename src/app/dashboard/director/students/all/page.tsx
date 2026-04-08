@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/Button";
 import { DisabilityBadge } from "@/components/ui/DisabilityBadge";
 import { getStudents } from "@/lib/api/students";
 import { getAllBranches, getActiveStudentCount } from "@/lib/api/director";
+import { getStudentCount } from "@/lib/api/students";
 import apiClient from "@/lib/api/client";
 import type { Student } from "@/lib/types/student";
 
@@ -47,7 +48,7 @@ function getExtraFilters(f: StatusFilter, typeFilter: TypeFilter, dateFrom?: str
   const filters: string[][] = [];
   if (f === "discontinued") filters.push(["custom_discontinuation_date", "is", "set"]);
   if (typeFilter !== "all") filters.push(["custom_student_type", "=", typeFilter]);
-  if (dateFrom) filters.push(["joining_date", ">=", dateFrom]);
+  if (dateFrom) filters.push(["joining_date", "=", dateFrom]);
   return filters;
 }
 
@@ -143,6 +144,22 @@ export default function DirectorAllStudentsPage() {
     queryKey: ["director-total-active-students"],
     queryFn: getActiveStudentCount,
     staleTime: 120_000,
+  });
+
+  // Filtered count (when date or other filters are active)
+  const hasFilters = !!(dateFrom || branchFilter || typeFilter !== "all" || statusFilter !== "all");
+  const { data: filteredCount } = useQuery({
+    queryKey: ["director-filtered-student-count", statusFilter, branchFilter, typeFilter, dateFrom],
+    queryFn: () => {
+      const filters: string[][] = [];
+      const enabled = getEnabledParam(statusFilter);
+      if (enabled !== undefined) filters.push(["enabled", "=", String(enabled)]);
+      if (branchFilter) filters.push(["custom_branch", "=", branchFilter]);
+      filters.push(...getExtraFilters(statusFilter, typeFilter, dateFrom));
+      return getStudentCount(filters.length ? filters : undefined);
+    },
+    enabled: hasFilters,
+    staleTime: 30_000,
   });
 
   // Branches for filter
@@ -368,9 +385,13 @@ export default function DirectorAllStudentsPage() {
         <div>
           <h1 className="text-2xl font-bold text-text-primary">All Students</h1>
           <p className="text-sm text-text-secondary mt-0.5">
-            {totalCount !== undefined
-              ? `${totalCount} active students across all branches`
-              : "Loading..."}
+            {hasFilters
+              ? filteredCount !== undefined
+                ? `${filteredCount} student${filteredCount !== 1 ? "s" : ""} found${dateFrom ? ` admitted on ${new Date(dateFrom + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}` : ""}${branchFilter ? ` in ${branchFilter.replace("Smart Up ", "")}` : ""}`
+                : "Counting…"
+              : totalCount !== undefined
+                ? `${totalCount} active students across all branches`
+                : "Loading..."}
           </p>
         </div>
         {/* Export Dropdown */}
