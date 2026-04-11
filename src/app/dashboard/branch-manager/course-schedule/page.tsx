@@ -20,6 +20,8 @@ import {
   X,
   GraduationCap,
   Layers,
+  FileText,
+  CheckCircle2,
 } from "lucide-react";
 import Link from "next/link";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
@@ -741,7 +743,9 @@ function ScheduleCard({
         <div className="flex items-start justify-between gap-1">
           <div className="flex items-center gap-1.5 min-w-0">
             <BookOpen className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-            <span className="font-semibold text-sm text-text-primary truncate">{s.course}</span>
+            <span className="font-semibold text-sm text-text-primary truncate">
+              {s.custom_topic || s.course}
+            </span>
           </div>
           <button
             onClick={() => onDelete(s.name)}
@@ -750,6 +754,16 @@ function ScheduleCard({
             <Trash2 className="h-3.5 w-3.5" />
           </button>
         </div>
+
+        {s.custom_topic && (
+          <div className="flex items-center gap-1.5 text-xs text-text-secondary">
+            <FileText className="h-3 w-3 text-text-tertiary" />
+            <span className="truncate">{s.course}</span>
+            {s.custom_topic_covered ? (
+              <CheckCircle2 className="h-3 w-3 text-success flex-shrink-0" />
+            ) : null}
+          </div>
+        )}
 
         {s.instructor_name && (
           <div className="flex items-center gap-1.5 text-xs text-text-secondary">

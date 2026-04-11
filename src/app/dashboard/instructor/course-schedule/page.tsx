@@ -14,6 +14,8 @@ import {
   Loader2,
   LayoutList,
   Grid3X3,
+  FileText,
+  CheckCircle2,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Badge } from "@/components/ui/Badge";
@@ -502,10 +504,19 @@ function SessionRow({ schedule: s }: { schedule: CourseSchedule }) {
         <div className="flex items-center gap-1.5">
           <BookOpen className="h-3.5 w-3.5 text-primary shrink-0" />
           <span className="font-semibold text-sm text-text-primary truncate">
-            {s.course}
+            {s.custom_topic || s.course}
           </span>
+          {s.custom_topic && s.custom_topic_covered ? (
+            <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0" />
+          ) : null}
         </div>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-text-secondary">
+          {s.custom_topic && (
+            <span className="flex items-center gap-1">
+              <FileText className="h-3 w-3" />
+              {s.course}
+            </span>
+          )}
           <span className="flex items-center gap-1">
             <Users className="h-3 w-3" />
             {s.student_group}

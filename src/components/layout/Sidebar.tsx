@@ -37,7 +37,6 @@ import { cn } from "@/lib/utils/cn";
 import { useUIStore } from "@/lib/stores/uiStore";
 import { BRANCH_MANAGER_NAV, type NavItem } from "@/lib/utils/constants";
 import { useTransferNotifications } from "@/lib/hooks/useTransferNotifications";
-import { useSyllabusNotifications } from "@/lib/hooks/useSyllabusNotifications";
 
 const iconMap: Record<string, React.ElementType> = {
   LayoutDashboard,
@@ -72,7 +71,6 @@ export function Sidebar({ navItems = BRANCH_MANAGER_NAV }: SidebarProps) {
   const pathname = usePathname();
   const { sidebarOpen, sidebarCollapsed, setSidebarOpen, toggleSidebarCollapsed } = useUIStore();
   const { pendingCount } = useTransferNotifications();
-  const { pendingCount: syllabusPendingCount } = useSyllabusNotifications();
   const [openGroups, setOpenGroups] = React.useState<Record<string, boolean>>({});
 
   // Auto-expand groups whose children match the current path
@@ -99,12 +97,9 @@ export function Sidebar({ navItems = BRANCH_MANAGER_NAV }: SidebarProps) {
         if (item.label === "Transfers" && pendingCount > 0) {
           return { ...item, badge: String(pendingCount) };
         }
-        if (item.label === "Syllabus" && syllabusPendingCount > 0) {
-          return { ...item, badge: String(syllabusPendingCount) };
-        }
         return item;
       }),
-    [navItems, pendingCount, syllabusPendingCount],
+    [navItems, pendingCount],
   );
 
   // Logo link: first nav item's href (works for any role)

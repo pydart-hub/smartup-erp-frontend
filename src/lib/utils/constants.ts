@@ -122,7 +122,7 @@ export const BRANCH_MANAGER_NAV: NavItem[] = [
   { label: "Fees", href: "/dashboard/branch-manager/fees", icon: "IndianRupee", emoji: "💰" },
   { label: "Sales Orders", href: "/dashboard/branch-manager/sales-orders", icon: "ShoppingCart", emoji: "🛒" },
   { label: "Exams", href: "/dashboard/branch-manager/exams", icon: "ClipboardList", emoji: "📝" },
-  { label: "Syllabus", href: "/dashboard/branch-manager/syllabus", icon: "BookOpen", emoji: "📖" },
+  { label: "Topic Coverage", href: "/dashboard/branch-manager/topic-coverage", icon: "BookOpen", emoji: "📖" },
   { label: "Complaints", href: "/dashboard/branch-manager/complaints", icon: "MessageSquareWarning", emoji: "⚠️" },
   { label: "Transfers", href: "/dashboard/branch-manager/transfers", icon: "ArrowRightLeft", emoji: "🔄" },
 ];
@@ -163,7 +163,7 @@ export const INSTRUCTOR_NAV: NavItem[] = [
   { label: "Students", href: "/dashboard/instructor/students", icon: "GraduationCap", emoji: "👨‍🎓" },
   { label: "Attendance", href: "/dashboard/instructor/attendance", icon: "ClipboardCheck", emoji: "✅" },
   { label: "Exams", href: "/dashboard/instructor/exams", icon: "ClipboardList", emoji: "📝" },
-  { label: "Syllabus", href: "/dashboard/instructor/syllabus", icon: "BookOpen", emoji: "📖" },
+  { label: "Topic Coverage", href: "/dashboard/instructor/topic-coverage", icon: "BookOpen", emoji: "📖" },
   { label: "Course Schedule", href: "/dashboard/instructor/course-schedule", icon: "CalendarDays", emoji: "📅" },
 ];
 

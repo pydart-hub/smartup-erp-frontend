@@ -71,4 +71,6 @@ export interface CourseSchedule {
   title?: string;
   color?: string;
   custom_branch?: string;
+  custom_topic?: string;           // link → Topic (optional)
+  custom_topic_covered?: 0 | 1;    // auto-set when attendance marked
 }

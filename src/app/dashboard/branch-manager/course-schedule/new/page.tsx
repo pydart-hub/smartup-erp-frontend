@@ -14,6 +14,8 @@ import {
   Save,
   ArrowLeft,
   RefreshCw,
+  FileText,
+  Lightbulb,
 } from "lucide-react";
 import Link from "next/link";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
@@ -25,6 +27,8 @@ import {
   getProgramCourses,
   getRooms,
   createCourseSchedule,
+  getProgramTopics,
+  getCourseSchedules,
 } from "@/lib/api/courseSchedule";
 import { getInstructorsWithCourses } from "@/lib/api/employees";
 import type { InstructorWithLog } from "@/lib/api/employees";
@@ -77,6 +81,7 @@ export default function NewCourseSchedulePage() {
     course: "",
     instructor: "",
     room: "",
+    custom_topic: "",
     schedule_date: new Date().toISOString().split("T")[0],
     from_time: "09:00",
     to_time: "10:30",
@@ -169,6 +174,38 @@ export default function NewCourseSchedulePage() {
   });
   const rooms = roomRes?.data ?? [];
 
+  // Fetch topics for the selected (program, course) pair
+  const { data: courseTopics, isLoading: topicsLoading } = useQuery({
+    queryKey: ["program-topics", selectedGroupProgram, form.course],
+    queryFn: () => getProgramTopics(selectedGroupProgram, form.course),
+    enabled: !!selectedGroupProgram && !!form.course,
+    staleTime: 10 * 60_000,
+  });
+  const topics = courseTopics ?? [];
+
+  // ── Smart suggested topic ──────────────────────────────────────────────────
+  const { data: existingSchedules } = useQuery({
+    queryKey: ["smart-start-schedules", form.student_group, form.course],
+    queryFn: () => getCourseSchedules({
+      student_group: form.student_group,
+      limit_page_length: 500,
+    }),
+    enabled: !!form.student_group && !!form.course && topics.length > 0,
+    staleTime: 60_000,
+  });
+
+  const suggestedTopic = useMemo(() => {
+    if (!existingSchedules?.data || !form.course || topics.length === 0) return null;
+    const coveredTopics = new Set(
+      existingSchedules.data
+        .filter(s => s.course === form.course && s.custom_topic && s.custom_topic_covered === 1)
+        .map(s => s.custom_topic!)
+    );
+    if (coveredTopics.size === 0) return topics[0] ?? null;
+    const next = topics.find(t => !coveredTopics.has(t.topic));
+    return next ?? null;
+  }, [existingSchedules?.data, form.course, topics]);
+
   // Auto-select Offline room and lock it
   useEffect(() => {
     if (rooms.length > 0 && !form.room) {
@@ -190,6 +227,7 @@ export default function NewCourseSchedulePage() {
         to_time: form.to_time + ":00",
         room: form.room || undefined,
         custom_branch: branch || undefined,
+        custom_topic: form.custom_topic || undefined,
       }),
     onSuccess: () => {
       router.push("/dashboard/branch-manager/course-schedule");
@@ -235,7 +273,7 @@ export default function NewCourseSchedulePage() {
 
   // When student group changes, reset course + instructor (options depend on program)
   const handleGroupChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setForm((prev) => ({ ...prev, student_group: e.target.value, course: "", instructor: "" }));
+    setForm((prev) => ({ ...prev, student_group: e.target.value, course: "", instructor: "", custom_topic: "" }));
     setErrors((prev) => ({ ...prev, student_group: undefined, course: undefined, instructor: undefined }));
     setServerError("");
   };
@@ -277,13 +315,13 @@ export default function NewCourseSchedulePage() {
             (log) => log.program === selectedGroupProgram && log.course === newCourse
           );
           if (!teachesThisCourse) {
-            return { ...prev, course: newCourse, instructor: "" };
+            return { ...prev, course: newCourse, instructor: "", custom_topic: "" };
           }
         }
       }
-      return { ...prev, course: newCourse };
+      return { ...prev, course: newCourse, custom_topic: "" };
     });
-    setErrors((prev) => ({ ...prev, course: undefined, instructor: undefined }));
+    setErrors((prev) => ({ ...prev, course: undefined, instructor: undefined, custom_topic: undefined }));
     setServerError("");
   };
 
@@ -358,6 +396,38 @@ export default function NewCourseSchedulePage() {
                     ))}
                   </select>
                 </Field>
+
+                {/* Topic (optional — from Course.topics child table) */}
+                {form.course && topics.length > 0 && (
+                  <Field label="Topic" icon={FileText}>
+                    <select
+                      value={form.custom_topic}
+                      onChange={set("custom_topic")}
+                      disabled={topicsLoading}
+                      className={selectCls}
+                    >
+                      <option value="">
+                        {topicsLoading ? "Loading topics…" : "No topic (optional)"}
+                      </option>
+                      {topics.map((t) => (
+                        <option key={t.topic} value={t.topic}>{t.topic_name || t.topic}</option>
+                      ))}
+                    </select>
+                    {suggestedTopic && !form.custom_topic && (
+                      <button
+                        type="button"
+                        onClick={() => setForm(f => ({ ...f, custom_topic: suggestedTopic.topic }))}
+                        className="flex items-center gap-1.5 mt-1.5 text-xs text-primary hover:text-primary/80 transition-colors"
+                      >
+                        <Lightbulb className="h-3 w-3" />
+                        <span>
+                          Suggested: <span className="font-medium">{suggestedTopic.topic_name || suggestedTopic.topic}</span>
+                          {" "}(next uncovered)
+                        </span>
+                      </button>
+                    )}
+                  </Field>
+                )}
 
                 {/* Instructor — filtered by selected program + course */}
                 <Field label="Instructor" icon={GraduationCap} required error={errors.instructor}>
@@ -449,6 +519,12 @@ export default function NewCourseSchedulePage() {
                   <div className="rounded-[10px] border-l-4 border-l-primary bg-primary/5 p-3 space-y-1.5">
                     {form.course && (
                       <p className="font-semibold text-sm text-text-primary">{form.course}</p>
+                    )}
+                    {form.custom_topic && (
+                      <p className="text-xs text-text-secondary flex items-center gap-1">
+                        <FileText className="h-3 w-3" />
+                        {form.custom_topic}
+                      </p>
                     )}
                     {form.instructor && (
                       <p className="text-xs text-text-secondary flex items-center gap-1">

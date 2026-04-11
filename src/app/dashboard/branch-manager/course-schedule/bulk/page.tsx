@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -16,6 +16,11 @@ import {
   XCircle,
   Loader2,
   AlertTriangle,
+  FileText,
+  Info,
+  ListOrdered,
+  Hash,
+  Minus,
 } from "lucide-react";
 import Link from "next/link";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
@@ -28,6 +33,8 @@ import {
   getProgramCourses,
   getRooms,
   bulkCreateCourseSchedules,
+  getProgramTopics,
+  getCourseSchedules,
   type BulkScheduleResult,
 } from "@/lib/api/courseSchedule";
 import { getInstructors } from "@/lib/api/employees";
@@ -124,8 +131,14 @@ export default function BulkSchedulePage() {
     room: "",
     from_time: "09:00",
     to_time: "10:30",
+    custom_topic: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // ── Topic mode state ───────────────────────────────────────────────────────
+  type TopicMode = "sequential" | "single" | "none";
+  const [topicMode, setTopicMode] = useState<TopicMode>("sequential");
+  const [topicStartIndex, setTopicStartIndex] = useState(0);
 
   // ── Progress state ─────────────────────────────────────────────────────────
   const [phase, setPhase] = useState<Phase>("form");
@@ -167,11 +180,71 @@ export default function BulkSchedulePage() {
   });
   const rooms = roomRes?.data ?? [];
 
+  // Fetch topics for the selected (program, course) pair
+  const { data: courseTopics, isLoading: topicsLoading } = useQuery({
+    queryKey: ["program-topics", selectedGroupProgram, form.course],
+    queryFn: () => getProgramTopics(selectedGroupProgram, form.course),
+    enabled: !!selectedGroupProgram && !!form.course,
+    staleTime: 10 * 60_000,
+  });
+  const topics = courseTopics ?? [];
+
+  // ── Smart start: find already-covered topics ──────────────────────────────
+  const { data: existingSchedules } = useQuery({
+    queryKey: ["smart-start-schedules", form.student_group, form.course],
+    queryFn: () => getCourseSchedules({
+      student_group: form.student_group,
+      limit_page_length: 500,
+    }),
+    enabled: !!form.student_group && !!form.course && topics.length > 0,
+    staleTime: 60_000,
+  });
+
+  const coveredTopicNames = useMemo(() => {
+    if (!existingSchedules?.data || !form.course) return new Set<string>();
+    return new Set(
+      existingSchedules.data
+        .filter(s => s.course === form.course && s.custom_topic && s.custom_topic_covered === 1)
+        .map(s => s.custom_topic!)
+    );
+  }, [existingSchedules?.data, form.course]);
+
+  const smartStartIndex = useMemo(() => {
+    if (topics.length === 0) return 0;
+    const idx = topics.findIndex(t => !coveredTopicNames.has(t.topic));
+    return idx === -1 ? topics.length : idx;
+  }, [topics, coveredTopicNames]);
+
+  // Auto-set topicStartIndex when smart start changes
+  useEffect(() => {
+    setTopicStartIndex(smartStartIndex);
+  }, [smartStartIndex]);
+
+  // Auto-set topic mode to "sequential" when topics are available, "none" when not
+  useEffect(() => {
+    if (topics.length > 0) setTopicMode("sequential");
+    else setTopicMode("none");
+  }, [topics.length]);
+
   // ── Computed dates ─────────────────────────────────────────────────────────
   const matchingDates = useMemo(
     () => getMatchingDates(fromDate, toDate, selectedDays),
     [fromDate, toDate, selectedDays],
   );
+
+  // ── Compute topic sequence for preview ─────────────────────────────────────
+  const topicSequencePreview = useMemo(() => {
+    if (topicMode !== "sequential" || topics.length === 0) return [];
+    const remaining = topics.slice(topicStartIndex);
+    return matchingDates.map((date, i) => ({
+      date,
+      topic: remaining[i]?.topic_name ?? remaining[i]?.topic,
+      topicId: remaining[i]?.topic,
+      hasTopic: i < remaining.length,
+    }));
+  }, [topicMode, topics, topicStartIndex, matchingDates]);
+
+  const datesWithoutTopics = topicSequencePreview.filter(p => !p.hasTopic).length;
 
   // ── Toggle day ─────────────────────────────────────────────────────────────
   const toggleDay = useCallback((day: number) => {
@@ -192,8 +265,9 @@ export default function BulkSchedulePage() {
   };
 
   const handleGroupChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setForm((prev) => ({ ...prev, student_group: e.target.value, course: "" }));
+    setForm((prev) => ({ ...prev, student_group: e.target.value, course: "", custom_topic: "" }));
     setErrors((prev) => ({ ...prev, student_group: "", course: "" }));
+    setTopicStartIndex(0);
   };
 
   // ── Validate & submit ──────────────────────────────────────────────────────
@@ -221,6 +295,14 @@ export default function BulkSchedulePage() {
     setPhase("running");
     setProgress({ done: 0, total: matchingDates.length });
 
+    // Build topic sequence for sequential mode
+    const seqTopics = topicMode === "sequential"
+      ? matchingDates.map((_, i) => {
+          const remaining = topics.slice(topicStartIndex);
+          return remaining[i]?.topic as string | undefined;
+        })
+      : undefined;
+
     const res = await bulkCreateCourseSchedules(
       {
         student_group: form.student_group,
@@ -231,6 +313,9 @@ export default function BulkSchedulePage() {
         to_time: form.to_time + ":00",
         custom_branch: branch || undefined,
         dates: matchingDates,
+        topicMode: topicMode,
+        custom_topic: topicMode === "single" ? (form.custom_topic || undefined) : undefined,
+        topicSequence: seqTopics,
       },
       (done, total) => setProgress({ done, total }),
     );
@@ -504,7 +589,10 @@ export default function BulkSchedulePage() {
                   <Field label="Course / Subject" icon={BookOpen} required error={errors.course}>
                     <select
                       value={form.course}
-                      onChange={set("course")}
+                      onChange={(e) => {
+                        setForm((prev) => ({ ...prev, course: e.target.value, custom_topic: "" }));
+                        setErrors((prev) => ({ ...prev, course: "" }));
+                      }}
                       disabled={!form.student_group || coursesLoading}
                       className={`${selectCls} ${errors.course ? "border-error" : ""}`}
                     >
@@ -524,6 +612,141 @@ export default function BulkSchedulePage() {
                       ))}
                     </select>
                   </Field>
+
+                  {/* ── Topic Assignment ─────────────────────────────────── */}
+                  {form.course && !topicsLoading && topics.length > 0 && (
+                    <div className="space-y-3 rounded-[10px] border border-border-light bg-surface-secondary/30 p-4">
+                      <h3 className="flex items-center gap-1.5 text-sm font-semibold text-text-primary">
+                        <ListOrdered className="h-3.5 w-3.5 text-primary" />
+                        Topic Assignment
+                      </h3>
+
+                      {/* Radio options */}
+                      <div className="space-y-2">
+                        {([
+                          { value: "sequential" as TopicMode, label: "Auto-assign topics in order", desc: "Each day gets the next topic from the list" },
+                          { value: "single" as TopicMode, label: "Same topic for all days", desc: "Pick one topic for every schedule" },
+                          { value: "none" as TopicMode, label: "No topics", desc: "Create schedules without topic assignment" },
+                        ]).map((opt) => (
+                          <label
+                            key={opt.value}
+                            className={`flex items-start gap-2.5 rounded-[8px] border p-2.5 cursor-pointer transition-all ${
+                              topicMode === opt.value
+                                ? "border-primary bg-primary/5"
+                                : "border-border-light hover:border-primary/40"
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="topicMode"
+                              value={opt.value}
+                              checked={topicMode === opt.value}
+                              onChange={() => setTopicMode(opt.value)}
+                              className="mt-0.5 accent-primary"
+                            />
+                            <div>
+                              <span className="text-sm font-medium text-text-primary">{opt.label}</span>
+                              <p className="text-xs text-text-tertiary">{opt.desc}</p>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+
+                      {/* Sequential mode: smart start + preview */}
+                      {topicMode === "sequential" && (
+                        <div className="space-y-3">
+                          {/* Smart start info */}
+                          {coveredTopicNames.size > 0 && (
+                            <div className="flex items-start gap-2 rounded-[8px] bg-primary/5 border border-primary/20 p-2.5">
+                              <Info className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                              <div className="text-xs text-text-secondary">
+                                <span className="font-medium text-primary">
+                                  {coveredTopicNames.size} topic{coveredTopicNames.size !== 1 ? "s" : ""} already covered.
+                                </span>{" "}
+                                Starting from #{topicStartIndex + 1}.
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Start offset picker */}
+                          <div className="flex items-center gap-2">
+                            <label className="text-xs font-medium text-text-secondary whitespace-nowrap">
+                              Start from topic:
+                            </label>
+                            <select
+                              value={topicStartIndex}
+                              onChange={(e) => setTopicStartIndex(Number(e.target.value))}
+                              className="flex-1 h-8 rounded-[8px] border border-border-input bg-surface px-2 text-xs text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+                            >
+                              {topics.map((t, i) => (
+                                <option key={t.topic} value={i}>
+                                  #{i + 1} — {t.topic_name || t.topic}
+                                  {coveredTopicNames.has(t.topic) ? " ✓" : ""}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Preview table */}
+                          {matchingDates.length > 0 && (
+                            <div className="space-y-2">
+                              <h4 className="text-xs font-semibold text-text-tertiary uppercase tracking-wide">
+                                Preview ({topicSequencePreview.filter(p => p.hasTopic).length} topics for {matchingDates.length} days)
+                              </h4>
+                              <div className="max-h-52 overflow-y-auto rounded-[8px] border border-border-light divide-y divide-border-light">
+                                {topicSequencePreview.map((row, i) => (
+                                  <div
+                                    key={row.date}
+                                    className={`flex items-center gap-2 px-3 py-1.5 text-xs ${
+                                      row.hasTopic ? "bg-surface" : "bg-surface-secondary/50"
+                                    }`}
+                                  >
+                                    <span className="w-5 text-text-tertiary font-mono">
+                                      {i + 1}
+                                    </span>
+                                    <span className="w-24 font-medium text-text-primary">
+                                      {new Date(row.date + "T00:00:00").toLocaleDateString("en-IN", {
+                                        weekday: "short", day: "numeric", month: "short",
+                                      })}
+                                    </span>
+                                    {row.hasTopic ? (
+                                      <span className="flex-1 text-text-secondary truncate">
+                                        {row.topic}
+                                      </span>
+                                    ) : (
+                                      <span className="flex-1 text-text-tertiary italic flex items-center gap-1">
+                                        <Minus className="h-3 w-3" /> no topic
+                                      </span>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                              {datesWithoutTopics > 0 && (
+                                <p className="flex items-center gap-1 text-xs text-warning">
+                                  <AlertTriangle className="h-3 w-3" />
+                                  {datesWithoutTopics} date{datesWithoutTopics !== 1 ? "s" : ""} will have no topic (list exhausted)
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Single mode: topic dropdown */}
+                      {topicMode === "single" && (
+                        <select
+                          value={form.custom_topic}
+                          onChange={set("custom_topic")}
+                          className={selectCls}
+                        >
+                          <option value="">Select a topic…</option>
+                          {topics.map((t) => (
+                            <option key={t.topic} value={t.topic}>{t.topic_name || t.topic}</option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                  )}
 
                   <Field label="Instructor" icon={GraduationCap} required error={errors.instructor}>
                     <select
@@ -633,6 +856,24 @@ export default function BulkSchedulePage() {
                     <div className="rounded-[10px] border-l-4 border-l-primary bg-primary/5 p-3 space-y-1.5">
                       {form.course && (
                         <p className="font-semibold text-sm text-text-primary">{form.course}</p>
+                      )}
+                      {topicMode === "sequential" && topics.length > 0 && (
+                        <p className="text-xs text-text-secondary flex items-center gap-1">
+                          <ListOrdered className="h-3 w-3" />
+                          {topics.length - topicStartIndex} topics in sequence
+                        </p>
+                      )}
+                      {topicMode === "single" && form.custom_topic && (
+                        <p className="text-xs text-text-secondary flex items-center gap-1">
+                          <FileText className="h-3 w-3" />
+                          {form.custom_topic}
+                        </p>
+                      )}
+                      {topicMode === "none" && topics.length > 0 && (
+                        <p className="text-xs text-text-tertiary flex items-center gap-1">
+                          <Minus className="h-3 w-3" />
+                          No topic assignment
+                        </p>
                       )}
                       {form.instructor && (
                         <p className="text-xs text-text-secondary flex items-center gap-1">

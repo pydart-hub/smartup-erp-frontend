@@ -135,15 +135,15 @@ export function applyReferralDiscount(
 // Maps Frappe company names to XLSX branch keys.
 
 const BRANCH_MAP: Record<string, string> = {
-  "Smart Up Chullickal": "Tier 1 (Chullikal, Fortkochi, Eraveli, Palluruthi)",
-  "Smart Up Fortkochi": "Tier 1 (Chullikal, Fortkochi, Eraveli, Palluruthi)",
-  "Smart Up Eraveli": "Tier 1 (Chullikal, Fortkochi, Eraveli, Palluruthi)",
-  "Smart Up Palluruthy": "Tier 1 (Chullikal, Fortkochi, Eraveli, Palluruthi)",
+  "Smart Up Chullickal": "Tier 1",
+  "Smart Up Fortkochi": "Tier 1",
+  "Smart Up Eraveli": "Eraveli",
+  "Smart Up Palluruthy": "Tier 1",
   "Smart Up Thopumpadi": "Thoppumpady",
   "Smart Up Moolamkuzhi": "Moolamkuzhi",
-  "Smart Up Kadavanthara": "Kadavanthra",
+  "Smart Up Kadavanthara": "Kadavanthara",
   "Smart Up Vennala": "Vennala",
-  "Smart Up Edappally": "Edappally",
+  "Smart Up Edappally": "Edapally",
 };
 
 const PROGRAM_MAP: Record<string, string> = {
@@ -178,36 +178,34 @@ export function buildFeeConfigKey(
 // ── Subject-Wise Admission Helpers ──
 
 /** Levels for subject-wise admission */
-export type SubjectLevel = "Plus One" | "Plus Two" | "10 CBSE";
+export type SubjectLevel = "Plus One" | "Plus Two";
 
 /** Subjects available per level */
 export const LEVEL_SUBJECTS: Record<SubjectLevel, string[]> = {
   "Plus One":  ["Physics", "Chemistry", "Maths", "Phy-Chem", "Phy-Maths", "Chem-Maths"],
   "Plus Two":  ["Physics", "Chemistry", "Maths", "Phy-Chem", "Phy-Maths", "Chem-Maths"],
-  "10 CBSE":   ["10 Cbse Maths"],
 };
 
 /** Frappe programs each level maps to (for enrollment & batch lookup) */
 export const LEVEL_PROGRAMS: Record<SubjectLevel, string[]> = {
   "Plus One":  ["11th Science State", "11th Science CBSE"],
   "Plus Two":  ["12th Science State", "12th Science CBSE"],
-  "10 CBSE":   ["10th CBSE"],
 };
 
 /** All Frappe programs that subject-wise students can be enrolled into */
 export const HSS_PROGRAMS = [
   "11th Science State", "11th Science CBSE",
   "12th Science State", "12th Science CBSE",
-  "10th CBSE",
 ];
 
 /** Branches that support subject-wise admission and their available subjects (all levels combined) */
 export const SUBJECT_BY_BRANCH: Record<string, string[]> = {
-  "Kadavanthra":    ["Physics", "Chemistry", "Maths", "Phy-Chem", "Phy-Maths", "Chem-Maths", "10 Cbse Maths"],
-  "Vennala":        ["Physics", "Chemistry", "Maths", "Phy-Chem", "Phy-Maths", "Chem-Maths", "10 Cbse Maths"],
-  "Edappally":      ["Physics", "Chemistry", "Maths", "Phy-Chem", "Phy-Maths", "Chem-Maths", "10 Cbse Maths"],
+  "Kadavanthara":   ["Physics", "Chemistry", "Maths", "Phy-Chem", "Phy-Maths", "Chem-Maths"],
+  "Vennala":        ["Physics", "Chemistry", "Maths", "Phy-Chem", "Phy-Maths", "Chem-Maths"],
+  "Edapally":       ["Physics", "Chemistry", "Maths", "Phy-Chem", "Phy-Maths", "Chem-Maths"],
   "Thoppumpady":    ["Phy-Chem"],
-  "Tier 1 (Chullikal, Fortkochi, Eraveli, Palluruthi)": ["Phy-Chem"],
+  "Tier 1":         ["Phy-Chem"],
+  "Eraveli":        ["Phy-Chem"],
 };
 
 /** Get all subjects at a branch (all levels combined) */

@@ -32,6 +32,8 @@ export interface CourseSchedule {
   custom_branch?: string;
   color?: string;
   class_schedule_color?: string;
+  custom_topic?: string;
+  custom_topic_covered?: 0 | 1;
 }
 
 export interface CourseOption {
@@ -58,6 +60,7 @@ const SCHEDULE_FIELDS = JSON.stringify([
   "instructor", "instructor_name", "schedule_date",
   "from_time", "to_time", "room", "custom_branch",
   "color", "class_schedule_color",
+  "custom_topic", "custom_topic_covered",
 ]);
 
 // ── Server Script for overlap bypass ───────────────────────────────────────────
@@ -84,7 +87,8 @@ doc = frappe.get_doc({
     "from_time": frappe.form_dict.from_time,
     "to_time": frappe.form_dict.to_time,
     "room": frappe.form_dict.room,
-    "custom_branch": frappe.form_dict.custom_branch
+    "custom_branch": frappe.form_dict.custom_branch,
+    "custom_topic": frappe.form_dict.custom_topic
 })
 
 doc.flags.ignore_validate = True
@@ -93,7 +97,7 @@ doc.insert()
 frappe.response["message"] = {"name": doc.name, "doctype": "Course Schedule"}
 `.trim();
 
-const SCRIPT_FINGERPRINT = "frappe.form_dict.student_group";
+const SCRIPT_FINGERPRINT = "frappe.form_dict.custom_topic";
 
 let _scriptVerified = false;
 
@@ -185,6 +189,7 @@ export async function createCourseSchedule(payload: {
   room?: string;
   custom_branch?: string;
   class_schedule_color?: string;
+  custom_topic?: string;
 }): Promise<{ data: CourseSchedule }> {
   const hasScript = await ensureForceCreateScript();
   if (hasScript) {
@@ -212,6 +217,13 @@ export interface BulkSchedulePayload {
   custom_branch?: string;
   class_schedule_color?: string;
   dates: string[];
+
+  /** Topic assignment mode: sequential auto-assigns topics in order, single uses one topic, none skips */
+  topicMode?: "sequential" | "single" | "none";
+  /** Used when topicMode = "single" */
+  custom_topic?: string;
+  /** Used when topicMode = "sequential" — topicSequence[i] is the topic for dates[i] */
+  topicSequence?: (string | undefined)[];
 }
 
 export interface BulkScheduleResult {
@@ -252,12 +264,18 @@ export async function bulkCreateCourseSchedules(
   payload: BulkSchedulePayload,
   onProgress?: (done: number, total: number) => void,
 ): Promise<BulkScheduleResult> {
-  const { dates, ...base } = payload;
+  const { dates, topicMode, topicSequence, custom_topic, ...base } = payload;
   const result: BulkScheduleResult = { total: dates.length, created: 0, failed: [] };
 
   for (let i = 0; i < dates.length; i++) {
+    // Determine topic for this date based on mode
+    let topic: string | undefined;
+    if (topicMode === "single") topic = custom_topic;
+    else if (topicMode === "sequential") topic = topicSequence?.[i];
+    // topicMode === "none" or undefined → no topic
+
     try {
-      await createScheduleForce({ ...base, schedule_date: dates[i] });
+      await createScheduleForce({ ...base, schedule_date: dates[i], custom_topic: topic });
       result.created++;
     } catch (err: unknown) {
       const resp = (err as { response?: { data?: { exception?: string; exc_type?: string } } })
@@ -329,4 +347,86 @@ export async function getProgramCourses(program: string): Promise<ProgramCourse[
     `/resource/Program/${encodeURIComponent(program)}`
   );
   return data.data.courses ?? [];
+}
+
+// ── Topic helpers ──────────────────────────────────────────────────────────────
+
+export interface ProgramTopic {
+  name: string;
+  program: string;
+  course: string;
+  topic: string;
+  topic_name: string;
+  sort_order: number;
+}
+
+/** Get topics for a (program, course) pair via the Program Topic doctype */
+export async function getProgramTopics(program: string, course: string): Promise<ProgramTopic[]> {
+  const query = new URLSearchParams({
+    filters: JSON.stringify([["program", "=", program], ["course", "=", course]]),
+    fields: JSON.stringify(["name", "program", "course", "topic", "topic_name", "sort_order"]),
+    order_by: "sort_order asc",
+    limit_page_length: "0",
+  });
+  const { data } = await apiClient.get(`/resource/Program%20Topic?${query}`);
+  return data.data ?? [];
+}
+
+/** Mark a course schedule's topic as covered */
+export async function markTopicCovered(scheduleName: string): Promise<void> {
+  await apiClient.put(
+    `/resource/Course Schedule/${encodeURIComponent(scheduleName)}`,
+    { custom_topic_covered: 1 },
+  );
+}
+
+// ── Topic management ────────────────────────────────────────────────────────
+
+export interface TopicRecord {
+  name: string;
+  topic_name: string;
+}
+
+/** List all Topic records */
+export async function getAllTopics(): Promise<FrappeListResponse<TopicRecord>> {
+  const query = new URLSearchParams({
+    fields: JSON.stringify(["name", "topic_name"]),
+    limit_page_length: "0",
+    order_by: "topic_name asc",
+  });
+  const { data } = await apiClient.get(`/resource/Topic?${query}`);
+  return data;
+}
+
+/** Create a new Topic record */
+export async function createTopic(topicName: string): Promise<{ data: TopicRecord }> {
+  const { data } = await apiClient.post("/resource/Topic", { topic_name: topicName });
+  return data;
+}
+
+/** Add a Program Topic record linking (program, course) → topic */
+export async function addProgramTopic(
+  program: string,
+  course: string,
+  topicName: string,
+  sortOrder: number,
+): Promise<ProgramTopic> {
+  const { data } = await apiClient.post("/resource/Program%20Topic", {
+    program,
+    course,
+    topic: topicName,
+    sort_order: sortOrder,
+  });
+  return data.data;
+}
+
+/** Remove a Program Topic link AND delete the Topic master record */
+export async function removeProgramTopic(name: string, topicName: string): Promise<void> {
+  await apiClient.delete(`/resource/Program%20Topic/${encodeURIComponent(name)}`);
+  // Also delete the Topic master record (ignore errors if used elsewhere)
+  try {
+    await apiClient.delete(`/resource/Topic/${encodeURIComponent(topicName)}`);
+  } catch {
+    // Topic may be linked to other programs — safe to ignore
+  }
 }
