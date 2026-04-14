@@ -34,6 +34,8 @@ export interface CourseSchedule {
   class_schedule_color?: string;
   custom_topic?: string;
   custom_topic_covered?: 0 | 1;
+  custom_event_type?: string;
+  custom_event_title?: string;
 }
 
 export interface CourseOption {
@@ -61,6 +63,7 @@ const SCHEDULE_FIELDS = JSON.stringify([
   "from_time", "to_time", "room", "custom_branch",
   "color", "class_schedule_color",
   "custom_topic", "custom_topic_covered",
+  "custom_event_type", "custom_event_title",
 ]);
 
 // ── Server Script for overlap bypass ───────────────────────────────────────────
@@ -88,18 +91,26 @@ doc = frappe.get_doc({
     "to_time": frappe.form_dict.to_time,
     "room": frappe.form_dict.room,
     "custom_branch": frappe.form_dict.custom_branch,
-    "custom_topic": frappe.form_dict.custom_topic
+    "custom_topic": frappe.form_dict.custom_topic,
+    "custom_event_type": frappe.form_dict.custom_event_type,
+    "custom_event_title": frappe.form_dict.custom_event_title
 })
 
 doc.flags.ignore_validate = True
+doc.flags.ignore_mandatory = True
 doc.insert()
 
 frappe.response["message"] = {"name": doc.name, "doctype": "Course Schedule"}
 `.trim();
 
-const SCRIPT_FINGERPRINT = "frappe.form_dict.custom_topic";
+const SCRIPT_FINGERPRINT = "frappe.form_dict.custom_event_type";
 
 let _scriptVerified = false;
+
+/** Reset script verification flag — call after updating the script body */
+export function resetScriptCache(): void {
+  _scriptVerified = false;
+}
 
 async function ensureForceCreateScript(): Promise<boolean> {
   if (_scriptVerified) return true;
@@ -180,9 +191,9 @@ export async function getCourseSchedule(name: string): Promise<{ data: CourseSch
 
 /** Create a new course schedule (bypasses overlap validation via Server Script) */
 export async function createCourseSchedule(payload: {
-  course: string;
-  student_group: string;
-  instructor: string;
+  course?: string;
+  student_group?: string;
+  instructor?: string;
   schedule_date: string;
   from_time: string;
   to_time: string;
@@ -190,6 +201,8 @@ export async function createCourseSchedule(payload: {
   custom_branch?: string;
   class_schedule_color?: string;
   custom_topic?: string;
+  custom_event_type?: string;
+  custom_event_title?: string;
 }): Promise<{ data: CourseSchedule }> {
   const hasScript = await ensureForceCreateScript();
   if (hasScript) {
@@ -203,6 +216,30 @@ export async function createCourseSchedule(payload: {
 /** Delete a course schedule */
 export async function deleteCourseSchedule(name: string): Promise<void> {
   await apiClient.delete(`/resource/Course Schedule/${encodeURIComponent(name)}`);
+}
+
+/** Update an existing course schedule */
+export async function updateCourseSchedule(
+  name: string,
+  payload: Partial<{
+    course: string;
+    student_group: string;
+    instructor: string;
+    schedule_date: string;
+    from_time: string;
+    to_time: string;
+    room: string;
+    custom_branch: string;
+    custom_topic: string;
+    custom_event_type: string;
+    custom_event_title: string;
+  }>,
+): Promise<{ data: CourseSchedule }> {
+  const { data } = await apiClient.put(
+    `/resource/Course Schedule/${encodeURIComponent(name)}`,
+    payload,
+  );
+  return data;
 }
 
 // ── Bulk creation ──────────────────────────────────────────────────────────────
@@ -358,14 +395,27 @@ export interface ProgramTopic {
   topic: string;
   topic_name: string;
   sort_order: number;
+  custom_video_url?: string;
 }
 
 /** Get topics for a (program, course) pair via the Program Topic doctype */
 export async function getProgramTopics(program: string, course: string): Promise<ProgramTopic[]> {
   const query = new URLSearchParams({
     filters: JSON.stringify([["program", "=", program], ["course", "=", course]]),
-    fields: JSON.stringify(["name", "program", "course", "topic", "topic_name", "sort_order"]),
+    fields: JSON.stringify(["name", "program", "course", "topic", "topic_name", "sort_order", "custom_video_url"]),
     order_by: "sort_order asc",
+    limit_page_length: "0",
+  });
+  const { data } = await apiClient.get(`/resource/Program%20Topic?${query}`);
+  return data.data ?? [];
+}
+
+/** Get ALL topics for a program (all courses), useful for counting */
+export async function getAllProgramTopics(program: string): Promise<ProgramTopic[]> {
+  const query = new URLSearchParams({
+    filters: JSON.stringify([["program", "=", program]]),
+    fields: JSON.stringify(["name", "program", "course", "topic", "topic_name", "sort_order", "custom_video_url"]),
+    order_by: "course asc, sort_order asc",
     limit_page_length: "0",
   });
   const { data } = await apiClient.get(`/resource/Program%20Topic?${query}`);
@@ -429,4 +479,12 @@ export async function removeProgramTopic(name: string, topicName: string): Promi
   } catch {
     // Topic may be linked to other programs — safe to ignore
   }
+}
+
+/** Update the video class link on a Program Topic record */
+export async function updateProgramTopicVideo(name: string, videoUrl: string): Promise<void> {
+  await apiClient.put(
+    `/resource/Program%20Topic/${encodeURIComponent(name)}`,
+    { custom_video_url: videoUrl },
+  );
 }

@@ -49,6 +49,44 @@ const PERF_TYPES: { value: PerfType; label: string; icon: React.ElementType; gra
 
 const pct = (a: number, b: number) => (b > 0 ? Math.round((a / b) * 100) : 0);
 
+/* ── Score breakdown bar ── */
+const SCORE_COMPONENTS = [
+  { key: "scoreAdmissions"    as const, label: "Admissions",  weight: 40, color: "bg-blue-500"    },
+  { key: "scoreCollectedAmt"  as const, label: "Collection ₹", weight: 35, color: "bg-emerald-500" },
+  { key: "scoreCollectionRate"as const, label: "Coll. Rate",  weight: 25, color: "bg-violet-500"  },
+];
+
+function ScoreBreakdown({ branch, compact = false }: { branch: LeaderboardBranch; compact?: boolean }) {
+  return (
+    <div className={`space-y-${compact ? "1" : "2"} w-full`}>
+      {SCORE_COMPONENTS.map((c) => {
+        const raw   = branch[c.key];           // 0-100 component score
+        const contrib = Math.round(raw * c.weight / 100); // points contributed
+        return (
+          <div key={c.key}>
+            <div className="flex items-center justify-between mb-0.5">
+              <span className={`${compact ? "text-[9px]" : "text-[10px]"} text-text-tertiary font-medium`}>
+                {c.label} <span className="opacity-50">×{c.weight}%</span>
+              </span>
+              <span className={`${compact ? "text-[9px]" : "text-[10px]"} font-bold text-text-secondary tabular-nums`}>
+                {contrib}<span className="opacity-50 font-normal">/{c.weight}</span>
+              </span>
+            </div>
+            <div className={`h-${compact ? "1" : "1.5"} rounded-full bg-border-light overflow-hidden`}>
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${raw}%` }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+                className={`h-full rounded-full ${c.color}`}
+              />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 /* ── Animated counter ── */
 function AnimNum({ value, prefix = "", suffix = "" }: { value: number; prefix?: string; suffix?: string }) {
   return (
@@ -111,7 +149,8 @@ function WinnerCard({
   const mainValue =
     perfType === "admissions" ? `${branch.newAdmissions} students`
     : perfType === "fees" ? formatCurrency(branch.totalCollected)
-    : `${branch.collectionRate}%`;
+    : perfType === "collection" ? `${branch.collectionRate}%`
+    : `${branch.overallScore} pts`; // overall composite score
 
   return (
     <motion.div
@@ -159,17 +198,33 @@ function WinnerCard({
           <p className="text-[10px] text-text-tertiary">Collected</p>
           <p className="text-sm font-bold text-success">{formatCurrency(branch.totalCollected)}</p>
         </div>
-        <div className="bg-surface/80 rounded-lg p-2 text-center">
-          <p className="text-[10px] text-text-tertiary">Rate</p>
-          <p className="text-sm font-bold text-primary">{branch.collectionRate}%</p>
-        </div>
+        {perfType === "overall" ? (
+          <div className="bg-surface/80 rounded-lg p-2 text-center">
+            <p className="text-[10px] text-text-tertiary">Score</p>
+            <p className="text-sm font-bold text-violet-500">{branch.overallScore}</p>
+          </div>
+        ) : (
+          <div className="bg-surface/80 rounded-lg p-2 text-center">
+            <p className="text-[10px] text-text-tertiary">Rate</p>
+            <p className="text-sm font-bold text-primary">{branch.collectionRate}%</p>
+          </div>
+        )}
       </div>
+
+      {/* Score breakdown — only in Overall mode */}
+      {perfType === "overall" && (
+        <div className="mt-3 pt-3 border-t border-border-light/40">
+          <p className="text-[9px] font-bold uppercase tracking-wider text-text-tertiary mb-2">Score Breakdown</p>
+          <ScoreBreakdown branch={branch} />
+        </div>
+      )}
     </motion.div>
   );
 }
 
 /* ── Sort header ── */
 type SortKey =
+  | "overallScore"
   | "activeStudents"
   | "newAdmissions"
   | "totalCollected"
@@ -238,7 +293,7 @@ function StatPill({ icon: Icon, label, value, color }: { icon: React.ElementType
 export default function LeaderboardPage() {
   const [period, setPeriod] = useState<Period>("all");
   const [perfType, setPerfType] = useState<PerfType>("overall");
-  const [sortKey, setSortKey] = useState<SortKey>("collectionRate");
+  const [sortKey, setSortKey] = useState<SortKey>("overallScore");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   const handleSort = (key: SortKey) => {
@@ -257,12 +312,14 @@ export default function LeaderboardPage() {
   });
 
   const branches = data?.data ?? [];
+  const admissionTarget = data?.admissionTarget ?? 400;
 
   const ranked = useMemo(() => {
     const arr = [...branches];
     if (perfType === "admissions") arr.sort((a, b) => b.newAdmissions - a.newAdmissions);
     else if (perfType === "fees") arr.sort((a, b) => b.totalCollected - a.totalCollected);
-    else arr.sort((a, b) => b.collectionRate - a.collectionRate);
+    else if (perfType === "collection") arr.sort((a, b) => b.collectionRate - a.collectionRate);
+    else arr.sort((a, b) => b.overallScore - a.overallScore); // "overall"
     return arr;
   }, [branches, perfType]);
 
@@ -406,10 +463,33 @@ export default function LeaderboardPage() {
             {/* ── Summary Stats ── */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
               <StatPill icon={Users} label="Total Students" value={totals.students.toLocaleString("en-IN")} color="bg-primary" />
-              <StatPill icon={UserPlus} label={period === "all" ? "Total Enrolled" : "New Admissions"} value={totals.admissions.toLocaleString("en-IN")} color="bg-blue-500" />
+              <StatPill icon={UserPlus} label={period === "all" ? "Total Enrolled" : "New Admissions"} value={`${totals.admissions} / ${admissionTarget * branches.length}`} color="bg-blue-500" />
               <StatPill icon={IndianRupee} label="Collected" value={formatCurrency(totals.collected)} color="bg-emerald-500" />
               <StatPill icon={AlertTriangle} label="Pending" value={formatCurrency(totals.pending)} color="bg-red-500" />
               <StatPill icon={Target} label="Collection Rate" value={`${pct(totals.collected, totals.collected + totals.pending)}%`} color={`bg-gradient-to-r ${activePerf.gradient}`} />
+            </div>
+            {/* ── Admission target progress bar ── */}
+            <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 px-4 py-3">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Target className="h-3.5 w-3.5 text-blue-500" />
+                  <span className="text-xs font-bold text-text-primary">Admission Target Progress</span>
+                  <span className="text-[10px] text-text-tertiary bg-app-bg border border-border-light px-2 py-0.5 rounded-full">
+                    {admissionTarget} per branch
+                  </span>
+                </div>
+                <span className="text-xs font-black text-blue-500">
+                  {totals.admissions}/{admissionTarget * branches.length} ({Math.min(100, Math.round(totals.admissions / (admissionTarget * branches.length) * 100))}%)
+                </span>
+              </div>
+              <div className="h-2.5 rounded-full bg-blue-500/10 overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.min(100, (totals.admissions / (admissionTarget * branches.length)) * 100)}%` }}
+                  transition={{ duration: 1, ease: "easeOut" }}
+                  className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500"
+                />
+              </div>
             </div>
 
             {/* ── Podium / Top 3 ── */}
@@ -444,11 +524,12 @@ export default function LeaderboardPage() {
                 </span>
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[900px]">
+                <table className="w-full min-w-[1050px]">
                   <thead>
                     <tr className="border-b border-border-light bg-app-bg/50">
                       <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-text-tertiary text-left w-10">#</th>
                       <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-text-tertiary text-left">Branch</th>
+                      <SortHeader label="Score" sortKey="overallScore" activeSortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="text-right" />
                       <SortHeader label="Students" sortKey="activeStudents" activeSortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="text-right" />
                       <SortHeader label="Admissions" sortKey="newAdmissions" activeSortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="text-right" />
                       <SortHeader label="Collected" sortKey="totalCollected" activeSortKey={sortKey} sortDir={sortDir} onSort={handleSort} className="text-right" />
@@ -494,6 +575,35 @@ export default function LeaderboardPage() {
                               <span className="text-sm font-bold text-text-primary">{b.branchShort}</span>
                             </div>
                           </td>
+                          <td className="px-3 py-3">
+                            <div className="flex flex-col items-end gap-1.5 min-w-[90px]">
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-black ${
+                                b.overallScore >= 75 ? "bg-violet-500/10 text-violet-600"
+                                : b.overallScore >= 50 ? "bg-blue-500/10 text-blue-600"
+                                : "bg-surface text-text-tertiary"
+                              }`}>
+                                {b.overallScore} pts
+                              </span>
+                              {/* Compact stacked bars */}
+                              <div className="w-full space-y-0.5">
+                                {SCORE_COMPONENTS.map((c) => (
+                                  <div key={c.key} className="flex items-center gap-1">
+                                    <div className="flex-1 h-1 rounded-full bg-border-light overflow-hidden">
+                                      <motion.div
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${b[c.key]}%` }}
+                                        transition={{ duration: 0.8, ease: "easeOut" }}
+                                        className={`h-full rounded-full ${c.color}`}
+                                      />
+                                    </div>
+                                    <span className="text-[8px] text-text-tertiary tabular-nums w-5 text-right">
+                                      {Math.round(b[c.key] * c.weight / 100)}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </td>
                           <td className="px-3 py-3 text-right text-sm font-semibold text-text-primary tabular-nums">{b.activeStudents}</td>
                           <td className="px-3 py-3 text-right text-sm font-semibold text-blue-500 tabular-nums">{b.newAdmissions}</td>
                           <td className="px-3 py-3 text-right text-sm font-semibold text-success tabular-nums">{formatCurrency(b.totalCollected)}</td>
@@ -519,6 +629,7 @@ export default function LeaderboardPage() {
                     <tr className="bg-app-bg/80 border-t-2 border-border-light">
                       <td className="px-3 py-3" />
                       <td className="px-3 py-3 text-xs font-black uppercase text-text-secondary">Totals</td>
+                      <td className="px-3 py-3" />
                       <td className="px-3 py-3 text-right text-sm font-black text-text-primary tabular-nums">{totals.students}</td>
                       <td className="px-3 py-3 text-right text-sm font-black text-blue-500 tabular-nums">{totals.admissions}</td>
                       <td className="px-3 py-3 text-right text-sm font-black text-success tabular-nums">{formatCurrency(totals.collected)}</td>

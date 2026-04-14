@@ -84,10 +84,21 @@ async function proxyRequest(request: NextRequest, method: string) {
     // BM+Instructors still need company scoping (they are Branch Managers).
     // Only pure instructors with their own token skip this — Frappe handles
     // their scoping natively via User Permissions.
+    //
+    // Effective company list: prefer allowedCompanies from User Permissions,
+    // fall back to defaultCompany for Branch Managers who may not have
+    // exhaustive User Permissions configured in Frappe.
+    const effectiveCompanies =
+      allowedCompanies.length > 0
+        ? allowedCompanies
+        : defaultCompany && isBranchManager
+          ? [defaultCompany]
+          : [];
+
     const needsCompanyScoping =
       method === "GET" &&
       !isAdmin &&
-      allowedCompanies.length > 0 &&
+      effectiveCompanies.length > 0 &&
       !(isPureInstructor && hasUserToken);
 
     if (needsCompanyScoping) {
@@ -115,10 +126,10 @@ async function proxyRequest(request: NextRequest, method: string) {
           if (!hasCompanyFilter) {
             // Directors / multi-branch users: use "in" so they see all branches
             // Branch Managers with one branch: use "=" for exact match
-            if (allowedCompanies.length > 1) {
-              filters.push([companyField, "in", allowedCompanies]);
+            if (effectiveCompanies.length > 1) {
+              filters.push([companyField, "in", effectiveCompanies]);
             } else {
-              const company = defaultCompany || allowedCompanies[0];
+              const company = defaultCompany || effectiveCompanies[0];
               if (company) {
                 filters.push([companyField, "=", company]);
               }
@@ -133,10 +144,10 @@ async function proxyRequest(request: NextRequest, method: string) {
               requestedCompanyFilter &&
               requestedCompanyFilter[1] === "=" &&
               requestedCompanyFilter[2] &&
-              !allowedCompanies.includes(requestedCompanyFilter[2])
+              !effectiveCompanies.includes(requestedCompanyFilter[2])
             ) {
               return NextResponse.json(
-                { error: `Access denied. You can only access data for: ${allowedCompanies.join(", ")}` },
+                { error: `Access denied. You can only access data for: ${effectiveCompanies.join(", ")}` },
                 { status: 403 }
               );
             }
@@ -172,13 +183,17 @@ async function proxyRequest(request: NextRequest, method: string) {
     };
 
     // ── Auth header ──
-    // Use the user's own api_key:api_secret so Frappe enforces User Permissions.
-    // Only fall back to the server admin token for non-instructor users whose
-    // key generation may have failed (rare edge case).
-    if (hasUserToken) {
+    // - Instructors with their own token: use personal token so Frappe enforces
+    //   User Permissions natively (batch/student-group scoping).
+    // - Branch Managers: use admin token. BM role in Frappe may not have full
+    //   doctype read permissions. Security is enforced at the proxy layer above
+    //   via company-filter injection (effectiveCompanies).
+    // - Everyone else (admins, etc.): use personal token if available, else admin.
+    const useAdminToken = isBranchManager && !isAdmin;
+    if (!useAdminToken && hasUserToken) {
       headers["Authorization"] = `token ${sessionData.api_key}:${sessionData.api_secret}`;
     } else {
-      // Non-instructor fallback (branch managers, admins, etc.)
+      // Admin token fallback
       const adminKey = process.env.FRAPPE_API_KEY;
       const adminSecret = process.env.FRAPPE_API_SECRET;
       if (adminKey && adminSecret) {

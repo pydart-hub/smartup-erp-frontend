@@ -234,13 +234,38 @@ export async function GET(request: NextRequest) {
         batchCount,
         staffCount,
         totalRevenue,
+        overallScore: 0,        // computed below
+        scoreAdmissions: 0,     // component scores (0-100 each)
+        scoreCollectedAmt: 0,
+        scoreCollectionRate: 0,
       };
     });
 
-    // Sort by collection rate descending (default)
-    result.sort((a, b) => b.collectionRate - a.collectionRate);
+    // ── Composite "Overall" score ──
+    // Weights: Admissions 40% + Collection Amount 35% + Collection Rate 25%
+    // Admission target is 400 per branch (absolute target).
+    // Collection amount is normalised against the best branch so size differences don't distort.
+    const admissionTarget = 400; // per-branch annual target
+    const maxCollected  = Math.max(...result.map((r) => r.totalCollected), 1);
 
-    return NextResponse.json({ data: result, period });
+    result.forEach((r) => {
+      const admissionScore        = Math.min(100, (r.newAdmissions / admissionTarget) * 100);
+      const collectionAmountScore = (r.totalCollected / maxCollected) * 100;
+      const collectionRateScore   = r.collectionRate; // already 0-100
+      r.scoreAdmissions     = Math.round(admissionScore);
+      r.scoreCollectedAmt   = Math.round(collectionAmountScore);
+      r.scoreCollectionRate = Math.round(collectionRateScore);
+      r.overallScore = Math.round(
+        admissionScore        * 0.40 +
+        collectionAmountScore * 0.35 +
+        collectionRateScore   * 0.25,
+      );
+    });
+
+    // Sort by overallScore descending (default view)
+    result.sort((a, b) => b.overallScore - a.overallScore);
+
+    return NextResponse.json({ data: result, period, admissionTarget });
   } catch (err) {
     console.error("[leaderboard]", err);
     return NextResponse.json(

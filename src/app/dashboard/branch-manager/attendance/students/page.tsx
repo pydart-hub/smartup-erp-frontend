@@ -661,11 +661,16 @@ export default function AttendancePage() {
                                 </p>
 
                                 <h3 className="font-semibold text-text-primary truncate mt-0.5">
-                                  {schedule.custom_topic || schedule.course}
+                                  {schedule.custom_topic || schedule.course || schedule.custom_event_title || schedule.custom_event_type}
                                 </h3>
                                 {schedule.custom_topic && (
                                   <p className="text-xs text-text-secondary truncate">
                                     {schedule.course}
+                                  </p>
+                                )}
+                                {!schedule.custom_topic && !schedule.course && schedule.custom_event_type && (
+                                  <p className="text-xs text-purple-600 truncate">
+                                    {schedule.custom_event_type}
                                   </p>
                                 )}
 

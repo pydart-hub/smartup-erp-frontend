@@ -4,23 +4,15 @@ import React, { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import {
-  Loader2,
-  Calendar,
-  Clock,
-  Hash,
-  BookOpen,
-  Users,
-  FileText,
-} from "lucide-react";
+import { Loader2, Calendar, Clock, Hash, BookOpen, Users, FileText, AlertTriangle } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/hooks/useAuth";
-import { createExam, getAssessmentGroups } from "@/lib/api/assessment";
+import { createExam, getAssessmentGroups, getExamsForBatchDate } from "@/lib/api/assessment";
 import { getStudentGroups } from "@/lib/api/enrollment";
-import { getProgramCourses } from "@/lib/api/courseSchedule";
+import { getProgramCourses, getCourseSchedules } from "@/lib/api/courseSchedule";
 import type { AssessmentGroup } from "@/lib/types/assessment";
 
 const container = {
@@ -44,6 +36,7 @@ export default function CreateExamPage() {
   const [fromTime, setFromTime] = useState("09:00");
   const [toTime, setToTime] = useState("12:00");
   const [maxScore, setMaxScore] = useState("100");
+  const [topic, setTopic] = useState("");
 
   // Fetch student groups for this branch
   const { data: studentGroups = [], isLoading: sgLoading } = useQuery({
@@ -81,6 +74,25 @@ export default function CreateExamPage() {
 
 
 
+  // Fetch existing classes for this batch + date (to show occupied time slots)
+  const { data: daySchedules = [] } = useQuery({
+    queryKey: ["batch-day-schedules", studentGroup, scheduleDate],
+    queryFn: async () => {
+      const res = await getCourseSchedules({ student_group: studentGroup, date: scheduleDate });
+      return res.data ?? [];
+    },
+    enabled: !!studentGroup && !!scheduleDate,
+    staleTime: 30_000,
+  });
+
+  // Fetch existing exams for this batch + date
+  const { data: dayExams = [] } = useQuery({
+    queryKey: ["batch-day-exams", studentGroup, scheduleDate],
+    queryFn: () => getExamsForBatchDate(studentGroup, scheduleDate),
+    enabled: !!studentGroup && !!scheduleDate,
+    staleTime: 30_000,
+  });
+
   // Create exam mutation
   const createMutation = useMutation({
     mutationFn: createExam,
@@ -109,6 +121,7 @@ export default function CreateExamPage() {
       from_time: fromTime,
       to_time: toTime,
       maximum_assessment_score: Number(maxScore),
+      custom_topic: topic || undefined,
     });
   }
 
@@ -184,7 +197,7 @@ export default function CreateExamPage() {
                 ) : (
                   <select
                     value={course}
-                    onChange={(e) => setCourse(e.target.value)}
+                    onChange={(e) => { setCourse(e.target.value); setTopic(""); }}
                     required
                     className="h-10 rounded-[10px] border border-border-input bg-surface px-3 text-sm"
                   >
@@ -197,6 +210,23 @@ export default function CreateExamPage() {
                   </select>
                 )}
               </div>
+
+              {/* Topic */}
+              {course && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium text-text-primary flex items-center gap-1.5">
+                    <BookOpen className="h-4 w-4 text-text-tertiary" />
+                    Topic <span className="text-text-tertiary text-xs">(optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={topic}
+                    onChange={(e) => setTopic(e.target.value)}
+                    placeholder="e.g. Quadratic Equations"
+                    className="h-10 rounded-[10px] border border-border-input bg-surface px-3 text-sm"
+                  />
+                </div>
+              )}
 
               {/* Exam Type */}
               <div className="flex flex-col gap-1.5">
@@ -261,6 +291,29 @@ export default function CreateExamPage() {
                   />
                 </div>
               </div>
+
+              {/* Occupied time slots warning */}
+              {(daySchedules.length > 0 || dayExams.length > 0) && (
+                <div className="flex items-start gap-2 rounded-[10px] bg-warning-light border border-warning/20 px-3 py-2.5">
+                  <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-medium text-text-primary">Occupied time slots on this date:</p>
+                    <div className="mt-1 space-y-0.5">
+                      {daySchedules.map((s) => (
+                        <p key={s.name} className="text-xs text-text-secondary">
+                          <span className="text-text-tertiary">[Class]</span> {s.course} — {s.from_time?.slice(0, 5)} to {s.to_time?.slice(0, 5)}
+                        </p>
+                      ))}
+                      {dayExams.map((e) => (
+                        <p key={e.name} className="text-xs text-text-secondary">
+                          <span className="text-primary">[Exam]</span> {e.assessment_name} — {e.from_time?.slice(0, 5)} to {e.to_time?.slice(0, 5)}
+                        </p>
+                      ))}
+                    </div>
+                    <p className="text-xs text-warning mt-1">Pick a time that doesn&apos;t overlap with these.</p>
+                  </div>
+                </div>
+              )}
 
               {/* Max Score */}
               <div className="flex flex-col gap-1.5 max-w-xs">

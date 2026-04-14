@@ -315,6 +315,12 @@ export default function NewStudentPage() {
   // ── Submit ────────────────────────────────────────────────────
   async function onSubmit(data: StudentFormValues) {
     try {
+      // Non-demo: plan and instalments required
+      if (data.student_type !== "demo") {
+        if (!data.custom_plan) { toast.error("Please select a fee plan"); return; }
+        if (!data.custom_no_of_instalments) { toast.error("Please select an instalment option"); return; }
+      }
+
       // student_batch_name now stores the Student Group name directly
       const selectedGroupName = data.student_batch_name || undefined;
       const matchedGroup = selectedGroupName
@@ -780,6 +786,8 @@ export default function NewStudentPage() {
                         <option value="">Select branch</option>
                         {(allowedCompanies.length > 0
                           ? branches.filter((b) => allowedCompanies.includes(b.name))
+                          : defaultCompany
+                          ? branches.filter((b) => b.name === defaultCompany)
                           : branches
                         ).map((b) => (
                           <option key={b.name} value={b.name}>{b.name}</option>

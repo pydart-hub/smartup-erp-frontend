@@ -118,6 +118,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Create new result
+        const criteriaName = plan.assessment_criteria?.[0]?.assessment_criteria || "Theory";
         const resultData = {
           assessment_plan,
           student: mark.student,
@@ -133,7 +134,7 @@ export async function POST(request: NextRequest) {
           grade,
           details: [
             {
-              assessment_criteria: "Theory",
+              assessment_criteria: criteriaName,
               maximum_score: maxScore,
               score: mark.score,
               grade,

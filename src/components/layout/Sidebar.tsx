@@ -32,6 +32,7 @@ import {
   Landmark,
   BookOpen,
   ClipboardList,
+  Video,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useUIStore } from "@/lib/stores/uiStore";
@@ -61,6 +62,7 @@ const iconMap: Record<string, React.ElementType> = {
   Landmark,
   BookOpen,
   ClipboardList,
+  Video,
 };
 
 interface SidebarProps {

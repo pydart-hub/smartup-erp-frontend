@@ -14,6 +14,9 @@ import {
   ChevronRight,
   Trash2,
   GraduationCap,
+  Video,
+  Check,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
@@ -25,9 +28,11 @@ import { toast } from "sonner";
 import {
   getProgramCourses,
   getProgramTopics,
+  getAllProgramTopics,
   createTopic,
   addProgramTopic,
   removeProgramTopic,
+  updateProgramTopicVideo,
   type ProgramTopic,
   type ProgramCourse,
 } from "@/lib/api/courseSchedule";
@@ -160,6 +165,34 @@ function ProgramRow({
     enabled: isExpanded,
   });
 
+  // Fetch ALL topics for this program in one call (for counts)
+  const { data: allTopics = [] } = useQuery({
+    queryKey: ["all-program-topics", programName],
+    queryFn: () => getAllProgramTopics(programName),
+    staleTime: 2 * 60_000,
+    enabled: isExpanded,
+  });
+
+  // Build count maps
+  const topicCountByCourse = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const t of allTopics) {
+      map.set(t.course, (map.get(t.course) ?? 0) + 1);
+    }
+    return map;
+  }, [allTopics]);
+
+  const videoCountByCourse = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const t of allTopics) {
+      if (t.custom_video_url) map.set(t.course, (map.get(t.course) ?? 0) + 1);
+    }
+    return map;
+  }, [allTopics]);
+
+  const totalTopics = allTopics.length;
+  const totalVideos = allTopics.filter((t) => !!t.custom_video_url).length;
+
   return (
     <Card className="overflow-hidden">
       <button
@@ -172,9 +205,21 @@ function ProgramRow({
         </div>
         <div className="flex items-center gap-2">
           {isExpanded && !isLoading && (
-            <Badge variant="outline" className="text-[10px]">
-              {courses.length} subject{courses.length !== 1 ? "s" : ""}
-            </Badge>
+            <>
+              <Badge variant="outline" className="text-[10px]">
+                {courses.length} subject{courses.length !== 1 ? "s" : ""}
+              </Badge>
+              {totalTopics > 0 && (
+                <Badge variant="info" className="text-[10px]">
+                  {totalTopics} topic{totalTopics !== 1 ? "s" : ""}
+                </Badge>
+              )}
+              {totalVideos > 0 && (
+                <Badge variant="success" className="text-[10px]">
+                  {totalVideos} video{totalVideos !== 1 ? "s" : ""}
+                </Badge>
+              )}
+            </>
           )}
           {isExpanded ? (
             <ChevronDown className="h-4 w-4 text-text-tertiary" />
@@ -208,6 +253,8 @@ function ProgramRow({
                     isExpanded={expandedCourse === c.course}
                     onToggle={() => onToggleCourse(c.course)}
                     queryClient={queryClient}
+                    topicCount={topicCountByCourse.get(c.course) ?? 0}
+                    videoCount={videoCountByCourse.get(c.course) ?? 0}
                   />
                 ))
               )}
@@ -228,6 +275,8 @@ function CourseTopicRow({
   isExpanded,
   onToggle,
   queryClient,
+  topicCount,
+  videoCount,
 }: {
   courseName: string;
   courseDisplayName: string;
@@ -235,11 +284,12 @@ function CourseTopicRow({
   isExpanded: boolean;
   onToggle: () => void;
   queryClient: ReturnType<typeof useQueryClient>;
+  topicCount: number;
+  videoCount: number;
 }) {
   const {
     data: topics = [],
     isLoading,
-    isFetched,
   } = useQuery({
     queryKey: ["program-topics", programName, courseName],
     queryFn: () => getProgramTopics(programName, courseName),
@@ -258,9 +308,14 @@ function CourseTopicRow({
           <span className="text-sm text-text-primary">{courseDisplayName}</span>
         </div>
         <div className="flex items-center gap-2">
-          {isFetched && topics.length > 0 && (
+          {topicCount > 0 && (
             <Badge variant="outline" className="text-[10px]">
-              {topics.length}
+              {topicCount} topic{topicCount !== 1 ? "s" : ""}
+            </Badge>
+          )}
+          {videoCount > 0 && (
+            <Badge variant="success" className="text-[10px]">
+              {videoCount} video{videoCount !== 1 ? "s" : ""}
             </Badge>
           )}
           {isExpanded ? (
@@ -333,34 +388,91 @@ function TopicListItem({
   courseName: string;
   queryClient: ReturnType<typeof useQueryClient>;
 }) {
+  const [editingVideo, setEditingVideo] = useState(false);
+  const [videoUrl, setVideoUrl] = useState(topic.custom_video_url ?? "");
+
   const { mutate: remove, isPending } = useMutation({
     mutationFn: () => removeProgramTopic(topic.name, topic.topic),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["program-topics", programName, courseName] });
+      queryClient.invalidateQueries({ queryKey: ["all-program-topics", programName] });
       toast.success(`Removed "${topic.topic_name || topic.topic}"`);
     },
     onError: () => toast.error("Failed to remove topic"),
   });
 
+  const { mutate: saveVideo, isPending: savingVideo } = useMutation({
+    mutationFn: () => updateProgramTopicVideo(topic.name, videoUrl.trim()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["program-topics", programName, courseName] });
+      queryClient.invalidateQueries({ queryKey: ["all-program-topics", programName] });
+      setEditingVideo(false);
+      toast.success(videoUrl.trim() ? "Video link saved" : "Video link removed");
+    },
+    onError: () => toast.error("Failed to save video link"),
+  });
+
+  const hasVideo = !!topic.custom_video_url;
+
   return (
-    <div className="flex items-center gap-3 px-3 py-2 rounded-[8px] bg-surface-secondary/60 group hover:bg-surface-secondary transition-colors">
-      <span className="w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0">
-        {index}
-      </span>
-      <span className="flex-1 text-sm text-text-primary truncate">
-        {topic.topic_name || topic.topic}
-      </span>
-      <button
-        onClick={() => remove()}
-        disabled={isPending}
-        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-error/10 text-text-tertiary hover:text-error"
-      >
-        {isPending ? (
-          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-        ) : (
-          <Trash2 className="h-3.5 w-3.5" />
-        )}
-      </button>
+    <div className="space-y-1">
+      <div className="flex items-center gap-3 px-3 py-2 rounded-[8px] bg-surface-secondary/60 group hover:bg-surface-secondary transition-colors">
+        <span className="w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0">
+          {index}
+        </span>
+        <span className="flex-1 text-sm text-text-primary truncate">
+          {topic.topic_name || topic.topic}
+        </span>
+        <button
+          onClick={() => { setEditingVideo(!editingVideo); setVideoUrl(topic.custom_video_url ?? ""); }}
+          title={hasVideo ? "Edit video link" : "Add video link"}
+          className={`p-1 rounded transition-all ${
+            hasVideo
+              ? "text-primary bg-primary/10 hover:bg-primary/20"
+              : "opacity-0 group-hover:opacity-100 text-text-tertiary hover:text-primary hover:bg-primary/10"
+          }`}
+        >
+          <Video className="h-3.5 w-3.5" />
+        </button>
+        <button
+          onClick={() => remove()}
+          disabled={isPending}
+          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-error/10 text-text-tertiary hover:text-error"
+        >
+          {isPending ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Trash2 className="h-3.5 w-3.5" />
+          )}
+        </button>
+      </div>
+
+      {editingVideo && (
+        <div className="flex items-center gap-2 pl-9 pr-3">
+          <input
+            type="url"
+            value={videoUrl}
+            onChange={(e) => setVideoUrl(e.target.value)}
+            placeholder="Paste YouTube or video URL…"
+            className="flex-1 h-8 rounded-[6px] border border-border-input bg-surface px-2.5 text-xs text-text-primary placeholder:text-text-tertiary/50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            autoFocus
+            onKeyDown={(e) => { if (e.key === "Enter") saveVideo(); if (e.key === "Escape") setEditingVideo(false); }}
+          />
+          <button
+            onClick={() => saveVideo()}
+            disabled={savingVideo}
+            className="p-1.5 rounded-[6px] bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+          >
+            {savingVideo ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+          </button>
+          <button
+            onClick={() => setEditingVideo(false)}
+            className="p-1.5 rounded-[6px] hover:bg-surface-secondary text-text-tertiary transition-colors"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -425,6 +537,7 @@ function BulkAddTopics({
     }
 
     queryClient.invalidateQueries({ queryKey: ["program-topics", programName, courseName] });
+    queryClient.invalidateQueries({ queryKey: ["all-program-topics", programName] });
 
     if (added > 0) {
       toast.success(`Added ${added} topic${added !== 1 ? "s" : ""}`);

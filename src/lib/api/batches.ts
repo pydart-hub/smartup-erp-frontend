@@ -46,18 +46,21 @@ export async function createClass(classData: Partial<ClassLevel>): Promise<Frapp
 }
 
 // ── Student counts per batch (from child table) ──
+// Child doctype "Student Group Student" blocks direct REST queries (Frappe istable
+// permission model). Fetching the full parent doc works and includes the students
+// child table — we just count active rows across all batches in parallel.
 export async function getBatchStudentCounts(batchNames: string[]): Promise<Record<string, number>> {
   if (!batchNames.length) return {};
-  const query = new URLSearchParams({
-    fields: JSON.stringify(["parent", "count(name) as cnt"]),
-    filters: JSON.stringify([["parent", "in", batchNames], ["active", "=", 1]]),
-    group_by: "parent",
-    limit_page_length: "0",
-  });
-  const { data } = await apiClient.get(`/resource/Student Group Student?${query}`);
+  const results = await Promise.allSettled(
+    batchNames.map((name) => apiClient.get(`/resource/Student Group/${encodeURIComponent(name)}`))
+  );
   const counts: Record<string, number> = {};
-  for (const row of data.data ?? []) {
-    if (row.parent) counts[row.parent] = row.cnt ?? 0;
+  for (let i = 0; i < batchNames.length; i++) {
+    const result = results[i];
+    if (result.status === "fulfilled") {
+      const doc = result.value.data?.data;
+      counts[batchNames[i]] = (doc?.students ?? []).filter((s: { active: number }) => s.active).length;
+    }
   }
   return counts;
 }

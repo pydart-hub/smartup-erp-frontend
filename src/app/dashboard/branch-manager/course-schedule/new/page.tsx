@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   CalendarDays,
   BookOpen,
@@ -72,6 +72,8 @@ const inputCls =
 export default function NewCourseSchedulePage() {
   const { defaultCompany, allowedCompanies } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const prefilledDate = searchParams.get("date");
 
   // Branch is locked to the manager's default company
   const branch = defaultCompany || (allowedCompanies.length > 0 ? allowedCompanies[0] : "");
@@ -82,7 +84,7 @@ export default function NewCourseSchedulePage() {
     instructor: "",
     room: "",
     custom_topic: "",
-    schedule_date: new Date().toISOString().split("T")[0],
+    schedule_date: prefilledDate || new Date().toISOString().split("T")[0],
     from_time: "09:00",
     to_time: "10:30",
   });

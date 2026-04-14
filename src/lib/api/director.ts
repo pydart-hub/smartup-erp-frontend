@@ -121,6 +121,32 @@ export async function getTotalStaffCount(): Promise<number> {
   return getCount("Employee", { status: "Active" });
 }
 
+/** Get student count grouped by type (Fresher / Existing / Rejoining) — all branches */
+export async function getStudentCountByType(): Promise<{
+  fresher: number;
+  existing: number;
+  rejoining: number;
+  unenrolled: number;
+}> {
+  const { data } = await apiClient.get("/resource/Student", {
+    params: {
+      fields: JSON.stringify(["custom_student_type", "name"]),
+      filters: JSON.stringify([["enabled", "=", 1]]),
+      limit_page_length: 10000,
+    },
+  });
+  const rows: { custom_student_type?: string; name: string }[] = data?.data ?? [];
+  const result = { fresher: 0, existing: 0, rejoining: 0, unenrolled: 0 };
+  for (const row of rows) {
+    const t = (row.custom_student_type || "").toLowerCase().trim();
+    if (t === "fresher") result.fresher++;
+    else if (t === "existing") result.existing++;
+    else if (t === "rejoining") result.rejoining++;
+    else result.unenrolled++;
+  }
+  return result;
+}
+
 /** Get student count grouped by plan (Advanced / Intermediate / Basic) from Program Enrollment */
 export async function getStudentCountByPlan(): Promise<{
   advanced: number;
@@ -584,16 +610,20 @@ export interface LeaderboardBranch {
   batchCount: number;
   staffCount: number;
   totalRevenue: number;
+  overallScore: number;
+  scoreAdmissions: number;
+  scoreCollectedAmt: number;
+  scoreCollectionRate: number;
 }
 
 export async function getLeaderboardData(
   period: "month" | "quarter" | "year" | "all" = "all"
-): Promise<{ data: LeaderboardBranch[]; period: string }> {
+): Promise<{ data: LeaderboardBranch[]; period: string; admissionTarget: number }> {
   const { data } = await apiClient.get(
     `/director/leaderboard?period=${period}`,
     { baseURL: "/api" }
   );
-  return data as { data: LeaderboardBranch[]; period: string };
+  return data as { data: LeaderboardBranch[]; period: string; admissionTarget: number };
 }
 
 // ── Batch student fees ──
@@ -1400,4 +1430,85 @@ export async function getConsolidatedBankReport(
   });
   if (!res.ok) throw new Error(`consolidated bank failed: ${res.status}`);
   return res.json();
+}
+// ── Demo Student Helpers ──
+
+export interface DemoStudentRow {
+  name: string;
+  student_name: string;
+  custom_branch: string;
+  joining_date: string;
+  student_mobile_number?: string;
+  custom_parent_name?: string;
+  guardian_name?: string;
+  enabled: 0 | 1;
+  program?: string;
+  student_batch_name?: string;
+  gender?: string;
+  date_of_birth?: string;
+  student_email_id?: string;
+  custom_place?: string;
+  custom_school_name?: string;
+}
+
+/** Total demo student count (all branches) */
+export async function getDemoStudentCount(): Promise<number> {
+  return getCount("Student", { custom_student_type: "Demo" });
+}
+
+/** Demo student count for a specific branch */
+export async function getDemoStudentCountForBranch(branch: string): Promise<number> {
+  return getCount("Student", { custom_student_type: "Demo", custom_branch: branch });
+}
+
+/** Get all demo students with enrollment info, optionally filtered by branch */
+export async function getDemoStudents(branch?: string): Promise<DemoStudentRow[]> {
+  const filters: string[][] = [["custom_student_type", "=", "Demo"]];
+  if (branch) filters.push(["custom_branch", "=", branch]);
+
+  const { data } = await apiClient.get("/resource/Student", {
+    params: {
+      fields: JSON.stringify([
+        "name", "student_name", "custom_branch", "joining_date",
+        "student_mobile_number", "custom_parent_name", "enabled",
+        "gender", "date_of_birth", "student_email_id",
+        "custom_place", "custom_school_name",
+        "guardians.guardian_name",
+      ]),
+      filters: JSON.stringify(filters),
+      order_by: "joining_date desc",
+      limit_page_length: "0",
+    },
+  });
+  const students: DemoStudentRow[] = data?.data ?? [];
+  if (!students.length) return students;
+
+  // Enrich with latest Program Enrollment
+  const ids = students.map((s) => s.name);
+  const { data: enrData } = await apiClient.get("/resource/Program Enrollment", {
+    params: {
+      fields: JSON.stringify(["student", "program", "student_batch_name"]),
+      filters: JSON.stringify([["docstatus", "=", 1], ["student", "in", ids]]),
+      order_by: "enrollment_date desc",
+      limit_page_length: String(ids.length * 3),
+    },
+  });
+
+  const enrMap = new Map<string, { program: string; student_batch_name?: string }>();
+  for (const row of enrData?.data ?? []) {
+    if (!enrMap.has(row.student)) {
+      enrMap.set(row.student, { program: row.program, student_batch_name: row.student_batch_name });
+    }
+  }
+
+  for (const s of students) {
+    const enr = enrMap.get(s.name);
+    if (enr) {
+      s.program = enr.program;
+      s.student_batch_name = enr.student_batch_name;
+    }
+    // guardian_name is already fetched via guardians.guardian_name dot notation
+    s.guardian_name = s.guardian_name || s.custom_parent_name || undefined;
+  }
+  return students;
 }

@@ -42,6 +42,7 @@ import {
   getTodaysAdmissions,
   getTodaysBilled,
   getTodaysCollected,
+  getDemoStudentCount,
 } from "@/lib/api/director";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { AnimatedNumber, AnimatedCurrency, AnimatedName } from "@/components/dashboard/AnimatedValue";
@@ -267,6 +268,13 @@ export default function DirectorDashboard() {
     refetchInterval: 30_000,
   });
 
+  const { data: demoStudentCount, isLoading: loadDemoCount } = useQuery({
+    queryKey: ["director-demo-students"],
+    queryFn: getDemoStudentCount,
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+  });
+
   return (
     <motion.div
       variants={containerVariants}
@@ -362,7 +370,7 @@ export default function DirectorDashboard() {
       </motion.div>
 
       {/* Summary Stats — Clickable Cards */}
-      <motion.div variants={itemVariants} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-7 gap-3 xl:gap-4">
+      <motion.div variants={itemVariants} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-8 gap-3 xl:gap-4">
         <Link href="/dashboard/director/students" className="min-w-0">
           <Card className="h-full hover:shadow-md transition-shadow cursor-pointer border-border-light hover:border-primary/30 overflow-hidden">
             <CardContent className="p-4 text-center">
@@ -555,6 +563,18 @@ export default function DirectorDashboard() {
               )}
               <p className="text-xs text-text-tertiary">Forfeited Fees</p>
               <p className="text-[10px] text-text-tertiary mt-0.5">Discontinued</p>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link href="/dashboard/director/demo-students" className="min-w-0">
+          <Card className="h-full hover:shadow-md transition-shadow cursor-pointer border-teal-200/60 hover:border-teal-400/50 overflow-hidden">
+            <CardContent className="p-4 text-center">
+              <GraduationCap className="h-5 w-5 text-teal-500 mx-auto mb-2" />
+              <p className="text-2xl font-bold text-teal-600 truncate">
+                {loadDemoCount ? "..." : <AnimatedNumber value={demoStudentCount ?? 0} />}
+              </p>
+              <p className="text-xs text-text-tertiary">Demo Students</p>
+              <ChevronRight className="h-3.5 w-3.5 text-text-tertiary mx-auto mt-1" />
             </CardContent>
           </Card>
         </Link>

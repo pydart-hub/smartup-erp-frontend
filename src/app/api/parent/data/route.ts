@@ -94,6 +94,7 @@ export async function GET(request: NextRequest) {
       salesInvoices: {},
       feeStructures: {},
       paymentEntries: {},
+      examResults: {},
     };
 
     // ── 1. Find Guardian by email ────────────────────────────────
@@ -148,6 +149,7 @@ export async function GET(request: NextRequest) {
       "customer", "student_email_id", "student_mobile_number",
       "custom_parent_name", "joining_date", "enabled",
       "custom_sibling_of", "custom_sibling_group", "custom_sibling_discount_applied",
+      "custom_student_type",
     ];
 
     // First try the singular form (standard Frappe Education)
@@ -206,6 +208,7 @@ export async function GET(request: NextRequest) {
     const salesInvoiceMap: Record<string, unknown[]> = {};
     const feeStructureMap: Record<string, unknown[]> = {};
     const paymentEntryMap: Record<string, unknown[]> = {};
+    const examResultMap: Record<string, unknown[]> = {};
 
     await Promise.all(
       children.map(async (child) => {
@@ -295,19 +298,114 @@ export async function GET(request: NextRequest) {
         }
 
         // 3b. Attendance (current month, submitted only)
-        attendanceMap[child.name] = await safeFetch(
+        // Frappe Education uses "Student Attendance" with "date" field
+        const rawAttendance = await safeFetch<{ name: string; status: string; date: string; student_group: string; custom_video_watched: number; custom_video_watched_on: string | null }>(
           frappeListUrl(
-            "Attendance",
+            "Student Attendance",
             [
               ["student", "=", child.name],
-              ["attendance_date", ">=", monthStart],
+              ["date", ">=", monthStart],
               ["docstatus", "=", 1],
             ],
-            ["name", "status", "attendance_date"],
-            { limit: 50, orderBy: "attendance_date desc" }
+            ["name", "status", "date", "student_group", "custom_video_watched", "custom_video_watched_on"],
+            { limit: 50, orderBy: "date desc" }
           ),
           headers
         );
+        // Map "date" → "attendance_date" to match frontend interface
+        // Also fetch Course Schedules for the month to attach topics per day
+        const studentGroups = [...new Set(rawAttendance.map((r) => r.student_group).filter(Boolean))];
+        const schedulesByDate = new Map<string, { course: string | null; topic: string | null; event_title: string | null; event_type: string | null }[]>();
+
+        if (studentGroups.length > 0) {
+          const schedules = await safeFetch<{
+            schedule_date: string;
+            course: string | null;
+            custom_topic: string | null;
+            custom_event_title: string | null;
+            custom_event_type: string | null;
+          }>(
+            frappeListUrl(
+              "Course Schedule",
+              [
+                ["student_group", "in", studentGroups],
+                ["schedule_date", ">=", monthStart],
+              ],
+              ["schedule_date", "course", "custom_topic", "custom_event_title", "custom_event_type"],
+              { limit: 200, orderBy: "schedule_date asc, from_time asc" }
+            ),
+            headers
+          );
+          for (const s of schedules) {
+            const existing = schedulesByDate.get(s.schedule_date) ?? [];
+            existing.push({ course: s.course, topic: s.custom_topic, event_title: s.custom_event_title, event_type: s.custom_event_type });
+            schedulesByDate.set(s.schedule_date, existing);
+          }
+        }
+
+        attendanceMap[child.name] = rawAttendance.map((r) => ({
+          name: r.name,
+          status: r.status,
+          attendance_date: r.date,
+          student_group: r.student_group,
+          custom_video_watched: r.custom_video_watched,
+          custom_video_watched_on: r.custom_video_watched_on,
+          topics: schedulesByDate.get(r.date) ?? [],
+        }));
+
+        // 3b-ii. Exam Results — Assessment Result records (submitted)
+        const results = await safeFetch<{
+          name: string; course: string; assessment_plan: string;
+          total_score: number; maximum_score: number; grade: string;
+          assessment_group: string;
+        }>(
+          frappeListUrl(
+            "Assessment Result",
+            [
+              ["student", "=", child.name],
+              ["docstatus", "=", 1],
+            ],
+            [
+              "name", "course", "assessment_plan",
+              "total_score", "maximum_score", "grade",
+              "assessment_group",
+            ],
+            { limit: 100, orderBy: "creation desc" }
+          ),
+          headers
+        );
+
+        // Enrich with schedule_date + topic from Assessment Plan
+        const planNames = [...new Set(results.map((r) => r.assessment_plan))];
+        const planDataMap: Record<string, { schedule_date: string; assessment_name: string }> = {};
+        if (planNames.length > 0) {
+          const plans = await safeFetch<{ name: string; schedule_date: string; assessment_name: string }>(
+            frappeListUrl(
+              "Assessment Plan",
+              [["name", "in", planNames]],
+              ["name", "schedule_date", "assessment_name"],
+              { limit: 100 }
+            ),
+            headers
+          );
+          for (const p of plans) planDataMap[p.name] = { schedule_date: p.schedule_date, assessment_name: p.assessment_name };
+        }
+
+        examResultMap[child.name] = results.map((r) => {
+          const plan = planDataMap[r.assessment_plan];
+          // Extract topic from assessment_name: "Course - ExamType (Topic)"
+          const topicMatch = plan?.assessment_name?.match(/\(([^)]+)\)\s*$/);
+          return {
+            name: r.name,
+            course: r.course,
+            assessment_group: r.assessment_group,
+            total_score: r.total_score,
+            maximum_score: r.maximum_score,
+            grade: r.grade,
+            schedule_date: plan?.schedule_date || "",
+            topic: topicMatch?.[1] || "",
+          };
+        });
 
         // 3c. Fees doctype (per student) — may be empty
         feesMap[child.name] = await safeFetch(
@@ -399,6 +497,7 @@ export async function GET(request: NextRequest) {
       salesInvoices: salesInvoiceMap,
       feeStructures: feeStructureMap,
       paymentEntries: paymentEntryMap,
+      examResults: examResultMap,
     });
   } catch (error: unknown) {
     console.error("[parent/data] Unexpected error:", error);

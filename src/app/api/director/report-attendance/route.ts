@@ -79,16 +79,17 @@ async function getAllBranchesSummary(from: string, to: string) {
   const branches = companies.map((c) => String(c.name)).filter((n) => n !== "Smart Up");
 
   // Student attendance records in date range
-  const attendance = await frappeGet(
-    "Attendance",
-    ["name", "custom_branch", "student", "status", "attendance_date"],
+  const rawAttendance = await frappeGet(
+    "Student Attendance",
+    ["name", "custom_branch", "student", "status", "date"],
     [
-      ["attendance_date", ">=", from],
-      ["attendance_date", "<=", to],
+      ["date", ">=", from],
+      ["date", "<=", to],
       ["docstatus", "=", 1],
       ["student", "!=", ""],
     ],
   );
+  const attendance = rawAttendance.map((a) => ({ ...a, attendance_date: a.date })) as Record<string, unknown>[];
 
   return branches.map((branch) => {
     const ba = attendance.filter((a) => a.custom_branch === branch);
@@ -114,18 +115,19 @@ async function getAllBranchesSummary(from: string, to: string) {
 // ── Branch detail ──
 
 async function getBranchDetail(branch: string, from: string, to: string) {
-  const attendance = await frappeGet(
-    "Attendance",
-    ["name", "student", "student_name", "status", "attendance_date"],
+  const rawAttendance = await frappeGet(
+    "Student Attendance",
+    ["name", "student", "student_name", "status", "date"],
     [
       ["custom_branch", "=", branch],
-      ["attendance_date", ">=", from],
-      ["attendance_date", "<=", to],
+      ["date", ">=", from],
+      ["date", "<=", to],
       ["docstatus", "=", 1],
       ["student", "!=", ""],
     ],
-    "attendance_date desc",
+    "date desc",
   );
+  const attendance = rawAttendance.map((a) => ({ ...a, attendance_date: a.date })) as Record<string, unknown>[];
 
   const totalSessions = attendance.length;
   const presentTotal = attendance.filter((a) => a.status === "Present" || a.status === "Half Day").length;

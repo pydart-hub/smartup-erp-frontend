@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -14,6 +14,9 @@ import {
   XCircle,
   AlertCircle,
   User,
+  Trophy,
+  ChevronDown,
+  Video,
 } from "lucide-react";
 import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
@@ -39,6 +42,7 @@ export interface ChildInfo {
   custom_sibling_of?: string;
   custom_sibling_group?: string;
   custom_sibling_discount_applied?: 0 | 1;
+  custom_student_type?: string;
 }
 
 export interface EnrollmentInfo {
@@ -59,6 +63,10 @@ export interface AttendanceRecord {
   name: string;
   status: "Present" | "Absent" | "Late";
   attendance_date: string;
+  student_group?: string;
+  custom_video_watched?: 0 | 1;
+  custom_video_watched_on?: string;
+  topics?: { course: string | null; topic: string | null; event_title: string | null; event_type: string | null }[];
 }
 
 export interface FeeEntry {
@@ -115,6 +123,17 @@ export interface PaymentEntryRecord {
   party_name?: string;
 }
 
+export interface ExamResultEntry {
+  name: string;
+  course: string;
+  assessment_group: string;
+  total_score: number;
+  maximum_score: number;
+  grade: string;
+  schedule_date: string;
+  topic?: string;
+}
+
 export interface ParentData {
   guardian: { name: string; guardian_name: string; email_address: string; mobile_number: string } | null;
   children: ChildInfo[];
@@ -125,6 +144,7 @@ export interface ParentData {
   salesInvoices: Record<string, SalesInvoiceEntry[]>;
   feeStructures: Record<string, FeeStructureEntry[]>;
   paymentEntries: Record<string, PaymentEntryRecord[]>;
+  examResults: Record<string, ExamResultEntry[]>;
 }
 
 // ── Helpers ─────────────────────────────────────────────────────
@@ -214,6 +234,38 @@ export default function ParentDashboardPage() {
     displayOutstanding = totalSO;
   }
   const displayPaid = displayTotalFees - displayOutstanding;
+
+  // Aggregate exam results across all children — group by subject (course)
+  const allExamResults = Object.values(data?.examResults ?? {}).flat() as ExamResultEntry[];
+
+  const dashSubjectGroups = useMemo(() => {
+    const map = new Map<string, ExamResultEntry[]>();
+    for (const r of allExamResults) {
+      const arr = map.get(r.course) ?? [];
+      arr.push(r);
+      map.set(r.course, arr);
+    }
+    return [...map.entries()]
+      .map(([course, items]) => {
+        const sorted = [...items].sort((a, b) => b.schedule_date.localeCompare(a.schedule_date));
+        const totalScore = items.reduce((s, r) => s + r.total_score, 0);
+        const totalMax = items.reduce((s, r) => s + r.maximum_score, 0);
+        const overallPct = totalMax > 0 ? Math.round((totalScore / totalMax) * 100) : 0;
+        return {
+          course,
+          displayName: course.replace(/^\d+\w*\s+/, ""),
+          results: sorted,
+          totalScore,
+          totalMax,
+          overallPct,
+          latestGrade: sorted[0]?.grade ?? "",
+          latestDate: sorted[0]?.schedule_date ?? "",
+        };
+      })
+      .sort((a, b) => b.latestDate.localeCompare(a.latestDate));
+  }, [allExamResults]);
+
+  const [expandedDashSubject, setExpandedDashSubject] = useState<string | null>(null);
 
   // Next due invoice: earliest outstanding invoice across all children
   const todayStr = new Date().toISOString().split("T")[0];
@@ -381,6 +433,9 @@ export default function ParentDashboardPage() {
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
+                        {child.custom_student_type === "Demo" && (
+                          <Badge variant="warning">DEMO</Badge>
+                        )}
                         {child.custom_sibling_group && (
                           <Badge variant="default">Sibling</Badge>
                         )}
@@ -573,6 +628,148 @@ export default function ParentDashboardPage() {
           </Card>
         </motion.div>
       </div>
+
+      {/* Exam Performance */}
+      <motion.div variants={item}>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between w-full">
+              <CardTitle className="flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-primary" />
+                Exam Performance
+              </CardTitle>
+              <Link href="/dashboard/parent/performance" className="text-sm text-primary hover:underline">
+                View All →
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-10 bg-border-light rounded-[10px] animate-pulse" />
+                ))}
+              </div>
+            ) : allExamResults.length === 0 ? (
+              <p className="text-sm text-text-secondary py-4 text-center">
+                No exam results available yet.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {dashSubjectGroups.map((sg) => {
+                  const isExpanded = expandedDashSubject === sg.course;
+                  return (
+                    <div key={sg.course} className="border border-border-light rounded-[12px] overflow-hidden">
+                      {/* Subject row */}
+                      <button
+                        onClick={() => setExpandedDashSubject(isExpanded ? null : sg.course)}
+                        className="w-full flex items-center justify-between p-3 bg-app-bg hover:bg-brand-wash/20 transition-colors text-left"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-xs font-bold ${
+                            sg.overallPct >= 80 ? "bg-success-light text-success" :
+                            sg.overallPct >= 60 ? "bg-info-light text-info" :
+                            sg.overallPct >= 40 ? "bg-warning-light text-warning" : "bg-error-light text-error"
+                          }`}>
+                            {sg.overallPct}%
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-text-primary">{sg.displayName}</p>
+                            <p className="text-xs text-text-secondary">
+                              {sg.results.length} test{sg.results.length !== 1 ? "s" : ""}
+                              {sg.latestDate && (
+                                <> · Last: {new Date(sg.latestDate + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</>
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={
+                            sg.overallPct >= 80 ? "success" :
+                            sg.overallPct >= 60 ? "info" :
+                            sg.overallPct >= 40 ? "warning" : "error"
+                          }>{sg.latestGrade}</Badge>
+                          <span className="text-xs text-text-secondary tabular-nums">{sg.totalScore}/{sg.totalMax}</span>
+                          <ChevronDown className={`h-4 w-4 text-text-tertiary transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                        </div>
+                      </button>
+
+                      {/* Topic-wise tests */}
+                      {isExpanded && (
+                        <div className="border-t border-border-light divide-y divide-border-light">
+                          {sg.results.map((r) => {
+                            const pct = r.maximum_score > 0 ? Math.round((r.total_score / r.maximum_score) * 100) : 0;
+                            return (
+                              <div key={r.name} className="px-4 py-3 flex items-center justify-between gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-text-primary">{r.assessment_group}</p>
+                                  <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                    {r.topic && (
+                                      <>
+                                        <BookOpen className="h-3 w-3 text-primary shrink-0" />
+                                        <span className="text-xs text-primary">{r.topic}</span>
+                                      </>
+                                    )}
+                                    {r.schedule_date && (
+                                      <span className="text-xs text-text-tertiary">
+                                        {r.topic && "· "}
+                                        <Calendar className="h-3 w-3 inline mr-0.5" />
+                                        {new Date(r.schedule_date + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="w-full max-w-[140px] h-1.5 bg-border-light rounded-full mt-1.5 overflow-hidden">
+                                    <div
+                                      className={`h-full rounded-full ${
+                                        pct >= 80 ? "bg-success" :
+                                        pct >= 60 ? "bg-info" :
+                                        pct >= 40 ? "bg-warning" : "bg-error"
+                                      }`}
+                                      style={{ width: `${pct}%` }}
+                                    />
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <span className="text-xs text-text-secondary tabular-nums">{r.total_score}/{r.maximum_score}</span>
+                                  <Badge variant={
+                                    pct >= 80 ? "success" :
+                                    pct >= 60 ? "info" :
+                                    pct >= 40 ? "warning" : "error"
+                                  }>{r.grade}</Badge>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Video Classes */}
+      <motion.div variants={item}>
+        <Link href="/dashboard/parent/video-classes" className="block">
+          <Card className="hover:shadow-sm transition-shadow">
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <Video className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-text-primary">Video Classes</p>
+                <p className="text-xs text-text-secondary">
+                  Watch topic-wise video lessons assigned by your branch
+                </p>
+              </div>
+              <ChevronDown className="h-4 w-4 text-text-tertiary -rotate-90" />
+            </CardContent>
+          </Card>
+        </Link>
+      </motion.div>
 
       {/* Quick Info — from Program Enrollment, not Student */}
       <motion.div variants={item}>

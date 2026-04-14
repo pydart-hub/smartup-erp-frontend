@@ -29,7 +29,7 @@ const PAGE_SIZE = 25;
 
 type StatusFilter = "all" | "active" | "inactive" | "discontinued";
 type PlanFilter = "all" | "Advanced" | "Intermediate" | "Basic";
-type TypeFilter = "all" | "Fresher" | "Existing" | "Rejoining";
+type TypeFilter = "all" | "Fresher" | "Existing" | "Rejoining" | "Demo";
 type SortOption = "name_asc" | "name_desc" | "newest" | "oldest";
 
 const STATUS_TABS: { value: StatusFilter; label: string }[] = [
@@ -51,6 +51,7 @@ const TYPE_OPTIONS: { value: TypeFilter; label: string }[] = [
   { value: "Fresher", label: "Fresher" },
   { value: "Existing", label: "Existing" },
   { value: "Rejoining", label: "Rejoining" },
+  { value: "Demo", label: "Demo" },
 ];
 
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
@@ -271,12 +272,20 @@ export default function StudentsPage() {
             {isLoading ? "Loading…" : `${page * PAGE_SIZE + students.length} students shown`}
           </p>
         </div>
-        <Link href="/dashboard/branch-manager/new-admission">
+        <div className="flex gap-2">
+          <Link href="/dashboard/branch-manager/admit?demo=true">
+            <Button variant="outline" size="md">
+              <Star className="h-4 w-4" />
+              Demo Admit
+            </Button>
+          </Link>
+          <Link href="/dashboard/branch-manager/new-admission">
             <Button variant="primary" size="md">
               <UserPlus className="h-4 w-4" />
               Add Student
             </Button>
           </Link>
+        </div>
       </div>
 
       {/* Filters Bar */}
@@ -557,6 +566,8 @@ export default function StudentsPage() {
                                     ? "border-green-300 text-green-700"
                                     : student.custom_student_type === "Existing"
                                     ? "border-blue-300 text-blue-700"
+                                    : student.custom_student_type === "Demo"
+                                    ? "border-amber-400 text-amber-700 bg-amber-50 font-bold"
                                     : "border-amber-300 text-amber-700"
                                 }`}
                               >

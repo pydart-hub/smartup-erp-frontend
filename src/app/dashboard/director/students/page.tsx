@@ -26,6 +26,7 @@ import {
   getStudentCountByPlan,
   getStudentCountByPlanForBranch,
   getStudentCountByTypeForBranch,
+  getStudentCountByType,
 } from "@/lib/api/director";
 import { AnimatedNumber } from "@/components/dashboard/AnimatedValue";
 
@@ -91,7 +92,24 @@ function BranchCard({ branch }: { branch: { name: string; abbr: string } }) {
                   <p className="text-[10px] text-text-tertiary mt-0.5 font-medium tracking-wide">{branch.abbr}</p>
                 </div>
               </div>
-              <ChevronRight className="h-4 w-4 text-text-tertiary opacity-0 group-hover:opacity-100 group-hover:text-primary transition-all mt-0.5" />
+              <div className="flex flex-col items-end gap-1">
+                <ChevronRight className="h-4 w-4 text-text-tertiary opacity-0 group-hover:opacity-100 group-hover:text-primary transition-all" />
+                {/* Target badge */}
+                {!loadingActive && activeCount != null && (() => {
+                  const TARGET = 400;
+                  const pctVal = Math.min(100, Math.round((activeCount / TARGET) * 100));
+                  const color =
+                    pctVal >= 75 ? "bg-emerald-500/10 text-emerald-600 ring-emerald-500/30"
+                    : pctVal >= 40 ? "bg-amber-500/10 text-amber-600 ring-amber-500/30"
+                    : "bg-red-500/10 text-red-500 ring-red-500/30";
+                  return (
+                    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold ring-1 ${color}`}>
+                      <span className="opacity-60 font-normal">Target</span>
+                      {pctVal}%
+                    </span>
+                  );
+                })()}
+              </div>
             </div>
 
             {/* Count + status */}
@@ -138,25 +156,35 @@ function BranchCard({ branch }: { branch: { name: string; abbr: string } }) {
               </div>
             ) : null}
 
-            {/* Student type distribution */}
-            {hasType ? (
-              <div className="mx-4 mb-3 flex items-center gap-2 flex-wrap">
-                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-green-700 bg-green-50 rounded-full px-2 py-0.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                  {typeCounts.fresher} Fresher
-                </span>
-                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-700 bg-blue-50 rounded-full px-2 py-0.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                  {typeCounts.existing} Existing
-                </span>
-                {typeCounts.rejoining > 0 && (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-700 bg-amber-50 rounded-full px-2 py-0.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                    {typeCounts.rejoining} Rejoining
+            {/* Student type — compact inline labels */}
+            {hasType ? (() => {
+              const entered = typeCounts.fresher + typeCounts.existing + typeCounts.rejoining;
+              const notEntered = Math.max(0, (activeCount ?? 0) - entered);
+              return (
+                <div className="mx-4 mb-3 flex items-center gap-1.5 flex-wrap">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-green-700 bg-green-50 rounded-full px-2 py-0.5">
+                    <span className="w-1 h-1 rounded-full bg-green-500" />
+                    {typeCounts.fresher} Fresher
                   </span>
-                )}
-              </div>
-            ) : loadingTypes ? (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-700 bg-blue-50 rounded-full px-2 py-0.5">
+                    <span className="w-1 h-1 rounded-full bg-blue-500" />
+                    {typeCounts.existing} Existing
+                  </span>
+                  {typeCounts.rejoining > 0 && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-50 rounded-full px-2 py-0.5">
+                      <span className="w-1 h-1 rounded-full bg-amber-500" />
+                      {typeCounts.rejoining} Rejoin
+                    </span>
+                  )}
+                  {notEntered > 0 && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-text-tertiary bg-border-light/60 rounded-full px-2 py-0.5">
+                      <span className="w-1 h-1 rounded-full bg-text-tertiary/40" />
+                      {notEntered} N/A
+                    </span>
+                  )}
+                </div>
+              );
+            })() : loadingTypes ? (
               <div className="mx-4 mb-3 h-5 w-2/3 rounded-full bg-border-light/40 animate-pulse" />
             ) : null}
           </CardContent>
@@ -189,6 +217,12 @@ export default function DirectorStudentsPage() {
   const { data: globalPlanCounts, isLoading: loadGlobalPlans } = useQuery({
     queryKey: ["director-student-plan-counts"],
     queryFn: getStudentCountByPlan,
+    staleTime: 120_000,
+  });
+
+  const { data: globalTypeCounts, isLoading: loadGlobalTypes } = useQuery({
+    queryKey: ["director-student-type-counts"],
+    queryFn: getStudentCountByType,
     staleTime: 120_000,
   });
 
@@ -227,67 +261,99 @@ export default function DirectorStudentsPage() {
         </Link>
       </motion.div>
 
-      {/* Summary strip */}
+      {/* Summary strip — 3 sections */}
       <motion.div variants={itemVariants}>
         <Card className="border-border-light">
-          <CardContent className="py-3 px-5">
-            <div className="flex items-center gap-5 flex-wrap">
-              {/* Total */}
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+          <CardContent className="p-0">
+            <div className="grid grid-cols-3 divide-x divide-border-light">
+
+              {/* ── Section 1: Total & Active ── */}
+              <div className="flex items-center gap-4 px-5 py-4">
+                <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                   <GraduationCap className="h-4 w-4 text-primary" />
                 </div>
-                <div>
-                  <p className="text-lg font-bold text-text-primary tabular-nums leading-none">
-                    {loadTotalActive ? "..." : <AnimatedNumber value={totalAll} />}
-                  </p>
-                  <p className="text-[10px] text-text-tertiary mt-0.5">Total Students</p>
+                <div className="flex gap-5">
+                  <div>
+                    <p className="text-2xl font-black text-text-primary tabular-nums leading-none">
+                      {loadTotalActive ? <span className="inline-block w-10 h-7 bg-border-light rounded animate-pulse" /> : <AnimatedNumber value={totalAll} />}
+                    </p>
+                    <p className="text-[10px] text-text-tertiary mt-1 font-medium">Total Students</p>
+                  </div>
+                  <div className="w-px bg-border-light self-stretch" />
+                  <div>
+                    <p className="text-2xl font-black text-success tabular-nums leading-none">
+                      {loadTotalActive ? <span className="inline-block w-8 h-7 bg-border-light rounded animate-pulse" /> : <AnimatedNumber value={totalActive ?? 0} />}
+                    </p>
+                    <p className="text-[10px] text-text-tertiary mt-1 font-medium">Active</p>
+                  </div>
+                  {(totalDiscontinued ?? 0) > 0 && (
+                    <>
+                      <div className="w-px bg-border-light self-stretch" />
+                      <div>
+                        <p className="text-2xl font-black text-error/80 tabular-nums leading-none">
+                          <AnimatedNumber value={totalDiscontinued ?? 0} />
+                        </p>
+                        <p className="text-[10px] text-text-tertiary mt-1 font-medium">Discontinued</p>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 
-              <div className="w-px h-8 bg-border-light" />
-
-              {/* Active */}
-              <div>
-                <p className="text-base font-bold text-success tabular-nums leading-none">
-                  {loadTotalActive ? "..." : <AnimatedNumber value={totalActive ?? 0} />}
-                </p>
-                <p className="text-[10px] text-text-tertiary mt-0.5">Active</p>
-              </div>
-
-              {(totalDiscontinued ?? 0) > 0 && (
-                <>
-                  <div className="w-px h-8 bg-border-light" />
-                  <div>
-                    <p className="text-base font-bold text-error/80 tabular-nums leading-none">
-                      {loadTotalDiscontinued ? "..." : <AnimatedNumber value={totalDiscontinued ?? 0} />}
-                    </p>
-                    <p className="text-[10px] text-text-tertiary mt-0.5">Discontinued</p>
+              {/* ── Section 2: Student types ── */}
+              <div className="px-5 py-4">
+                <p className="text-[9px] font-bold uppercase tracking-widest text-text-tertiary mb-2">By Type</p>
+                {loadGlobalTypes ? (
+                  <div className="flex gap-2">
+                    {[0,1,2,3].map((i) => <div key={i} className="h-10 flex-1 rounded-lg bg-border-light/40 animate-pulse" />)}
                   </div>
-                </>
-              )}
-
-              {/* Global plan pills — pushed right */}
-              <div className="flex items-center gap-2 sm:ml-auto">
-                {loadGlobalPlans ? (
-                  <span className="inline-block w-40 h-6 bg-border-light rounded animate-pulse" />
-                ) : globalPlanCounts && (
-                  <>
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-purple-50 text-[11px] font-semibold text-purple-700">
-                      <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
-                      {globalPlanCounts.advanced} Adv
-                    </span>
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-blue-50 text-[11px] font-semibold text-blue-700">
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                      {globalPlanCounts.intermediate} Int
-                    </span>
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-50 text-[11px] font-semibold text-emerald-700">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                      {globalPlanCounts.basic} Basic
-                    </span>
-                  </>
+                ) : globalTypeCounts && (
+                  <div className="grid grid-cols-4 gap-1.5">
+                    <div className="rounded-lg bg-green-50 border border-green-100 py-2 text-center">
+                      <p className="text-base font-black text-green-700 tabular-nums leading-none"><AnimatedNumber value={globalTypeCounts.fresher} /></p>
+                      <p className="text-[9px] text-green-500 font-semibold mt-1 uppercase tracking-wider">Fresher</p>
+                    </div>
+                    <div className="rounded-lg bg-blue-50 border border-blue-100 py-2 text-center">
+                      <p className="text-base font-black text-blue-700 tabular-nums leading-none"><AnimatedNumber value={globalTypeCounts.existing} /></p>
+                      <p className="text-[9px] text-blue-400 font-semibold mt-1 uppercase tracking-wider">Existing</p>
+                    </div>
+                    <div className="rounded-lg bg-amber-50 border border-amber-100 py-2 text-center">
+                      <p className="text-base font-black text-amber-700 tabular-nums leading-none"><AnimatedNumber value={globalTypeCounts.rejoining} /></p>
+                      <p className="text-[9px] text-amber-500 font-semibold mt-1 uppercase tracking-wider">Rejoin</p>
+                    </div>
+                    <div className="rounded-lg bg-app-bg border border-border-light py-2 text-center">
+                      <p className="text-base font-black text-text-tertiary tabular-nums leading-none"><AnimatedNumber value={globalTypeCounts.unenrolled} /></p>
+                      <p className="text-[9px] text-text-tertiary/60 font-semibold mt-1 uppercase tracking-wider">N/A</p>
+                    </div>
+                  </div>
                 )}
               </div>
+
+              {/* ── Section 3: Plans ── */}
+              <div className="px-5 py-4">
+                <p className="text-[9px] font-bold uppercase tracking-widest text-text-tertiary mb-2">By Plan</p>
+                {loadGlobalPlans ? (
+                  <div className="flex gap-2">
+                    {[0,1,2].map((i) => <div key={i} className="h-10 flex-1 rounded-lg bg-border-light/40 animate-pulse" />)}
+                  </div>
+                ) : globalPlanCounts && (
+                  <div className="grid grid-cols-3 gap-1.5">
+                    <div className="rounded-lg bg-purple-50 border border-purple-100 py-2 text-center">
+                      <p className="text-base font-black text-purple-700 tabular-nums leading-none"><AnimatedNumber value={globalPlanCounts.advanced} /></p>
+                      <p className="text-[9px] text-purple-400 font-semibold mt-1 uppercase tracking-wider">Advanced</p>
+                    </div>
+                    <div className="rounded-lg bg-blue-50 border border-blue-100 py-2 text-center">
+                      <p className="text-base font-black text-blue-700 tabular-nums leading-none"><AnimatedNumber value={globalPlanCounts.intermediate} /></p>
+                      <p className="text-[9px] text-blue-400 font-semibold mt-1 uppercase tracking-wider">Inter</p>
+                    </div>
+                    <div className="rounded-lg bg-emerald-50 border border-emerald-100 py-2 text-center">
+                      <p className="text-base font-black text-emerald-700 tabular-nums leading-none"><AnimatedNumber value={globalPlanCounts.basic} /></p>
+                      <p className="text-[9px] text-emerald-500 font-semibold mt-1 uppercase tracking-wider">Basic</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
             </div>
           </CardContent>
         </Card>

@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const studentSchema = z.object({
   // Step 1 — Student Info
-  student_type: z.enum(["fresher", "existing", "rejoining"], { message: "Student type is required" }),
+  student_type: z.enum(["fresher", "existing", "rejoining", "demo"], { message: "Student type is required" }),
   full_name: z.string().min(1, "Name is required"),
   date_of_birth: z.string().min(1, "Date of birth is required"),
   gender: z.enum(["Male", "Female", "Other"], { message: "Gender is required" }),
@@ -29,9 +29,9 @@ export const studentSchema = z.object({
   student_batch_name: z.string().min(1, "Batch is required"),    // Student Group name
   enrollment_date: z.string().min(1, "Enrollment date is required"),
 
-  // Step 4 — Fee Details
-  custom_plan: z.string().min(1, "Fee plan is required"),
-  custom_no_of_instalments: z.string().min(1, "Instalment option is required"),
+  // Step 4 — Fee Details (plan and instalments validated in onSubmit for non-demo)
+  custom_plan: z.string(),
+  custom_no_of_instalments: z.string(),
   fee_structure: z.string().optional(),                         // resolved Fee Structure name
   custom_mode_of_payment: z.enum(["Cash", "Online"], { message: "Mode of payment is required" }),
 });

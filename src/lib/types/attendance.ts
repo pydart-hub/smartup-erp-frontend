@@ -15,6 +15,8 @@ export interface AttendanceRecord {
   custom_branch?: string;      // link → Company (Branch)
   link_nvfk?: string;          // Program (internal Frappe link field)
   amended_from?: string;
+  custom_video_watched?: 0 | 1; // Parent confirmed video class watched
+  custom_video_watched_on?: string; // ISO datetime when marked watched
 }
 
 export interface AttendanceSummary {

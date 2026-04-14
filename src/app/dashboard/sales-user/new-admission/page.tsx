@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { GraduationCap, BookOpen, UserCheck, ArrowRight } from "lucide-react";
+import { GraduationCap, BookOpen, UserCheck, ArrowRight, Star } from "lucide-react";
 
 const admissionTypes = [
   {
@@ -28,6 +28,14 @@ const admissionTypes = [
     color: "bg-purple-50 text-purple-600 border-purple-200",
     hoverColor: "hover:border-purple-400 hover:shadow-purple-100",
   },
+  {
+    title: "Demo Admission",
+    description: "Trial enrollment — flat ₹499 fee for 1 month. Student gets access to all features (attendance, exams, schedules).",
+    icon: Star,
+    href: "/dashboard/sales-user/admit?demo=true",
+    color: "bg-amber-50 text-amber-600 border-amber-200",
+    hoverColor: "hover:border-amber-400 hover:shadow-amber-100",
+  },
 ];
 
 export default function NewAdmissionPage() {
@@ -40,7 +48,7 @@ export default function NewAdmissionPage() {
         <p className="text-gray-500 mt-1">Choose the type of admission</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full max-w-4xl">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-4xl">
         {admissionTypes.map((type) => (
           <button
             key={type.title}

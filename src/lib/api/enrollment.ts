@@ -586,6 +586,8 @@ export interface AdmitStudentForm {
   siblingOf?: string;            // Student ID of existing sibling e.g. "EDU-STU-2025-00012"
   siblingGroup?: string;         // Shared family group ID e.g. "FAM-CHL-1717..."
   existingGuardianName?: string; // Existing Guardian name to reuse (skip guardian creation)
+  // Demo admission
+  isDemo?: boolean;              // True for demo student admission (flat ₹499 fee)
 }
 
 export interface AdmitStudentResult {
@@ -972,6 +974,8 @@ export async function admitStudent(
       custom_fee_structure: form.fee_structure,
       custom_plan: form.custom_plan,
       custom_no_of_instalments: form.custom_no_of_instalments,
+      // Demo students get a special category
+      ...(form.isDemo ? { student_category: "Demo" } : {}),
     });
     updateStage("enrollment", "success");
   } catch (peErr) {
@@ -1024,7 +1028,10 @@ export async function admitStudent(
 
       // 5c. Determine the rate
       let rate = 0;
-      if (form.fee_structure) {
+      if (form.isDemo) {
+        // Demo students: flat ₹499 fee — skip fee structure / item price lookup
+        rate = 499;
+      } else if (form.fee_structure) {
         try {
           const { data: fsRes } = await apiClient.get(
             `/resource/Fee Structure/${encodeURIComponent(form.fee_structure)}?fields=["total_amount"]`

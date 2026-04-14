@@ -114,6 +114,23 @@ export async function getAssessmentPlan(name: string): Promise<AssessmentPlan> {
 // Server-Side API Routes (use /api/exams/* with admin auth)
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** Fetch existing Assessment Plans for a batch + date (to show occupied exam slots) */
+export async function getExamsForBatchDate(
+  studentGroup: string,
+  date: string,
+): Promise<{ name: string; assessment_name: string; from_time: string; to_time: string }[]> {
+  const filters = JSON.stringify([
+    ["student_group", "=", studentGroup],
+    ["schedule_date", "=", date],
+    ["docstatus", "!=", 2],
+  ]);
+  const fields = JSON.stringify(["name", "assessment_name", "from_time", "to_time"]);
+  const { data } = await apiClient.get(
+    `/resource/Assessment Plan?filters=${encodeURIComponent(filters)}&fields=${encodeURIComponent(fields)}&limit_page_length=20&order_by=from_time asc`,
+  );
+  return data?.data ?? [];
+}
+
 /** Create a new exam (Assessment Plan) */
 export async function createExam(data: {
   student_group: string;
@@ -125,6 +142,7 @@ export async function createExam(data: {
   maximum_assessment_score: number;
   examiner?: string;
   room?: string;
+  custom_topic?: string;
 }): Promise<AssessmentPlan> {
   const res = await fetch("/api/exams/create", {
     method: "POST",

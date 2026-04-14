@@ -35,6 +35,7 @@ import {
   UserPlus,
   RotateCcw,
   X,
+  Star,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Button } from "@/components/ui/Button";
@@ -127,8 +128,9 @@ function AdmitPageContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const isReferred = searchParams.get("referred") === "true";
+  const isDemo = searchParams.get("demo") === "true";
   const basePath = pathname.includes("/branch-manager") ? "/dashboard/branch-manager" : "/dashboard/sales-user";
-  const { defaultCompany } = useAuth();
+  const { defaultCompany, allowedCompanies } = useAuth();
   const [currentStep, setCurrentStep] = useState(isReferred ? 0 : 1);
   const [paymentAction, setPaymentAction] = useState<"pay_now" | "send_to_parent" | null>(null);
   const [advanceAmount, setAdvanceAmount] = useState<number | null>(null);
@@ -238,7 +240,7 @@ function AdmitPageContent() {
       gender: "Male",
       academic_year: "2026-2027",
       custom_branch: defaultCompany || "",
-      student_type: "fresher",
+      student_type: isDemo ? "demo" : "fresher",
       custom_plan: "",
       custom_no_of_instalments: "",
       custom_mode_of_payment: undefined as unknown as "Cash" | "Online",
@@ -279,11 +281,16 @@ function AdmitPageContent() {
   }, [nextSrrId, setValue]);
 
   // ── Reference data ────────────────────────────────────────────
-  const { data: branches = [] } = useQuery({
+  const { data: allBranches = [] } = useQuery({
     queryKey: ["branches"],
     queryFn: getBranches,
     staleTime: Infinity,
   });
+  const branches = allowedCompanies?.length
+    ? allBranches.filter((b) => allowedCompanies.includes(b.name))
+    : defaultCompany
+    ? allBranches.filter((b) => b.name === defaultCompany)
+    : allBranches;
 
   const { data: academicYears = [] } = useQuery({
     queryKey: ["academic-years"],
@@ -428,6 +435,12 @@ function AdmitPageContent() {
   // ── Submit ────────────────────────────────────────────────────
   async function onSubmit(data: StudentFormValues) {
     try {
+      // Non-demo students must have plan and instalments selected
+      if (!isDemo) {
+        if (!data.custom_plan) { toast.error("Please select a fee plan"); return; }
+        if (!data.custom_no_of_instalments) { toast.error("Please select an instalment option"); return; }
+      }
+
       const selectedGroupName = data.student_batch_name || undefined;
       const matchedGroup = selectedGroupName
         ? studentGroups.find((g) => g.name === selectedGroupName)
@@ -451,7 +464,7 @@ function AdmitPageContent() {
         custom_disabilities: data.disabilities || undefined,
         custom_place: data.custom_place || undefined,
         custom_school_name: data.custom_school_name || undefined,
-        custom_student_type: data.student_type === "fresher" ? "Fresher" : data.student_type === "existing" ? "Existing" : "Rejoining",
+        custom_student_type: data.student_type === "demo" ? "Demo" : data.student_type === "fresher" ? "Fresher" : data.student_type === "existing" ? "Existing" : "Rejoining",
         custom_branch: data.custom_branch,
         custom_branch_abbr: (branchObj as { abbr?: string })?.abbr,
         custom_srr_id: data.custom_srr_id,
@@ -465,15 +478,19 @@ function AdmitPageContent() {
         guardian_mobile: data.guardian_mobile,
         guardian_relation: data.guardian_relation,
         guardian_password: data.guardian_password,
-        fee_structure: data.fee_structure,
-        custom_plan: data.custom_plan,
-        custom_no_of_instalments: data.custom_no_of_instalments,
+        fee_structure: isDemo ? undefined : data.fee_structure,
+        custom_plan: isDemo ? "" : data.custom_plan,
+        custom_no_of_instalments: isDemo ? "" : data.custom_no_of_instalments,
         custom_mode_of_payment: data.custom_mode_of_payment,
-        instalmentSchedule: selectedOption?.schedule.map((s) => ({
-          amount: s.amount,
-          dueDate: s.dueDate,
-          label: s.label,
-        })),
+        instalmentSchedule: isDemo
+          ? [{ amount: 499, dueDate: data.enrollment_date || new Date().toISOString().split("T")[0], label: "Demo Fee" }]
+          : selectedOption?.schedule.map((s) => ({
+              amount: s.amount,
+              dueDate: s.dueDate,
+              label: s.label,
+            })),
+        // Demo flag
+        ...(isDemo ? { isDemo: true } : {}),
         // Sibling fields
         ...(isReferred && selectedSibling ? {
           siblingOf: selectedSibling.name,
@@ -496,10 +513,14 @@ function AdmitPageContent() {
       const hasInvoices = (result.invoices?.length ?? 0) > 0;
       const wantsAction = paymentAction === "pay_now" || paymentAction === "send_to_parent";
 
-      if (wantsAction && hasInvoices && selectedOption) {
+      // For demo: build schedule from the fixed ₹499 instalment
+      const demoSchedule = isDemo ? [{ amount: 499, dueDate: data.enrollment_date || new Date().toISOString().split("T")[0], label: "Demo Fee", index: 1 }] : null;
+      const resolvedSchedule = isDemo ? demoSchedule : selectedOption?.schedule;
+
+      if (wantsAction && hasInvoices && resolvedSchedule) {
         const invoicesForPayment: InvoiceForPayment[] = (result.invoices ?? []).map(
           (invId, idx) => {
-            const scheduleItem = selectedOption.schedule[idx];
+            const scheduleItem = resolvedSchedule[idx];
             return {
               invoiceId: invId,
               label: scheduleItem?.label ?? `Instalment ${idx + 1}`,
@@ -607,8 +628,8 @@ function AdmitPageContent() {
           <ArrowLeft className="h-5 w-5" />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-text-primary">{isReferred ? "Siblings Admission" : "New Student Admission"}</h1>
-          <p className="text-sm text-text-secondary">{isReferred ? "5% sibling discount applied on first instalment" : "Fill in the details to register a new student"}</p>
+          <h1 className="text-2xl font-bold text-text-primary">{isDemo ? "Demo Student Admission" : isReferred ? "Siblings Admission" : "New Student Admission"}</h1>
+          <p className="text-sm text-text-secondary">{isDemo ? "Flat ₹499 demo fee — 1 month duration" : isReferred ? "5% sibling discount applied on first instalment" : "Fill in the details to register a new student"}</p>
         </div>
       </div>
 
@@ -788,6 +809,15 @@ function AdmitPageContent() {
                   {/* Student Type */}
                   <div className="flex flex-col gap-2">
                     <label className="text-sm font-medium text-text-secondary">Student Type *</label>
+                    {isDemo ? (
+                      <div className="flex items-center gap-3 p-3 rounded-[12px] border-2 border-amber-400 bg-amber-50">
+                        <Star className="h-5 w-5 text-amber-600" />
+                        <div>
+                          <span className="text-sm font-bold text-amber-700">Demo Student</span>
+                          <span className="text-[10px] block text-amber-600">Trial admission — 1 month</span>
+                        </div>
+                      </div>
+                    ) : (
                     <div className="grid grid-cols-3 gap-3">
                       {([
                         { value: "fresher", label: "Fresher", icon: UserPlus, desc: "First time joining" },
@@ -813,6 +843,7 @@ function AdmitPageContent() {
                         );
                       })}
                     </div>
+                    )}
                     {errors.student_type && <p className="text-xs text-error">{errors.student_type.message}</p>}
                   </div>
 
@@ -1126,12 +1157,36 @@ function AdmitPageContent() {
                   <div>
                     <h3 className="text-lg font-semibold text-text-primary">Fee Details</h3>
                     <p className="text-sm text-text-secondary mt-0.5">
-                      Select a fee plan and instalment option
-                      {!selectedBranch || !selectedProgram
-                        ? " — please select branch & class in Step 3 first"
-                        : ""}
+                      {isDemo
+                        ? "Flat demo fee — no plan selection needed"
+                        : <>Select a fee plan and instalment option
+                          {!selectedBranch || !selectedProgram
+                            ? " — please select branch & class in Step 3 first"
+                            : ""}</>
+                      }
                     </p>
                   </div>
+
+                  {/* Demo fee card */}
+                  {isDemo && (
+                    <div className="bg-amber-50 rounded-[12px] border-2 border-amber-300 p-5">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+                          <Star className="h-5 w-5 text-amber-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-amber-800">Demo Admission Fee</p>
+                          <p className="text-xs text-amber-600">One-time payment · 1 month trial</p>
+                        </div>
+                      </div>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-3xl font-bold text-amber-700">₹499</span>
+                        <span className="text-sm text-amber-600">/ one-time</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {!isDemo && (<>
 
                   {isReferred && (
                     <div className="bg-green-50 rounded-[10px] p-4 border border-green-200 flex items-start gap-2">
@@ -1335,8 +1390,11 @@ function AdmitPageContent() {
                     </motion.div>
                   )}
 
+                  </>)}
+                  {/* End of !isDemo wrapper */}
+
                   {/* Mode of Payment */}
-                  {selectedInstalments && (
+                  {(isDemo || selectedInstalments) && (
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-text-secondary">Mode of Payment *</label>
                       <div className="grid grid-cols-2 gap-3">

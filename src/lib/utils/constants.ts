@@ -171,6 +171,8 @@ export const PARENT_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard/parent", icon: "LayoutDashboard", emoji: "📊" },
   { label: "Children", href: "/dashboard/parent/children", icon: "Baby", emoji: "👶" },
   { label: "Attendance", href: "/dashboard/parent/attendance", icon: "ClipboardCheck", emoji: "✅" },
+  { label: "Performance", href: "/dashboard/parent/performance", icon: "Trophy", emoji: "🏆" },
+  { label: "Video Classes", href: "/dashboard/parent/video-classes", icon: "Video", emoji: "🎬" },
   { label: "Fees", href: "/dashboard/parent/fees", icon: "IndianRupee", emoji: "💰" },
   { label: "Complaints", href: "/dashboard/parent/complaints", icon: "MessageSquareWarning", emoji: "⚠️" },
 ];

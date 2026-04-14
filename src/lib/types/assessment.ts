@@ -65,6 +65,7 @@ export interface AssessmentPlan {
   maximum_assessment_score: number;
   assessment_criteria: AssessmentPlanCriteria[];
   custom_branch?: string;
+  custom_topic?: string;       // free-text topic label
   docstatus: 0 | 1 | 2;
   creation?: string;
   modified?: string;
@@ -147,6 +148,7 @@ export interface CreateExamFormData {
   maximum_assessment_score: number;
   examiner?: string;
   room?: string;
+  custom_topic?: string;
 }
 
 /** Mark entry for a single student */

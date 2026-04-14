@@ -111,6 +111,7 @@ interface SiblingGuardianInfo {
 
 const PLAN_OPTIONS = [
   { value: "Basic", label: "Basic", description: "Standard curriculum" },
+  { value: "Intermediate", label: "Intermediate", description: "Enhanced learning" },
   { value: "Advanced", label: "Advanced", description: "Premium programme" },
 ];
 
@@ -128,7 +129,7 @@ function SubjectAdmitPageContent() {
   const searchParams = useSearchParams();
   const isReferred = searchParams.get("referred") === "true";
   const basePath = pathname.includes("/branch-manager") ? "/dashboard/branch-manager" : "/dashboard/sales-user";
-  const { defaultCompany } = useAuth();
+  const { defaultCompany, allowedCompanies } = useAuth();
   const [currentStep, setCurrentStep] = useState(isReferred ? 0 : 1);
   const [paymentAction, setPaymentAction] = useState<"pay_now" | "send_to_parent" | null>(null);
   const [advanceAmount, setAdvanceAmount] = useState<number | null>(null);
@@ -330,10 +331,14 @@ function SubjectAdmitPageContent() {
     staleTime: Infinity,
   });
 
-  // Filter branches: only show those that have subject-wise data
+  // Filter branches: only show those that have subject-wise data AND are allowed for this user
   const subjectBranches = useMemo(() => {
-    return branches.filter((b) => getSubjectsForBranch(b.name).length > 0);
-  }, [branches]);
+    const subjectOnly = branches.filter((b) => getSubjectsForBranch(b.name).length > 0);
+    if (allowedCompanies.length > 0) {
+      return subjectOnly.filter((b) => allowedCompanies.includes(b.name));
+    }
+    return subjectOnly;
+  }, [branches, allowedCompanies]);
 
   const { data: academicYears = [] } = useQuery({
     queryKey: ["academic-years"],
@@ -430,8 +435,7 @@ function SubjectAdmitPageContent() {
   const availablePlans: string[] = useMemo(() => {
     const plans = new Set<string>();
     feeStructures.forEach((fs) => { if (fs.custom_plan) plans.add(fs.custom_plan); });
-    // For subject-wise, only Basic and Advanced
-    return Array.from(plans).filter((p) => p === "Basic" || p === "Advanced");
+    return Array.from(plans);
   }, [feeStructures]);
 
   // Fee config lookup — uses SUBJECT key instead of program key
@@ -1265,8 +1269,8 @@ function SubjectAdmitPageContent() {
                   {selectedBranch && selectedSubject && (
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-text-secondary">Fee Plan *</label>
-                      <div className="grid grid-cols-2 gap-3">
-                        {PLAN_OPTIONS.map((plan) => {
+                      <div className={`grid gap-3 ${availablePlans.length >= 3 ? "grid-cols-3" : "grid-cols-2"}`}>
+                        {PLAN_OPTIONS.filter((p) => availablePlans.includes(p.value)).map((plan) => {
                           const isSelected = selectedPlan === plan.value;
                           return (
                             <label

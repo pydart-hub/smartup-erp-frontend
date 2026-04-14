@@ -35,11 +35,20 @@ export function BatchesContent() {
     })
       .then(async (res) => {
         setBatches(res.data);
-        const names = res.data.map((b) => b.name);
-        const counts = await getBatchStudentCounts(names);
-        setStudentCounts(counts);
+        // Student counts are best-effort — 403 from Frappe child doctype permissions
+        // should not block the batches page from loading.
+        try {
+          const names = res.data.map((b) => b.name);
+          const counts = await getBatchStudentCounts(names);
+          setStudentCounts(counts);
+        } catch {
+          // counts remain at default {}; enrolled shows as 0
+        }
       })
-      .catch(() => setError("Failed to load batches from server."))
+      .catch((err) => {
+        const msg = err?.response?.data?.message || err?.response?.data?.error || err?.message || "Failed to load batches from server.";
+        setError(msg);
+      })
       .finally(() => setLoading(false));
   }
 

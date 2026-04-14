@@ -22,7 +22,8 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useAcademicYearStore } from "@/lib/stores/academicYearStore";
-import { getStudentGroups, getBatchEnrollmentCounts, getRecentEnrollments } from "@/lib/api/enrollment";
+import { getStudentGroups, getRecentEnrollments } from "@/lib/api/enrollment";
+import { getBatchStudentCounts } from "@/lib/api/batches";
 import { getStudentCount } from "@/lib/api/students";
 import { getAttendance } from "@/lib/api/attendance";
 import { getEmployeeAttendance } from "@/lib/api/employees";
@@ -135,11 +136,19 @@ export default function BranchManagerDashboard() {
     staleTime: 60_000,
   });
 
-  const { data: batchEnrollmentCounts } = useQuery({
-    queryKey: ["dashboard-batch-enrollment-counts", defaultCompany, selectedYear],
-    queryFn: () => getBatchEnrollmentCounts(defaultCompany || undefined, selectedYear),
+  const { data: batchStudentCountsArr } = useQuery({
+    queryKey: ["dashboard-batch-student-counts", defaultCompany, selectedYear],
+    queryFn: async () => {
+      const names = (studentGroupsRes?.data ?? []).map((g) => g.name);
+      return getBatchStudentCounts(names);
+    },
+    enabled: (studentGroupsRes?.data?.length ?? 0) > 0,
     staleTime: 60_000,
   });
+  // Convert plain object to Map for downstream compatibility
+  const batchEnrollmentCounts = batchStudentCountsArr
+    ? new Map(Object.entries(batchStudentCountsArr))
+    : undefined;
 
   // ── Derived stats ────────────────────────────────────────
   const allGroups = studentGroupsRes?.data ?? [];
@@ -342,7 +351,7 @@ export default function BranchManagerDashboard() {
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 ml-6">
                           {groups.map((group) => {
-                            const enrolled = batchEnrollmentCounts?.get(group.name) ?? 0;
+                            const enrolled = batchEnrollmentCounts?.get(group.name) ?? 0; // from SG students child table
                             const maxStr = group.max_strength ?? 60;
                             const pct = maxStr > 0 ? Math.min((enrolled / maxStr) * 100, 100) : 0;
                             const isFull = enrolled >= maxStr;

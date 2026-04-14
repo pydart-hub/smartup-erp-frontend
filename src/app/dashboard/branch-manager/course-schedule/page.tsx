@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import {
   CalendarDays,
   ChevronLeft,
@@ -14,7 +15,6 @@ import {
   Plus,
   Search,
   Trash2,
-  Loader2,
   LayoutList,
   Grid3X3,
   X,
@@ -22,6 +22,8 @@ import {
   Layers,
   FileText,
   CheckCircle2,
+  PartyPopper,
+  Pencil,
 } from "lucide-react";
 import Link from "next/link";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
@@ -74,7 +76,10 @@ function getMonthDates(year: number, month: number): Date[] {
 }
 
 function toISODate(d: Date): string {
-  return d.toISOString().split("T")[0];
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 function formatTime(t: string): string {
@@ -122,6 +127,7 @@ const MONTH_NAMES = [
 export default function BranchManagerCourseSchedulePage() {
   const { defaultCompany, allowedCompanies } = useAuth();
   const queryClient = useQueryClient();
+  const router = useRouter();
   const branch = defaultCompany || (allowedCompanies.length > 0 ? allowedCompanies[0] : "");
 
   // ── State ──────────────────────────────────────────────────────────────────
@@ -134,6 +140,7 @@ export default function BranchManagerCourseSchedulePage() {
   const [instructorFilter, setInstructorFilter] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [selectedCalDate, setSelectedCalDate] = useState<string | null>(null);
+  const [addPopupDate, setAddPopupDate] = useState<string | null>(null);
 
   // ── Derived date ranges ────────────────────────────────────────────────────
   const weekDates = useMemo(() => getWeekDates(anchor), [anchor]);
@@ -197,10 +204,12 @@ export default function BranchManagerCourseSchedulePage() {
       const q = search.toLowerCase();
       list = list.filter(
         (s) =>
-          s.course.toLowerCase().includes(q) ||
-          s.student_group.toLowerCase().includes(q) ||
+          (s.course ?? "").toLowerCase().includes(q) ||
+          (s.student_group ?? "").toLowerCase().includes(q) ||
           (s.instructor_name ?? "").toLowerCase().includes(q) ||
-          (s.program ?? "").toLowerCase().includes(q)
+          (s.program ?? "").toLowerCase().includes(q) ||
+          (s.custom_event_type ?? "").toLowerCase().includes(q) ||
+          (s.custom_event_title ?? "").toLowerCase().includes(q)
       );
     }
     return list;
@@ -265,6 +274,12 @@ export default function BranchManagerCourseSchedulePage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Link href="/dashboard/branch-manager/course-schedule/event">
+            <Button variant="outline" className="flex items-center gap-2">
+              <PartyPopper className="h-4 w-4" />
+              Event Planner
+            </Button>
+          </Link>
           <Link href="/dashboard/branch-manager/course-schedule/bulk">
             <Button variant="outline" className="flex items-center gap-2">
               <Layers className="h-4 w-4" />
@@ -391,6 +406,8 @@ export default function BranchManagerCourseSchedulePage() {
           today={today}
           isLoading={isLoading}
           onDelete={setDeleteTarget}
+          onAddClick={setAddPopupDate}
+          onEditClick={(name) => router.push(`/dashboard/branch-manager/course-schedule/edit/${name}`)}
         />
       ) : (
         <CalendarView
@@ -402,8 +419,68 @@ export default function BranchManagerCourseSchedulePage() {
           selectedDate={selectedCalDate}
           onSelectDate={setSelectedCalDate}
           onDelete={setDeleteTarget}
+          onAddClick={setAddPopupDate}
+          onEditClick={(name) => router.push(`/dashboard/branch-manager/course-schedule/edit/${name}`)}
         />
       )}
+
+      {/* ── Add type chooser popup ──────────────────────────────────── */}
+      <AnimatePresence>
+        {addPopupDate && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+            onClick={() => setAddPopupDate(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-surface rounded-[16px] p-6 shadow-xl max-w-xs w-full space-y-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="font-bold text-text-primary text-center">What do you want to add?</h3>
+              <p className="text-xs text-text-secondary text-center">
+                {new Date(addPopupDate + "T00:00:00").toLocaleDateString("en-IN", {
+                  weekday: "long", day: "numeric", month: "long", year: "numeric",
+                })}
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => {
+                    router.push(`/dashboard/branch-manager/course-schedule/new?date=${addPopupDate}`);
+                    setAddPopupDate(null);
+                  }}
+                  className="flex flex-col items-center gap-2 p-4 rounded-[12px] border-2 border-border-light hover:border-primary hover:bg-primary/5 transition-all group"
+                >
+                  <BookOpen className="h-8 w-8 text-primary group-hover:scale-110 transition-transform" />
+                  <span className="text-sm font-semibold text-text-primary">Class</span>
+                  <span className="text-[10px] text-text-tertiary">Course session</span>
+                </button>
+                <button
+                  onClick={() => {
+                    router.push(`/dashboard/branch-manager/course-schedule/event?date=${addPopupDate}`);
+                    setAddPopupDate(null);
+                  }}
+                  className="flex flex-col items-center gap-2 p-4 rounded-[12px] border-2 border-border-light hover:border-amber-400 hover:bg-amber-50 transition-all group"
+                >
+                  <PartyPopper className="h-8 w-8 text-amber-600 group-hover:scale-110 transition-transform" />
+                  <span className="text-sm font-semibold text-text-primary">Event</span>
+                  <span className="text-[10px] text-text-tertiary">Special event</span>
+                </button>
+              </div>
+              <button
+                onClick={() => setAddPopupDate(null)}
+                className="w-full text-xs text-text-tertiary hover:text-text-secondary text-center py-1 transition-colors"
+              >
+                Cancel
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Delete confirmation modal ─────────────────────────────────── */}
       <AnimatePresence>
@@ -455,12 +532,16 @@ function WeekView({
   today,
   isLoading,
   onDelete,
+  onAddClick,
+  onEditClick,
 }: {
   weekDates: Date[];
   byDate: Map<string, CourseSchedule[]>;
   today: string;
   isLoading: boolean;
   onDelete: (name: string) => void;
+  onAddClick: (date: string) => void;
+  onEditClick: (name: string) => void;
 }) {
   if (isLoading) {
     return (
@@ -519,14 +600,28 @@ function WeekView({
                 </div>
 
                 {sessions.length === 0 ? (
-                  <div className="px-4 py-4 text-xs text-text-tertiary text-center">—</div>
+                  <button
+                    onClick={() => onAddClick(dateStr)}
+                    className="px-4 py-6 text-xs text-text-tertiary text-center w-full hover:bg-surface-secondary hover:text-primary transition-colors group/add flex flex-col items-center gap-1 cursor-pointer"
+                  >
+                    <Plus className="h-5 w-5 opacity-0 group-hover/add:opacity-100 transition-opacity text-primary" />
+                    <span>Click to add a class or event</span>
+                  </button>
                 ) : (
                   <div className="p-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                     <AnimatePresence>
                       {sessions.map((s) => (
-                        <ScheduleCard key={s.name} schedule={s} onDelete={onDelete} />
+                        <ScheduleCard key={s.name} schedule={s} onDelete={onDelete} onEdit={onEditClick} />
                       ))}
                     </AnimatePresence>
+                    {/* Add more button */}
+                    <button
+                      onClick={() => onAddClick(dateStr)}
+                      className="rounded-[10px] border-2 border-dashed border-border-light hover:border-primary hover:bg-primary/5 p-3 flex items-center justify-center gap-1.5 text-xs text-text-tertiary hover:text-primary transition-all min-h-[60px] cursor-pointer"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add
+                    </button>
                   </div>
                 )}
               </CardContent>
@@ -551,6 +646,8 @@ function CalendarView({
   selectedDate,
   onSelectDate,
   onDelete,
+  onAddClick,
+  onEditClick,
 }: {
   calDates: Date[];
   byDate: Map<string, CourseSchedule[]>;
@@ -560,6 +657,8 @@ function CalendarView({
   selectedDate: string | null;
   onSelectDate: (d: string | null) => void;
   onDelete: (name: string) => void;
+  onAddClick: (date: string) => void;
+  onEditClick: (name: string) => void;
 }) {
   const selectedSessions = selectedDate ? byDate.get(selectedDate) ?? [] : [];
 
@@ -630,23 +729,36 @@ function CalendarView({
                   {hasSchedules && (
                     <div className="mt-0.5 space-y-0.5">
                       {sessions.slice(0, 3).map((s) => {
-                        const cls = COLOR_BG_LIGHT[s.class_schedule_color ?? ""] ?? "bg-blue-50 text-blue-700";
+                        const isEvent = !!s.custom_event_type;
+                        const cls = isEvent
+                          ? "bg-amber-100 text-amber-800"
+                          : COLOR_BG_LIGHT[s.class_schedule_color ?? ""] ?? "bg-blue-50 text-blue-700";
+                        const displayName = isEvent
+                          ? s.custom_event_title || s.custom_event_type || "Event"
+                          : s.course;
                         return (
                           <div
                             key={s.name}
                             className={`${cls} rounded px-1 py-[2px] text-[9px] sm:text-[10px] font-medium leading-tight`}
-                            title={`${s.course} • ${s.instructor_name} • ${formatTime(s.from_time)} – ${formatTime(s.to_time)}`}
+                            title={isEvent
+                              ? `${s.custom_event_type}: ${s.custom_event_title || ""} • ${formatTime(s.from_time)} – ${formatTime(s.to_time)}`
+                              : `${s.course} • ${s.instructor_name} • ${formatTime(s.from_time)} – ${formatTime(s.to_time)}`
+                            }
                           >
                             <div className="hidden sm:flex sm:items-center sm:gap-1 truncate">
-                              <span className="font-semibold truncate">{s.course}</span>
-                              <span className="opacity-60">·</span>
-                              <span className="truncate opacity-80">{s.instructor_name}</span>
+                              <span className="font-semibold truncate">{displayName}</span>
+                              {!isEvent && s.instructor_name && (
+                                <>
+                                  <span className="opacity-60">·</span>
+                                  <span className="truncate opacity-80">{s.instructor_name}</span>
+                                </>
+                              )}
                             </div>
                             <div className="hidden sm:block text-[8px] opacity-70 leading-none mt-[1px]">
                               {formatTime(s.from_time)} – {formatTime(s.to_time)}
                             </div>
                             <span className="sm:hidden truncate block">
-                              {s.course.length > 10 ? s.course.slice(0, 10) + "…" : s.course}
+                              {displayName.length > 10 ? displayName.slice(0, 10) + "…" : displayName}
                             </span>
                           </div>
                         );
@@ -697,14 +809,25 @@ function CalendarView({
                 </div>
 
                 {selectedSessions.length === 0 ? (
-                  <div className="px-4 py-8 text-center text-sm text-text-tertiary">
-                    No sessions scheduled for this day.
-                  </div>
+                  <button
+                    onClick={() => { onAddClick(selectedDate!); }}
+                    className="px-4 py-8 text-center text-sm text-text-tertiary hover:text-primary hover:bg-surface-secondary transition-colors w-full cursor-pointer flex flex-col items-center gap-2"
+                  >
+                    <Plus className="h-5 w-5" />
+                    No sessions — click to add a class or event
+                  </button>
                 ) : (
                   <div className="p-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                     {selectedSessions.map((s) => (
-                      <ScheduleCard key={s.name} schedule={s} onDelete={onDelete} />
+                      <ScheduleCard key={s.name} schedule={s} onDelete={onDelete} onEdit={onEditClick} />
                     ))}
+                    <button
+                      onClick={() => onAddClick(selectedDate!)}
+                      className="rounded-[10px] border-2 border-dashed border-border-light hover:border-primary hover:bg-primary/5 p-3 flex items-center justify-center gap-1.5 text-xs text-text-tertiary hover:text-primary transition-all min-h-[60px] cursor-pointer"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add
+                    </button>
                   </div>
                 )}
               </CardContent>
@@ -723,11 +846,16 @@ function CalendarView({
 function ScheduleCard({
   schedule: s,
   onDelete,
+  onEdit,
 }: {
   schedule: CourseSchedule;
   onDelete: (name: string) => void;
+  onEdit: (name: string) => void;
 }) {
-  const borderCls = COLOR_BORDER[s.class_schedule_color ?? ""] ?? "border-l-primary";
+  const isEvent = !!s.custom_event_type;
+  const borderCls = isEvent
+    ? "border-l-amber-400"
+    : COLOR_BORDER[s.class_schedule_color ?? ""] ?? "border-l-primary";
 
   return (
     <motion.div
@@ -737,31 +865,62 @@ function ScheduleCard({
       exit={{ opacity: 0, scale: 0.95 }}
     >
       <div
-        className={`relative rounded-[10px] border border-border-light border-l-4 ${borderCls} bg-surface p-3 space-y-1.5 hover:shadow-card-hover transition-shadow group`}
-        style={s.color ? { backgroundColor: s.color + "33" } : undefined}
+        onClick={() => onEdit(s.name)}
+        className={`relative rounded-[10px] border border-border-light border-l-4 ${borderCls} ${isEvent ? "bg-amber-50/50" : "bg-surface"} p-3 space-y-1.5 hover:shadow-card-hover transition-shadow group cursor-pointer`}
+        style={!isEvent && s.color ? { backgroundColor: s.color + "33" } : undefined}
       >
+        {/* Event badge */}
+        {isEvent && (
+          <span className="inline-block text-[9px] font-bold uppercase tracking-wider bg-amber-200 text-amber-800 px-1.5 py-0.5 rounded-full mb-0.5">
+            {s.custom_event_type}
+          </span>
+        )}
+
         <div className="flex items-start justify-between gap-1">
           <div className="flex items-center gap-1.5 min-w-0">
-            <BookOpen className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+            {isEvent ? (
+              <PartyPopper className="h-3.5 w-3.5 text-amber-600 flex-shrink-0" />
+            ) : (
+              <BookOpen className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+            )}
             <span className="font-semibold text-sm text-text-primary truncate">
-              {s.custom_topic || s.course}
+              {isEvent
+                ? s.custom_event_title || s.custom_event_type
+                : s.custom_topic || s.course}
             </span>
           </div>
-          <button
-            onClick={() => onDelete(s.name)}
-            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-error/10 text-error"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
+          <div className="flex items-center gap-0.5">
+            <button
+              onClick={(e) => { e.stopPropagation(); onEdit(s.name); }}
+              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-primary/10 text-primary"
+              title="Edit"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(s.name); }}
+              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-error/10 text-error"
+              title="Delete"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
 
-        {s.custom_topic && (
+        {!isEvent && s.custom_topic && (
           <div className="flex items-center gap-1.5 text-xs text-text-secondary">
             <FileText className="h-3 w-3 text-text-tertiary" />
             <span className="truncate">{s.course}</span>
             {s.custom_topic_covered ? (
               <CheckCircle2 className="h-3 w-3 text-success flex-shrink-0" />
             ) : null}
+          </div>
+        )}
+
+        {isEvent && s.course && (
+          <div className="flex items-center gap-1.5 text-xs text-text-secondary">
+            <BookOpen className="h-3 w-3 text-text-tertiary" />
+            <span className="truncate">{s.course}</span>
           </div>
         )}
 
@@ -777,10 +936,12 @@ function ScheduleCard({
           <span>{formatTime(s.from_time)} – {formatTime(s.to_time)}</span>
         </div>
 
-        <div className="flex items-center gap-1.5 text-xs text-text-secondary">
-          <Users className="h-3 w-3 text-text-tertiary" />
-          <span className="truncate">{s.student_group}</span>
-        </div>
+        {s.student_group && (
+          <div className="flex items-center gap-1.5 text-xs text-text-secondary">
+            <Users className="h-3 w-3 text-text-tertiary" />
+            <span className="truncate">{s.student_group}</span>
+          </div>
+        )}
 
         {s.room && (
           <div className="flex items-center gap-1.5 text-xs text-text-secondary">
