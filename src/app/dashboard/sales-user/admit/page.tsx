@@ -402,8 +402,8 @@ function AdmitPageContent() {
   const paymentOptions: PaymentOptionSummary[] = useMemo(() => {
     if (!feeConfig) return [];
     const options = getAllPaymentOptions(feeConfig, selectedAcademicYear, selectedEnrollmentDate);
-    return isReferred ? applyReferralDiscount(options) : options;
-  }, [feeConfig, selectedAcademicYear, selectedEnrollmentDate, isReferred]);
+    return isReferred ? applyReferralDiscount(options, selectedPlan) : options;
+  }, [feeConfig, selectedAcademicYear, selectedEnrollmentDate, isReferred, selectedPlan]);
 
   const selectedOption: PaymentOptionSummary | null = useMemo(() => {
     if (!selectedInstalments || paymentOptions.length === 0) return null;
@@ -629,7 +629,7 @@ function AdmitPageContent() {
         </button>
         <div>
           <h1 className="text-2xl font-bold text-text-primary">{isDemo ? "Demo Student Admission" : isReferred ? "Siblings Admission" : "New Student Admission"}</h1>
-          <p className="text-sm text-text-secondary">{isDemo ? "Flat ₹499 demo fee — 1 month duration" : isReferred ? "5% sibling discount applied on first instalment" : "Fill in the details to register a new student"}</p>
+          <p className="text-sm text-text-secondary">{isDemo ? "Flat ₹499 demo fee — 1 month duration" : isReferred ? `${selectedPlan === "Advanced" ? "10" : "5"}% sibling discount applied on first instalment` : "Fill in the details to register a new student"}</p>
         </div>
       </div>
 
@@ -1192,7 +1192,7 @@ function AdmitPageContent() {
                     <div className="bg-green-50 rounded-[10px] p-4 border border-green-200 flex items-start gap-2">
                       <Tag className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
                       <div>
-                        <p className="text-sm font-medium text-green-700">5% Sibling Discount Applied</p>
+                        <p className="text-sm font-medium text-green-700">{selectedPlan === "Advanced" ? "10" : "5"}% Sibling Discount Applied</p>
                         <p className="text-xs text-green-600 mt-0.5">The discount is deducted from the first instalment. For one-time payment, it&apos;s deducted from the total.</p>
                       </div>
                     </div>

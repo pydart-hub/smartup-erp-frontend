@@ -27,6 +27,7 @@ import {
   type LeaderboardBranch,
 } from "@/lib/api/director";
 import { formatCurrency } from "@/lib/utils/formatters";
+import { getBranchTarget, getCollectionTarget, getTotalTarget, getTotalCollectionTarget } from "@/lib/constants/branch-targets";
 
 /* ── Types ── */
 
@@ -295,6 +296,10 @@ export default function LeaderboardPage() {
   const [perfType, setPerfType] = useState<PerfType>("overall");
   const [sortKey, setSortKey] = useState<SortKey>("overallScore");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [admDropOpen, setAdmDropOpen] = useState(false);
+  const [colDropOpen, setColDropOpen] = useState(false);
+  const [admSort, setAdmSort] = useState<"default" | "asc" | "desc">("default");
+  const [colSort, setColSort] = useState<"default" | "asc" | "desc">("default");
 
   const handleSort = (key: SortKey) => {
     if (key === sortKey) {
@@ -312,7 +317,16 @@ export default function LeaderboardPage() {
   });
 
   const branches = data?.data ?? [];
-  const admissionTarget = data?.admissionTarget ?? 400;
+
+  const totalAdmissionTarget = useMemo(
+    () => getTotalTarget(branches.map((b) => b.branch)),
+    [branches],
+  );
+
+  const totalCollectionTarget = useMemo(
+    () => getTotalCollectionTarget(branches.map((b) => b.branch)),
+    [branches],
+  );
 
   const ranked = useMemo(() => {
     const arr = [...branches];
@@ -463,8 +477,8 @@ export default function LeaderboardPage() {
             {/* ── Summary Stats ── */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
               <StatPill icon={Users} label="Total Students" value={totals.students.toLocaleString("en-IN")} color="bg-primary" />
-              <StatPill icon={UserPlus} label={period === "all" ? "Total Enrolled" : "New Admissions"} value={`${totals.admissions} / ${admissionTarget * branches.length}`} color="bg-blue-500" />
-              <StatPill icon={IndianRupee} label="Collected" value={formatCurrency(totals.collected)} color="bg-emerald-500" />
+              <StatPill icon={UserPlus} label={period === "all" ? "Total Enrolled" : "New Admissions"} value={`${totals.admissions} / ${totalAdmissionTarget}`} color="bg-blue-500" />
+              <StatPill icon={IndianRupee} label="Collected" value={`${formatCurrency(totals.collected)} / ${formatCurrency(totalCollectionTarget)}`} color="bg-emerald-500" />
               <StatPill icon={AlertTriangle} label="Pending" value={formatCurrency(totals.pending)} color="bg-red-500" />
               <StatPill icon={Target} label="Collection Rate" value={`${pct(totals.collected, totals.collected + totals.pending)}%`} color={`bg-gradient-to-r ${activePerf.gradient}`} />
             </div>
@@ -475,21 +489,184 @@ export default function LeaderboardPage() {
                   <Target className="h-3.5 w-3.5 text-blue-500" />
                   <span className="text-xs font-bold text-text-primary">Admission Target Progress</span>
                   <span className="text-[10px] text-text-tertiary bg-app-bg border border-border-light px-2 py-0.5 rounded-full">
-                    {admissionTarget} per branch
+                    Per-branch targets
                   </span>
                 </div>
-                <span className="text-xs font-black text-blue-500">
-                  {totals.admissions}/{admissionTarget * branches.length} ({Math.min(100, Math.round(totals.admissions / (admissionTarget * branches.length) * 100))}%)
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black text-blue-500">
+                    {totals.admissions}/{totalAdmissionTarget} ({Math.min(100, Math.round(totals.admissions / totalAdmissionTarget * 100))}%)
+                  </span>
+                  <button
+                    onClick={() => setAdmDropOpen((v) => !v)}
+                    className="flex items-center gap-0.5 text-[10px] text-blue-500 bg-blue-500/10 hover:bg-blue-500/20 px-2 py-0.5 rounded-full transition-colors"
+                  >
+                    Details
+                    {admDropOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                  </button>
+                </div>
               </div>
               <div className="h-2.5 rounded-full bg-blue-500/10 overflow-hidden">
                 <motion.div
                   initial={{ width: 0 }}
-                  animate={{ width: `${Math.min(100, (totals.admissions / (admissionTarget * branches.length)) * 100)}%` }}
+                  animate={{ width: `${Math.min(100, (totals.admissions / totalAdmissionTarget) * 100)}%` }}
                   transition={{ duration: 1, ease: "easeOut" }}
                   className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500"
                 />
               </div>
+              <AnimatePresence>
+                {admDropOpen && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="mt-3 rounded-lg border border-blue-500/15 overflow-hidden">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="bg-blue-500/10 text-text-tertiary">
+                            <th className="text-left px-3 py-1.5 font-medium">Branch</th>
+                            <th className="text-right px-3 py-1.5 font-medium">Target</th>
+                            <th className="text-right px-3 py-1.5 font-medium">Taken</th>
+                            <th className="text-right px-3 py-1.5 font-medium">Balance</th>
+                            <th
+                              className="text-right px-3 py-1.5 font-medium cursor-pointer select-none hover:text-blue-600 transition-colors"
+                              onClick={() => setAdmSort((s) => s === "desc" ? "asc" : s === "asc" ? "default" : "desc")}
+                            >
+                              <span className="inline-flex items-center justify-end gap-0.5">
+                                %
+                                {admSort === "desc" && <ChevronDown className="h-3 w-3 text-blue-500" />}
+                                {admSort === "asc" && <ChevronUp className="h-3 w-3 text-blue-500" />}
+                                {admSort === "default" && <span className="text-[9px] opacity-40">↕</span>}
+                              </span>
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(() => {
+                            const rows = branches.map((b) => {
+                              const target = getBranchTarget(b.branch);
+                              const taken = b.newAdmissions;
+                              const balance = Math.max(0, target - taken);
+                              const pctVal = Math.min(100, Math.round((taken / target) * 100));
+                              return { b, target, taken, balance, pctVal };
+                            });
+                            if (admSort === "desc") rows.sort((a, z) => z.pctVal - a.pctVal);
+                            else if (admSort === "asc") rows.sort((a, z) => a.pctVal - z.pctVal);
+                            return rows.map(({ b, target, taken, balance, pctVal }, i) => (
+                              <tr key={b.branch} className={i % 2 === 0 ? "bg-surface" : "bg-blue-500/5"}>
+                                <td className="px-3 py-1.5 font-medium text-text-primary">{b.branchShort}</td>
+                                <td className="px-3 py-1.5 text-right text-text-secondary">{target}</td>
+                                <td className="px-3 py-1.5 text-right font-semibold text-blue-600">{taken}</td>
+                                <td className="px-3 py-1.5 text-right text-text-secondary">{balance}</td>
+                                <td className="px-3 py-1.5 text-right">
+                                  <span className={`font-bold ${
+                                    pctVal >= 75 ? "text-emerald-600" : pctVal >= 40 ? "text-amber-600" : "text-red-500"
+                                  }`}>{pctVal}%</span>
+                                </td>
+                              </tr>
+                            ));
+                          })()}
+                        </tbody>
+                      </table>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+            {/* ── Collection target progress bar ── */}
+            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <IndianRupee className="h-3.5 w-3.5 text-emerald-500" />
+                  <span className="text-xs font-bold text-text-primary">Collection Target Progress</span>
+                  <span className="text-[10px] text-text-tertiary bg-app-bg border border-border-light px-2 py-0.5 rounded-full">
+                    Per-branch targets
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black text-emerald-500">
+                    {formatCurrency(totals.collected)}/{formatCurrency(totalCollectionTarget)} ({Math.min(100, Math.round(totals.collected / totalCollectionTarget * 100))}%)
+                  </span>
+                  <button
+                    onClick={() => setColDropOpen((v) => !v)}
+                    className="flex items-center gap-0.5 text-[10px] text-emerald-600 bg-emerald-500/10 hover:bg-emerald-500/20 px-2 py-0.5 rounded-full transition-colors"
+                  >
+                    Details
+                    {colDropOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                  </button>
+                </div>
+              </div>
+              <div className="h-2.5 rounded-full bg-emerald-500/10 overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.min(100, (totals.collected / totalCollectionTarget) * 100)}%` }}
+                  transition={{ duration: 1, ease: "easeOut" }}
+                  className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-green-500"
+                />
+              </div>
+              <AnimatePresence>
+                {colDropOpen && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="mt-3 rounded-lg border border-emerald-500/15 overflow-hidden">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="bg-emerald-500/10 text-text-tertiary">
+                            <th className="text-left px-3 py-1.5 font-medium">Branch</th>
+                            <th className="text-right px-3 py-1.5 font-medium">Target</th>
+                            <th className="text-right px-3 py-1.5 font-medium">Collected</th>
+                            <th className="text-right px-3 py-1.5 font-medium">Balance</th>
+                            <th
+                              className="text-right px-3 py-1.5 font-medium cursor-pointer select-none hover:text-emerald-600 transition-colors"
+                              onClick={() => setColSort((s) => s === "desc" ? "asc" : s === "asc" ? "default" : "desc")}
+                            >
+                              <span className="inline-flex items-center justify-end gap-0.5">
+                                %
+                                {colSort === "desc" && <ChevronDown className="h-3 w-3 text-emerald-500" />}
+                                {colSort === "asc" && <ChevronUp className="h-3 w-3 text-emerald-500" />}
+                                {colSort === "default" && <span className="text-[9px] opacity-40">↕</span>}
+                              </span>
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(() => {
+                            const rows = branches.map((b) => {
+                              const target = getCollectionTarget(b.branch);
+                              const collected = b.totalCollected;
+                              const balance = Math.max(0, target - collected);
+                              const pctVal = Math.min(100, Math.round((collected / target) * 100));
+                              return { b, target, collected, balance, pctVal };
+                            });
+                            if (colSort === "desc") rows.sort((a, z) => z.pctVal - a.pctVal);
+                            else if (colSort === "asc") rows.sort((a, z) => a.pctVal - z.pctVal);
+                            return rows.map(({ b, target, collected, balance, pctVal }, i) => (
+                              <tr key={b.branch} className={i % 2 === 0 ? "bg-surface" : "bg-emerald-500/5"}>
+                                <td className="px-3 py-1.5 font-medium text-text-primary">{b.branchShort}</td>
+                                <td className="px-3 py-1.5 text-right text-text-secondary">{formatCurrency(target)}</td>
+                                <td className="px-3 py-1.5 text-right font-semibold text-emerald-600">{formatCurrency(collected)}</td>
+                                <td className="px-3 py-1.5 text-right text-text-secondary">{formatCurrency(balance)}</td>
+                                <td className="px-3 py-1.5 text-right">
+                                  <span className={`font-bold ${
+                                    pctVal >= 75 ? "text-emerald-600" : pctVal >= 40 ? "text-amber-600" : "text-red-500"
+                                  }`}>{pctVal}%</span>
+                                </td>
+                              </tr>
+                            ));
+                          })()}
+                        </tbody>
+                      </table>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* ── Podium / Top 3 ── */}

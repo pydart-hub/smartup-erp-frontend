@@ -20,12 +20,20 @@ export interface ExpenseSummaryResponse {
 export interface ExpenseCategory {
   account: string;
   accountName: string;
+  parentGroup: string | null;
+  total: number;
+  entryCount: number;
+}
+
+export interface ExpenseGroup {
+  name: string;
   total: number;
   entryCount: number;
 }
 
 export interface ExpenseBranchDetailResponse {
   categories: ExpenseCategory[];
+  groups: ExpenseGroup[];
   total: number;
   entryCount: number;
 }

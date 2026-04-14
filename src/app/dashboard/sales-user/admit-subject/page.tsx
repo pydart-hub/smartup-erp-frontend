@@ -462,8 +462,8 @@ function SubjectAdmitPageContent() {
   const paymentOptions: PaymentOptionSummary[] = useMemo(() => {
     if (!feeConfig) return [];
     const options = getAllPaymentOptions(feeConfig, selectedAcademicYear, selectedEnrollmentDate);
-    return isReferred ? applyReferralDiscount(options) : options;
-  }, [feeConfig, selectedAcademicYear, selectedEnrollmentDate, isReferred]);
+    return isReferred ? applyReferralDiscount(options, selectedPlan) : options;
+  }, [feeConfig, selectedAcademicYear, selectedEnrollmentDate, isReferred, selectedPlan]);
 
   const selectedOption: PaymentOptionSummary | null = useMemo(() => {
     if (!selectedInstalments || paymentOptions.length === 0) return null;
@@ -683,7 +683,7 @@ function SubjectAdmitPageContent() {
         </button>
         <div>
           <h1 className="text-2xl font-bold text-text-primary">{isReferred ? "Subject-Wise Sibling Admission" : "Subject-Wise Tuition Admission"}</h1>
-          <p className="text-sm text-text-secondary">{isReferred ? "5% sibling discount applied on first instalment" : "Enrol a student for individual subject tuition (HSS level)"}</p>
+          <p className="text-sm text-text-secondary">{isReferred ? `${selectedPlan === "Advanced" ? "10" : "5"}% sibling discount applied on first instalment` : "Enrol a student for individual subject tuition (HSS level)"}</p>
         </div>
       </div>
 

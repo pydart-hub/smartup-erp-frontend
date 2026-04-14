@@ -161,22 +161,42 @@ export async function GET(request: NextRequest) {
 
     // ─── mode=branch-detail ───
     if (mode === "branch-detail") {
-      // All expense leaf accounts for this branch
-      const branchAccounts: { name: string; account_name: string }[] =
-        await frappeGet("/api/resource/Account", {
+      // All expense accounts for this branch (both leaf and group)
+      const [branchAccounts, groupAccounts]: [
+        { name: string; account_name: string; parent_account: string | null }[],
+        { name: string; account_name: string; parent_account: string | null }[],
+      ] = await Promise.all([
+        frappeGet("/api/resource/Account", {
           filters: JSON.stringify([
             ["root_type", "=", "Expense"],
             ["is_group", "=", 0],
             ["company", "=", branch],
           ]),
-          fields: JSON.stringify(["name", "account_name"]),
+          fields: JSON.stringify(["name", "account_name", "parent_account"]),
           limit_page_length: "200",
-        });
+        }),
+        frappeGet("/api/resource/Account", {
+          filters: JSON.stringify([
+            ["root_type", "=", "Expense"],
+            ["is_group", "=", 1],
+            ["company", "=", branch],
+          ]),
+          fields: JSON.stringify(["name", "account_name", "parent_account"]),
+          limit_page_length: "50",
+        }),
+      ]);
+
+      // Build a lookup: group account name → friendly name
+      const groupNameMap = new Map<string, string>();
+      for (const g of groupAccounts) {
+        groupNameMap.set(g.name, g.account_name);
+      }
 
       const acctNames = branchAccounts.map((a) => a.name);
       if (acctNames.length === 0) {
         return NextResponse.json({
           categories: [],
+          groups: [],
           total: 0,
           entryCount: 0,
         });
@@ -204,19 +224,35 @@ export async function GET(request: NextRequest) {
           order_by: "sum(debit) desc",
         });
 
-      const categories = catTotals.map((r) => ({
-        account: r.account,
-        accountName:
-          branchAccounts.find((a) => a.name === r.account)?.account_name ??
-          r.account,
-        total: r.total_debit,
-        entryCount: r.entry_count,
-      }));
+      const categories = catTotals.map((r) => {
+        const acct = branchAccounts.find((a) => a.name === r.account);
+        const parentAcct = acct?.parent_account ?? null;
+        return {
+          account: r.account,
+          accountName: acct?.account_name ?? r.account,
+          parentGroup: parentAcct ? (groupNameMap.get(parentAcct) ?? parentAcct) : null,
+          total: r.total_debit,
+          entryCount: r.entry_count,
+        };
+      });
+
+      // Build group summaries from categories
+      const groupTotals = new Map<string, { total: number; entryCount: number }>();
+      for (const cat of categories) {
+        const gName = cat.parentGroup ?? "Other";
+        const existing = groupTotals.get(gName) ?? { total: 0, entryCount: 0 };
+        existing.total += cat.total;
+        existing.entryCount += cat.entryCount;
+        groupTotals.set(gName, existing);
+      }
+      const groups = Array.from(groupTotals.entries())
+        .map(([name, data]) => ({ name, total: data.total, entryCount: data.entryCount }))
+        .sort((a, b) => b.total - a.total);
 
       const total = categories.reduce((s, c) => s + c.total, 0);
       const entryCount = categories.reduce((s, c) => s + c.entryCount, 0);
 
-      return NextResponse.json({ categories, total, entryCount });
+      return NextResponse.json({ categories, groups, total, entryCount });
     }
 
     // ─── mode=transactions ───

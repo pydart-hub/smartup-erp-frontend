@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -15,14 +15,19 @@ import {
   AlertCircle,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   FileText,
+  FolderOpen,
+  Folder,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import {
   getBranchExpenseDetail,
   getBranchExpenseTransactions,
+  type ExpenseCategory,
+  type ExpenseGroup,
 } from "@/lib/api/expenses";
-import { formatCurrency, formatDate } from "@/lib/utils/formatters";
+import { formatCurrencyExact, formatDate } from "@/lib/utils/formatters";
 
 /* ── helpers ── */
 const Pulse = ({ w = "w-14" }: { w?: string }) => (
@@ -33,16 +38,44 @@ const Pulse = ({ w = "w-14" }: { w?: string }) => (
 
 const PAGE_SIZE = 50;
 
-/* ── Category bar chart ── */
+/* ── Category bar chart (grouped by parent account) ── */
 function CategoryBreakdown({
   categories,
+  groups,
   total,
   isLoading,
 }: {
-  categories: { accountName: string; total: number; entryCount: number }[];
+  categories: ExpenseCategory[];
+  groups: ExpenseGroup[];
   total: number;
   isLoading: boolean;
 }) {
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  // Group categories by parentGroup
+  const grouped = useMemo(() => {
+    const map = new Map<string, ExpenseCategory[]>();
+    for (const cat of categories) {
+      const key = cat.parentGroup ?? "Other";
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(cat);
+    }
+    // Sort children within each group by total desc
+    for (const children of map.values()) {
+      children.sort((a, b) => b.total - a.total);
+    }
+    return map;
+  }, [categories]);
+
+  const toggle = (groupName: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupName)) next.delete(groupName);
+      else next.add(groupName);
+      return next;
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="rounded-xl border border-border-light bg-surface p-4 space-y-3">
@@ -65,48 +98,125 @@ function CategoryBreakdown({
     );
   }
 
-  const maxAmount = categories[0]?.total ?? 1;
+  const maxGroupTotal = groups.length > 0 ? groups[0].total : 1;
 
   return (
     <div className="rounded-xl border border-border-light bg-surface p-4">
       <h3 className="text-sm font-semibold text-text-primary mb-4">
         Expense Breakdown by Category
       </h3>
-      <div className="space-y-3">
-        {categories.map((cat, i) => {
-          const pct = total > 0 ? (cat.total / total) * 100 : 0;
-          const barW = maxAmount > 0 ? (cat.total / maxAmount) * 100 : 0;
+      <div className="space-y-2">
+        {groups.map((group, gi) => {
+          const isOpen = expanded.has(group.name);
+          const children = grouped.get(group.name) ?? [];
+          const pct = total > 0 ? (group.total / total) * 100 : 0;
+          const barW = maxGroupTotal > 0 ? (group.total / maxGroupTotal) * 100 : 0;
+          const maxChildTotal = children.length > 0 ? children[0].total : 1;
+
           return (
             <motion.div
-              key={cat.accountName}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.03 }}
+              key={group.name}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: gi * 0.04 }}
             >
-              <div className="flex items-center justify-between mb-1">
-                <p className="text-xs text-text-secondary truncate flex-1 min-w-0">
-                  {cat.accountName}
-                </p>
-                <div className="flex items-center gap-2 ml-2 shrink-0">
-                  <span className="text-[10px] text-text-tertiary">
-                    {pct.toFixed(1)}%
-                  </span>
-                  <span className="text-xs font-semibold text-text-primary">
-                    {formatCurrency(cat.total)}
-                  </span>
+              {/* Group header — clickable */}
+              <button
+                onClick={() => toggle(group.name)}
+                className="w-full text-left rounded-lg px-3 py-2.5 hover:bg-background/60 transition-colors group/row"
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <motion.div
+                      animate={{ rotate: isOpen ? 90 : 0 }}
+                      transition={{ duration: 0.15 }}
+                    >
+                      <ChevronRight className="h-3.5 w-3.5 text-text-tertiary shrink-0" />
+                    </motion.div>
+                    {isOpen ? (
+                      <FolderOpen className="h-3.5 w-3.5 text-rose-500 shrink-0" />
+                    ) : (
+                      <Folder className="h-3.5 w-3.5 text-rose-400 shrink-0" />
+                    )}
+                    <span className="text-[13px] font-semibold text-text-primary truncate">
+                      {group.name}
+                    </span>
+                    <span className="text-[10px] text-text-tertiary shrink-0">
+                      ({children.length})
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2.5 ml-2 shrink-0">
+                    <span className="text-[10px] text-text-tertiary font-medium">
+                      {pct.toFixed(1)}%
+                    </span>
+                    <span className="text-[13px] font-bold text-rose-600 tabular-nums">
+                      {formatCurrencyExact(group.total)}
+                    </span>
+                  </div>
                 </div>
-              </div>
-              <div className="w-full h-2 rounded-full bg-border-light overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${barW}%` }}
-                  transition={{ duration: 0.5, delay: i * 0.03 }}
-                  className="h-full rounded-full bg-gradient-to-r from-rose-400 to-rose-500"
-                />
-              </div>
-              <p className="text-[10px] text-text-tertiary mt-0.5">
-                {cat.entryCount} {cat.entryCount === 1 ? "entry" : "entries"}
-              </p>
+                <div className="w-full h-2 rounded-full bg-border-light overflow-hidden ml-7">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${barW}%` }}
+                    transition={{ duration: 0.5, delay: gi * 0.04 }}
+                    className="h-full rounded-full bg-gradient-to-r from-rose-400 to-rose-500"
+                  />
+                </div>
+              </button>
+
+              {/* Expanded children */}
+              <AnimatePresence initial={false}>
+                {isOpen && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="ml-7 pl-3 border-l-2 border-rose-200/40 space-y-1.5 py-2">
+                      {children.map((cat, ci) => {
+                        const catPct = total > 0 ? (cat.total / total) * 100 : 0;
+                        const catBarW = maxChildTotal > 0 ? (cat.total / maxChildTotal) * 100 : 0;
+                        return (
+                          <motion.div
+                            key={cat.account}
+                            initial={{ opacity: 0, x: -6 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: ci * 0.02 }}
+                            className="px-2 py-1.5 rounded-md hover:bg-background/40 transition-colors"
+                          >
+                            <div className="flex items-center justify-between mb-0.5">
+                              <p className="text-xs text-text-secondary truncate flex-1 min-w-0">
+                                {cat.accountName}
+                              </p>
+                              <div className="flex items-center gap-2 ml-2 shrink-0">
+                                <span className="text-[10px] text-text-tertiary">
+                                  {catPct.toFixed(1)}%
+                                </span>
+                                <span className="text-xs font-semibold text-text-primary tabular-nums">
+                                  {formatCurrencyExact(cat.total)}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full h-1.5 rounded-full bg-border-light/60 overflow-hidden">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${catBarW}%` }}
+                                transition={{ duration: 0.4, delay: ci * 0.02 }}
+                                className="h-full rounded-full bg-rose-300/80"
+                              />
+                            </div>
+                            <p className="text-[10px] text-text-tertiary mt-0.5">
+                              {cat.entryCount} {cat.entryCount === 1 ? "entry" : "entries"}
+                            </p>
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           );
         })}
@@ -230,7 +340,7 @@ function TransactionTable({
                       {shortAccount(tx.account)}
                     </td>
                     <td className="px-4 py-2.5 text-right font-semibold text-rose-600">
-                      {formatCurrency(tx.debit)}
+                      {formatCurrencyExact(tx.debit)}
                     </td>
                     <td className="px-4 py-2.5 text-text-secondary max-w-[200px] truncate">
                       {cleanRemarks(tx.remarks)}
@@ -370,7 +480,7 @@ export default function BranchExpenseDetailPage() {
             {[
               {
                 label: "Total Expenses",
-                value: formatCurrency(data?.total ?? 0),
+                value: formatCurrencyExact(data?.total ?? 0),
                 icon: Receipt,
                 color: "text-rose-600",
                 bg: "bg-rose-500/10",
@@ -384,7 +494,7 @@ export default function BranchExpenseDetailPage() {
               },
               {
                 label: "Avg Per Entry",
-                value: formatCurrency(avgPerEntry),
+                value: formatCurrencyExact(avgPerEntry),
                 icon: TrendingDown,
                 color: "text-amber-600",
                 bg: "bg-amber-500/10",
@@ -424,6 +534,7 @@ export default function BranchExpenseDetailPage() {
           {/* Category breakdown */}
           <CategoryBreakdown
             categories={data?.categories ?? []}
+            groups={data?.groups ?? []}
             total={data?.total ?? 0}
             isLoading={isLoading}
           />

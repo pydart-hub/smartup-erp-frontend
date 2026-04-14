@@ -29,6 +29,7 @@ import {
   getStudentCountByType,
 } from "@/lib/api/director";
 import { AnimatedNumber } from "@/components/dashboard/AnimatedValue";
+import { getBranchTarget } from "@/lib/constants/branch-targets";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -96,7 +97,7 @@ function BranchCard({ branch }: { branch: { name: string; abbr: string } }) {
                 <ChevronRight className="h-4 w-4 text-text-tertiary opacity-0 group-hover:opacity-100 group-hover:text-primary transition-all" />
                 {/* Target badge */}
                 {!loadingActive && activeCount != null && (() => {
-                  const TARGET = 400;
+                  const TARGET = getBranchTarget(branch.name);
                   const pctVal = Math.min(100, Math.round((activeCount / TARGET) * 100));
                   const color =
                     pctVal >= 75 ? "bg-emerald-500/10 text-emerald-600 ring-emerald-500/30"

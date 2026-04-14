@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getBranchTarget, getCollectionTarget, getTotalTarget } from "@/lib/constants/branch-targets";
 
 export const dynamic = "force-dynamic";
 
@@ -243,14 +244,14 @@ export async function GET(request: NextRequest) {
 
     // ── Composite "Overall" score ──
     // Weights: Admissions 40% + Collection Amount 35% + Collection Rate 25%
-    // Admission target is 400 per branch (absolute target).
-    // Collection amount is normalised against the best branch so size differences don't distort.
-    const admissionTarget = 400; // per-branch annual target
-    const maxCollected  = Math.max(...result.map((r) => r.totalCollected), 1);
+    // Each branch has its own admission target and collection target.
+    // Collection amount is scored against the branch's own collection target.
 
     result.forEach((r) => {
-      const admissionScore        = Math.min(100, (r.newAdmissions / admissionTarget) * 100);
-      const collectionAmountScore = (r.totalCollected / maxCollected) * 100;
+      const branchTarget          = getBranchTarget(r.branch);
+      const collectionTarget      = getCollectionTarget(r.branch);
+      const admissionScore        = Math.min(100, (r.newAdmissions / branchTarget) * 100);
+      const collectionAmountScore = Math.min(100, (r.totalCollected / collectionTarget) * 100);
       const collectionRateScore   = r.collectionRate; // already 0-100
       r.scoreAdmissions     = Math.round(admissionScore);
       r.scoreCollectedAmt   = Math.round(collectionAmountScore);
@@ -265,7 +266,7 @@ export async function GET(request: NextRequest) {
     // Sort by overallScore descending (default view)
     result.sort((a, b) => b.overallScore - a.overallScore);
 
-    return NextResponse.json({ data: result, period, admissionTarget });
+    return NextResponse.json({ data: result, period });
   } catch (err) {
     console.error("[leaderboard]", err);
     return NextResponse.json(

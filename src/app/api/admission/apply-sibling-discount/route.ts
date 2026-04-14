@@ -1,11 +1,11 @@
 /**
  * POST /api/admission/apply-sibling-discount
  *
- * Applies a retroactive 5% sibling discount to the EXISTING sibling's
+ * Applies a retroactive sibling discount to the EXISTING sibling's
  * first upcoming unpaid invoice when a new sibling is admitted.
  *
- * Discount = 5% of the existing sibling's Sales Order grand_total
- * (total original fee = paid + unpaid).
+ * Discount = 10% for Advanced plan, 5% for other plans
+ * (based on existing sibling's Sales Order custom_plan).
  *
  * Mechanism: Creates a Credit Note (is_return=1) against the first
  * unpaid invoice, which auto-reduces its outstanding_amount.
@@ -140,7 +140,7 @@ export async function POST(req: NextRequest) {
         ["customer", "=", customerName],
         ["docstatus", "=", 1],
       ],
-      ["name", "grand_total"],
+      ["name", "grand_total", "custom_plan"],
       1,
       "creation desc",
     );
@@ -160,8 +160,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 4. Calculate 5% discount
-    const discountAmount = Math.round(totalFee * 0.05);
+    // 4. Calculate discount — 10% for Advanced plan, 5% otherwise
+    const plan = (salesOrders[0].custom_plan as string) || "";
+    const discountRate = plan === "Advanced" ? 0.10 : 0.05;
+    const discountAmount = Math.round(totalFee * discountRate);
 
     // 5. Get unpaid invoices (outstanding > 0), ordered by due_date ascending
     const unpaidInvoices = await frappeGetList(
@@ -222,7 +224,7 @@ export async function POST(req: NextRequest) {
     const cnItem: Record<string, unknown> = {
       item_code: firstItem.item_code,
       item_name: firstItem.item_name,
-      description: `Sibling discount — 5% of total fee ₹${totalFee.toLocaleString("en-IN")}`,
+      description: `Sibling discount — ${Math.round(discountRate * 100)}% of total fee ₹${totalFee.toLocaleString("en-IN")}`,  
       qty: -1,
       rate: effectiveDiscount,
       amount: -effectiveDiscount,
