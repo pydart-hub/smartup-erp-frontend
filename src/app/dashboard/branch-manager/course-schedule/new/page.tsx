@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { Suspense, useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -69,7 +69,7 @@ const inputCls =
 
 // ── Page ─────────────────────────────────────────────────────────────────────────────
 
-export default function NewCourseSchedulePage() {
+function NewCourseSchedulePage() {
   const { defaultCompany, allowedCompanies } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -584,5 +584,13 @@ export default function NewCourseSchedulePage() {
         </div>
       </form>
     </motion.div>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense>
+      <NewCourseSchedulePage />
+    </Suspense>
   );
 }
