@@ -76,20 +76,22 @@ export async function GET(request: NextRequest) {
       // Fetch ALL GL debits grouped by company+account (small result set ~80 rows).
       // We filter against the expense account set in-memory because passing 300+
       // account names in a Frappe "in" filter exceeds the URL length limit.
+      // Use sum(debit) - sum(credit) to match Frappe P&L net calculation.
       const allGLTotals: {
         company: string;
         account: string;
         total_debit: number;
+        total_credit: number;
         entry_count: number;
       }[] = await frappeGet("/api/resource/GL Entry", {
         filters: JSON.stringify([
           ["is_cancelled", "=", 0],
-          ["debit", ">", 0],
         ]),
         fields: JSON.stringify([
           "company",
           "account",
           "sum(debit) as total_debit",
+          "sum(credit) as total_credit",
           "count(name) as entry_count",
         ]),
         group_by: "company,account",
@@ -107,17 +109,20 @@ export async function GET(request: NextRequest) {
       >();
 
       for (const row of glTotals) {
+        // Net = debit - credit (matches Frappe P&L methodology)
+        const net = (row.total_debit ?? 0) - (row.total_credit ?? 0);
+        if (net <= 0) continue;
         if (!branchMap.has(row.company)) {
           branchMap.set(row.company, { total: 0, entryCount: 0, categories: {} });
         }
         const b = branchMap.get(row.company)!;
-        b.total += row.total_debit;
+        b.total += net;
         b.entryCount += row.entry_count;
 
         // Find the friendly account name
         const acct = expenseAccounts.find((a) => a.name === row.account);
         const catName = acct?.account_name ?? row.account;
-        b.categories[catName] = (b.categories[catName] ?? 0) + row.total_debit;
+        b.categories[catName] = (b.categories[catName] ?? 0) + net;
       }
 
       const branches = Array.from(branchMap.entries()).map(
@@ -204,19 +209,20 @@ export async function GET(request: NextRequest) {
 
       const glFilters: (string | number | string[])[][] = [
         ["is_cancelled", "=", 0],
-        ["debit", ">", 0],
         ["company", "=", branch],
         ["account", "in", acctNames],
       ];
       if (fromDate) glFilters.push(["posting_date", ">=", fromDate]);
       if (toDate) glFilters.push(["posting_date", "<=", toDate]);
 
-      const catTotals: { account: string; total_debit: number; entry_count: number }[] =
+      // Fetch both debit and credit sums — net = debit - credit (matches Frappe P&L)
+      const catTotals: { account: string; total_debit: number; total_credit: number; entry_count: number }[] =
         await frappeGet("/api/resource/GL Entry", {
           filters: JSON.stringify(glFilters),
           fields: JSON.stringify([
             "account",
             "sum(debit) as total_debit",
+            "sum(credit) as total_credit",
             "count(name) as entry_count",
           ]),
           group_by: "account",
@@ -224,17 +230,20 @@ export async function GET(request: NextRequest) {
           order_by: "sum(debit) desc",
         });
 
-      const categories = catTotals.map((r) => {
-        const acct = branchAccounts.find((a) => a.name === r.account);
-        const parentAcct = acct?.parent_account ?? null;
-        return {
-          account: r.account,
-          accountName: acct?.account_name ?? r.account,
-          parentGroup: parentAcct ? (groupNameMap.get(parentAcct) ?? parentAcct) : null,
-          total: r.total_debit,
-          entryCount: r.entry_count,
-        };
-      });
+      const categories = catTotals
+        .map((r) => {
+          const net = (r.total_debit ?? 0) - (r.total_credit ?? 0);
+          const acct = branchAccounts.find((a) => a.name === r.account);
+          const parentAcct = acct?.parent_account ?? null;
+          return {
+            account: r.account,
+            accountName: acct?.account_name ?? r.account,
+            parentGroup: parentAcct ? (groupNameMap.get(parentAcct) ?? parentAcct) : null,
+            total: net,
+            entryCount: r.entry_count,
+          };
+        })
+        .filter((c) => c.total > 0);
 
       // Build group summaries from categories
       const groupTotals = new Map<string, { total: number; entryCount: number }>();

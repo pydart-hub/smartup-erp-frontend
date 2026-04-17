@@ -109,15 +109,20 @@ export async function POST(request: NextRequest) {
     const draftInvoices: string[] = []; // Created but submission failed
     const failedInstalments: { index: number; label: string; error: string }[] = [];
 
+    const today = new Date().toISOString().split("T")[0];
+
     for (let i = 0; i < schedule.length; i++) {
       const inst = schedule[i];
+      // If the due date is already past, use today to avoid Frappe's
+      // "Due Date cannot be before Posting Date" validation error.
+      const effectiveDate = inst.dueDate < today ? today : inst.dueDate;
 
       const invoicePayload = {
         doctype: "Sales Invoice",
         customer: soData.customer,
         company: soData.company,
-        posting_date: inst.dueDate,
-        due_date: inst.dueDate,
+        posting_date: effectiveDate,
+        due_date: effectiveDate,
         // Custom fields from SO
         student: soData.student,
         custom_academic_year: soData.custom_academic_year,
