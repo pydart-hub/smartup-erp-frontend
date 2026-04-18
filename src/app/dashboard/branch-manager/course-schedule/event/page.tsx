@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   CalendarDays,
   BookOpen,
+  BookMarked,
   Users,
   GraduationCap,
   MapPin,
@@ -25,6 +26,7 @@ import { useAuth } from "@/lib/hooks/useAuth";
 import {
   getStudentGroups,
   getProgramCourses,
+  getProgramTopics,
   getRooms,
   createCourseSchedule,
 } from "@/lib/api/courseSchedule";
@@ -89,6 +91,7 @@ function EventPlannerPage() {
     custom_event_title: "",
     student_group: "",
     course: "",
+    custom_topic: "",
     instructor: "",
     room: "",
     schedule_date: prefilledDate || new Date().toISOString().split("T")[0],
@@ -119,6 +122,14 @@ function EventPlannerPage() {
     staleTime: 10 * 60_000,
   });
   const courses = programCourses ?? [];
+
+  const { data: topicsRes, isLoading: topicsLoading } = useQuery({
+    queryKey: ["program-topics", selectedGroupProgram, form.course],
+    queryFn: () => getProgramTopics(selectedGroupProgram, form.course),
+    enabled: !!selectedGroupProgram && !!form.course,
+    staleTime: 10 * 60_000,
+  });
+  const topics = topicsRes ?? [];
 
   const { data: instrRes } = useQuery({
     queryKey: ["instructors-all"],
@@ -157,6 +168,7 @@ function EventPlannerPage() {
         custom_branch: branch || undefined,
         custom_event_type: form.custom_event_type,
         custom_event_title: form.custom_event_title || undefined,
+        custom_topic: form.custom_topic || undefined,
       }),
     onSuccess: () => {
       router.push("/dashboard/branch-manager/course-schedule");
@@ -279,6 +291,7 @@ function EventPlannerPage() {
                         ...prev,
                         student_group: e.target.value,
                         course: "",
+                        custom_topic: "",
                       }));
                     }}
                     className={selectCls}
@@ -298,7 +311,13 @@ function EventPlannerPage() {
                   <Field label="Course / Subject" icon={BookOpen}>
                     <select
                       value={form.course}
-                      onChange={set("course")}
+                      onChange={(e) => {
+                        setForm((prev) => ({
+                          ...prev,
+                          course: e.target.value,
+                          custom_topic: "",
+                        }));
+                      }}
                       disabled={coursesLoading}
                       className={selectCls}
                     >
@@ -310,6 +329,31 @@ function EventPlannerPage() {
                       {courses.map((c) => (
                         <option key={c.course} value={c.course}>
                           {c.course_name}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                )}
+
+                {/* Topic (optional — only if course is selected) */}
+                {form.student_group && form.course && (
+                  <Field label="Topic" icon={BookMarked}>
+                    <select
+                      value={form.custom_topic}
+                      onChange={set("custom_topic")}
+                      disabled={topicsLoading}
+                      className={selectCls}
+                    >
+                      <option value="">
+                        {topicsLoading
+                          ? "Loading topics…"
+                          : topics.length === 0
+                            ? "No topics available"
+                            : "No specific topic (optional)"}
+                      </option>
+                      {topics.map((t) => (
+                        <option key={t.name} value={t.topic}>
+                          {t.topic_name}
                         </option>
                       ))}
                     </select>
@@ -426,6 +470,13 @@ function EventPlannerPage() {
                       <p className="text-xs text-text-secondary flex items-center gap-1">
                         <BookOpen className="h-3 w-3" />
                         {form.course}
+                      </p>
+                    )}
+                    {form.custom_topic && (
+                      <p className="text-xs text-text-secondary flex items-center gap-1">
+                        <BookMarked className="h-3 w-3" />
+                        {topics.find((t) => t.topic === form.custom_topic)
+                          ?.topic_name ?? form.custom_topic}
                       </p>
                     )}
                     {form.instructor && (
