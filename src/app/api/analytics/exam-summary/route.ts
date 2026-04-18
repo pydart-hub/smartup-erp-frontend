@@ -186,7 +186,7 @@ export async function GET(request: NextRequest) {
         const totalMax = data.subjects.reduce((s, sub) => s + sub.max, 0);
         const overallPct = totalMax > 0 ? Math.round((totalScore / totalMax) * 100 * 10) / 10 : 0;
         const failedSubjects = data.subjects.filter((s) => !s.passed).map((s) => s.course);
-        return { student, pct: overallPct, failedSubjects, passed: failedSubjects.length === 0 };
+        return { student, pct: overallPct, totalScore, totalMax, totalScore, totalMax, failedSubjects, passed: failedSubjects.length === 0 };
       });
 
       // Look up student names from results
@@ -200,6 +200,8 @@ export async function GET(request: NextRequest) {
         student: s.student,
         student_name: nameMap.get(s.student) || s.student,
         pct: s.pct,
+        total_score: s.totalScore,
+        total_max: s.totalMax,
         rank: i + 1,
       }));
       const weakStudents = studentAgg
@@ -210,6 +212,12 @@ export async function GET(request: NextRequest) {
           student: s.student,
           student_name: nameMap.get(s.student) || s.student,
           pct: s.pct,
+          total_score: s.totalScore,
+          total_max: s.totalMax.student,
+          student_name: nameMap.get(s.student) || s.student,
+          pct: s.pct,
+          total_score: s.totalScore,
+          total_max: s.totalMax,
           failed_subjects: s.failedSubjects,
         }));
 

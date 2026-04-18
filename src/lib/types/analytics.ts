@@ -77,8 +77,8 @@ export interface BatchAcademicSummary {
   total_students: number;
   overall_pass_rate: number;
   overall_avg_pct: number;
-  toppers: { student: string; student_name: string; pct: number; rank: number }[];
-  weak_students: { student: string; student_name: string; pct: number; failed_subjects: string[] }[];
+  toppers: { student: string; student_name: string; pct: number; total_score: number; total_max: number; rank: number }[];
+  weak_students: { student: string; student_name: string; pct: number; total_score: number; total_max: number; total_score: number; total_max: number; failed_subjects: string[] }[];
 }
 
 /** Comprehensive student academic profile */

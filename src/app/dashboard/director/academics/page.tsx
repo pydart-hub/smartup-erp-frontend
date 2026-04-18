@@ -633,6 +633,7 @@ function BatchExamCard({ batch }: { batch: import("@/lib/types/analytics").Batch
                   <thead>
                     <tr className="bg-app-bg border-b border-border-light">
                       <th className="text-left p-2.5 font-medium text-text-secondary">Subject</th>
+                      <th className="text-center p-2.5 font-medium text-text-secondary">Avg</th>
                       <th className="text-center p-2.5 font-medium text-text-secondary">Avg %</th>
                       <th className="text-center p-2.5 font-medium text-text-secondary">Pass Rate</th>
                       <th className="text-center p-2.5 font-medium text-text-secondary">High</th>
@@ -643,6 +644,9 @@ function BatchExamCard({ batch }: { batch: import("@/lib/types/analytics").Batch
                     {batch.subjects.map((s) => (
                       <tr key={s.course} className="border-b border-border-light last:border-0">
                         <td className="p-2.5 font-medium text-primary">{s.course}</td>
+                        <td className="p-2.5 text-center text-text-secondary font-medium">{s.avg_score}/{s.maximum_possiblt last:border-0">
+                        <td className="p-2.5 font-medium text-primary">{s.course}</td>
+                        <td className="p-2.5 text-center text-text-secondary font-medium">{s.avg_score}/{s.maximum_possible}</td>
                         <td className="p-2.5 text-center">
                           <span className={`font-medium ${pctColor(safeNum(s.avg_pct), 60, 40)}`}>{safeNum(s.avg_pct)}%</span>
                         </td>
@@ -664,9 +668,9 @@ function BatchExamCard({ batch }: { batch: import("@/lib/types/analytics").Batch
                     <Trophy className="w-3 h-3 text-warning" /> Top Performers
                   </p>
                   {batch.toppers.slice(0, 5).map((t) => (
-                    <div key={t.student} className="flex justify-between py-0.5">
+                    <div key={t.student} className="flex justify-between py-0.5">total_score}/{t.total_max} ({t.pct}%)
                       <span className="text-xs text-primary truncate mr-2">{t.student_name}</span>
-                      <span className="text-xs font-bold text-success shrink-0">{t.pct}%</span>
+                      <span className="text-xs font-bold text-success shrink-0">{t.total_score}/{t.total_max} ({t.pct}%)</span>
                     </div>
                   ))}
                   {batch.toppers.length === 0 && <p className="text-[10px] text-text-tertiary">No data</p>}
@@ -679,9 +683,9 @@ function BatchExamCard({ batch }: { batch: import("@/lib/types/analytics").Batch
                     <div key={w.student} className="flex justify-between py-0.5">
                       <div className="min-w-0 mr-2">
                         <span className="text-xs text-primary truncate block">{w.student_name}</span>
-                        <span className="text-[10px] text-error truncate block">{w.failed_subjects.join(", ")}</span>
+                        <span className="text-[10px] text-error truncate block">{total_score}/{w.total_max} ({w.pct}%)led_subjects.join(", ")}</span>
                       </div>
-                      <span className="text-xs font-bold text-error shrink-0">{w.pct}%</span>
+                      <span className="text-xs font-bold text-error shrink-0">{w.total_score}/{w.total_max} ({w.pct}%)</span>
                     </div>
                   ))}
                   {batch.weak_students.length === 0 && <p className="text-[10px] text-text-tertiary">All passed!</p>}
