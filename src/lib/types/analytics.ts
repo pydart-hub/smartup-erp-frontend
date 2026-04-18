@@ -71,6 +71,7 @@ export interface SubjectAnalytics {
 /** Batch-level academic summary for an exam group */
 export interface BatchAcademicSummary {
   student_group: string;
+  program: string;
   assessment_group: string;
   subjects: SubjectAnalytics[];
   total_students: number;

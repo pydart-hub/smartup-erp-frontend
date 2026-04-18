@@ -39,14 +39,14 @@ export async function GET(request: NextRequest) {
     const plansRes = await fetch(
       `${FRAPPE_URL}/api/resource/Assessment%20Plan?${new URLSearchParams({
         filters: JSON.stringify(planFilters),
-        fields: JSON.stringify(["name", "student_group", "course", "assessment_group", "maximum_assessment_score"]),
+        fields: JSON.stringify(["name", "student_group", "course", "assessment_group", "maximum_assessment_score", "program"]),
         limit_page_length: "500",
       })}`,
       { headers: { Authorization: auth }, cache: "no-store" },
     );
     const plans: {
       name: string; student_group: string; course: string;
-      assessment_group: string; maximum_assessment_score: number;
+      assessment_group: string; maximum_assessment_score: number; program: string;
     }[] = plansRes.ok ? (await plansRes.json()).data ?? [] : [];
 
     if (plans.length === 0) {
@@ -100,6 +100,7 @@ export async function GET(request: NextRequest) {
     const batchKey = (sg: string, ag: string) => `${sg}|||${ag}`;
     const batchGroups = new Map<string, {
       student_group: string;
+      program: string;
       assessment_group: string;
       subjectMap: Map<string, { scores: number[]; maxScores: number[]; grades: string[] }>;
       studentResults: Map<string, { subjects: { course: string; score: number; max: number; pct: number; grade: string; passed: boolean }[] }>;
@@ -113,6 +114,7 @@ export async function GET(request: NextRequest) {
       if (!batchGroups.has(key)) {
         batchGroups.set(key, {
           student_group: plan.student_group,
+          program: plan.program || "",
           assessment_group: plan.assessment_group,
           subjectMap: new Map(),
           studentResults: new Map(),
@@ -219,6 +221,7 @@ export async function GET(request: NextRequest) {
 
       return {
         student_group: bg.student_group,
+        program: bg.program,
         assessment_group: bg.assessment_group,
         subjects,
         total_students: bg.studentResults.size,

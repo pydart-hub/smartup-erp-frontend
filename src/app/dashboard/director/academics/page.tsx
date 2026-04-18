@@ -36,8 +36,20 @@ function pctBadgeColor(pct: number, good = 75, mid = 50): string {
 }
 
 // ── Branch Drill-Down Panel ─────────────────────────────────────
+type AttDrillLevel = { view: "classes" } | { view: "batches"; program: string } | { view: "detail"; program: string; batch: string };
+type ExamDrillLevel = { view: "classes" } | { view: "detail"; program: string };
+
 function BranchDrillDown({ branch, onBack }: { branch: string; onBack: () => void }) {
   const [activeTab, setActiveTab] = useState<"attendance" | "exams" | "instructors">("attendance");
+  const [attDrill, setAttDrill] = useState<AttDrillLevel>({ view: "classes" });
+  const [examDrill, setExamDrill] = useState<ExamDrillLevel>({ view: "classes" });
+
+  // Reset drill state when switching tabs
+  const switchTab = (tab: typeof activeTab) => {
+    setActiveTab(tab);
+    setAttDrill({ view: "classes" });
+    setExamDrill({ view: "classes" });
+  };
 
   const dateRange = useMemo(() => {
     const to = new Date();
@@ -69,6 +81,80 @@ function BranchDrillDown({ branch, onBack }: { branch: string; onBack: () => voi
 
   const branchLabel = branch.replace("Smart Up ", "");
 
+  // ── Attendance: group batches by program → "class" ──
+  const attClasses = useMemo(() => {
+    if (!attData?.batches) return [];
+    const map = new Map<string, typeof attData.batches>();
+    for (const b of attData.batches) {
+      const key = b.program || "Uncategorized";
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(b);
+    }
+    return Array.from(map.entries())
+      .map(([program, batches]) => {
+        const totalStudents = batches.reduce((s, b) => s + b.total_students, 0);
+        const totalP = batches.reduce((s, b) => s + b.total_present, 0);
+        const totalA = batches.reduce((s, b) => s + b.total_absent, 0);
+        const totalL = batches.reduce((s, b) => s + b.total_late, 0);
+        const totalRisk = batches.reduce((s, b) => s + b.chronic_absentees, 0);
+        const totalAtt = totalP + totalA + totalL;
+        const avgPct = totalAtt > 0 ? Math.round(((totalP + totalL) / totalAtt) * 1000) / 10 : 0;
+        return { program, batches, totalStudents, totalP, totalA, totalL, totalRisk, avgPct };
+      })
+      .sort((a, b) => b.avgPct - a.avgPct);
+  }, [attData]);
+
+  // ── Exams: group batches by program ──
+  const examClasses = useMemo(() => {
+    if (!examData?.batches) return [];
+    const map = new Map<string, typeof examData.batches>();
+    for (const b of examData.batches) {
+      const key = b.program || "Uncategorized";
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(b);
+    }
+    return Array.from(map.entries())
+      .map(([program, batches]) => {
+        const totalStudents = batches.reduce((s, b) => s + b.total_students, 0);
+        const allPcts = batches.flatMap((b) => [b.overall_avg_pct]);
+        const avgPct = allPcts.length > 0
+          ? Math.round((batches.reduce((s, b) => s + b.overall_avg_pct * b.total_students, 0) / Math.max(totalStudents, 1)) * 10) / 10
+          : 0;
+        const avgPass = totalStudents > 0
+          ? Math.round((batches.reduce((s, b) => s + b.overall_pass_rate * b.total_students, 0) / totalStudents) * 10) / 10
+          : 0;
+        return { program, batches, totalStudents, avgPct, avgPass };
+      })
+      .sort((a, b) => b.avgPct - a.avgPct);
+  }, [examData]);
+
+  // ── Back handler for inner drill-downs ──
+  const handleBack = () => {
+    if (activeTab === "attendance") {
+      if (attDrill.view === "detail") setAttDrill({ view: "batches", program: attDrill.program });
+      else if (attDrill.view === "batches") setAttDrill({ view: "classes" });
+      else onBack();
+    } else if (activeTab === "exams") {
+      if (examDrill.view === "detail") setExamDrill({ view: "classes" });
+      else onBack();
+    } else {
+      onBack();
+    }
+  };
+
+  // ── Breadcrumb ──
+  const breadcrumbs: string[] = [branchLabel];
+  if (activeTab === "attendance") {
+    if (attDrill.view === "batches" || attDrill.view === "detail") breadcrumbs.push(attDrill.program);
+    if (attDrill.view === "detail") breadcrumbs.push(attDrill.batch);
+  } else if (activeTab === "exams") {
+    if (examDrill.view === "detail") breadcrumbs.push(examDrill.program);
+  }
+
+  const isAtRoot = (activeTab === "attendance" && attDrill.view === "classes") ||
+    (activeTab === "exams" && examDrill.view === "classes") ||
+    activeTab === "instructors";
+
   const tabs = [
     { key: "attendance" as const, label: "Attendance", icon: ClipboardCheck, loading: attLoading },
     { key: "exams" as const, label: "Exams", icon: Trophy, loading: examLoading },
@@ -83,17 +169,33 @@ function BranchDrillDown({ branch, onBack }: { branch: string; onBack: () => voi
       transition={{ duration: 0.2 }}
       className="space-y-5"
     >
-      {/* Back + Title */}
+      {/* Back + Breadcrumb */}
       <div className="flex items-center gap-3">
         <button
-          onClick={onBack}
+          onClick={isAtRoot ? onBack : handleBack}
           className="p-2 rounded-[8px] hover:bg-app-bg transition-colors"
         >
           <ChevronLeft className="w-5 h-5 text-text-secondary" />
         </button>
-        <div>
-          <h2 className="text-xl font-bold text-primary">{branchLabel}</h2>
-          <p className="text-sm text-text-tertiary">Detailed academic breakdown</p>
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5 text-sm flex-wrap">
+            {breadcrumbs.map((bc, i) => (
+              <span key={i} className="flex items-center gap-1.5">
+                {i > 0 && <span className="text-text-tertiary">/</span>}
+                <span className={i === breadcrumbs.length - 1 ? "font-bold text-primary" : "text-text-tertiary"}>
+                  {bc}
+                </span>
+              </span>
+            ))}
+          </div>
+          <p className="text-xs text-text-tertiary mt-0.5">
+            {attDrill.view === "classes" && activeTab === "attendance" && "Class-wise attendance overview"}
+            {attDrill.view === "batches" && "Batch-wise attendance for this class"}
+            {attDrill.view === "detail" && "Detailed batch attendance"}
+            {examDrill.view === "classes" && activeTab === "exams" && "Class-wise exam overview"}
+            {examDrill.view === "detail" && "Detailed exam results for this class"}
+            {activeTab === "instructors" && "Instructor performance breakdown"}
+          </p>
         </div>
       </div>
 
@@ -102,7 +204,7 @@ function BranchDrillDown({ branch, onBack }: { branch: string; onBack: () => voi
         {tabs.map((t) => (
           <button
             key={t.key}
-            onClick={() => setActiveTab(t.key)}
+            onClick={() => switchTab(t.key)}
             className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-[8px] transition-colors ${
               activeTab === t.key
                 ? "bg-surface text-primary shadow-sm"
@@ -116,60 +218,88 @@ function BranchDrillDown({ branch, onBack }: { branch: string; onBack: () => voi
         ))}
       </div>
 
-      {/* ─── Attendance Tab ─── */}
+      {/* ═══════════════ ATTENDANCE TAB ═══════════════ */}
       {activeTab === "attendance" && (
         <div className="space-y-4">
           {attLoading ? (
             <LoadingSkeleton />
-          ) : (
+          ) : attDrill.view === "classes" ? (
+            /* ── Level 1: Class list ── */
             <>
-              {/* Summary Row */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <MetricCard
-                  icon={<Users className="w-4 h-4 text-text-tertiary" />}
-                  label="Students"
-                  value={String(attData?.overall?.total_students ?? 0)}
-                />
-                <MetricCard
-                  icon={<ClipboardCheck className="w-4 h-4 text-success" />}
-                  label="Avg Attendance"
-                  value={`${safeNum(attData?.overall?.avg_attendance_pct)}%`}
-                  color={pctColor(safeNum(attData?.overall?.avg_attendance_pct))}
-                />
-                <MetricCard
-                  icon={<BarChart3 className="w-4 h-4 text-text-tertiary" />}
-                  label="Working Days"
-                  value={String(attData?.overall?.total_working_days ?? 0)}
-                />
-                <MetricCard
-                  icon={<AlertTriangle className="w-4 h-4 text-error" />}
-                  label="At Risk"
-                  value={String(attData?.chronic_absentees?.length ?? 0)}
-                  color="text-error"
-                />
+                <MetricCard icon={<Users className="w-4 h-4 text-text-tertiary" />} label="Students" value={String(attData?.overall?.total_students ?? 0)} />
+                <MetricCard icon={<ClipboardCheck className="w-4 h-4 text-success" />} label="Avg Attendance" value={`${safeNum(attData?.overall?.avg_attendance_pct)}%`} color={pctColor(safeNum(attData?.overall?.avg_attendance_pct))} />
+                <MetricCard icon={<BarChart3 className="w-4 h-4 text-text-tertiary" />} label="Working Days" value={String(attData?.overall?.total_working_days ?? 0)} />
+                <MetricCard icon={<AlertTriangle className="w-4 h-4 text-error" />} label="At Risk" value={String(attData?.chronic_absentees?.length ?? 0)} color="text-error" />
               </div>
 
-              {/* Batch-wise Attendance */}
-              <h3 className="text-sm font-semibold text-text-secondary">Batch-wise Attendance (Last 30 Days)</h3>
+              <h3 className="text-sm font-semibold text-text-secondary">Class-wise Attendance (Last 30 Days)</h3>
               <div className="space-y-2">
-                {(attData?.batches ?? []).length === 0 ? (
+                {attClasses.length === 0 ? (
                   <EmptyState text="No attendance data" />
                 ) : (
-                  attData!.batches
-                    .sort((a, b) => b.avg_attendance_pct - a.avg_attendance_pct)
-                    .map((b) => (
-                      <div key={b.student_group} className="bg-surface rounded-[10px] border border-border-light p-3 flex items-center justify-between">
+                  attClasses.map((cls) => (
+                    <button
+                      key={cls.program}
+                      onClick={() => setAttDrill({ view: "batches", program: cls.program })}
+                      className="w-full bg-surface rounded-[10px] border border-border-light p-3.5 flex items-center justify-between hover:border-primary/30 hover:shadow-sm transition-all group text-left"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`w-11 h-11 rounded-[10px] flex items-center justify-center text-xs font-bold ${pctBadgeColor(cls.avgPct, 85, 70)}`}>
+                          {cls.avgPct}%
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-primary group-hover:text-primary/80 transition-colors truncate">{cls.program}</p>
+                          <p className="text-xs text-text-tertiary">{cls.totalStudents} students · {cls.batches.length} {cls.batches.length === 1 ? "batch" : "batches"}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0 text-xs">
+                        <span className="text-success">P:{cls.totalP}</span>
+                        <span className="text-error">A:{cls.totalA}</span>
+                        <span className="text-warning">L:{cls.totalL}</span>
+                        {cls.totalRisk > 0 && (
+                          <span className="bg-error/10 text-error px-1.5 py-0.5 rounded-full font-medium">{cls.totalRisk} risk</span>
+                        )}
+                        <ChevronDown className="w-4 h-4 text-text-tertiary -rotate-90 group-hover:text-primary" />
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+            </>
+          ) : attDrill.view === "batches" ? (
+            /* ── Level 2: Batches for selected class ── */
+            (() => {
+              const cls = attClasses.find((c) => c.program === attDrill.program);
+              if (!cls) return <EmptyState text="No data for this class" />;
+              const sorted = [...cls.batches].sort((a, b) => b.avg_attendance_pct - a.avg_attendance_pct);
+              const classAbsentees = (attData?.chronic_absentees ?? []).filter((a) =>
+                cls.batches.some((b) => b.student_group === a.student_group),
+              );
+              return (
+                <>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <MetricCard icon={<Users className="w-4 h-4 text-text-tertiary" />} label="Students" value={String(cls.totalStudents)} />
+                    <MetricCard icon={<ClipboardCheck className="w-4 h-4 text-success" />} label="Avg Attendance" value={`${cls.avgPct}%`} color={pctColor(cls.avgPct)} />
+                    <MetricCard icon={<BarChart3 className="w-4 h-4 text-text-tertiary" />} label="Batches" value={String(cls.batches.length)} />
+                    <MetricCard icon={<AlertTriangle className="w-4 h-4 text-error" />} label="At Risk" value={String(cls.totalRisk)} color="text-error" />
+                  </div>
+
+                  <h3 className="text-sm font-semibold text-text-secondary">Batches in {cls.program}</h3>
+                  <div className="space-y-2">
+                    {sorted.map((b) => (
+                      <button
+                        key={b.student_group}
+                        onClick={() => setAttDrill({ view: "detail", program: attDrill.program, batch: b.student_group })}
+                        className="w-full bg-surface rounded-[10px] border border-border-light p-3 flex items-center justify-between hover:border-primary/30 hover:shadow-sm transition-all group text-left"
+                      >
                         <div className="flex items-center gap-3 min-w-0">
-                          <div className={`w-9 h-9 rounded-[8px] flex items-center justify-center text-xs font-bold ${
-                            b.avg_attendance_pct >= 85 ? "bg-success/10 text-success"
-                            : b.avg_attendance_pct >= 70 ? "bg-warning/10 text-warning"
-                            : "bg-error/10 text-error"
-                          }`}>
+                          <div className={`w-10 h-10 rounded-[8px] flex items-center justify-center text-xs font-bold ${pctBadgeColor(b.avg_attendance_pct, 85, 70)}`}>
                             {safeNum(b.avg_attendance_pct)}%
                           </div>
                           <div className="min-w-0">
-                            <p className="text-sm font-medium text-primary truncate">{b.student_group}</p>
-                            <p className="text-xs text-text-tertiary">{b.program} · {b.total_students} students</p>
+                            <p className="text-sm font-medium text-primary group-hover:text-primary/80 truncate">{b.student_group}</p>
+                            <p className="text-xs text-text-tertiary">{b.total_students} students · {b.total_working_days} working days</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-3 shrink-0 text-xs">
@@ -177,116 +307,175 @@ function BranchDrillDown({ branch, onBack }: { branch: string; onBack: () => voi
                           <span className="text-error">A:{b.total_absent}</span>
                           <span className="text-warning">L:{b.total_late}</span>
                           {b.chronic_absentees > 0 && (
-                            <span className="bg-error/10 text-error px-1.5 py-0.5 rounded-full font-medium">
-                              {b.chronic_absentees} risk
-                            </span>
+                            <span className="bg-error/10 text-error px-1.5 py-0.5 rounded-full font-medium">{b.chronic_absentees} risk</span>
                           )}
+                          <ChevronDown className="w-4 h-4 text-text-tertiary -rotate-90 group-hover:text-primary" />
                         </div>
-                      </div>
-                    ))
-                )}
-              </div>
-
-              {/* Chronic Absentees */}
-              {(attData?.chronic_absentees?.length ?? 0) > 0 && (
-                <>
-                  <h3 className="text-sm font-semibold text-error flex items-center gap-1.5">
-                    <AlertTriangle className="w-4 h-4" />
-                    Chronic Absentees ({attData!.chronic_absentees.length})
-                  </h3>
-                  <div className="bg-surface rounded-[12px] border border-border-light overflow-hidden">
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="bg-app-bg border-b border-border-light">
-                            <th className="text-left p-2.5 font-medium text-text-secondary">Student</th>
-                            <th className="text-left p-2.5 font-medium text-text-secondary">Batch</th>
-                            <th className="text-center p-2.5 font-medium text-text-secondary">P</th>
-                            <th className="text-center p-2.5 font-medium text-text-secondary">A</th>
-                            <th className="text-center p-2.5 font-medium text-text-secondary">%</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {attData!.chronic_absentees.slice(0, 15).map((a) => (
-                            <tr key={a.student} className="border-b border-border-light last:border-0">
-                              <td className="p-2.5">
-                                <p className="font-medium text-primary text-xs">{a.student_name}</p>
-                              </td>
-                              <td className="p-2.5 text-xs text-text-tertiary">{a.student_group}</td>
-                              <td className="p-2.5 text-center text-success text-xs font-medium">{a.present}</td>
-                              <td className="p-2.5 text-center text-error text-xs font-medium">{a.absent}</td>
-                              <td className="p-2.5 text-center">
-                                <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${pctBadgeColor(a.pct, 75, 50)}`}>
-                                  {a.pct}%
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                    {attData!.chronic_absentees.length > 15 && (
-                      <div className="p-2 text-center text-xs text-text-tertiary border-t border-border-light">
-                        +{attData!.chronic_absentees.length - 15} more
-                      </div>
-                    )}
+                      </button>
+                    ))}
                   </div>
+
+                  {/* Class-level chronic absentees */}
+                  {classAbsentees.length > 0 && (
+                    <>
+                      <h3 className="text-sm font-semibold text-error flex items-center gap-1.5">
+                        <AlertTriangle className="w-4 h-4" />
+                        At Risk Students — {cls.program} ({classAbsentees.length})
+                      </h3>
+                      <AbsenteeTable absentees={classAbsentees} />
+                    </>
+                  )}
                 </>
-              )}
-            </>
+              );
+            })()
+          ) : (
+            /* ── Level 3: Batch detail ── */
+            (() => {
+              const batch = attData?.batches.find((b) => b.student_group === attDrill.batch);
+              if (!batch) return <EmptyState text="No data for this batch" />;
+              const batchAbsentees = (attData?.chronic_absentees ?? []).filter(
+                (a) => a.student_group === attDrill.batch,
+              );
+              const totalRecords = batch.total_present + batch.total_absent + batch.total_late;
+              const presentPct = totalRecords > 0 ? Math.round((batch.total_present / totalRecords) * 100) : 0;
+              const absentPct = totalRecords > 0 ? Math.round((batch.total_absent / totalRecords) * 100) : 0;
+              const latePct = totalRecords > 0 ? Math.round((batch.total_late / totalRecords) * 100) : 0;
+
+              return (
+                <>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <MetricCard icon={<Users className="w-4 h-4 text-text-tertiary" />} label="Students" value={String(batch.total_students)} />
+                    <MetricCard icon={<ClipboardCheck className="w-4 h-4 text-success" />} label="Attendance" value={`${safeNum(batch.avg_attendance_pct)}%`} color={pctColor(safeNum(batch.avg_attendance_pct))} />
+                    <MetricCard icon={<BarChart3 className="w-4 h-4 text-text-tertiary" />} label="Working Days" value={String(batch.total_working_days)} />
+                    <MetricCard icon={<AlertTriangle className="w-4 h-4 text-error" />} label="At Risk" value={String(batch.chronic_absentees)} color="text-error" />
+                  </div>
+
+                  {/* Attendance Breakdown Bar */}
+                  <div className="bg-surface rounded-[12px] border border-border-light p-4 space-y-3">
+                    <h3 className="text-sm font-semibold text-text-secondary">Attendance Breakdown</h3>
+                    <div className="h-4 rounded-full overflow-hidden flex bg-app-bg">
+                      {presentPct > 0 && (
+                        <div className="bg-success h-full transition-all" style={{ width: `${presentPct}%` }} />
+                      )}
+                      {latePct > 0 && (
+                        <div className="bg-warning h-full transition-all" style={{ width: `${latePct}%` }} />
+                      )}
+                      {absentPct > 0 && (
+                        <div className="bg-error h-full transition-all" style={{ width: `${absentPct}%` }} />
+                      )}
+                    </div>
+                    <div className="flex gap-4 text-xs">
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-success" />
+                        Present: {batch.total_present} ({presentPct}%)
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-warning" />
+                        Late: {batch.total_late} ({latePct}%)
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-error" />
+                        Absent: {batch.total_absent} ({absentPct}%)
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Chronic Absentees for this batch */}
+                  {batchAbsentees.length > 0 ? (
+                    <>
+                      <h3 className="text-sm font-semibold text-error flex items-center gap-1.5">
+                        <AlertTriangle className="w-4 h-4" />
+                        At Risk Students ({batchAbsentees.length})
+                      </h3>
+                      <AbsenteeTable absentees={batchAbsentees} showBatch={false} />
+                    </>
+                  ) : (
+                    <div className="bg-success/5 rounded-[10px] border border-success/20 p-4 flex items-center gap-2">
+                      <ClipboardCheck className="w-4 h-4 text-success" />
+                      <p className="text-sm text-success font-medium">All students are above 75% attendance!</p>
+                    </div>
+                  )}
+                </>
+              );
+            })()
           )}
         </div>
       )}
 
-      {/* ─── Exams Tab ─── */}
+      {/* ═══════════════ EXAMS TAB ═══════════════ */}
       {activeTab === "exams" && (
         <div className="space-y-4">
           {examLoading ? (
             <LoadingSkeleton />
-          ) : (
+          ) : examDrill.view === "classes" ? (
+            /* ── Level 1: Class list ── */
             <>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <MetricCard
-                  icon={<BarChart3 className="w-4 h-4 text-text-tertiary" />}
-                  label="Total Exams"
-                  value={String(examData?.overall?.total_exams ?? 0)}
-                />
-                <MetricCard
-                  icon={<Users className="w-4 h-4 text-text-tertiary" />}
-                  label="Assessed"
-                  value={String(examData?.overall?.total_students_assessed ?? 0)}
-                />
-                <MetricCard
-                  icon={<TrendingUp className="w-4 h-4 text-success" />}
-                  label="Avg Score"
-                  value={`${safeNum(examData?.overall?.avg_score_pct)}%`}
-                  color={pctColor(safeNum(examData?.overall?.avg_score_pct), 60, 40)}
-                />
-                <MetricCard
-                  icon={<Trophy className="w-4 h-4 text-warning" />}
-                  label="Pass Rate"
-                  value={`${safeNum(examData?.overall?.overall_pass_rate)}%`}
-                  color={pctColor(safeNum(examData?.overall?.overall_pass_rate))}
-                />
+                <MetricCard icon={<BarChart3 className="w-4 h-4 text-text-tertiary" />} label="Total Exams" value={String(examData?.overall?.total_exams ?? 0)} />
+                <MetricCard icon={<Users className="w-4 h-4 text-text-tertiary" />} label="Assessed" value={String(examData?.overall?.total_students_assessed ?? 0)} />
+                <MetricCard icon={<TrendingUp className="w-4 h-4 text-success" />} label="Avg Score" value={`${safeNum(examData?.overall?.avg_score_pct)}%`} color={pctColor(safeNum(examData?.overall?.avg_score_pct), 60, 40)} />
+                <MetricCard icon={<Trophy className="w-4 h-4 text-warning" />} label="Pass Rate" value={`${safeNum(examData?.overall?.overall_pass_rate)}%`} color={pctColor(safeNum(examData?.overall?.overall_pass_rate))} />
               </div>
 
-              {/* Batch-wise Exam Results */}
-              <h3 className="text-sm font-semibold text-text-secondary">Batch-wise Exam Performance</h3>
-              <div className="space-y-3">
-                {(examData?.batches ?? []).length === 0 ? (
+              <h3 className="text-sm font-semibold text-text-secondary">Class-wise Exam Performance</h3>
+              <div className="space-y-2">
+                {examClasses.length === 0 ? (
                   <EmptyState text="No exam data yet" />
                 ) : (
-                  examData!.batches.map((batch) => (
-                    <BatchExamCard key={`${batch.student_group}-${batch.assessment_group}`} batch={batch} />
+                  examClasses.map((cls) => (
+                    <button
+                      key={cls.program}
+                      onClick={() => setExamDrill({ view: "detail", program: cls.program })}
+                      className="w-full bg-surface rounded-[10px] border border-border-light p-3.5 flex items-center justify-between hover:border-primary/30 hover:shadow-sm transition-all group text-left"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`w-11 h-11 rounded-[10px] flex items-center justify-center text-xs font-bold ${pctBadgeColor(cls.avgPct, 70, 50)}`}>
+                          {cls.avgPct}%
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-primary group-hover:text-primary/80 transition-colors truncate">{cls.program}</p>
+                          <p className="text-xs text-text-tertiary">{cls.totalStudents} students · {cls.batches.length} {cls.batches.length === 1 ? "batch" : "batches"}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${pctBadgeColor(cls.avgPass)}`}>
+                          {cls.avgPass}% pass
+                        </span>
+                        <ChevronDown className="w-4 h-4 text-text-tertiary -rotate-90 group-hover:text-primary" />
+                      </div>
+                    </button>
                   ))
                 )}
               </div>
             </>
+          ) : (
+            /* ── Level 2: Class detail — batch exam cards ── */
+            (() => {
+              const cls = examClasses.find((c) => c.program === examDrill.program);
+              if (!cls) return <EmptyState text="No exam data for this class" />;
+              return (
+                <>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <MetricCard icon={<Users className="w-4 h-4 text-text-tertiary" />} label="Students" value={String(cls.totalStudents)} />
+                    <MetricCard icon={<TrendingUp className="w-4 h-4 text-success" />} label="Avg Score" value={`${cls.avgPct}%`} color={pctColor(cls.avgPct, 60, 40)} />
+                    <MetricCard icon={<Trophy className="w-4 h-4 text-warning" />} label="Pass Rate" value={`${cls.avgPass}%`} color={pctColor(cls.avgPass)} />
+                    <MetricCard icon={<BarChart3 className="w-4 h-4 text-text-tertiary" />} label="Batches" value={String(cls.batches.length)} />
+                  </div>
+
+                  <h3 className="text-sm font-semibold text-text-secondary">Batch Exam Results — {cls.program}</h3>
+                  <div className="space-y-3">
+                    {cls.batches.map((batch) => (
+                      <BatchExamCard key={`${batch.student_group}-${batch.assessment_group}`} batch={batch} />
+                    ))}
+                  </div>
+                </>
+              );
+            })()
           )}
         </div>
       )}
 
-      {/* ─── Instructors Tab ─── */}
+      {/* ═══════════════ INSTRUCTORS TAB ═══════════════ */}
       {activeTab === "instructors" && (
         <div className="space-y-4">
           {instrLoading ? (
@@ -294,23 +483,9 @@ function BranchDrillDown({ branch, onBack }: { branch: string; onBack: () => voi
           ) : (
             <>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <MetricCard
-                  icon={<UserCheck className="w-4 h-4 text-text-tertiary" />}
-                  label="Instructors"
-                  value={String(instrData?.overall?.total_instructors ?? 0)}
-                />
-                <MetricCard
-                  icon={<BookOpen className="w-4 h-4 text-info" />}
-                  label="Avg Topic Completion"
-                  value={`${safeNum(instrData?.overall?.avg_topic_completion_pct)}%`}
-                  color={pctColor(safeNum(instrData?.overall?.avg_topic_completion_pct), 70, 50)}
-                />
-                <MetricCard
-                  icon={<ClipboardCheck className="w-4 h-4 text-success" />}
-                  label="Avg Classes Conducted"
-                  value={`${safeNum(instrData?.overall?.avg_classes_conducted_pct)}%`}
-                  color={pctColor(safeNum(instrData?.overall?.avg_classes_conducted_pct), 80, 60)}
-                />
+                <MetricCard icon={<UserCheck className="w-4 h-4 text-text-tertiary" />} label="Instructors" value={String(instrData?.overall?.total_instructors ?? 0)} />
+                <MetricCard icon={<BookOpen className="w-4 h-4 text-info" />} label="Avg Topic Completion" value={`${safeNum(instrData?.overall?.avg_topic_completion_pct)}%`} color={pctColor(safeNum(instrData?.overall?.avg_topic_completion_pct), 70, 50)} />
+                <MetricCard icon={<ClipboardCheck className="w-4 h-4 text-success" />} label="Avg Classes Conducted" value={`${safeNum(instrData?.overall?.avg_classes_conducted_pct)}%`} color={pctColor(safeNum(instrData?.overall?.avg_classes_conducted_pct), 80, 60)} />
               </div>
 
               <h3 className="text-sm font-semibold text-text-secondary">Instructor Breakdown</h3>
@@ -340,7 +515,6 @@ function BranchDrillDown({ branch, onBack }: { branch: string; onBack: () => voi
                               <p className="text-xs text-text-tertiary">topics</p>
                             </div>
                           </div>
-                          {/* Progress bars */}
                           <div className="grid grid-cols-2 gap-2">
                             <div>
                               <div className="flex justify-between text-[10px] text-text-tertiary mb-0.5">
@@ -371,6 +545,49 @@ function BranchDrillDown({ branch, onBack }: { branch: string; onBack: () => voi
         </div>
       )}
     </motion.div>
+  );
+}
+
+// ── Absentee Table (reusable) ───────────────────────────────────
+function AbsenteeTable({ absentees, showBatch = true }: { absentees: import("@/lib/types/analytics").ChronicAbsentee[]; showBatch?: boolean }) {
+  return (
+    <div className="bg-surface rounded-[12px] border border-border-light overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-app-bg border-b border-border-light">
+              <th className="text-left p-2.5 font-medium text-text-secondary">Student</th>
+              {showBatch && <th className="text-left p-2.5 font-medium text-text-secondary">Batch</th>}
+              <th className="text-center p-2.5 font-medium text-text-secondary">P</th>
+              <th className="text-center p-2.5 font-medium text-text-secondary">A</th>
+              <th className="text-center p-2.5 font-medium text-text-secondary">%</th>
+            </tr>
+          </thead>
+          <tbody>
+            {absentees.slice(0, 20).map((a) => (
+              <tr key={a.student} className="border-b border-border-light last:border-0">
+                <td className="p-2.5">
+                  <p className="font-medium text-primary text-xs">{a.student_name}</p>
+                </td>
+                {showBatch && <td className="p-2.5 text-xs text-text-tertiary">{a.student_group}</td>}
+                <td className="p-2.5 text-center text-success text-xs font-medium">{a.present}</td>
+                <td className="p-2.5 text-center text-error text-xs font-medium">{a.absent}</td>
+                <td className="p-2.5 text-center">
+                  <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${pctBadgeColor(a.pct, 75, 50)}`}>
+                    {a.pct}%
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {absentees.length > 20 && (
+        <div className="p-2 text-center text-xs text-text-tertiary border-t border-border-light">
+          +{absentees.length - 20} more
+        </div>
+      )}
+    </div>
   );
 }
 
