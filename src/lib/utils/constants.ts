@@ -122,6 +122,13 @@ export const BRANCH_MANAGER_NAV: NavItem[] = [
   { label: "Fees", href: "/dashboard/branch-manager/fees", icon: "IndianRupee", emoji: "💰" },
   { label: "Sales Orders", href: "/dashboard/branch-manager/sales-orders", icon: "ShoppingCart", emoji: "🛒" },
   { label: "Exams", href: "/dashboard/branch-manager/exams", icon: "ClipboardList", emoji: "📝" },
+  { label: "Academics", href: "/dashboard/branch-manager/academics", icon: "BarChart3", emoji: "📈",
+    children: [
+      { label: "Attendance Report", href: "/dashboard/branch-manager/attendance/report", icon: "ClipboardCheck", emoji: "✅" },
+      { label: "Exam Analytics", href: "/dashboard/branch-manager/exams/analytics", icon: "Trophy", emoji: "🏆" },
+      { label: "Student Performance", href: "/dashboard/branch-manager/student-performance", icon: "TrendingUp", emoji: "📊" },
+    ],
+  },
   { label: "Topic Coverage", href: "/dashboard/branch-manager/topic-coverage", icon: "BookOpen", emoji: "📖" },
   { label: "Complaints", href: "/dashboard/branch-manager/complaints", icon: "MessageSquareWarning", emoji: "⚠️" },
   { label: "Transfers", href: "/dashboard/branch-manager/transfers", icon: "ArrowRightLeft", emoji: "🔄" },
@@ -151,6 +158,7 @@ export const DIRECTOR_NAV: NavItem[] = [
     ],
   },
   { label: "Exams", href: "/dashboard/director/exams", icon: "ClipboardList", emoji: "📝" },
+  { label: "Academics", href: "/dashboard/director/academics", icon: "BarChart3", emoji: "📈" },
   { label: "Leaderboard", href: "/dashboard/director/leaderboard", icon: "Trophy", emoji: "🏆" },
   { label: "Reports", href: "/dashboard/director/reports", icon: "FileBarChart", emoji: "📈" },
   { label: "Complaints", href: "/dashboard/director/complaints", icon: "MessageSquareWarning", emoji: "⚠️" },
@@ -164,6 +172,7 @@ export const INSTRUCTOR_NAV: NavItem[] = [
   { label: "Attendance", href: "/dashboard/instructor/attendance", icon: "ClipboardCheck", emoji: "✅" },
   { label: "Exams", href: "/dashboard/instructor/exams", icon: "ClipboardList", emoji: "📝" },
   { label: "Topic Coverage", href: "/dashboard/instructor/topic-coverage", icon: "BookOpen", emoji: "📖" },
+  { label: "My Performance", href: "/dashboard/instructor/my-performance", icon: "TrendingUp", emoji: "📈" },
   { label: "Course Schedule", href: "/dashboard/instructor/course-schedule", icon: "CalendarDays", emoji: "📅" },
 ];
 

@@ -1,0 +1,872 @@
+"use client";
+
+import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import {
+  getBranchAcademics,
+  getAttendanceAnalytics,
+  getExamAnalytics,
+  getInstructorAnalytics,
+} from "@/lib/api/analytics";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Building2, ClipboardCheck, Trophy, BookOpen,
+  AlertTriangle, Users, TrendingUp, BarChart3,
+  ChevronDown, ChevronLeft, UserCheck, GraduationCap,
+  Loader2,
+} from "lucide-react";
+
+const container = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.06 } } };
+const item = { hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } };
+
+function safeNum(n: number | undefined | null): number {
+  return Number.isFinite(n) ? n! : 0;
+}
+
+function pctColor(pct: number, good = 75, mid = 50): string {
+  if (pct >= good) return "text-success";
+  if (pct >= mid) return "text-warning";
+  return "text-error";
+}
+
+function pctBadgeColor(pct: number, good = 75, mid = 50): string {
+  if (pct >= good) return "bg-success/10 text-success";
+  if (pct >= mid) return "bg-warning/10 text-warning";
+  return "bg-error/10 text-error";
+}
+
+// ── Branch Drill-Down Panel ─────────────────────────────────────
+function BranchDrillDown({ branch, onBack }: { branch: string; onBack: () => void }) {
+  const [activeTab, setActiveTab] = useState<"attendance" | "exams" | "instructors">("attendance");
+
+  const dateRange = useMemo(() => {
+    const to = new Date();
+    const from = new Date();
+    from.setMonth(to.getMonth() - 1);
+    return {
+      from_date: from.toISOString().split("T")[0],
+      to_date: to.toISOString().split("T")[0],
+    };
+  }, []);
+
+  const { data: attData, isLoading: attLoading } = useQuery({
+    queryKey: ["drill-attendance", branch, dateRange],
+    queryFn: () => getAttendanceAnalytics({ branch, ...dateRange }),
+    staleTime: 60_000,
+  });
+
+  const { data: examData, isLoading: examLoading } = useQuery({
+    queryKey: ["drill-exams", branch],
+    queryFn: () => getExamAnalytics({ branch }),
+    staleTime: 60_000,
+  });
+
+  const { data: instrData, isLoading: instrLoading } = useQuery({
+    queryKey: ["drill-instructors", branch],
+    queryFn: () => getInstructorAnalytics({ branch }),
+    staleTime: 60_000,
+  });
+
+  const branchLabel = branch.replace("Smart Up ", "");
+
+  const tabs = [
+    { key: "attendance" as const, label: "Attendance", icon: ClipboardCheck, loading: attLoading },
+    { key: "exams" as const, label: "Exams", icon: Trophy, loading: examLoading },
+    { key: "instructors" as const, label: "Instructors", icon: UserCheck, loading: instrLoading },
+  ];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      transition={{ duration: 0.2 }}
+      className="space-y-5"
+    >
+      {/* Back + Title */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={onBack}
+          className="p-2 rounded-[8px] hover:bg-app-bg transition-colors"
+        >
+          <ChevronLeft className="w-5 h-5 text-text-secondary" />
+        </button>
+        <div>
+          <h2 className="text-xl font-bold text-primary">{branchLabel}</h2>
+          <p className="text-sm text-text-tertiary">Detailed academic breakdown</p>
+        </div>
+      </div>
+
+      {/* Tab Bar */}
+      <div className="flex gap-1 bg-app-bg rounded-[10px] p-1">
+        {tabs.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setActiveTab(t.key)}
+            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-[8px] transition-colors ${
+              activeTab === t.key
+                ? "bg-surface text-primary shadow-sm"
+                : "text-text-tertiary hover:text-text-secondary"
+            }`}
+          >
+            <t.icon className="w-3.5 h-3.5" />
+            {t.label}
+            {t.loading && <Loader2 className="w-3 h-3 animate-spin" />}
+          </button>
+        ))}
+      </div>
+
+      {/* ─── Attendance Tab ─── */}
+      {activeTab === "attendance" && (
+        <div className="space-y-4">
+          {attLoading ? (
+            <LoadingSkeleton />
+          ) : (
+            <>
+              {/* Summary Row */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <MetricCard
+                  icon={<Users className="w-4 h-4 text-text-tertiary" />}
+                  label="Students"
+                  value={String(attData?.overall?.total_students ?? 0)}
+                />
+                <MetricCard
+                  icon={<ClipboardCheck className="w-4 h-4 text-success" />}
+                  label="Avg Attendance"
+                  value={`${safeNum(attData?.overall?.avg_attendance_pct)}%`}
+                  color={pctColor(safeNum(attData?.overall?.avg_attendance_pct))}
+                />
+                <MetricCard
+                  icon={<BarChart3 className="w-4 h-4 text-text-tertiary" />}
+                  label="Working Days"
+                  value={String(attData?.overall?.total_working_days ?? 0)}
+                />
+                <MetricCard
+                  icon={<AlertTriangle className="w-4 h-4 text-error" />}
+                  label="At Risk"
+                  value={String(attData?.chronic_absentees?.length ?? 0)}
+                  color="text-error"
+                />
+              </div>
+
+              {/* Batch-wise Attendance */}
+              <h3 className="text-sm font-semibold text-text-secondary">Batch-wise Attendance (Last 30 Days)</h3>
+              <div className="space-y-2">
+                {(attData?.batches ?? []).length === 0 ? (
+                  <EmptyState text="No attendance data" />
+                ) : (
+                  attData!.batches
+                    .sort((a, b) => b.avg_attendance_pct - a.avg_attendance_pct)
+                    .map((b) => (
+                      <div key={b.student_group} className="bg-surface rounded-[10px] border border-border-light p-3 flex items-center justify-between">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className={`w-9 h-9 rounded-[8px] flex items-center justify-center text-xs font-bold ${
+                            b.avg_attendance_pct >= 85 ? "bg-success/10 text-success"
+                            : b.avg_attendance_pct >= 70 ? "bg-warning/10 text-warning"
+                            : "bg-error/10 text-error"
+                          }`}>
+                            {safeNum(b.avg_attendance_pct)}%
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-primary truncate">{b.student_group}</p>
+                            <p className="text-xs text-text-tertiary">{b.program} · {b.total_students} students</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0 text-xs">
+                          <span className="text-success">P:{b.total_present}</span>
+                          <span className="text-error">A:{b.total_absent}</span>
+                          <span className="text-warning">L:{b.total_late}</span>
+                          {b.chronic_absentees > 0 && (
+                            <span className="bg-error/10 text-error px-1.5 py-0.5 rounded-full font-medium">
+                              {b.chronic_absentees} risk
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                )}
+              </div>
+
+              {/* Chronic Absentees */}
+              {(attData?.chronic_absentees?.length ?? 0) > 0 && (
+                <>
+                  <h3 className="text-sm font-semibold text-error flex items-center gap-1.5">
+                    <AlertTriangle className="w-4 h-4" />
+                    Chronic Absentees ({attData!.chronic_absentees.length})
+                  </h3>
+                  <div className="bg-surface rounded-[12px] border border-border-light overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-app-bg border-b border-border-light">
+                            <th className="text-left p-2.5 font-medium text-text-secondary">Student</th>
+                            <th className="text-left p-2.5 font-medium text-text-secondary">Batch</th>
+                            <th className="text-center p-2.5 font-medium text-text-secondary">P</th>
+                            <th className="text-center p-2.5 font-medium text-text-secondary">A</th>
+                            <th className="text-center p-2.5 font-medium text-text-secondary">%</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {attData!.chronic_absentees.slice(0, 15).map((a) => (
+                            <tr key={a.student} className="border-b border-border-light last:border-0">
+                              <td className="p-2.5">
+                                <p className="font-medium text-primary text-xs">{a.student_name}</p>
+                              </td>
+                              <td className="p-2.5 text-xs text-text-tertiary">{a.student_group}</td>
+                              <td className="p-2.5 text-center text-success text-xs font-medium">{a.present}</td>
+                              <td className="p-2.5 text-center text-error text-xs font-medium">{a.absent}</td>
+                              <td className="p-2.5 text-center">
+                                <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${pctBadgeColor(a.pct, 75, 50)}`}>
+                                  {a.pct}%
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {attData!.chronic_absentees.length > 15 && (
+                      <div className="p-2 text-center text-xs text-text-tertiary border-t border-border-light">
+                        +{attData!.chronic_absentees.length - 15} more
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ─── Exams Tab ─── */}
+      {activeTab === "exams" && (
+        <div className="space-y-4">
+          {examLoading ? (
+            <LoadingSkeleton />
+          ) : (
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <MetricCard
+                  icon={<BarChart3 className="w-4 h-4 text-text-tertiary" />}
+                  label="Total Exams"
+                  value={String(examData?.overall?.total_exams ?? 0)}
+                />
+                <MetricCard
+                  icon={<Users className="w-4 h-4 text-text-tertiary" />}
+                  label="Assessed"
+                  value={String(examData?.overall?.total_students_assessed ?? 0)}
+                />
+                <MetricCard
+                  icon={<TrendingUp className="w-4 h-4 text-success" />}
+                  label="Avg Score"
+                  value={`${safeNum(examData?.overall?.avg_score_pct)}%`}
+                  color={pctColor(safeNum(examData?.overall?.avg_score_pct), 60, 40)}
+                />
+                <MetricCard
+                  icon={<Trophy className="w-4 h-4 text-warning" />}
+                  label="Pass Rate"
+                  value={`${safeNum(examData?.overall?.overall_pass_rate)}%`}
+                  color={pctColor(safeNum(examData?.overall?.overall_pass_rate))}
+                />
+              </div>
+
+              {/* Batch-wise Exam Results */}
+              <h3 className="text-sm font-semibold text-text-secondary">Batch-wise Exam Performance</h3>
+              <div className="space-y-3">
+                {(examData?.batches ?? []).length === 0 ? (
+                  <EmptyState text="No exam data yet" />
+                ) : (
+                  examData!.batches.map((batch) => (
+                    <BatchExamCard key={`${batch.student_group}-${batch.assessment_group}`} batch={batch} />
+                  ))
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ─── Instructors Tab ─── */}
+      {activeTab === "instructors" && (
+        <div className="space-y-4">
+          {instrLoading ? (
+            <LoadingSkeleton />
+          ) : (
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <MetricCard
+                  icon={<UserCheck className="w-4 h-4 text-text-tertiary" />}
+                  label="Instructors"
+                  value={String(instrData?.overall?.total_instructors ?? 0)}
+                />
+                <MetricCard
+                  icon={<BookOpen className="w-4 h-4 text-info" />}
+                  label="Avg Topic Completion"
+                  value={`${safeNum(instrData?.overall?.avg_topic_completion_pct)}%`}
+                  color={pctColor(safeNum(instrData?.overall?.avg_topic_completion_pct), 70, 50)}
+                />
+                <MetricCard
+                  icon={<ClipboardCheck className="w-4 h-4 text-success" />}
+                  label="Avg Classes Conducted"
+                  value={`${safeNum(instrData?.overall?.avg_classes_conducted_pct)}%`}
+                  color={pctColor(safeNum(instrData?.overall?.avg_classes_conducted_pct), 80, 60)}
+                />
+              </div>
+
+              <h3 className="text-sm font-semibold text-text-secondary">Instructor Breakdown</h3>
+              <div className="space-y-2">
+                {(instrData?.instructors ?? []).length === 0 ? (
+                  <EmptyState text="No instructor data" />
+                ) : (
+                  instrData!.instructors
+                    .sort((a, b) => b.topic_completion_pct - a.topic_completion_pct)
+                    .map((inst) => {
+                      const conductedPct = inst.classes_scheduled > 0
+                        ? Math.round((inst.classes_conducted / inst.classes_scheduled) * 100)
+                        : 0;
+                      return (
+                        <div key={inst.instructor} className="bg-surface rounded-[10px] border border-border-light p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <div>
+                              <p className="text-sm font-medium text-primary">{inst.instructor_name}</p>
+                              <p className="text-xs text-text-tertiary">
+                                {inst.classes_conducted}/{inst.classes_scheduled} classes · {inst.batches.length} batches
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className={`text-sm font-bold ${pctColor(inst.topic_completion_pct, 70, 50)}`}>
+                                {safeNum(inst.topic_completion_pct)}%
+                              </p>
+                              <p className="text-xs text-text-tertiary">topics</p>
+                            </div>
+                          </div>
+                          {/* Progress bars */}
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <div className="flex justify-between text-[10px] text-text-tertiary mb-0.5">
+                                <span>Classes</span>
+                                <span>{conductedPct}%</span>
+                              </div>
+                              <div className="h-1 bg-app-bg rounded-full overflow-hidden">
+                                <div className={`h-full rounded-full ${conductedPct >= 80 ? "bg-success" : "bg-warning"}`} style={{ width: `${conductedPct}%` }} />
+                              </div>
+                            </div>
+                            <div>
+                              <div className="flex justify-between text-[10px] text-text-tertiary mb-0.5">
+                                <span>Topics</span>
+                                <span>{safeNum(inst.topic_completion_pct)}%</span>
+                              </div>
+                              <div className="h-1 bg-app-bg rounded-full overflow-hidden">
+                                <div className={`h-full rounded-full ${inst.topic_completion_pct >= 70 ? "bg-success" : "bg-warning"}`} style={{ width: `${safeNum(inst.topic_completion_pct)}%` }} />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+// ── Reusable: Batch Exam Expandable Card ────────────────────────
+function BatchExamCard({ batch }: { batch: import("@/lib/types/analytics").BatchAcademicSummary }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="bg-surface rounded-[12px] border border-border-light overflow-hidden">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between p-3 hover:bg-app-bg transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <div className={`w-10 h-10 rounded-[8px] flex items-center justify-center text-xs font-bold ${pctBadgeColor(safeNum(batch.overall_avg_pct), 70, 50)}`}>
+            {safeNum(batch.overall_avg_pct)}%
+          </div>
+          <div className="text-left">
+            <p className="text-sm font-semibold text-primary">{batch.student_group}</p>
+            <p className="text-xs text-text-tertiary">{batch.assessment_group} · {batch.total_students} students</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${pctBadgeColor(safeNum(batch.overall_pass_rate))}`}>
+            {safeNum(batch.overall_pass_rate)}% pass
+          </span>
+          <ChevronDown className={`w-4 h-4 text-text-tertiary transition-transform ${open ? "rotate-180" : ""}`} />
+        </div>
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="border-t border-border-light">
+              {/* Subject Table */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="bg-app-bg border-b border-border-light">
+                      <th className="text-left p-2.5 font-medium text-text-secondary">Subject</th>
+                      <th className="text-center p-2.5 font-medium text-text-secondary">Avg %</th>
+                      <th className="text-center p-2.5 font-medium text-text-secondary">Pass Rate</th>
+                      <th className="text-center p-2.5 font-medium text-text-secondary">High</th>
+                      <th className="text-center p-2.5 font-medium text-text-secondary">Low</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {batch.subjects.map((s) => (
+                      <tr key={s.course} className="border-b border-border-light last:border-0">
+                        <td className="p-2.5 font-medium text-primary">{s.course}</td>
+                        <td className="p-2.5 text-center">
+                          <span className={`font-medium ${pctColor(safeNum(s.avg_pct), 60, 40)}`}>{safeNum(s.avg_pct)}%</span>
+                        </td>
+                        <td className="p-2.5 text-center">
+                          <span className={`px-1.5 py-0.5 rounded-full font-bold ${pctBadgeColor(safeNum(s.pass_rate))}`}>{safeNum(s.pass_rate)}%</span>
+                        </td>
+                        <td className="p-2.5 text-center text-success font-medium">{s.max_score}</td>
+                        <td className="p-2.5 text-center text-error font-medium">{s.min_score}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Toppers & Weak */}
+              <div className="grid grid-cols-2 divide-x divide-border-light border-t border-border-light">
+                <div className="p-3">
+                  <p className="text-[10px] font-semibold text-text-secondary mb-1.5 flex items-center gap-1">
+                    <Trophy className="w-3 h-3 text-warning" /> Top Performers
+                  </p>
+                  {batch.toppers.slice(0, 5).map((t) => (
+                    <div key={t.student} className="flex justify-between py-0.5">
+                      <span className="text-xs text-primary truncate mr-2">{t.student_name}</span>
+                      <span className="text-xs font-bold text-success shrink-0">{t.pct}%</span>
+                    </div>
+                  ))}
+                  {batch.toppers.length === 0 && <p className="text-[10px] text-text-tertiary">No data</p>}
+                </div>
+                <div className="p-3">
+                  <p className="text-[10px] font-semibold text-text-secondary mb-1.5 flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3 text-error" /> Need Attention
+                  </p>
+                  {batch.weak_students.slice(0, 5).map((w) => (
+                    <div key={w.student} className="flex justify-between py-0.5">
+                      <div className="min-w-0 mr-2">
+                        <span className="text-xs text-primary truncate block">{w.student_name}</span>
+                        <span className="text-[10px] text-error truncate block">{w.failed_subjects.join(", ")}</span>
+                      </div>
+                      <span className="text-xs font-bold text-error shrink-0">{w.pct}%</span>
+                    </div>
+                  ))}
+                  {batch.weak_students.length === 0 && <p className="text-[10px] text-text-tertiary">All passed!</p>}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ── Small Reusable Components ───────────────────────────────────
+function MetricCard({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: string; color?: string }) {
+  return (
+    <div className="bg-surface rounded-[12px] p-3 border border-border-light">
+      <div className="flex items-center gap-1.5 mb-1.5">
+        {icon}
+        <span className="text-[10px] text-text-tertiary font-medium">{label}</span>
+      </div>
+      <p className={`text-xl font-bold ${color ?? "text-primary"}`}>{value}</p>
+    </div>
+  );
+}
+
+function EmptyState({ text }: { text: string }) {
+  return (
+    <div className="bg-surface rounded-[12px] p-6 text-center border border-border-light">
+      <p className="text-text-tertiary text-sm">{text}</p>
+    </div>
+  );
+}
+
+function LoadingSkeleton() {
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[...Array(4)].map((_, i) => <div key={i} className="h-20 bg-surface rounded-[12px] animate-pulse" />)}
+      </div>
+      {[...Array(3)].map((_, i) => <div key={i} className="h-16 bg-surface rounded-[10px] animate-pulse" />)}
+    </div>
+  );
+}
+
+// ── Main Page ───────────────────────────────────────────────────
+export default function DirectorAcademicsPage() {
+  const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["branch-academics"],
+    queryFn: getBranchAcademics,
+    staleTime: 120_000,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="p-4 sm:p-6 space-y-4">
+        <div className="h-8 w-64 bg-surface rounded animate-pulse" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="h-48 bg-surface rounded-[12px] animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const branches = data?.branches ?? [];
+  const sortedBranches = [...branches].sort((a, b) => b.avg_exam_score_pct - a.avg_exam_score_pct);
+
+  // Org-wide (use weighted or safe averages)
+  const totalStudents = branches.reduce((a, b) => a + b.total_students, 0);
+  const overallAttendance = branches.length > 0
+    ? Math.round(branches.reduce((a, b) => a + b.avg_attendance_pct, 0) / branches.length)
+    : 0;
+  const overallPass = branches.length > 0
+    ? Math.round(branches.reduce((a, b) => a + safeNum(b.pass_rate), 0) / branches.length)
+    : 0;
+  const totalAbsentees = branches.reduce((a, b) => a + b.chronic_absentees, 0);
+  const totalInstructors = branches.reduce((a, b) => a + (b.total_instructors ?? 0), 0);
+  const overallClassesConducted = branches.length > 0
+    ? Math.round(branches.reduce((a, b) => a + safeNum(b.avg_classes_conducted_pct), 0) / branches.length)
+    : 0;
+
+  return (
+    <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto">
+      <AnimatePresence mode="wait">
+        {selectedBranch ? (
+          <BranchDrillDown
+            key={selectedBranch}
+            branch={selectedBranch}
+            onBack={() => setSelectedBranch(null)}
+          />
+        ) : (
+          <motion.div
+            key="overview"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="space-y-6"
+          >
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+              <div>
+                <h1 className="text-2xl font-bold text-primary">Academics Overview</h1>
+                <p className="text-sm text-text-tertiary mt-0.5">
+                  Click any branch to drill down into detailed analytics
+                </p>
+              </div>
+
+              {/* Health Score Formula */}
+              <div className="flex items-start gap-2 bg-surface border border-border-light rounded-[10px] px-3 py-2.5 max-w-xs sm:max-w-sm">
+                <div className="mt-0.5 shrink-0 w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
+                  <span className="text-[10px] font-bold text-primary">?</span>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-text-secondary mb-1">How is Academic Health calculated?</p>
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-text-tertiary">
+                    <span><span className="font-semibold text-primary">30%</span> Attendance</span>
+                    <span><span className="font-semibold text-primary">30%</span> Exam Score</span>
+                    <span><span className="font-semibold text-primary">20%</span> Pass Rate</span>
+                    <span><span className="font-semibold text-primary">20%</span> Topic Coverage</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Org-wide Summary */}
+            <motion.div variants={container} initial="hidden" animate="show" className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+              <motion.div variants={item} className="bg-surface rounded-[12px] p-4 border border-border-light">
+                <div className="flex items-center gap-2 mb-2">
+                  <Building2 className="w-4 h-4 text-text-tertiary" />
+                  <span className="text-xs text-text-tertiary font-medium">Branches</span>
+                </div>
+                <p className="text-2xl font-bold text-primary">{branches.length}</p>
+              </motion.div>
+
+              <motion.div variants={item} className="bg-surface rounded-[12px] p-4 border border-border-light">
+                <div className="flex items-center gap-2 mb-2">
+                  <Users className="w-4 h-4 text-text-tertiary" />
+                  <span className="text-xs text-text-tertiary font-medium">Students</span>
+                </div>
+                <p className="text-2xl font-bold text-primary">{totalStudents}</p>
+              </motion.div>
+
+              <motion.div variants={item} className="bg-surface rounded-[12px] p-4 border border-border-light">
+                <div className="flex items-center gap-2 mb-2">
+                  <UserCheck className="w-4 h-4 text-text-tertiary" />
+                  <span className="text-xs text-text-tertiary font-medium">Teachers</span>
+                </div>
+                <p className="text-2xl font-bold text-primary">{totalInstructors}</p>
+              </motion.div>
+
+              <motion.div variants={item} className="bg-surface rounded-[12px] p-4 border border-border-light">
+                <div className="flex items-center gap-2 mb-2">
+                  <ClipboardCheck className="w-4 h-4 text-success" />
+                  <span className="text-xs text-text-tertiary font-medium">Attendance</span>
+                </div>
+                <p className={`text-2xl font-bold ${pctColor(overallAttendance)}`}>{overallAttendance}%</p>
+              </motion.div>
+
+              <motion.div variants={item} className="bg-surface rounded-[12px] p-4 border border-border-light">
+                <div className="flex items-center gap-2 mb-2">
+                  <Trophy className="w-4 h-4 text-warning" />
+                  <span className="text-xs text-text-tertiary font-medium">Pass Rate</span>
+                </div>
+                <p className={`text-2xl font-bold ${pctColor(overallPass)}`}>{overallPass}%</p>
+              </motion.div>
+
+              <motion.div variants={item} className="bg-surface rounded-[12px] p-4 border border-border-light">
+                <div className="flex items-center gap-2 mb-2">
+                  <GraduationCap className="w-4 h-4 text-text-tertiary" />
+                  <span className="text-xs text-text-tertiary font-medium">Classes Done</span>
+                </div>
+                <p className={`text-2xl font-bold ${pctColor(overallClassesConducted, 80, 60)}`}>{overallClassesConducted}%</p>
+              </motion.div>
+
+              <motion.div variants={item} className="bg-surface rounded-[12px] p-4 border border-border-light">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertTriangle className="w-4 h-4 text-error" />
+                  <span className="text-xs text-text-tertiary font-medium">At Risk</span>
+                </div>
+                <p className="text-2xl font-bold text-error">{totalAbsentees}</p>
+                <p className="text-xs text-text-tertiary mt-0.5">chronic absentees</p>
+              </motion.div>
+            </motion.div>
+
+            {/* Branch Cards — Clickable */}
+            <motion.div variants={container} initial="hidden" animate="show" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {branches.length === 0 ? (
+                <div className="col-span-full bg-surface rounded-[12px] p-8 text-center border border-border-light">
+                  <Building2 className="w-10 h-10 text-text-tertiary mx-auto mb-3" />
+                  <p className="text-text-secondary font-medium">No branch data found</p>
+                </div>
+              ) : (
+                sortedBranches.map((branch, i) => {
+                  const health = Math.round(
+                    safeNum(branch.avg_attendance_pct) * 0.3 +
+                    safeNum(branch.avg_exam_score_pct) * 0.3 +
+                    safeNum(branch.pass_rate) * 0.2 +
+                    safeNum(branch.topic_coverage_pct) * 0.2,
+                  );
+                  const healthColor = health >= 70 ? "text-success" : health >= 50 ? "text-warning" : "text-error";
+                  const healthBg = health >= 70 ? "bg-success/10" : health >= 50 ? "bg-warning/10" : "bg-error/10";
+
+                  return (
+                    <motion.button
+                      key={branch.branch}
+                      variants={item}
+                      onClick={() => setSelectedBranch(branch.branch)}
+                      className="text-left bg-surface rounded-[12px] border border-border-light overflow-hidden hover:border-primary/30 hover:shadow-md transition-all group"
+                    >
+                      {/* Card Header */}
+                      <div className="p-4 border-b border-border-light flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-[10px] flex items-center justify-center text-sm font-bold ${healthBg} ${healthColor}`}>
+                            {health}
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-primary group-hover:text-primary/80 transition-colors">
+                              {branch.branch.replace("Smart Up ", "")}
+                            </p>
+                            <p className="text-xs text-text-tertiary">{branch.total_students} students · {branch.total_batches} batches · {branch.total_instructors ?? 0} teachers</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {i < 3 && (
+                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                              i === 0 ? "bg-yellow-100 text-yellow-700"
+                              : i === 1 ? "bg-gray-100 text-gray-600"
+                              : "bg-orange-100 text-orange-700"
+                            }`}>
+                              #{i + 1}
+                            </span>
+                          )}
+                          <ChevronDown className="w-4 h-4 text-text-tertiary -rotate-90 group-hover:text-primary transition-colors" />
+                        </div>
+                      </div>
+
+                      {/* Metrics */}
+                      <div className="p-4 grid grid-cols-3 gap-3">
+                        <div>
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <ClipboardCheck className="w-3 h-3 text-text-tertiary" />
+                            <span className="text-xs text-text-tertiary">Attendance</span>
+                          </div>
+                          <p className={`text-lg font-bold ${pctColor(safeNum(branch.avg_attendance_pct))}`}>
+                            {safeNum(branch.avg_attendance_pct)}%
+                          </p>
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <BarChart3 className="w-3 h-3 text-text-tertiary" />
+                            <span className="text-xs text-text-tertiary">Avg Score</span>
+                          </div>
+                          <p className={`text-lg font-bold ${pctColor(safeNum(branch.avg_exam_score_pct), 60, 40)}`}>
+                            {safeNum(branch.avg_exam_score_pct)}%
+                          </p>
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <Trophy className="w-3 h-3 text-text-tertiary" />
+                            <span className="text-xs text-text-tertiary">Pass Rate</span>
+                          </div>
+                          <p className={`text-lg font-bold ${pctColor(safeNum(branch.pass_rate))}`}>
+                            {safeNum(branch.pass_rate)}%
+                          </p>
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <BookOpen className="w-3 h-3 text-text-tertiary" />
+                            <span className="text-xs text-text-tertiary">Topics</span>
+                          </div>
+                          <p className={`text-lg font-bold ${pctColor(safeNum(branch.topic_coverage_pct), 70, 50)}`}>
+                            {safeNum(branch.topic_coverage_pct)}%
+                          </p>
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <UserCheck className="w-3 h-3 text-text-tertiary" />
+                            <span className="text-xs text-text-tertiary">Classes Done</span>
+                          </div>
+                          <p className={`text-lg font-bold ${pctColor(safeNum(branch.avg_classes_conducted_pct), 80, 60)}`}>
+                            {safeNum(branch.avg_classes_conducted_pct)}%
+                          </p>
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <GraduationCap className="w-3 h-3 text-text-tertiary" />
+                            <span className="text-xs text-text-tertiary">Teacher Topics</span>
+                          </div>
+                          <p className={`text-lg font-bold ${pctColor(safeNum(branch.avg_instructor_topic_pct), 70, 50)}`}>
+                            {safeNum(branch.avg_instructor_topic_pct)}%
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* At Risk */}
+                      {branch.chronic_absentees > 0 && (
+                        <div className="px-4 pb-3">
+                          <div className="bg-error/5 rounded-[8px] px-3 py-2 flex items-center justify-between">
+                            <div className="flex items-center gap-1.5">
+                              <AlertTriangle className="w-3.5 h-3.5 text-error" />
+                              <span className="text-xs text-error font-medium">{branch.chronic_absentees} at risk</span>
+                            </div>
+                            <span className="text-xs text-error">&lt;75% attendance</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Health Bar */}
+                      <div className="px-4 pb-4">
+                        <div className="flex justify-between text-xs text-text-tertiary mb-1">
+                          <span>Academic Health</span>
+                          <span className={healthColor}>{health}%</span>
+                        </div>
+                        <div className="h-1.5 bg-app-bg rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${health >= 70 ? "bg-success" : health >= 50 ? "bg-warning" : "bg-error"}`}
+                            style={{ width: `${health}%` }}
+                          />
+                        </div>
+                      </div>
+                    </motion.button>
+                  );
+                })
+              )}
+            </motion.div>
+
+            {/* Comparison Table */}
+            {branches.length > 1 && (
+              <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+                <h2 className="text-lg font-semibold text-primary mb-3 flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5" />
+                  Branch Comparison
+                </h2>
+                <div className="bg-surface rounded-[12px] border border-border-light overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-app-bg border-b border-border-light">
+                          <th className="text-left p-3 font-medium text-text-secondary">Branch</th>
+                          <th className="text-center p-3 font-medium text-text-secondary">Students</th>
+                          <th className="text-center p-3 font-medium text-text-secondary">Attendance</th>
+                          <th className="text-center p-3 font-medium text-text-secondary">Avg Score</th>
+                          <th className="text-center p-3 font-medium text-text-secondary">Pass Rate</th>
+                          <th className="text-center p-3 font-medium text-text-secondary">Topics</th>
+                          <th className="text-center p-3 font-medium text-text-secondary">Teachers</th>
+                          <th className="text-center p-3 font-medium text-text-secondary">Classes %</th>
+                          <th className="text-center p-3 font-medium text-text-secondary">At Risk</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sortedBranches.map((b) => (
+                          <tr
+                            key={b.branch}
+                            onClick={() => setSelectedBranch(b.branch)}
+                            className="border-b border-border-light last:border-0 hover:bg-app-bg transition-colors cursor-pointer"
+                          >
+                            <td className="p-3 font-medium text-primary">{b.branch.replace("Smart Up ", "")}</td>
+                            <td className="p-3 text-center text-text-secondary">{b.total_students}</td>
+                            <td className="p-3 text-center">
+                              <span className={`font-medium ${pctColor(safeNum(b.avg_attendance_pct))}`}>
+                                {safeNum(b.avg_attendance_pct)}%
+                              </span>
+                            </td>
+                            <td className="p-3 text-center">
+                              <span className={`font-medium ${pctColor(safeNum(b.avg_exam_score_pct), 60, 40)}`}>
+                                {safeNum(b.avg_exam_score_pct)}%
+                              </span>
+                            </td>
+                            <td className="p-3 text-center">
+                              <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-bold ${pctBadgeColor(safeNum(b.pass_rate))}`}>
+                                {safeNum(b.pass_rate)}%
+                              </span>
+                            </td>
+                            <td className="p-3 text-center text-text-secondary">{safeNum(b.topic_coverage_pct)}%</td>
+                            <td className="p-3 text-center text-text-secondary">{b.total_instructors ?? 0}</td>
+                            <td className="p-3 text-center">
+                              <span className={`font-medium ${pctColor(safeNum(b.avg_classes_conducted_pct), 80, 60)}`}>
+                                {safeNum(b.avg_classes_conducted_pct)}%
+                              </span>
+                            </td>
+                            <td className="p-3 text-center">
+                              {b.chronic_absentees > 0 ? (
+                                <span className="text-error font-medium">{b.chronic_absentees}</span>
+                              ) : (
+                                <span className="text-success">0</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}

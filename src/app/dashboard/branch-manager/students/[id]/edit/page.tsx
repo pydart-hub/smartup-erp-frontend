@@ -31,6 +31,7 @@ const editSchema = z.object({
   student_mobile_number: z.string().optional(),
   custom_branch: z.string().optional(),
   enabled: z.enum(["0", "1"]).optional(),
+  custom_student_type: z.enum(["Fresher", "Existing", "Rejoining", "Demo", ""]).optional(),
   // Guardian fields (stored separately in Guardian doctype)
   guardian_name: z.string().optional(),
   guardian_mobile: z.string().optional(),
@@ -102,6 +103,7 @@ export default function StudentEditPage() {
       student_mobile_number: student.student_mobile_number ?? "",
       custom_branch: student.custom_branch ?? "",
       enabled: String(student.enabled) as "0" | "1",
+      custom_student_type: (student.custom_student_type as EditFormValues["custom_student_type"]) ?? "",
     });
   }, [student, reset]);
 
@@ -132,6 +134,7 @@ export default function StudentEditPage() {
         student_mobile_number: values.student_mobile_number,
         custom_branch: values.custom_branch,
         enabled: (values.enabled !== undefined ? Number(values.enabled) : undefined) as 0 | 1 | undefined,
+        custom_student_type: values.custom_student_type || undefined,
       });
 
       // 2. Update Guardian if exists
@@ -254,8 +257,10 @@ export default function StudentEditPage() {
                   type="email"
                   error={errors.student_email_id?.message}
                   {...register("student_email_id")}
+                  disabled
+                  className="opacity-60 cursor-not-allowed"
                 />
-                <Input label="Mobile" {...register("student_mobile_number")} />
+                <Input label="Mobile" {...register("student_mobile_number")} disabled className="opacity-60 cursor-not-allowed" />
               </div>
             </div>
           </CardContent>
@@ -265,8 +270,18 @@ export default function StudentEditPage() {
         <Card>
           <CardContent className="p-6">
             <SectionHeader icon={<School className="h-4 w-4" />} title="Academic Details" />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <Input label="Branch" {...register("custom_branch")} />
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-text-secondary">Student Type</label>
+                <select className={selectCls} {...register("custom_student_type")}>
+                  <option value="">— Select —</option>
+                  <option value="Fresher">Fresher</option>
+                  <option value="Existing">Existing</option>
+                  <option value="Rejoining">Rejoining</option>
+                  <option value="Demo">Demo</option>
+                </select>
+              </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-text-secondary">Status</label>
                 <select className={selectCls} {...register("enabled")}>
