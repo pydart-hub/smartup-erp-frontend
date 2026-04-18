@@ -186,7 +186,7 @@ export async function GET(request: NextRequest) {
         const totalMax = data.subjects.reduce((s, sub) => s + sub.max, 0);
         const overallPct = totalMax > 0 ? Math.round((totalScore / totalMax) * 100 * 10) / 10 : 0;
         const failedSubjects = data.subjects.filter((s) => !s.passed).map((s) => s.course);
-        return { student, pct: overallPct, totalScore, totalMax, totalScore, totalMax, failedSubjects, passed: failedSubjects.length === 0 };
+        return { student, pct: overallPct, totalScore, totalMax, failedSubjects, passed: failedSubjects.length === 0 };
       });
 
       // Look up student names from results
