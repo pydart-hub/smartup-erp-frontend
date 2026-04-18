@@ -7,13 +7,16 @@ import {
   getAttendanceAnalytics,
   getExamAnalytics,
   getInstructorAnalytics,
+  getScheduleAnalytics,
 } from "@/lib/api/analytics";
+import type { ScheduleClassSummary, ScheduleBatchSummary, EventEntry } from "@/lib/types/analytics";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Building2, ClipboardCheck, Trophy, BookOpen,
   AlertTriangle, Users, TrendingUp, BarChart3,
   ChevronDown, ChevronLeft, UserCheck, GraduationCap,
-  Loader2,
+  Loader2, Calendar, CalendarDays, CheckCircle2, Clock,
+  Sparkles,
 } from "lucide-react";
 
 const container = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.06 } } };
@@ -38,17 +41,20 @@ function pctBadgeColor(pct: number, good = 75, mid = 50): string {
 // ── Branch Drill-Down Panel ─────────────────────────────────────
 type AttDrillLevel = { view: "classes" } | { view: "batches"; program: string } | { view: "detail"; program: string; batch: string };
 type ExamDrillLevel = { view: "classes" } | { view: "detail"; program: string };
+type SchedDrillLevel = { view: "classes" } | { view: "batches"; program: string } | { view: "detail"; program: string; batch: string };
 
 function BranchDrillDown({ branch, onBack }: { branch: string; onBack: () => void }) {
-  const [activeTab, setActiveTab] = useState<"attendance" | "exams" | "instructors">("attendance");
+  const [activeTab, setActiveTab] = useState<"attendance" | "exams" | "instructors" | "schedule" | "events">("attendance");
   const [attDrill, setAttDrill] = useState<AttDrillLevel>({ view: "classes" });
   const [examDrill, setExamDrill] = useState<ExamDrillLevel>({ view: "classes" });
+  const [schedDrill, setSchedDrill] = useState<SchedDrillLevel>({ view: "classes" });
 
   // Reset drill state when switching tabs
   const switchTab = (tab: typeof activeTab) => {
     setActiveTab(tab);
     setAttDrill({ view: "classes" });
     setExamDrill({ view: "classes" });
+    setSchedDrill({ view: "classes" });
   };
 
   const dateRange = useMemo(() => {
@@ -76,6 +82,12 @@ function BranchDrillDown({ branch, onBack }: { branch: string; onBack: () => voi
   const { data: instrData, isLoading: instrLoading } = useQuery({
     queryKey: ["drill-instructors", branch],
     queryFn: () => getInstructorAnalytics({ branch }),
+    staleTime: 60_000,
+  });
+
+  const { data: schedData, isLoading: schedLoading } = useQuery({
+    queryKey: ["drill-schedule", branch],
+    queryFn: () => getScheduleAnalytics({ branch }),
     staleTime: 60_000,
   });
 
@@ -137,6 +149,10 @@ function BranchDrillDown({ branch, onBack }: { branch: string; onBack: () => voi
     } else if (activeTab === "exams") {
       if (examDrill.view === "detail") setExamDrill({ view: "classes" });
       else onBack();
+    } else if (activeTab === "schedule") {
+      if (schedDrill.view === "detail") setSchedDrill({ view: "batches", program: schedDrill.program });
+      else if (schedDrill.view === "batches") setSchedDrill({ view: "classes" });
+      else onBack();
     } else {
       onBack();
     }
@@ -149,16 +165,23 @@ function BranchDrillDown({ branch, onBack }: { branch: string; onBack: () => voi
     if (attDrill.view === "detail") breadcrumbs.push(attDrill.batch);
   } else if (activeTab === "exams") {
     if (examDrill.view === "detail") breadcrumbs.push(examDrill.program);
+  } else if (activeTab === "schedule") {
+    if (schedDrill.view === "batches" || schedDrill.view === "detail") breadcrumbs.push(schedDrill.program);
+    if (schedDrill.view === "detail") breadcrumbs.push(schedDrill.batch);
   }
 
   const isAtRoot = (activeTab === "attendance" && attDrill.view === "classes") ||
     (activeTab === "exams" && examDrill.view === "classes") ||
-    activeTab === "instructors";
+    (activeTab === "schedule" && schedDrill.view === "classes") ||
+    activeTab === "instructors" ||
+    activeTab === "events";
 
   const tabs = [
     { key: "attendance" as const, label: "Attendance", icon: ClipboardCheck, loading: attLoading },
     { key: "exams" as const, label: "Exams", icon: Trophy, loading: examLoading },
     { key: "instructors" as const, label: "Instructors", icon: UserCheck, loading: instrLoading },
+    { key: "schedule" as const, label: "Schedule", icon: Calendar, loading: schedLoading },
+    { key: "events" as const, label: "Events", icon: Sparkles, loading: schedLoading },
   ];
 
   return (
@@ -190,11 +213,15 @@ function BranchDrillDown({ branch, onBack }: { branch: string; onBack: () => voi
           </div>
           <p className="text-xs text-text-tertiary mt-0.5">
             {attDrill.view === "classes" && activeTab === "attendance" && "Class-wise attendance overview"}
-            {attDrill.view === "batches" && "Batch-wise attendance for this class"}
-            {attDrill.view === "detail" && "Detailed batch attendance"}
+            {attDrill.view === "batches" && activeTab === "attendance" && "Batch-wise attendance for this class"}
+            {attDrill.view === "detail" && activeTab === "attendance" && "Detailed batch attendance"}
             {examDrill.view === "classes" && activeTab === "exams" && "Class-wise exam overview"}
-            {examDrill.view === "detail" && "Detailed exam results for this class"}
+            {examDrill.view === "detail" && activeTab === "exams" && "Detailed exam results for this class"}
             {activeTab === "instructors" && "Instructor performance breakdown"}
+            {schedDrill.view === "classes" && activeTab === "schedule" && "Class-wise schedule overview"}
+            {schedDrill.view === "batches" && activeTab === "schedule" && "Batch-wise schedules for this class"}
+            {schedDrill.view === "detail" && activeTab === "schedule" && "Detailed batch schedule"}
+            {activeTab === "events" && "Event planner overview"}
           </p>
         </div>
       </div>
@@ -544,11 +571,308 @@ function BranchDrillDown({ branch, onBack }: { branch: string; onBack: () => voi
           )}
         </div>
       )}
+
+      {/* ═══════════════ SCHEDULE TAB ═══════════════ */}
+      {activeTab === "schedule" && (
+        <div className="space-y-4">
+          {schedLoading ? (
+            <LoadingSkeleton />
+          ) : schedDrill.view === "classes" ? (
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <MetricCard icon={<Calendar className="w-4 h-4 text-text-tertiary" />} label="Total Scheduled" value={String(schedData?.overall?.total_scheduled ?? 0)} />
+                <MetricCard icon={<CheckCircle2 className="w-4 h-4 text-success" />} label="Conducted" value={`${safeNum(schedData?.overall?.conducted_pct)}%`} color={pctColor(safeNum(schedData?.overall?.conducted_pct), 80, 60)} />
+                <MetricCard icon={<BookOpen className="w-4 h-4 text-info" />} label="Topic Coverage" value={`${safeNum(schedData?.overall?.topic_coverage_pct)}%`} color={pctColor(safeNum(schedData?.overall?.topic_coverage_pct), 70, 50)} />
+                <MetricCard icon={<Clock className="w-4 h-4 text-warning" />} label="Upcoming" value={String(schedData?.overall?.total_upcoming ?? 0)} />
+              </div>
+
+              <h3 className="text-sm font-semibold text-text-secondary">Class-wise Schedule Summary</h3>
+              <div className="space-y-2">
+                {(schedData?.classes ?? []).length === 0 ? (
+                  <EmptyState text="No schedule data" />
+                ) : (
+                  schedData!.classes.map((cls) => (
+                    <button
+                      key={cls.program}
+                      onClick={() => setSchedDrill({ view: "batches", program: cls.program })}
+                      className="w-full bg-surface rounded-[10px] border border-border-light p-3.5 flex items-center justify-between hover:border-primary/30 hover:shadow-sm transition-all group text-left"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`w-11 h-11 rounded-[10px] flex items-center justify-center text-xs font-bold ${pctBadgeColor(cls.conducted_pct, 80, 60)}`}>
+                          {cls.conducted_pct}%
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-primary group-hover:text-primary/80 transition-colors truncate">{cls.program}</p>
+                          <p className="text-xs text-text-tertiary">{cls.total_scheduled} scheduled · {cls.batches.length} {cls.batches.length === 1 ? "batch" : "batches"}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0 text-xs">
+                        <span className="text-success">{cls.conducted} done</span>
+                        <span className="text-warning">{cls.upcoming} upcoming</span>
+                        <span className={`px-1.5 py-0.5 rounded-full font-medium ${pctBadgeColor(cls.topic_coverage_pct, 70, 50)}`}>
+                          {cls.topic_coverage_pct}% topics
+                        </span>
+                        <ChevronDown className="w-4 h-4 text-text-tertiary -rotate-90 group-hover:text-primary" />
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+            </>
+          ) : schedDrill.view === "batches" ? (
+            (() => {
+              const cls = (schedData?.classes ?? []).find((c) => c.program === schedDrill.program);
+              if (!cls) return <EmptyState text="No data for this class" />;
+              return (
+                <>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <MetricCard icon={<Calendar className="w-4 h-4 text-text-tertiary" />} label="Scheduled" value={String(cls.total_scheduled)} />
+                    <MetricCard icon={<CheckCircle2 className="w-4 h-4 text-success" />} label="Conducted" value={`${cls.conducted_pct}%`} color={pctColor(cls.conducted_pct, 80, 60)} />
+                    <MetricCard icon={<BookOpen className="w-4 h-4 text-info" />} label="Topic Coverage" value={`${cls.topic_coverage_pct}%`} color={pctColor(cls.topic_coverage_pct, 70, 50)} />
+                    <MetricCard icon={<Clock className="w-4 h-4 text-warning" />} label="Upcoming" value={String(cls.upcoming)} />
+                  </div>
+
+                  <h3 className="text-sm font-semibold text-text-secondary">Batches in {cls.program}</h3>
+                  <div className="space-y-2">
+                    {cls.batches.map((b) => {
+                      const bConductedPct = b.total_scheduled > 0
+                        ? Math.round((b.conducted / b.total_scheduled) * 100)
+                        : 0;
+                      return (
+                        <button
+                          key={b.student_group}
+                          onClick={() => setSchedDrill({ view: "detail", program: schedDrill.program, batch: b.student_group })}
+                          className="w-full bg-surface rounded-[10px] border border-border-light p-3 flex items-center justify-between hover:border-primary/30 hover:shadow-sm transition-all group text-left"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className={`w-10 h-10 rounded-[8px] flex items-center justify-center text-xs font-bold ${pctBadgeColor(bConductedPct, 80, 60)}`}>
+                              {bConductedPct}%
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-primary truncate">{b.student_group}</p>
+                              <p className="text-xs text-text-tertiary">
+                                {b.total_scheduled} scheduled · {b.courses.length} {b.courses.length === 1 ? "course" : "courses"} · {b.instructors.length} {b.instructors.length === 1 ? "teacher" : "teachers"}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0 text-xs">
+                            <span className="text-success">{b.conducted} done</span>
+                            <span className="text-warning">{b.upcoming} up</span>
+                            <ChevronDown className="w-4 h-4 text-text-tertiary -rotate-90 group-hover:text-primary" />
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              );
+            })()
+          ) : (
+            (() => {
+              const cls = (schedData?.classes ?? []).find((c) => c.program === schedDrill.program);
+              const batch = cls?.batches.find((b) => b.student_group === schedDrill.batch);
+              if (!batch) return <EmptyState text="No data for this batch" />;
+              const bConductedPct = batch.total_scheduled > 0
+                ? Math.round((batch.conducted / batch.total_scheduled) * 100)
+                : 0;
+              return (
+                <>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <MetricCard icon={<Calendar className="w-4 h-4 text-text-tertiary" />} label="Scheduled" value={String(batch.total_scheduled)} />
+                    <MetricCard icon={<CheckCircle2 className="w-4 h-4 text-success" />} label="Conducted" value={`${bConductedPct}%`} color={pctColor(bConductedPct, 80, 60)} />
+                    <MetricCard icon={<BookOpen className="w-4 h-4 text-info" />} label="Topic Coverage" value={`${batch.topic_coverage_pct}%`} color={pctColor(batch.topic_coverage_pct, 70, 50)} />
+                    <MetricCard icon={<Clock className="w-4 h-4 text-warning" />} label="Upcoming" value={String(batch.upcoming)} />
+                  </div>
+
+                  {/* Instructors & Courses */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-surface rounded-[10px] border border-border-light p-3">
+                      <p className="text-[10px] font-semibold text-text-secondary mb-2">Instructors</p>
+                      {batch.instructors.map((inst) => (
+                        <p key={inst.id} className="text-xs text-primary py-0.5">{inst.name}</p>
+                      ))}
+                      {batch.instructors.length === 0 && <p className="text-xs text-text-tertiary">None</p>}
+                    </div>
+                    <div className="bg-surface rounded-[10px] border border-border-light p-3">
+                      <p className="text-[10px] font-semibold text-text-secondary mb-2">Courses</p>
+                      {batch.courses.map((c) => (
+                        <p key={c} className="text-xs text-primary py-0.5">{c}</p>
+                      ))}
+                      {batch.courses.length === 0 && <p className="text-xs text-text-tertiary">None</p>}
+                    </div>
+                  </div>
+
+                  {/* Upcoming Schedules */}
+                  {batch.upcoming_list.length > 0 && (
+                    <>
+                      <h3 className="text-sm font-semibold text-text-secondary flex items-center gap-1.5">
+                        <Clock className="w-4 h-4 text-warning" /> Upcoming Classes
+                      </h3>
+                      <div className="bg-surface rounded-[12px] border border-border-light overflow-hidden">
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="bg-app-bg border-b border-border-light">
+                                <th className="text-left p-2.5 font-medium text-text-secondary">Date</th>
+                                <th className="text-left p-2.5 font-medium text-text-secondary">Course</th>
+                                <th className="text-left p-2.5 font-medium text-text-secondary">Instructor</th>
+                                <th className="text-left p-2.5 font-medium text-text-secondary">Time</th>
+                                <th className="text-left p-2.5 font-medium text-text-secondary">Topic</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {batch.upcoming_list.map((s) => (
+                                <tr key={s.name} className="border-b border-border-light last:border-0">
+                                  <td className="p-2.5 text-primary font-medium">{s.date}</td>
+                                  <td className="p-2.5 text-text-secondary">{s.course}</td>
+                                  <td className="p-2.5 text-text-secondary">{s.instructor_name}</td>
+                                  <td className="p-2.5 text-text-tertiary">{s.from_time?.slice(0, 5)} - {s.to_time?.slice(0, 5)}</td>
+                                  <td className="p-2.5 text-text-tertiary">{s.topic || "—"}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Recent Schedules */}
+                  {batch.recent.length > 0 && (
+                    <>
+                      <h3 className="text-sm font-semibold text-text-secondary flex items-center gap-1.5">
+                        <CalendarDays className="w-4 h-4 text-text-tertiary" /> Recent Classes
+                      </h3>
+                      <div className="bg-surface rounded-[12px] border border-border-light overflow-hidden">
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="bg-app-bg border-b border-border-light">
+                                <th className="text-left p-2.5 font-medium text-text-secondary">Date</th>
+                                <th className="text-left p-2.5 font-medium text-text-secondary">Course</th>
+                                <th className="text-left p-2.5 font-medium text-text-secondary">Instructor</th>
+                                <th className="text-left p-2.5 font-medium text-text-secondary">Topic</th>
+                                <th className="text-center p-2.5 font-medium text-text-secondary">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {batch.recent.map((s) => (
+                                <tr key={s.name} className="border-b border-border-light last:border-0">
+                                  <td className="p-2.5 text-primary font-medium">{s.date}</td>
+                                  <td className="p-2.5 text-text-secondary">{s.course}</td>
+                                  <td className="p-2.5 text-text-secondary">{s.instructor_name}</td>
+                                  <td className="p-2.5 text-text-tertiary">
+                                    {s.topic ? (
+                                      <span className="flex items-center gap-1">
+                                        {s.topic}
+                                        {s.topic_covered ? (
+                                          <CheckCircle2 className="w-3 h-3 text-success shrink-0" />
+                                        ) : (
+                                          <Clock className="w-3 h-3 text-warning shrink-0" />
+                                        )}
+                                      </span>
+                                    ) : "—"}
+                                  </td>
+                                  <td className="p-2.5 text-center">
+                                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${s.conducted ? "bg-success/10 text-success" : "bg-error/10 text-error"}`}>
+                                      {s.conducted ? "Done" : "Missed"}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </>
+              );
+            })()
+          )}
+        </div>
+      )}
+
+      {/* ═══════════════ EVENTS TAB ═══════════════ */}
+      {activeTab === "events" && (
+        <div className="space-y-4">
+          {schedLoading ? (
+            <LoadingSkeleton />
+          ) : (
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <MetricCard icon={<Sparkles className="w-4 h-4 text-text-tertiary" />} label="Total Events" value={String(schedData?.events?.total ?? 0)} />
+                <MetricCard icon={<CalendarDays className="w-4 h-4 text-info" />} label="This Month" value={String(schedData?.events?.this_month ?? 0)} />
+                <MetricCard icon={<Clock className="w-4 h-4 text-warning" />} label="Upcoming" value={String(schedData?.events?.upcoming ?? 0)} />
+              </div>
+
+              {/* Event Type Breakdown */}
+              {(schedData?.events?.by_type ?? []).length > 0 && (
+                <>
+                  <h3 className="text-sm font-semibold text-text-secondary">By Type</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {schedData!.events.by_type.map((t) => (
+                      <div key={t.type} className="bg-surface rounded-[8px] border border-border-light px-3 py-2 flex items-center gap-2">
+                        <span className="text-xs font-medium text-primary">{t.type}</span>
+                        <span className="text-xs font-bold text-text-secondary bg-app-bg px-1.5 py-0.5 rounded-full">{t.count}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* Events List */}
+              <h3 className="text-sm font-semibold text-text-secondary">Recent & Upcoming Events</h3>
+              {(schedData?.events?.list ?? []).length === 0 ? (
+                <EmptyState text="No events found" />
+              ) : (
+                <div className="bg-surface rounded-[12px] border border-border-light overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="bg-app-bg border-b border-border-light">
+                          <th className="text-left p-2.5 font-medium text-text-secondary">Date</th>
+                          <th className="text-left p-2.5 font-medium text-text-secondary">Type</th>
+                          <th className="text-left p-2.5 font-medium text-text-secondary">Title</th>
+                          <th className="text-left p-2.5 font-medium text-text-secondary">Class / Batch</th>
+                          <th className="text-left p-2.5 font-medium text-text-secondary">Host</th>
+                          <th className="text-left p-2.5 font-medium text-text-secondary">Time</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {schedData!.events.list.map((e) => {
+                          const isUpcoming = e.date >= new Date().toISOString().split("T")[0];
+                          return (
+                            <tr key={e.name} className="border-b border-border-light last:border-0">
+                              <td className="p-2.5 font-medium text-primary whitespace-nowrap">
+                                {e.date}
+                                {isUpcoming && <span className="ml-1 text-[9px] px-1 py-0.5 rounded bg-warning/10 text-warning font-bold">UPCOMING</span>}
+                              </td>
+                              <td className="p-2.5">
+                                <span className="px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-medium">{e.event_type}</span>
+                              </td>
+                              <td className="p-2.5 text-text-secondary font-medium">{e.event_title}</td>
+                              <td className="p-2.5 text-text-tertiary">
+                                {e.student_group || e.program || "Branch-wide"}
+                                {e.course && <span className="block text-[10px]">{e.course}</span>}
+                              </td>
+                              <td className="p-2.5 text-text-secondary">{e.instructor_name || "—"}</td>
+                              <td className="p-2.5 text-text-tertiary whitespace-nowrap">{e.from_time?.slice(0, 5)} - {e.to_time?.slice(0, 5)}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
     </motion.div>
   );
 }
-
-// ── Absentee Table (reusable) ───────────────────────────────────
 function AbsenteeTable({ absentees, showBatch = true }: { absentees: import("@/lib/types/analytics").ChronicAbsentee[]; showBatch?: boolean }) {
   return (
     <div className="bg-surface rounded-[12px] border border-border-light overflow-hidden">

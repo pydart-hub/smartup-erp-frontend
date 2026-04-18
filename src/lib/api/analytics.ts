@@ -10,6 +10,7 @@ import type {
   StudentAcademicProfile,
   InstructorAnalyticsResponse,
   BranchAcademicsResponse,
+  ScheduleSummaryResponse,
 } from "@/lib/types/analytics";
 
 // ── Attendance Analytics ──
@@ -87,5 +88,18 @@ export async function getBranchAcademics(): Promise<BranchAcademicsResponse> {
     credentials: "include",
   });
   if (!res.ok) throw new Error("Failed to fetch branch academics");
+  return res.json();
+}
+
+// ── Schedule & Event Analytics ──
+
+export async function getScheduleAnalytics(params: {
+  branch: string;
+}): Promise<ScheduleSummaryResponse> {
+  const query = new URLSearchParams({ branch: params.branch });
+  const res = await fetch(`/api/analytics/schedule-summary?${query}`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Failed to fetch schedule analytics");
   return res.json();
 }

@@ -198,3 +198,71 @@ export interface BranchAcademicsResponse {
     overall_pass_rate: number;
   };
 }
+
+// ── Schedule & Event Analytics ──────────────────────────────────
+
+export interface ScheduleEntry {
+  name: string;
+  course: string;
+  instructor_name: string;
+  date: string;
+  from_time: string;
+  to_time: string;
+  topic: string | null;
+  topic_covered: 0 | 1;
+  conducted: boolean;
+}
+
+export interface ScheduleBatchSummary {
+  student_group: string;
+  total_scheduled: number;
+  conducted: number;
+  upcoming: number;
+  topic_coverage_pct: number;
+  instructors: { id: string; name: string }[];
+  courses: string[];
+  recent: ScheduleEntry[];
+  upcoming_list: ScheduleEntry[];
+}
+
+export interface ScheduleClassSummary {
+  program: string;
+  total_scheduled: number;
+  conducted: number;
+  conducted_pct: number;
+  upcoming: number;
+  topic_coverage_pct: number;
+  batches: ScheduleBatchSummary[];
+}
+
+export interface EventEntry {
+  name: string;
+  event_type: string;
+  event_title: string;
+  student_group: string | null;
+  program: string | null;
+  course: string | null;
+  instructor_name: string | null;
+  date: string;
+  from_time: string;
+  to_time: string;
+  topic: string | null;
+}
+
+export interface ScheduleSummaryResponse {
+  overall: {
+    total_scheduled: number;
+    total_conducted: number;
+    conducted_pct: number;
+    total_upcoming: number;
+    topic_coverage_pct: number;
+  };
+  classes: ScheduleClassSummary[];
+  events: {
+    total: number;
+    this_month: number;
+    upcoming: number;
+    by_type: { type: string; count: number }[];
+    list: EventEntry[];
+  };
+}
