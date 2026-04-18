@@ -681,7 +681,7 @@ function BatchExamCard({ batch }: { batch: import("@/lib/types/analytics").Batch
                     <div key={w.student} className="flex justify-between py-0.5">
                       <div className="min-w-0 mr-2">
                         <span className="text-xs text-primary truncate block">{w.student_name}</span>
-                        <span className="text-[10px] text-error truncate block">{total_score}/{w.total_max} ({w.pct}%)led_subjects.join(", ")}</span>
+                        <span className="text-[10px] text-error truncate block">{w.failed_subjects.join(", ")}</span>
                       </div>
                       <span className="text-xs font-bold text-error shrink-0">{w.total_score}/{w.total_max} ({w.pct}%)</span>
                     </div>
