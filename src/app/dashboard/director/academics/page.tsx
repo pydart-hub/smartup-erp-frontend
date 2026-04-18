@@ -644,8 +644,6 @@ function BatchExamCard({ batch }: { batch: import("@/lib/types/analytics").Batch
                     {batch.subjects.map((s) => (
                       <tr key={s.course} className="border-b border-border-light last:border-0">
                         <td className="p-2.5 font-medium text-primary">{s.course}</td>
-                        <td className="p-2.5 text-center text-text-secondary font-medium">{s.avg_score}/{s.maximum_possiblt last:border-0">
-                        <td className="p-2.5 font-medium text-primary">{s.course}</td>
                         <td className="p-2.5 text-center text-text-secondary font-medium">{s.avg_score}/{s.maximum_possible}</td>
                         <td className="p-2.5 text-center">
                           <span className={`font-medium ${pctColor(safeNum(s.avg_pct), 60, 40)}`}>{safeNum(s.avg_pct)}%</span>
@@ -668,7 +666,7 @@ function BatchExamCard({ batch }: { batch: import("@/lib/types/analytics").Batch
                     <Trophy className="w-3 h-3 text-warning" /> Top Performers
                   </p>
                   {batch.toppers.slice(0, 5).map((t) => (
-                    <div key={t.student} className="flex justify-between py-0.5">total_score}/{t.total_max} ({t.pct}%)
+                    <div key={t.student} className="flex justify-between py-0.5">
                       <span className="text-xs text-primary truncate mr-2">{t.student_name}</span>
                       <span className="text-xs font-bold text-success shrink-0">{t.total_score}/{t.total_max} ({t.pct}%)</span>
                     </div>
