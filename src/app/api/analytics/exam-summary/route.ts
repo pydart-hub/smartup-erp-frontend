@@ -213,10 +213,6 @@ export async function GET(request: NextRequest) {
           student_name: nameMap.get(s.student) || s.student,
           pct: s.pct,
           total_score: s.totalScore,
-          total_max: s.totalMax.student,
-          student_name: nameMap.get(s.student) || s.student,
-          pct: s.pct,
-          total_score: s.totalScore,
           total_max: s.totalMax,
           failed_subjects: s.failedSubjects,
         }));
