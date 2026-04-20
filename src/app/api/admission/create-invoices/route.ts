@@ -111,6 +111,12 @@ export async function POST(request: NextRequest) {
 
     const today = new Date().toISOString().split("T")[0];
 
+    // Brief pause to let Frappe fully index the newly-submitted SO before
+    // we start creating invoices against it. Without this, the first
+    // invoice creation can fail with a billing-limit or document-not-found
+    // error on high-load days (race condition with SO post-submit hooks).
+    await new Promise((r) => setTimeout(r, 1000));
+
     for (let i = 0; i < schedule.length; i++) {
       const inst = schedule[i];
       // If the due date is already past, use today to avoid Frappe's
@@ -179,6 +185,65 @@ export async function POST(request: NextRequest) {
       } else {
         createdInvoices.push(invName);
       }
+    }
+
+    // ── Retry any failed instalments once (handles transient Frappe errors) ──
+    if (failedInstalments.length > 0) {
+      await new Promise((r) => setTimeout(r, 2000));
+      const stillFailed: typeof failedInstalments = [];
+      for (const failed of failedInstalments) {
+        const inst = schedule[failed.index];
+        const effectiveDate = inst.dueDate < today ? today : inst.dueDate;
+        const retryPayload = {
+          doctype: "Sales Invoice",
+          customer: soData.customer,
+          company: soData.company,
+          posting_date: effectiveDate,
+          due_date: effectiveDate,
+          student: soData.student,
+          custom_academic_year: soData.custom_academic_year,
+          items: [
+            {
+              item_code: soItem.item_code,
+              item_name: soItem.item_name,
+              description: `${inst.label} — ${soItem.item_name}`,
+              qty: 1,
+              rate: inst.amount,
+              amount: inst.amount,
+              sales_order: salesOrderName,
+              so_detail: soItem.name,
+            },
+          ],
+        };
+        const retryCreate = await fetchRetry(`${FRAPPE_URL}/api/resource/Sales Invoice`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(retryPayload),
+        });
+        if (!retryCreate.ok) {
+          const errBody = await retryCreate.text();
+          console.error(`[create-invoices] Retry failed for instalment ${failed.index + 1}:`, errBody);
+          stillFailed.push({ ...failed, error: errBody });
+          continue;
+        }
+        const retryCreated = (await retryCreate.json()).data;
+        const retryInvName = retryCreated.name;
+        const retrySubmit = await fetchRetry(
+          `${FRAPPE_URL}/api/resource/Sales Invoice/${encodeURIComponent(retryInvName)}`,
+          { method: "PUT", headers, body: JSON.stringify({ docstatus: 1 }) },
+        );
+        if (!retrySubmit.ok) {
+          const submitErr = await retrySubmit.text().catch(() => "");
+          draftInvoices.push(retryInvName);
+          stillFailed.push({ ...failed, error: `Created as draft but submission failed: ${submitErr}` });
+        } else {
+          createdInvoices.push(retryInvName);
+          console.log(`[create-invoices] Retry succeeded for instalment ${failed.index + 1}: ${retryInvName}`);
+        }
+      }
+      // Replace original failedInstalments with those that still failed after retry
+      failedInstalments.length = 0;
+      failedInstalments.push(...stillFailed);
     }
 
     // ── Send WhatsApp notification to guardian ──────────────────────────
