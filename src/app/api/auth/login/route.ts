@@ -174,7 +174,7 @@ export async function POST(request: NextRequest) {
           // Pure instructors: move "Instructor" to position 0 for frontend
           // role detection. Users with higher-priority roles keep their primary
           // role untouched — the frontend picks the best role from store.
-          const HIGHER_ROLES = ["Director", "Management", "Branch Manager", "HR Manager", "Administrator"];
+          const HIGHER_ROLES = ["Director", "Management", "General Manager", "Branch Manager", "HR Manager", "Administrator"];
           const hasPrimaryRole = HIGHER_ROLES.some((r) => roles.includes(r));
 
           if (!hasPrimaryRole) {

@@ -4,6 +4,7 @@ import type { NextRequest } from "next/server";
 const ROLE_DASHBOARD_MAP: Record<string, string> = {
   "Director": "/dashboard/director",
   "Management": "/dashboard/director",
+  "General Manager": "/dashboard/general-manager",
   "Branch Manager": "/dashboard/branch-manager",
   "HR Manager": "/dashboard/hr-manager",
   "Instructor": "/dashboard/instructor",
@@ -73,7 +74,7 @@ export function middleware(request: NextRequest) {
     }
 
     // Sales Users can only access /dashboard/sales-user/*
-    if (roles.includes("Sales User") && !roles.includes("Branch Manager") && !roles.includes("Administrator") && !roles.includes("Director")) {
+    if (roles.includes("Sales User") && !roles.includes("Branch Manager") && !roles.includes("Administrator") && !roles.includes("Director") && !roles.includes("General Manager")) {
       if (pathname.startsWith("/dashboard/") && !pathname.startsWith("/dashboard/sales-user")) {
         return NextResponse.redirect(new URL("/dashboard/sales-user", request.url));
       }

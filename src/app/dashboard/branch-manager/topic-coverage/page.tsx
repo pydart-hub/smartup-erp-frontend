@@ -1,29 +1,46 @@
-"use client";
+﻿"use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   BookOpen,
+  CalendarDays,
   CheckCircle2,
+  Clock,
   FileText,
   Users,
   GraduationCap,
   Loader2,
+  PartyPopper,
   Search,
   Filter,
   Settings,
 } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/lib/hooks/useAuth";
-import { getCourseSchedules, type CourseSchedule } from "@/lib/api/courseSchedule";
+import {
+  getCourseSchedules,
+  markTopicCovered,
+  unmarkTopicCovered,
+  type CourseSchedule,
+} from "@/lib/api/courseSchedule";
 
 // ── Types ────────────────────────────────────────────────────────────────────
+
+interface TopicItem {
+  scheduleName: string;
+  topicName: string;
+  covered: boolean;
+  date: string;
+  sessionEnded: boolean;
+}
 
 interface CourseTopicStats {
   course: string;
@@ -31,7 +48,38 @@ interface CourseTopicStats {
   student_group: string;
   totalTopicSessions: number;
   coveredSessions: number;
-  topics: { name: string; covered: boolean; date: string }[];
+  topics: TopicItem[];
+}
+
+interface EventItem {
+  scheduleName: string;
+  title: string;
+  eventType: string;
+  instructor_name: string;
+  studentGroup: string;
+  done: boolean;
+  date: string;
+  sessionEnded: boolean;
+}
+
+/** Returns true if the session end-time has already passed */
+function isSessionEnded(schedule: CourseSchedule): boolean {
+  const today = new Date().toISOString().split("T")[0];
+  if (!schedule.schedule_date) return false;
+  if (schedule.schedule_date < today) return true;
+  if (schedule.schedule_date === today) {
+    const [h, m] = (schedule.to_time || "23:59").split(":").map(Number);
+    const now = new Date();
+    return now.getHours() > h || (now.getHours() === h && now.getMinutes() >= m);
+  }
+  return false;
+}
+
+function fmtDate(date: string) {
+  return new Date(date + "T00:00:00").toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+  });
 }
 
 // ── Page ─────────────────────────────────────────────────────────────────────
@@ -39,11 +87,12 @@ interface CourseTopicStats {
 export default function TopicCoveragePage() {
   const { defaultCompany, allowedCompanies } = useAuth();
   const branch = defaultCompany || allowedCompanies[0] || "";
+  const queryClient = useQueryClient();
 
+  const [activeTab, setActiveTab] = useState<"topics" | "events">("topics");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "covered">("all");
 
-  // Fetch all schedules with topics for this branch (last 90 days + next 30 days)
   const fromDate = useMemo(() => {
     const d = new Date();
     d.setDate(d.getDate() - 90);
@@ -55,8 +104,10 @@ export default function TopicCoveragePage() {
     return d.toISOString().split("T")[0];
   }, []);
 
+  const queryKey = ["topic-coverage-bm", branch, fromDate, toDate];
+
   const { data: scheduleRes, isLoading } = useQuery({
-    queryKey: ["topic-coverage-bm", branch, fromDate, toDate],
+    queryKey,
     queryFn: () =>
       getCourseSchedules({
         branch: branch || undefined,
@@ -67,9 +118,36 @@ export default function TopicCoveragePage() {
     staleTime: 2 * 60_000,
   });
 
-  // Group schedules by course+instructor+student_group
+  const markMutation = useMutation({
+    mutationFn: markTopicCovered,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey });
+      toast.success("Marked as covered");
+    },
+    onError: () => toast.error("Failed to update. Please try again."),
+  });
+
+  const unmarkMutation = useMutation({
+    mutationFn: unmarkTopicCovered,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey });
+      toast.success("Marked as pending");
+    },
+    onError: () => toast.error("Failed to update. Please try again."),
+  });
+
+  const isBusy = useCallback(
+    (scheduleName: string) =>
+      (markMutation.isPending && markMutation.variables === scheduleName) ||
+      (unmarkMutation.isPending && unmarkMutation.variables === scheduleName),
+    [markMutation, unmarkMutation],
+  );
+
+  // ── Class topic groups ───────────────────────────────────────────────────
   const courseStats: CourseTopicStats[] = useMemo(() => {
-    const schedules = (scheduleRes?.data ?? []).filter((s) => s.custom_topic);
+    const schedules = (scheduleRes?.data ?? []).filter(
+      (s: CourseSchedule) => s.custom_topic && !s.custom_event_type,
+    );
     const map = new Map<string, CourseSchedule[]>();
     for (const s of schedules) {
       const key = `${s.course}::${s.instructor_name}::${s.student_group}`;
@@ -81,21 +159,40 @@ export default function TopicCoveragePage() {
         const first = records[0];
         return {
           course: first.course,
-          instructor_name: first.instructor_name,
+          instructor_name: first.instructor_name ?? "",
           student_group: first.student_group,
           totalTopicSessions: records.length,
           coveredSessions: records.filter((r) => r.custom_topic_covered).length,
           topics: records.map((r) => ({
-            name: r.custom_topic!,
+            scheduleName: r.name,
+            topicName: r.custom_topic!,
             covered: !!r.custom_topic_covered,
-            date: r.schedule_date,
+            date: r.schedule_date ?? "",
+            sessionEnded: isSessionEnded(r),
           })),
         };
       })
       .sort((a, b) => a.course.localeCompare(b.course));
   }, [scheduleRes]);
 
-  // Filter
+  // ── Events ───────────────────────────────────────────────────────────────
+  const events: EventItem[] = useMemo(() => {
+    return (scheduleRes?.data ?? [])
+      .filter((s: CourseSchedule) => !!s.custom_event_type)
+      .map((s: CourseSchedule) => ({
+        scheduleName: s.name,
+        title: s.custom_event_title || s.title || s.custom_event_type || "Event",
+        eventType: s.custom_event_type!,
+        instructor_name: s.instructor_name ?? "",
+        studentGroup: s.student_group,
+        done: !!s.custom_topic_covered,
+        date: s.schedule_date ?? "",
+        sessionEnded: isSessionEnded(s),
+      }))
+      .sort((a: EventItem, b: EventItem) => a.date.localeCompare(b.date));
+  }, [scheduleRes]);
+
+  // ── Filtered topic groups ────────────────────────────────────────────────
   const filtered = useMemo(() => {
     let items = courseStats;
     if (search) {
@@ -105,7 +202,7 @@ export default function TopicCoveragePage() {
           c.course.toLowerCase().includes(q) ||
           c.instructor_name.toLowerCase().includes(q) ||
           c.student_group.toLowerCase().includes(q) ||
-          c.topics.some((t) => t.name.toLowerCase().includes(q)),
+          c.topics.some((t) => t.topicName.toLowerCase().includes(q)),
       );
     }
     if (statusFilter === "covered") {
@@ -116,8 +213,29 @@ export default function TopicCoveragePage() {
     return items;
   }, [courseStats, search, statusFilter]);
 
-  const totalSessions = courseStats.reduce((a, c) => a + c.totalTopicSessions, 0);
-  const coveredTotal = courseStats.reduce((a, c) => a + c.coveredSessions, 0);
+  // ── Filtered events ──────────────────────────────────────────────────────
+  const filteredEvents = useMemo(() => {
+    let items = events;
+    if (search) {
+      const q = search.toLowerCase();
+      items = items.filter(
+        (e) =>
+          e.title.toLowerCase().includes(q) ||
+          e.eventType.toLowerCase().includes(q) ||
+          e.instructor_name.toLowerCase().includes(q) ||
+          e.studentGroup.toLowerCase().includes(q),
+      );
+    }
+    if (statusFilter === "covered") items = items.filter((e) => e.done);
+    else if (statusFilter === "pending") items = items.filter((e) => !e.done);
+    return items;
+  }, [events, search, statusFilter]);
+
+  // ── Totals ───────────────────────────────────────────────────────────────
+  const totalTopics = courseStats.reduce((a, c) => a + c.totalTopicSessions, 0);
+  const coveredTopics = courseStats.reduce((a, c) => a + c.coveredSessions, 0);
+  const totalEvents = events.length;
+  const doneEvents = events.filter((e) => e.done).length;
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
@@ -142,35 +260,77 @@ export default function TopicCoveragePage() {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-4 gap-3">
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-text-primary">{totalSessions}</p>
-            <p className="text-xs text-text-secondary mt-1">Total Topic Sessions</p>
+            <p className="text-xl font-bold text-text-primary">{totalTopics}</p>
+            <p className="text-xs text-text-secondary mt-1">Topics</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-success">{coveredTotal}</p>
+            <p className="text-xl font-bold text-success">{coveredTopics}</p>
             <p className="text-xs text-success mt-1">Covered</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-warning">{totalSessions - coveredTotal}</p>
-            <p className="text-xs text-warning mt-1">Pending</p>
+            <p className="text-xl font-bold text-primary">{totalEvents}</p>
+            <p className="text-xs text-text-secondary mt-1">Events</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <p className="text-xl font-bold text-success">{doneEvents}</p>
+            <p className="text-xs text-success mt-1">Done</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Filters */}
+      {/* Tab toggle */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => setActiveTab("topics")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+            activeTab === "topics"
+              ? "bg-primary text-white"
+              : "bg-surface-secondary text-text-secondary hover:text-primary"
+          }`}
+        >
+          <BookOpen className="h-4 w-4" />
+          Class Topics
+          <span className={`text-xs px-1.5 py-0.5 rounded-full ${activeTab === "topics" ? "bg-white/20" : "bg-border-light"}`}>
+            {totalTopics - coveredTopics > 0 ? totalTopics - coveredTopics : "✓"}
+          </span>
+        </button>
+        <button
+          onClick={() => setActiveTab("events")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+            activeTab === "events"
+              ? "bg-primary text-white"
+              : "bg-surface-secondary text-text-secondary hover:text-primary"
+          }`}
+        >
+          <CalendarDays className="h-4 w-4" />
+          Events
+          <span className={`text-xs px-1.5 py-0.5 rounded-full ${activeTab === "events" ? "bg-white/20" : "bg-border-light"}`}>
+            {totalEvents - doneEvents > 0 ? totalEvents - doneEvents : "✓"}
+          </span>
+        </button>
+      </div>
+
+      {/* Filters (shared for both tabs) */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-tertiary" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search course, instructor, batch, topic…"
+            placeholder={
+              activeTab === "topics"
+                ? "Search course, instructor, batch, topic…"
+                : "Search event title, type, instructor…"
+            }
             className="pl-9"
           />
         </div>
@@ -186,100 +346,216 @@ export default function TopicCoveragePage() {
                   : "bg-surface-secondary text-text-secondary hover:text-primary"
               }`}
             >
-              {f === "all" ? "All" : f === "pending" ? "Pending" : "Covered"}
+              {f === "all" ? "All" : f === "pending" ? "Pending" : "Done"}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Loading */}
       {isLoading && (
         <div className="flex items-center justify-center h-48">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
       )}
 
-      {/* No data */}
-      {!isLoading && courseStats.length === 0 && (
-        <div className="text-center py-16 text-text-secondary text-sm">
-          No topic-assigned schedules found. Assign topics while creating schedules.
-        </div>
+      {/* ── CLASS TOPICS TAB ── */}
+      {!isLoading && activeTab === "topics" && (
+        <>
+          {courseStats.length === 0 ? (
+            <div className="text-center py-16 text-text-secondary text-sm">
+              No topic-assigned schedules found. Assign topics while creating schedules.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filtered.map((cs) => {
+                const pct =
+                  cs.totalTopicSessions > 0
+                    ? Math.round((cs.coveredSessions / cs.totalTopicSessions) * 100)
+                    : 0;
+                return (
+                  <Card key={`${cs.course}::${cs.instructor_name}::${cs.student_group}`}>
+                    <CardContent className="p-4 space-y-3">
+                      <div className="flex items-start justify-between">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <BookOpen className="h-4 w-4 text-primary" />
+                            <span className="font-semibold text-text-primary">{cs.course}</span>
+                          </div>
+                          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-secondary">
+                            <span className="flex items-center gap-1">
+                              <GraduationCap className="h-3 w-3" />
+                              {cs.instructor_name}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Users className="h-3 w-3" />
+                              {cs.student_group}
+                            </span>
+                          </div>
+                        </div>
+                        <Badge variant={pct === 100 ? "success" : pct > 50 ? "warning" : "outline"}>
+                          {pct}% · {cs.coveredSessions}/{cs.totalTopicSessions}
+                        </Badge>
+                      </div>
+                      <div className="h-2 bg-surface-secondary rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-success rounded-full transition-all"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        {cs.topics.map((t, i) => {
+                          const busy = isBusy(t.scheduleName);
+                          return (
+                            <div
+                              key={`${t.scheduleName}-${i}`}
+                              className={`flex items-center justify-between px-3 py-2 rounded-lg border text-sm ${
+                                t.covered
+                                  ? "bg-success/10 border-success/20"
+                                  : t.sessionEnded
+                                  ? "bg-surface-secondary border-border-light"
+                                  : "bg-app-bg border-border-light opacity-60"
+                              }`}
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                {t.covered ? (
+                                  <CheckCircle2 className="h-4 w-4 text-success flex-shrink-0" />
+                                ) : t.sessionEnded ? (
+                                  <FileText className="h-4 w-4 text-text-secondary flex-shrink-0" />
+                                ) : (
+                                  <Clock className="h-4 w-4 text-text-secondary flex-shrink-0" />
+                                )}
+                                <span
+                                  className={`truncate ${
+                                    t.covered ? "text-success font-medium" : "text-text-primary"
+                                  }`}
+                                >
+                                  {t.topicName}
+                                </span>
+                                {t.date && (
+                                  <span className="text-[11px] text-text-secondary flex-shrink-0">
+                                    {fmtDate(t.date)}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex-shrink-0 ml-3">
+                                {t.covered ? (
+                                  <button
+                                    onClick={() => unmarkMutation.mutate(t.scheduleName)}
+                                    disabled={busy}
+                                    className="text-xs px-2.5 py-1 rounded-md border border-warning/40 text-warning bg-warning/10 hover:bg-warning/20 transition disabled:opacity-50 flex items-center gap-1"
+                                  >
+                                    {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : "Mark Pending"}
+                                  </button>
+                                ) : t.sessionEnded ? (
+                                  <button
+                                    onClick={() => markMutation.mutate(t.scheduleName)}
+                                    disabled={busy}
+                                    className="text-xs px-2.5 py-1 rounded-md border border-success/40 text-success bg-success/10 hover:bg-success/20 transition disabled:opacity-50 flex items-center gap-1"
+                                  >
+                                    {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : "Mark Covered"}
+                                  </button>
+                                ) : (
+                                  <span className="text-[11px] text-text-secondary italic">
+                                    Not yet ended
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
 
-      {/* Course cards */}
-      {!isLoading && filtered.length > 0 && (
-        <div className="space-y-4">
-          {filtered.map((cs) => {
-            const pct = cs.totalTopicSessions > 0
-              ? Math.round((cs.coveredSessions / cs.totalTopicSessions) * 100)
-              : 0;
-            return (
-              <Card key={`${cs.course}::${cs.instructor_name}::${cs.student_group}`}>
-                <CardContent className="p-4 space-y-3">
-                  {/* Header */}
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <BookOpen className="h-4 w-4 text-primary" />
-                        <span className="font-semibold text-text-primary">{cs.course}</span>
-                      </div>
-                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-secondary">
-                        <span className="flex items-center gap-1">
-                          <GraduationCap className="h-3 w-3" />
-                          {cs.instructor_name}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Users className="h-3 w-3" />
-                          {cs.student_group}
-                        </span>
+      {/* ── EVENTS TAB ── */}
+      {!isLoading && activeTab === "events" && (
+        <>
+          {events.length === 0 ? (
+            <div className="text-center py-16 text-text-secondary text-sm">
+              No events scheduled in this period.
+            </div>
+          ) : filteredEvents.length === 0 ? (
+            <div className="text-center py-16 text-text-secondary text-sm">
+              No events match your filter.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {filteredEvents.map((ev, i) => {
+                const busy = isBusy(ev.scheduleName);
+                return (
+                  <div
+                    key={`${ev.scheduleName}-${i}`}
+                    className={`flex items-center justify-between px-4 py-3 rounded-xl border text-sm ${
+                      ev.done
+                        ? "bg-success/10 border-success/20"
+                        : ev.sessionEnded
+                        ? "bg-surface-secondary border-border-light"
+                        : "bg-app-bg border-border-light opacity-60"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      {ev.done ? (
+                        <CheckCircle2 className="h-5 w-5 text-success flex-shrink-0" />
+                      ) : ev.sessionEnded ? (
+                        <PartyPopper className="h-5 w-5 text-text-secondary flex-shrink-0" />
+                      ) : (
+                        <Clock className="h-5 w-5 text-text-secondary flex-shrink-0" />
+                      )}
+                      <div className="min-w-0">
+                        <p className={`font-medium truncate ${ev.done ? "text-success" : "text-text-primary"}`}>
+                          {ev.title}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                          <span className="text-[11px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">
+                            {ev.eventType}
+                          </span>
+                          {ev.instructor_name && (
+                            <span className="flex items-center gap-1 text-[11px] text-text-secondary">
+                              <GraduationCap className="h-3 w-3" />{ev.instructor_name}
+                            </span>
+                          )}
+                          <span className="flex items-center gap-1 text-[11px] text-text-secondary">
+                            <Users className="h-3 w-3" />{ev.studentGroup}
+                          </span>
+                          {ev.date && (
+                            <span className="text-[11px] text-text-secondary">{fmtDate(ev.date)}</span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <Badge
-                      variant={pct === 100 ? "success" : pct > 50 ? "warning" : "outline"}
-                    >
-                      {pct}% · {cs.coveredSessions}/{cs.totalTopicSessions}
-                    </Badge>
+                    <div className="flex-shrink-0 ml-3">
+                      {ev.done ? (
+                        <button
+                          onClick={() => unmarkMutation.mutate(ev.scheduleName)}
+                          disabled={busy}
+                          className="text-xs px-2.5 py-1 rounded-md border border-warning/40 text-warning bg-warning/10 hover:bg-warning/20 transition disabled:opacity-50 flex items-center gap-1"
+                        >
+                          {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : "Mark Pending"}
+                        </button>
+                      ) : ev.sessionEnded ? (
+                        <button
+                          onClick={() => markMutation.mutate(ev.scheduleName)}
+                          disabled={busy}
+                          className="text-xs px-2.5 py-1 rounded-md border border-success/40 text-success bg-success/10 hover:bg-success/20 transition disabled:opacity-50 flex items-center gap-1"
+                        >
+                          {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : "Mark Done"}
+                        </button>
+                      ) : (
+                        <span className="text-[11px] text-text-secondary italic">Not yet ended</span>
+                      )}
+                    </div>
                   </div>
-
-                  {/* Progress bar */}
-                  <div className="h-2 bg-surface-secondary rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-success rounded-full transition-all"
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-
-                  {/* Topic list */}
-                  <div className="flex flex-wrap gap-2">
-                    {cs.topics.map((t, i) => (
-                      <div
-                        key={`${t.name}-${i}`}
-                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border ${
-                          t.covered
-                            ? "bg-success/10 border-success/20 text-success"
-                            : "bg-surface-secondary border-border-light text-text-secondary"
-                        }`}
-                      >
-                        {t.covered ? (
-                          <CheckCircle2 className="h-3 w-3" />
-                        ) : (
-                          <FileText className="h-3 w-3" />
-                        )}
-                        {t.name}
-                        <span className="text-[10px] opacity-60">
-                          {new Date(t.date + "T00:00:00").toLocaleDateString("en-IN", {
-                            day: "numeric",
-                            month: "short",
-                          })}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
     </motion.div>
   );

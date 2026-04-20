@@ -37,7 +37,7 @@ export interface Student {
   guardians?: StudentGuardianLink[];
 
   // Student type (custom)
-  custom_student_type?: "Fresher" | "Existing" | "Rejoining" | "Demo";
+  custom_student_type?: "Fresher" | "Existing" | "Rejoining" | "Demo" | "Free Access";
 
   // Sibling fields (custom)
   custom_sibling_of?: string;          // Link → Student (existing sibling)

@@ -6,7 +6,7 @@ import { Topbar } from "@/components/layout/Topbar";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import { useAuthStore } from "@/lib/stores/authStore";
-import { PARENT_NAV, INSTRUCTOR_NAV, DIRECTOR_NAV, HR_MANAGER_NAV, SALES_USER_NAV } from "@/lib/utils/constants";
+import { PARENT_NAV, INSTRUCTOR_NAV, DIRECTOR_NAV, HR_MANAGER_NAV, SALES_USER_NAV, GENERAL_MANAGER_NAV } from "@/lib/utils/constants";
 
 function makeQueryClient() {
   return new QueryClient({
@@ -31,6 +31,7 @@ export default function DashboardLayout({
   const isParent = activeRole === "Parent";
   const isInstructor = activeRole === "Instructor" || (!activeRole && storeIsInstructor);
   const isDirector = activeRole === "Director" || activeRole === "Management";
+  const isGeneralManager = activeRole === "General Manager";
   const isHRManager = activeRole === "HR Manager";
   const isSalesUser = activeRole === "Sales User";
   const isBranchManager = activeRole === "Branch Manager";
@@ -40,17 +41,19 @@ export default function DashboardLayout({
   // should see the full Branch Manager sidebar, not the limited Instructor one.
   const sidebarNav = isDirector
     ? DIRECTOR_NAV
-    : isHRManager
-      ? HR_MANAGER_NAV
-      : isBranchManager
-        ? undefined  // falls through to default BRANCH_MANAGER_NAV in Sidebar
-        : isSalesUser
-          ? SALES_USER_NAV
-          : isParent
-            ? PARENT_NAV
-            : isInstructor
-              ? INSTRUCTOR_NAV
-              : undefined;
+    : isGeneralManager
+      ? GENERAL_MANAGER_NAV
+      : isHRManager
+        ? HR_MANAGER_NAV
+        : isBranchManager
+          ? undefined  // falls through to default BRANCH_MANAGER_NAV in Sidebar
+          : isSalesUser
+            ? SALES_USER_NAV
+            : isParent
+              ? PARENT_NAV
+              : isInstructor
+                ? INSTRUCTOR_NAV
+                : undefined;
 
   return (
     <QueryClientProvider client={queryClient}>

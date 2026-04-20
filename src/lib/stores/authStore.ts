@@ -10,6 +10,7 @@ import type { User } from "@/lib/types/user";
 const APP_ROLE_PRIORITY = [
   "Director",
   "Management",
+  "General Manager",
   "Branch Manager",
   "HR Manager",
   "Administrator",
@@ -22,7 +23,7 @@ const APP_ROLE_PRIORITY = [
 ];
 
 /** Roles the user can actively switch between in the UI. */
-const SWITCHABLE_ROLES = ["Branch Manager", "Instructor"] as const;
+const SWITCHABLE_ROLES = ["General Manager", "Branch Manager", "Instructor"] as const;
 
 /** Pick the best application role from the user's full role list. */
 function determinePrimaryRole(

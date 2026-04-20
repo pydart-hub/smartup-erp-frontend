@@ -134,7 +134,7 @@ export default function SalesOrderDetailPage() {
     enabled: !!so,
     staleTime: 30_000,
   });
-  const linkedInvoices = invoicesRes?.data ?? [];
+  const linkedInvoices = (invoicesRes?.data ?? []).filter((inv) => inv.docstatus !== 2);
 
   // ── Check if this SO was created by a branch transfer ──
   const { data: transferRes } = useQuery({

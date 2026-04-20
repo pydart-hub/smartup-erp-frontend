@@ -75,9 +75,10 @@ export default function ParentFeesPage() {
     ? children
     : children.filter((c) => c.name === selectedChild);
 
-  const allInvoices = targetChildren.flatMap((c) => getChildInvoices(c.name));
-  const allSOs = targetChildren.flatMap((c) => getChildSalesOrders(c.name));
-  const allFeeStructures = targetChildren.flatMap((c) => getChildFeeStructures(c.name));
+  const paidChildren = targetChildren.filter((c) => c.custom_student_type !== "Free Access");
+  const allInvoices = paidChildren.flatMap((c) => getChildInvoices(c.name));
+  const allSOs = paidChildren.flatMap((c) => getChildSalesOrders(c.name));
+  const allFeeStructures = paidChildren.flatMap((c) => getChildFeeStructures(c.name));
 
   // Aggregate totals
   const totalInvoiced = allInvoices.reduce((s, i) => s + i.grand_total, 0);
@@ -197,12 +198,13 @@ function ChildFeeCard({
   user,
   onPaymentSuccess,
 }: {
-  child: { name: string; student_name: string; custom_branch: string; customer: string; enabled: number };
+  child: { name: string; student_name: string; custom_branch: string; customer: string; enabled: number; custom_student_type?: string };
   data: ReturnType<typeof useParentData>["data"];
   today: string;
   user: { full_name?: string; email?: string } | null;
   onPaymentSuccess: () => void;
 }) {
+  const isFreeAccess = child.custom_student_type === "Free Access";
   const enrollment = getLatestEnrollment(data, child.name);
   const childInvoices = (data?.salesInvoices?.[child.name] ?? []) as SalesInvoiceEntry[];
   const childSOs = (data?.salesOrders?.[child.name] ?? []) as SalesOrderEntry[];
@@ -260,7 +262,7 @@ function ChildFeeCard({
   const numInstalments = enrollment?.custom_no_of_instalments || childSOs[0]?.custom_no_of_instalments;
 
   return (
-    <motion.div variants={item}>
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 flex-wrap">
@@ -282,8 +284,18 @@ function ChildFeeCard({
         </CardHeader>
         <CardContent className="space-y-6">
 
+          {/* Free Access — no fees */}
+          {isFreeAccess && (
+            <div className="rounded-[12px] border-2 border-emerald-200 bg-emerald-50 p-6 text-center">
+              <p className="text-lg font-bold text-emerald-700">Free Access — No Fees</p>
+              <p className="text-sm text-emerald-600 mt-1">
+                This student has been enrolled under the Free Access program. No fees are applicable.
+              </p>
+            </div>
+          )}
+
           {/* SO summary header */}
-          {hasSOs && (
+          {!isFreeAccess && hasSOs && (
             <div className="flex items-center justify-between rounded-[12px] border border-border-light bg-app-bg p-4">
               <div>
                 <p className="text-xs text-text-secondary">Fee Order</p>
@@ -303,7 +315,7 @@ function ChildFeeCard({
           )}
 
           {/* Instalment Timeline (replaces flat invoice table) */}
-          {hasInvoices && instalments.length > 0 && (
+          {!isFreeAccess && hasInvoices && instalments.length > 0 && (
             <InstalmentTimeline
               instalments={instalments}
               studentName={child.student_name}
@@ -316,7 +328,7 @@ function ChildFeeCard({
           )}
 
           {/* Warning: SO exists but no invoices yet — parent can't pay */}
-          {hasSOs && !hasInvoices && (
+          {!isFreeAccess && hasSOs && !hasInvoices && (
             <div className="flex items-center gap-3 rounded-[12px] border border-warning/20 bg-warning-light p-4">
               <AlertCircle className="h-5 w-5 text-warning flex-shrink-0" />
               <div>
@@ -330,7 +342,7 @@ function ChildFeeCard({
           )}
 
           {/* Payment History */}
-          {childPayments.length > 0 && (
+          {!isFreeAccess && childPayments.length > 0 && (
             <div>
               <h4 className="text-sm font-semibold text-text-primary mb-3 flex items-center gap-2">
                 <Receipt className="h-4 w-4 text-text-tertiary" />
@@ -362,7 +374,7 @@ function ChildFeeCard({
           )}
 
           {/* No invoices yet — show SO info or fee structure */}
-          {!hasInvoices && (
+          {!isFreeAccess && !hasInvoices && (
             <div>
               {hasSOs && (
                 <div className="rounded-[12px] border border-border-light bg-app-bg p-4">

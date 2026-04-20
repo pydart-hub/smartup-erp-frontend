@@ -129,6 +129,7 @@ function AdmitPageContent() {
   const searchParams = useSearchParams();
   const isReferred = searchParams.get("referred") === "true";
   const isDemo = searchParams.get("demo") === "true";
+  const isFreeAccess = searchParams.get("free_access") === "true";
   const basePath = pathname.includes("/branch-manager") ? "/dashboard/branch-manager" : "/dashboard/sales-user";
   const { defaultCompany, allowedCompanies } = useAuth();
   const [currentStep, setCurrentStep] = useState(isReferred ? 0 : 1);
@@ -240,7 +241,7 @@ function AdmitPageContent() {
       gender: "Male",
       academic_year: "2026-2027",
       custom_branch: defaultCompany || "",
-      student_type: isDemo ? "demo" : "fresher",
+      student_type: isDemo ? "demo" : isFreeAccess ? "free_access" : "fresher",
       custom_plan: "",
       custom_no_of_instalments: "",
       custom_mode_of_payment: undefined as unknown as "Cash" | "Online",
@@ -435,10 +436,14 @@ function AdmitPageContent() {
   // ── Submit ────────────────────────────────────────────────────
   async function onSubmit(data: StudentFormValues) {
     try {
-      // Non-demo students must have plan and instalments selected
-      if (!isDemo) {
+      // Non-demo, non-free-access students must have plan and instalments selected
+      if (!isDemo && !isFreeAccess) {
         if (!data.custom_plan) { toast.error("Please select a fee plan"); return; }
         if (!data.custom_no_of_instalments) { toast.error("Please select an instalment option"); return; }
+      }
+      // Non-free-access students must have mode of payment
+      if (!isFreeAccess && !data.custom_mode_of_payment) {
+        toast.error("Please select a mode of payment"); return;
       }
 
       const selectedGroupName = data.student_batch_name || undefined;
@@ -464,7 +469,7 @@ function AdmitPageContent() {
         custom_disabilities: data.disabilities || undefined,
         custom_place: data.custom_place || undefined,
         custom_school_name: data.custom_school_name || undefined,
-        custom_student_type: data.student_type === "demo" ? "Demo" : data.student_type === "fresher" ? "Fresher" : data.student_type === "existing" ? "Existing" : "Rejoining",
+        custom_student_type: data.student_type === "demo" ? "Demo" : data.student_type === "free_access" ? "Free Access" : data.student_type === "fresher" ? "Fresher" : data.student_type === "existing" ? "Existing" : "Rejoining",
         custom_branch: data.custom_branch,
         custom_branch_abbr: (branchObj as { abbr?: string })?.abbr,
         custom_srr_id: data.custom_srr_id,
@@ -478,11 +483,13 @@ function AdmitPageContent() {
         guardian_mobile: data.guardian_mobile,
         guardian_relation: data.guardian_relation,
         guardian_password: data.guardian_password,
-        fee_structure: isDemo ? undefined : data.fee_structure,
-        custom_plan: isDemo ? "" : data.custom_plan,
-        custom_no_of_instalments: isDemo ? "" : data.custom_no_of_instalments,
-        custom_mode_of_payment: data.custom_mode_of_payment,
-        instalmentSchedule: isDemo
+        fee_structure: (isDemo || isFreeAccess) ? undefined : data.fee_structure,
+        custom_plan: (isDemo || isFreeAccess) ? "" : data.custom_plan,
+        custom_no_of_instalments: (isDemo || isFreeAccess) ? "" : data.custom_no_of_instalments,
+        custom_mode_of_payment: isFreeAccess ? "Cash" : data.custom_mode_of_payment,
+        instalmentSchedule: isFreeAccess
+          ? undefined
+          : isDemo
           ? [{ amount: 499, dueDate: data.enrollment_date || new Date().toISOString().split("T")[0], label: "Demo Fee" }]
           : selectedOption?.schedule.map((s) => ({
               amount: s.amount,
@@ -491,6 +498,8 @@ function AdmitPageContent() {
             })),
         // Demo flag
         ...(isDemo ? { isDemo: true } : {}),
+        // Free Access flag
+        ...(isFreeAccess ? { isFreeAccess: true } : {}),
         // Sibling fields
         ...(isReferred && selectedSibling ? {
           siblingOf: selectedSibling.name,
@@ -510,6 +519,12 @@ function AdmitPageContent() {
       }
 
       // ── Post-admission payment flow ──
+      // Free Access: no fees — skip payment dialog entirely
+      if (isFreeAccess) {
+        router.push(`${basePath}/students`);
+        return;
+      }
+
       const hasInvoices = (result.invoices?.length ?? 0) > 0;
       const wantsAction = paymentAction === "pay_now" || paymentAction === "send_to_parent";
 
@@ -550,7 +565,7 @@ function AdmitPageContent() {
           guardianName: data.guardian_name,
           guardianEmail: data.guardian_email,
           guardianPhone: data.guardian_mobile,
-          mode: data.custom_mode_of_payment,
+          mode: data.custom_mode_of_payment as "Cash" | "Online",
           salesOrderName: result.salesOrder,
           invoices: invoicesForPayment,
         });
@@ -628,8 +643,8 @@ function AdmitPageContent() {
           <ArrowLeft className="h-5 w-5" />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-text-primary">{isDemo ? "Demo Student Admission" : isReferred ? "Siblings Admission" : "New Student Admission"}</h1>
-          <p className="text-sm text-text-secondary">{isDemo ? "Flat ₹499 demo fee — 1 month duration" : isReferred ? `${selectedPlan === "Advanced" ? "10" : "5"}% sibling discount applied on first instalment` : "Fill in the details to register a new student"}</p>
+          <h1 className="text-2xl font-bold text-text-primary">{isFreeAccess ? "Free Access Admission" : isDemo ? "Demo Student Admission" : isReferred ? "Siblings Admission" : "New Student Admission"}</h1>
+          <p className="text-sm text-text-secondary">{isFreeAccess ? "No fees — student will be enrolled with full access at zero cost" : isDemo ? "Flat ₹499 demo fee — 1 month duration" : isReferred ? `${selectedPlan === "Advanced" ? "10" : "5"}% sibling discount applied on first instalment` : "Fill in the details to register a new student"}</p>
         </div>
       </div>
 
@@ -1155,9 +1170,13 @@ function AdmitPageContent() {
                   className="space-y-5"
                 >
                   <div>
-                    <h3 className="text-lg font-semibold text-text-primary">Fee Details</h3>
+                    <h3 className="text-lg font-semibold text-text-primary">
+                      {isFreeAccess ? "Confirm Admission" : "Fee Details"}
+                    </h3>
                     <p className="text-sm text-text-secondary mt-0.5">
-                      {isDemo
+                      {isFreeAccess
+                        ? "This student will be admitted with no fees"
+                        : isDemo
                         ? "Flat demo fee — no plan selection needed"
                         : <>Select a fee plan and instalment option
                           {!selectedBranch || !selectedProgram
@@ -1166,6 +1185,28 @@ function AdmitPageContent() {
                       }
                     </p>
                   </div>
+
+                  {/* Free Access card */}
+                  {isFreeAccess && (
+                    <div className="bg-emerald-50 rounded-[12px] border-2 border-emerald-300 p-5">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
+                          <Check className="h-5 w-5 text-emerald-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-emerald-800">Free Access Admission</p>
+                          <p className="text-xs text-emerald-600">No fees will be charged for this student</p>
+                        </div>
+                      </div>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-3xl font-bold text-emerald-700">₹0</span>
+                        <span className="text-sm text-emerald-600">/ no payment required</span>
+                      </div>
+                      <p className="text-xs text-emerald-600 mt-3">
+                        The student will be enrolled in the selected program with full access. No Sales Order or invoices will be created.
+                      </p>
+                    </div>
+                  )}
 
                   {/* Demo fee card */}
                   {isDemo && (
@@ -1186,7 +1227,7 @@ function AdmitPageContent() {
                     </div>
                   )}
 
-                  {!isDemo && (<>
+                  {!isDemo && !isFreeAccess && (<>
 
                   {isReferred && (
                     <div className="bg-green-50 rounded-[10px] p-4 border border-green-200 flex items-start gap-2">
@@ -1394,7 +1435,7 @@ function AdmitPageContent() {
                   {/* End of !isDemo wrapper */}
 
                   {/* Mode of Payment */}
-                  {(isDemo || selectedInstalments) && (
+                  {!isFreeAccess && (isDemo || selectedInstalments) && (
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-text-secondary">Mode of Payment *</label>
                       <div className="grid grid-cols-2 gap-3">
@@ -1551,6 +1592,10 @@ function AdmitPageContent() {
                     <p><span className="text-text-tertiary w-36 inline-block">SRR ID:</span> {watch("custom_srr_id") || "—"}</p>
                     <p><span className="text-text-tertiary w-36 inline-block">Batch:</span> {watch("student_batch_name") || "—"}</p>
                     <p><span className="text-text-tertiary w-36 inline-block">Enrollment Date:</span> {watch("enrollment_date") || "—"}</p>
+                    {isFreeAccess ? (
+                      <p><span className="text-text-tertiary w-36 inline-block">Fee:</span> <span className="font-semibold text-emerald-600">Free Access — No Fees</span></p>
+                    ) : (
+                    <>
                     <p><span className="text-text-tertiary w-36 inline-block">Fee Plan:</span> {selectedPlan || "—"}</p>
                     <p>
                       <span className="text-text-tertiary w-36 inline-block">Instalments:</span>
@@ -1573,6 +1618,8 @@ function AdmitPageContent() {
                         )}
                         <p><span className="text-text-tertiary w-36 inline-block">Total Fee:</span> <span className="font-semibold text-primary">₹{selectedOption.total.toLocaleString("en-IN")}</span></p>
                       </>
+                    )}
+                    </>
                     )}
                   </div>
                 </motion.div>

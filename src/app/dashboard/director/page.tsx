@@ -20,6 +20,11 @@ import {
   Banknote,
   CalendarClock,
   UserPlus,
+  BarChart3,
+  ClipboardCheck,
+  Trophy,
+  Calendar,
+  BookOpen,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -541,6 +546,39 @@ export default function DirectorDashboard() {
             </CardContent>
           </Card>
         </Link>
+      </motion.div>
+
+      {/* Academic Analytics Cards */}
+      <motion.div variants={itemVariants}>
+        <div className="flex items-center gap-2.5 mb-4">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <BarChart3 className="h-4 w-4 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-text-primary leading-tight">Academic Analytics</h2>
+            <p className="text-xs text-text-tertiary">Cross-branch academic overview</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {[
+            { title: "Overview", desc: "Full academics drill-down", icon: BarChart3, href: "/dashboard/director/academics", color: "bg-primary/10 text-primary" },
+            { title: "Attendance", desc: "Cross-branch attendance", icon: ClipboardCheck, href: "/dashboard/director/academics/attendance", color: "bg-success/10 text-success" },
+            { title: "Exams", desc: "Exam performance", icon: Trophy, href: "/dashboard/director/academics/exams", color: "bg-warning/10 text-warning" },
+            { title: "Schedule", desc: "Classes & completion", icon: Calendar, href: "/dashboard/director/academics/course-schedule", color: "bg-info/10 text-info" },
+            { title: "Instructors", desc: "Teacher performance", icon: UserCheck, href: "/dashboard/director/academics/instructors", color: "bg-purple-100 text-purple-700" },
+            { title: "Topic Coverage", desc: "Curriculum progress", icon: BookOpen, href: "/dashboard/director/academics/topic-coverage", color: "bg-orange-100 text-orange-700" },
+          ].map((card) => (
+            <Link key={card.title} href={card.href}>
+              <div className="bg-surface rounded-[12px] border border-border-light p-4 hover:border-primary/30 hover:shadow-md transition-all group cursor-pointer h-full">
+                <div className={`w-9 h-9 rounded-[10px] flex items-center justify-center mb-3 ${card.color}`}>
+                  <card.icon className="w-4 h-4" />
+                </div>
+                <p className="text-xs font-semibold text-primary group-hover:text-primary/80 transition-colors">{card.title}</p>
+                <p className="text-[11px] text-text-tertiary mt-0.5">{card.desc}</p>
+              </div>
+            </Link>
+          ))}
+        </div>
       </motion.div>
 
       {/* Branches Grid */}

@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const studentSchema = z.object({
   // Step 1 — Student Info
-  student_type: z.enum(["fresher", "existing", "rejoining", "demo"], { message: "Student type is required" }),
+  student_type: z.enum(["fresher", "existing", "rejoining", "demo", "free_access"], { message: "Student type is required" }),
   full_name: z.string().min(1, "Name is required"),
   date_of_birth: z.string().min(1, "Date of birth is required"),
   gender: z.enum(["Male", "Female", "Other"], { message: "Gender is required" }),
@@ -33,7 +33,7 @@ export const studentSchema = z.object({
   custom_plan: z.string(),
   custom_no_of_instalments: z.string(),
   fee_structure: z.string().optional(),                         // resolved Fee Structure name
-  custom_mode_of_payment: z.enum(["Cash", "Online"], { message: "Mode of payment is required" }),
+  custom_mode_of_payment: z.enum(["Cash", "Online", ""], { message: "Mode of payment is required" }).optional(),
 });
 
 export type StudentFormValues = z.infer<typeof studentSchema>;

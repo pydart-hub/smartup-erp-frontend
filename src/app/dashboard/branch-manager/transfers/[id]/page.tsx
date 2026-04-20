@@ -1,15 +1,16 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowRightLeft, ArrowRight, Calendar, IndianRupee,
-  User, Building2, Loader2, AlertCircle, FileText,
+  User, Building2, Loader2, AlertCircle, FileText, RefreshCw,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { Button } from "@/components/ui/Button";
 import { TransferStatusBadge } from "@/components/transfers/TransferStatusBadge";
 import { TransferReviewCard } from "@/components/transfers/TransferReviewCard";
 import { TransferTimeline } from "@/components/transfers/TransferTimeline";
@@ -18,9 +19,13 @@ import type { StudentBranchTransfer } from "@/lib/types/transfer";
 
 export default function TransferDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { defaultCompany } = useAuth();
+  const { defaultCompany, role } = useAuth();
   const queryClient = useQueryClient();
   const router = useRouter();
+
+  const [retrying, setRetrying] = useState(false);
+  const [retryError, setRetryError] = useState<string | null>(null);
+  const [retryLog, setRetryLog] = useState<string[] | null>(null);
 
   const { data: transfer, isLoading, error } = useQuery<StudentBranchTransfer>({
     queryKey: ["transfer", id],
@@ -35,9 +40,42 @@ export default function TransferDetailPage() {
 
   const canRespond = transfer?.to_branch === defaultCompany && transfer?.status === "Pending";
 
+  // Show retry button if transfer is Approved but not yet Completed (execute chain never ran)
+  const isStaffOrDirector = ["Branch Manager", "Director", "Administrator", "System Manager"].includes(role || "");
+  const canRetryExecute =
+    isStaffOrDirector &&
+    transfer?.status === "Approved" &&
+    !transfer?.completion_date;
+
   const handleResponded = () => {
     queryClient.invalidateQueries({ queryKey: ["transfer", id] });
     queryClient.invalidateQueries({ queryKey: ["transfers"] });
+  };
+
+  const handleRetryExecute = async () => {
+    setRetrying(true);
+    setRetryError(null);
+    setRetryLog(null);
+    try {
+      const res = await fetch("/api/transfer/execute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transfer_id: transfer!.name }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setRetryError(data.error || "Execution failed");
+        if (data.log) setRetryLog(data.log);
+      } else {
+        setRetryLog(data.log || null);
+        queryClient.invalidateQueries({ queryKey: ["transfer", id] });
+        queryClient.invalidateQueries({ queryKey: ["transfers"] });
+      }
+    } catch (err) {
+      setRetryError(String(err));
+    } finally {
+      setRetrying(false);
+    }
   };
 
   if (isLoading) {
@@ -175,11 +213,53 @@ export default function TransferDetailPage() {
               onResponded={handleResponded}
             />
           )}
+
+          {/* Retry execution (transfer approved but execute chain never ran) */}
+          {canRetryExecute && (
+            <Card className="border-warning/40 bg-warning-light/30">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2 text-warning">
+                  <RefreshCw className="h-4 w-4" />
+                  Transfer Pending Execution
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-sm text-text-secondary">
+                  This transfer was approved but the execution chain has not run yet.
+                  The student is still at {transfer.from_branch?.replace("Smart Up ", "")} branch.
+                  Click below to run the full transfer chain now.
+                </p>
+                {retryError && (
+                  <div className="bg-error-light rounded-[10px] p-3">
+                    <p className="text-xs text-error font-medium">Execution failed</p>
+                    <p className="text-xs text-error mt-0.5">{retryError}</p>
+                  </div>
+                )}
+                <Button
+                  onClick={handleRetryExecute}
+                  disabled={retrying}
+                  className="w-full"
+                >
+                  {retrying ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Executing transfer…
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Execute Transfer Now
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
 
-      {/* Execution Log */}
-      {transfer.transfer_log && (
+      {/* Execution Log — from retry attempt or saved on record */}
+      {(retryLog || transfer.transfer_log) && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
@@ -188,7 +268,7 @@ export default function TransferDetailPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <TransferTimeline log={transfer.transfer_log} />
+            <TransferTimeline log={(retryLog ?? []).join("\n") || transfer.transfer_log!} />
           </CardContent>
         </Card>
       )}

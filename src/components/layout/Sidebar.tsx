@@ -134,7 +134,8 @@ export function Sidebar({ navItems = BRANCH_MANAGER_NAV }: SidebarProps) {
         href={item.href}
         onClick={() => setSidebarOpen(false)}
         className={cn(
-          "group flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-sm font-medium transition-all duration-200 relative",
+          "group flex items-center gap-3 rounded-[10px] px-3 transition-all duration-200 relative",
+          isChild ? "py-1.5 text-xs font-normal" : "py-2.5 text-sm font-medium",
           isActive
             ? "bg-brand-wash text-primary"
             : "text-text-secondary hover:bg-app-bg hover:text-text-primary",
@@ -199,16 +200,12 @@ export function Sidebar({ navItems = BRANCH_MANAGER_NAV }: SidebarProps) {
         )}>
           {!sidebarCollapsed && (
             <Link href={homeHref} className="flex items-center gap-2.5">
-              <div className="w-9 h-9 bg-primary rounded-[10px] flex items-center justify-center p-1">
-                <Image src="/smartup-logo.png" alt="SmartUp" width={28} height={28} className="object-contain" />
-              </div>
+              <Image src="/smartup-logo.png" alt="SmartUp" width={48} height={48} className="object-contain block flex-shrink-0" />
               <span className="font-bold text-text-primary text-lg">Smartup</span>
             </Link>
           )}
           {sidebarCollapsed && (
-            <div className="w-9 h-9 bg-primary rounded-[10px] flex items-center justify-center p-1">
-              <Image src="/smartup-logo.png" alt="SmartUp" width={28} height={28} className="object-contain" />
-            </div>
+            <Image src="/smartup-logo.png" alt="SmartUp" width={48} height={48} className="object-contain block flex-shrink-0" />
           )}
           {/* Mobile close */}
           <button

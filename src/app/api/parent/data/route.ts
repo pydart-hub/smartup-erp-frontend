@@ -141,6 +141,7 @@ export async function GET(request: NextRequest) {
       custom_parent_name: string;
       joining_date: string;
       enabled: number;
+      custom_student_type: string;
     })[] = [];
 
     const studentFields = [
@@ -235,8 +236,10 @@ export async function GET(request: NextRequest) {
         enrollmentMap[child.name] = enrollments;
 
         // 3a-ii. Fetch Fee Structure for the latest enrollment
+        // Skip fee structures entirely for Free Access students
+        const isFreeAccess = child.custom_student_type === "Free Access";
         const latestEnr = enrollments[0];
-        if (latestEnr?.program && latestEnr?.academic_year) {
+        if (!isFreeAccess && latestEnr?.program && latestEnr?.academic_year) {
           let fsList: { name: string }[] = [];
 
           // Best case: enrollment has the exact Fee Structure stored
@@ -424,7 +427,12 @@ export async function GET(request: NextRequest) {
 
         // 3d. Sales Orders — filter by customer (Frappe auto-creates
         //     a Customer linked to the Student on student save)
-        if (child.customer) {
+        // Skip financial data entirely for Free Access students
+        if (isFreeAccess || !child.customer) {
+          salesOrderMap[child.name] = [];
+          salesInvoiceMap[child.name] = [];
+          paymentEntryMap[child.name] = [];
+        } else {
           salesOrderMap[child.name] = await safeFetch(
             frappeListUrl(
               "Sales Order",
@@ -479,10 +487,6 @@ export async function GET(request: NextRequest) {
             ),
             headers
           );
-        } else {
-          salesOrderMap[child.name] = [];
-          salesInvoiceMap[child.name] = [];
-          paymentEntryMap[child.name] = [];
         }
       })
     );

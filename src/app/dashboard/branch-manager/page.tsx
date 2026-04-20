@@ -406,12 +406,12 @@ export default function BranchManagerDashboard() {
                   <>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                       <div className="text-center">
-                        <p className="text-xs text-text-tertiary mb-1">Total Orders</p>
-                        <p className="text-xl font-bold text-text-primary"><AnimatedNumber value={salesStats?.total_orders ?? 0} /></p>
+                        <p className="text-xs text-text-tertiary mb-1">Total Billed</p>
+                        <p className="text-xl font-bold text-text-primary"><AnimatedCurrency value={salesStats?.total_fees ?? 0} /></p>
                       </div>
                       <div className="text-center">
-                        <p className="text-xs text-text-tertiary mb-1">Total Invoiced</p>
-                        <p className="text-xl font-bold text-text-primary"><AnimatedCurrency value={salesStats?.total_invoiced ?? 0} /></p>
+                        <p className="text-xs text-text-tertiary mb-1">Collected</p>
+                        <p className="text-xl font-bold text-success"><AnimatedCurrency value={salesStats?.total_collected ?? 0} /></p>
                       </div>
                       <div className="text-center">
                         <p className="text-xs text-text-tertiary mb-1">Outstanding</p>

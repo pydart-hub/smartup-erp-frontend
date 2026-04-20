@@ -69,6 +69,7 @@ export const PAYMENT_OPTION_LABELS: Record<string, string> = {
 
 // ── Roles ──
 export const ROLES = {
+  GENERAL_MANAGER: "General Manager",
   BRANCH_MANAGER: "Branch Manager",
   BATCH_COORDINATOR: "Batch Coordinator",
   TEACHER: "Teacher",
@@ -81,6 +82,7 @@ export const ROLES = {
 export const ROLE_DASHBOARD_MAP: Record<string, string> = {
   "Director": "/dashboard/director",
   "Management": "/dashboard/director",
+  "General Manager": "/dashboard/general-manager",
   "Branch Manager": "/dashboard/branch-manager",
   "Batch Coordinator": "/dashboard/batch-coordinator",
   "Teacher": "/dashboard/teacher",
@@ -120,7 +122,6 @@ export const BRANCH_MANAGER_NAV: NavItem[] = [
   { label: "Course Schedule", href: "/dashboard/branch-manager/course-schedule", icon: "CalendarDays", emoji: "📅" },
   { label: "Teachers", href: "/dashboard/branch-manager/teachers", icon: "UserCheck", emoji: "👨‍🏫" },
   { label: "Fees", href: "/dashboard/branch-manager/fees", icon: "IndianRupee", emoji: "💰" },
-  { label: "Sales Orders", href: "/dashboard/branch-manager/sales-orders", icon: "ShoppingCart", emoji: "🛒" },
   { label: "Exams", href: "/dashboard/branch-manager/exams", icon: "ClipboardList", emoji: "📝" },
   { label: "Academics", href: "/dashboard/branch-manager/academics", icon: "BarChart3", emoji: "📈",
     children: [
@@ -158,7 +159,16 @@ export const DIRECTOR_NAV: NavItem[] = [
     ],
   },
   { label: "Exams", href: "/dashboard/director/exams", icon: "ClipboardList", emoji: "📝" },
-  { label: "Academics", href: "/dashboard/director/academics", icon: "BarChart3", emoji: "📈" },
+  { label: "Academics", href: "/dashboard/director/academics", icon: "BarChart3", emoji: "📈",
+    children: [
+      { label: "Overview", href: "/dashboard/director/academics/overview", icon: "BarChart3", emoji: "📈" },
+      { label: "Attendance", href: "/dashboard/director/academics/attendance", icon: "ClipboardCheck", emoji: "✅" },
+      { label: "Exams", href: "/dashboard/director/academics/exams", icon: "ClipboardList", emoji: "📝" },
+      { label: "Course Schedule", href: "/dashboard/director/academics/course-schedule", icon: "CalendarDays", emoji: "📅" },
+      { label: "Instructors", href: "/dashboard/director/academics/instructors", icon: "UserCheck", emoji: "👨‍🏫" },
+      { label: "Topic Coverage", href: "/dashboard/director/academics/topic-coverage", icon: "BookOpen", emoji: "📖" },
+    ],
+  },
   { label: "Leaderboard", href: "/dashboard/director/leaderboard", icon: "Trophy", emoji: "🏆" },
   { label: "Reports", href: "/dashboard/director/reports", icon: "FileBarChart", emoji: "📈" },
   { label: "Complaints", href: "/dashboard/director/complaints", icon: "MessageSquareWarning", emoji: "⚠️" },
@@ -199,6 +209,16 @@ export const SALES_USER_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard/sales-user", icon: "LayoutDashboard", emoji: "📊" },
   { label: "New Admission", href: "/dashboard/sales-user/new-admission", icon: "UserPlus", emoji: "🎓" },
   { label: "Students", href: "/dashboard/sales-user/students", icon: "GraduationCap", emoji: "👨‍🎓" },
+];
+
+export const GENERAL_MANAGER_NAV: NavItem[] = [
+  { label: "Dashboard", href: "/dashboard/general-manager", icon: "LayoutDashboard", emoji: "📊" },
+  { label: "Academics", href: "/dashboard/general-manager/academics", icon: "BarChart3", emoji: "📈" },
+  { label: "Attendance", href: "/dashboard/general-manager/attendance", icon: "ClipboardCheck", emoji: "✅" },
+  { label: "Exams", href: "/dashboard/general-manager/exams", icon: "ClipboardList", emoji: "📝" },
+  { label: "Course Schedule", href: "/dashboard/general-manager/course-schedule", icon: "CalendarDays", emoji: "📅" },
+  { label: "Instructors", href: "/dashboard/general-manager/instructors", icon: "UserCheck", emoji: "👨‍🏫" },
+  { label: "Topic Coverage", href: "/dashboard/general-manager/topic-coverage", icon: "BookOpen", emoji: "📖" },
 ];
 
 

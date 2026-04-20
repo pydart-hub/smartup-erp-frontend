@@ -430,6 +430,14 @@ export async function markTopicCovered(scheduleName: string): Promise<void> {
   );
 }
 
+/** Mark a course schedule's topic as NOT covered (undo) */
+export async function unmarkTopicCovered(scheduleName: string): Promise<void> {
+  await apiClient.put(
+    `/resource/Course Schedule/${encodeURIComponent(scheduleName)}`,
+    { custom_topic_covered: 0 },
+  );
+}
+
 // ── Topic management ────────────────────────────────────────────────────────
 
 export interface TopicRecord {

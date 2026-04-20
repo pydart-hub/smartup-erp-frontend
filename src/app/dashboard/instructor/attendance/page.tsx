@@ -23,10 +23,7 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { toast } from "sonner";
 import { getBatch } from "@/lib/api/batches";
 import { getAttendance, bulkMarkAttendance } from "@/lib/api/attendance";
-import {
-  getCourseSchedules,
-  markTopicCovered,
-} from "@/lib/api/courseSchedule";
+import { getCourseSchedules } from "@/lib/api/courseSchedule";
 import type { CourseSchedule } from "@/lib/api/courseSchedule";
 import type { BatchStudent } from "@/lib/types/batch";
 import { useAuth } from "@/lib/hooks/useAuth";
@@ -287,11 +284,6 @@ export default function InstructorAttendancePage() {
         students: entries,
         custom_branch: schedule.custom_branch || undefined,
       });
-
-      // Mark ONLY this session's topic as covered
-      if (schedule.custom_topic && !schedule.custom_topic_covered) {
-        await markTopicCovered(schedule.name).catch(() => {});
-      }
 
       toast.success(
         `Attendance saved for ${schedule.custom_topic || schedule.course}`

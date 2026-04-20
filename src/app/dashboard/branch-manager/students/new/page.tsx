@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useMemo, useEffect, useRef, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import type { FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -81,8 +81,18 @@ const PLAN_OPTIONS = [
   { value: "Advanced", label: "Advanced", description: "Premium programme" },
 ];
 
-export default function NewStudentPage() {
+export default function NewStudentPageWrapper() {
+  return (
+    <Suspense>
+      <NewStudentPage />
+    </Suspense>
+  );
+}
+
+function NewStudentPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isFreeAccess = searchParams.get("free_access") === "true";
   const { defaultCompany, allowedCompanies } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [paymentAction, setPaymentAction] = useState<"pay_now" | "send_to_parent" | null>(null);
@@ -116,7 +126,7 @@ export default function NewStudentPage() {
       gender: "Male",
       academic_year: "2026-2027",
       custom_branch: defaultCompany || "",
-      student_type: "fresher",
+      student_type: isFreeAccess ? "free_access" : "fresher",
       custom_plan: "",
       custom_no_of_instalments: "",
       custom_mode_of_payment: undefined as unknown as "Cash" | "Online",
@@ -315,10 +325,14 @@ export default function NewStudentPage() {
   // ── Submit ────────────────────────────────────────────────────
   async function onSubmit(data: StudentFormValues) {
     try {
-      // Non-demo: plan and instalments required
-      if (data.student_type !== "demo") {
+      // Non-demo, non-free-access: plan and instalments required
+      if (data.student_type !== "demo" && !isFreeAccess) {
         if (!data.custom_plan) { toast.error("Please select a fee plan"); return; }
         if (!data.custom_no_of_instalments) { toast.error("Please select an instalment option"); return; }
+      }
+      // Non-free-access students must have mode of payment
+      if (!isFreeAccess && !data.custom_mode_of_payment) {
+        toast.error("Please select a mode of payment"); return;
       }
 
       // student_batch_name now stores the Student Group name directly
@@ -347,7 +361,7 @@ export default function NewStudentPage() {
         custom_disabilities: data.disabilities || undefined,
         custom_place: data.custom_place || undefined,
         custom_school_name: data.custom_school_name || undefined,
-        custom_student_type: data.student_type === "fresher" ? "Fresher" : data.student_type === "existing" ? "Existing" : "Rejoining",
+        custom_student_type: data.student_type === "free_access" ? "Free Access" : data.student_type === "fresher" ? "Fresher" : data.student_type === "existing" ? "Existing" : "Rejoining",
         custom_branch: data.custom_branch,
         custom_branch_abbr: (branchObj as { abbr?: string })?.abbr,
         custom_srr_id: data.custom_srr_id,
@@ -361,15 +375,19 @@ export default function NewStudentPage() {
         guardian_mobile: data.guardian_mobile,
         guardian_relation: data.guardian_relation,
         guardian_password: data.guardian_password,
-        fee_structure: data.fee_structure,
-        custom_plan: data.custom_plan,
-        custom_no_of_instalments: data.custom_no_of_instalments,
-        custom_mode_of_payment: data.custom_mode_of_payment,
-        instalmentSchedule: selectedOption?.schedule.map((s) => ({
-          amount: s.amount,
-          dueDate: s.dueDate,
-          label: s.label,
-        })),
+        fee_structure: isFreeAccess ? undefined : data.fee_structure,
+        custom_plan: isFreeAccess ? "" : data.custom_plan,
+        custom_no_of_instalments: isFreeAccess ? "" : data.custom_no_of_instalments,
+        custom_mode_of_payment: isFreeAccess ? "Cash" : data.custom_mode_of_payment,
+        instalmentSchedule: isFreeAccess
+          ? undefined
+          : selectedOption?.schedule.map((s) => ({
+              amount: s.amount,
+              dueDate: s.dueDate,
+              label: s.label,
+            })),
+        // Free Access flag
+        ...(isFreeAccess ? { isFreeAccess: true } : {}),
       });
 
       const soMsg = result.salesOrder ? ` SO: ${result.salesOrder}.` : "";
@@ -384,6 +402,12 @@ export default function NewStudentPage() {
       }
 
       // ── Post-admission payment flow ──
+      // Free Access: no fees — skip payment dialog entirely
+      if (isFreeAccess) {
+        router.push("/dashboard/branch-manager/students");
+        return;
+      }
+
       const hasInvoices = (result.invoices?.length ?? 0) > 0;
       const wantsAction = paymentAction === "pay_now" || paymentAction === "send_to_parent";
 
@@ -422,7 +446,7 @@ export default function NewStudentPage() {
           guardianName: data.guardian_name,
           guardianEmail: data.guardian_email,
           guardianPhone: data.guardian_mobile,
-          mode: data.custom_mode_of_payment,
+          mode: data.custom_mode_of_payment as "Cash" | "Online",
           salesOrderName: result.salesOrder,
           invoices: invoicesForPayment,
         });
@@ -502,8 +526,8 @@ export default function NewStudentPage() {
           <ArrowLeft className="h-5 w-5" />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-text-primary">New Student Admission</h1>
-          <p className="text-sm text-text-secondary">Fill in the details to register a new student</p>
+          <h1 className="text-2xl font-bold text-text-primary">{isFreeAccess ? "Free Access Admission" : "New Student Admission"}</h1>
+          <p className="text-sm text-text-secondary">{isFreeAccess ? "No fees — student will be enrolled with full access at zero cost" : "Fill in the details to register a new student"}</p>
         </div>
       </div>
 
@@ -905,14 +929,43 @@ export default function NewStudentPage() {
                   className="space-y-5"
                 >
                   <div>
-                    <h3 className="text-lg font-semibold text-text-primary">Fee Details</h3>
+                    <h3 className="text-lg font-semibold text-text-primary">
+                      {isFreeAccess ? "Confirm Admission" : "Fee Details"}
+                    </h3>
                     <p className="text-sm text-text-secondary mt-0.5">
-                      Select a fee plan and instalment option
-                      {!selectedBranch || !selectedProgram
-                        ? " — please select branch & class in Step 3 first"
-                        : ""}
+                      {isFreeAccess
+                        ? "This student will be admitted with no fees"
+                        : <>Select a fee plan and instalment option
+                          {!selectedBranch || !selectedProgram
+                            ? " — please select branch & class in Step 3 first"
+                            : ""}</>
+                      }
                     </p>
                   </div>
+
+                  {/* Free Access card */}
+                  {isFreeAccess && (
+                    <div className="bg-emerald-50 rounded-[12px] border-2 border-emerald-300 p-5">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
+                          <Check className="h-5 w-5 text-emerald-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-emerald-800">Free Access Admission</p>
+                          <p className="text-xs text-emerald-600">No fees will be charged for this student</p>
+                        </div>
+                      </div>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-3xl font-bold text-emerald-700">₹0</span>
+                        <span className="text-sm text-emerald-600">/ no payment required</span>
+                      </div>
+                      <p className="text-xs text-emerald-600 mt-3">
+                        The student will be enrolled in the selected program with full access. No Sales Order or invoices will be created.
+                      </p>
+                    </div>
+                  )}
+
+                  {!isFreeAccess && (<>
 
                   {/* No fee structures available warning */}
                   {selectedBranch && selectedProgram && !loadingFeeStructures && feeStructures.length === 0 && (
@@ -1240,6 +1293,9 @@ export default function NewStudentPage() {
                     </div>
                   )}
 
+                  </>)}
+                  {/* End of !isFreeAccess wrapper */}
+
                   {/* Admission summary */}
                   <div className="bg-app-bg rounded-[10px] p-4 border border-border-light text-sm space-y-1.5 text-text-secondary">
                     <p className="font-semibold text-text-primary mb-2">Admission Summary</p>
@@ -1251,6 +1307,10 @@ export default function NewStudentPage() {
                     <p><span className="text-text-tertiary w-36 inline-block">SRR ID:</span> {watch("custom_srr_id") || "—"}</p>
                     <p><span className="text-text-tertiary w-36 inline-block">Batch:</span> {watch("student_batch_name") || "—"}</p>
                     <p><span className="text-text-tertiary w-36 inline-block">Enrollment Date:</span> {watch("enrollment_date") || "—"}</p>
+                    {isFreeAccess ? (
+                      <p><span className="text-text-tertiary w-36 inline-block">Fee:</span> <span className="font-semibold text-emerald-600">Free Access — No Fees</span></p>
+                    ) : (
+                    <>
                     <p><span className="text-text-tertiary w-36 inline-block">Fee Plan:</span> {selectedPlan || "—"}</p>
                     <p>
                       <span className="text-text-tertiary w-36 inline-block">Instalments:</span>
@@ -1268,6 +1328,8 @@ export default function NewStudentPage() {
                     </p>
                     {selectedOption && (
                       <p><span className="text-text-tertiary w-36 inline-block">Total Fee:</span> <span className="font-semibold text-primary">₹{selectedOption.total.toLocaleString("en-IN")}</span></p>
+                    )}
+                    </>
                     )}
                   </div>
                 </motion.div>

@@ -588,6 +588,8 @@ export interface AdmitStudentForm {
   existingGuardianName?: string; // Existing Guardian name to reuse (skip guardian creation)
   // Demo admission
   isDemo?: boolean;              // True for demo student admission (flat ₹499 fee)
+  // Free Access admission (no fee at all)
+  isFreeAccess?: boolean;        // True for free access student — skip SO & invoices entirely
 }
 
 export interface AdmitStudentResult {
@@ -976,6 +978,8 @@ export async function admitStudent(
       custom_no_of_instalments: form.custom_no_of_instalments,
       // Demo students get a special category
       ...(form.isDemo ? { student_category: "Demo" } : {}),
+      // Free Access students get a special category
+      ...(form.isFreeAccess ? { student_category: "Free Access" } : {}),
     });
     updateStage("enrollment", "success");
   } catch (peErr) {
@@ -1007,8 +1011,13 @@ export async function admitStudent(
   // ───────────────────────────────────────────────────
   // Step 5 — Auto-create Sales Order for tuition fee
   // ───────────────────────────────────────────────────
-  updateStage("sales_order", "in_progress");
   let salesOrderName: string | undefined;
+
+  // Free Access students have no fees — skip SO & invoice creation entirely
+  if (form.isFreeAccess) {
+    updateStage("sales_order", "skipped");
+  } else {
+  updateStage("sales_order", "in_progress");
   try {
     // 5a. Read back the Student to get the auto-created customer
     const { data: freshStudent } = await apiClient.get(
@@ -1087,12 +1096,15 @@ export async function admitStudent(
     warnings.push(`Sales Order creation failed: ${msg}`);
     updateStage("sales_order", "failed", msg);
   }
+  } // end of !isFreeAccess SO block
 
   // ───────────────────────────────────────────────────
   // Step 6 — Auto-create Sales Invoices per instalment
   // ───────────────────────────────────────────────────
   let invoiceNames: string[] | undefined;
-  if (salesOrderName && form.instalmentSchedule?.length) {
+  if (form.isFreeAccess) {
+    updateStage("invoices", "skipped");
+  } else if (salesOrderName && form.instalmentSchedule?.length) {
     updateStage("invoices", "in_progress");
     try {
       const invRes = await fetch("/api/admission/create-invoices", {

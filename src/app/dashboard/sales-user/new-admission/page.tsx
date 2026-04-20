@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { GraduationCap, BookOpen, UserCheck, ArrowRight, Star } from "lucide-react";
+import { GraduationCap, BookOpen, UserCheck, ArrowRight, Star, Unlock } from "lucide-react";
 
 const admissionTypes = [
   {
@@ -35,6 +35,14 @@ const admissionTypes = [
     href: "/dashboard/sales-user/admit?demo=true",
     color: "bg-amber-50 text-amber-600 border-amber-200",
     hoverColor: "hover:border-amber-400 hover:shadow-amber-100",
+  },
+  {
+    title: "Free Access Admission",
+    description: "Free enrollment — no fees charged. Student gets full access to the program at zero cost.",
+    icon: Unlock,
+    href: "/dashboard/sales-user/admit?free_access=true",
+    color: "bg-teal-50 text-teal-600 border-teal-200",
+    hoverColor: "hover:border-teal-400 hover:shadow-teal-100",
   },
 ];
 
