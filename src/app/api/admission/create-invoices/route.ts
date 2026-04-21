@@ -111,11 +111,28 @@ export async function POST(request: NextRequest) {
 
     const today = new Date().toISOString().split("T")[0];
 
-    // Brief pause to let Frappe fully index the newly-submitted SO before
-    // we start creating invoices against it. Without this, the first
-    // invoice creation can fail with a billing-limit or document-not-found
-    // error on high-load days (race condition with SO post-submit hooks).
-    await new Promise((r) => setTimeout(r, 1000));
+    // Poll until the newly-submitted SO's on_submit hooks have fully committed
+    // (billing_status="Not Billed" is set by Frappe's hook, confirming readiness).
+    // Without this, the first invoice often fails with a DB lock/billing error
+    // because Frappe's post-submit transaction is still holding a row lock.
+    // Max wait: 8 × 600ms = 4.8 seconds. Falls through gracefully if SO is slow.
+    for (let soCheck = 0; soCheck < 8; soCheck++) {
+      await new Promise((r) => setTimeout(r, 600));
+      try {
+        const soCheckRes = await fetchRetry(
+          `${FRAPPE_URL}/api/resource/Sales Order/${encodeURIComponent(salesOrderName)}?fields=["billing_status","docstatus"]`,
+          { headers },
+        );
+        if (soCheckRes.ok) {
+          const soCheckData = (await soCheckRes.json()).data;
+          if (soCheckData?.billing_status === "Not Billed" && soCheckData?.docstatus === 1) {
+            break; // SO is fully committed and ready to bill against
+          }
+        }
+      } catch {
+        // Non-fatal — keep polling
+      }
+    }
 
     for (let i = 0; i < schedule.length; i++) {
       const inst = schedule[i];

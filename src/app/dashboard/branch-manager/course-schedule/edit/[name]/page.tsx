@@ -131,7 +131,7 @@ export default function EditSchedulePage() {
         room: schedule.room || "",
         custom_topic: schedule.custom_topic || "",
         schedule_date: schedule.schedule_date || "",
-        from_time: (schedule.from_time || "").slice(0, 5), // "09:00:00" → "09:00"
+        from_time: (schedule.from_time || "").slice(0, 5),
         to_time: (schedule.to_time || "").slice(0, 5),
         custom_event_type: schedule.custom_event_type || "",
         custom_event_title: schedule.custom_event_title || "",
@@ -160,7 +160,11 @@ export default function EditSchedulePage() {
     enabled: !!selectedGroupProgram,
     staleTime: 10 * 60_000,
   });
-  const courses = programCourses ?? [];
+  const rawCourses = programCourses ?? [];
+  const courses = useMemo(() => {
+    const seen = new Set<string>();
+    return rawCourses.filter((c) => { if (seen.has(c.course)) return false; seen.add(c.course); return true; });
+  }, [rawCourses]);
 
   const { data: instrRes } = useQuery({
     queryKey: ["instructors-all"],
@@ -448,9 +452,7 @@ export default function EditSchedulePage() {
                         {topicsLoading ? "Loading topics…" : "No topic (optional)"}
                       </option>
                       {topics.map((t) => (
-                        <option key={t.topic} value={t.topic}>
-                          {t.topic_name || t.topic}
-                        </option>
+                        <option key={t.topic} value={t.topic}>{t.topic_name || t.topic}</option>
                       ))}
                     </select>
                   </Field>

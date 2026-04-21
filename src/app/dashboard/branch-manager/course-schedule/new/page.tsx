@@ -131,9 +131,18 @@ function NewCourseSchedulePage() {
   // When an instructor is selected → filter courses to only their assigned courses
   // When a course is selected → filter instructors to only those assigned to that course
   const filteredCourses = useMemo(() => {
-    if (!form.instructor || !selectedGroupProgram) return allProgramCourses;
+    const dedup = (list: typeof allProgramCourses) => {
+      const seen = new Set<string>();
+      return list.filter((c) => {
+        if (seen.has(c.course)) return false;
+        seen.add(c.course);
+        return true;
+      });
+    };
+
+    if (!form.instructor || !selectedGroupProgram) return dedup(allProgramCourses);
     const instructor = branchInstructors.find((i) => i.name === form.instructor);
-    if (!instructor) return allProgramCourses;
+    if (!instructor) return dedup(allProgramCourses);
 
     // Get the course names from this instructor's log for the current program
     const assignedCourses = new Set(
@@ -143,9 +152,9 @@ function NewCourseSchedulePage() {
     );
 
     // If no log entries have courses (course field was empty), show all program courses
-    if (assignedCourses.size === 0) return allProgramCourses;
+    if (assignedCourses.size === 0) return dedup(allProgramCourses);
 
-    return allProgramCourses.filter((c) => assignedCourses.has(c.course));
+    return dedup(allProgramCourses.filter((c) => assignedCourses.has(c.course)));
   }, [form.instructor, selectedGroupProgram, allProgramCourses, branchInstructors]);
 
   const filteredInstructors = useMemo(() => {

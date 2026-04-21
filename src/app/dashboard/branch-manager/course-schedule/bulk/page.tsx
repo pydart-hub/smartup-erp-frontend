@@ -129,9 +129,9 @@ export default function BulkSchedulePage() {
     course: "",
     instructor: "",
     room: "",
+    custom_topic: "",
     from_time: "09:00",
     to_time: "10:30",
-    custom_topic: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -164,7 +164,11 @@ export default function BulkSchedulePage() {
     enabled: !!selectedGroupProgram,
     staleTime: 10 * 60_000,
   });
-  const courses = programCourses ?? [];
+  const rawCourses = programCourses ?? [];
+  const courses = useMemo(() => {
+    const seen = new Set<string>();
+    return rawCourses.filter((c) => { if (seen.has(c.course)) return false; seen.add(c.course); return true; });
+  }, [rawCourses]);
 
   const { data: instrRes } = useQuery({
     queryKey: ["instructors-all"],
@@ -314,7 +318,7 @@ export default function BulkSchedulePage() {
         custom_branch: branch || undefined,
         dates: matchingDates,
         topicMode: topicMode,
-        custom_topic: topicMode === "single" ? (form.custom_topic || undefined) : undefined,
+        custom_topic: topicMode === "single" ? form.custom_topic || undefined : undefined,
         topicSequence: seqTopics,
       },
       (done, total) => setProgress({ done, total }),
@@ -732,7 +736,7 @@ export default function BulkSchedulePage() {
                         </div>
                       )}
 
-                      {/* Single mode: topic dropdown */}
+                      {/* Single mode: single topic select */}
                       {topicMode === "single" && (
                         <select
                           value={form.custom_topic}

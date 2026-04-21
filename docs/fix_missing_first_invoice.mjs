@@ -20,7 +20,7 @@ const H = {
   'Content-Type': 'application/json',
 };
 const enc = encodeURIComponent;
-const TODAY = new Date().toISOString().split('T')[0]; // 2026-04-20
+const TODAY = new Date().toISOString().split('T')[0]; // 2026-04-21
 
 async function get(path) {
   const r = await fetch(BASE + path, { headers: H });
@@ -45,7 +45,7 @@ console.log('');
 // 1. Get all partly-billed SOs from April 2026 (submitted, not fully billed)
 const soRes = await get('/api/resource/Sales%20Order?filters=' + enc(JSON.stringify([
   ['transaction_date', '>=', '2026-04-16'],
-  ['transaction_date', '<=', '2026-04-20'],
+  ['transaction_date', '<=', '2026-04-21'],
   ['billing_status', '!=', 'Fully Billed'],
   ['docstatus', '=', 1]
 ])) + '&fields=' + enc(JSON.stringify([
@@ -53,7 +53,7 @@ const soRes = await get('/api/resource/Sales%20Order?filters=' + enc(JSON.string
 ])) + '&limit=200');
 
 const partlyBilledSOs = soRes.data || [];
-console.log(`Found ${partlyBilledSOs.length} partly-billed SOs (Apr 16-20)\n`);
+console.log(`Found ${partlyBilledSOs.length} partly-billed SOs (Apr 16-21)\n`);
 
 let fixed = 0, skipped = 0, failed = 0;
 

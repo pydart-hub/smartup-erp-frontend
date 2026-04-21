@@ -234,9 +234,50 @@ export default function SalesOrderDetailPage() {
     },
   });
 
+  // ── Repair mutation — creates the single missing first invoice ───────────
+  const repairMissingMutation = useMutation({
+    mutationFn: async () => {
+      if (!so) throw new Error("No Sales Order");
+      const existingTotal = linkedInvoices.reduce((sum, inv) => sum + inv.grand_total, 0);
+      const missingAmount = Math.round(so.grand_total - existingTotal);
+      if (missingAmount <= 0) throw new Error("No missing amount detected");
+      const res = await fetch("/api/admission/create-invoices", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          salesOrderName: so.name,
+          schedule: [{
+            amount: missingAmount,
+            dueDate: new Date().toISOString().split("T")[0],
+            label: "Instalment 1",
+          }],
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Failed (HTTP ${res.status})`);
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast.success("Missing invoice created successfully!");
+      queryClient.invalidateQueries({ queryKey: ["so-invoices", decodedId] });
+      queryClient.invalidateQueries({ queryKey: ["sales-order", decodedId] });
+    },
+    onError: (err: Error) => {
+      toast.error(`Repair failed: ${err.message}`);
+    },
+  });
+
   const perBilled = so?.per_billed ?? 0;
   const isFullyBilled = perBilled >= 100;
   const canCreateInvoice = so?.docstatus === 1 && !isFullyBilled && so.status !== "Cancelled";
+  const numInst = Number(so?.custom_no_of_instalments) || 1;
+  const isMissingInvoices = numInst > 1 && linkedInvoices.length > 0 && linkedInvoices.length < numInst && !isFullyBilled;
+  const missingInvoiceAmount = isMissingInvoices
+    ? Math.round((so?.grand_total ?? 0) - linkedInvoices.reduce((sum, inv) => sum + inv.grand_total, 0))
+    : 0;
 
   async function handleCancel() {
     if (!so || !confirm(`Cancel ${so.name}?`)) return;
@@ -517,6 +558,33 @@ export default function SalesOrderDetailPage() {
                   This student has been discontinued. Payments are blocked and outstanding amounts have been written off as credit notes.
                 </p>
               </div>
+            </div>
+          )}
+
+          {isMissingInvoices && missingInvoiceAmount > 0 && (
+            <div className="flex items-center justify-between gap-3 rounded-[12px] border border-warning/30 bg-warning/5 p-4 mb-4">
+              <div className="flex items-center gap-3">
+                <AlertCircle className="h-5 w-5 text-warning flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-warning">Missing Invoice Detected</p>
+                  <p className="text-xs text-text-secondary mt-0.5">
+                    {linkedInvoices.length}/{numInst} invoices found — {formatCurrency(missingInvoiceAmount)} is unbilled.
+                    This can happen if the system was busy during admission.
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={repairMissingMutation.isPending}
+                onClick={() => repairMissingMutation.mutate()}
+              >
+                {repairMissingMutation.isPending ? (
+                  <><Loader2 className="h-4 w-4 animate-spin" /> Repairing...</>
+                ) : (
+                  <><RefreshCw className="h-4 w-4" /> Repair</>
+                )}
+              </Button>
             </div>
           )}
 
