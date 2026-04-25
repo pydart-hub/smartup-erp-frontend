@@ -158,7 +158,7 @@ export async function getEmployeeGLStatus(
   });
 
   const entries: { account: string; debit: number; credit: number; voucher_no: string; posting_date: string }[] =
-    (res as { message?: unknown }).message ?? [];
+    ((res as { message?: unknown }).message as { account: string; debit: number; credit: number; voucher_no: string; posting_date: string }[] | null) ?? [];
 
   const result: Record<string, EmployeeGLStatus> = {};
 
