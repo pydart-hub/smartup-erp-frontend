@@ -81,7 +81,7 @@ function getEnabledParam(f: StatusFilter): 0 | 1 | undefined {
   return undefined;
 }
 
-function getExtraFilters(f: StatusFilter): string[][] {
+function getExtraFilters(f: StatusFilter): (string | string[])[][] {
   if (f === "discontinued") return [["custom_discontinuation_date", "is", "set"]];
   return [];
 }
