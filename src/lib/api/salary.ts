@@ -57,7 +57,7 @@ export async function getSalaryRecord(name: string): Promise<FrappeSingleRespons
 }
 
 export async function createSalaryRecord(
-  record: Omit<SmartUpSalaryRecord, "name" | "staff_name" | "company" | "period_label" | "creation" | "modified">
+  record: Omit<SmartUpSalaryRecord, "name" | "staff_name" | "period_label" | "creation" | "modified">
 ): Promise<FrappeSingleResponse<SmartUpSalaryRecord>> {
   const { data } = await apiClient.post("/resource/SmartUp Salary Record", record);
   return data;
