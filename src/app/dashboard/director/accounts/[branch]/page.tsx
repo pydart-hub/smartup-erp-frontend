@@ -13,9 +13,10 @@ import {
   TrendingUp,
   ChevronRight,
   Loader2,
+  CreditCard,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
-import { getBranchBankOverview } from "@/lib/api/director";
+import { getBranchBankOverview, getBranchLoanOverview } from "@/lib/api/director";
 import { getBranchExpenseDetail } from "@/lib/api/expenses";
 import { AnimatedCurrency } from "@/components/dashboard/AnimatedValue";
 
@@ -39,7 +40,13 @@ export default function BranchAccountDetailPage() {
     staleTime: 120_000,
   });
 
-  const isLoading = bankLoading || expenseLoading;
+  const { data: loanData, isLoading: loanLoading } = useQuery({
+    queryKey: ["branch-loan-overview", branchName],
+    queryFn: () => getBranchLoanOverview(branchName),
+    staleTime: 120_000,
+  });
+
+  const isLoading = bankLoading || expenseLoading || loanLoading;
 
   const totalCollection = useMemo(() => {
     if (!bankData?.accounts) return 0;
@@ -47,6 +54,7 @@ export default function BranchAccountDetailPage() {
   }, [bankData]);
 
   const totalExpense = expenseData?.total ?? 0;
+  const totalLoans = loanData?.total ?? 0;
   const profit = totalCollection - totalExpense;
 
   /* ── helpers ── */
@@ -104,8 +112,8 @@ export default function BranchAccountDetailPage() {
         </div>
       </div>
 
-      {/* Summary: Collection − Expense = Profit */}
-      <div className="grid grid-cols-3 gap-3">
+      {/* Summary: Collection − Expense = Profit + Loans */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           {
             label: "Total Collection",
@@ -122,6 +130,14 @@ export default function BranchAccountDetailPage() {
             iconColor: "text-red-500",
             iconBg: "bg-red-500/15",
             valueColor: "text-red-600",
+          },
+          {
+            label: "Loans (Liabilities)",
+            value: totalLoans,
+            icon: CreditCard,
+            iconColor: "text-amber-500",
+            iconBg: "bg-amber-500/10",
+            valueColor: "text-amber-600",
           },
           {
             label: "Profit",
@@ -158,8 +174,8 @@ export default function BranchAccountDetailPage() {
         ))}
       </div>
 
-      {/* Quick links to collection & expense detail */}
-      <div className="grid grid-cols-2 gap-3">
+      {/* Quick links to collection, expense & loan detail */}
+      <div className="grid grid-cols-3 gap-3">
         <Link href={`/dashboard/director/accounts/collection`}>
           <motion.div
             initial={{ opacity: 0, y: 8 }}
@@ -198,6 +214,26 @@ export default function BranchAccountDetailPage() {
               </div>
             </div>
             <ChevronRight className="h-4 w-4 text-text-tertiary group-hover:text-red-600 transition-colors" />
+          </motion.div>
+        </Link>
+        <Link href={`/dashboard/director/accounts/loans/${encodeURIComponent(branchName)}`}>
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            whileHover={{ y: -2 }}
+            className="rounded-xl border border-border-light bg-surface p-4 hover:border-amber-400/30 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                <CreditCard className="h-4.5 w-4.5 text-amber-600" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-text-primary">Loan Details</p>
+                <p className="text-[11px] text-text-tertiary">Outstanding liabilities</p>
+              </div>
+            </div>
+            <ChevronRight className="h-4 w-4 text-text-tertiary group-hover:text-amber-600 transition-colors" />
           </motion.div>
         </Link>
       </div>
@@ -298,6 +334,43 @@ export default function BranchAccountDetailPage() {
           )}
         </motion.div>
       </div>
+
+      {/* Loans breakdown */}
+      {(loanLoading || (loanData?.accounts && loanData.accounts.length > 0)) && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="rounded-xl border border-border-light bg-surface overflow-hidden"
+        >
+          <div className="px-4 py-3 border-b border-border-light flex items-center gap-2">
+            <CreditCard className="h-4 w-4 text-amber-500" />
+            <h3 className="text-sm font-semibold text-text-primary">Loan Accounts (Liabilities)</h3>
+          </div>
+          {loanLoading ? (
+            <div className="flex items-center justify-center h-24">
+              <Loader2 className="animate-spin h-5 w-5 text-primary" />
+            </div>
+          ) : (
+            <div className="divide-y divide-border-light/50">
+              {(loanData?.accounts ?? []).map((acct) => (
+                <div key={acct.account} className="flex items-center justify-between px-4 py-3">
+                  <span className="text-[13px] text-text-secondary capitalize">{acct.account_name.toLowerCase()}</span>
+                  <span className="text-[13px] font-medium text-amber-600 tabular-nums">
+                    <AnimatedCurrency value={acct.balance} decimals />
+                  </span>
+                </div>
+              ))}
+              <div className="flex items-center justify-between px-4 py-3 bg-amber-500/5">
+                <span className="text-[13px] font-semibold text-text-primary">Total Outstanding</span>
+                <span className="text-[14px] font-bold text-amber-600 tabular-nums">
+                  <AnimatedCurrency value={totalLoans} decimals />
+                </span>
+              </div>
+            </div>
+          )}
+        </motion.div>
+      )}
     </motion.div>
   );
 }

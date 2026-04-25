@@ -69,6 +69,19 @@ export interface SubjectAnalytics {
 }
 
 /** Batch-level academic summary for an exam group */
+export interface BatchStudentResult {
+  student: string;
+  student_name: string;
+  pct: number;
+  total_score: number;
+  total_max: number;
+  rank: number;
+  passed: boolean;
+  failed_subjects: string[];
+  grade: string;
+  subject_scores: { course: string; score: number; max: number; pct: number; grade: string; passed: boolean }[];
+}
+
 export interface BatchAcademicSummary {
   student_group: string;
   program: string;
@@ -79,6 +92,7 @@ export interface BatchAcademicSummary {
   overall_avg_pct: number;
   toppers: { student: string; student_name: string; pct: number; total_score: number; total_max: number; rank: number }[];
   weak_students: { student: string; student_name: string; pct: number; total_score: number; total_max: number; failed_subjects: string[] }[];
+  all_students: BatchStudentResult[];
 }
 
 /** Comprehensive student academic profile */

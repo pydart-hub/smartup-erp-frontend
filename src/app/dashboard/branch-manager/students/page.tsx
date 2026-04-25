@@ -148,17 +148,25 @@ export default function StudentsPage() {
   const [showPlanMenu, setShowPlanMenu] = useState(false);
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [showTypeMenu, setShowTypeMenu] = useState(false);
+  const [classFilter, setClassFilter] = useState<string>("all");
+  const [showClassMenu, setShowClassMenu] = useState(false);
+  const [batchFilter, setBatchFilter] = useState<string>("all");
+  const [showBatchMenu, setShowBatchMenu] = useState(false);
   const [page, setPage] = useState(0);
 
   // Close dropdowns on outside click
   const sortRef = useRef<HTMLDivElement>(null);
   const planRef = useRef<HTMLDivElement>(null);
   const typeRef = useRef<HTMLDivElement>(null);
+  const classRef = useRef<HTMLDivElement>(null);
+  const batchRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (sortRef.current && !sortRef.current.contains(e.target as Node)) setShowSortMenu(false);
       if (planRef.current && !planRef.current.contains(e.target as Node)) setShowPlanMenu(false);
       if (typeRef.current && !typeRef.current.contains(e.target as Node)) setShowTypeMenu(false);
+      if (classRef.current && !classRef.current.contains(e.target as Node)) setShowClassMenu(false);
+      if (batchRef.current && !batchRef.current.contains(e.target as Node)) setShowBatchMenu(false);
     }
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
@@ -214,14 +222,78 @@ export default function StudentsPage() {
   }, [searchInput]);
 
   // Reset page when filter changes
-  useEffect(() => { setPage(0); }, [statusFilter, planFilter, typeFilter, sortOption]);
+  useEffect(() => { setPage(0); }, [statusFilter, planFilter, typeFilter, sortOption, classFilter, batchFilter]);
 
-  // ── Query 1: students (filtered by branch) ──────────────────
-  const { data: studentsRes, isLoading, isError, error } = useQuery({
-    queryKey: ["students", search, statusFilter, typeFilter, page, defaultCompany, sortOption],
+  // ── Query 4: fetch Student Groups (classes + batches) for this branch ──
+  const { data: classBatchOptions = { classes: [], sgList: [] } } = useQuery({
+    queryKey: ["class-batch-options", defaultCompany],
+    queryFn: async () => {
+      const sgRes = await apiClient.get("/resource/Student Group", {
+        params: {
+          filters: JSON.stringify([
+            ["group_based_on", "=", "Batch"],
+            ["custom_branch", "=", defaultCompany],
+          ]),
+          fields: JSON.stringify(["name", "program"]),
+          limit_page_length: 200,
+          order_by: "name asc",
+        },
+      });
+      const sgList: { name: string; program: string }[] = sgRes.data.data ?? [];
+      const classSet = new Set<string>(sgList.map((sg) => sg.program).filter(Boolean));
+      return {
+        classes: Array.from(classSet).sort(),
+        sgList,
+      };
+    },
+    enabled: !!defaultCompany,
+    staleTime: 300_000,
+  });
+
+  // Batch options are filtered by the selected class
+  const batchOptions = (classBatchOptions.sgList ?? []).filter(
+    (sg) => classFilter === "all" || sg.program === classFilter
+  );
+
+  // Reset batchFilter when classFilter changes and the current batch no longer applies
+  useEffect(() => {
+    if (batchFilter !== "all") {
+      const still = (classBatchOptions.sgList ?? []).some(
+        (sg) => sg.name === batchFilter && (classFilter === "all" || sg.program === classFilter)
+      );
+      if (!still) setBatchFilter("all");
+    }
+  }, [classFilter, classBatchOptions.sgList, batchFilter]);
+
+  // ── Query 5: fetch student IDs in the selected Student Group ──
+  // student_batch_name on Program Enrollment stores the year code ("Eraveli 26-27"),
+  // NOT the SG name. Group membership lives in the Student Group students child table.
+  const { data: batchStudentIds = null, isLoading: batchLoading } = useQuery({
+    queryKey: ["batch-students", batchFilter],
+    queryFn: async () => {
+      const { data } = await apiClient.get(`/resource/Student Group/${encodeURIComponent(batchFilter)}`);
+      const rows: { student: string; active?: number }[] = data.data?.students ?? [];
+      return rows.filter((r) => r.active !== 0).map((r) => r.student);
+    },
+    enabled: batchFilter !== "all",
+    staleTime: 60_000,
+  });
+
+  // ── Query 1: students (server-side filtered) ─────────────────
+  // When batchFilter is active, wait for batchStudentIds then pass them as a
+  // server-side "name in [...]" filter so ALL matching students are returned.
+  const batchReady = batchFilter === "all" || batchStudentIds !== null;
+  const { data: studentsRes, isLoading: studentsLoading, isError, error } = useQuery({
+    queryKey: ["students", search, statusFilter, typeFilter, page, defaultCompany, sortOption, batchFilter, batchStudentIds],
     queryFn: () => {
       const extraFilters = getExtraFilters(statusFilter);
       if (typeFilter !== "all") extraFilters.push(["custom_student_type", "=", typeFilter]);
+      if (batchStudentIds && batchStudentIds.length > 0) {
+        extraFilters.push(["name", "in", batchStudentIds]);
+      } else if (batchStudentIds && batchStudentIds.length === 0) {
+        // Empty batch — force no results
+        extraFilters.push(["name", "=", "__none__"]);
+      }
       return getStudents({
         search: search || undefined,
         enabled: getEnabledParam(statusFilter),
@@ -232,25 +304,28 @@ export default function StudentsPage() {
         ...(defaultCompany ? { custom_branch: defaultCompany } : {}),
       });
     },
+    enabled: batchReady,
     staleTime: 30_000,
   });
+
+  const isLoading = studentsLoading || batchLoading;
 
   const allStudents: Student[] = studentsRes?.data ?? [];
   const hasMore = allStudents.length === PAGE_SIZE;
 
   // ── Query 2: program enrollments for current page ──────────
   const studentIds = allStudents.map((s) => s.name);
-  // Don't filter by academic year — always show the latest enrollment's Class/Batch/Fee Plan
   const { data: enrollmentMap = {} } = useQuery({
     queryKey: ["enrollment-map", studentIds],
     queryFn: () => fetchEnrollmentMap(studentIds),
     enabled: studentIds.length > 0,
     staleTime: 60_000,
   });
-  // Client-side plan filter (plan lives on Program Enrollment, not Student)
-  const students = planFilter === "all"
-    ? allStudents
-    : allStudents.filter((s) => enrollmentMap[s.name]?.custom_plan === planFilter);
+
+  // Client-side plan filter only (class uses server-side enrollment, batch is server-side "name in")
+  const students = allStudents
+    .filter((s) => planFilter === "all" || enrollmentMap[s.name]?.custom_plan === planFilter)
+    .filter((s) => classFilter === "all" || enrollmentMap[s.name]?.program === classFilter);
 
   // ── Query 3: outstanding amounts per student ────────────────
   const customerIds = allStudents.map((s) => s.customer).filter(Boolean) as string[];
@@ -324,7 +399,7 @@ export default function StudentsPage() {
         {/* Type Filter Dropdown */}
         <div className="relative" ref={typeRef}>
           <button
-            onClick={() => { setShowTypeMenu((v) => !v); setShowPlanMenu(false); setShowSortMenu(false); }}
+            onClick={() => { setShowTypeMenu((v) => !v); setShowPlanMenu(false); setShowSortMenu(false); setShowClassMenu(false); setShowBatchMenu(false); }}
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
               typeFilter !== "all"
                 ? "border-primary/30 bg-primary/5 text-primary"
@@ -354,10 +429,96 @@ export default function StudentsPage() {
           )}
         </div>
 
+        {/* Class Filter Dropdown */}
+        <div className="relative" ref={classRef}>
+          <button
+            onClick={() => { setShowClassMenu((v) => !v); setShowPlanMenu(false); setShowSortMenu(false); setShowTypeMenu(false); setShowBatchMenu(false); }}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+              classFilter !== "all"
+                ? "border-primary/30 bg-primary/5 text-primary"
+                : "border-border-medium bg-surface-primary text-text-secondary hover:bg-app-bg"
+            }`}
+          >
+            <Filter className="h-3.5 w-3.5" />
+            {classFilter === "all" ? "All Classes" : classFilter}
+            <ChevronDown className="h-3 w-3" />
+          </button>
+          {showClassMenu && (
+            <div className="absolute top-full left-0 mt-1 w-52 bg-surface border border-border-light rounded-xl shadow-xl z-50 py-1 max-h-60 overflow-y-auto">
+              <button
+                onClick={() => { setClassFilter("all"); setShowClassMenu(false); }}
+                className={`w-full text-left px-3 py-2 text-xs transition-colors ${
+                  classFilter === "all"
+                    ? "bg-primary/5 text-primary font-semibold"
+                    : "text-text-secondary hover:bg-app-bg"
+                }`}
+              >
+                All Classes
+              </button>
+              {classBatchOptions.classes.map((cls) => (
+                <button
+                  key={cls}
+                  onClick={() => { setClassFilter(cls); setShowClassMenu(false); }}
+                  className={`w-full text-left px-3 py-2 text-xs transition-colors ${
+                    classFilter === cls
+                      ? "bg-primary/5 text-primary font-semibold"
+                      : "text-text-secondary hover:bg-app-bg"
+                  }`}
+                >
+                  {cls}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Batch Filter Dropdown */}
+        <div className="relative" ref={batchRef}>
+          <button
+            onClick={() => { setShowBatchMenu((v) => !v); setShowPlanMenu(false); setShowSortMenu(false); setShowTypeMenu(false); setShowClassMenu(false); }}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+              batchFilter !== "all"
+                ? "border-primary/30 bg-primary/5 text-primary"
+                : "border-border-medium bg-surface-primary text-text-secondary hover:bg-app-bg"
+            }`}
+          >
+            <Filter className="h-3.5 w-3.5" />
+            {batchFilter === "all" ? "All Batches" : batchFilter}
+            <ChevronDown className="h-3 w-3" />
+          </button>
+          {showBatchMenu && (
+            <div className="absolute top-full left-0 mt-1 w-56 bg-surface border border-border-light rounded-xl shadow-xl z-50 py-1 max-h-60 overflow-y-auto">
+              <button
+                onClick={() => { setBatchFilter("all"); setShowBatchMenu(false); }}
+                className={`w-full text-left px-3 py-2 text-xs transition-colors ${
+                  batchFilter === "all"
+                    ? "bg-primary/5 text-primary font-semibold"
+                    : "text-text-secondary hover:bg-app-bg"
+                }`}
+              >
+                All Batches
+              </button>
+              {batchOptions.map((sg) => (
+                <button
+                  key={sg.name}
+                  onClick={() => { setBatchFilter(sg.name); setShowBatchMenu(false); }}
+                  className={`w-full text-left px-3 py-2 text-xs transition-colors ${
+                    batchFilter === sg.name
+                      ? "bg-primary/5 text-primary font-semibold"
+                      : "text-text-secondary hover:bg-app-bg"
+                  }`}
+                >
+                  {sg.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Plan Filter Dropdown */}
         <div className="relative" ref={planRef}>
           <button
-            onClick={() => { setShowPlanMenu((v) => !v); setShowSortMenu(false); setShowTypeMenu(false); }}
+            onClick={() => { setShowPlanMenu((v) => !v); setShowSortMenu(false); setShowTypeMenu(false); setShowClassMenu(false); setShowBatchMenu(false); }}
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
               planFilter !== "all"
                 ? "border-primary/30 bg-primary/5 text-primary"
@@ -390,7 +551,7 @@ export default function StudentsPage() {
         {/* Sort Dropdown */}
         <div className="relative" ref={sortRef}>
           <button
-            onClick={() => { setShowSortMenu((v) => !v); setShowPlanMenu(false); setShowTypeMenu(false); }}
+            onClick={() => { setShowSortMenu((v) => !v); setShowPlanMenu(false); setShowTypeMenu(false); setShowClassMenu(false); setShowBatchMenu(false); }}
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
               sortOption !== "name_asc"
                 ? "border-primary/30 bg-primary/5 text-primary"
@@ -421,9 +582,9 @@ export default function StudentsPage() {
         </div>
 
         {/* Reset button */}
-        {(typeFilter !== "all" || planFilter !== "all" || sortOption !== "name_asc") && (
+        {(typeFilter !== "all" || planFilter !== "all" || sortOption !== "name_asc" || classFilter !== "all" || batchFilter !== "all") && (
           <button
-            onClick={() => { setTypeFilter("all"); setPlanFilter("all"); setSortOption("name_asc"); }}
+            onClick={() => { setTypeFilter("all"); setPlanFilter("all"); setSortOption("name_asc"); setClassFilter("all"); setBatchFilter("all"); }}
             className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium text-text-tertiary hover:text-error hover:bg-error/5 transition-colors"
           >
             <X className="h-3 w-3" />

@@ -10,7 +10,7 @@
  */
 
 import apiClient from "./client";
-import type { FrappeListResponse } from "@/lib/types/api";
+import type { FrappeListResponse, FrappeSingleResponse } from "@/lib/types/api";
 
 // ── Types ──
 
@@ -29,6 +29,8 @@ export interface Employee {
   personal_email?: string;
   employment_type?: string;
   branch?: string;
+  custom_basic_salary?: number;
+  custom_payable_account?: string; // Link → Account (salary payable account)
 }
 
 export interface EmployeeAttendance {
@@ -60,6 +62,7 @@ const EMPLOYEE_FIELDS = JSON.stringify([
   "name", "employee_name", "company", "department",
   "designation", "user_id", "status", "image", "date_of_joining",
   "gender", "cell_number", "personal_email", "employment_type", "branch",
+  "custom_basic_salary", "custom_payable_account",
 ]);
 
 const EMPLOYEE_ATTENDANCE_FIELDS = JSON.stringify([
@@ -99,6 +102,60 @@ export async function getEmployees(params?: {
   });
   const { data } = await apiClient.get(`/resource/Employee?${query}`);
   return data;
+}
+
+/** Get a single employee doc by name */
+export async function getEmployeeDoc(name: string): Promise<FrappeSingleResponse<Employee>> {
+  const { data } = await apiClient.get(`/resource/Employee/${encodeURIComponent(name)}`);
+  return data;
+}
+
+/** Update only the custom_basic_salary field on an Employee */
+export async function updateEmployeeBasicSalary(
+  name: string,
+  basic_salary: number
+): Promise<FrappeSingleResponse<Employee>> {
+  const { data } = await apiClient.put(
+    `/resource/Employee/${encodeURIComponent(name)}`,
+    { custom_basic_salary: basic_salary }
+  );
+  return data;
+}
+
+/**
+ * Create a per-employee salary payable account under
+ * "Accounts Payable - {ABBR}" for the given company.
+ * Returns the new account name (e.g. "Abu Payable - SU KDV").
+ */
+export async function createEmployeePayableAccount(
+  employeeName: string,
+  company: string,
+  companyAbbr: string
+): Promise<string> {
+  const accountName = `${employeeName} Payable`;
+  // Nest under "Salary Payable - {ABBR}" group (which lives under Accounts Payable)
+  const parentAccount = `Salary Payable - ${companyAbbr}`;
+  const { data } = await apiClient.post("/resource/Account", {
+    account_name: accountName,
+    account_type: "Payable",
+    root_type: "Liability",
+    parent_account: parentAccount,
+    company,
+    is_group: 0,
+  });
+  // Frappe names the account as "{accountName} - {ABBR}"
+  return data.data.name as string;
+}
+
+/** Save the payable account name onto the Employee doc */
+export async function updateEmployeePayableAccount(
+  employeeId: string,
+  payableAccount: string
+): Promise<void> {
+  await apiClient.put(
+    `/resource/Employee/${encodeURIComponent(employeeId)}`,
+    { custom_payable_account: payableAccount }
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

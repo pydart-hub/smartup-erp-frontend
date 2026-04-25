@@ -1512,3 +1512,40 @@ export async function getDemoStudents(branch?: string): Promise<DemoStudentRow[]
   }
   return students;
 }
+
+// ── Loans / Liabilities ──
+
+export interface LoanAccountBalance {
+  account: string;       // full Frappe account name (e.g. "LOAN FROM SMARTUP - SU ERV")
+  account_name: string;  // display name (e.g. "LOAN FROM SMARTUP")
+  balance: number;       // credit − debit; positive = liability owed
+}
+
+export interface BranchLoanRow {
+  branch: string;
+  abbr: string;
+  accounts: LoanAccountBalance[];
+  total: number;
+}
+
+export interface ConsolidatedLoanReport {
+  branches: BranchLoanRow[];
+  grand_total: number;
+}
+
+/** Get loan/liability account balances for a single branch */
+export async function getBranchLoanOverview(
+  branch: string,
+): Promise<{ accounts: LoanAccountBalance[]; total: number }> {
+  const params = new URLSearchParams({ branch });
+  const res = await fetch(`/api/director/loans?${params}`, { credentials: "include" });
+  if (!res.ok) throw new Error(`loans overview failed: ${res.status}`);
+  return res.json();
+}
+
+/** Get consolidated loan balances across all branches */
+export async function getConsolidatedLoanReport(): Promise<ConsolidatedLoanReport> {
+  const res = await fetch("/api/director/loans/consolidated", { credentials: "include" });
+  if (!res.ok) throw new Error(`consolidated loans failed: ${res.status}`);
+  return res.json();
+}

@@ -217,6 +217,20 @@ export async function GET(request: NextRequest) {
           failed_subjects: s.failedSubjects,
         }));
 
+      // All students with full classification
+      const allStudentsList = studentAgg.map((s, i) => ({
+        student: s.student,
+        student_name: nameMap.get(s.student) || s.student,
+        pct: s.pct,
+        total_score: s.totalScore,
+        total_max: s.totalMax,
+        rank: i + 1,
+        passed: s.passed,
+        failed_subjects: s.failedSubjects,
+        grade: getGrade(s.pct),
+        subject_scores: bg.studentResults.get(s.student)?.subjects ?? [],
+      }));
+
       const passCount = studentAgg.filter((s) => s.passed).length;
       const allPcts = studentAgg.map((s) => s.pct);
       const avgPct = allPcts.length > 0
@@ -235,6 +249,7 @@ export async function GET(request: NextRequest) {
         overall_avg_pct: avgPct,
         toppers,
         weak_students: weakStudents,
+        all_students: allStudentsList,
       };
     });
 

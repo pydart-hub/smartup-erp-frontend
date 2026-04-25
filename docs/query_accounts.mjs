@@ -30,6 +30,5 @@ async function query() {
   console.log('\n=== Companies ===');
   console.log(JSON.stringify(comps.data, null, 2));
 }
-
 query().catch(console.error);
    

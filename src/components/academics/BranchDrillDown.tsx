@@ -15,7 +15,7 @@ import {
   AlertTriangle, Users, TrendingUp, BarChart3,
   ChevronDown, ChevronLeft, UserCheck,
   Loader2, Calendar, CalendarDays, CheckCircle2, Clock,
-  Sparkles,
+  Sparkles, Star, Flame, Zap, TrendingDown, ShieldAlert,
 } from "lucide-react";
 
 // ── Helpers ─────────────────────────────────────────────────────
@@ -114,8 +114,84 @@ function AbsenteeTable({ absentees, showBatch = true }: { absentees: ChronicAbse
   );
 }
 
+// ── Performance classification config ──────────────────────────
+const CLASSIFICATIONS = [
+  {
+    key: "star",
+    label: "Star Performers",
+    range: "≥90%",
+    min: 90,
+    max: 101,
+    icon: Star,
+    iconColor: "text-yellow-500",
+    bg: "bg-yellow-50 dark:bg-yellow-500/10",
+    border: "border-yellow-200 dark:border-yellow-500/20",
+    badge: "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-400",
+    pctClass: "text-yellow-600 dark:text-yellow-400",
+  },
+  {
+    key: "performers",
+    label: "Good Performers",
+    range: "75–89%",
+    min: 75,
+    max: 90,
+    icon: Flame,
+    iconColor: "text-success",
+    bg: "bg-success/5",
+    border: "border-success/20",
+    badge: "bg-success/10 text-success",
+    pctClass: "text-success",
+  },
+  {
+    key: "average",
+    label: "Average",
+    range: "50–74%",
+    min: 50,
+    max: 75,
+    icon: Zap,
+    iconColor: "text-info",
+    bg: "bg-info/5",
+    border: "border-info/20",
+    badge: "bg-info/10 text-info",
+    pctClass: "text-info",
+  },
+  {
+    key: "improvement",
+    label: "Need Improvement",
+    range: "33–49%",
+    min: 33,
+    max: 50,
+    icon: TrendingDown,
+    iconColor: "text-warning",
+    bg: "bg-warning/5",
+    border: "border-warning/20",
+    badge: "bg-warning/10 text-warning",
+    pctClass: "text-warning",
+  },
+  {
+    key: "atrisk",
+    label: "At Risk",
+    range: "<33%",
+    min: 0,
+    max: 33,
+    icon: ShieldAlert,
+    iconColor: "text-error",
+    bg: "bg-error/5",
+    border: "border-error/20",
+    badge: "bg-error/10 text-error",
+    pctClass: "text-error",
+  },
+] as const;
+
 function BatchExamCard({ batch }: { batch: BatchAcademicSummary }) {
   const [open, setOpen] = useState(false);
+  const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
+
+  const classified = CLASSIFICATIONS.map((cls) => ({
+    ...cls,
+    students: (batch.all_students ?? []).filter((s) => s.pct >= cls.min && s.pct < cls.max),
+  })).filter((cls) => cls.students.length > 0);
+
   return (
     <div className="bg-surface rounded-[12px] border border-border-light overflow-hidden">
       <button
@@ -149,6 +225,7 @@ function BatchExamCard({ batch }: { batch: BatchAcademicSummary }) {
             className="overflow-hidden"
           >
             <div className="border-t border-border-light">
+              {/* Subject summary table */}
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
@@ -180,34 +257,91 @@ function BatchExamCard({ batch }: { batch: BatchAcademicSummary }) {
                 </table>
               </div>
 
-              <div className="grid grid-cols-2 divide-x divide-border-light border-t border-border-light">
-                <div className="p-3">
-                  <p className="text-[10px] font-semibold text-text-secondary mb-1.5 flex items-center gap-1">
-                    <Trophy className="w-3 h-3 text-warning" /> Top Performers
-                  </p>
-                  {batch.toppers.slice(0, 5).map((t) => (
-                    <div key={t.student} className="flex justify-between py-0.5">
-                      <span className="text-xs text-primary truncate mr-2">{t.student_name}</span>
-                      <span className="text-xs font-bold text-success shrink-0">{t.total_score}/{t.total_max} ({t.pct}%)</span>
+              {/* Classification pills summary */}
+              <div className="px-3 py-2.5 border-t border-border-light flex flex-wrap gap-2">
+                {CLASSIFICATIONS.map((cls) => {
+                  const count = (batch.all_students ?? []).filter((s) => s.pct >= cls.min && s.pct < cls.max).length;
+                  if (count === 0) return null;
+                  const Icon = cls.icon;
+                  return (
+                    <span key={cls.key} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${cls.badge}`}>
+                      <Icon className="w-2.5 h-2.5" />
+                      {count} {cls.label}
+                    </span>
+                  );
+                })}
+              </div>
+
+              {/* Classification groups */}
+              <div className="divide-y divide-border-light border-t border-border-light">
+                {classified.map((cls) => {
+                  const Icon = cls.icon;
+                  const isExpanded = expandedGroup === cls.key;
+                  return (
+                    <div key={cls.key} className={cls.bg}>
+                      <button
+                        onClick={() => setExpandedGroup(isExpanded ? null : cls.key)}
+                        className={`w-full flex items-center justify-between px-3 py-2 border-l-2 ${cls.border} hover:opacity-90 transition-opacity`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Icon className={`w-3.5 h-3.5 ${cls.iconColor}`} />
+                          <span className={`text-xs font-semibold ${cls.iconColor}`}>{cls.label}</span>
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${cls.badge}`}>
+                            {cls.students.length} student{cls.students.length !== 1 ? "s" : ""}
+                          </span>
+                          <span className="text-[10px] text-text-tertiary">{cls.range}</span>
+                        </div>
+                        <ChevronDown className={`w-3.5 h-3.5 text-text-tertiary transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                      </button>
+
+                      <AnimatePresence>
+                        {isExpanded && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.15 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-xs">
+                                <thead>
+                                  <tr className="bg-app-bg/60 border-b border-border-light">
+                                    <th className="text-center p-2 font-medium text-text-secondary w-8">#</th>
+                                    <th className="text-left p-2 font-medium text-text-secondary">Student</th>
+                                    <th className="text-center p-2 font-medium text-text-secondary">Score</th>
+                                    <th className="text-center p-2 font-medium text-text-secondary">%</th>
+                                    <th className="text-center p-2 font-medium text-text-secondary">Grade</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {cls.students.map((s) => (
+                                    <tr key={s.student} className="border-b border-border-light last:border-0 hover:bg-app-bg/40 transition-colors">
+                                      <td className="p-2 text-center text-text-tertiary font-medium">{s.rank}</td>
+                                      <td className="p-2">
+                                        <p className={`font-semibold ${cls.iconColor}`}>{s.student_name}</p>
+                                        {s.failed_subjects.length > 0 && (
+                                          <p className="text-[10px] text-error">Fail: {s.failed_subjects.join(", ")}</p>
+                                        )}
+                                      </td>
+                                      <td className="p-2 text-center text-text-secondary font-medium">{s.total_score}/{s.total_max}</td>
+                                      <td className="p-2 text-center">
+                                        <span className={`font-bold ${cls.pctClass}`}>{s.pct}%</span>
+                                      </td>
+                                      <td className="p-2 text-center">
+                                        <span className={`px-1.5 py-0.5 rounded-full font-bold text-[10px] ${cls.badge}`}>{s.grade}</span>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
-                  ))}
-                  {batch.toppers.length === 0 && <p className="text-[10px] text-text-tertiary">No data</p>}
-                </div>
-                <div className="p-3">
-                  <p className="text-[10px] font-semibold text-text-secondary mb-1.5 flex items-center gap-1">
-                    <AlertTriangle className="w-3 h-3 text-error" /> Need Attention
-                  </p>
-                  {batch.weak_students.slice(0, 5).map((w) => (
-                    <div key={w.student} className="flex justify-between py-0.5">
-                      <div className="min-w-0 mr-2">
-                        <span className="text-xs text-primary truncate block">{w.student_name}</span>
-                        <span className="text-[10px] text-error truncate block">{w.failed_subjects.join(", ")}</span>
-                      </div>
-                      <span className="text-xs font-bold text-error shrink-0">{w.total_score}/{w.total_max} ({w.pct}%)</span>
-                    </div>
-                  ))}
-                  {batch.weak_students.length === 0 && <p className="text-[10px] text-text-tertiary">All passed!</p>}
-                </div>
+                  );
+                })}
               </div>
             </div>
           </motion.div>

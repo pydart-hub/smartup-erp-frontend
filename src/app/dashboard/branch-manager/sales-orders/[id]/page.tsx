@@ -350,22 +350,10 @@ export default function SalesOrderDetailPage() {
             <Badge variant="info">Transferred</Badge>
           )}
           <Badge variant={STATUS_COLORS[status] ?? "default"}>{status}</Badge>
-          {canCreateInvoice && (
-            <Link href={`/dashboard/branch-manager/invoices/new?so=${encodeURIComponent(so.name)}`}>
-              <Button variant="primary" size="sm">
-                <Receipt className="h-4 w-4" /> Create Invoice
-              </Button>
-            </Link>
-          )}
           {isFullyBilled && (
             <Badge variant="success">
               <CheckCircle2 className="h-3 w-3 mr-1" /> Fully Billed
             </Badge>
-          )}
-          {so.docstatus === 1 && status !== "Cancelled" && (
-            <Button variant="danger" size="sm" onClick={handleCancel}>
-              Cancel Order
-            </Button>
           )}
         </div>
       </div>
@@ -540,13 +528,6 @@ export default function SalesOrderDetailPage() {
                 <Badge variant="default">{linkedInvoices.length}</Badge>
               )}
             </div>
-            {canCreateInvoice && (
-              <Link href={`/dashboard/branch-manager/invoices/new?so=${encodeURIComponent(so.name)}`}>
-                <Button variant="outline" size="sm">
-                  <Receipt className="h-4 w-4" /> Create Invoice
-                </Button>
-              </Link>
-            )}
           </div>
 
           {isDiscontinued && (
@@ -593,21 +574,6 @@ export default function SalesOrderDetailPage() {
               <FileText className="h-8 w-8 mb-2 opacity-40" />
               <p className="text-sm font-medium">No invoices created yet</p>
               <p className="text-xs mt-1">Invoices are auto-created on admission.</p>
-              {canCreateInvoice && so.custom_no_of_instalments && (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  className="mt-4"
-                  disabled={generateInvoicesMutation.isPending}
-                  onClick={() => generateInvoicesMutation.mutate()}
-                >
-                  {generateInvoicesMutation.isPending ? (
-                    <><Loader2 className="h-4 w-4 animate-spin" /> Generating...</>
-                  ) : (
-                    <><RefreshCw className="h-4 w-4" /> Generate {so.custom_no_of_instalments} Invoice(s)</>
-                  )}
-                </Button>
-              )}
             </div>
           ) : (
             <table className="w-full text-sm">

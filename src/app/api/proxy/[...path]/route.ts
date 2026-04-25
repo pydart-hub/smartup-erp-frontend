@@ -19,6 +19,8 @@ const COMPANY_SCOPED_DOCTYPES: Record<string, string> = {
   // Assessment / Exams
   "Assessment Plan": "custom_branch",
   "Assessment Result": "custom_branch",
+  // HR Salary module (custom doctypes)
+  "SmartUp Salary Record": "company",
 };
 
 // ── Frappe-native permission model ──
@@ -61,6 +63,7 @@ async function proxyRequest(request: NextRequest, method: string) {
     const defaultCompany: string = sessionData.default_company || "";
     const isAdmin = roles.includes("Administrator");
     const isBranchManager = roles.includes("Branch Manager");
+    const isHRManager = roles.includes("HR Manager");
     const isInstructor = !!sessionData.instructor_name;
     const isPureInstructor = isInstructor && !isBranchManager && !isAdmin;
     const hasUserToken = !!(sessionData.api_key && sessionData.api_secret);
@@ -91,7 +94,7 @@ async function proxyRequest(request: NextRequest, method: string) {
     const effectiveCompanies =
       allowedCompanies.length > 0
         ? allowedCompanies
-        : defaultCompany && isBranchManager
+        : defaultCompany && (isBranchManager || isHRManager)
           ? [defaultCompany]
           : [];
 
@@ -189,7 +192,7 @@ async function proxyRequest(request: NextRequest, method: string) {
     //   doctype read permissions. Security is enforced at the proxy layer above
     //   via company-filter injection (effectiveCompanies).
     // - Everyone else (admins, etc.): use personal token if available, else admin.
-    const useAdminToken = isBranchManager && !isAdmin;
+    const useAdminToken = (isBranchManager || isHRManager) && !isAdmin;
     if (!useAdminToken && hasUserToken) {
       headers["Authorization"] = `token ${sessionData.api_key}:${sessionData.api_secret}`;
     } else {

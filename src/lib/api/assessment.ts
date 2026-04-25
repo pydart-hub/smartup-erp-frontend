@@ -193,6 +193,51 @@ export async function getExamResults(assessmentPlan: string): Promise<{
   return res.json();
 }
 
+export interface ExamPlanResult {
+  student: string;
+  student_name: string;
+  score: number;
+  maximum_score: number;
+  percentage: number;
+  grade: string;
+  passed: boolean;
+  rank: number;
+}
+
+export interface ExamPlanResponse {
+  plan: {
+    name: string;
+    course: string;
+    student_group: string;
+    program: string;
+    assessment_group: string;
+    schedule_date: string;
+    from_time: string;
+    to_time: string;
+    maximum_assessment_score: number;
+    custom_branch: string;
+    examiner_name?: string;
+  };
+  data: ExamPlanResult[];
+  summary: {
+    total_students: number;
+    pass_count: number;
+    fail_count: number;
+    pass_rate: number;
+    average_percentage: number;
+    highest_percentage: number;
+    lowest_percentage: number;
+  };
+}
+
+/** Get ranked + graded results for a single assessment plan */
+export async function getExamPlanResults(planName: string): Promise<ExamPlanResponse> {
+  const query = new URLSearchParams({ assessment_plan: planName });
+  const res = await fetch(`/api/exams/plan-results?${query}`, { credentials: "include" });
+  if (!res.ok) throw new Error("Failed to fetch plan results");
+  return res.json();
+}
+
 /** Get batch-wide results with ranks for an exam group */
 export async function getBatchResults(params: {
   student_group: string;
