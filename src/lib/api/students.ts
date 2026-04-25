@@ -20,7 +20,7 @@ export async function getStudents(params?: {
   enabled?: 0 | 1;        // 1 = active, 0 = disabled (left/dropped)
   custom_branch?: string; // Company name e.g. "Smart Up Chullickal"
   fields?: string;        // override default fields
-  extraFilters?: string[][];  // additional Frappe filters
+  extraFilters?: (string | string[])[][];  // additional Frappe filters
 } & PaginationParams): Promise<FrappeListResponse<Student>> {
   const searchParams = new URLSearchParams();
 
@@ -29,7 +29,7 @@ export async function getStudents(params?: {
   if (params?.limit_page_length) searchParams.set("limit_page_length", String(params.limit_page_length ?? 50));
   if (params?.order_by) searchParams.set("order_by", String(params.order_by));
 
-  const filters: string[][] = [];
+  const filters: (string | string[])[][] = [];
   if (params?.enabled !== undefined) filters.push(["enabled", "=", String(params.enabled)]);
   if (params?.custom_branch) filters.push(["custom_branch", "=", params.custom_branch]);
   // Search across name, email, and mobile
