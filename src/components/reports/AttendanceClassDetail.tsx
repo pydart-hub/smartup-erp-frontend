@@ -28,6 +28,7 @@ async function fetchData(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ mode: "class", detail: program, fromDate, toDate }),
+    credentials: "include",
   });
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Failed");
   return (await res.json()).data;
@@ -55,6 +56,7 @@ export function AttendanceClassDetail({ program, fromDate, toDate, onBack }: Pro
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mode: "class", detail: program, fromDate, toDate, format }),
+        credentials: "include",
       });
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Export failed");
       const disposition = res.headers.get("Content-Disposition") ?? "";

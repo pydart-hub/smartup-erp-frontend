@@ -211,15 +211,22 @@ export async function getStudentCountByPlanForBranch(branch: string): Promise<{
   const studentIds: string[] = (studentsRes.data?.data ?? []).map((s: { name: string }) => s.name);
   if (!studentIds.length) return result;
 
-  // Step 2: count their latest submitted program enrollments by custom_plan
-  const enrRes = await apiClient.get("/resource/Program Enrollment", {
-    params: {
-      fields: JSON.stringify(["student", "custom_plan"]),
-      filters: JSON.stringify([["docstatus", "=", 1], ["student", "in", studentIds]]),
-      order_by: "enrollment_date desc",
-      limit_page_length: studentIds.length * 3,
-    },
-  });
+  // Step 2: fetch enrollments in batches of 50 to avoid URL length limits
+  const batchSize = 50;
+  const allEnrollments: Array<{ student: string; custom_plan: string }> = [];
+  for (let i = 0; i < studentIds.length; i += batchSize) {
+    const batch = studentIds.slice(i, i + batchSize);
+    const batchRes = await apiClient.get("/resource/Program Enrollment", {
+      params: {
+        fields: JSON.stringify(["student", "custom_plan"]),
+        filters: JSON.stringify([["docstatus", "=", 1], ["student", "in", batch]]),
+        order_by: "enrollment_date desc",
+        limit_page_length: batch.length * 3,
+      },
+    });
+    allEnrollments.push(...(batchRes.data?.data ?? []));
+  }
+  const enrRes = { data: { data: allEnrollments } };
   // Only count the latest enrollment per student
   const seen = new Set<string>();
   for (const row of enrRes.data?.data ?? []) {

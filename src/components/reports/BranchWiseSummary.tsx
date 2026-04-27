@@ -23,6 +23,7 @@ async function fetchBranchSummary(): Promise<BranchRow[]> {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ mode: "branch" }),
+    credentials: "include",
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: "Failed" }));

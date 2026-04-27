@@ -116,15 +116,18 @@ async function getBranchDetail(branch: string) {
   );
 
   const studentNames = students.map((s) => String(s.name));
-  let enrollments: Record<string, unknown>[] = [];
+  const studentSet = new Set(studentNames);
+  // Fetch all enrollments without IN filter to avoid URL length limit on large branches
+  let allEnrollments: Record<string, unknown>[] = [];
   if (studentNames.length > 0) {
-    enrollments = await frappeGet(
+    allEnrollments = await frappeGet(
       "Program Enrollment",
       ["student", "program"],
-      [["student", "in", studentNames], ["docstatus", "!=", 2]],
+      [["docstatus", "!=", 2]],
       "enrollment_date desc",
     );
   }
+  const enrollments = allEnrollments.filter((e) => studentSet.has(String(e.student)));
 
   const studentProgram = new Map<string, string>();
   for (const e of enrollments) {

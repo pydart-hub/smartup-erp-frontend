@@ -231,18 +231,21 @@ async function getBranchDetail(branch: string): Promise<{
     pendingFee,
   };
 
-  // Program enrollments for these students to map student→program
+  // Program enrollments — fetch all to avoid huge IN-filter URLs (Frappe URL limit)
   const studentNames = students.map((s) => String(s.name));
-  let enrollments: Record<string, unknown>[] = [];
+  const studentSet = new Set(studentNames);
+  let allEnrollments: Record<string, unknown>[] = [];
   if (studentNames.length > 0) {
-    enrollments = await frappeGet(
+    allEnrollments = await frappeGet(
       "Program Enrollment",
       ["student", "program"],
-      [["student", "in", studentNames], ["docstatus", "!=", 2]],
+      [["docstatus", "!=", 2]],
       "enrollment_date desc",
       0,
     );
   }
+  // Filter to only this branch's students in JS (avoids large IN filter URL)
+  const enrollments = allEnrollments.filter((e) => studentSet.has(String(e.student)));
 
   // Latest program per student
   const studentProgram = new Map<string, string>();

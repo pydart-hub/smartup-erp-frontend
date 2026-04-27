@@ -22,6 +22,7 @@ async function fetchData(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ mode: "class", fromDate, toDate }),
+    credentials: "include",
   });
   if (!res.ok)
     throw new Error(
@@ -51,6 +52,7 @@ export function AttendanceClassSummary({ fromDate, toDate, onDrillDown }: Props)
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mode: "class", fromDate, toDate, format }),
+        credentials: "include",
       });
       if (!res.ok)
         throw new Error(

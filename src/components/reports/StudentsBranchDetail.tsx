@@ -22,6 +22,7 @@ async function fetchData(branch: string): Promise<StudentsBranchDetailData> {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ mode: "branch", detail: branch }),
+    credentials: "include",
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: "Failed" }));
@@ -50,6 +51,7 @@ export function StudentsBranchDetail({ branch, onBack }: Props) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mode: "branch", detail: branch, format }),
+        credentials: "include",
       });
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Export failed");
       const disposition = res.headers.get("Content-Disposition") ?? "";

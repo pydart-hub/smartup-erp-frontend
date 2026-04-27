@@ -117,7 +117,7 @@ async function getAllBranchesSummary(from: string, to: string) {
 async function getBranchDetail(branch: string, from: string, to: string) {
   const rawAttendance = await frappeGet(
     "Student Attendance",
-    ["name", "student", "student_name", "status", "date"],
+    ["name", "student", "status", "date"],
     [
       ["custom_branch", "=", branch],
       ["date", ">=", from],
@@ -150,14 +150,12 @@ async function getBranchDetail(branch: string, from: string, to: string) {
   const studentMap = new Map<string, { name: string; present: number; absent: number; leave: number; lastDate: string }>();
   for (const a of attendance) {
     const sid = String(a.student);
-    const sname = String(a.student_name ?? "");
-    const cur = studentMap.get(sid) ?? { name: sname, present: 0, absent: 0, leave: 0, lastDate: "" };
+    const cur = studentMap.get(sid) ?? { name: "", present: 0, absent: 0, leave: 0, lastDate: "" };
     if (a.status === "Present" || a.status === "Half Day") cur.present++;
     else if (a.status === "Absent") cur.absent++;
     else if (a.status === "On Leave") cur.leave++;
     const dt = String(a.attendance_date ?? "");
     if ((a.status === "Present" || a.status === "Half Day") && dt > cur.lastDate) cur.lastDate = dt;
-    if (!cur.name) cur.name = sname;
     studentMap.set(sid, cur);
   }
 
@@ -175,16 +173,22 @@ async function getBranchDetail(branch: string, from: string, to: string) {
     };
   }).sort((a, b) => a.attendancePct - b.attendancePct);
 
-  // Fetch disabilities for students
-  const sids = students.map((s) => s.studentId);
-  if (sids.length > 0) {
-    const stuRecords = await frappeGet("Student", ["name", "custom_disabilities"], [["name", "in", sids]]);
+  // Fetch student names + disabilities from Student doctype (branch filter avoids large IN-filter URLs)
+  const sids = new Set(students.map((s) => s.studentId));
+  if (sids.size > 0) {
+    const stuRecords = await frappeGet("Student", ["name", "student_name", "custom_disabilities"], [["custom_branch", "=", branch]]);
+    const nameMap = new Map<string, string>();
     const disMap = new Map<string, string>();
     for (const r of stuRecords) {
+      const sname = String(r.student_name ?? "");
+      if (sname && sids.has(String(r.name))) nameMap.set(String(r.name), sname);
       const d = String(r.custom_disabilities ?? "");
-      if (d) disMap.set(String(r.name), d);
+      if (d && sids.has(String(r.name))) disMap.set(String(r.name), d);
     }
-    for (const s of students) s.disabilities = disMap.get(s.studentId) ?? "";
+    for (const s of students) {
+      if (!s.studentName) s.studentName = nameMap.get(s.studentId) ?? s.studentId;
+      s.disabilities = disMap.get(s.studentId) ?? "";
+    }
   }
 
   return { summary, students };
@@ -281,7 +285,7 @@ async function getClassDetail(program: string, from: string, to: string) {
 
   const attendance = await frappeGet(
     "Attendance",
-    ["name", "student", "student_name", "custom_branch", "status", "attendance_date"],
+    ["name", "student", "custom_branch", "status", "attendance_date"],
     [
       ["attendance_date", ">=", from],
       ["attendance_date", "<=", to],
@@ -314,15 +318,13 @@ async function getClassDetail(program: string, from: string, to: string) {
   const studentMap = new Map<string, { name: string; branch: string; present: number; absent: number; leave: number; lastDate: string }>();
   for (const a of progAttendance) {
     const sid = String(a.student);
-    const sname = String(a.student_name ?? "");
     const br = String(a.custom_branch ?? "").replace("Smart Up ", "");
-    const cur = studentMap.get(sid) ?? { name: sname, branch: br, present: 0, absent: 0, leave: 0, lastDate: "" };
+    const cur = studentMap.get(sid) ?? { name: "", branch: br, present: 0, absent: 0, leave: 0, lastDate: "" };
     if (a.status === "Present" || a.status === "Half Day") cur.present++;
     else if (a.status === "Absent") cur.absent++;
     else if (a.status === "On Leave") cur.leave++;
     const dt = String(a.attendance_date ?? "");
     if ((a.status === "Present" || a.status === "Half Day") && dt > cur.lastDate) cur.lastDate = dt;
-    if (!cur.name) cur.name = sname;
     studentMap.set(sid, cur);
   }
 
@@ -341,16 +343,22 @@ async function getClassDetail(program: string, from: string, to: string) {
     };
   }).sort((a, b) => a.attendancePct - b.attendancePct);
 
-  // Fetch disabilities for students
-  const sids = students.map((s) => s.studentId);
-  if (sids.length > 0) {
-    const stuRecords = await frappeGet("Student", ["name", "custom_disabilities"], [["name", "in", sids]]);
+  // Fetch student names + disabilities from Student doctype (filter in JS to avoid large IN-filter URL)
+  const sidSet = new Set(students.map((s) => s.studentId));
+  if (sidSet.size > 0) {
+    const stuRecords = await frappeGet("Student", ["name", "student_name", "custom_disabilities"], []);
+    const nameMap = new Map<string, string>();
     const disMap = new Map<string, string>();
     for (const r of stuRecords) {
+      const sname = String(r.student_name ?? "");
+      if (sname && sidSet.has(String(r.name))) nameMap.set(String(r.name), sname);
       const d = String(r.custom_disabilities ?? "");
-      if (d) disMap.set(String(r.name), d);
+      if (d && sidSet.has(String(r.name))) disMap.set(String(r.name), d);
     }
-    for (const s of students) s.disabilities = disMap.get(s.studentId) ?? "";
+    for (const s of students) {
+      if (!s.studentName) s.studentName = nameMap.get(s.studentId) ?? s.studentId;
+      s.disabilities = disMap.get(s.studentId) ?? "";
+    }
   }
 
   return { summary, students };

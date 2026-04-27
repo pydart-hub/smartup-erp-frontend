@@ -187,7 +187,7 @@ async function getBranchProgramStats(branch: string) {
 async function getBranchDetail(branch: string) {
   const invoices = await frappeGet(
     "Sales Invoice",
-    ["name", "student", "student_name", "grand_total", "outstanding_amount", "due_date", "status"],
+    ["name", "student", "grand_total", "outstanding_amount", "due_date", "status"],
     [["docstatus", "=", 1], ["company", "=", branch]],
     "due_date desc",
   );
@@ -206,14 +206,17 @@ async function getBranchDetail(branch: string) {
 
   const summary = { branch, totalFee, collected, pending, overdue, collectionPct, studentsWithDues };
 
-  // Fetch disabilities for students
-  const studentIds = [...new Set(invoices.map((inv) => String(inv.student ?? "")).filter(Boolean))];
+  // Fetch student names + disabilities from Student doctype (company filter avoids large IN-filter URLs)
+  const branchStudentIds = new Set(invoices.map((inv) => String(inv.student ?? "")).filter(Boolean));
+  const nameMap = new Map<string, string>();
   const disabilityMap = new Map<string, string>();
-  if (studentIds.length > 0) {
-    const stuRecords = await frappeGet("Student", ["name", "custom_disabilities"], [["name", "in", studentIds]]);
+  if (branchStudentIds.size > 0) {
+    const stuRecords = await frappeGet("Student", ["name", "student_name", "custom_disabilities"], [["custom_branch", "=", branch]]);
     for (const s of stuRecords) {
+      const sname = String(s.student_name ?? "");
+      if (sname) nameMap.set(String(s.name), sname);
       const d = String(s.custom_disabilities ?? "");
-      if (d) disabilityMap.set(String(s.name), d);
+      if (d && branchStudentIds.has(String(s.name))) disabilityMap.set(String(s.name), d);
     }
   }
 
@@ -222,7 +225,7 @@ async function getBranchDetail(branch: string) {
     const outstanding = Number(inv.outstanding_amount) || 0;
     return {
       studentId: String(inv.student ?? ""),
-      studentName: String(inv.student_name ?? ""),
+      studentName: nameMap.get(String(inv.student ?? "")) ?? "",
       invoiceName: String(inv.name),
       amount: grand,
       paid: grand - outstanding,
@@ -310,8 +313,13 @@ async function getAllClassesSummary() {
 // ── Class detail ──
 
 async function getClassDetail(program: string) {
-  const students = await frappeGet("Student", ["name", "custom_branch"], []);
+  const students = await frappeGet("Student", ["name", "student_name", "custom_branch"], []);
   const studentNames = students.map((s) => String(s.name));
+
+  // Build name map from the student list
+  const studentNameMap = new Map<string, string>(
+    students.map((s) => [String(s.name), String(s.student_name ?? "")])
+  );
 
   let enrollments: Record<string, unknown>[] = [];
   if (studentNames.length > 0) {
@@ -335,7 +343,7 @@ async function getClassDetail(program: string) {
 
   const invoices = await frappeGet(
     "Sales Invoice",
-    ["name", "student", "student_name", "company", "grand_total", "outstanding_amount", "due_date", "status"],
+    ["name", "student", "company", "grand_total", "outstanding_amount", "due_date", "status"],
     [["docstatus", "=", 1]],
     "due_date desc",
   );
@@ -356,7 +364,7 @@ async function getClassDetail(program: string) {
 
   const summary = { program, totalFee, collected, pending, overdue, collectionPct, studentsWithDues };
 
-  // Fetch disabilities for students
+  // Fetch disabilities for students in this program
   const programStudentIdList = [...programStudentIds];
   const disabilityMap = new Map<string, string>();
   if (programStudentIdList.length > 0) {
@@ -372,7 +380,7 @@ async function getClassDetail(program: string) {
     const outstanding = Number(inv.outstanding_amount) || 0;
     return {
       studentId: String(inv.student ?? ""),
-      studentName: String(inv.student_name ?? ""),
+      studentName: studentNameMap.get(String(inv.student ?? "")) ?? "",
       invoiceName: String(inv.name),
       amount: grand,
       paid: grand - outstanding,

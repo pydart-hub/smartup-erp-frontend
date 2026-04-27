@@ -23,6 +23,7 @@ async function fetchData(): Promise<FeesClassRow[]> {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ mode: "class" }),
+    credentials: "include",
   });
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Failed");
   return (await res.json()).data;
@@ -47,6 +48,7 @@ export function FeesClassSummary({ onDrillDown }: Props) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mode: "class", format }),
+        credentials: "include",
       });
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Export failed");
       const disposition = res.headers.get("Content-Disposition") ?? "";

@@ -27,6 +27,7 @@ async function fetchData(program: string): Promise<FeesClassDetailData> {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ mode: "class", detail: program }),
+    credentials: "include",
   });
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Failed");
   return (await res.json()).data;
@@ -52,6 +53,7 @@ export function FeesClassDetail({ program, onBack }: Props) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mode: "class", detail: program, format }),
+        credentials: "include",
       });
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Export failed");
       const disposition = res.headers.get("Content-Disposition") ?? "";

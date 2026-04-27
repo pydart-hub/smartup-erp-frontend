@@ -29,6 +29,7 @@ async function fetchBranchDetail(branch: string): Promise<BranchDetailData> {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ mode: "branch", detail: branch }),
+    credentials: "include",
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: "Failed" }));
