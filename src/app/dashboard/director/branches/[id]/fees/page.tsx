@@ -340,7 +340,7 @@ export default function BranchFeesPage() {
                   </div>
                   <div className="mt-3">
                     <p className="text-3xl font-extrabold text-success tracking-tight">
-                      {formatCurrency(collectedByMode?.total ?? totalCollected)}
+                      {formatCurrency(totalCollected)}
                     </p>
                     <p className="text-xs text-text-tertiary mt-0.5">Total collected</p>
                   </div>

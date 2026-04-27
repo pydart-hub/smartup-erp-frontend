@@ -7,11 +7,12 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Users, Search, Pencil, Building2,
   Briefcase, Coins, Loader2, AlertCircle, ChevronDown,
-  ChevronRight, Info, Landmark,
+  ChevronRight, Info, Landmark, UserPlus,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { getEmployees } from "@/lib/api/employees";
@@ -121,9 +122,15 @@ export default function StaffListPage() {
           <div>
             <h1 className="text-2xl font-bold text-text-primary">Staff Registry</h1>
             <p className="text-text-secondary text-sm mt-0.5">
-              Branch-wise employee view — set basic salary for payroll
+              Manage employees — edit details, set salary, add new staff
             </p>
           </div>
+          <Link href="/dashboard/hr-manager/salary/staff/new">
+            <Button className="flex items-center gap-2">
+              <UserPlus className="h-4 w-4" />
+              Add Employee
+            </Button>
+          </Link>
         </div>
       </motion.div>
 
@@ -132,8 +139,8 @@ export default function StaffListPage() {
         <div className="flex items-start gap-3 p-3 bg-info/10 border border-info/20 rounded-lg text-sm text-text-secondary">
           <Info className="h-4 w-4 text-info mt-0.5 flex-shrink-0" />
           <span>
-            Employees are managed in the <strong>Frappe Cloud backend</strong>.
-            Click a branch to see its staff and set their <strong>basic salary</strong>.
+            Click any employee to <strong>edit their details</strong> — name, designation, department, contact, salary and more.
+            Use <strong>Add Employee</strong> to register new staff.
           </span>
         </div>
       </motion.div>

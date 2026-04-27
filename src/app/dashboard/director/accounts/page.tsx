@@ -21,7 +21,7 @@ import {
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import {
   getAllBranches,
-  getConsolidatedBankReport,
+  getConsolidatedFeeStats,
   getConsolidatedLoanReport,
 } from "@/lib/api/director";
 import { getExpenseSummary } from "@/lib/api/expenses";
@@ -124,9 +124,10 @@ function exportAccountsToPDF(rows: BranchRow[], totals: { collection: number; ex
 }
 
 export default function AccountsDashboardPage() {
-  const { data: bankData, isLoading: bankLoading } = useQuery({
-    queryKey: ["consolidated-bank"],
-    queryFn: () => getConsolidatedBankReport(),
+  // Invoice-based fee collection stats (same source as Fees page)
+  const { data: feeData, isLoading: feeLoading } = useQuery({
+    queryKey: ["consolidated-fee-stats"],
+    queryFn: getConsolidatedFeeStats,
     staleTime: 120_000,
   });
 
@@ -148,8 +149,8 @@ export default function AccountsDashboardPage() {
     staleTime: 300_000,
   });
 
-  const isLoading = bankLoading || expenseLoading || loanLoading;
-  const totalCollection = bankData?.grand_total.total ?? 0;
+  const isLoading = feeLoading || expenseLoading || loanLoading;
+  const totalCollection = feeData?.grand_total.collected ?? 0;
   const totalExpense = expenseData?.grandTotal ?? 0;
   const totalLoans = loanData?.grand_total ?? 0;
   const profit = totalCollection - totalExpense;
@@ -157,9 +158,9 @@ export default function AccountsDashboardPage() {
   // Build per-branch data
   const branchRows = useMemo(() => {
     if (!branches) return [];
-    const bankMap = new Map<string, number>();
-    for (const b of bankData?.branches ?? []) {
-      bankMap.set(b.branch, b.total);
+    const feeMap = new Map<string, number>();
+    for (const b of feeData?.branches ?? []) {
+      feeMap.set(b.branch, b.collected);
     }
     const expMap = new Map<string, number>();
     for (const b of expenseData?.branches ?? []) {
@@ -170,7 +171,7 @@ export default function AccountsDashboardPage() {
       loanMap.set(b.branch, b.total);
     }
     return branches.map((b) => {
-      const col = bankMap.get(b.name) ?? 0;
+      const col = feeMap.get(b.name) ?? 0;
       const exp = expMap.get(b.name) ?? 0;
       const loans = loanMap.get(b.name) ?? 0;
       return {
@@ -183,7 +184,7 @@ export default function AccountsDashboardPage() {
         loans,
       };
     }).sort((a, b) => b.profit - a.profit);
-  }, [branches, bankData, expenseData, loanData]);
+  }, [branches, feeData, expenseData, loanData]);
 
   const [exportOpen, setExportOpen] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);

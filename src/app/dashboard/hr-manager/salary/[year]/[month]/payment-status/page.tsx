@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft, Loader2, AlertCircle, Users,
-  CheckCircle2, Clock, IndianRupee, Building2, TrendingDown,
+  CheckCircle2, Clock, IndianRupee, Building2, TrendingDown, CalendarCheck2,
 } from "lucide-react";
 import Link from "next/link";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
@@ -133,6 +133,22 @@ export default function PaymentStatusPage() {
     }
     return { paidCount, accruedCount, pendingCount, noAccountCount, totalBalance, totalNet };
   }, [rows]);
+
+  // ── Leave accrued map (employee → accrued days up to salary year) ──
+  const { data: leaveBalanceRes } = useQuery({
+    queryKey: ["hr-salary-leave-balance", year],
+    queryFn: async () => {
+      const res = await fetch(`/api/hr/leave-allocation?year=${year}`);
+      if (!res.ok) return null;
+      return res.json() as Promise<{ employees: { employee: string; accrued_to_date: number }[] }>;
+    },
+    staleTime: 120_000,
+  });
+  const leaveAccruedMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    leaveBalanceRes?.employees?.forEach((e) => { map[e.employee] = e.accrued_to_date; });
+    return map;
+  }, [leaveBalanceRes]);
 
   // ── Group rows by branch ──
   const branchGroups = useMemo(() => {
@@ -278,6 +294,12 @@ export default function PaymentStatusPage() {
                           <th className="py-2 px-4 text-right text-xs font-medium text-text-tertiary">Other Deduction</th>
                           <th className="py-2 px-4 text-right text-xs font-medium text-text-tertiary">Paid</th>
                           <th className="py-2 px-4 text-right text-xs font-medium text-text-tertiary">Balance</th>
+                          <th className="py-2 px-3 text-center text-xs font-medium text-text-tertiary">
+                            <div className="flex items-center justify-center gap-1">
+                              <CalendarCheck2 className="h-3 w-3" />
+                              Avail. Leave
+                            </div>
+                          </th>
                           <th className="py-2 px-4 text-center text-xs font-medium text-text-tertiary">Status</th>
                         </tr>
                       </thead>
@@ -320,6 +342,20 @@ export default function PaymentStatusPage() {
                                 : <span className="text-text-tertiary">—</span>
                               }
                             </td>
+                            {/* Available Leave */}
+                            <td className="py-2.5 px-3 text-center">
+                              {(() => {
+                                const empId = record.custom_employee ?? record.staff;
+                                const saved = record.custom_available_leave;
+                                const accrued = empId ? leaveAccruedMap[empId] : undefined;
+                                const display = saved != null ? saved : accrued;
+                                if (display == null) return <span className="text-text-tertiary text-xs">—</span>;
+                                const color = display <= 0 ? "text-error" : display <= 1.5 ? "text-warning" : "text-success";
+                                return (
+                                  <span className={`font-semibold text-sm tabular-nums ${color}`}>{display.toFixed(1)}</span>
+                                );
+                              })()}
+                            </td>
                             <td className="py-2.5 px-4 text-center">
                               <StatusBadge status={status} />
                             </td>
@@ -331,7 +367,7 @@ export default function PaymentStatusPage() {
 
                   {/* Mobile cards */}
                   <div className="sm:hidden divide-y divide-border-main/40">
-                    {branchRows.map(({ record, status, balanceDue, amountPaid }) => (
+                      {branchRows.map(({ record, status, balanceDue, amountPaid }) => (
                       <div key={record.name} className="px-4 py-3 flex items-center justify-between gap-3">
                         <div>
                           <p className="text-sm font-medium text-text-primary">
@@ -349,6 +385,15 @@ export default function PaymentStatusPage() {
                           <p className="text-xs mt-0.5">
                             {amountPaid > 0 && <span className="text-success">Paid: {formatCurrency(amountPaid)}</span>}
                             {balanceDue > 0 && <span className="text-warning ml-2">Due: {formatCurrency(balanceDue)}</span>}
+                            {(() => {
+                              const empId = record.custom_employee ?? record.staff;
+                              const saved = record.custom_available_leave;
+                              const accrued = empId ? leaveAccruedMap[empId] : undefined;
+                              const display = saved != null ? saved : accrued;
+                              if (display == null) return null;
+                              const color = display <= 0 ? "text-error" : display <= 1.5 ? "text-warning" : "text-success";
+                              return <span className={`ml-2 ${color}`}>Leave: {display.toFixed(1)}</span>;
+                            })()}
                           </p>
                         </div>
                         <StatusBadge status={status} />

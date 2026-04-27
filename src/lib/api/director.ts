@@ -373,7 +373,7 @@ export async function getBranchCollectedByMode(branch: string): Promise<Collecte
   const params = new URLSearchParams({
     fields: JSON.stringify(["mode_of_payment", "reference_no", "paid_amount"]),
     filters: JSON.stringify([["docstatus", "=", "1"], ["payment_type", "=", "Receive"], ["company", "=", branch]]),
-    limit_page_length: "1000",
+    limit_page_length: "5000",
   });
   const { data } = await apiClient.get(`/resource/Payment Entry?${params}`);
   const entries: { mode_of_payment: string | null; reference_no: string | null; paid_amount: number }[] =
@@ -465,91 +465,22 @@ export interface ProgramFeeStats {
 
 /**
  * Program-wise invoice stats for a branch.
- * Approach: Branch students → latest Program Enrollment per student → aggregate invoices per program.
+ * Delegates to the server-side /api/director/report-fees route (admin credentials)
+ * which avoids URL-length limits from passing large student-ID lists as URL params.
  */
 export async function getBranchProgramFeeStats(branch: string): Promise<ProgramFeeStats[]> {
-  // Step 1: Get all students (active + discontinued) for this branch
-  const studentParams = new URLSearchParams({
-    fields: JSON.stringify(["name", "enabled"]),
-    filters: JSON.stringify([["custom_branch", "=", branch]]),
-    limit_page_length: "500",
+  const res = await fetch("/api/director/report-fees", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ mode: "branch-programs", detail: branch }),
+    credentials: "include",
   });
-  const { data: studentData } = await apiClient.get(`/resource/Student?${studentParams}`);
-  const students: { name: string; enabled: number }[] = studentData?.data ?? [];
-  if (!students.length) return [];
-
-  const allStudentNames = students.map((s) => s.name);
-
-  // Step 2: Get latest Program Enrollment per student (sorted desc by date, first wins)
-  // Include draft (0) and submitted (1) enrollments; exclude only cancelled (2)
-  const enrollParams = new URLSearchParams({
-    fields: JSON.stringify(["student", "program", "enrollment_date"]),
-    filters: JSON.stringify([["student", "in", allStudentNames], ["docstatus", "!=", "2"]]),
-    limit_page_length: "1000",
-    order_by: "enrollment_date desc",
-  });
-  const { data: enrollData } = await apiClient.get(`/resource/Program Enrollment?${enrollParams}`);
-  const enrollments: { student: string; program: string }[] = enrollData?.data ?? [];
-
-  // Latest program per student
-  const studentProgram = new Map<string, string>();
-  for (const e of enrollments) {
-    if (!studentProgram.has(e.student)) studentProgram.set(e.student, e.program);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error || `branch-programs failed: ${res.status}`);
   }
-
-  // Build program → { all[], discontinued[] }
-  const programStudents = new Map<string, { all: string[]; discontinued: string[] }>();
-  for (const s of students) {
-    const program = studentProgram.get(s.name) ?? "Uncategorized";
-    if (!programStudents.has(program)) programStudents.set(program, { all: [], discontinued: [] });
-    const grp = programStudents.get(program)!;
-    grp.all.push(s.name);
-    if (!s.enabled) grp.discontinued.push(s.name);
-  }
-
-  // Step 3: Aggregate invoice stats per program in parallel
-  const results = await Promise.all(
-    Array.from(programStudents.entries()).map(async ([program, { all, discontinued }]) => {
-      const allInvParams = new URLSearchParams({
-        fields: JSON.stringify(["sum(grand_total) as total_invoiced", "sum(outstanding_amount) as total_outstanding", "count(name) as count"]),
-        filters: JSON.stringify([["docstatus", "=", "1"], ["student", "in", all], ["company", "=", branch]]),
-        limit_page_length: "1",
-      });
-      const { data: allData } = await apiClient.get(`/resource/Sales Invoice?${allInvParams}`);
-      const row = allData?.data?.[0];
-      const totalInvoiced = row?.total_invoiced ?? 0;
-      const totalOutstanding = row?.total_outstanding ?? 0;
-
-      let forfeitedFees = 0;
-      if (discontinued.length) {
-        const forfParams = new URLSearchParams({
-          fields: JSON.stringify(["sum(outstanding_amount) as total_outstanding"]),
-          filters: JSON.stringify([
-            ["docstatus", "=", "1"],
-            ["outstanding_amount", ">", "0"],
-            ["student", "in", discontinued],
-            ["company", "=", branch],
-          ]),
-          limit_page_length: "1",
-        });
-        const { data: forfData } = await apiClient.get(`/resource/Sales Invoice?${forfParams}`);
-        forfeitedFees = forfData?.data?.[0]?.total_outstanding ?? 0;
-      }
-
-      return {
-        program,
-        totalInvoiced,
-        totalCollected: totalInvoiced - totalOutstanding,
-        totalOutstanding,
-        forfeitedFees,
-        count: row?.count ?? 0,
-      };
-    })
-  );
-
-  return results
-    .filter((r) => r.count > 0)
-    .sort((a, b) => b.totalInvoiced - a.totalInvoiced);
+  const json = await res.json();
+  return (json.data ?? []) as ProgramFeeStats[];
 }
 
 export interface InstalmentDetail {
@@ -1431,6 +1362,54 @@ export async function getConsolidatedBankReport(
   if (!res.ok) throw new Error(`consolidated bank failed: ${res.status}`);
   return res.json();
 }
+
+// ── Consolidated Fee Invoice Stats (Invoice-based collections, same source as Fees page) ──
+
+export interface ConsolidatedFeeRow {
+  branch: string;
+  totalFee: number;
+  collected: number;
+  pending: number;
+  overdue: number;
+  collectionPct: number;
+  studentsWithDues: number;
+}
+
+export interface ConsolidatedFeeStats {
+  branches: ConsolidatedFeeRow[];
+  grand_total: {
+    totalFee: number;
+    collected: number;
+    pending: number;
+  };
+}
+
+/**
+ * Fetches invoice-based fee collection stats for all branches.
+ * Uses the same Sales Invoice data as the Fees Overview page —
+ * collected = sum(grand_total) - sum(outstanding_amount).
+ */
+export async function getConsolidatedFeeStats(): Promise<ConsolidatedFeeStats> {
+  const res = await fetch("/api/director/report-fees", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ mode: "branch" }),
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(`consolidated fee stats failed: ${res.status}`);
+  const json = await res.json();
+  const branches: ConsolidatedFeeRow[] = json.data ?? [];
+  const grand_total = branches.reduce(
+    (acc, r) => ({
+      totalFee: acc.totalFee + r.totalFee,
+      collected: acc.collected + r.collected,
+      pending: acc.pending + r.pending,
+    }),
+    { totalFee: 0, collected: 0, pending: 0 },
+  );
+  return { branches, grand_total };
+}
+
 // ── Demo Student Helpers ──
 
 export interface DemoStudentRow {

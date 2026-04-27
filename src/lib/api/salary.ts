@@ -20,6 +20,7 @@ const SALARY_RECORD_FIELDS = JSON.stringify([
   "salary_month", "salary_year", "period_label",
   "total_working_days", "lop_days", "basic_salary",
   "lop_deduction", "custom_other_deduction", "custom_other_deduction_remark",
+  "custom_available_leave",
   "net_salary", "status",
   "payment_date", "remarks", "creation", "modified",
 ]);
@@ -65,7 +66,7 @@ export async function createSalaryRecord(
 
 export async function updateSalaryRecord(
   name: string,
-  updates: Partial<Pick<SmartUpSalaryRecord, "lop_days" | "total_working_days" | "lop_deduction" | "custom_other_deduction" | "custom_other_deduction_remark" | "net_salary" | "basic_salary" | "status" | "payment_date" | "remarks">>
+  updates: Partial<Pick<SmartUpSalaryRecord, "lop_days" | "total_working_days" | "lop_deduction" | "custom_other_deduction" | "custom_other_deduction_remark" | "custom_available_leave" | "net_salary" | "basic_salary" | "status" | "payment_date" | "remarks">>
 ): Promise<FrappeSingleResponse<SmartUpSalaryRecord>> {
   const { data } = await apiClient.put(
     `/resource/SmartUp Salary Record/${encodeURIComponent(name)}`,

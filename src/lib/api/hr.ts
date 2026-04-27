@@ -89,6 +89,77 @@ export async function rejectLeaveApplication(name: string): Promise<void> {
   });
 }
 
+// ── Leave Allocation ──
+
+export interface LeaveAllocation {
+  name: string;
+  employee: string;
+  employee_name: string;
+  leave_type: string;
+  from_date: string;
+  to_date: string;
+  new_leaves_allocated: number;
+  carry_forwarded_leaves_count: number;
+  total_leaves_allocated: number;
+  docstatus: number; // 0=Draft, 1=Submitted, 2=Cancelled
+}
+
+const LEAVE_ALLOC_FIELDS = JSON.stringify([
+  "name", "employee", "employee_name", "leave_type",
+  "from_date", "to_date", "new_leaves_allocated",
+  "carry_forwarded_leaves_count", "total_leaves_allocated", "docstatus",
+]);
+
+export async function getLeaveAllocations(params?: {
+  employee?: string;
+  employees?: string[];
+  leave_type?: string;
+  from_date?: string;
+  to_date?: string;
+  limit_page_length?: number;
+}): Promise<FrappeListResponse<LeaveAllocation>> {
+  const filters: (string | string[])[][] = [["docstatus", "=", "1"]];
+  if (params?.employee) filters.push(["employee", "=", params.employee]);
+  if (params?.employees?.length) {
+    filters.push(["employee", "in", params.employees]);
+  }
+  if (params?.leave_type) filters.push(["leave_type", "=", params.leave_type]);
+  if (params?.from_date) filters.push(["from_date", ">=", params.from_date]);
+  if (params?.to_date) filters.push(["to_date", "<=", params.to_date]);
+
+  const query = new URLSearchParams({
+    fields: LEAVE_ALLOC_FIELDS,
+    limit_page_length: String(params?.limit_page_length ?? 500),
+    order_by: "from_date desc",
+    filters: JSON.stringify(filters),
+  });
+  const { data } = await apiClient.get(`/resource/Leave Allocation?${query}`);
+  return data;
+}
+
+export async function createLeaveAllocation(payload: {
+  employee: string;
+  leave_type: string;
+  from_date: string;
+  to_date: string;
+  new_leaves_allocated: number;
+  carry_forwarded_leaves_count?: number;
+}): Promise<{ name: string }> {
+  const { data } = await apiClient.post("/resource/Leave Allocation", {
+    ...payload,
+    carry_forwarded_leaves_count: payload.carry_forwarded_leaves_count ?? 0,
+    docstatus: 0,
+  });
+  return data.data;
+}
+
+export async function submitLeaveAllocation(name: string): Promise<void> {
+  await apiClient.put(
+    `/resource/Leave Allocation/${encodeURIComponent(name)}`,
+    { docstatus: 1 }
+  );
+}
+
 // ── Leave Type ──
 
 export interface LeaveType {

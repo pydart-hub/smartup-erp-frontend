@@ -9,7 +9,7 @@ import {
   CalendarDays, ArrowLeft, Loader2, AlertCircle,
   Save, CheckCircle2, IndianRupee, TrendingDown,
   Users, Download, BookOpen, AlertTriangle,
-  ChevronDown, Building2, BarChart3,
+  ChevronDown, Building2, BarChart3, CalendarCheck2,
 } from "lucide-react";
 import Link from "next/link";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
@@ -47,6 +47,7 @@ interface RowEdit {
   total_working_days: string;
   other_deduction: string;
   other_remark: string;
+  available_leave: string;
   dirty: boolean;
   saving: boolean;
 }
@@ -103,6 +104,22 @@ export default function SalarySheetPage() {
     companiesRes?.data?.forEach((c) => { map[c.name] = c.abbr; });
     return map;
   }, [companiesRes]);
+
+  // ── Leave balance map (employee → available days for the salary year) ──
+  const { data: leaveBalanceRes } = useQuery({
+    queryKey: ["hr-salary-leave-balance", year],
+    queryFn: async () => {
+      const res = await fetch(`/api/hr/leave-allocation?year=${year}`);
+      if (!res.ok) return null;
+      return res.json() as Promise<{ employees: { employee: string; available: number; accrued_to_date: number }[] }>;
+    },
+    staleTime: 120_000,
+  });
+  const leaveAccruedMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    leaveBalanceRes?.employees?.forEach((e) => { map[e.employee] = e.accrued_to_date; });
+    return map;
+  }, [leaveBalanceRes]);
 
   // ── Employee payable account + company maps (all companies, no filter) ──
   const { data: employeesRes } = useQuery({
@@ -185,6 +202,7 @@ export default function SalarySheetPage() {
         total_working_days: String(globalWorkingDays),
         other_deduction: String(record.custom_other_deduction ?? 0),
         other_remark: record.custom_other_deduction_remark ?? "",
+        available_leave: record.custom_available_leave != null ? String(record.custom_available_leave) : "",
         dirty: false,
         saving: false,
       }
@@ -200,6 +218,7 @@ export default function SalarySheetPage() {
           total_working_days: String(globalWorkingDays),
           other_deduction: String(record.custom_other_deduction ?? 0),
           other_remark: record.custom_other_deduction_remark ?? "",
+          available_leave: record.custom_available_leave != null ? String(record.custom_available_leave) : "",
           dirty: false,
           saving: false,
         }),
@@ -218,6 +237,7 @@ export default function SalarySheetPage() {
           total_working_days: String(globalWorkingDays),
           other_deduction: String(record.custom_other_deduction ?? 0),
           other_remark: record.custom_other_deduction_remark ?? "",
+          available_leave: record.custom_available_leave != null ? String(record.custom_available_leave) : "",
           dirty: false,
           saving: false,
         }),
@@ -236,10 +256,30 @@ export default function SalarySheetPage() {
           total_working_days: String(globalWorkingDays),
           other_deduction: String(record.custom_other_deduction ?? 0),
           other_remark: record.custom_other_deduction_remark ?? "",
+          available_leave: record.custom_available_leave != null ? String(record.custom_available_leave) : "",
           dirty: false,
           saving: false,
         }),
         other_remark: value,
+        dirty: true,
+      },
+    }));
+  }
+
+  function handleAvailableLeaveChange(name: string, record: SmartUpSalaryRecord, value: string) {
+    setEdits((prev) => ({
+      ...prev,
+      [name]: {
+        ...(prev[name] ?? {
+          lop_days: String(record.lop_days ?? 0),
+          total_working_days: String(globalWorkingDays),
+          other_deduction: String(record.custom_other_deduction ?? 0),
+          other_remark: record.custom_other_deduction_remark ?? "",
+          available_leave: record.custom_available_leave != null ? String(record.custom_available_leave) : "",
+          dirty: false,
+          saving: false,
+        }),
+        available_leave: value,
         dirty: true,
       },
     }));
@@ -254,6 +294,7 @@ export default function SalarySheetPage() {
       total_working_days,
       other_deduction,
       other_remark,
+      available_leave,
     }: {
       name: string;
       basic_salary: number;
@@ -261,6 +302,7 @@ export default function SalarySheetPage() {
       total_working_days: number;
       other_deduction: number;
       other_remark: string;
+      available_leave: number | null;
     }) => {
       const { lopDeduction, netSalary } = calculateSalary(
         basic_salary,
@@ -273,6 +315,7 @@ export default function SalarySheetPage() {
         lop_deduction: lopDeduction,
         custom_other_deduction: other_deduction,
         custom_other_deduction_remark: other_remark,
+        custom_available_leave: available_leave ?? undefined,
         net_salary: netSalary - other_deduction,
       });
     },
@@ -299,6 +342,7 @@ export default function SalarySheetPage() {
     const lop = parseFloat(edit.lop_days) || 0;
     if (lop < 0 || lop > globalWorkingDays) { toast.error("LOP days cannot exceed working days"); return; }
     const otherDeduction = parseFloat(edit.other_deduction) || 0;
+    const availLeave = edit.available_leave !== "" ? parseFloat(edit.available_leave) : null;
     setEdits((prev) => ({ ...prev, [record.name]: { ...edit, saving: true } }));
     saveMutation.mutate({
       name: record.name,
@@ -307,6 +351,7 @@ export default function SalarySheetPage() {
       total_working_days: globalWorkingDays,
       other_deduction: otherDeduction,
       other_remark: edit.other_remark,
+      available_leave: availLeave,
     });
   }
 
@@ -327,6 +372,7 @@ export default function SalarySheetPage() {
       const lop = parseFloat(edit.lop_days) || 0;
       if (lop < 0 || lop > globalWorkingDays) { failed++; continue; }
       const otherDeduction = parseFloat(edit.other_deduction) || 0;
+      const availLeave = edit.available_leave !== "" ? parseFloat(edit.available_leave) : null;
       const { lopDeduction, netSalary } = calculateSalary(r.basic_salary, lop, globalWorkingDays);
       try {
         await updateSalaryRecord(r.name, {
@@ -335,6 +381,7 @@ export default function SalarySheetPage() {
           lop_deduction: lopDeduction,
           custom_other_deduction: otherDeduction,
           custom_other_deduction_remark: edit.other_remark,
+          custom_available_leave: availLeave ?? undefined,
           net_salary: netSalary - otherDeduction,
         });
         saved++;
@@ -687,6 +734,12 @@ export default function SalarySheetPage() {
                               <th className="text-center py-2.5 px-4 text-xs font-medium text-text-tertiary">LOP</th>
                               <th className="text-center py-2.5 px-3 text-xs font-medium text-text-tertiary">Other Deduction</th>
                               <th className="text-right py-2.5 px-4 text-xs font-medium text-text-tertiary">Net Pay</th>
+                              <th className="text-center py-2.5 px-3 text-xs font-medium text-text-tertiary">
+                                <div className="flex items-center justify-center gap-1">
+                                  <CalendarCheck2 className="h-3 w-3" />
+                                  Avail. Leave
+                                </div>
+                              </th>
                               <th className="text-center py-2.5 px-4 text-xs font-medium text-text-tertiary">Status</th>
                               <th className="py-2.5 px-2 w-10" />
                             </tr>
@@ -750,6 +803,31 @@ export default function SalarySheetPage() {
                                   </td>
                                   <td className="py-2.5 px-4 text-right tabular-nums">
                                     <span className="font-semibold text-success">{formatCurrency(net)}</span>
+                                  </td>
+                                  {/* Available Leave till this month — editable input, saved to Frappe */}
+                                  <td className="py-2.5 px-3 text-center">
+                                    {(() => {
+                                      const empId = record.custom_employee ?? record.staff;
+                                      const apiAccrued = empId ? leaveAccruedMap[empId] : undefined;
+                                      const placeholder = apiAccrued != null ? apiAccrued.toFixed(1) : "—";
+                                      const inputVal = edit.available_leave;
+                                      const numVal = inputVal !== "" ? parseFloat(inputVal) : NaN;
+                                      const color = !isNaN(numVal)
+                                        ? numVal <= 0 ? "border-error/50 text-error"
+                                          : numVal <= 1.5 ? "border-warning/50 text-warning"
+                                          : "border-success/40 text-success"
+                                        : "";
+                                      return (
+                                        <Input
+                                          type="number" min="0" step="0.5"
+                                          placeholder={placeholder}
+                                          className={`w-16 text-center mx-auto h-7 text-xs px-1 ${color}`}
+                                          value={inputVal}
+                                          onChange={(e) => handleAvailableLeaveChange(record.name, record, e.target.value)}
+                                          disabled={payStatus === "paid"}
+                                        />
+                                      );
+                                    })()}
                                   </td>
                                   <td className="py-2.5 px-4 text-center">
                                     <PayStatusBadge status={payStatus} />

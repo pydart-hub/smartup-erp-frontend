@@ -17,6 +17,7 @@ export interface SmartUpSalaryRecord {
   lop_deduction: number; // basic × lop_days / total_working_days
   custom_other_deduction?: number; // additional deduction (advance recovery, fine, etc.)
   custom_other_deduction_remark?: string; // reason for other deduction
+  custom_available_leave?: number; // manually entered available leave days for this month
   net_salary: number; // basic - lop_deduction - custom_other_deduction
   status: "Draft" | "Paid";
   payment_date?: string;

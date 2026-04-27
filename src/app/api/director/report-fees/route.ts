@@ -99,6 +99,89 @@ async function getAllBranchesSummary() {
   });
 }
 
+// ── Branch program stats (server-side: avoids URL-length limits from client-side) ──
+
+async function getBranchProgramStats(branch: string) {
+  // 1. Fetch all students for the branch
+  const students = await frappeGet("Student", ["name", "enabled"], [["custom_branch", "=", branch]]);
+  if (!students.length) return [];
+
+  const branchStudentSet = new Set(students.map((s) => String(s.name)));
+  const discontinuedSet = new Set(
+    students.filter((s) => !Number(s.enabled)).map((s) => String(s.name)),
+  );
+
+  // 2. Fetch all program enrollments (no student-id filter to avoid URL length issues)
+  //    Filter in-memory for this branch's students.
+  const allEnrollments = await frappeGet(
+    "Program Enrollment",
+    ["student", "program"],
+    [["docstatus", "!=", 2]],
+    "enrollment_date desc",
+  );
+
+  // Latest program per student (first win due to desc sort)
+  const studentProgram = new Map<string, string>();
+  for (const e of allEnrollments) {
+    const sid = String(e.student);
+    if (branchStudentSet.has(sid) && !studentProgram.has(sid)) {
+      studentProgram.set(sid, String(e.program));
+    }
+  }
+
+  // 3. Fetch all invoices for this branch (company filter — no student-ID list needed)
+  const invoices = await frappeGet(
+    "Sales Invoice",
+    ["name", "student", "grand_total", "outstanding_amount", "due_date"],
+    [["docstatus", "=", 1], ["company", "=", branch]],
+  );
+
+  const today = todayStr();
+
+  // 4. Aggregate per program entirely in memory
+  type ProgramAgg = {
+    totalFee: number;
+    outstanding: number;
+    count: number;
+    studentsWithDues: Set<string>;
+    forfeitedOutstanding: number;
+  };
+  const programAgg = new Map<string, ProgramAgg>();
+
+  for (const inv of invoices) {
+    const sid = String(inv.student ?? "");
+    if (!branchStudentSet.has(sid)) continue; // skip invoices not belonging to branch students
+    const prog = studentProgram.get(sid) ?? "Uncategorized";
+    if (prog === "Uncategorized") continue;
+
+    if (!programAgg.has(prog)) {
+      programAgg.set(prog, { totalFee: 0, outstanding: 0, count: 0, studentsWithDues: new Set(), forfeitedOutstanding: 0 });
+    }
+    const agg = programAgg.get(prog)!;
+    const grand = Number(inv.grand_total) || 0;
+    const ost = Number(inv.outstanding_amount) || 0;
+    agg.totalFee += grand;
+    agg.outstanding += ost;
+    agg.count++;
+    if (ost > 0) {
+      agg.studentsWithDues.add(sid);
+      if (discontinuedSet.has(sid)) agg.forfeitedOutstanding += ost;
+    }
+  }
+
+  return Array.from(programAgg.entries())
+    .map(([program, agg]) => ({
+      program,
+      totalInvoiced: agg.totalFee,
+      totalCollected: agg.totalFee - agg.outstanding,
+      totalOutstanding: agg.outstanding,
+      forfeitedFees: agg.forfeitedOutstanding,
+      count: agg.count,
+    }))
+    .filter((r) => r.count > 0)
+    .sort((a, b) => b.totalInvoiced - a.totalInvoiced);
+}
+
 // ── Branch detail ──
 
 async function getBranchDetail(branch: string) {
@@ -325,6 +408,9 @@ export async function POST(request: NextRequest) {
     }
     if (mode === "branch" && detail) {
       return NextResponse.json({ data: await getBranchDetail(detail) });
+    }
+    if (mode === "branch-programs" && detail) {
+      return NextResponse.json({ data: await getBranchProgramStats(detail) });
     }
     if (mode === "class" && !detail) {
       return NextResponse.json({ data: await getAllClassesSummary() });

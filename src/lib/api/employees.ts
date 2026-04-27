@@ -16,6 +16,8 @@ import type { FrappeListResponse, FrappeSingleResponse } from "@/lib/types/api";
 
 export interface Employee {
   name: string;
+  first_name?: string;
+  last_name?: string;
   employee_name: string;
   company: string;
   department?: string;
@@ -23,6 +25,7 @@ export interface Employee {
   user_id?: string;
   status: string;
   image?: string;
+  date_of_birth?: string;
   date_of_joining?: string;
   gender?: string;
   cell_number?: string;
@@ -30,7 +33,12 @@ export interface Employee {
   employment_type?: string;
   branch?: string;
   custom_basic_salary?: number;
-  custom_payable_account?: string; // Link → Account (salary payable account)
+  custom_payable_account?: string;
+  // Bank Details
+  bank_name?: string;
+  bank_ac_no?: string;
+  ifsc_code?: string;
+  bank_branch_location?: string;
 }
 
 export interface EmployeeAttendance {
@@ -59,10 +67,11 @@ export interface Instructor {
 
 // ── Employee List Fields ──
 const EMPLOYEE_FIELDS = JSON.stringify([
-  "name", "employee_name", "company", "department",
-  "designation", "user_id", "status", "image", "date_of_joining",
+  "name", "first_name", "last_name", "employee_name", "company", "department",
+  "designation", "user_id", "status", "image", "date_of_birth", "date_of_joining",
   "gender", "cell_number", "personal_email", "employment_type", "branch",
   "custom_basic_salary", "custom_payable_account",
+  "bank_name", "bank_ac_no", "ifsc_code", "bank_branch_location",
 ]);
 
 const EMPLOYEE_ATTENDANCE_FIELDS = JSON.stringify([
@@ -156,6 +165,81 @@ export async function updateEmployeePayableAccount(
     `/resource/Employee/${encodeURIComponent(employeeId)}`,
     { custom_payable_account: payableAccount }
   );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────────
+// HR Lookups (Departments, Designations)
+// ─────────────────────────────────────────────────────────────────────────────────
+
+export async function getDepartments(company?: string): Promise<FrappeListResponse<{ name: string }>> {
+  const filters: string[][] = [];
+  if (company) filters.push(["company", "=", company]);
+  const query = new URLSearchParams({
+    fields: JSON.stringify(["name"]),
+    limit_page_length: "200",
+    order_by: "name asc",
+    ...(filters.length ? { filters: JSON.stringify(filters) } : {}),
+  });
+  const { data } = await apiClient.get(`/resource/Department?${query}`);
+  return data;
+}
+
+export async function getDesignations(): Promise<FrappeListResponse<{ name: string }>> {
+  const query = new URLSearchParams({
+    fields: JSON.stringify(["name"]),
+    limit_page_length: "200",
+    order_by: "name asc",
+  });
+  const { data } = await apiClient.get(`/resource/Designation?${query}`);
+  return data;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────────
+// Create & Update Employee
+// ─────────────────────────────────────────────────────────────────────────────────
+
+export interface EmployeePayload {
+  first_name: string;
+  last_name?: string;
+  gender?: string;
+  date_of_birth?: string;
+  date_of_joining?: string;
+  company?: string;
+  department?: string;
+  designation?: string;
+  employment_type?: string;
+  status?: string;
+  cell_number?: string;
+  personal_email?: string;
+  custom_basic_salary?: number;
+  // Bank Details
+  bank_name?: string;
+  bank_ac_no?: string;
+  ifsc_code?: string;
+  bank_branch_location?: string;
+}
+
+export async function createEmployee(
+  payload: EmployeePayload & { first_name: string; company: string; status: string }
+): Promise<FrappeSingleResponse<Employee>> {
+  // Strip empty optional fields before sending
+  const body = Object.fromEntries(
+    Object.entries(payload).filter(([, v]) => v !== "" && v != null)
+  );
+  const { data } = await apiClient.post("/resource/Employee", body);
+  return data;
+}
+
+export async function updateEmployee(
+  id: string,
+  payload: Partial<EmployeePayload>
+): Promise<FrappeSingleResponse<Employee>> {
+  // Strip undefined/empty so we don't accidentally clear fields
+  const body = Object.fromEntries(
+    Object.entries(payload).filter(([, v]) => v !== undefined)
+  );
+  const { data } = await apiClient.put(`/resource/Employee/${encodeURIComponent(id)}`, body);
+  return data;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
