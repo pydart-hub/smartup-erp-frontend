@@ -198,8 +198,9 @@ export async function getStudentCountByPlanForBranch(branch: string): Promise<{
   advanced: number;
   intermediate: number;
   basic: number;
+  freeAccess: number;
 }> {
-  const result = { advanced: 0, intermediate: 0, basic: 0 };
+  const result = { advanced: 0, intermediate: 0, basic: 0, freeAccess: 0 };
   // Step 1: get active student IDs for this branch
   const studentsRes = await apiClient.get("/resource/Student", {
     params: {
@@ -213,12 +214,12 @@ export async function getStudentCountByPlanForBranch(branch: string): Promise<{
 
   // Step 2: fetch enrollments in batches of 50 to avoid URL length limits
   const batchSize = 50;
-  const allEnrollments: Array<{ student: string; custom_plan: string }> = [];
+  const allEnrollments: Array<{ student: string; custom_plan: string; student_category: string }> = [];
   for (let i = 0; i < studentIds.length; i += batchSize) {
     const batch = studentIds.slice(i, i + batchSize);
     const batchRes = await apiClient.get("/resource/Program Enrollment", {
       params: {
-        fields: JSON.stringify(["student", "custom_plan"]),
+        fields: JSON.stringify(["student", "custom_plan", "student_category"]),
         filters: JSON.stringify([["docstatus", "=", 1], ["student", "in", batch]]),
         order_by: "enrollment_date desc",
         limit_page_length: batch.length * 3,
@@ -232,10 +233,14 @@ export async function getStudentCountByPlanForBranch(branch: string): Promise<{
   for (const row of enrRes.data?.data ?? []) {
     if (seen.has(row.student)) continue;
     seen.add(row.student);
-    const plan = (row.custom_plan || "").toLowerCase();
-    if (plan === "advanced") result.advanced++;
-    else if (plan === "intermediate") result.intermediate++;
-    else if (plan === "basic") result.basic++;
+    if (row.student_category === "Free Access") {
+      result.freeAccess++;
+    } else {
+      const plan = (row.custom_plan || "").toLowerCase();
+      if (plan === "advanced") result.advanced++;
+      else if (plan === "intermediate") result.intermediate++;
+      else if (plan === "basic") result.basic++;
+    }
   }
   return result;
 }
@@ -772,12 +777,12 @@ export async function getProgramBatchesStudentStats(
   return { active, inactive };
 }
 
-/** Get plan counts (Advanced/Intermediate/Basic) for students in given batches */
+/** Get plan counts (Advanced/Intermediate/Basic/Free Access) for students in given batches */
 export async function getPlanCountsForBatches(
   batchNames: string[],
   branch: string
-): Promise<{ advanced: number; intermediate: number; basic: number }> {
-  const result = { advanced: 0, intermediate: 0, basic: 0 };
+): Promise<{ advanced: number; intermediate: number; basic: number; freeAccess: number }> {
+  const result = { advanced: 0, intermediate: 0, basic: 0, freeAccess: 0 };
   if (!batchNames.length) return result;
   // 1. Collect all student IDs from the batches
   const batchResults = await Promise.all(batchNames.map((name) => getBatchStudents(name)));
@@ -788,26 +793,43 @@ export async function getPlanCountsForBatches(
     }
   }
   if (!studentIds.length) return result;
-  // 2. Query Sales Orders for these students grouped by plan
-  const params = new URLSearchParams({
-    fields: JSON.stringify(["custom_plan as plan", "count(name) as count"]),
-    filters: JSON.stringify([
-      ["docstatus", "=", 1],
-      ["company", "=", branch],
-      ["student", "in", studentIds],
-    ]),
-    group_by: "custom_plan",
-    limit_page_length: "0",
-  });
-  const { data } = await apiClient.get(`/resource/Sales Order?${params}`);
-  const rows = data?.data ?? [];
-  for (const row of rows) {
-    const plan = (row.plan || "").toLowerCase();
-    if (plan === "advanced") result.advanced = row.count ?? 0;
-    else if (plan === "intermediate") result.intermediate = row.count ?? 0;
-    else if (plan === "basic") result.basic = row.count ?? 0;
+  
+  // 2. Query Program Enrollments to get accurate plan counts including Free Access students
+  // Program Enrollment is the source of truth for enrollment plans
+  // Batch requests in chunks of 50 to avoid URL length limits
+  const batchSize = 50;
+  const allPlans = { advanced: 0, intermediate: 0, basic: 0, freeAccess: 0 };
+  
+  for (let i = 0; i < studentIds.length; i += batchSize) {
+    const batch = studentIds.slice(i, i + batchSize);
+    const params = new URLSearchParams({
+      fields: JSON.stringify(["custom_plan as plan", "student_category", "count(name) as count"]),
+      filters: JSON.stringify([
+        ["docstatus", "=", 1],
+        ["student", "in", batch],
+      ]),
+      group_by: "custom_plan,student_category",
+      limit_page_length: "0",
+    });
+    
+    const { data } = await apiClient.get(`/resource/Program Enrollment?${params}`);
+    const rows = data?.data ?? [];
+    
+    for (const row of rows) {
+      // Check if student is Free Access
+      if (row.student_category === "Free Access") {
+        allPlans.freeAccess += row.count ?? 0;
+      } else {
+        // Otherwise count by plan
+        const plan = (row.plan || "").toLowerCase();
+        if (plan === "advanced") allPlans.advanced += row.count ?? 0;
+        else if (plan === "intermediate") allPlans.intermediate += row.count ?? 0;
+        else if (plan === "basic") allPlans.basic += row.count ?? 0;
+      }
+    }
   }
-  return result;
+  
+  return allPlans;
 }
 
 export interface BranchInstructor {

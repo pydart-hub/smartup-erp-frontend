@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
       to_time,
       maximum_assessment_score: Number(maximum_assessment_score),
       examiner: examiner || "",
-      room: room || "",
+      ...(room ? { room } : {}),
       assessment_criteria: [
         {
           assessment_criteria: criteriaName,

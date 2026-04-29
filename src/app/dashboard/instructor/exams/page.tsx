@@ -248,7 +248,7 @@ export default function InstructorExamsPage() {
       {/* Exam list */}
       {!isLoading &&
         groupedByDate.map(([date, dateExams]) => (
-          <motion.div key={date} variants={item}>
+          <motion.div key={date} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
             <div className="flex items-center gap-2 mb-3">
               <Calendar className="h-4 w-4 text-text-tertiary" />
               <h2 className="text-sm font-semibold text-text-secondary">

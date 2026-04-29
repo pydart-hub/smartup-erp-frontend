@@ -61,7 +61,7 @@ async function proxyRequest(request: NextRequest, method: string) {
     const roles: string[] = sessionData.roles || [];
     const allowedCompanies: string[] = sessionData.allowed_companies || [];
     const defaultCompany: string = sessionData.default_company || "";
-    const isAdmin = roles.includes("Administrator");
+    const isAdmin = roles.includes("Administrator") || roles.includes("Director");
     const isBranchManager = roles.includes("Branch Manager");
     const isHRManager = roles.includes("HR Manager");
     const isInstructor = !!sessionData.instructor_name;

@@ -211,12 +211,19 @@ export const SALES_USER_NAV: NavItem[] = [
 
 export const GENERAL_MANAGER_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard/general-manager", icon: "LayoutDashboard", emoji: "📊" },
+  {
+    label: "Students", href: "/dashboard/general-manager/students", icon: "GraduationCap", emoji: "👨‍🎓",
+    children: [
+      { label: "Batches", href: "/dashboard/general-manager/batches", icon: "Users", emoji: "👥" },
+    ],
+  },
   { label: "Academics", href: "/dashboard/general-manager/academics", icon: "BarChart3", emoji: "📈" },
   { label: "Attendance", href: "/dashboard/general-manager/attendance", icon: "ClipboardCheck", emoji: "✅" },
   { label: "Exams", href: "/dashboard/general-manager/exams", icon: "ClipboardList", emoji: "📝" },
   { label: "Course Schedule", href: "/dashboard/general-manager/course-schedule", icon: "CalendarDays", emoji: "📅" },
   { label: "Instructors", href: "/dashboard/general-manager/instructors", icon: "UserCheck", emoji: "👨‍🏫" },
   { label: "Topic Coverage", href: "/dashboard/general-manager/topic-coverage", icon: "BookOpen", emoji: "📖" },
+  { label: "Reports", href: "/dashboard/general-manager/reports", icon: "FileBarChart", emoji: "📈" },
 ];
 
 

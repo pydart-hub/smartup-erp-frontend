@@ -53,7 +53,7 @@ function BatchCard({
 
   const students = batchRes?.students ?? [];
   const activeStudents = students.filter((s) => s.active);
-  const hasPlan = !loadingPlans && planCounts && (planCounts.advanced + planCounts.intermediate + planCounts.basic > 0);
+  const hasPlan = !loadingPlans && planCounts && (planCounts.advanced + planCounts.intermediate + planCounts.basic + planCounts.freeAccess > 0);
 
   return (
     <Link

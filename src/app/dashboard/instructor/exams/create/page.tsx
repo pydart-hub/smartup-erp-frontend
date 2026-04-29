@@ -184,7 +184,7 @@ export default function InstructorCreateExamPage() {
                     className="h-10 rounded-[10px] border border-border-input bg-surface px-3 text-sm"
                   >
                     <option value="">Select course...</option>
-                    {programCourses.map((pc) => (
+                    {Array.from(new Map(programCourses.map((pc) => [pc.course, pc])).values()).map((pc) => (
                       <option key={pc.course} value={pc.course}>
                         {pc.course_name || pc.course}
                       </option>

@@ -43,7 +43,7 @@ function ProgramStudentCount({ batchNames, branchName }: { batchNames: string[];
     staleTime: 120_000,
   });
   const total = (data?.active ?? 0) + (data?.inactive ?? 0);
-  const hasPlan = !loadingPlans && planCounts && (planCounts.advanced + planCounts.intermediate + planCounts.basic > 0);
+  const hasPlan = !loadingPlans && planCounts && (planCounts.advanced + planCounts.intermediate + planCounts.basic + planCounts.freeAccess > 0);
   return (
     <div className="mt-2 space-y-1.5">
       <p className="text-xs text-text-tertiary">
@@ -60,6 +60,11 @@ function ProgramStudentCount({ batchNames, branchName }: { batchNames: string[];
           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 text-[10px] font-semibold text-emerald-700">
             <span className="w-1 h-1 rounded-full bg-emerald-500" />{planCounts.basic} Basic
           </span>
+          {planCounts.freeAccess > 0 && (
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 text-[10px] font-semibold text-amber-700">
+              <span className="w-1 h-1 rounded-full bg-amber-500" />{planCounts.freeAccess} Free
+            </span>
+          )}
         </div>
       )}
     </div>
@@ -190,7 +195,7 @@ export default function BranchStudentsPage() {
                 <p className="text-[10px] text-text-tertiary uppercase tracking-wide">Discontinued</p>
               </div>
             </div>
-            {planCounts && (planCounts.advanced + planCounts.intermediate + planCounts.basic > 0) && (
+            {planCounts && (planCounts.advanced + planCounts.intermediate + planCounts.basic + planCounts.freeAccess > 0) && (
               <div className="flex justify-center gap-2 mt-2 pt-2 border-t border-border-light">
                 <div className="rounded-md bg-purple-50 px-2.5 py-1 text-center">
                   <p className="text-xs font-bold text-purple-700 tabular-nums">{planCounts.advanced}</p>
@@ -204,6 +209,12 @@ export default function BranchStudentsPage() {
                   <p className="text-xs font-bold text-emerald-700 tabular-nums">{planCounts.basic}</p>
                   <p className="text-[9px] text-emerald-400 font-medium uppercase tracking-wider">Basic</p>
                 </div>
+                {planCounts.freeAccess > 0 && (
+                  <div className="rounded-md bg-amber-50 px-2.5 py-1 text-center">
+                    <p className="text-xs font-bold text-amber-700 tabular-nums">{planCounts.freeAccess}</p>
+                    <p className="text-[9px] text-amber-400 font-medium uppercase tracking-wider">Free</p>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
