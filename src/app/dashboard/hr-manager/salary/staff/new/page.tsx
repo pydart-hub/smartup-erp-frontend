@@ -306,12 +306,6 @@ export default function NewEmployeePage() {
           </Card>
         </motion.div>
 
-
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
         {/* Actions */}
         <motion.div variants={itemVariants}>
           <div className="flex gap-3">
