@@ -115,6 +115,56 @@ async function fetchEnrollmentMap(
   return map;
 }
 
+// Fetch parent (Guardian) mobile numbers for a list of student IDs.
+// Step 1: fetch guardian IDs per student via dot-notation on Student list.
+// Step 2: batch-fetch Guardian docs by ID to get mobile_number.
+async function fetchParentMobileMap(
+  studentIds: string[]
+): Promise<Record<string, string>> {
+  if (!studentIds.length) return {};
+
+  // Step 1: get guardian ID for each student
+  const step1 = await apiClient.get("/resource/Student", {
+    params: {
+      filters: JSON.stringify([["name", "in", studentIds]]),
+      fields: JSON.stringify(["name", "guardians.guardian"]),
+      limit_page_length: studentIds.length * 3,
+    },
+  });
+  const rows: { name: string; guardian?: string }[] = step1.data.data ?? [];
+
+  // Build student → guardianId map & collect unique guardian IDs
+  const studentToGuardian: Record<string, string> = {};
+  const guardianIds: string[] = [];
+  for (const row of rows) {
+    if (row.name && row.guardian && !studentToGuardian[row.name]) {
+      studentToGuardian[row.name] = row.guardian;
+      if (!guardianIds.includes(row.guardian)) guardianIds.push(row.guardian);
+    }
+  }
+  if (!guardianIds.length) return {};
+
+  // Step 2: fetch Guardian docs to get mobile_number
+  const step2 = await apiClient.get("/resource/Guardian", {
+    params: {
+      filters: JSON.stringify([["name", "in", guardianIds]]),
+      fields: JSON.stringify(["name", "mobile_number"]),
+      limit_page_length: guardianIds.length,
+    },
+  });
+  const guardianMobile: Record<string, string> = {};
+  for (const g of step2.data.data ?? []) {
+    if (g.name && g.mobile_number) guardianMobile[g.name] = g.mobile_number;
+  }
+
+  // Final: student → mobile
+  const map: Record<string, string> = {};
+  for (const [studentId, guardianId] of Object.entries(studentToGuardian)) {
+    if (guardianMobile[guardianId]) map[studentId] = guardianMobile[guardianId];
+  }
+  return map;
+}
+
 // Fetch outstanding totals per customer (to detect "fully paid")
 async function fetchOutstandingMap(
   customers: string[]
@@ -333,6 +383,14 @@ export default function StudentsPage() {
     queryKey: ["outstanding-map", customerIds],
     queryFn: () => fetchOutstandingMap(customerIds),
     enabled: customerIds.length > 0,
+    staleTime: 60_000,
+  });
+
+  // ── Query 4: parent mobile numbers ───────────────────────────
+  const { data: parentMobileMap = {} } = useQuery({
+    queryKey: ["parent-mobile-map", studentIds],
+    queryFn: () => fetchParentMobileMap(studentIds),
+    enabled: studentIds.length > 0,
     staleTime: 60_000,
   });
   return (
@@ -612,7 +670,7 @@ export default function StudentsPage() {
                   <th className="text-left px-5 py-3 font-semibold text-text-secondary">Class</th>
                   <th className="text-left px-5 py-3 font-semibold text-text-secondary">Batch</th>
                   <th className="text-left px-5 py-3 font-semibold text-text-secondary">Branch</th>
-                  <th className="text-left px-5 py-3 font-semibold text-text-secondary">Mobile</th>
+                  <th className="text-left px-5 py-3 font-semibold text-text-secondary">Parent Number</th>
                   <th className="text-left px-5 py-3 font-semibold text-text-secondary">Joined</th>
                   <th className="text-left px-5 py-3 font-semibold text-text-secondary">Type</th>
                   <th className="text-left px-5 py-3 font-semibold text-text-secondary">Status</th>
@@ -707,9 +765,9 @@ export default function StudentsPage() {
                               : <span className="text-text-tertiary">—</span>}
                           </td>
 
-                          {/* Mobile */}
+                          {/* Parent Number */}
                           <td className="px-5 py-3 text-text-secondary">
-                            {student.student_mobile_number || <span className="text-text-tertiary text-xs">—</span>}
+                            {parentMobileMap[student.name] || <span className="text-text-tertiary text-xs">—</span>}
                           </td>
 
                           {/* Joined date */}

@@ -1,5 +1,38 @@
 # SmartUp ERP — Task Tracker
 
+## Current: HR Payment Status Rebuild (2026-05-01)
+
+- [x] Recreate payment-status route under salary month
+- [x] Load data directly from SmartUp Salary Record (same month/year)
+- [x] Add Paid/Not Paid per-employee status control
+- [x] Add branch and grand totals based on saved salary sheet
+- [x] Validate TypeScript compile and route linkability
+
+### Review
+- Added a new salary month payment-status page using saved salary sheet records only.
+- Added manual status controls for each employee (Paid / Not Paid -> Draft).
+- Wired quick access from salary sheet header to payment-status route.
+- TypeScript compile is clean.
+
+---
+
+## Current: HR Salary Sheet UI Cleanup (2026-05-01)
+
+- [x] Review current salary month screen pain points from live UI
+- [x] Improve desktop table readability (row contrast, spacing, input size)
+- [x] Improve branch header clarity with unsaved-change indication
+- [x] Improve mobile editing ergonomics and add Available Leave input parity
+- [x] Validate TypeScript compile after UI changes
+
+### Review
+- Updated salary month page interactions without touching backend logic.
+- Made input controls larger and easier to tap/click across desktop and mobile.
+- Added per-branch unsaved indicator to make save workflow clearer.
+- Verified with clean `npx tsc --noEmit`.
+- Added Comfortable/Compact density toggle to switch editing layout quickly.
+
+---
+
 ## Current: Subject-Wise Admission (Fee Structure Only)
 
 - [ ] Update live fee_structure_parsed.json with subject-wise entries

@@ -7,14 +7,13 @@ import { motion } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   CalendarDays, ArrowLeft, Loader2, AlertCircle,
-  Save, CheckCircle2, IndianRupee, TrendingDown,
-  Users, Download, BookOpen, AlertTriangle,
-  ChevronDown, Building2, BarChart3, CalendarCheck2,
+  Save, IndianRupee, TrendingDown,
+  Users, Download, ChevronDown, Building2, CalendarCheck2,
+  FileSpreadsheet, FileText,
 } from "lucide-react";
 import Link from "next/link";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useAuth } from "@/lib/hooks/useAuth";
@@ -23,12 +22,8 @@ import {
   updateSalaryRecord,
   calculateSalary,
   formatPeriod,
-  createJournalEntry,
-  submitDocument,
-  getEmployeeGLStatus,
 } from "@/lib/api/salary";
 import { getEmployees } from "@/lib/api/employees";
-import apiClient from "@/lib/api/client";
 import type { SmartUpSalaryRecord } from "@/lib/types/salary";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { toast } from "sonner";
@@ -52,26 +47,10 @@ interface RowEdit {
   saving: boolean;
 }
 
-type PayStatus = "pending" | "accrued" | "paid" | "no-account";
-
-function PayStatusBadge({ status }: { status: PayStatus }) {
-  if (status === "paid")
-    return <span className="inline-flex items-center gap-1 text-xs font-medium text-success bg-success/10 px-2 py-0.5 rounded-full">Paid</span>;
-  if (status === "accrued")
-    return <span className="inline-flex items-center gap-1 text-xs font-medium text-warning bg-warning/10 px-2 py-0.5 rounded-full">Balance</span>;
-  if (status === "pending")
-    return <span className="inline-flex items-center gap-1 text-xs font-medium text-text-tertiary bg-surface-secondary px-2 py-0.5 rounded-full">Pending</span>;
-  return <span className="inline-flex items-center gap-1 text-xs font-medium text-error/70 bg-error/5 px-2 py-0.5 rounded-full">No Account</span>;
-}
-
 export default function SalarySheetPage() {
   const params = useParams();
   const { defaultCompany } = useAuth();
   const queryClient = useQueryClient();
-
-  // ── JE state ──
-  const [jeLoading, setJeLoading] = useState(false);
-  const [showJeConfirm, setShowJeConfirm] = useState(false);
 
   const year = Number(params.year);
   const month = Number(params.month);
@@ -90,21 +69,6 @@ export default function SalarySheetPage() {
 
   const records = recordsRes?.data ?? [];
 
-  // ── Company abbr map ──
-  const { data: companiesRes } = useQuery({
-    queryKey: ["companies-abbr"],
-    queryFn: async () => {
-      const { data } = await apiClient.get("/resource/Company?fields=[\"name\",\"abbr\"]&limit_page_length=50");
-      return data as { data: { name: string; abbr: string }[] };
-    },
-    staleTime: 300_000,
-  });
-  const companyAbbrMap = useMemo(() => {
-    const map: Record<string, string> = {};
-    companiesRes?.data?.forEach((c) => { map[c.name] = c.abbr; });
-    return map;
-  }, [companiesRes]);
-
   // ── Leave balance map (employee → available days for the salary year) ──
   const { data: leaveBalanceRes } = useQuery({
     queryKey: ["hr-salary-leave-balance", year],
@@ -121,20 +85,12 @@ export default function SalarySheetPage() {
     return map;
   }, [leaveBalanceRes]);
 
-  // ── Employee payable account + company maps (all companies, no filter) ──
+  // ── Employee branch/company maps (all companies) ──
   const { data: employeesRes } = useQuery({
     queryKey: ["hr-employee-payable-map"],
     queryFn: () => getEmployees({ limit_page_length: 500 }),
     staleTime: 120_000,
   });
-  const employeePayableMap = useMemo(() => {
-    const map: Record<string, string> = {};
-    employeesRes?.data?.forEach((e) => {
-      if (e.custom_payable_account) map[e.name] = e.custom_payable_account;
-    });
-    return map;
-  }, [employeesRes]);
-  // Fallback: look up company from employee record when salary record has no company stored
   const employeeCompanyMap = useMemo(() => {
     const map: Record<string, string> = {};
     employeesRes?.data?.forEach((e) => { map[e.name] = e.company; });
@@ -145,27 +101,6 @@ export default function SalarySheetPage() {
     employeesRes?.data?.forEach((e) => { if (e.branch) map[e.name] = e.branch; });
     return map;
   }, [employeesRes]);
-
-  // ── All payable accounts for GL status query ──
-  const allPayableAccounts = useMemo(() => Object.values(employeePayableMap), [employeePayableMap]);
-
-  const { data: glStatusMap = {} } = useQuery({
-    queryKey: ["hr-salary-gl-status", allPayableAccounts],
-    queryFn: () => getEmployeeGLStatus(allPayableAccounts),
-    enabled: allPayableAccounts.length > 0,
-    staleTime: 60_000,
-  });
-
-  /** Derive GL-based pay status for one record */
-  function getGLPayStatus(record: SmartUpSalaryRecord): "pending" | "accrued" | "paid" | "no-account" {
-    const empId = record.custom_employee ?? record.staff;
-    const payableAcct = empId ? employeePayableMap[empId] : undefined;
-    if (!payableAcct) return "no-account";
-    const gl = glStatusMap[payableAcct];
-    if (!gl || gl.totalCredit === 0) return "pending";
-    if (gl.balance > 0) return "accrued";
-    return "paid";
-  }
 
   // ── Branch grouping ──
   const branchGroups = useMemo(() => {
@@ -191,6 +126,7 @@ export default function SalarySheetPage() {
 
   // ── Global working days (applies to all staff) ──
   const [globalWorkingDays, setGlobalWorkingDays] = useState(26);
+  const [density, setDensity] = useState<"comfortable" | "compact">("comfortable");
 
   // ── Local edit state per row ──
   const [edits, setEdits] = useState<Record<string, RowEdit>>({});
@@ -213,15 +149,7 @@ export default function SalarySheetPage() {
     setEdits((prev) => ({
       ...prev,
       [name]: {
-        ...(prev[name] ?? {
-          lop_days: String(record.lop_days ?? 0),
-          total_working_days: String(globalWorkingDays),
-          other_deduction: String(record.custom_other_deduction ?? 0),
-          other_remark: record.custom_other_deduction_remark ?? "",
-          available_leave: record.custom_available_leave != null ? String(record.custom_available_leave) : "",
-          dirty: false,
-          saving: false,
-        }),
+        ...(prev[name] ?? getEdit(record)),
         lop_days: value,
         dirty: true,
       },
@@ -232,15 +160,7 @@ export default function SalarySheetPage() {
     setEdits((prev) => ({
       ...prev,
       [name]: {
-        ...(prev[name] ?? {
-          lop_days: String(record.lop_days ?? 0),
-          total_working_days: String(globalWorkingDays),
-          other_deduction: String(record.custom_other_deduction ?? 0),
-          other_remark: record.custom_other_deduction_remark ?? "",
-          available_leave: record.custom_available_leave != null ? String(record.custom_available_leave) : "",
-          dirty: false,
-          saving: false,
-        }),
+        ...(prev[name] ?? getEdit(record)),
         other_deduction: value,
         dirty: true,
       },
@@ -251,15 +171,7 @@ export default function SalarySheetPage() {
     setEdits((prev) => ({
       ...prev,
       [name]: {
-        ...(prev[name] ?? {
-          lop_days: String(record.lop_days ?? 0),
-          total_working_days: String(globalWorkingDays),
-          other_deduction: String(record.custom_other_deduction ?? 0),
-          other_remark: record.custom_other_deduction_remark ?? "",
-          available_leave: record.custom_available_leave != null ? String(record.custom_available_leave) : "",
-          dirty: false,
-          saving: false,
-        }),
+        ...(prev[name] ?? getEdit(record)),
         other_remark: value,
         dirty: true,
       },
@@ -270,15 +182,7 @@ export default function SalarySheetPage() {
     setEdits((prev) => ({
       ...prev,
       [name]: {
-        ...(prev[name] ?? {
-          lop_days: String(record.lop_days ?? 0),
-          total_working_days: String(globalWorkingDays),
-          other_deduction: String(record.custom_other_deduction ?? 0),
-          other_remark: record.custom_other_deduction_remark ?? "",
-          available_leave: record.custom_available_leave != null ? String(record.custom_available_leave) : "",
-          dirty: false,
-          saving: false,
-        }),
+        ...(prev[name] ?? getEdit(record)),
         available_leave: value,
         dirty: true,
       },
@@ -402,15 +306,8 @@ export default function SalarySheetPage() {
   // ── Aggregates (use globalWorkingDays + live LOP edits) ──
   const stats = useMemo(() => {
     let totalBasic = 0, totalLop = 0, totalOther = 0, totalNet = 0;
-    let paidCount = 0, accruedCount = 0, pendingCount = 0;
     for (const r of records) {
       totalBasic += r.basic_salary;
-      const empId = r.custom_employee ?? r.staff;
-      const payableAcct = empId ? employeePayableMap[empId] : undefined;
-      const gl = payableAcct ? glStatusMap[payableAcct] : undefined;
-      if (!payableAcct || !gl || gl.totalCredit === 0) pendingCount++;
-      else if (gl.balance > 0) accruedCount++;
-      else paidCount++;
       const edit = edits[r.name];
       const lop = edit?.dirty ? (parseFloat(edit.lop_days) || 0) : (r.lop_days || 0);
       const other = edit?.dirty ? (parseFloat(edit.other_deduction) || 0) : (r.custom_other_deduction || 0);
@@ -421,8 +318,10 @@ export default function SalarySheetPage() {
     }
     void totalBasic;
     const dirtyCount = Object.values(edits).filter(e => e.dirty).length;
-    return { totalBasic, totalLop, totalOther, totalNet, paidCount, accruedCount, pendingCount, dirtyCount };
-  }, [records, edits, employeePayableMap, glStatusMap, globalWorkingDays]);
+    return { totalBasic, totalLop, totalOther, totalNet, dirtyCount };
+  }, [records, edits, globalWorkingDays]);
+
+  const isCompact = density === "compact";
 
   // ── Preview computed values (always uses globalWorkingDays) ──
   function previewNet(record: SmartUpSalaryRecord): { lopDeduction: number; otherDeduction: number; net: number } {
@@ -435,134 +334,225 @@ export default function SalarySheetPage() {
     return { lopDeduction, otherDeduction: other, net: netSalary - other };
   }
 
-  // ── Create Journal Entry ──
-  async function handleCreateJE() {
-    setJeLoading(true);
-    setShowJeConfirm(false);
-    try {
-      // Last day of the salary month
-      const lastDay = new Date(year, month, 0).getDate();
-      const postingDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
-
-      // Group records by company — each JE must belong to a single company
-      // r.company may be empty for records created before the fix; fall back to employee's company
-      const byCompany = new Map<string, typeof records>();
-      for (const r of records) {
-        const employeeId = r.custom_employee ?? r.staff;
-        const co = r.company || (employeeId ? employeeCompanyMap[employeeId] : "") || defaultCompany || "";
-        if (!co) continue;
-        if (!byCompany.has(co)) byCompany.set(co, []);
-        byCompany.get(co)!.push(r);
-      }
-
-      if (byCompany.size === 0) {
-        toast.error("Could not determine company for any record.");
-        return;
-      }
-
-      const skipped: string[] = [];
-      const created: string[] = [];
-
-      for (const [company, compRecords] of byCompany) {
-        const abbr = companyAbbrMap[company];
-        if (!abbr) {
-          compRecords.forEach(r => skipped.push(r.custom_employee_name ?? r.staff_name ?? company));
-          continue;
-        }
-        const salaryAccount = `Salary - ${abbr}`;
-
-        type JELine = { account: string; debit_in_account_currency?: number; credit_in_account_currency?: number; party_type?: string; party?: string };
-        const jeLines: JELine[] = [];
-
-        for (const r of compRecords) {
-          // Use previewNet so local LOP edits are reflected without needing to save first
-          const net = previewNet(r).net;
-          if (!net || net <= 0) continue;
-
-          const employeeId = r.custom_employee ?? r.staff;
-          const payableAccount = employeeId ? employeePayableMap[employeeId] : undefined;
-
-          if (!payableAccount) {
-            skipped.push(r.custom_employee_name ?? r.staff_name);
-            continue;
-          }
-
-          // Dr Salary Expense
-          jeLines.push({ account: salaryAccount, debit_in_account_currency: net });
-          // Cr Employee Payable — requires party_type + party for Payable accounts
-          jeLines.push({
-            account: payableAccount,
-            credit_in_account_currency: net,
-            party_type: "Employee",
-            party: employeeId,
-          });
-        }
-
-        if (jeLines.length === 0) continue;
-
-        const res = await createJournalEntry({
-          company,
-          posting_date: postingDate,
-          user_remark: `Salary Payable — ${formatPeriod(month, year)}`,
-          accounts: jeLines,
-        });
-
-        if (res.data?.name) {
-          const jeName = res.data.name;
-          // Auto-submit the Journal Entry
-          try {
-            await submitDocument("Journal Entry", jeName);
-          } catch {
-            // Submission failed but JE was created — note it
-            toast.warning(`JE ${jeName} created but could not be submitted. Please submit manually in Frappe.`);
-          }
-          created.push(jeName);
-        } else {
-          toast.error(`Failed to create JE for ${company}`);
-        }
-      }
-
-      if (created.length > 0) {
-        toast.success(`Submitted ${created.length} Journal Entr${created.length > 1 ? "ies" : "y"}: ${created.join(", ")}`);
-      }
-      if (skipped.length > 0) {
-        toast.warning(`Skipped (no payable account): ${skipped.join(", ")}`);
-      }
-      if (created.length === 0 && skipped.length === 0) {
-        toast.error("No employees with a payable account found. Generate salary first.");
-      }
-    } catch {
-      toast.error("Failed to create Journal Entry");
-    } finally {
-      setJeLoading(false);
-    }
-  }
-
-  // ── CSV Export ──
-  function handleExport() {
-    const rows = [
-      ["Staff Name", "Basic Salary", "Working Days", "LOP Days", "LOP Deduction", "Net Salary", "Pay Status"],
-      ...records.map((r) => {
-        const payStatus = getGLPayStatus(r);
-        return [
+  // ── Export CSV ──
+  function handleExportCSV() {
+    const rows: (string | number)[][] = [
+      ["Branch", "Staff Name", "Basic Salary", "Working Days", "LOP Days", "LOP Deduction", "Other Deduction", "Other Remark", "Net Pay"],
+    ];
+    for (const [branch, branchRecords] of branchGroups) {
+      for (const r of branchRecords) {
+        const edit = edits[r.name];
+        const lop = edit?.dirty ? (parseFloat(edit.lop_days) || 0) : (r.lop_days || 0);
+        const other = edit?.dirty ? (parseFloat(edit.other_deduction) || 0) : (r.custom_other_deduction || 0);
+        const remark = edit?.dirty ? edit.other_remark : (r.custom_other_deduction_remark || "");
+        const { lopDeduction, netSalary } = calculateSalary(r.basic_salary, lop, globalWorkingDays);
+        rows.push([
+          branch,
           r.custom_employee_name ?? r.staff_name,
           r.basic_salary,
-          r.total_working_days,
-          r.lop_days,
-          r.lop_deduction,
-          r.net_salary,
-          payStatus === "paid" ? "Paid" : payStatus === "accrued" ? "Accrued (Balance)" : "Pending",
-        ];
-      }),
-    ];
-    const csv = rows.map((r) => r.join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
+          globalWorkingDays,
+          lop,
+          lopDeduction,
+          other,
+          remark,
+          netSalary - other,
+        ]);
+      }
+    }
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = `salary-${year}-${String(month).padStart(2, "0")}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  // ── Export Excel ──
+  async function handleExportExcel() {
+    const ExcelJS = (await import("exceljs")).default;
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("Salary Sheet");
+
+    // Title row
+    ws.mergeCells("A1:I1");
+    const titleCell = ws.getCell("A1");
+    titleCell.value = `Salary Sheet — ${periodLabel}`;
+    titleCell.font = { bold: true, size: 14 };
+    titleCell.alignment = { horizontal: "center" };
+    ws.getRow(1).height = 24;
+
+    // Working days row
+    ws.mergeCells("A2:I2");
+    const wdCell = ws.getCell("A2");
+    wdCell.value = `Working Days: ${globalWorkingDays}`;
+    wdCell.font = { italic: true, size: 10, color: { argb: "FF888888" } };
+    wdCell.alignment = { horizontal: "center" };
+
+    ws.addRow([]); // spacer
+
+    // Header row
+    const HEADERS = ["Branch", "Staff Name", "Basic Salary", "Working Days", "LOP Days", "LOP Deduction", "Other Deduction", "Other Remark", "Net Pay"];
+    const headerRow = ws.addRow(HEADERS);
+    headerRow.eachCell(cell => {
+      cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF2563EB" } };
+      cell.alignment = { horizontal: "center" };
+      cell.border = { bottom: { style: "thin", color: { argb: "FFBBBBBB" } } };
+    });
+    ws.getRow(4).height = 18;
+
+    ws.columns = [
+      { width: 22 }, { width: 28 }, { width: 14 }, { width: 14 },
+      { width: 10 }, { width: 16 }, { width: 16 }, { width: 24 }, { width: 14 },
+    ];
+
+    for (const [branch, branchRecords] of branchGroups) {
+      let branchBasic = 0, branchLopDed = 0, branchOther = 0, branchNet = 0;
+
+      for (const r of branchRecords) {
+        const edit = edits[r.name];
+        const lop = edit?.dirty ? (parseFloat(edit.lop_days) || 0) : (r.lop_days || 0);
+        const other = edit?.dirty ? (parseFloat(edit.other_deduction) || 0) : (r.custom_other_deduction || 0);
+        const remark = edit?.dirty ? edit.other_remark : (r.custom_other_deduction_remark || "");
+        const { lopDeduction, netSalary } = calculateSalary(r.basic_salary, lop, globalWorkingDays);
+        const net = netSalary - other;
+        branchBasic += r.basic_salary; branchLopDed += lopDeduction; branchOther += other; branchNet += net;
+
+        const dataRow = ws.addRow([
+          branch, r.custom_employee_name ?? r.staff_name,
+          r.basic_salary, globalWorkingDays, lop, lopDeduction, other, remark, net,
+        ]);
+        [3, 4, 5, 6, 7, 9].forEach(col => {
+          dataRow.getCell(col).alignment = { horizontal: "right" };
+          dataRow.getCell(col).numFmt = "#,##0";
+        });
+      }
+
+      // Branch subtotal
+      const subRow = ws.addRow(["" + branch + " — Subtotal", "", branchBasic, "", "", branchLopDed, branchOther, "", branchNet]);
+      subRow.eachCell(cell => {
+        cell.font = { bold: true };
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF0F4FF" } };
+      });
+      [3, 6, 7, 9].forEach(col => {
+        subRow.getCell(col).numFmt = "#,##0";
+        subRow.getCell(col).alignment = { horizontal: "right" };
+      });
+    }
+
+    // Grand total
+    ws.addRow([]);
+    const totalRow = ws.addRow(["Grand Total", `${records.length} staff`, stats.totalBasic, "", "", stats.totalLop, stats.totalOther, "", stats.totalNet]);
+    totalRow.eachCell(cell => {
+      cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF2563EB" } };
+    });
+    [3, 6, 7, 9].forEach(col => {
+      totalRow.getCell(col).numFmt = "#,##0";
+      totalRow.getCell(col).alignment = { horizontal: "right" };
+    });
+
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `salary-${year}-${String(month).padStart(2, "0")}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Excel exported");
+  }
+
+  // ── Export PDF ──
+  async function handleExportPDF() {
+    const jsPDFModule = await import("jspdf");
+    const autoTableModule = await import("jspdf-autotable");
+    const jsPDF = jsPDFModule.default;
+    const autoTable = autoTableModule.default;
+
+    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Salary Sheet — ${periodLabel}`, 14, 16);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100);
+    doc.text(`Working Days: ${globalWorkingDays}  |  Total Staff: ${records.length}  |  Net Pay: ${formatCurrency(stats.totalNet)}`, 14, 22);
+    doc.setTextColor(0);
+
+    let startY = 28;
+
+    for (const [branch, branchRecords] of branchGroups) {
+      let branchBasic = 0, branchLopDed = 0, branchOther = 0, branchNet = 0;
+      const tableBody: (string | number)[][] = branchRecords.map(r => {
+        const edit = edits[r.name];
+        const lop = edit?.dirty ? (parseFloat(edit.lop_days) || 0) : (r.lop_days || 0);
+        const other = edit?.dirty ? (parseFloat(edit.other_deduction) || 0) : (r.custom_other_deduction || 0);
+        const remark = edit?.dirty ? edit.other_remark : (r.custom_other_deduction_remark || "");
+        const { lopDeduction, netSalary } = calculateSalary(r.basic_salary, lop, globalWorkingDays);
+        branchBasic += r.basic_salary; branchLopDed += lopDeduction; branchOther += other; branchNet += netSalary - other;
+        return [
+          r.custom_employee_name ?? r.staff_name,
+          r.basic_salary.toLocaleString("en-IN"),
+          lop,
+          lopDeduction.toLocaleString("en-IN"),
+          other > 0 ? `${other.toLocaleString("en-IN")}${remark ? ` (${remark})` : ""}` : "—",
+          (netSalary - other).toLocaleString("en-IN"),
+        ];
+      });
+      tableBody.push([
+        `Subtotal (${branchRecords.length} staff)`,
+        branchBasic.toLocaleString("en-IN"),
+        "",
+        branchLopDed.toLocaleString("en-IN"),
+        branchOther > 0 ? branchOther.toLocaleString("en-IN") : "—",
+        branchNet.toLocaleString("en-IN"),
+      ]);
+
+      autoTable(doc, {
+        head: [[branch, "Basic", "LOP Days", "LOP Ded.", "Other Ded.", "Net Pay"]],
+        body: tableBody,
+        startY,
+        theme: "grid",
+        headStyles: { fillColor: [37, 99, 235], fontStyle: "bold", fontSize: 8 },
+        bodyStyles: { fontSize: 8 },
+        didParseCell: (data) => {
+          if (data.row.index === tableBody.length - 1) {
+            data.cell.styles.fontStyle = "bold";
+            data.cell.styles.fillColor = [240, 244, 255];
+          }
+        },
+        columnStyles: {
+          0: { cellWidth: 60 },
+          1: { halign: "right" },
+          2: { halign: "center", cellWidth: 18 },
+          3: { halign: "right" },
+          4: { halign: "right" },
+          5: { halign: "right", fontStyle: "bold" },
+        },
+        margin: { left: 14, right: 14 },
+      });
+      startY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 6;
+    }
+
+    // Grand total footer bar
+    doc.setFillColor(37, 99, 235);
+    doc.roundedRect(14, startY, doc.internal.pageSize.width - 28, 8, 1, 1, "F");
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(255, 255, 255);
+    doc.text(
+      `Grand Total: ${records.length} staff  |  LOP: ${formatCurrency(stats.totalLop)}  |  Other: ${formatCurrency(stats.totalOther)}  |  Net Pay: ${formatCurrency(stats.totalNet)}`,
+      doc.internal.pageSize.width / 2,
+      startY + 5.5,
+      { align: "center" }
+    );
+    doc.setTextColor(0);
+    doc.save(`salary-${year}-${String(month).padStart(2, "0")}.pdf`);
+    toast.success("PDF exported");
   }
 
   return (
@@ -585,14 +575,21 @@ export default function SalarySheetPage() {
           </div>
           <div className="flex items-center gap-2">
             <Link href={`/dashboard/hr-manager/salary/${year}/${month}/payment-status`}>
-              <Button variant="outline" size="sm">
-                <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
+              <Button variant="outline" size="sm" disabled={records.length === 0}>
                 Payment Status
               </Button>
             </Link>
-            <Button variant="outline" size="sm" onClick={handleExport} disabled={records.length === 0}>
+            <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={records.length === 0}>
               <Download className="h-3.5 w-3.5 mr-1.5" />
-              Export CSV
+              CSV
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExportExcel} disabled={records.length === 0}>
+              <FileSpreadsheet className="h-3.5 w-3.5 mr-1.5" />
+              Excel
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={records.length === 0}>
+              <FileText className="h-3.5 w-3.5 mr-1.5" />
+              PDF
             </Button>
           </div>
         </div>
@@ -601,19 +598,35 @@ export default function SalarySheetPage() {
       {/* ── Global Working Days ── */}
       {!isLoading && records.length > 0 && (
         <motion.div variants={itemVariants}>
-          <div className="flex items-center gap-3 bg-surface-secondary/50 rounded-xl border border-border-main px-4 py-2.5">
+          <div className="flex flex-wrap items-center gap-2.5 bg-surface-secondary/70 rounded-xl border border-border-main px-4 py-2.5 sm:sticky sm:top-2 sm:z-20 backdrop-blur supports-[backdrop-filter]:bg-surface-secondary/70">
             <CalendarDays className="h-4 w-4 text-primary flex-shrink-0" />
             <span className="text-sm font-medium text-text-primary">Working Days</span>
             <Input
               type="number" min="1" max="31"
-              className="w-16 text-center h-7 text-sm px-1"
+              className="w-20 text-center h-8 text-sm px-1 font-semibold"
               value={globalWorkingDays}
               onChange={(e) => {
                 const v = parseInt(e.target.value, 10);
                 if (!isNaN(v) && v >= 1 && v <= 31) setGlobalWorkingDays(v);
               }}
             />
-            <span className="text-xs text-text-tertiary flex-1">days — applies to all staff · LOP is per employee</span>
+            <span className="text-xs text-text-tertiary sm:flex-1">days — applies to all staff · LOP is per employee</span>
+            <div className="inline-flex items-center rounded-lg border border-border-main bg-surface-primary p-0.5">
+              <button
+                type="button"
+                onClick={() => setDensity("comfortable")}
+                className={`px-2.5 py-1 text-xs rounded-md transition-colors ${!isCompact ? "bg-primary text-primary-foreground" : "text-text-secondary hover:bg-surface-secondary"}`}
+              >
+                Comfortable
+              </button>
+              <button
+                type="button"
+                onClick={() => setDensity("compact")}
+                className={`px-2.5 py-1 text-xs rounded-md transition-colors ${isCompact ? "bg-primary text-primary-foreground" : "text-text-secondary hover:bg-surface-secondary"}`}
+              >
+                Compact
+              </button>
+            </div>
             {stats.dirtyCount > 0 && (
               <Button size="sm" onClick={handleSaveAll} disabled={saveAllLoading} className="flex-shrink-0">
                 {saveAllLoading
@@ -629,12 +642,11 @@ export default function SalarySheetPage() {
       {/* ── Summary strip ── */}
       {!isLoading && records.length > 0 && (
         <motion.div variants={itemVariants}>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {[
               { icon: <Users className="h-3.5 w-3.5" />, value: records.length, label: "Staff", color: "text-text-primary" },
               { icon: <IndianRupee className="h-3.5 w-3.5" />, value: formatCurrency(stats.totalNet), label: "Total Net Pay", color: "text-success" },
-              { icon: <CheckCircle2 className="h-3.5 w-3.5" />, value: `${stats.paidCount}/${records.length}`, label: "Fully Paid", color: "text-success" },
-              { icon: <TrendingDown className="h-3.5 w-3.5" />, value: stats.accruedCount, label: "Balance Pending", color: "text-warning" },
+              { icon: <TrendingDown className="h-3.5 w-3.5" />, value: formatCurrency(stats.totalLop), label: "LOP Deductions", color: "text-error" },
             ].map(({ icon, value, label, color }) => (
               <Card key={label}>
                 <CardContent className="p-3 flex items-center gap-2.5">
@@ -679,25 +691,21 @@ export default function SalarySheetPage() {
           <div className="space-y-2">
             {branchGroups.map(([branch, branchRecords]) => {
               const isCollapsed = collapsedBranches[branch] ?? true;
+              const branchDirtyCount = branchRecords.filter((r) => edits[r.name]?.dirty).length;
 
-              let branchBasic = 0, branchLop = 0, branchOther = 0, branchNet = 0, branchLopDays = 0, branchPaid = 0;
+              let branchLop = 0, branchOther = 0, branchNet = 0;
               for (const r of branchRecords) {
-                branchBasic += r.basic_salary;
-                branchPaid += getGLPayStatus(r) === "paid" ? 1 : 0;
                 const { lopDeduction, otherDeduction, net } = previewNet(r);
                 branchLop += lopDeduction;
                 branchOther += otherDeduction;
                 branchNet += net;
-                const edit = edits[r.name];
-                branchLopDays += edit?.dirty ? (parseFloat(edit.lop_days) || 0) : r.lop_days;
               }
-              void branchBasic; void branchLopDays;
 
               return (
                 <div key={branch} className="rounded-xl border border-border-main overflow-hidden bg-surface-primary">
                   {/* Branch header */}
                   <button
-                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-surface-secondary/60 transition-colors"
+                    className={`w-full flex items-center justify-between px-4 hover:bg-surface-secondary/60 transition-colors ${isCompact ? "py-2.5" : "py-3"}`}
                     onClick={() => toggleBranch(branch)}
                   >
                     <div className="flex items-center gap-2.5">
@@ -706,16 +714,16 @@ export default function SalarySheetPage() {
                       <span className="text-xs text-text-tertiary bg-surface-secondary px-1.5 py-0.5 rounded-full">
                         {branchRecords.length}
                       </span>
+                      {branchDirtyCount > 0 && (
+                        <span className="text-[11px] font-medium text-warning bg-warning/10 px-1.5 py-0.5 rounded-full">
+                          {branchDirtyCount} unsaved
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="hidden sm:flex items-center gap-3 text-xs">
                         <span className="font-medium text-success">{formatCurrency(branchNet)}</span>
                         {branchLop > 0 && <span className="text-error">−{formatCurrency(branchLop)}</span>}
-                        <span className="text-text-tertiary">
-                          {branchPaid === branchRecords.length
-                            ? <span className="text-success font-medium">All paid</span>
-                            : `${branchPaid}/${branchRecords.length} paid`}
-                        </span>
                       </div>
                       <ChevronDown className={`h-4 w-4 text-text-tertiary transition-transform duration-200 ${isCollapsed ? "" : "rotate-180"}`} />
                     </div>
@@ -726,21 +734,20 @@ export default function SalarySheetPage() {
                     <>
                       {/* Desktop */}
                       <div className="hidden md:block overflow-x-auto border-t border-border-main">
-                        <table className="w-full text-sm">
+                        <table className="w-full min-w-[980px] text-sm">
                           <thead>
-                            <tr className="bg-surface-secondary/50">
-                              <th className="text-left py-2.5 px-4 text-xs font-medium text-text-tertiary">Staff</th>
-                              <th className="text-right py-2.5 px-4 text-xs font-medium text-text-tertiary">Basic</th>
-                              <th className="text-center py-2.5 px-4 text-xs font-medium text-text-tertiary">LOP</th>
-                              <th className="text-center py-2.5 px-3 text-xs font-medium text-text-tertiary">Other Deduction</th>
-                              <th className="text-right py-2.5 px-4 text-xs font-medium text-text-tertiary">Net Pay</th>
-                              <th className="text-center py-2.5 px-3 text-xs font-medium text-text-tertiary">
+                            <tr className="bg-surface-secondary/70">
+                              <th className={`text-left px-4 text-[11px] uppercase tracking-wide font-medium text-text-tertiary ${isCompact ? "py-2" : "py-3"}`}>Staff</th>
+                              <th className={`text-right px-4 text-[11px] uppercase tracking-wide font-medium text-text-tertiary ${isCompact ? "py-2" : "py-3"}`}>Basic</th>
+                              <th className={`text-center px-4 text-[11px] uppercase tracking-wide font-medium text-text-tertiary ${isCompact ? "py-2" : "py-3"}`}>LOP</th>
+                              <th className={`text-center px-3 text-[11px] uppercase tracking-wide font-medium text-text-tertiary ${isCompact ? "py-2" : "py-3"}`}>Other Deduction</th>
+                              <th className={`text-right px-4 text-[11px] uppercase tracking-wide font-medium text-text-tertiary ${isCompact ? "py-2" : "py-3"}`}>Net Pay</th>
+                              <th className={`text-center px-3 text-[11px] uppercase tracking-wide font-medium text-text-tertiary ${isCompact ? "py-2" : "py-3"}`}>
                                 <div className="flex items-center justify-center gap-1">
                                   <CalendarCheck2 className="h-3 w-3" />
                                   Avail. Leave
                                 </div>
                               </th>
-                              <th className="text-center py-2.5 px-4 text-xs font-medium text-text-tertiary">Status</th>
                               <th className="py-2.5 px-2 w-10" />
                             </tr>
                           </thead>
@@ -750,62 +757,49 @@ export default function SalarySheetPage() {
                               const { lopDeduction, otherDeduction, net } = previewNet(record);
                               const isDirty = edit.dirty;
                               const isSaving = edit.saving;
-                              const empId = record.custom_employee ?? record.staff;
-                              const hasPayable = empId ? !!employeePayableMap[empId] : false;
-                              const payStatus = getGLPayStatus(record);
 
                               return (
-                                <tr key={record.name} className="hover:bg-surface-secondary/30 transition-colors">
-                                  <td className="py-2.5 px-4">
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="font-medium text-text-primary text-sm">
-                                        {record.custom_employee_name ?? record.staff_name}
-                                      </span>
-                                      {!hasPayable && (
-                                        <span title="No payable account — JE will skip">
-                                          <AlertTriangle className="h-3 w-3 text-warning flex-shrink-0" />
-                                        </span>
-                                      )}
-                                    </div>
+                                <tr key={record.name} className="hover:bg-surface-secondary/30 even:bg-surface-secondary/20 transition-colors">
+                                  <td className={`px-4 ${isCompact ? "py-1.5" : "py-2.5"}`}>
+                                    <span className="font-medium text-text-primary text-sm">
+                                      {record.custom_employee_name ?? record.staff_name}
+                                    </span>
                                   </td>
-                                  <td className="py-2.5 px-4 text-right text-text-primary tabular-nums">
+                                  <td className={`px-4 text-right text-text-primary tabular-nums ${isCompact ? "py-1.5" : "py-2.5"}`}>
                                     {formatCurrency(record.basic_salary)}
                                   </td>
                                   {/* LOP input */}
-                                  <td className="py-2.5 px-4 text-center">
+                                  <td className={`px-4 text-center ${isCompact ? "py-1.5" : "py-2.5"}`}>
                                     <div className="flex flex-col items-center gap-0.5">
                                       <Input type="number" min="0" step="0.5"
-                                        className={`w-16 text-center mx-auto h-7 text-xs px-1 ${parseFloat(edit.lop_days) > 0 ? "border-error/50 text-error" : ""}`}
+                                        className={`text-center mx-auto text-sm px-1 font-medium ${isCompact ? "w-16 h-7" : "w-20 h-8"} ${parseFloat(edit.lop_days) > 0 ? "border-error/50 text-error" : ""}`}
                                         value={edit.lop_days}
-                                        onChange={(e) => handleLopChange(record.name, record, e.target.value)}
-                                        disabled={payStatus === "paid"} />
+                                        onChange={(e) => handleLopChange(record.name, record, e.target.value)} />
                                       {lopDeduction > 0 && (
                                         <span className="text-error text-[10px] tabular-nums">−{formatCurrency(lopDeduction)}</span>
                                       )}
                                     </div>
                                   </td>
-                                  {/* Other Deduction: amount + remark */}
-                                  <td className="py-2 px-3 text-center">
-                                    <div className="flex flex-col items-center gap-1 min-w-[140px]">
+                                  {/* Other Deduction */}
+                                  <td className={`px-3 text-center ${isCompact ? "py-1.5" : "py-2"}`}>
+                                    <div className={`flex flex-col items-center ${isCompact ? "gap-1 min-w-[150px]" : "gap-1.5 min-w-[180px]"}`}>
                                       <Input type="number" min="0" step="1"
                                         placeholder="0"
-                                        className={`w-24 text-center mx-auto h-7 text-xs px-1 ${otherDeduction > 0 ? "border-warning/60 text-warning" : ""}`}
+                                        className={`text-center mx-auto text-sm px-1 font-medium ${isCompact ? "w-24 h-7" : "w-28 h-8"} ${otherDeduction > 0 ? "border-warning/60 text-warning" : ""}`}
                                         value={edit.other_deduction === "0" ? "" : edit.other_deduction}
-                                        onChange={(e) => handleOtherDeductionChange(record.name, record, e.target.value || "0")}
-                                        disabled={payStatus === "paid"} />
+                                        onChange={(e) => handleOtherDeductionChange(record.name, record, e.target.value || "0")} />
                                       <Input
                                         placeholder="Reason…"
-                                        className="w-full h-6 text-[10px] px-1.5 text-text-tertiary"
+                                        className={`w-full text-xs px-2 text-text-tertiary ${isCompact ? "h-6" : "h-7"}`}
                                         value={edit.other_remark}
-                                        onChange={(e) => handleOtherRemarkChange(record.name, record, e.target.value)}
-                                        disabled={payStatus === "paid"} />
+                                        onChange={(e) => handleOtherRemarkChange(record.name, record, e.target.value)} />
                                     </div>
                                   </td>
-                                  <td className="py-2.5 px-4 text-right tabular-nums">
+                                  <td className={`px-4 text-right tabular-nums ${isCompact ? "py-1.5" : "py-2.5"}`}>
                                     <span className="font-semibold text-success">{formatCurrency(net)}</span>
                                   </td>
                                   {/* Available Leave till this month — editable input, saved to Frappe */}
-                                  <td className="py-2.5 px-3 text-center">
+                                  <td className={`px-3 text-center ${isCompact ? "py-1.5" : "py-2.5"}`}>
                                     {(() => {
                                       const empId = record.custom_employee ?? record.staff;
                                       const apiAccrued = empId ? leaveAccruedMap[empId] : undefined;
@@ -821,20 +815,16 @@ export default function SalarySheetPage() {
                                         <Input
                                           type="number" min="0" step="0.5"
                                           placeholder={placeholder}
-                                          className={`w-16 text-center mx-auto h-7 text-xs px-1 ${color}`}
+                                          className={`text-center mx-auto text-sm px-1 font-medium ${isCompact ? "w-16 h-7" : "w-20 h-8"} ${color}`}
                                           value={inputVal}
                                           onChange={(e) => handleAvailableLeaveChange(record.name, record, e.target.value)}
-                                          disabled={payStatus === "paid"}
                                         />
                                       );
                                     })()}
                                   </td>
-                                  <td className="py-2.5 px-4 text-center">
-                                    <PayStatusBadge status={payStatus} />
-                                  </td>
-                                  <td className="py-2.5 px-2 text-center">
+                                  <td className={`px-2 text-center ${isCompact ? "py-1.5" : "py-2.5"}`}>
                                     {isDirty && (
-                                      <Button size="sm" variant="outline" className="h-7 w-7 p-0"
+                                      <Button size="sm" variant="outline" className={`${isCompact ? "h-7 w-7" : "h-8 w-8"} p-0`}
                                         onClick={() => handleSaveRow(record)} disabled={isSaving}>
                                         {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
                                       </Button>
@@ -854,64 +844,76 @@ export default function SalarySheetPage() {
                           const { lopDeduction, otherDeduction, net } = previewNet(record);
                           const isDirty = edit.dirty;
                           const isSaving = edit.saving;
-                          const empIdMob = record.custom_employee ?? record.staff;
-                          const payStatusMob = getGLPayStatus(record);
                           return (
-                            <div key={record.name} className="p-3 space-y-2.5">
-                              <div className="flex items-start justify-between">
+                            <div key={record.name} className={`${isCompact ? "p-2.5 space-y-2.5" : "p-3 space-y-3"}`}>
+                              <div className="flex items-start justify-between gap-3">
                                 <div>
-                                  <div className="flex items-center gap-1.5">
-                                    <p className="font-medium text-text-primary text-sm">{record.custom_employee_name ?? record.staff_name}</p>
-                                    {empIdMob && !employeePayableMap[empIdMob] && (
-                                      <AlertTriangle className="h-3 w-3 text-warning" />
-                                    )}
-                                  </div>
+                                  <p className="font-medium text-text-primary text-sm">{record.custom_employee_name ?? record.staff_name}</p>
                                   <p className="text-xs text-text-tertiary">{formatCurrency(record.basic_salary)}</p>
                                 </div>
-                                <PayStatusBadge status={payStatusMob} />
+                                <span className="font-semibold text-success text-sm whitespace-nowrap">{formatCurrency(net)}</span>
                               </div>
-                              {/* LOP row */}
-                              <div className="flex items-center gap-3">
+                              <div className="grid grid-cols-2 gap-3">
                                 <div>
                                   <p className="text-xs text-text-tertiary mb-1">LOP Days</p>
                                   <Input type="number" min="0" step="0.5"
-                                    className={`w-24 text-center h-8 text-sm ${parseFloat(edit.lop_days) > 0 ? "border-error/50 text-error" : ""}`}
+                                    className={`w-full text-center text-sm font-medium ${isCompact ? "h-8" : "h-9"} ${parseFloat(edit.lop_days) > 0 ? "border-error/50 text-error" : ""}`}
                                     value={edit.lop_days}
-                                    onChange={(e) => handleLopChange(record.name, record, e.target.value)}
-                                    disabled={payStatusMob === "paid"} />
+                                    onChange={(e) => handleLopChange(record.name, record, e.target.value)} />
+                                  {lopDeduction > 0 && (
+                                    <p className="text-error text-[11px] mt-1">−{formatCurrency(lopDeduction)}</p>
+                                  )}
                                 </div>
-                                {lopDeduction > 0 && (
-                                  <span className="text-error text-xs mt-4">−{formatCurrency(lopDeduction)}</span>
-                                )}
+                                <div>
+                                  <p className="text-xs text-text-tertiary mb-1">Avail. Leave</p>
+                                  {(() => {
+                                    const empId = record.custom_employee ?? record.staff;
+                                    const apiAccrued = empId ? leaveAccruedMap[empId] : undefined;
+                                    const placeholder = apiAccrued != null ? apiAccrued.toFixed(1) : "—";
+                                    const inputVal = edit.available_leave;
+                                    const numVal = inputVal !== "" ? parseFloat(inputVal) : NaN;
+                                    const color = !isNaN(numVal)
+                                      ? numVal <= 0 ? "border-error/50 text-error"
+                                        : numVal <= 1.5 ? "border-warning/50 text-warning"
+                                        : "border-success/40 text-success"
+                                      : "";
+                                    return (
+                                      <Input
+                                        type="number" min="0" step="0.5"
+                                        placeholder={placeholder}
+                                        className={`w-full text-center text-sm font-medium ${isCompact ? "h-8" : "h-9"} ${color}`}
+                                        value={inputVal}
+                                        onChange={(e) => handleAvailableLeaveChange(record.name, record, e.target.value)}
+                                      />
+                                    );
+                                  })()}
+                                </div>
                               </div>
                               {/* Other Deduction row */}
-                              <div className="flex items-start gap-2">
-                                <div className="flex-shrink-0">
+                              <div className="grid grid-cols-3 gap-2">
+                                <div className="col-span-1">
                                   <p className="text-xs text-text-tertiary mb-1">Other Deduction</p>
                                   <Input type="number" min="0" step="1"
                                     placeholder="0"
-                                    className={`w-24 text-center h-8 text-sm ${otherDeduction > 0 ? "border-warning/60 text-warning" : ""}`}
+                                    className={`w-full text-center text-sm font-medium ${isCompact ? "h-8" : "h-9"} ${otherDeduction > 0 ? "border-warning/60 text-warning" : ""}`}
                                     value={edit.other_deduction === "0" ? "" : edit.other_deduction}
-                                    onChange={(e) => handleOtherDeductionChange(record.name, record, e.target.value || "0")}
-                                    disabled={payStatusMob === "paid"} />
+                                    onChange={(e) => handleOtherDeductionChange(record.name, record, e.target.value || "0")} />
                                 </div>
-                                <div className="flex-1 min-w-0">
+                                <div className="col-span-2">
                                   <p className="text-xs text-text-tertiary mb-1">Reason</p>
                                   <Input
                                     placeholder="e.g. Advance recovery"
-                                    className="h-8 text-xs"
+                                    className={`${isCompact ? "h-8" : "h-9"} text-xs`}
                                     value={edit.other_remark}
-                                    onChange={(e) => handleOtherRemarkChange(record.name, record, e.target.value)}
-                                    disabled={payStatusMob === "paid"} />
+                                    onChange={(e) => handleOtherRemarkChange(record.name, record, e.target.value)} />
                                 </div>
                               </div>
-                              <div className="flex items-center justify-between">
-                                <span />
+                              <div className="flex items-center justify-end">
                                 <div className="flex items-center gap-2">
-                                  <span className="font-bold text-success text-sm">{formatCurrency(net)}</span>
                                   {isDirty && (
-                                    <Button size="sm" variant="outline" className="h-7" onClick={() => handleSaveRow(record)} disabled={isSaving}>
+                                    <Button size="sm" variant="outline" className={isCompact ? "h-7" : "h-8"} onClick={() => handleSaveRow(record)} disabled={isSaving}>
                                       {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+                                      <span className="ml-1">Save</span>
                                     </Button>
                                   )}
                                 </div>
@@ -928,7 +930,6 @@ export default function SalarySheetPage() {
                           {branchLop > 0 && <span className="text-error">−{formatCurrency(branchLop)} LOP</span>}
                           {branchOther > 0 && <span className="text-warning">−{formatCurrency(branchOther)} other</span>}
                           <span className="font-semibold text-success">{formatCurrency(branchNet)} net</span>
-                          <span>{branchPaid}/{branchRecords.length} paid</span>
                         </div>
                       </div>
                     </>
@@ -944,7 +945,6 @@ export default function SalarySheetPage() {
                 {stats.totalLop > 0 && <span className="text-error text-xs">−{formatCurrency(stats.totalLop)} LOP</span>}
                 {stats.totalOther > 0 && <span className="text-warning text-xs">−{formatCurrency(stats.totalOther)} other deductions</span>}
                 <span className="text-success">{formatCurrency(stats.totalNet)} net pay</span>
-                <span className="text-text-tertiary text-xs">{stats.paidCount}/{records.length} paid</span>
               </div>
             </div>
           </div>
@@ -962,7 +962,7 @@ export default function SalarySheetPage() {
                   <p className="text-sm font-semibold text-text-primary">
                     {stats.dirtyCount} unsaved change{stats.dirtyCount > 1 ? "s" : ""}
                   </p>
-                  <p className="text-xs text-text-tertiary mt-0.5">Save LOP to backend before posting Journal Entry</p>
+                  <p className="text-xs text-text-tertiary mt-0.5">Save changes to Frappe before exporting</p>
                 </div>
               </div>
               <Button size="sm" onClick={handleSaveAll} disabled={saveAllLoading} className="flex-shrink-0">
@@ -971,69 +971,6 @@ export default function SalarySheetPage() {
                   : <Save className="h-3.5 w-3.5 mr-1.5" />}
                 Save All ({stats.dirtyCount})
               </Button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* ── Post to Accounts ── */}
-      <AnimatePresence>
-        {records.length > 0 && (
-          <motion.div key="post-to-accounts" variants={itemVariants} initial="hidden" animate="visible" exit={{ opacity: 0 }}>
-            <div className="rounded-xl border border-border-main bg-surface-primary p-4">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <BookOpen className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="font-semibold text-text-primary text-sm">Post to Accounts</p>
-                    <p className="text-xs text-text-tertiary mt-0.5 truncate">
-                      Dr Salary Expense / Cr Employee Payable · one JE per branch
-                    </p>
-                  </div>
-                </div>
-
-                {(() => {
-                  const missing = records.filter(r => {
-                    const empId = r.custom_employee ?? r.staff;
-                    return empId ? !employeePayableMap[empId] : true;
-                  });
-                  return missing.length > 0 ? (
-                    <span className="text-xs text-warning flex items-center gap-1 flex-shrink-0">
-                      <AlertTriangle className="h-3 w-3" />
-                      {missing.length} will be skipped
-                    </span>
-                  ) : null;
-                })()}
-
-                {stats.dirtyCount > 0 ? (
-                  <div className="flex items-center gap-2 flex-shrink-0 text-xs text-warning">
-                    <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
-                    <span>Save {stats.dirtyCount} unsaved change{stats.dirtyCount > 1 ? "s" : ""} first</span>
-                    <Button size="sm" variant="outline" onClick={handleSaveAll} disabled={saveAllLoading}>
-                      {saveAllLoading ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Save className="h-3 w-3 mr-1" />}
-                      Save All
-                    </Button>
-                  </div>
-                ) : !showJeConfirm ? (
-                  <Button size="sm" className="flex-shrink-0" onClick={() => setShowJeConfirm(true)} disabled={jeLoading}>
-                    <BookOpen className="h-3.5 w-3.5 mr-1.5" />
-                    Post Journal Entry
-                  </Button>
-                ) : (
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="text-xs text-text-tertiary">Confirm for {records.length} staff?</span>
-                    <Button size="sm" onClick={handleCreateJE} disabled={jeLoading}>
-                      {jeLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null}
-                      Confirm
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => setShowJeConfirm(false)} disabled={jeLoading}>
-                      Cancel
-                    </Button>
-                  </div>
-                )}
-              </div>
             </div>
           </motion.div>
         )}

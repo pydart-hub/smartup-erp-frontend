@@ -53,18 +53,24 @@ export async function POST(request: NextRequest) {
     let apiKey = "";
     let apiSecret = "";
     try {
-      const keysResponse = await axios.post(
-        `${FRAPPE_URL}/api/method/frappe.core.doctype.user.user.generate_keys`,
-        null,
+      // NOTE: Must use native fetch (not axios) here.
+      // axios + Node.js http module injects "Expect: 100-continue" at the socket
+      // level which Frappe Cloud rejects with 417 Expectation Failed.
+      const keysRes = await fetch(
+        `${FRAPPE_URL}/api/method/frappe.core.doctype.user.user.generate_keys?user=${encodeURIComponent(email)}`,
         {
-          params: { user: email },
+          method: "POST",
           headers: {
             Authorization: adminAuth,
             "Content-Type": "application/json",
           },
         }
       );
-      apiSecret = keysResponse.data?.message?.api_secret || "";
+      if (!keysRes.ok) {
+        throw new Error(`generate_keys returned ${keysRes.status}`);
+      }
+      const keysData = await keysRes.json();
+      apiSecret = keysData?.message?.api_secret || "";
 
       // generate_keys may have created/updated the api_key on the User doc.
       // Re-fetch just the api_key field to get the current value.

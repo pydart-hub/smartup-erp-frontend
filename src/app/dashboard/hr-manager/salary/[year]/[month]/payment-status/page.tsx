@@ -1,52 +1,55 @@
 "use client";
 
-import React, { useMemo } from "react";
-import { motion } from "framer-motion";
+import React, { useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
-import {
-  ArrowLeft, Loader2, AlertCircle, Users,
-  CheckCircle2, Clock, IndianRupee, Building2, TrendingDown, CalendarCheck2,
-} from "lucide-react";
 import Link from "next/link";
+import { motion } from "framer-motion";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  AlertCircle,
+  ArrowLeft,
+  Building2,
+  CheckCircle2,
+  ChevronDown,
+  Clock3,
+  IndianRupee,
+  Loader2,
+  Users,
+} from "lucide-react";
+import { toast } from "sonner";
+
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { useAuth } from "@/lib/hooks/useAuth";
-import { getSalaryRecords, getEmployeeGLStatus, formatPeriod } from "@/lib/api/salary";
 import { getEmployees } from "@/lib/api/employees";
-import { formatCurrency } from "@/lib/utils/formatters";
+import { formatPeriod, getSalaryRecords, updateSalaryRecord } from "@/lib/api/salary";
 import type { SmartUpSalaryRecord } from "@/lib/types/salary";
+import { formatCurrency } from "@/lib/utils/formatters";
 
 const containerVariants = {
   hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { staggerChildren: 0.05 } },
+  visible: { opacity: 1, transition: { staggerChildren: 0.04 } },
 };
+
 const itemVariants = {
   hidden: { opacity: 0, y: 10 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.25 } },
 };
 
-type PayStatus = "paid" | "accrued" | "pending" | "no-account";
-
-function StatusBadge({ status }: { status: PayStatus }) {
-  if (status === "paid")
-    return <span className="inline-flex items-center gap-1 text-xs font-medium text-success bg-success/10 px-2 py-0.5 rounded-full">Paid</span>;
-  if (status === "accrued")
-    return <span className="inline-flex items-center gap-1 text-xs font-medium text-warning bg-warning/10 px-2 py-0.5 rounded-full">Balance Due</span>;
-  if (status === "pending")
-    return <span className="inline-flex items-center gap-1 text-xs font-medium text-text-tertiary bg-surface-secondary px-2 py-0.5 rounded-full">Pending</span>;
-  return <span className="inline-flex items-center gap-1 text-xs font-medium text-error/70 bg-error/5 px-2 py-0.5 rounded-full">No Account</span>;
-}
-
-export default function PaymentStatusPage() {
+export default function SalaryPaymentStatusPage() {
   const params = useParams();
+  const queryClient = useQueryClient();
   const { defaultCompany } = useAuth();
 
   const year = Number(params.year);
   const month = Number(params.month);
   const periodLabel = formatPeriod(month, year);
 
-  // ── Salary records ──
+  const [collapsedBranches, setCollapsedBranches] = useState<Record<string, boolean>>({});
+  const [statusSaving, setStatusSaving] = useState<Record<string, boolean>>({});
+
   const { data: recordsRes, isLoading, isError } = useQuery({
     queryKey: ["hr-salary-records", defaultCompany, year, month],
     queryFn: () =>
@@ -57,19 +60,19 @@ export default function PaymentStatusPage() {
       }),
     staleTime: 30_000,
   });
-  const records = recordsRes?.data ?? [];
 
-  // ── Employees (for payable account + branch) ──
   const { data: employeesRes } = useQuery({
-    queryKey: ["hr-employee-payable-map"],
+    queryKey: ["hr-employees-branch-map"],
     queryFn: () => getEmployees({ limit_page_length: 500 }),
     staleTime: 120_000,
   });
 
-  const employeePayableMap = useMemo(() => {
+  const records = recordsRes?.data ?? [];
+
+  const employeeCompanyMap = useMemo(() => {
     const map: Record<string, string> = {};
     employeesRes?.data?.forEach((e) => {
-      if (e.custom_payable_account) map[e.name] = e.custom_payable_account;
+      map[e.name] = e.company;
     });
     return map;
   }, [employeesRes]);
@@ -78,363 +81,323 @@ export default function PaymentStatusPage() {
     const map: Record<string, string> = {};
     employeesRes?.data?.forEach((e) => {
       if (e.branch) map[e.name] = e.branch;
-      else if (e.company) map[e.name] = e.company.replace(/^Smart Up\s*/i, "");
     });
     return map;
   }, [employeesRes]);
 
-  // ── GL status for all payable accounts ──
-  const allPayableAccounts = useMemo(() => Object.values(employeePayableMap), [employeePayableMap]);
+  const branchGroups = useMemo(() => {
+    const groups = new Map<string, SmartUpSalaryRecord[]>();
 
-  const { data: glStatusMap = {}, isLoading: glLoading } = useQuery({
-    queryKey: ["hr-salary-gl-status", allPayableAccounts],
-    queryFn: () => getEmployeeGLStatus(allPayableAccounts),
-    enabled: allPayableAccounts.length > 0,
-    staleTime: 60_000,
-  });
+    for (const r of records) {
+      const empId = r.custom_employee ?? r.staff;
+      const branch =
+        (empId ? employeeBranchMap[empId] : undefined) ||
+        (empId ? employeeCompanyMap[empId]?.replace(/^Smart Up\s*/i, "") : undefined) ||
+        (r.company ? r.company.replace(/^Smart Up\s*/i, "") : undefined) ||
+        "Unknown";
 
-  // ── Derive status for one record ──
-  function getPayStatus(record: SmartUpSalaryRecord): PayStatus {
-    const empId = record.custom_employee ?? record.staff;
-    const payableAcct = empId ? employeePayableMap[empId] : undefined;
-    if (!payableAcct) return "no-account";
-    const gl = glStatusMap[payableAcct];
-    if (!gl || gl.totalCredit === 0) return "pending";
-    if (gl.balance > 0) return "accrued";
-    return "paid";
+      if (!groups.has(branch)) groups.set(branch, []);
+      groups.get(branch)!.push(r);
+    }
+
+    return Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b));
+  }, [records, employeeBranchMap, employeeCompanyMap]);
+
+  const stats = useMemo(() => {
+    let paidCount = 0;
+    let draftCount = 0;
+    let totalNet = 0;
+    let paidNet = 0;
+
+    for (const r of records) {
+      totalNet += r.net_salary || 0;
+      if (r.status === "Paid") {
+        paidCount += 1;
+        paidNet += r.net_salary || 0;
+      } else {
+        draftCount += 1;
+      }
+    }
+
+    return { paidCount, draftCount, totalNet, paidNet };
+  }, [records]);
+
+  function toggleBranch(branch: string) {
+    setCollapsedBranches((prev) => ({ ...prev, [branch]: !prev[branch] }));
   }
 
-  // ── Aggregated rows with status + balance ──
-  const rows = useMemo(() => {
-    return records.map((r) => {
-      const empId = r.custom_employee ?? r.staff;
-      const payableAcct = empId ? employeePayableMap[empId] : undefined;
-      const gl = payableAcct ? glStatusMap[payableAcct] : undefined;
-      const status = getPayStatus(r);
-      const balanceDue = gl?.balance ?? 0;
-      const amountPaid = gl?.totalDebit ?? 0;   // actual bank payments (Dr Payable / Cr Bank)
-      const branch = (empId ? employeeBranchMap[empId] : undefined) ?? "Unknown";
-      return { record: r, status, balanceDue, amountPaid, branch, empId: empId ?? "" };
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [records, employeePayableMap, glStatusMap, employeeBranchMap]);
-
-  // ── Summary stats ──
-  const stats = useMemo(() => {
-    let paidCount = 0, accruedCount = 0, pendingCount = 0, noAccountCount = 0;
-    let totalBalance = 0, totalNet = 0;
-    for (const row of rows) {
-      totalNet += row.record.net_salary;
-      totalBalance += row.balanceDue;
-      if (row.status === "paid") paidCount++;
-      else if (row.status === "accrued") { accruedCount++; }
-      else if (row.status === "pending") pendingCount++;
-      else noAccountCount++;
-    }
-    return { paidCount, accruedCount, pendingCount, noAccountCount, totalBalance, totalNet };
-  }, [rows]);
-
-  // ── Leave accrued map (employee → accrued days up to salary year) ──
-  const { data: leaveBalanceRes } = useQuery({
-    queryKey: ["hr-salary-leave-balance", year],
-    queryFn: async () => {
-      const res = await fetch(`/api/hr/leave-allocation?year=${year}`);
-      if (!res.ok) return null;
-      return res.json() as Promise<{ employees: { employee: string; accrued_to_date: number }[] }>;
+  const statusMutation = useMutation({
+    mutationFn: async ({ recordName, nextStatus }: { recordName: string; nextStatus: "Draft" | "Paid" }) => {
+      await updateSalaryRecord(recordName, {
+        status: nextStatus,
+        ...(nextStatus === "Paid" ? { payment_date: new Date().toISOString().slice(0, 10) } : {}),
+      });
     },
-    staleTime: 120_000,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["hr-salary-records", defaultCompany, year, month] });
+      toast.success("Payment status updated");
+    },
+    onError: () => {
+      toast.error("Failed to update status");
+    },
   });
-  const leaveAccruedMap = useMemo(() => {
-    const map: Record<string, number> = {};
-    leaveBalanceRes?.employees?.forEach((e) => { map[e.employee] = e.accrued_to_date; });
-    return map;
-  }, [leaveBalanceRes]);
 
-  // ── Group rows by branch ──
-  const branchGroups = useMemo(() => {
-    const groups = new Map<string, typeof rows>();
-    for (const row of rows) {
-      if (!groups.has(row.branch)) groups.set(row.branch, []);
-      groups.get(row.branch)!.push(row);
+  async function handleStatusChange(record: SmartUpSalaryRecord, nextStatus: "Draft" | "Paid") {
+    if (record.status === nextStatus) return;
+    setStatusSaving((prev) => ({ ...prev, [record.name]: true }));
+    try {
+      await statusMutation.mutateAsync({ recordName: record.name, nextStatus });
+    } finally {
+      setStatusSaving((prev) => ({ ...prev, [record.name]: false }));
     }
-    return Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b));
-  }, [rows]);
-
-  const loading = isLoading || glLoading;
+  }
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-5">
       <BreadcrumbNav />
 
-      {/* ── Header ── */}
       <motion.div variants={itemVariants}>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-3">
-            <Link href="/dashboard/hr-manager/payroll">
-              <button className="p-1.5 rounded-lg hover:bg-surface-secondary transition-colors">
+            <Link href={`/dashboard/hr-manager/salary/${year}/${month}`}>
+              <button className="p-1.5 rounded-lg hover:bg-surface-secondary transition-colors" aria-label="Back to salary sheet">
                 <ArrowLeft className="h-4 w-4 text-text-secondary" />
               </button>
             </Link>
             <div>
-              <h1 className="text-xl font-bold text-text-primary">Payment Status — {periodLabel}</h1>
-              <p className="text-text-tertiary text-xs mt-0.5">Derived from GL Entry · Employee Payable Account balance</p>
+              <h1 className="text-xl font-bold text-text-primary">Payment Status - {periodLabel}</h1>
+              <p className="text-text-tertiary text-xs mt-0.5">Based on saved salary sheet records. Mark each employee as Paid or Not Paid.</p>
             </div>
           </div>
-          <Link href={`/dashboard/hr-manager/salary/${year}/${month}`}>
-            <button className="text-xs text-primary hover:underline flex items-center gap-1">
-              View Salary Sheet →
-            </button>
-          </Link>
         </div>
       </motion.div>
 
-      {loading ? (
-        <div className="flex items-center justify-center py-20 gap-2 text-text-tertiary">
-          <Loader2 className="h-5 w-5 animate-spin" />
-          <span className="text-sm">Loading payment data…</span>
-        </div>
-      ) : isError ? (
-        <div className="flex items-center justify-center py-16 gap-2 text-error">
-          <AlertCircle className="h-5 w-5" />
-          <span className="text-sm">Failed to load records</span>
-        </div>
-      ) : (
-        <>
-          {/* ── Summary Cards ── */}
-          <motion.div variants={itemVariants}>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <Card>
-                <CardContent className="p-3 flex items-center gap-2.5">
-                  <Users className="h-4 w-4 text-text-tertiary opacity-60" />
-                  <div>
-                    <p className="text-sm font-bold text-text-primary">{records.length}</p>
-                    <p className="text-xs text-text-tertiary">Total Staff</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-3 flex items-center gap-2.5">
-                  <CheckCircle2 className="h-4 w-4 text-success opacity-60" />
-                  <div>
-                    <p className="text-sm font-bold text-success">{stats.paidCount}</p>
-                    <p className="text-xs text-text-tertiary">Fully Paid</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-3 flex items-center gap-2.5">
-                  <TrendingDown className="h-4 w-4 text-warning opacity-60" />
-                  <div>
-                    <p className="text-sm font-bold text-warning">{stats.accruedCount}</p>
-                    <p className="text-xs text-text-tertiary">Balance Due</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-3 flex items-center gap-2.5">
-                  <Clock className="h-4 w-4 text-text-tertiary opacity-60" />
-                  <div>
-                    <p className="text-sm font-bold text-text-secondary">{stats.pendingCount}</p>
-                    <p className="text-xs text-text-tertiary">Pending (no JE)</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </motion.div>
-
-          {/* ── Outstanding Balance Banner ── */}
-          {stats.totalBalance > 0 && (
-            <motion.div variants={itemVariants}>
-              <div className="rounded-xl border border-warning/30 bg-warning/5 px-4 py-3 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <IndianRupee className="h-4 w-4 text-warning" />
-                  <div>
-                    <p className="text-sm font-semibold text-text-primary">Total Outstanding Balance</p>
-                    <p className="text-xs text-text-tertiary">
-                      Salary accrued but not yet paid to {stats.accruedCount} employee{stats.accruedCount !== 1 ? "s" : ""}
-                    </p>
-                  </div>
-                </div>
-                <span className="text-lg font-bold text-warning tabular-nums">{formatCurrency(stats.totalBalance)}</span>
+      {!isLoading && records.length > 0 && (
+        <motion.div variants={itemVariants} className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <Card>
+            <CardContent className="p-3 flex items-center gap-2.5">
+              <Users className="h-4 w-4 text-text-secondary" />
+              <div>
+                <p className="text-sm font-bold text-text-primary">{records.length}</p>
+                <p className="text-xs text-text-tertiary">Total Staff</p>
               </div>
-            </motion.div>
-          )}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-3 flex items-center gap-2.5">
+              <CheckCircle2 className="h-4 w-4 text-success" />
+              <div>
+                <p className="text-sm font-bold text-success">{stats.paidCount}</p>
+                <p className="text-xs text-text-tertiary">Paid</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-3 flex items-center gap-2.5">
+              <Clock3 className="h-4 w-4 text-warning" />
+              <div>
+                <p className="text-sm font-bold text-warning">{stats.draftCount}</p>
+                <p className="text-xs text-text-tertiary">Not Paid</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-3 flex items-center gap-2.5">
+              <IndianRupee className="h-4 w-4 text-primary" />
+              <div>
+                <p className="text-sm font-bold text-primary">{formatCurrency(stats.paidNet)}</p>
+                <p className="text-xs text-text-tertiary">Paid Amount</p>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
 
-          {/* ── Branch-wise Tables ── */}
-          <motion.div variants={itemVariants} className="space-y-3">
-            {branchGroups.map(([branch, branchRows]) => {
-              const branchBalance = branchRows.reduce((s, r) => s + r.balanceDue, 0);
-              const branchPaid = branchRows.filter(r => r.status === "paid").length;
+      <motion.div variants={itemVariants}>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-20 gap-2 text-text-tertiary">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            <span className="text-sm">Loading payment status...</span>
+          </div>
+        ) : isError ? (
+          <div className="flex items-center justify-center py-16 gap-2 text-error">
+            <AlertCircle className="h-5 w-5" />
+            <span className="text-sm">Failed to load salary records</span>
+          </div>
+        ) : records.length === 0 ? (
+          <Card>
+            <CardContent className="py-16 flex flex-col items-center gap-4 text-center">
+              <AlertCircle className="h-10 w-10 text-text-tertiary opacity-20" />
+              <div>
+                <p className="font-medium text-text-primary">No records for {periodLabel}</p>
+                <p className="text-sm text-text-secondary mt-1">Generate and save salary sheet first.</p>
+              </div>
+              <Link href={`/dashboard/hr-manager/salary/${year}/${month}`}>
+                <Button size="sm">Go to Salary Sheet</Button>
+              </Link>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-2">
+            {branchGroups.map(([branch, branchRecords]) => {
+              const isCollapsed = collapsedBranches[branch] ?? true;
+              const paidInBranch = branchRecords.filter((r) => r.status === "Paid").length;
+              const branchNet = branchRecords.reduce((sum, r) => sum + (r.net_salary || 0), 0);
 
               return (
                 <div key={branch} className="rounded-xl border border-border-main overflow-hidden bg-surface-primary">
-                  {/* Branch header */}
-                  <div className="flex items-center justify-between px-4 py-3 bg-surface-secondary/50 border-b border-border-main">
-                    <div className="flex items-center gap-2">
-                      <Building2 className="h-3.5 w-3.5 text-primary" />
-                      <span className="font-semibold text-sm text-text-primary">{branch}</span>
-                      <span className="text-xs text-text-tertiary">· {branchRows.length} staff</span>
+                  <button
+                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-surface-secondary/60 transition-colors"
+                    onClick={() => toggleBranch(branch)}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Building2 className="h-4 w-4 text-primary flex-shrink-0" />
+                      <span className="font-semibold text-text-primary text-sm">{branch}</span>
+                      <span className="text-xs text-text-tertiary bg-surface-secondary px-1.5 py-0.5 rounded-full">
+                        {branchRecords.length} staff
+                      </span>
                     </div>
-                    <div className="flex items-center gap-3 text-xs">
-                      <span className="text-success font-medium">{branchPaid}/{branchRows.length} paid</span>
-                      {branchBalance > 0 && (
-                        <span className="text-warning font-medium">{formatCurrency(branchBalance)} due</span>
-                      )}
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-medium text-success">{paidInBranch}/{branchRecords.length} paid</span>
+                      <ChevronDown className={`h-4 w-4 text-text-tertiary transition-transform duration-200 ${isCollapsed ? "" : "rotate-180"}`} />
                     </div>
-                  </div>
+                  </button>
 
-                  {/* Desktop table */}
-                  <div className="hidden sm:block overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-border-main bg-surface-secondary/30">
-                          <th className="py-2 px-4 text-left text-xs font-medium text-text-tertiary">Employee</th>
-                          <th className="py-2 px-4 text-right text-xs font-medium text-text-tertiary">Basic</th>
-                          <th className="py-2 px-4 text-right text-xs font-medium text-text-tertiary">LOP Deduction</th>
-                          <th className="py-2 px-4 text-right text-xs font-medium text-text-tertiary">Other Deduction</th>
-                          <th className="py-2 px-4 text-right text-xs font-medium text-text-tertiary">Paid</th>
-                          <th className="py-2 px-4 text-right text-xs font-medium text-text-tertiary">Balance</th>
-                          <th className="py-2 px-3 text-center text-xs font-medium text-text-tertiary">
-                            <div className="flex items-center justify-center gap-1">
-                              <CalendarCheck2 className="h-3 w-3" />
-                              Avail. Leave
-                            </div>
-                          </th>
-                          <th className="py-2 px-4 text-center text-xs font-medium text-text-tertiary">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {branchRows.map(({ record, status, balanceDue, amountPaid }) => (
-                          <tr key={record.name} className="border-b border-border-main/40 hover:bg-surface-secondary/30 transition-colors">
-                            <td className="py-2.5 px-4 text-text-primary font-medium">
-                              {record.custom_employee_name ?? record.staff_name ?? record.staff}
-                            </td>
-                            <td className="py-2.5 px-4 text-right tabular-nums text-text-secondary">
-                              {formatCurrency(record.basic_salary)}
-                            </td>
-                            <td className="py-2.5 px-4 text-right tabular-nums">
-                              {record.lop_deduction > 0
-                                ? <span className="text-error">−{formatCurrency(record.lop_deduction)}</span>
-                                : <span className="text-text-tertiary">—</span>
-                              }
-                            </td>
-                            <td className="py-2.5 px-4 text-right tabular-nums">
-                              {(record.custom_other_deduction ?? 0) > 0 ? (
-                                <div className="flex flex-col items-end gap-0.5">
-                                  <span className="text-warning">−{formatCurrency(record.custom_other_deduction!)}</span>
-                                  {record.custom_other_deduction_remark && (
-                                    <span className="text-[10px] text-text-tertiary">{record.custom_other_deduction_remark}</span>
-                                  )}
-                                </div>
-                              ) : (
-                                <span className="text-text-tertiary">—</span>
-                              )}
-                            </td>
-                            <td className="py-2.5 px-4 text-right tabular-nums">
-                              {amountPaid > 0
-                                ? <span className="text-success font-medium">{formatCurrency(amountPaid)}</span>
-                                : <span className="text-text-tertiary">—</span>
-                              }
-                            </td>
-                            <td className="py-2.5 px-4 text-right tabular-nums">
-                              {balanceDue > 0
-                                ? <span className="text-warning font-medium">{formatCurrency(balanceDue)}</span>
-                                : <span className="text-text-tertiary">—</span>
-                              }
-                            </td>
-                            {/* Available Leave */}
-                            <td className="py-2.5 px-3 text-center">
-                              {(() => {
-                                const empId = record.custom_employee ?? record.staff;
-                                const saved = record.custom_available_leave;
-                                const accrued = empId ? leaveAccruedMap[empId] : undefined;
-                                const display = saved != null ? saved : accrued;
-                                if (display == null) return <span className="text-text-tertiary text-xs">—</span>;
-                                const color = display <= 0 ? "text-error" : display <= 1.5 ? "text-warning" : "text-success";
-                                return (
-                                  <span className={`font-semibold text-sm tabular-nums ${color}`}>{display.toFixed(1)}</span>
-                                );
-                              })()}
-                            </td>
-                            <td className="py-2.5 px-4 text-center">
-                              <StatusBadge status={status} />
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  {!isCollapsed && (
+                    <>
+                      <div className="hidden md:block overflow-x-auto border-t border-border-main">
+                        <table className="w-full min-w-[980px] text-sm">
+                          <thead>
+                            <tr className="bg-surface-secondary/70">
+                              <th className="text-left py-2.5 px-4 text-[11px] uppercase tracking-wide font-medium text-text-tertiary">Employee</th>
+                              <th className="text-right py-2.5 px-4 text-[11px] uppercase tracking-wide font-medium text-text-tertiary">Basic</th>
+                              <th className="text-right py-2.5 px-4 text-[11px] uppercase tracking-wide font-medium text-text-tertiary">LOP Deduction</th>
+                              <th className="text-right py-2.5 px-4 text-[11px] uppercase tracking-wide font-medium text-text-tertiary">Other Deduction</th>
+                              <th className="text-right py-2.5 px-4 text-[11px] uppercase tracking-wide font-medium text-text-tertiary">Net Payable</th>
+                              <th className="text-center py-2.5 px-4 text-[11px] uppercase tracking-wide font-medium text-text-tertiary">Avail. Leave</th>
+                              <th className="text-center py-2.5 px-4 text-[11px] uppercase tracking-wide font-medium text-text-tertiary">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-border-main">
+                            {branchRecords.map((record) => {
+                              const isPaid = record.status === "Paid";
+                              const saving = !!statusSaving[record.name];
+                              const leaveVal = record.custom_available_leave != null ? record.custom_available_leave.toFixed(1) : "-";
+                              const netPayable = record.net_salary || 0;
 
-                  {/* Mobile cards */}
-                  <div className="sm:hidden divide-y divide-border-main/40">
-                      {branchRows.map(({ record, status, balanceDue, amountPaid }) => (
-                      <div key={record.name} className="px-4 py-3 flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-medium text-text-primary">
-                            {record.custom_employee_name ?? record.staff_name ?? record.staff}
-                          </p>
-                          <p className="text-xs text-text-tertiary mt-0.5">
-                            Basic: {formatCurrency(record.basic_salary)}
-                            {record.lop_deduction > 0 && (
-                              <span className="text-error ml-1.5">−{formatCurrency(record.lop_deduction)} LOP</span>
-                            )}
-                            {(record.custom_other_deduction ?? 0) > 0 && (
-                              <span className="text-warning ml-1.5">−{formatCurrency(record.custom_other_deduction!)}{record.custom_other_deduction_remark ? ` (${record.custom_other_deduction_remark})` : ""}</span>
-                            )}
-                          </p>
-                          <p className="text-xs mt-0.5">
-                            {amountPaid > 0 && <span className="text-success">Paid: {formatCurrency(amountPaid)}</span>}
-                            {balanceDue > 0 && <span className="text-warning ml-2">Due: {formatCurrency(balanceDue)}</span>}
-                            {(() => {
-                              const empId = record.custom_employee ?? record.staff;
-                              const saved = record.custom_available_leave;
-                              const accrued = empId ? leaveAccruedMap[empId] : undefined;
-                              const display = saved != null ? saved : accrued;
-                              if (display == null) return null;
-                              const color = display <= 0 ? "text-error" : display <= 1.5 ? "text-warning" : "text-success";
-                              return <span className={`ml-2 ${color}`}>Leave: {display.toFixed(1)}</span>;
-                            })()}
-                          </p>
-                        </div>
-                        <StatusBadge status={status} />
+                              return (
+                                <tr key={record.name} className="hover:bg-surface-secondary/30 even:bg-surface-secondary/20 transition-colors">
+                                  <td className="py-2.5 px-4 font-medium text-text-primary">{record.custom_employee_name ?? record.staff_name}</td>
+                                  <td className="py-2.5 px-4 text-right tabular-nums">{formatCurrency(record.basic_salary)}</td>
+                                  <td className="py-2.5 px-4 text-right tabular-nums text-error">{record.lop_deduction > 0 ? `-${formatCurrency(record.lop_deduction)}` : "-"}</td>
+                                  <td className="py-2.5 px-4 text-right tabular-nums text-warning">{(record.custom_other_deduction || 0) > 0 ? `-${formatCurrency(record.custom_other_deduction || 0)}` : "-"}</td>
+                                  <td className="py-2.5 px-4 text-right tabular-nums font-semibold text-success">{formatCurrency(netPayable)}</td>
+                                  <td className="py-2.5 px-4 text-center tabular-nums">
+                                    <span className={(record.custom_available_leave || 0) <= 0 ? "text-error" : "text-text-primary"}>{leaveVal}</span>
+                                  </td>
+                                  <td className="py-2.5 px-4 text-center">
+                                    <div className="inline-flex items-center rounded-lg border border-border-main bg-surface-primary p-0.5">
+                                      <button
+                                        type="button"
+                                        disabled={saving}
+                                        onClick={() => handleStatusChange(record, "Draft")}
+                                        className={`px-2 py-1 text-xs rounded-md transition-colors ${!isPaid ? "bg-warning/15 text-warning font-medium" : "text-text-secondary hover:bg-surface-secondary"}`}
+                                      >
+                                        Not Paid
+                                      </button>
+                                      <button
+                                        type="button"
+                                        disabled={saving}
+                                        onClick={() => handleStatusChange(record, "Paid")}
+                                        className={`px-2 py-1 text-xs rounded-md transition-colors ${isPaid ? "bg-success/15 text-success font-medium" : "text-text-secondary hover:bg-surface-secondary"}`}
+                                      >
+                                        Paid
+                                      </button>
+                                    </div>
+                                    {saving && <Loader2 className="h-3 w-3 animate-spin inline ml-2 text-text-tertiary" />}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
                       </div>
-                    ))}
-                  </div>
 
-                  {/* Branch subtotal */}
-                  <div className="bg-surface-secondary/40 border-t border-border-main px-4 py-2 flex flex-wrap items-center justify-between gap-2 text-xs text-text-tertiary">
-                    <span>{branchRows.length} employees</span>
-                    <div className="flex items-center gap-4">
-                      <span className="text-success font-medium">{formatCurrency(branchRows.reduce((s, r) => s + r.record.net_salary, 0))} net</span>
-                      {branchBalance > 0 && (
-                        <span className="text-warning font-medium">{formatCurrency(branchBalance)} outstanding</span>
-                      )}
-                    </div>
-                  </div>
+                      <div className="md:hidden divide-y divide-border-main border-t border-border-main">
+                        {branchRecords.map((record) => {
+                          const isPaid = record.status === "Paid";
+                          const saving = !!statusSaving[record.name];
+
+                          return (
+                            <div key={record.name} className="p-3 space-y-2.5">
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <p className="font-medium text-text-primary text-sm">{record.custom_employee_name ?? record.staff_name}</p>
+                                  <p className="text-xs text-text-tertiary">Net Payable: {formatCurrency(record.net_salary || 0)}</p>
+                                </div>
+                                <Badge variant={isPaid ? "success" : "warning"}>{isPaid ? "Paid" : "Not Paid"}</Badge>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-2 text-xs">
+                                <div>
+                                  <p className="text-text-tertiary">Basic</p>
+                                  <p className="font-medium">{formatCurrency(record.basic_salary)}</p>
+                                </div>
+                                <div>
+                                  <p className="text-text-tertiary">Avail. Leave</p>
+                                  <p className={(record.custom_available_leave || 0) <= 0 ? "font-medium text-error" : "font-medium"}>
+                                    {record.custom_available_leave != null ? record.custom_available_leave.toFixed(1) : "-"}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="inline-flex items-center rounded-lg border border-border-main bg-surface-primary p-0.5">
+                                <button
+                                  type="button"
+                                  disabled={saving}
+                                  onClick={() => handleStatusChange(record, "Draft")}
+                                  className={`px-2 py-1 text-xs rounded-md transition-colors ${!isPaid ? "bg-warning/15 text-warning font-medium" : "text-text-secondary hover:bg-surface-secondary"}`}
+                                >
+                                  Not Paid
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={saving}
+                                  onClick={() => handleStatusChange(record, "Paid")}
+                                  className={`px-2 py-1 text-xs rounded-md transition-colors ${isPaid ? "bg-success/15 text-success font-medium" : "text-text-secondary hover:bg-surface-secondary"}`}
+                                >
+                                  Paid
+                                </button>
+                              </div>
+                              {saving && <Loader2 className="h-3 w-3 animate-spin text-text-tertiary" />}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <div className="bg-surface-secondary/60 border-t border-border-main px-4 py-2 flex items-center justify-between text-xs text-text-tertiary">
+                        <span>{branchRecords.length} employees</span>
+                        <div className="flex items-center gap-3">
+                          <span>{paidInBranch}/{branchRecords.length} paid</span>
+                          <span className="font-semibold text-success">{formatCurrency(branchNet)} net</span>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               );
             })}
-          </motion.div>
 
-          {/* ── Grand total ── */}
-          {rows.length > 0 && (
-            <motion.div variants={itemVariants}>
-              <div className="rounded-xl border border-border-main bg-surface-secondary/50 px-4 py-3 flex flex-wrap items-center justify-between gap-2 text-sm">
-                <span className="font-semibold text-text-primary">{records.length} staff total</span>
-                <div className="flex flex-wrap items-center gap-4 font-medium">
-                  <span className="text-success">{formatCurrency(stats.totalNet)} net pay</span>
-                  {stats.totalBalance > 0 && (
-                    <span className="text-warning">{formatCurrency(stats.totalBalance)} outstanding</span>
-                  )}
-                  <span className="text-text-tertiary text-xs">
-                    {stats.paidCount} paid · {stats.accruedCount} balance · {stats.pendingCount} pending
-                  </span>
-                </div>
+            <div className="rounded-xl border border-border-main bg-surface-secondary/50 px-4 py-3 flex flex-wrap items-center justify-between gap-2 text-sm">
+              <span className="font-semibold text-text-primary">{records.length} staff total</span>
+              <div className="flex items-center gap-4 font-medium">
+                <span className="text-success">{stats.paidCount}/{records.length} paid</span>
+                <span className="text-primary">{formatCurrency(stats.totalNet)} net total</span>
               </div>
-            </motion.div>
-          )}
-        </>
-      )}
+            </div>
+          </div>
+        )}
+      </motion.div>
     </motion.div>
   );
 }

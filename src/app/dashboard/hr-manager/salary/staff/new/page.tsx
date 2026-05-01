@@ -1,9 +1,9 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Loader2, ArrowLeft, UserPlus,
   User, Briefcase, Phone, IndianRupee, Building2,
@@ -13,7 +13,6 @@ import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import {
-  getDepartments,
   getDesignations,
   createEmployee,
 } from "@/lib/api/employees";
@@ -31,7 +30,7 @@ const EMP_TYPES = ["Full-time", "Part-time", "Probation", "Contract", "Intern"] 
 
 interface F {
   first_name: string; last_name: string; gender: string; dob: string;
-  doj: string; company: string; department: string; designation: string;
+  doj: string; company: string; designation: string;
   emp_type: string; status: string; phone: string; email: string; salary: string;
   bank_name: string; bank_ac_no: string; ifsc_code: string; bank_branch_location: string;
 }
@@ -46,14 +45,18 @@ function FieldLabel({ children, required }: { children: React.ReactNode; require
 
 export default function NewEmployeePage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const [f, setF] = useState<F>({
     first_name: "", last_name: "", gender: "", dob: "",
     doj: new Date().toISOString().split("T")[0],
-    company: "", department: "", designation: "", emp_type: "Full-time",
+    company: "", designation: "", emp_type: "Full-time",
     status: "Active", phone: "", email: "", salary: "",
     bank_name: "", bank_ac_no: "", ifsc_code: "", bank_branch_location: "",
   });
+  const [newDesignation, setNewDesignation] = useState("");
+  const [addedDesignations, setAddedDesignations] = useState<string[]>([]);
+  const [addingDesignation, setAddingDesignation] = useState(false);
 
   const set = (k: keyof F) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setF(p => ({ ...p, [k]: e.target.value }));
@@ -65,12 +68,6 @@ export default function NewEmployeePage() {
       return data as { data: { name: string }[] };
     },
     staleTime: 300_000,
-  });
-  const { data: deptRes } = useQuery({
-    queryKey: ["departments", f.company],
-    queryFn: () => getDepartments(f.company || undefined),
-    staleTime: 120_000,
-    enabled: true,
   });
   const { data: desigRes } = useQuery({
     queryKey: ["designations"],
@@ -87,7 +84,6 @@ export default function NewEmployeePage() {
         date_of_birth: f.dob || undefined,
         date_of_joining: f.doj || undefined,
         company: f.company,
-        department: f.department || undefined,
         designation: f.designation || undefined,
         employment_type: f.emp_type || undefined,
         status: f.status,
@@ -120,8 +116,72 @@ export default function NewEmployeePage() {
   }
 
   const companies = companiesRes?.data ?? [];
-  const depts = deptRes?.data ?? [];
   const desigs = desigRes?.data ?? [];
+  const designationOptions = Array.from(
+    new Set([
+      ...desigs.map((d) => d.name.trim()),
+      ...addedDesignations.map((d) => d.trim()),
+    ].filter(Boolean))
+  );
+
+  async function createDesignationInFrappe(value: string) {
+    const payloads = [
+      { designation: value },
+      { designation_name: value },
+      { name: value, designation: value },
+      { name: value, designation_name: value },
+    ];
+
+    let lastError: unknown = null;
+    for (const payload of payloads) {
+      try {
+        await apiClient.post("/resource/Designation", payload);
+        return;
+      } catch (err: unknown) {
+        const message = (err as { response?: { data?: { exception?: string; message?: string } } })?.response?.data;
+        const errText = `${message?.exception ?? ""} ${message?.message ?? ""}`.toLowerCase();
+        if (errText.includes("duplicate") || errText.includes("already exists")) {
+          return;
+        }
+        lastError = err;
+      }
+    }
+
+    throw lastError;
+  }
+
+  async function handleAddDesignation() {
+    const value = newDesignation.trim();
+    if (!value) {
+      toast.error("Enter a designation name");
+      return;
+    }
+
+    const exists = designationOptions.some((d) => d.toLowerCase() === value.toLowerCase());
+    if (exists) {
+      setF((prev) => ({ ...prev, designation: value }));
+      setNewDesignation("");
+      toast.success("Designation selected");
+      return;
+    }
+
+    setAddingDesignation(true);
+    try {
+      // Persist to Frappe master so it appears in /app/designation list.
+      await createDesignationInFrappe(value);
+      setAddedDesignations((prev) => [...prev, value]);
+      await queryClient.invalidateQueries({ queryKey: ["designations"] });
+      setF((prev) => ({ ...prev, designation: value }));
+      setNewDesignation("");
+      toast.success("Designation added in Frappe");
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { exception?: string; message?: string } } })?.response?.data;
+      const friendly = message?.message || message?.exception || "Failed to add designation";
+      toast.error(String(friendly).split("\n")[0]);
+    } finally {
+      setAddingDesignation(false);
+    }
+  }
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-5">
@@ -191,29 +251,30 @@ export default function NewEmployeePage() {
               <div>
                 <FieldLabel required>Branch / Company</FieldLabel>
                 <select value={f.company}
-                  onChange={e => setF(p => ({ ...p, company: e.target.value, department: "" }))}
+                  onChange={e => setF(p => ({ ...p, company: e.target.value }))}
                   className={FC}>
                   <option value="">Select company…</option>
                   {companies.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
                 </select>
               </div>
               <div>
-                <FieldLabel>Department</FieldLabel>
-                <select value={f.department} onChange={set("department")} className={FC}>
-                  <option value="">Select department…</option>
-                  {depts.map(d => (
-                    <option key={d.name} value={d.name}>
-                      {d.name.replace(/\s*-\s*Smart Up.*$/i, "")}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
                 <FieldLabel>Designation</FieldLabel>
                 <select value={f.designation} onChange={set("designation")} className={FC}>
                   <option value="">Select designation…</option>
-                  {desigs.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
+                  {designationOptions.map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
+                <div className="mt-2 flex gap-2">
+                  <input
+                    type="text"
+                    value={newDesignation}
+                    onChange={(e) => setNewDesignation(e.target.value)}
+                    placeholder="Add new designation"
+                    className={FC}
+                  />
+                  <Button type="button" variant="outline" onClick={handleAddDesignation} className="shrink-0 px-3">
+                    {addingDesignation ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
+                  </Button>
+                </div>
               </div>
               <div>
                 <FieldLabel>Employment Type</FieldLabel>
@@ -322,4 +383,3 @@ export default function NewEmployeePage() {
     </motion.div>
   );
 }
-

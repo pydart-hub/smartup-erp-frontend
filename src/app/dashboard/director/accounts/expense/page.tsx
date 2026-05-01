@@ -250,8 +250,8 @@ export default function ExpensePage() {
   const allBranches = useMemo(() => branches ?? [], [branches]);
   const filtered = search
     ? allBranches.filter((b) =>
-        b.name.toLowerCase().includes(search.toLowerCase()),
-      )
+      b.name.toLowerCase().includes(search.toLowerCase()),
+    )
     : allBranches;
 
   // Top & lowest expense branches

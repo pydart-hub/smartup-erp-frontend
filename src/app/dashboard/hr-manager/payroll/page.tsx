@@ -175,7 +175,7 @@ export default function HRPayrollPage() {
               return (
                 <motion.div key={`${period.year}-${period.month}`} variants={itemVariants} initial="hidden" animate="visible">
                   <Link
-                    href={`/dashboard/hr-manager/salary/${period.year}/${period.month}/payment-status`}
+                    href={`/dashboard/hr-manager/salary/${period.year}/${period.month}`}
                   >
                     <Card className="hover:border-primary/40 transition-colors cursor-pointer group">
                       <CardContent className="p-4 sm:p-5">

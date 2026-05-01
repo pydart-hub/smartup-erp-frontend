@@ -106,6 +106,22 @@ export async function GET(request: NextRequest) {
       studentResults: Map<string, { subjects: { course: string; score: number; max: number; pct: number; grade: string; passed: boolean }[] }>;
     }>();
 
+    // Seed batchGroups from ALL plans so batches without results still appear in the list.
+    // Without this, only batches that have at least one result row are shown, causing
+    // "Total Exams: N" to disagree with the class list (which shows fewer rows).
+    for (const p of plans) {
+      const key = batchKey(p.student_group, p.assessment_group);
+      if (!batchGroups.has(key)) {
+        batchGroups.set(key, {
+          student_group: p.student_group,
+          program: p.program || "",
+          assessment_group: p.assessment_group,
+          subjectMap: new Map(),
+          studentResults: new Map(),
+        });
+      }
+    }
+
     for (const r of results) {
       const plan = planLookup.get(r.assessment_plan);
       if (!plan) continue;
