@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, Suspense } from "react";
 import { motion } from "framer-motion";
 import {
   Building2,
@@ -89,6 +89,14 @@ function getDefaultDates() {
 }
 
 export default function GeneralManagerReportsPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-text-secondary text-sm">Loading...</div>}>
+      <ReportsPageInner />
+    </Suspense>
+  );
+}
+
+function ReportsPageInner() {
   const searchParams = useSearchParams();
   const initialCategory = searchParams.get("tab") === "shedules" ? "shedules" : "students";
   const [category, setCategory] = useState<Category>(initialCategory);
