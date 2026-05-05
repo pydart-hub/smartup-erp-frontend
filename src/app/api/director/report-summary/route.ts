@@ -23,7 +23,12 @@ function parseSession(request: NextRequest) {
 }
 
 function isDirectorRole(roles: string[]): boolean {
-  return roles.includes("Director") || roles.includes("Management") || roles.includes("Administrator");
+  return (
+    roles.includes("Director") ||
+    roles.includes("Management") ||
+    roles.includes("General Manager") ||
+    roles.includes("Administrator")
+  );
 }
 
 // ── Frappe helpers ──

@@ -42,13 +42,19 @@ interface TopicItem {
   sessionEnded: boolean;
 }
 
-interface CourseTopicStats {
+interface SubjectGroup {
   course: string;
   instructor_name: string;
-  student_group: string;
   totalTopicSessions: number;
   coveredSessions: number;
   topics: TopicItem[];
+}
+
+interface ClassGroup {
+  student_group: string;
+  totalTopicSessions: number;
+  coveredSessions: number;
+  subjects: SubjectGroup[];
 }
 
 interface EventItem {
@@ -92,6 +98,8 @@ export default function TopicCoveragePage() {
   const [activeTab, setActiveTab] = useState<"topics" | "events">("topics");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "covered">("all");
+  const [expandedClasses, setExpandedClasses] = useState<Set<string>>(new Set());
+  const [expandedSubjects, setExpandedSubjects] = useState<Set<string>>(new Set());
 
   const fromDate = useMemo(() => {
     const d = new Date();
@@ -124,7 +132,13 @@ export default function TopicCoveragePage() {
       queryClient.invalidateQueries({ queryKey });
       toast.success("Marked as covered");
     },
-    onError: () => toast.error("Failed to update. Please try again."),
+    onError: (error: unknown) => {
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : "Failed to update. Please try again.";
+      toast.error(message);
+    },
   });
 
   const unmarkMutation = useMutation({
@@ -133,7 +147,13 @@ export default function TopicCoveragePage() {
       queryClient.invalidateQueries({ queryKey });
       toast.success("Marked as pending");
     },
-    onError: () => toast.error("Failed to update. Please try again."),
+    onError: (error: unknown) => {
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : "Failed to update. Please try again.";
+      toast.error(message);
+    },
   });
 
   const isBusy = useCallback(
@@ -143,36 +163,51 @@ export default function TopicCoveragePage() {
     [markMutation, unmarkMutation],
   );
 
-  // ── Class topic groups ───────────────────────────────────────────────────
-  const courseStats: CourseTopicStats[] = useMemo(() => {
+  // ── Class → Subject → Topics ─────────────────────────────────────────────
+  const classGroups: ClassGroup[] = useMemo(() => {
     const schedules = (scheduleRes?.data ?? []).filter(
       (s: CourseSchedule) => s.custom_topic && !s.custom_event_type,
     );
-    const map = new Map<string, CourseSchedule[]>();
+    // group by student_group → course → records
+    const classMap = new Map<string, Map<string, CourseSchedule[]>>();
     for (const s of schedules) {
-      const key = `${s.course}::${s.instructor_name}::${s.student_group}`;
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(s);
+      const sg = s.student_group ?? "Unknown Class";
+      const co = s.course ?? "Unknown Subject";
+      if (!classMap.has(sg)) classMap.set(sg, new Map());
+      const subMap = classMap.get(sg)!;
+      if (!subMap.has(co)) subMap.set(co, []);
+      subMap.get(co)!.push(s);
     }
-    return [...map.entries()]
-      .map(([, records]) => {
-        const first = records[0];
+    return [...classMap.entries()]
+      .map(([sg, subMap]) => {
+        const subjects: SubjectGroup[] = [...subMap.entries()]
+          .map(([co, records]) => {
+            const first = records[0];
+            return {
+              course: co,
+              instructor_name: first.instructor_name ?? "",
+              totalTopicSessions: records.length,
+              coveredSessions: records.filter((r) => r.custom_topic_covered).length,
+              topics: records
+                .sort((a, b) => (a.schedule_date ?? "").localeCompare(b.schedule_date ?? ""))
+                .map((r) => ({
+                  scheduleName: r.name,
+                  topicName: r.custom_topic!,
+                  covered: !!r.custom_topic_covered,
+                  date: r.schedule_date ?? "",
+                  sessionEnded: isSessionEnded(r),
+                })),
+            };
+          })
+          .sort((a, b) => a.course.localeCompare(b.course));
         return {
-          course: first.course,
-          instructor_name: first.instructor_name ?? "",
-          student_group: first.student_group,
-          totalTopicSessions: records.length,
-          coveredSessions: records.filter((r) => r.custom_topic_covered).length,
-          topics: records.map((r) => ({
-            scheduleName: r.name,
-            topicName: r.custom_topic!,
-            covered: !!r.custom_topic_covered,
-            date: r.schedule_date ?? "",
-            sessionEnded: isSessionEnded(r),
-          })),
+          student_group: sg,
+          totalTopicSessions: subjects.reduce((a, s) => a + s.totalTopicSessions, 0),
+          coveredSessions: subjects.reduce((a, s) => a + s.coveredSessions, 0),
+          subjects,
         };
       })
-      .sort((a, b) => a.course.localeCompare(b.course));
+      .sort((a, b) => a.student_group.localeCompare(b.student_group));
   }, [scheduleRes]);
 
   // ── Events ───────────────────────────────────────────────────────────────
@@ -192,26 +227,40 @@ export default function TopicCoveragePage() {
       .sort((a: EventItem, b: EventItem) => a.date.localeCompare(b.date));
   }, [scheduleRes]);
 
-  // ── Filtered topic groups ────────────────────────────────────────────────
+  // ── Filtered class groups ────────────────────────────────────────────────
   const filtered = useMemo(() => {
-    let items = courseStats;
+    let items = classGroups;
     if (search) {
       const q = search.toLowerCase();
-      items = items.filter(
-        (c) =>
-          c.course.toLowerCase().includes(q) ||
-          c.instructor_name.toLowerCase().includes(q) ||
-          c.student_group.toLowerCase().includes(q) ||
-          c.topics.some((t) => t.topicName.toLowerCase().includes(q)),
-      );
+      items = items
+        .map((cg) => {
+          const matchedSubjects = cg.subjects
+            .map((sub) => {
+              const matchedTopics = sub.topics.filter(
+                (t) =>
+                  t.topicName.toLowerCase().includes(q) ||
+                  sub.course.toLowerCase().includes(q) ||
+                  sub.instructor_name.toLowerCase().includes(q) ||
+                  cg.student_group.toLowerCase().includes(q),
+              );
+              return matchedTopics.length > 0
+                ? { ...sub, topics: matchedTopics }
+                : null;
+            })
+            .filter(Boolean) as SubjectGroup[];
+          return matchedSubjects.length > 0
+            ? { ...cg, subjects: matchedSubjects }
+            : null;
+        })
+        .filter(Boolean) as ClassGroup[];
     }
     if (statusFilter === "covered") {
-      items = items.filter((c) => c.coveredSessions === c.totalTopicSessions);
+      items = items.filter((cg) => cg.coveredSessions === cg.totalTopicSessions);
     } else if (statusFilter === "pending") {
-      items = items.filter((c) => c.coveredSessions < c.totalTopicSessions);
+      items = items.filter((cg) => cg.coveredSessions < cg.totalTopicSessions);
     }
     return items;
-  }, [courseStats, search, statusFilter]);
+  }, [classGroups, search, statusFilter]);
 
   // ── Filtered events ──────────────────────────────────────────────────────
   const filteredEvents = useMemo(() => {
@@ -232,8 +281,8 @@ export default function TopicCoveragePage() {
   }, [events, search, statusFilter]);
 
   // ── Totals ───────────────────────────────────────────────────────────────
-  const totalTopics = courseStats.reduce((a, c) => a + c.totalTopicSessions, 0);
-  const coveredTopics = courseStats.reduce((a, c) => a + c.coveredSessions, 0);
+  const totalTopics = classGroups.reduce((a, c) => a + c.totalTopicSessions, 0);
+  const coveredTopics = classGroups.reduce((a, c) => a + c.coveredSessions, 0);
   const totalEvents = events.length;
   const doneEvents = events.filter((e) => e.done).length;
 
@@ -361,109 +410,176 @@ export default function TopicCoveragePage() {
       {/* ── CLASS TOPICS TAB ── */}
       {!isLoading && activeTab === "topics" && (
         <>
-          {courseStats.length === 0 ? (
+          {classGroups.length === 0 ? (
             <div className="text-center py-16 text-text-secondary text-sm">
               No topic-assigned schedules found. Assign topics while creating schedules.
             </div>
           ) : (
             <div className="space-y-4">
-              {filtered.map((cs) => {
-                const pct =
-                  cs.totalTopicSessions > 0
-                    ? Math.round((cs.coveredSessions / cs.totalTopicSessions) * 100)
+              {filtered.map((cg) => {
+                const classPct =
+                  cg.totalTopicSessions > 0
+                    ? Math.round((cg.coveredSessions / cg.totalTopicSessions) * 100)
                     : 0;
+                const isClassExpanded = expandedClasses.has(cg.student_group);
                 return (
-                  <Card key={`${cs.course}::${cs.instructor_name}::${cs.student_group}`}>
+                  <Card key={cg.student_group}>
+                    {/* Class header */}
                     <CardContent className="p-4 space-y-3">
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-1">
+                      <button
+                        onClick={() =>
+                          setExpandedClasses((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(cg.student_group)) next.delete(cg.student_group);
+                            else next.add(cg.student_group);
+                            return next;
+                          })
+                        }
+                        className="w-full text-left"
+                      >
+                        <div className="flex items-start justify-between">
                           <div className="flex items-center gap-2">
-                            <BookOpen className="h-4 w-4 text-primary" />
-                            <span className="font-semibold text-text-primary">{cs.course}</span>
+                            <Users className="h-4 w-4 text-primary" />
+                            <span className="font-bold text-text-primary">{cg.student_group}</span>
+                            <span className="text-xs text-text-secondary">
+                              {cg.subjects.length} subject{cg.subjects.length !== 1 ? "s" : ""}
+                            </span>
                           </div>
-                          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-secondary">
-                            <span className="flex items-center gap-1">
-                              <GraduationCap className="h-3 w-3" />
-                              {cs.instructor_name}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Users className="h-3 w-3" />
-                              {cs.student_group}
-                            </span>
+                          <div className="flex items-center gap-2">
+                            <Badge variant={classPct === 100 ? "success" : classPct > 50 ? "warning" : "outline"}>
+                              {classPct}% · {cg.coveredSessions}/{cg.totalTopicSessions}
+                            </Badge>
+                            <span className="text-text-tertiary text-sm">{isClassExpanded ? "▲" : "▼"}</span>
                           </div>
                         </div>
-                        <Badge variant={pct === 100 ? "success" : pct > 50 ? "warning" : "outline"}>
-                          {pct}% · {cs.coveredSessions}/{cs.totalTopicSessions}
-                        </Badge>
-                      </div>
-                      <div className="h-2 bg-surface-secondary rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-success rounded-full transition-all"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        {cs.topics.map((t, i) => {
-                          const busy = isBusy(t.scheduleName);
-                          return (
-                            <div
-                              key={`${t.scheduleName}-${i}`}
-                              className={`flex items-center justify-between px-3 py-2 rounded-lg border text-sm ${
-                                t.covered
-                                  ? "bg-success/10 border-success/20"
-                                  : t.sessionEnded
-                                  ? "bg-surface-secondary border-border-light"
-                                  : "bg-app-bg border-border-light opacity-60"
-                              }`}
-                            >
-                              <div className="flex items-center gap-2 min-w-0">
-                                {t.covered ? (
-                                  <CheckCircle2 className="h-4 w-4 text-success flex-shrink-0" />
-                                ) : t.sessionEnded ? (
-                                  <FileText className="h-4 w-4 text-text-secondary flex-shrink-0" />
-                                ) : (
-                                  <Clock className="h-4 w-4 text-text-secondary flex-shrink-0" />
-                                )}
-                                <span
-                                  className={`truncate ${
-                                    t.covered ? "text-success font-medium" : "text-text-primary"
-                                  }`}
+                        <div className="h-2 bg-surface-secondary rounded-full overflow-hidden mt-2">
+                          <div
+                            className="h-full bg-success rounded-full transition-all"
+                            style={{ width: `${classPct}%` }}
+                          />
+                        </div>
+                      </button>
+
+                      {/* Subjects within class */}
+                      {isClassExpanded && (
+                        <div className="space-y-3 pt-1">
+                          {cg.subjects.map((sub) => {
+                            const subPct =
+                              sub.totalTopicSessions > 0
+                                ? Math.round((sub.coveredSessions / sub.totalTopicSessions) * 100)
+                                : 0;
+                            const subKey = `${cg.student_group}::${sub.course}`;
+                            const isSubExpanded = expandedSubjects.has(subKey);
+                            return (
+                              <div key={subKey} className="border border-border-light rounded-xl overflow-hidden">
+                                {/* Subject header */}
+                                <button
+                                  onClick={() =>
+                                    setExpandedSubjects((prev) => {
+                                      const next = new Set(prev);
+                                      if (next.has(subKey)) next.delete(subKey);
+                                      else next.add(subKey);
+                                      return next;
+                                    })
+                                  }
+                                  className="w-full text-left px-4 py-3 bg-surface-secondary hover:bg-surface-hover transition-colors"
                                 >
-                                  {t.topicName}
-                                </span>
-                                {t.date && (
-                                  <span className="text-[11px] text-text-secondary flex-shrink-0">
-                                    {fmtDate(t.date)}
-                                  </span>
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                      <BookOpen className="h-4 w-4 text-primary" />
+                                      <span className="font-semibold text-text-primary text-sm">{sub.course}</span>
+                                      {sub.instructor_name && (
+                                        <span className="flex items-center gap-1 text-xs text-text-secondary">
+                                          <GraduationCap className="h-3 w-3" />
+                                          {sub.instructor_name}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                                        subPct === 100
+                                          ? "bg-success/15 text-success"
+                                          : subPct > 50
+                                          ? "bg-warning/15 text-warning"
+                                          : "bg-border-light text-text-secondary"
+                                      }`}>
+                                        {subPct}% · {sub.coveredSessions}/{sub.totalTopicSessions}
+                                      </span>
+                                      <span className="text-text-tertiary text-xs">{isSubExpanded ? "▲" : "▼"}</span>
+                                    </div>
+                                  </div>
+                                </button>
+
+                                {/* Topics within subject */}
+                                {isSubExpanded && (
+                                  <div className="p-3 space-y-2 bg-app-bg">
+                                    {sub.topics.map((t, i) => {
+                                      const busy = isBusy(t.scheduleName);
+                                      return (
+                                        <div
+                                          key={`${t.scheduleName}-${i}`}
+                                          className={`flex items-center justify-between px-3 py-2 rounded-lg border text-sm ${
+                                            t.covered
+                                              ? "bg-success/10 border-success/20"
+                                              : t.sessionEnded
+                                              ? "bg-surface-secondary border-border-light"
+                                              : "bg-app-bg border-border-light opacity-60"
+                                          }`}
+                                        >
+                                          <div className="flex items-center gap-2 min-w-0">
+                                            {t.covered ? (
+                                              <CheckCircle2 className="h-4 w-4 text-success flex-shrink-0" />
+                                            ) : t.sessionEnded ? (
+                                              <FileText className="h-4 w-4 text-text-secondary flex-shrink-0" />
+                                            ) : (
+                                              <Clock className="h-4 w-4 text-text-secondary flex-shrink-0" />
+                                            )}
+                                            <span
+                                              className={`truncate ${
+                                                t.covered ? "text-success font-medium" : "text-text-primary"
+                                              }`}
+                                            >
+                                              {t.topicName}
+                                            </span>
+                                            {t.date && (
+                                              <span className="text-[11px] text-text-secondary flex-shrink-0">
+                                                {fmtDate(t.date)}
+                                              </span>
+                                            )}
+                                          </div>
+                                          <div className="flex-shrink-0 ml-3">
+                                            {t.covered ? (
+                                              <button
+                                                onClick={() => unmarkMutation.mutate(t.scheduleName)}
+                                                disabled={busy}
+                                                className="text-xs px-2.5 py-1 rounded-md border border-warning/40 text-warning bg-warning/10 hover:bg-warning/20 transition disabled:opacity-50 flex items-center gap-1"
+                                              >
+                                                {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : "Mark Pending"}
+                                              </button>
+                                            ) : t.sessionEnded ? (
+                                              <button
+                                                onClick={() => markMutation.mutate(t.scheduleName)}
+                                                disabled={busy}
+                                                className="text-xs px-2.5 py-1 rounded-md border border-success/40 text-success bg-success/10 hover:bg-success/20 transition disabled:opacity-50 flex items-center gap-1"
+                                              >
+                                                {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : "Mark Covered"}
+                                              </button>
+                                            ) : (
+                                              <span className="text-[11px] text-text-secondary italic">
+                                                Not yet ended
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
                                 )}
                               </div>
-                              <div className="flex-shrink-0 ml-3">
-                                {t.covered ? (
-                                  <button
-                                    onClick={() => unmarkMutation.mutate(t.scheduleName)}
-                                    disabled={busy}
-                                    className="text-xs px-2.5 py-1 rounded-md border border-warning/40 text-warning bg-warning/10 hover:bg-warning/20 transition disabled:opacity-50 flex items-center gap-1"
-                                  >
-                                    {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : "Mark Pending"}
-                                  </button>
-                                ) : t.sessionEnded ? (
-                                  <button
-                                    onClick={() => markMutation.mutate(t.scheduleName)}
-                                    disabled={busy}
-                                    className="text-xs px-2.5 py-1 rounded-md border border-success/40 text-success bg-success/10 hover:bg-success/20 transition disabled:opacity-50 flex items-center gap-1"
-                                  >
-                                    {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : "Mark Covered"}
-                                  </button>
-                                ) : (
-                                  <span className="text-[11px] text-text-secondary italic">
-                                    Not yet ended
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 );

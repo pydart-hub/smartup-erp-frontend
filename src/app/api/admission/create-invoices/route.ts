@@ -48,6 +48,8 @@ interface ScheduleEntry {
   amount: number;
   dueDate: string;
   label: string;
+  discountApplied?: number;
+  discountRemark?: string;
 }
 
 export async function POST(request: NextRequest) {
@@ -104,6 +106,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Resolve academic year — use SO's value or fetch the currently active one
+    let academicYear: string | undefined = soData.custom_academic_year || undefined;
+    if (!academicYear) {
+      try {
+        const todayStr = new Date().toISOString().split("T")[0];
+        const ayFilters = encodeURIComponent(
+          JSON.stringify([["year_start_date", "<=", todayStr], ["year_end_date", ">=", todayStr]]),
+        );
+        const ayFields = encodeURIComponent(JSON.stringify(["name"]));
+        const ayRes = await fetchRetry(
+          `${FRAPPE_URL}/api/resource/Academic Year?filters=${ayFilters}&fields=${ayFields}&limit=1`,
+          { headers },
+        );
+        if (ayRes.ok) {
+          const ayData = await ayRes.json();
+          academicYear = ayData.data?.[0]?.name as string | undefined;
+        }
+      } catch {
+        // Non-fatal — invoice will fail at Frappe if year is truly mandatory
+      }
+    }
+
     // 2. Create one Sales Invoice per instalment
     const createdInvoices: string[] = [];
     const draftInvoices: string[] = []; // Created but submission failed
@@ -148,7 +172,7 @@ export async function POST(request: NextRequest) {
         due_date: effectiveDate,
         // Custom fields from SO
         student: soData.student,
-        custom_academic_year: soData.custom_academic_year,
+        custom_academic_year: academicYear,
         // Items — qty=1 per instalment, rate=instalment amount.
         // SO should have qty=numInstalments so each invoice billing qty=1
         // stays within the overbilling threshold.
@@ -156,7 +180,7 @@ export async function POST(request: NextRequest) {
           {
             item_code: soItem.item_code,
             item_name: soItem.item_name,
-            description: `${inst.label} — ${soItem.item_name}`,
+            description: `${inst.label} — ${soItem.item_name}${inst.discountApplied ? ` | Admission discount: -₹${inst.discountApplied.toLocaleString("en-IN")}${inst.discountRemark ? ` (${inst.discountRemark})` : ""}` : ""}`,
             qty: 1,
             rate: inst.amount,
             amount: inst.amount,
@@ -218,12 +242,12 @@ export async function POST(request: NextRequest) {
           posting_date: effectiveDate,
           due_date: effectiveDate,
           student: soData.student,
-          custom_academic_year: soData.custom_academic_year,
+          custom_academic_year: academicYear,
           items: [
             {
               item_code: soItem.item_code,
               item_name: soItem.item_name,
-              description: `${inst.label} — ${soItem.item_name}`,
+              description: `${inst.label} — ${soItem.item_name}${inst.discountApplied ? ` | Admission discount: -₹${inst.discountApplied.toLocaleString("en-IN")}${inst.discountRemark ? ` (${inst.discountRemark})` : ""}` : ""}`,
               qty: 1,
               rate: inst.amount,
               amount: inst.amount,

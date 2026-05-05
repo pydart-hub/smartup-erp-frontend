@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useCallback, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -110,8 +111,18 @@ function getMatchingDates(
 type Phase = "form" | "running" | "done";
 
 export default function BulkSchedulePage() {
+  return (
+    <React.Suspense>
+      <BulkScheduleContent />
+    </React.Suspense>
+  );
+}
+
+function BulkScheduleContent() {
   const { defaultCompany, allowedCompanies } = useAuth();
   const branch = defaultCompany || (allowedCompanies.length > 0 ? allowedCompanies[0] : "");
+  const searchParams = useSearchParams();
+  const preselectedGroup = searchParams.get("group") ?? "";
 
   // ── Form state ─────────────────────────────────────────────────────────────
   const [selectedDays, setSelectedDays] = useState<Set<number>>(new Set());
@@ -125,7 +136,7 @@ export default function BulkSchedulePage() {
     return d.toISOString().split("T")[0];
   });
   const [form, setForm] = useState({
-    student_group: "",
+    student_group: preselectedGroup,
     course: "",
     instructor: "",
     room: "",

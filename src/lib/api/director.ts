@@ -6,6 +6,29 @@
 
 import apiClient from "./client";
 
+let noStudentGroupReadPermission = false;
+let noProgramEnrollmentReadPermission = false;
+
+function isPermissionDenied(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "response" in error &&
+    (error as { response?: { status?: number } }).response?.status === 403
+  );
+}
+
+async function fetchDirectorBranchAcademics<T>(
+  params: Record<string, string>
+): Promise<T> {
+  const searchParams = new URLSearchParams(params);
+  const { data } = await apiClient.get(
+    `/director/branch-academics?${searchParams.toString()}`,
+    { baseURL: "/api" }
+  );
+  return data as T;
+}
+
 // ── Types ──
 
 export interface BranchSummary {
@@ -201,6 +224,15 @@ export async function getStudentCountByPlanForBranch(branch: string): Promise<{
   freeAccess: number;
 }> {
   const result = { advanced: 0, intermediate: 0, basic: 0, freeAccess: 0 };
+
+  if (noProgramEnrollmentReadPermission) {
+    const batches = await getBranchBatches(branch);
+    const batchNames = (batches.data ?? [])
+      .filter((b) => !b.disabled)
+      .map((b) => b.name);
+    return getPlanCountsForBatches(batchNames, branch);
+  }
+
   // Step 1: get active student IDs for this branch
   const studentsRes = await apiClient.get("/resource/Student", {
     params: {
@@ -215,17 +247,29 @@ export async function getStudentCountByPlanForBranch(branch: string): Promise<{
   // Step 2: fetch enrollments in batches of 50 to avoid URL length limits
   const batchSize = 50;
   const allEnrollments: Array<{ student: string; custom_plan: string; student_category: string }> = [];
-  for (let i = 0; i < studentIds.length; i += batchSize) {
-    const batch = studentIds.slice(i, i + batchSize);
-    const batchRes = await apiClient.get("/resource/Program Enrollment", {
-      params: {
-        fields: JSON.stringify(["student", "custom_plan", "student_category"]),
-        filters: JSON.stringify([["docstatus", "=", 1], ["student", "in", batch]]),
-        order_by: "enrollment_date desc",
-        limit_page_length: batch.length * 3,
-      },
-    });
-    allEnrollments.push(...(batchRes.data?.data ?? []));
+  try {
+    for (let i = 0; i < studentIds.length; i += batchSize) {
+      const batch = studentIds.slice(i, i + batchSize);
+      const batchRes = await apiClient.get("/resource/Program Enrollment", {
+        params: {
+          fields: JSON.stringify(["student", "custom_plan", "student_category"]),
+          filters: JSON.stringify([["docstatus", "=", 1], ["student", "in", batch]]),
+          order_by: "enrollment_date desc",
+          limit_page_length: batch.length * 3,
+        },
+      });
+      allEnrollments.push(...(batchRes.data?.data ?? []));
+    }
+  } catch (error) {
+    if (isPermissionDenied(error)) {
+      noProgramEnrollmentReadPermission = true;
+      const batches = await getBranchBatches(branch);
+      const batchNames = (batches.data ?? [])
+        .filter((b) => !b.disabled)
+        .map((b) => b.name);
+      return getPlanCountsForBatches(batchNames, branch);
+    }
+    throw error;
   }
   const enrRes = { data: { data: allEnrollments } };
   // Only count the latest enrollment per student
@@ -725,25 +769,85 @@ export interface BranchBatch {
 
 export async function getBranchBatches(
   branch: string
-): Promise<{ data: BranchBatch[] }> {
-  const params = new URLSearchParams({
-    fields: JSON.stringify([
-      "name",
-      "student_group_name",
-      "group_based_on",
-      "batch",
-      "program",
-      "academic_year",
-      "custom_branch",
-      "max_strength",
-      "disabled",
-    ]),
-    filters: JSON.stringify([["custom_branch", "=", branch]]),
-    limit_page_length: "500",
-    order_by: "name asc",
-  });
-  const { data } = await apiClient.get(`/resource/Student Group?${params}`);
-  return data;
+): Promise<{ data: BranchBatch[]; permissionDenied?: boolean }> {
+  const fields = [
+    "name",
+    "student_group_name",
+    "group_based_on",
+    "batch",
+    "program",
+    "academic_year",
+    "custom_branch",
+    "max_strength",
+    "disabled",
+  ];
+
+  if (noStudentGroupReadPermission) {
+    try {
+      return await fetchDirectorBranchAcademics<{ data: BranchBatch[] }>({
+        action: "batches",
+        branch,
+      });
+    } catch {
+      return { data: [], permissionDenied: true };
+    }
+  }
+
+  // PRIMARY: branch-scoped query (fastest, exact match)
+  try {
+    const params = new URLSearchParams({
+      fields: JSON.stringify(fields),
+      filters: JSON.stringify([["custom_branch", "=", branch]]),
+      limit_page_length: "500",
+      order_by: "name asc",
+    });
+    const { data } = await apiClient.get(`/resource/Student Group?${params}`);
+    return data;
+  } catch (error) {
+    if (isPermissionDenied(error)) {
+      noStudentGroupReadPermission = true;
+      try {
+        return await fetchDirectorBranchAcademics<{ data: BranchBatch[] }>({
+          action: "batches",
+          branch,
+        });
+      } catch {
+        return { data: [], permissionDenied: true };
+      }
+    }
+    // Primary failed (Frappe may reject custom_branch filter for some roles)
+  }
+
+  // FALLBACK: fetch all Batch-type Student Groups (group_based_on is a native
+  // Frappe field that always works), then filter client-side by custom_branch.
+  try {
+    const params = new URLSearchParams({
+      fields: JSON.stringify(fields),
+      filters: JSON.stringify([["group_based_on", "=", "Batch"]]),
+      limit_page_length: "0",
+      order_by: "name asc",
+    });
+    const { data } = await apiClient.get(`/resource/Student Group?${params}`);
+    const allGroups: BranchBatch[] = data?.data ?? [];
+    const filtered = allGroups.filter(
+      (g) => (g.custom_branch ?? "").toLowerCase() === branch.toLowerCase()
+    );
+    return { data: filtered };
+  } catch (error) {
+    if (isPermissionDenied(error)) {
+      noStudentGroupReadPermission = true;
+      try {
+        return await fetchDirectorBranchAcademics<{ data: BranchBatch[] }>({
+          action: "batches",
+          branch,
+        });
+      } catch {
+        return { data: [], permissionDenied: true };
+      }
+    }
+    // Fallback also failed — return safe empty list so UI never hard errors
+    return { data: [] };
+  }
 }
 
 export interface BatchStudent {
@@ -754,20 +858,42 @@ export interface BatchStudent {
 }
 
 export async function getBatchStudents(
-  batchName: string
+  batchName: string,
+  branch?: string
 ): Promise<{ students: BatchStudent[] }> {
-  const { data } = await apiClient.get(
-    `/resource/Student Group/${encodeURIComponent(batchName)}`
-  );
-  return { students: data.data?.students ?? [] };
+  if (noStudentGroupReadPermission && branch) {
+    return fetchDirectorBranchAcademics<{ students: BatchStudent[] }>({
+      action: "batch-students",
+      branch,
+      batch: batchName,
+    });
+  }
+
+  try {
+    const { data } = await apiClient.get(
+      `/resource/Student Group/${encodeURIComponent(batchName)}`
+    );
+    return { students: data.data?.students ?? [] };
+  } catch (error) {
+    if (isPermissionDenied(error) && branch) {
+      noStudentGroupReadPermission = true;
+      return fetchDirectorBranchAcademics<{ students: BatchStudent[] }>({
+        action: "batch-students",
+        branch,
+        batch: batchName,
+      });
+    }
+    throw error;
+  }
 }
 
 /** Aggregate active/inactive student counts for a set of batch names (one API call) */
 export async function getProgramBatchesStudentStats(
-  batchNames: string[]
+  batchNames: string[],
+  branch?: string
 ): Promise<{ active: number; inactive: number }> {
   if (!batchNames.length) return { active: 0, inactive: 0 };
-  const results = await Promise.all(batchNames.map((name) => getBatchStudents(name)));
+  const results = await Promise.all(batchNames.map((name) => getBatchStudents(name, branch)));
   let active = 0;
   let inactive = 0;
   for (const res of results) {
@@ -784,8 +910,26 @@ export async function getPlanCountsForBatches(
 ): Promise<{ advanced: number; intermediate: number; basic: number; freeAccess: number }> {
   const result = { advanced: 0, intermediate: 0, basic: 0, freeAccess: 0 };
   if (!batchNames.length) return result;
+
+  if (noProgramEnrollmentReadPermission) {
+    try {
+      return await fetchDirectorBranchAcademics<{
+        advanced: number;
+        intermediate: number;
+        basic: number;
+        freeAccess: number;
+      }>({
+        action: "plan-counts",
+        branch,
+        batchNames: JSON.stringify(batchNames),
+      });
+    } catch {
+      return result;
+    }
+  }
+
   // 1. Collect all student IDs from the batches
-  const batchResults = await Promise.all(batchNames.map((name) => getBatchStudents(name)));
+  const batchResults = await Promise.all(batchNames.map((name) => getBatchStudents(name, branch)));
   const studentIds: string[] = [];
   for (const res of batchResults) {
     for (const s of res.students) {
@@ -800,33 +944,54 @@ export async function getPlanCountsForBatches(
   const batchSize = 50;
   const allPlans = { advanced: 0, intermediate: 0, basic: 0, freeAccess: 0 };
   
-  for (let i = 0; i < studentIds.length; i += batchSize) {
-    const batch = studentIds.slice(i, i + batchSize);
-    const params = new URLSearchParams({
-      fields: JSON.stringify(["custom_plan as plan", "student_category", "count(name) as count"]),
-      filters: JSON.stringify([
-        ["docstatus", "=", 1],
-        ["student", "in", batch],
-      ]),
-      group_by: "custom_plan,student_category",
-      limit_page_length: "0",
-    });
-    
-    const { data } = await apiClient.get(`/resource/Program Enrollment?${params}`);
-    const rows = data?.data ?? [];
-    
-    for (const row of rows) {
-      // Check if student is Free Access
-      if (row.student_category === "Free Access") {
-        allPlans.freeAccess += row.count ?? 0;
-      } else {
-        // Otherwise count by plan
-        const plan = (row.plan || "").toLowerCase();
-        if (plan === "advanced") allPlans.advanced += row.count ?? 0;
-        else if (plan === "intermediate") allPlans.intermediate += row.count ?? 0;
-        else if (plan === "basic") allPlans.basic += row.count ?? 0;
+  try {
+    for (let i = 0; i < studentIds.length; i += batchSize) {
+      const batch = studentIds.slice(i, i + batchSize);
+      const params = new URLSearchParams({
+        fields: JSON.stringify(["custom_plan as plan", "student_category", "count(name) as count"]),
+        filters: JSON.stringify([
+          ["docstatus", "=", 1],
+          ["student", "in", batch],
+        ]),
+        group_by: "custom_plan,student_category",
+        limit_page_length: "0",
+      });
+      
+      const { data } = await apiClient.get(`/resource/Program Enrollment?${params}`);
+      const rows = data?.data ?? [];
+      
+      for (const row of rows) {
+        // Check if student is Free Access
+        if (row.student_category === "Free Access") {
+          allPlans.freeAccess += row.count ?? 0;
+        } else {
+          // Otherwise count by plan
+          const plan = (row.plan || "").toLowerCase();
+          if (plan === "advanced") allPlans.advanced += row.count ?? 0;
+          else if (plan === "intermediate") allPlans.intermediate += row.count ?? 0;
+          else if (plan === "basic") allPlans.basic += row.count ?? 0;
+        }
       }
     }
+  } catch (error) {
+    if (isPermissionDenied(error)) {
+      noProgramEnrollmentReadPermission = true;
+      try {
+        return await fetchDirectorBranchAcademics<{
+          advanced: number;
+          intermediate: number;
+          basic: number;
+          freeAccess: number;
+        }>({
+          action: "plan-counts",
+          branch,
+          batchNames: JSON.stringify(batchNames),
+        });
+      } catch {
+        return result;
+      }
+    }
+    throw error;
   }
   
   return allPlans;

@@ -128,6 +128,8 @@ export interface InstalmentEntry {
   label: string;         // e.g. "Q1", "Instalment 3", "Full Payment"
   amount: number;
   dueDate: string;       // ISO date string, e.g. "2026-04-15"
+  discountApplied?: number;
+  discountRemark?: string;
 }
 
 /** Payment option summary shown in the admission UI */
@@ -138,6 +140,7 @@ export interface PaymentOptionSummary {
   schedule: InstalmentEntry[];
   savings?: number;      // savings vs annual_fee (if applicable)
   referralDiscount?: number; // 5% discount amount (only for referred admissions)
+  manualDiscount?: number;
 }
 
 export interface FeeReportSummary {

@@ -12,7 +12,6 @@ import {
   GraduationCap,
   ChevronRight,
   Loader2,
-  AlertCircle,
   List,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
@@ -34,7 +33,7 @@ const itemVariants = {
 function ProgramStudentCount({ batchNames, branchName }: { batchNames: string[]; branchName: string }) {
   const { data, isLoading } = useQuery({
     queryKey: ["director-program-student-stats", ...batchNames.slice().sort()],
-    queryFn: () => getProgramBatchesStudentStats(batchNames),
+    queryFn: () => getProgramBatchesStudentStats(batchNames, branchName),
     staleTime: 120_000,
   });
   const { data: planCounts, isLoading: loadingPlans } = useQuery({
@@ -109,9 +108,11 @@ export default function BranchStudentsPage() {
     queryKey: ["director-branch-batches-list", branchName],
     queryFn: () => getBranchBatches(branchName),
     staleTime: 120_000,
+    retry: false,
   });
 
   const batches = batchesRes?.data ?? [];
+  const hasBatchPermissionError = Boolean(batchesRes?.permissionDenied);
   const activeBatches = batches.filter((b) => !b.disabled);
 
   // Group by program to get class-wise breakdown
@@ -249,14 +250,21 @@ export default function BranchStudentsPage() {
           <div className="flex items-center justify-center h-48">
             <Loader2 className="animate-spin h-6 w-6 text-primary" />
           </div>
-        ) : isError ? (
-          <div className="flex flex-col items-center justify-center h-48 gap-3">
-            <AlertCircle className="h-8 w-8 text-error" />
-            <p className="text-sm text-error">Failed to load data</p>
-          </div>
         ) : programs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48">
-            <p className="text-sm text-text-tertiary">No programs found for this branch</p>
+          <div className="flex flex-col items-center justify-center h-48 gap-1.5">
+            <p className="text-sm text-text-tertiary">
+              {hasBatchPermissionError
+                ? "Programs and batches are hidden for this role"
+                : "No programs found for this branch"}
+            </p>
+            {hasBatchPermissionError ? (
+              <p className="text-xs text-warning text-center max-w-md">
+                Student list access is working, but this account does not have permission for Student Group and Program Enrollment.
+                Use View All Students, or ask admin to grant read access for those doctypes.
+              </p>
+            ) : isError && (
+              <p className="text-xs text-warning">Data source temporarily unavailable; showing safe empty view.</p>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

@@ -41,7 +41,7 @@ function BatchCard({
 }) {
   const { data: batchRes, isLoading } = useQuery({
     queryKey: ["director-batch-students", batch.name],
-    queryFn: () => getBatchStudents(batch.name),
+    queryFn: () => getBatchStudents(batch.name, branchName),
     staleTime: 120_000,
   });
 

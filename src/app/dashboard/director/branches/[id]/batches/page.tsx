@@ -51,7 +51,7 @@ export default function BranchBatchesPage() {
   const studentQueries = useQueries({
     queries: activeBatches.map((b) => ({
       queryKey: ["batch-students", b.name],
-      queryFn: () => getBatchStudents(b.name),
+      queryFn: () => getBatchStudents(b.name, branchName),
       staleTime: 120_000,
       enabled: activeBatches.length > 0,
     })),

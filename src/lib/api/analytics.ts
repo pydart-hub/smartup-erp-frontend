@@ -10,6 +10,8 @@ import type {
   StudentAcademicProfile,
   InstructorAnalyticsResponse,
   BranchAcademicsResponse,
+  BranchActionsNeededResponse,
+  BranchActionsNeededDetailResponse,
   ScheduleSummaryResponse,
 } from "@/lib/types/analytics";
 
@@ -88,6 +90,24 @@ export async function getBranchAcademics(): Promise<BranchAcademicsResponse> {
     credentials: "include",
   });
   if (!res.ok) throw new Error("Failed to fetch branch academics");
+  return res.json();
+}
+
+export async function getBranchActionsNeeded(weekStart?: string): Promise<BranchActionsNeededResponse> {
+  const params = weekStart ? `?week_start=${encodeURIComponent(weekStart)}` : "";
+  const res = await fetch(`/api/analytics/branch-actions-needed${params}`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Failed to fetch branch actions-needed analytics");
+  return res.json();
+}
+
+export async function getBranchActionsNeededDetail(branch: string): Promise<BranchActionsNeededDetailResponse> {
+  const query = new URLSearchParams({ branch });
+  const res = await fetch(`/api/analytics/branch-actions-needed-detail?${query}`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Failed to fetch branch actions-needed detail");
   return res.json();
 }
 

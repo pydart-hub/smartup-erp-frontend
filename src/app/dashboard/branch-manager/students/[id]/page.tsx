@@ -16,8 +16,13 @@ import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { getStudent } from "@/lib/api/students";
+import { getStudentGroups, getCourseSchedules } from "@/lib/api/courseSchedule";
 import apiClient from "@/lib/api/client";
 import { DiscontinueStudentModal } from "@/components/students/DiscontinueStudentModal";
+import { getO2OHourlyRate } from "@/lib/utils/o2oFeeRates";
+import { toast } from "sonner";
+
+type O2OBillingAction = "sales-order" | "sales-invoice";
 
 function initials(name: string) {
   return name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
@@ -49,6 +54,38 @@ function SectionCard({ title, icon, children }: { title: string; icon: React.Rea
   );
 }
 
+function parseAdmissionDiscountMeta(description?: string | null): { amount: number; remark?: string } | null {
+  const text = description ?? "";
+
+  const withReason = text.match(/Admission discount:\s*-₹([\d,]+)(?:\s*\|\s*Reason:\s*(.+))?/i);
+  if (withReason) {
+    const amount = Number((withReason[1] ?? "0").replace(/,/g, ""));
+    if (Number.isFinite(amount) && amount > 0) {
+      return { amount, remark: withReason[2]?.trim() || undefined };
+    }
+  }
+
+  const withBracket = text.match(/Admission discount:\s*-₹([\d,]+)(?:\s*\(([^)]+)\))?/i);
+  if (withBracket) {
+    const amount = Number((withBracket[1] ?? "0").replace(/,/g, ""));
+    if (Number.isFinite(amount) && amount > 0) {
+      return { amount, remark: withBracket[2]?.trim() || undefined };
+    }
+  }
+
+  return null;
+}
+
+function hoursBetween(fromTime?: string, toTime?: string): number {
+  if (!fromTime || !toTime) return 0;
+  const [fromH, fromM = "0", fromS = "0"] = fromTime.split(":");
+  const [toH, toM = "0", toS = "0"] = toTime.split(":");
+  const from = Number(fromH) * 3600 + Number(fromM) * 60 + Number(fromS);
+  const to = Number(toH) * 3600 + Number(toM) * 60 + Number(toS);
+  if (!Number.isFinite(from) || !Number.isFinite(to) || to <= from) return 0;
+  return Number(((to - from) / 3600).toFixed(2));
+}
+
 export default function StudentViewPage() {
   const { id: rawId } = useParams<{ id: string }>();
   const id = decodeURIComponent(rawId);
@@ -62,6 +99,7 @@ export default function StudentViewPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [resettingPwd, setResettingPwd] = useState(false);
   const [copiedPwd, setCopiedPwd] = useState(false);
+  const [billingAction, setBillingAction] = useState<O2OBillingAction | null>(null);
 
   // ── Student data ──────────────────────────────────────────
   const { data: studentRes, isLoading, isError } = useQuery({
@@ -154,6 +192,82 @@ export default function StudentViewPage() {
     staleTime: 60_000,
   });
 
+  const latestSalesOrderName = salesOrdersRes?.[0]?.name;
+  const { data: salesOrderDiscountMeta } = useQuery({
+    queryKey: ["student-so-discount-meta", latestSalesOrderName],
+    queryFn: async () => {
+      const { data } = await apiClient.get(`/resource/Sales Order/${encodeURIComponent(latestSalesOrderName!)}`);
+      const rows = (data.data?.items ?? []) as Array<{ description?: string | null }>;
+      let totalDiscount = 0;
+      let remark: string | undefined;
+
+      for (const row of rows) {
+        const parsed = parseAdmissionDiscountMeta(row.description);
+        if (!parsed) continue;
+        totalDiscount += parsed.amount;
+        if (!remark && parsed.remark) remark = parsed.remark;
+      }
+
+      return { totalDiscount, remark };
+    },
+    enabled: !!latestSalesOrderName,
+    staleTime: 60_000,
+  });
+
+  // ── Student Groups (sections/divisions) ─────────────────
+  const { data: studentGroupsRes } = useQuery({
+    queryKey: ["student-groups-for-student", id],
+    queryFn: async () => {
+      const { data } = await apiClient.get("/resource/Student Group", {
+        params: {
+          filters: JSON.stringify([["Student Group Student", "student", "=", id]]),
+          fields: JSON.stringify(["name", "student_group_name", "program", "batch"]),
+          limit_page_length: 10,
+        },
+      });
+      return (data.data ?? []) as Array<{ name: string; student_group_name?: string; program?: string; batch?: string }>;
+    },
+    enabled: !!id,
+    staleTime: 60_000,
+  });
+
+  const { data: o2oBillingContext, isLoading: o2oBillingLoading } = useQuery({
+    queryKey: ["student-o2o-billing-context", id, student?.custom_branch],
+    queryFn: async () => {
+      const groupsRes = await getStudentGroups({
+        branch: student?.custom_branch || undefined,
+        oneToOneOnly: true,
+      });
+      const group = (groupsRes.data ?? []).find(
+        (row) => row.name.includes(`(${id})`) || row.student_group_name?.includes(id),
+      );
+      if (!group) return null;
+
+      const schedulesRes = await getCourseSchedules({
+        student_group: group.name,
+        limit_page_length: 500,
+      });
+      const schedules = schedulesRes.data ?? [];
+      const totalHours = Number(
+        schedules.reduce((sum, row) => sum + hoursBetween(row.from_time, row.to_time), 0).toFixed(2),
+      );
+      const rate = getO2OHourlyRate(group.program || "");
+      const amount = Number((totalHours * rate).toFixed(2));
+
+      return {
+        groupName: group.name,
+        groupDisplayName: group.student_group_name || group.name,
+        program: group.program,
+        scheduleCount: schedules.length,
+        totalHours,
+        rate,
+        amount,
+      };
+    },
+    enabled: !!id && !!student?.custom_branch,
+    staleTime: 60_000,
+  });
+
   // ── Loading state ─────────────────────────────────────────
   if (isLoading) {
     return (
@@ -187,6 +301,41 @@ export default function StudentViewPage() {
   const enrollment = enrollmentRes;
   const guardian = guardianRes;
   const queryClient = useQueryClient();
+  const isO2OStudent = Boolean(o2oBillingContext?.groupName);
+  const hasSalesOrder = (salesOrdersRes?.length ?? 0) > 0;
+  const hasSalesInvoice = (salesInvoicesRes?.length ?? 0) > 0;
+  const canGenerateSalesOrder = isO2OStudent && !hasSalesOrder && (o2oBillingContext?.scheduleCount ?? 0) > 0;
+  const canGenerateSalesInvoice = isO2OStudent && hasSalesOrder && !hasSalesInvoice && (o2oBillingContext?.scheduleCount ?? 0) > 0;
+
+  async function handleRegenerateBilling(action: O2OBillingAction) {
+    setBillingAction(action);
+    try {
+      const res = await fetch("/api/one-to-one/regenerate-billing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ studentId: id, action }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error((data as { error?: string }).error || "Billing regeneration failed.");
+        return;
+      }
+
+      if (action === "sales-order") {
+        toast.success(`Sales Order ${String((data as { salesOrderName?: string }).salesOrderName ?? "")} generated.`);
+      } else {
+        const inv = (data as { invoices?: string[] }).invoices?.[0] ?? "";
+        toast.success(`Sales Invoice ${String(inv)} generated.`);
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["student-sales-orders", customerName] });
+      queryClient.invalidateQueries({ queryKey: ["student-invoices", customerName] });
+      queryClient.invalidateQueries({ queryKey: ["student-so-discount-meta"] });
+    } finally {
+      setBillingAction(null);
+    }
+  }
 
   // Check if student is already discontinued
   const isDiscontinued = student.enabled === 0 && !!student.custom_discontinuation_date;
@@ -289,6 +438,13 @@ export default function StudentViewPage() {
           <InfoRow label="Class" value={enrollment?.program} />
           <InfoRow label="Academic Year" value={enrollment?.academic_year} />
           <InfoRow label="Batch" value={enrollment?.student_batch_name} />
+          {(studentGroupsRes ?? []).length > 0 && (
+            <InfoRow
+              label="Student Group"
+              value={(studentGroupsRes ?? []).map((g) => g.student_group_name || g.name).join(", ")}
+              icon={<Users className="h-3.5 w-3.5" />}
+            />
+          )}
           <InfoRow label="Enrollment Date" value={enrollment?.enrollment_date} icon={<Calendar className="h-3.5 w-3.5" />} />
           <InfoRow label="Joining Date" value={student.joining_date} icon={<Calendar className="h-3.5 w-3.5" />} />
           {enrollment?.name && (
@@ -427,6 +583,90 @@ export default function StudentViewPage() {
 
       </div>
 
+      {/* One-to-One billing recovery */}
+      {isO2OStudent && (!hasSalesOrder || !hasSalesInvoice) && (
+        <Card>
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
+              <div className="flex items-center gap-2">
+                <span className="text-primary"><CreditCard className="h-4 w-4" /></span>
+                <h3 className="font-semibold text-text-primary">One-to-One Billing Recovery</h3>
+              </div>
+              <Badge variant="warning">One-to-One</Badge>
+            </div>
+
+            {o2oBillingLoading ? (
+              <div className="flex items-center gap-2 text-xs text-text-tertiary">
+                <Loader2 className="h-3 w-3 animate-spin" /> Loading scheduled-course summary…
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 text-xs mb-4">
+                  <div className="rounded-[8px] border border-border-light bg-surface p-2.5">
+                    <p className="text-text-tertiary">Student Group</p>
+                    <p className="font-medium text-text-primary truncate" title={o2oBillingContext?.groupDisplayName || "—"}>
+                      {o2oBillingContext?.groupDisplayName || "—"}
+                    </p>
+                  </div>
+                  <div className="rounded-[8px] border border-border-light bg-surface p-2.5">
+                    <p className="text-text-tertiary">Scheduled Sessions</p>
+                    <p className="font-semibold text-text-primary">{o2oBillingContext?.scheduleCount ?? 0}</p>
+                  </div>
+                  <div className="rounded-[8px] border border-border-light bg-surface p-2.5">
+                    <p className="text-text-tertiary">Total Hours</p>
+                    <p className="font-semibold text-text-primary">{(o2oBillingContext?.totalHours ?? 0).toFixed(2)}h</p>
+                  </div>
+                  <div className="rounded-[8px] border border-border-light bg-surface p-2.5">
+                    <p className="text-text-tertiary">Estimated Billing</p>
+                    <p className="font-semibold text-text-primary">₹{(o2oBillingContext?.amount ?? 0).toLocaleString("en-IN")}</p>
+                  </div>
+                </div>
+
+                {(canGenerateSalesOrder || canGenerateSalesInvoice || !hasSalesOrder || !hasSalesInvoice) && (
+                  <div className="rounded-[12px] border border-warning/20 bg-warning/5 p-4">
+                    <p className="text-sm font-medium text-text-primary mb-1">Missing billing documents can be rebuilt from scheduled courses.</p>
+                    <p className="text-xs text-text-secondary mb-3">
+                      This uses the existing One-to-One schedules to recalculate fee amount at ₹{(o2oBillingContext?.rate ?? 0).toLocaleString("en-IN")}/hr.
+                    </p>
+                    {(o2oBillingContext?.scheduleCount ?? 0) === 0 ? (
+                      <p className="text-xs text-text-tertiary">No scheduled courses found yet, so billing cannot be regenerated.</p>
+                    ) : (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {canGenerateSalesOrder && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRegenerateBilling("sales-order")}
+                            disabled={billingAction !== null}
+                          >
+                            {billingAction === "sales-order" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+                            Generate Sales Order
+                          </Button>
+                        )}
+                        {canGenerateSalesInvoice && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRegenerateBilling("sales-invoice")}
+                            disabled={billingAction !== null}
+                          >
+                            {billingAction === "sales-invoice" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+                            Generate Sales Invoice
+                          </Button>
+                        )}
+                        {!canGenerateSalesOrder && !canGenerateSalesInvoice && hasSalesOrder && hasSalesInvoice && (
+                          <p className="text-xs text-success">Sales Order and Sales Invoice already exist for this student.</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Fee & Payments Section */}
       {(salesOrdersRes?.length > 0 || salesInvoicesRes?.length > 0) && (
         <Card>
@@ -449,23 +689,44 @@ export default function StudentViewPage() {
             {/* SO summary */}
             {salesOrdersRes?.length > 0 && (() => {
               const so = salesOrdersRes[0];
+              // Aggregate ALL submitted SOs so totals stay consistent when a student has multiple orders
+              const soTotalGrand = (salesOrdersRes as { grand_total: number }[]).reduce((s, o) => s + (o.grand_total ?? 0), 0);
               const invTotal = salesInvoicesRes?.reduce((s: number, i: { grand_total: number }) => s + i.grand_total, 0) ?? 0;
               const invOutstanding = salesInvoicesRes?.reduce((s: number, i: { outstanding_amount: number }) => s + i.outstanding_amount, 0) ?? 0;
               const paid = invTotal - invOutstanding;
-              const pct = so.grand_total > 0 ? Math.round((paid / so.grand_total) * 100) : 0;
+              const pct = soTotalGrand > 0 ? Math.min(100, Math.round((paid / soTotalGrand) * 100)) : 0;
+              const totalDiscount = salesOrderDiscountMeta?.totalDiscount ?? 0;
+              const discountRemark = salesOrderDiscountMeta?.remark;
+              const originalTotalFees = soTotalGrand + totalDiscount;
+              const multipleOrders = salesOrdersRes.length > 1;
               return (
                 <div className="rounded-[12px] border border-border-light bg-app-bg p-4 mb-4">
                   <div className="flex items-center justify-between mb-2">
                     <div>
                       <span className="text-xs font-mono text-primary">{so.name}</span>
+                      {multipleOrders && <span className="text-[10px] text-text-tertiary ml-2">+{salesOrdersRes.length - 1} more order{salesOrdersRes.length > 2 ? "s" : ""}</span>}
                       {so.custom_plan && <Badge variant="info" className="ml-2">{so.custom_plan}</Badge>}
                       {so.custom_no_of_instalments && <Badge variant="default" className="ml-1">{so.custom_no_of_instalments}x</Badge>}
                     </div>
-                    <span className="text-lg font-bold text-text-primary">₹{so.grand_total.toLocaleString("en-IN")}</span>
+                    <span className="text-lg font-bold text-text-primary">₹{soTotalGrand.toLocaleString("en-IN")}</span>
                   </div>
                   <div className="flex items-center gap-3 text-xs text-text-secondary mb-2">
                     <span>Paid: <strong className="text-success">₹{paid.toLocaleString("en-IN")}</strong></span>
                     <span>Outstanding: <strong className="text-error">₹{invOutstanding.toLocaleString("en-IN")}</strong></span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs mb-2">
+                    <div className="rounded-[8px] border border-border-light bg-surface p-2.5">
+                      <p className="text-text-tertiary">Overall Total Fees</p>
+                      <p className="font-semibold text-text-primary">₹{originalTotalFees.toLocaleString("en-IN")}</p>
+                    </div>
+                    <div className="rounded-[8px] border border-border-light bg-surface p-2.5">
+                      <p className="text-text-tertiary">Overall Discount</p>
+                      <p className="font-semibold text-amber-700">- ₹{totalDiscount.toLocaleString("en-IN")}</p>
+                    </div>
+                    <div className="rounded-[8px] border border-border-light bg-surface p-2.5">
+                      <p className="text-text-tertiary">Why Discount</p>
+                      <p className="font-medium text-text-primary truncate" title={discountRemark || "—"}>{discountRemark || "—"}</p>
+                    </div>
                   </div>
                   <div className="w-full h-2 bg-border-light rounded-full overflow-hidden">
                     <div className="h-full rounded-full bg-success transition-all" style={{ width: `${pct}%` }} />

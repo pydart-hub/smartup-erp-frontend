@@ -20,6 +20,7 @@ import {
   X,
   GraduationCap,
   Layers,
+  BookUser,
   FileText,
   CheckCircle2,
   PartyPopper,
@@ -284,6 +285,12 @@ export default function BranchManagerCourseSchedulePage() {
             <Button variant="outline" className="flex items-center gap-2">
               <Layers className="h-4 w-4" />
               Bulk Schedule
+            </Button>
+          </Link>
+          <Link href="/dashboard/branch-manager/course-schedule/one-to-one">
+            <Button variant="outline" className="flex items-center gap-2">
+              <BookUser className="h-4 w-4" />
+              One-to-One
             </Button>
           </Link>
           <Link href="/dashboard/branch-manager/course-schedule/new">

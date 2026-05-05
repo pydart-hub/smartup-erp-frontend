@@ -134,6 +134,49 @@ export function applyReferralDiscount(
   });
 }
 
+/**
+ * Apply a manual admission discount to payment options.
+ * The discount is deducted from the last instalment first, then moves backward.
+ */
+export function applyAdmissionDiscount(
+  options: PaymentOptionSummary[],
+  discountAmount: number,
+  remark?: string,
+): PaymentOptionSummary[] {
+  const normalizedDiscount = Number.isFinite(discountAmount)
+    ? Math.max(0, Math.round(discountAmount * 100) / 100)
+    : 0;
+
+  if (normalizedDiscount <= 0) return options;
+
+  return options.map((opt) => {
+    let remaining = Math.min(normalizedDiscount, opt.total);
+    const newSchedule = [...opt.schedule];
+
+    for (let index = newSchedule.length - 1; index >= 0 && remaining > 0; index -= 1) {
+      const entry = newSchedule[index];
+      const applied = Math.min(entry.amount, remaining);
+      if (applied <= 0) continue;
+
+      newSchedule[index] = {
+        ...entry,
+        amount: entry.amount - applied,
+        discountApplied: (entry.discountApplied ?? 0) + applied,
+        discountRemark: remark || entry.discountRemark,
+      };
+      remaining -= applied;
+    }
+
+    const effectiveDiscount = Math.min(normalizedDiscount, opt.total);
+    return {
+      ...opt,
+      total: opt.total - effectiveDiscount,
+      schedule: newSchedule,
+      manualDiscount: effectiveDiscount,
+    };
+  });
+}
+
 // ── Branch & Program Mapping ──
 // Maps Frappe company names to XLSX branch keys.
 
@@ -203,7 +246,7 @@ export const HSS_PROGRAMS = [
 
 /** Branches that support subject-wise admission and their available subjects (all levels combined) */
 export const SUBJECT_BY_BRANCH: Record<string, string[]> = {
-  "Kadavanthara":   ["Physics", "Chemistry", "Maths", "Phy-Chem", "Phy-Maths", "Chem-Maths"],
+  "Kadavanthara":   ["Physics", "Chemistry", "Maths"],
   "Vennala":        ["Physics", "Chemistry", "Maths", "Phy-Chem", "Phy-Maths", "Chem-Maths"],
   "Edapally":       ["Physics", "Chemistry", "Maths", "Phy-Chem", "Phy-Maths", "Chem-Maths"],
   "Thoppumpady":    ["Phy-Chem"],

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { BarChart3, ClipboardCheck, Trophy, CalendarDays, UserCheck, BookOpen } from "lucide-react";
+import { BarChart3, ClipboardCheck, Trophy, CalendarDays, UserCheck, BookOpen, GraduationCap, Users } from "lucide-react";
 
 const cards = [
   { title: "Overview", desc: "All branches full academic drill-down", icon: BarChart3, href: "/dashboard/director/academics/overview", color: "bg-primary/10 text-primary" },
@@ -11,6 +11,8 @@ const cards = [
   { title: "Course Schedule", desc: "Class schedules and completion", icon: CalendarDays, href: "/dashboard/director/academics/course-schedule", color: "bg-info/10 text-info" },
   { title: "Instructors", desc: "Instructor performance metrics", icon: UserCheck, href: "/dashboard/director/academics/instructors", color: "bg-purple-100 text-purple-700" },
   { title: "Topic Coverage", desc: "Curriculum progress tracking", icon: BookOpen, href: "/dashboard/director/academics/topic-coverage", color: "bg-orange-100 text-orange-700" },
+  { title: "Alumni", desc: "Alumni registry and formal data dashboard", icon: Users, href: "/dashboard/director/alumni", color: "bg-teal-100 text-teal-700" },
+  { title: "A+ Cabinet", desc: "Board exam results, A+ counts & grade records", icon: GraduationCap, href: "/dashboard/director/academics/students", color: "bg-amber-100 text-amber-700" },
 ];
 
 const container = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.08 } } };

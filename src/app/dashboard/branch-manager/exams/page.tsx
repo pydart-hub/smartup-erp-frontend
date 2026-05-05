@@ -139,6 +139,12 @@ export default function BranchManagerExamsPage() {
               Results
             </Button>
           </Link>
+          <Link href="/dashboard/branch-manager/exams/create-one-to-one">
+            <Button variant="outline" size="md">
+              <Users className="h-4 w-4" />
+              One-to-One Exam
+            </Button>
+          </Link>
           <Link href="/dashboard/branch-manager/exams/create">
             <Button variant="primary" size="md">
               <Plus className="h-4 w-4" />
@@ -224,11 +230,18 @@ export default function BranchManagerExamsPage() {
                   : "Try adjusting your search or filter."}
               </p>
               {exams.length === 0 && (
-                <Link href="/dashboard/branch-manager/exams/create">
-                  <Button variant="primary" size="md">
-                    <Plus className="h-4 w-4" /> Create Exam
-                  </Button>
-                </Link>
+                <div className="flex items-center justify-center gap-2">
+                  <Link href="/dashboard/branch-manager/exams/create-one-to-one">
+                    <Button variant="outline" size="md">
+                      <Users className="h-4 w-4" /> One-to-One Exam
+                    </Button>
+                  </Link>
+                  <Link href="/dashboard/branch-manager/exams/create">
+                    <Button variant="primary" size="md">
+                      <Plus className="h-4 w-4" /> Create Exam
+                    </Button>
+                  </Link>
+                </div>
               )}
             </CardContent>
           </Card>

@@ -578,10 +578,18 @@ export interface AdmitStudentForm {
   custom_plan?: string;          // "Basic" | "Intermediate" | "Advanced"
   custom_no_of_instalments?: string; // "1" | "4" | "6" | "8"
   custom_mode_of_payment?: string;   // "Cash" | "Online"
+  manualDiscountAmount?: number;
+  manualDiscountRemark?: string;
   // Subject-wise admission context (not sent to Frappe, only for fee config lookup)
   custom_subject?: string;       // e.g. "Physics", "Phy-Chem"
   // Instalment schedule (from feeSchedule generator)
-  instalmentSchedule?: { amount: number; dueDate: string; label: string }[];
+  instalmentSchedule?: {
+    amount: number;
+    dueDate: string;
+    label: string;
+    discountApplied?: number;
+    discountRemark?: string;
+  }[];
   // Sibling admission fields
   siblingOf?: string;            // Student ID of existing sibling e.g. "EDU-STU-2025-00012"
   siblingGroup?: string;         // Shared family group ID e.g. "FAM-CHL-1717..."
@@ -590,6 +598,10 @@ export interface AdmitStudentForm {
   isDemo?: boolean;              // True for demo student admission (flat ₹499 fee)
   // Free Access admission (no fee at all)
   isFreeAccess?: boolean;        // True for free access student — skip SO & invoices entirely
+  // Skip admission-time SO/SI generation without tagging as Free Access
+  skipAutoBilling?: boolean;
+  // Optional fallback: create a single invoice when no instalment schedule is provided
+  createInvoiceIfNoSchedule?: boolean;
 }
 
 export interface AdmitStudentResult {
@@ -1012,9 +1024,10 @@ export async function admitStudent(
   // Step 5 — Auto-create Sales Order for tuition fee
   // ───────────────────────────────────────────────────
   let salesOrderName: string | undefined;
+  const skipAutoBilling = Boolean(form.isFreeAccess || form.skipAutoBilling);
 
   // Free Access students have no fees — skip SO & invoice creation entirely
-  if (form.isFreeAccess) {
+  if (skipAutoBilling) {
     updateStage("sales_order", "skipped");
   } else {
   updateStage("sales_order", "in_progress");
@@ -1075,7 +1088,16 @@ export async function admitStudent(
         transaction_date: txnDate,
         delivery_date: txnDate,
         order_type: "Sales",
-        items: [{ item_code: tuitionItem.item_code, qty: soQty, rate: soRate }],
+        items: [{
+          item_code: tuitionItem.item_code,
+          qty: soQty,
+          rate: soRate,
+          ...(form.manualDiscountAmount && form.manualDiscountAmount > 0
+            ? {
+                description: `Admission discount: -₹${form.manualDiscountAmount.toLocaleString("en-IN")}${form.manualDiscountRemark ? ` | Reason: ${form.manualDiscountRemark}` : ""}`,
+              }
+            : {}),
+        }],
         // Custom fields for student fee tracking
         custom_academic_year: form.academic_year || "2026-2027",
         student: student.name,
@@ -1102,7 +1124,7 @@ export async function admitStudent(
   // Step 6 — Auto-create Sales Invoices per instalment
   // ───────────────────────────────────────────────────
   let invoiceNames: string[] | undefined;
-  if (form.isFreeAccess) {
+  if (skipAutoBilling) {
     updateStage("invoices", "skipped");
   } else if (salesOrderName && form.instalmentSchedule?.length) {
     updateStage("invoices", "in_progress");
@@ -1144,8 +1166,64 @@ export async function admitStudent(
       updateStage("invoices", "failed", msg);
     }
   } else if (salesOrderName && !form.instalmentSchedule?.length) {
-    warnings.push("No instalment schedule provided — invoices were not created. You can create them from the Sales Order page.");
-    updateStage("invoices", "skipped");
+    if (form.createInvoiceIfNoSchedule) {
+      updateStage("invoices", "in_progress");
+      try {
+        const soDetailsRes = await apiClient.get<{ data?: { grand_total?: number; rounded_total?: number } }>(
+          `/resource/Sales Order/${encodeURIComponent(salesOrderName)}?fields=["grand_total","rounded_total"]`,
+        );
+        const total = Number(
+          soDetailsRes.data?.data?.rounded_total ??
+          soDetailsRes.data?.data?.grand_total ??
+          0,
+        );
+        const today = new Date().toISOString().split("T")[0];
+
+        if (total <= 0) {
+          warnings.push("Sales Order total is zero. Invoice was not auto-created.");
+          updateStage("invoices", "skipped");
+        } else {
+          const invRes = await fetch("/api/admission/create-invoices", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              salesOrderName,
+              schedule: [{ amount: total, dueDate: today, label: "Tuition Fee" }],
+            }),
+          });
+
+          if (invRes.ok) {
+            const invData = await invRes.json();
+            invoiceNames = invData.invoices;
+            if (invData.failed?.length) {
+              warnings.push(`${invData.failed.length} invoice(s) failed to create.`);
+              updateStage("invoices", "failed", `${invData.failed.length} failed`);
+            } else {
+              updateStage("invoices", "success");
+            }
+            if (invData.whatsappError) {
+              warnings.push(`Invoice WhatsApp notification failed: ${invData.whatsappError}`);
+            } else if (invData.whatsappWarning) {
+              warnings.push(`Invoice notification: ${invData.whatsappWarning}`);
+            }
+          } else {
+            const errBody = await invRes.text();
+            warnings.push(`Invoice creation failed (HTTP ${invRes.status}). Invoices can be created later from the Sales Order.`);
+            updateStage("invoices", "failed", `HTTP ${invRes.status}`);
+            console.warn("[admitStudent] Single invoice fallback failed:", errBody);
+          }
+        }
+      } catch (invError) {
+        const msg = invError instanceof Error ? invError.message : String(invError);
+        warnings.push(`Invoice creation failed: ${msg}. Invoices can be created later from the Sales Order.`);
+        updateStage("invoices", "failed", msg);
+        console.warn("[admitStudent] Single invoice fallback failed (non-blocking):", invError);
+      }
+    } else {
+      warnings.push("No instalment schedule provided — invoices were not created. You can create them from the Sales Order page.");
+      updateStage("invoices", "skipped");
+    }
   } else {
     updateStage("invoices", "skipped");
   }

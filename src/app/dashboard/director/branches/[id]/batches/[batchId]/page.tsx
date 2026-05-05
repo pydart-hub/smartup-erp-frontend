@@ -109,7 +109,7 @@ export default function BatchDetailPage() {
     isError,
   } = useQuery({
     queryKey: ["director-batch-students", batchName],
-    queryFn: () => getBatchStudents(batchName),
+    queryFn: () => getBatchStudents(batchName, branchName),
     staleTime: 120_000,
   });
 

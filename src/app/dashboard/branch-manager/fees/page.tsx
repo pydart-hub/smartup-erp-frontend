@@ -203,7 +203,7 @@ export default function FeesPage() {
               value={overdueInvoices.length > 0 ? `${overdueInvoices.length} (${formatCurrency(overdueTotal)})` : "None"}
               icon={<Clock className="h-5 w-5" />}
               color={overdueInvoices.length > 0 ? "error" : "success"}
-              href="/dashboard/branch-manager/fees/pending"
+              href="/dashboard/branch-manager/fees/overdue"
             />
             <StatsCard
               title="Collection Rate"

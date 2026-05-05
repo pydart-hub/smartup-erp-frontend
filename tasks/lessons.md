@@ -1,5 +1,29 @@
 # Lessons Learned
 
+## Director Dashboard Permissions — Prefer Authorized Server Fallback Over Empty UI
+- **Date**: 2026-05-05
+- **Issue**: I surfaced a clear permission message for restricted doctypes (`Student Group`, `Program Enrollment`) but stopped there, leaving Director branch pages non-functional for program/batch views.
+- **Correction**: Added a server-side, branch-authorized read fallback route using admin token and wired client API helpers to use it on 403.
+- **Rule**: For SmartUp Director analytics/pages, if user-token doctype reads are blocked but the app already supports branch-scoped admin-backed APIs, implement secure server fallback first. Use permission-only empty states only when no safe fallback path exists.
+
+## GM Working Days — Exclude May 1 Explicitly
+- **Date**: 2026-05-05
+- **Issue**: Working-day logic for GM schedule dashboard excluded Sundays but still counted May 1, while operations treat May 1 as a holiday.
+- **Correction**: Updated branch-academics working-day calculation to exclude both Sundays and May 1.
+- **Rule**: For SmartUp working-day metrics, always apply holiday rules as: exclude Sundays + exclude May 1, even when the date window starts from May 1.
+
+## Discount Scope — Admission Pricing vs Existing Invoices
+- **Date**: 2026-05-04
+- **Issue**: I initially implemented manual discount on the invoice detail page because the earlier discussion focused on invoice reduction behavior.
+- **Correction**: For this project, the manual branch discount belongs to the new-admission pricing flow, where the instalment schedule is built before Sales Orders and Sales Invoices are created.
+- **Rule**: When a feature changes the fee split for a new student, anchor it to the admission schedule-generation path first. Use invoice-level adjustment only when the user explicitly asks to alter existing invoices.
+
+## Branch Naming — Pathadippalam Maps to Edappally
+- **Date**: 2026-05-04
+- **Issue**: I treated "Pathadippalam" as a potentially separate branch because it did not appear explicitly in the frontend branch constants.
+- **Correction**: In SmartUp operations, Pathadippalam refers to the existing Edappally branch, not a separate Frappe company.
+- **Rule**: Before concluding a branch is missing from code, verify whether the user is referring to a locality/alias for an existing operational branch. For this project, Pathadippalam should map to the Edappally branch setup.
+
 ## Frappe Email System — Complete Workflow & SMTP Quota Fix
 - **Date**: 2026-03-06 (updated 2026-03-06)
 
@@ -37,6 +61,12 @@
 - Monitor Email Queue errors — 325 stuck error emails can cause cascading SMTP quota issues via retries
 - Only Administrator role can delete Email Queue entries — use Frappe desk UI to clean up
 - Keep a secondary Email Account configured as backup; switch default outgoing if primary is blocked
+
+## Director Expense Filters — Confirm Hierarchy Before Implementing
+- **Date**: 2026-05-02
+- **Issue**: Implemented a single combined class dropdown (4 categories) when user expectation was a two-level selection model.
+- **Fix**: Added separate filters for Type (Branch/Head Office) and Nature (Fixed/Variable), and wired both through backend + UI queries.
+- **Rule**: For taxonomy UI requests, explicitly map user wording to control hierarchy (parent selector + child selector) before implementation, even if a flat enum already exists.
 
 ## Frappe HTTP 409 on Resource Creation — Record May Still Exist
 - **Date**: 2026-03-07

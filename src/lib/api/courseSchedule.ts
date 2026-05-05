@@ -53,6 +53,7 @@ export interface StudentGroupOption {
   student_group_name: string;
   program: string;
   custom_branch?: string;
+  custom_is_one_to_one?: 0 | 1;
 }
 
 // ── Field lists ────────────────────────────────────────────────────────────────
@@ -351,18 +352,124 @@ export async function getRooms(): Promise<FrappeListResponse<RoomOption>> {
 
 export async function getStudentGroups(params?: {
   branch?: string;
+  oneToOneOnly?: boolean;
+  includeName?: string;
 }): Promise<FrappeListResponse<StudentGroupOption>> {
-  const filters: string[][] = [];
-  if (params?.branch) filters.push(["custom_branch", "=", params.branch]);
+  const baseFields = ["name", "student_group_name", "program", "custom_branch"];
+  const richFields = [...baseFields, "custom_is_one_to_one"];
 
-  const query = new URLSearchParams({
-    fields: JSON.stringify(["name", "student_group_name", "program", "custom_branch"]),
-    limit_page_length: "0",
-    order_by: "student_group_name asc",
-    ...(filters.length ? { filters: JSON.stringify(filters) } : {}),
-  });
-  const { data } = await apiClient.get(`/resource/Student Group?${query}`);
-  return data;
+  // When oneToOneOnly is requested, use the dedicated server script which
+  // filters by custom_is_one_to_one=1 server-side (the field is blocked from
+  // REST list queries but accessible in Python frappe.get_list).
+  if (params?.oneToOneOnly) {
+    const qs = params.branch ? `?branch=${encodeURIComponent(params.branch)}` : "";
+    const { data: res } = await apiClient.get<{ message: StudentGroupOption[] }>(
+      `/method/get_o2o_student_groups${qs}`,
+    );
+    const groups = res.message ?? [];
+
+    // Ensure the preselected group is included even if filtered by branch.
+    const includeName = params.includeName?.trim();
+    if (includeName && !groups.some((g) => g.name === includeName)) {
+      try {
+        const single = await apiClient.get<{ data: StudentGroupOption }>(
+          `/resource/Student Group/${encodeURIComponent(includeName)}?fields=${encodeURIComponent(JSON.stringify(baseFields))}`,
+        );
+        groups.push(single.data.data);
+      } catch { /* ignore */ }
+    }
+
+    return { data: groups };
+  }
+
+  const baseFilters: string[][] = [];
+  if (params?.branch) baseFilters.push(["custom_branch", "=", params.branch]);
+
+  const richFilters: string[][] = [...baseFilters];
+  if (params?.oneToOneOnly) richFilters.push(["custom_is_one_to_one", "=", "1"]);
+
+  async function ensureIncluded(
+    list: FrappeListResponse<StudentGroupOption>,
+  ): Promise<FrappeListResponse<StudentGroupOption>> {
+    const includeName = params?.includeName?.trim();
+    if (!includeName) return list;
+
+    const exists = (list.data ?? []).some((g) => g.name === includeName);
+    if (exists) return list;
+
+    try {
+      const single = await apiClient.get<{ data: StudentGroupOption }>(
+        `/resource/Student Group/${encodeURIComponent(includeName)}?fields=${encodeURIComponent(
+          JSON.stringify(baseFields),
+        )}`,
+      );
+      return {
+        ...list,
+        data: [...(list.data ?? []), single.data.data],
+      };
+    } catch {
+      return list;
+    }
+  }
+
+  try {
+    const query = new URLSearchParams({
+      fields: JSON.stringify(richFields),
+      limit_page_length: "0",
+      order_by: "student_group_name asc",
+      ...(richFilters.length ? { filters: JSON.stringify(richFilters) } : {}),
+    });
+    const { data } = await apiClient.get<FrappeListResponse<StudentGroupOption>>(
+      `/resource/Student Group?${query}`,
+    );
+    return ensureIncluded(data);
+  } catch (error: unknown) {
+    // Backend may reject custom_is_one_to_one in filters — retry with field in
+    // response only (no filter), then client-side filter by value.
+    const message = String((error as { message?: string })?.message ?? "");
+    const responseText = String(
+      (error as { response?: { data?: { exception?: string; _server_messages?: string } } })?.response
+        ?.data?.exception ??
+        (error as { response?: { data?: { _server_messages?: string } } })?.response?.data
+          ?._server_messages ??
+        "",
+    );
+    const fieldRejected =
+      message.includes("custom_is_one_to_one") || responseText.includes("custom_is_one_to_one");
+
+    if (!fieldRejected) throw error;
+
+    // Middle-ground: fetch with custom_is_one_to_one in fields (not filters),
+    // filter client-side by value = 1.
+    try {
+      const midQuery = new URLSearchParams({
+        fields: JSON.stringify(richFields),
+        limit_page_length: "0",
+        order_by: "student_group_name asc",
+        ...(baseFilters.length ? { filters: JSON.stringify(baseFilters) } : {}),
+      });
+      const { data: midData } = await apiClient.get<FrappeListResponse<StudentGroupOption>>(
+        `/resource/Student Group?${midQuery}`,
+      );
+      let filtered = midData.data ?? [];
+      if (params?.oneToOneOnly) {
+        filtered = filtered.filter((g) => g.custom_is_one_to_one === 1);
+      }
+      return ensureIncluded({ ...midData, data: filtered });
+    } catch {
+      // Last resort: base fields only — cannot distinguish O2O groups.
+      const fallbackQuery = new URLSearchParams({
+        fields: JSON.stringify(baseFields),
+        limit_page_length: "0",
+        order_by: "student_group_name asc",
+        ...(baseFilters.length ? { filters: JSON.stringify(baseFilters) } : {}),
+      });
+      const { data } = await apiClient.get<FrappeListResponse<StudentGroupOption>>(
+        `/resource/Student Group?${fallbackQuery}`,
+      );
+      return ensureIncluded(data);
+    }
+  }
 }
 
 // ── Program → Courses ──────────────────────────────────────────────────────────
@@ -424,18 +531,38 @@ export async function getAllProgramTopics(program: string): Promise<ProgramTopic
 
 /** Mark a course schedule's topic as covered */
 export async function markTopicCovered(scheduleName: string): Promise<void> {
-  await apiClient.put(
-    `/resource/Course Schedule/${encodeURIComponent(scheduleName)}`,
-    { custom_topic_covered: 1 },
-  );
+  const res = await fetch("/api/topic-coverage/toggle", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify({ scheduleName, covered: 1 }),
+  });
+
+  if (!res.ok) {
+    const err = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(err.error || "Failed to mark topic covered");
+  }
 }
 
 /** Mark a course schedule's topic as NOT covered (undo) */
 export async function unmarkTopicCovered(scheduleName: string): Promise<void> {
-  await apiClient.put(
-    `/resource/Course Schedule/${encodeURIComponent(scheduleName)}`,
-    { custom_topic_covered: 0 },
-  );
+  const res = await fetch("/api/topic-coverage/toggle", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify({ scheduleName, covered: 0 }),
+  });
+
+  if (!res.ok) {
+    const err = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(err.error || "Failed to mark topic pending");
+  }
 }
 
 // ── Topic management ────────────────────────────────────────────────────────

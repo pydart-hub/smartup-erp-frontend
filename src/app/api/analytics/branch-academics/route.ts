@@ -6,6 +6,62 @@ const FRAPPE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL;
 const FRAPPE_API_KEY = process.env.FRAPPE_API_KEY;
 const FRAPPE_API_SECRET = process.env.FRAPPE_API_SECRET;
 
+function formatDateUTC(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+function parseDateUTC(ymd: string): Date {
+  return new Date(`${ymd}T00:00:00.000Z`);
+}
+
+function normalizeDateOnly(value?: string | null): string | null {
+  if (!value) return null;
+  const d = value.slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : null;
+}
+
+function getAcademicWindowUTC(today: Date) {
+  const year = today.getUTCFullYear();
+  const month = today.getUTCMonth();
+  const day = today.getUTCDate();
+  const startYear = month > 3 || (month === 3 && day >= 1) ? year : year - 1;
+  const start = `${startYear}-05-01`;
+  const end = formatDateUTC(today);
+  return { start, end };
+}
+
+function getPublicHolidayDates(start: string, end: string): Set<string> {
+  const startDate = parseDateUTC(start);
+  const endDate = parseDateUTC(end);
+  const startYear = startDate.getUTCFullYear();
+  const endYear = endDate.getUTCFullYear();
+  const holidayDates = new Set<string>();
+
+  for (let year = startYear; year <= endYear; year++) {
+    const mayFirst = `${year}-05-01`;
+    if (mayFirst >= start && mayFirst <= end) {
+      holidayDates.add(mayFirst);
+    }
+  }
+
+  return holidayDates;
+}
+
+function getWorkingDaysExcludingSundays(start: string, end: string, holidayDates: Set<string>): Set<string> {
+  const startDate = parseDateUTC(start);
+  const endDate = parseDateUTC(end);
+  const days = new Set<string>();
+
+  for (let d = new Date(startDate); d <= endDate; d.setUTCDate(d.getUTCDate() + 1)) {
+    if (d.getUTCDay() === 0) continue; // Sunday holiday
+    const dateOnly = formatDateUTC(d);
+    if (holidayDates.has(dateOnly)) continue;
+    days.add(dateOnly);
+  }
+
+  return days;
+}
+
 /**
  * GET /api/analytics/branch-academics
  *
@@ -20,6 +76,10 @@ export async function GET(request: NextRequest) {
     }
 
     const auth = `token ${FRAPPE_API_KEY}:${FRAPPE_API_SECRET}`;
+    const { start: fromDate, end: toDate } = getAcademicWindowUTC(new Date());
+    const publicHolidays = getPublicHolidayDates(fromDate, toDate);
+    const workingDays = getWorkingDaysExcludingSundays(fromDate, toDate, publicHolidays);
+    const totalWorkingDays = workingDays.size;
 
     // 1. Fetch all companies (branches)
     const companiesRes = await fetch(
@@ -65,12 +125,6 @@ export async function GET(request: NextRequest) {
           },
         );
         const totalStudents = studentsRes.ok ? (await studentsRes.json()).message ?? 0 : 0;
-
-        // Attendance: last 30 days
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        const fromDate = thirtyDaysAgo.toISOString().split("T")[0];
-        const toDate = new Date().toISOString().split("T")[0];
 
         const attRes = await fetch(
           `${FRAPPE_URL}/api/resource/Student%20Attendance?${new URLSearchParams({
@@ -121,8 +175,13 @@ export async function GET(request: NextRequest) {
 
         // Build conducted set for instructor metrics
         const conductedSet = new Set<string>();
+        const attendanceDaySet = new Set<string>();
         for (const r of attDetail) {
-          if (r.student_group && r.date) conductedSet.add(`${r.student_group}|||${r.date}`);
+          const dateOnly = normalizeDateOnly(r.date);
+          if (r.student_group && dateOnly) {
+            conductedSet.add(`${r.student_group}|||${dateOnly}`);
+            if (workingDays.has(dateOnly)) attendanceDaySet.add(dateOnly);
+          }
         }
 
         // Exams
@@ -169,7 +228,11 @@ export async function GET(request: NextRequest) {
         // Fetch ALL course schedules (topic coverage + instructor metrics)
         const courseSchedulesRes = await fetch(
           `${FRAPPE_URL}/api/resource/Course%20Schedule?${new URLSearchParams({
-            filters: JSON.stringify([["custom_branch", "=", company.name]]),
+            filters: JSON.stringify([
+              ["custom_branch", "=", company.name],
+              ["schedule_date", ">=", fromDate],
+              ["schedule_date", "<=", toDate],
+            ]),
             fields: JSON.stringify([
               "instructor", "instructor_name", "student_group",
               "schedule_date", "custom_topic", "custom_topic_covered",
@@ -182,6 +245,29 @@ export async function GET(request: NextRequest) {
           instructor: string; instructor_name: string; student_group: string;
           schedule_date: string; custom_topic: string; custom_topic_covered: 0 | 1;
         }[] = courseSchedulesRes.ok ? (await courseSchedulesRes.json()).data ?? [] : [];
+
+        const scheduledWorkingDaySet = new Set<string>();
+        for (const s of courseSchedules) {
+          const dateOnly = normalizeDateOnly(s.schedule_date);
+          if (dateOnly && workingDays.has(dateOnly)) {
+            scheduledWorkingDaySet.add(dateOnly);
+          }
+        }
+        const scheduledDays = scheduledWorkingDaySet.size;
+        const nonScheduledDays = Math.max(totalWorkingDays - scheduledDays, 0);
+        const nonScheduledDates = Array.from(workingDays)
+          .filter((d) => !scheduledWorkingDaySet.has(d))
+          .sort();
+        const attendanceNotMarkedDates = Array.from(scheduledWorkingDaySet)
+          .filter((d) => !attendanceDaySet.has(d))
+          .sort();
+        const attendanceMarkedOnScheduledDays = Array.from(scheduledWorkingDaySet)
+          .filter((d) => attendanceDaySet.has(d)).length;
+        const attendanceNotMarkedOnScheduledDays = Math.max(
+          scheduledDays - attendanceMarkedOnScheduledDays,
+          0,
+        );
+        const attendanceNotMarkedDays = nonScheduledDays + attendanceNotMarkedOnScheduledDays;
 
         // Topic coverage (only schedules with topics assigned)
         const topicSchedules = courseSchedules.filter((s) => s.custom_topic);
@@ -234,6 +320,16 @@ export async function GET(request: NextRequest) {
         return {
           branch: company.name,
           branch_name: company.company_name,
+          metrics_from_date: fromDate,
+          metrics_to_date: toDate,
+          non_scheduled_dates: nonScheduledDates,
+          attendance_not_marked_dates: attendanceNotMarkedDates,
+          total_working_days: totalWorkingDays,
+          scheduled_days: scheduledDays,
+          non_scheduled_days: nonScheduledDays,
+          attendance_marked_on_scheduled_days: attendanceMarkedOnScheduledDays,
+          // Includes non-scheduled working days + scheduled days where attendance is pending.
+          attendance_not_marked_on_scheduled_days: attendanceNotMarkedDays,
           total_students: totalStudents,
           total_batches: totalBatches,
           avg_attendance_pct: avgAttPct,
@@ -275,6 +371,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       branches: activeBranches,
       overall: {
+        metrics_from_date: fromDate,
+        metrics_to_date: toDate,
+        public_holiday_days: publicHolidays.size,
+        total_working_days: totalWorkingDays,
         total_students: totalStudents,
         avg_attendance_pct: avgAttPct,
         avg_exam_pct: avgExamPct,

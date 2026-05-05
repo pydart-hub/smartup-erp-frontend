@@ -2,11 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { BookOpen, ClipboardCheck, Trophy, Calendar, Users, GraduationCap } from "lucide-react";
+import { BookOpen, ClipboardCheck, Trophy, Calendar, Users, GraduationCap, MessageSquareWarning } from "lucide-react";
 
 const cards = [
   { title: "Academics", desc: "All branches overview with drill-down", icon: BookOpen, href: "/dashboard/general-manager/academics", color: "bg-primary/10 text-primary" },
   { title: "Attendance", desc: "Branch-wise attendance analytics", icon: ClipboardCheck, href: "/dashboard/general-manager/attendance", color: "bg-success/10 text-success" },
+  { title: "Actions Needed", desc: "Weekly branch-wise follow-ups to close", icon: MessageSquareWarning, href: "/dashboard/general-manager/actions-needed", color: "bg-error/10 text-error" },
   { title: "Exams", desc: "Exam performance across branches", icon: Trophy, href: "/dashboard/general-manager/exams", color: "bg-warning/10 text-warning" },
   { title: "Schedule", desc: "Class schedules & topic coverage", icon: Calendar, href: "/dashboard/general-manager/course-schedule", color: "bg-info/10 text-info" },
   { title: "Instructors", desc: "Instructor performance metrics", icon: Users, href: "/dashboard/general-manager/instructors", color: "bg-purple-100 text-purple-700" },

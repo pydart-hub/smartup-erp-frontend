@@ -4,45 +4,66 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
+import { DM_Sans } from "next/font/google";
 import { Play } from "lucide-react";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { LoginFooter } from "@/components/auth/LoginFooter";
 
-const HERO_IMAGES = [
-  "/login-slide-1.jpg",
-  "/login-slide-2.jpg",
-  "/login-slide-3.jpg",
-  "/login-slide-4.jpg",
-];
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
+  display: "swap",
+});
 
 const SLIDES = [
   {
-    tag: "SMARTUP LEARNING",
-    heading: "Empowering",
-    highlight: "Education",
+    image: "/login-slide-1.jpg",
+    eyebrow: "SMARTUP LEARNING",
+    title: "Building Future-Ready",
+    accentTitle: "Students",
     description:
-      "Complete education management — students, batches, attendance, and fees in one place",
+      "We combine academic excellence with real-world skills, ensuring holistic student development.",
+    supportingText: "One standard of quality across all branches.",
   },
   {
-    tag: "SMARTUP LEARNING",
-    heading: "Smart Tools for",
-    highlight: "Smart Schools",
+    image: "/login-slide-2.jpg",
+    eyebrow: "SMARTUP LEARNING",
+    title: "Comprehensive Learning",
+    accentTitle: "Solutions",
     description:
-      "Streamline admissions, track progress, and manage operations effortlessly",
+      "From tuition and school programs to entrance coaching and online classes — all under one platform.",
+    supportingText:
+      "Designed to support every stage of a student's academic journey.",
   },
   {
-    tag: "SMARTUP LEARNING",
-    heading: "Where Learning",
-    highlight: "Meets Excellence",
+    image: "/login-slide-5.png",
+    eyebrow: "SMARTUP LEARNING",
+    title: "Enhancing Classroom",
+    accentTitle: "Excellence",
     description:
-      "Manage every branch, every student, every rupee — all from one dashboard",
+      "Support teachers with insights on student performance, engagement, and academic trends.",
+    supportingText:
+      "Bridging traditional teaching with modern technology.",
   },
   {
-    tag: "SMARTUP LEARNING",
-    heading: "Built for",
-    highlight: "Every Branch",
+    image: "/login-slide-3.jpg",
+    eyebrow: "SMARTUP LEARNING",
+    title: "Personalized Learning",
+    accentTitle: "for Every Student",
     description:
-      "One platform connecting all your centres — real-time insights at your fingertips",
+      "Interactive learning paths, engaging content, and real-time progress tracking for students and parents.",
+    supportingText:
+      "Making education smarter, simpler, and more accessible.",
+  },
+  {
+    image: "/login-slide-4.jpg",
+    eyebrow: "SMARTUP LEARNING",
+    title: "Manage Your Institution",
+    accentTitle: "with Precision",
+    description:
+      "Monitor academic performance, payments, and operational data seamlessly through a centralized ERP system.",
+    supportingText:
+      "Simplify administration with data-driven control and visibility.",
   },
 ];
 
@@ -75,7 +96,7 @@ export default function LoginPage() {
             className="absolute inset-0"
           >
             <Image
-              src={HERO_IMAGES[activeSlide]}
+              src={slide.image}
               alt="SmartUp Learning"
               fill
               className="object-cover"
@@ -85,30 +106,67 @@ export default function LoginPage() {
         </AnimatePresence>
 
         {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/10 z-10" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,18,22,0.68)_0%,rgba(7,18,22,0.42)_34%,rgba(7,18,22,0.16)_58%,rgba(7,18,22,0.74)_100%)] z-10" />
 
+        <div className="absolute inset-0 z-20 pointer-events-none">
+          <div className="absolute left-10 top-10 inline-flex items-center gap-3 rounded-full border border-white/12 bg-black/18 px-4 py-2 backdrop-blur-sm">
+            <span className="h-2 w-2 rounded-full bg-primary/90" />
+            <span className={`${dmSans.className} text-[0.7rem] font-semibold uppercase tracking-[0.34em] text-white/78`}>
+              Smartup Learning Ventures
+            </span>
+          </div>
+        </div>
 
         {/* Slide text at bottom */}
         <div className="absolute bottom-12 left-10 right-10 z-20">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeSlide}
-              initial={{ opacity: 0, y: 24 }}
+              initial={{ opacity: 0, y: 28 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -16 }}
-              transition={{ duration: 0.6, ease: "easeOut" }}
+              exit={{ opacity: 0, y: -18 }}
+              transition={{ duration: 0.7, ease: "easeOut" }}
+              className="max-w-[27rem]"
             >
-              <p className="text-primary text-sm font-semibold tracking-widest mb-3">
-                {slide.tag}
-              </p>
-              <h1 className="text-white text-4xl xl:text-5xl font-bold leading-tight">
-                {slide.heading}
-                <br />
-                <span className="text-primary">{slide.highlight}</span>
-              </h1>
-              <p className="text-white/70 mt-4 text-base max-w-lg leading-relaxed">
+              <motion.p
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+                className={`${dmSans.className} mb-1.5 text-[0.82rem] font-bold uppercase tracking-[0.18em] text-[#23d3c5]`}
+              >
+                {slide.eyebrow}
+              </motion.p>
+              <motion.div
+                initial={{ opacity: 0, scaleX: 0.35 }}
+                animate={{ opacity: 1, scaleX: 1 }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+                className="mb-3 h-px w-12 origin-left bg-gradient-to-r from-primary/90 to-transparent"
+              />
+              <motion.h1
+                initial={{ opacity: 0, y: 18 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.7, delay: 0.05, ease: "easeOut" }}
+                className={`${dmSans.className} max-w-[26rem] text-white text-[2.5rem] xl:text-[2.8rem] font-bold leading-[1] tracking-[-0.045em]`}
+              >
+                <span className="block">{slide.title}</span>
+                <span className="block text-primary">{slide.accentTitle}</span>
+              </motion.h1>
+              <motion.p
+                initial={{ opacity: 0, y: 22 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.65, delay: 0.16, ease: "easeOut" }}
+                className={`${dmSans.className} mt-3 max-w-[24rem] text-[0.96rem] font-medium leading-7 tracking-[0.003em] text-white/82`}
+              >
                 {slide.description}
-              </p>
+              </motion.p>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.65, delay: 0.28, ease: "easeOut" }}
+                className={`${dmSans.className} mt-3 max-w-[24rem] text-[0.9rem] font-normal leading-6 tracking-[0.002em] text-white/80`}
+              >
+                <span className="inline-block border-b border-primary/30 pb-0.5">{slide.supportingText}</span>
+              </motion.div>
             </motion.div>
           </AnimatePresence>
 

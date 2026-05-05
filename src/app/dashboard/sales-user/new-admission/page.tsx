@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { GraduationCap, BookOpen, UserCheck, ArrowRight, Star, Unlock } from "lucide-react";
+import { GraduationCap, BookOpen, UserCheck, ArrowRight, Star, Unlock, BookUser } from "lucide-react";
 
 const admissionTypes = [
   {
@@ -43,6 +43,14 @@ const admissionTypes = [
     href: "/dashboard/sales-user/admit?free_access=true",
     color: "bg-teal-50 text-teal-600 border-teal-200",
     hoverColor: "hover:border-teal-400 hover:shadow-teal-100",
+  },
+  {
+    title: "One to One",
+    description: "Individual tuition — personalized sessions with hourly billing. ₹300/hr for Plus One/Two, ₹200/hr for 8th–10th.",
+    icon: BookUser,
+    href: "/dashboard/sales-user/admit-one-to-one",
+    color: "bg-violet-50 text-violet-600 border-violet-200",
+    hoverColor: "hover:border-violet-400 hover:shadow-violet-100",
   },
 ];
 

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import {
@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/Badge";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { getPendingInvoices, type PendingInvoiceRow } from "@/lib/api/fees";
 import { getBatches, getBatch } from "@/lib/api/batches";
+import { getStudentGroups } from "@/lib/api/courseSchedule";
 import { useAuth } from "@/lib/hooks/useAuth";
 import type { Batch } from "@/lib/types/batch";
 
@@ -34,11 +35,15 @@ interface BatchSummary {
 
 export default function BatchPendingFeesPage() {
   const { classId } = useParams<{ classId: string }>();
+  const searchParams = useSearchParams();
   const decodedClass = decodeURIComponent(classId);
+  const overdueOnly = searchParams.get("overdue") === "1";
   const { defaultCompany } = useAuth();
+  const today = new Date().toISOString().split("T")[0];
 
   const [invoices, setInvoices] = useState<PendingInvoiceRow[]>([]);
   const [batches, setBatches] = useState<Batch[]>([]);
+  const [o2oStudents, setO2oStudents] = useState<Array<{ student: string; student_name: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
@@ -57,12 +62,16 @@ export default function BatchPendingFeesPage() {
         custom_branch: defaultCompany || undefined,
         limit_page_length: 500,
       }),
+      getStudentGroups({
+        branch: defaultCompany || undefined,
+        oneToOneOnly: true,
+      }),
       fetch(
         `/api/fees/discontinued-summary${defaultCompany ? `?company=${encodeURIComponent(defaultCompany)}` : ""}`,
         { credentials: "include" }
       ).then((r) => r.ok ? r.json() : null).catch(() => null),
     ])
-      .then(async ([invData, batchListRes, discData]) => {
+      .then(async ([invData, batchListRes, o2oGroupsRes, discData]) => {
         // Build set of discontinued student IDs to exclude
         const discIds = new Set<string>(
           (discData?.students ?? []).map((s: { student_id: string }) => s.student_id)
@@ -72,7 +81,11 @@ export default function BatchPendingFeesPage() {
         const activeInvoices = invData.filter(
           (inv: PendingInvoiceRow) => !inv.student || !discIds.has(inv.student)
         );
-        setInvoices(activeInvoices);
+        setInvoices(
+          overdueOnly
+            ? activeInvoices.filter((inv) => !!inv.due_date && inv.due_date < today)
+            : activeInvoices
+        );
 
         // Fetch full docs for batches to get student child tables
         const batchIds = (batchListRes.data ?? []).map((b: { name: string }) => b.name);
@@ -84,10 +97,32 @@ export default function BatchPendingFeesPage() {
           )
         );
         setBatches(fullBatches.filter((b): b is Batch => b !== null));
+
+        // Resolve One-to-One group members for dedicated dues bucket
+        const o2oGroupIds = (o2oGroupsRes.data ?? []).map((g) => g.name);
+        const fullO2OGroups = await Promise.all(
+          o2oGroupIds.map((id: string) =>
+            getBatch(id)
+              .then((r) => r.data)
+              .catch(() => null)
+          )
+        );
+        const flattenedO2O = fullO2OGroups
+          .filter((g): g is Batch => g !== null)
+          .flatMap((g) =>
+            (g.students ?? [])
+              .filter((s) => s.active !== 0)
+              .map((s) => ({
+                student: (s.student ?? "").trim(),
+                student_name: (s.student_name ?? "").trim(),
+              }))
+              .filter((s) => !!s.student || !!s.student_name)
+          );
+        setO2oStudents(flattenedO2O);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [decodedClass, defaultCompany]);
+  }, [decodedClass, defaultCompany, overdueOnly, today]);
 
   // Build: customer → set of invoice customers
   const invoiceCustomers = useMemo(() => {
@@ -105,11 +140,55 @@ export default function BatchPendingFeesPage() {
     return map;
   }, [invoices]);
 
+  const invoiceByStudentId = useMemo(() => {
+    const map = new Map<string, { outstanding: number; count: number }>();
+    for (const inv of invoices) {
+      const sid = (inv.student ?? "").trim();
+      if (!sid) continue;
+      const existing = map.get(sid);
+      if (existing) {
+        existing.outstanding += inv.outstanding_amount;
+        existing.count += 1;
+      } else {
+        map.set(sid, { outstanding: inv.outstanding_amount, count: 1 });
+      }
+    }
+    return map;
+  }, [invoices]);
+
   // Build batch summaries by matching student_name in batch.students against
   // invoice customer names (in this system, customer = student name)
   const batchSummaries = useMemo(() => {
     const summaries: BatchSummary[] = [];
+    const matchedStudents = new Set<string>();
     const matchedCustomers = new Set<string>();
+
+    const o2oIds = new Set(o2oStudents.map((s) => s.student).filter(Boolean));
+    const o2oNames = new Set(o2oStudents.map((s) => s.student_name).filter(Boolean));
+
+    // One-to-One summary bucket
+    const o2oInvoices = invoices.filter((inv) => {
+      const sid = (inv.student ?? "").trim();
+      const cname = (inv.customer_name || inv.customer || "").trim();
+      const isO2O = (sid && o2oIds.has(sid)) || (cname && o2oNames.has(cname));
+      if (isO2O) {
+        if (sid) matchedStudents.add(sid);
+        if (cname) matchedCustomers.add(cname);
+      }
+      return isO2O;
+    });
+    const o2oStudentCount = new Set(
+      o2oInvoices.map((inv) => (inv.student ?? "").trim() || (inv.customer_name || inv.customer || "").trim())
+    ).size;
+    const o2oOutstanding = o2oInvoices.reduce((s, inv) => s + inv.outstanding_amount, 0);
+    if (o2oStudentCount > 0) {
+      summaries.push({
+        batchName: "__o2o__",
+        batchDisplayName: "One-to-One Students",
+        studentCount: o2oStudentCount,
+        totalOutstanding: o2oOutstanding,
+      });
+    }
 
     for (const batch of batches) {
       const activeStudents = batch.students?.filter((s) => s.active !== 0) ?? [];
@@ -117,13 +196,19 @@ export default function BatchPendingFeesPage() {
       let batchStudentCount = 0;
 
       for (const student of activeStudents) {
-        // Try matching by student_name (customer_name in SI = student name)
-        const studentName = student.student_name ?? "";
-        const entry = invoiceCustomers.get(studentName);
+        const sid = (student.student ?? "").trim();
+        const studentName = (student.student_name ?? "").trim();
+        if ((sid && o2oIds.has(sid)) || (studentName && o2oNames.has(studentName))) {
+          continue;
+        }
+
+        // Match by Student ID first (reliable), then by customer_name fallback.
+        const entry = (sid && invoiceByStudentId.get(sid)) || invoiceCustomers.get(studentName);
         if (entry) {
           batchOutstanding += entry.outstanding;
           batchStudentCount += 1;
-          matchedCustomers.add(studentName);
+          if (sid) matchedStudents.add(sid);
+          if (studentName) matchedCustomers.add(studentName);
         }
       }
 
@@ -139,7 +224,13 @@ export default function BatchPendingFeesPage() {
 
     // Add "Unmatched" for invoices not assigned to any batch
     const unmatchedInvoices = invoices.filter(
-      (inv) => !matchedCustomers.has(inv.customer_name || inv.customer)
+      (inv) => {
+        const sid = (inv.student ?? "").trim();
+        const cname = (inv.customer_name || inv.customer || "").trim();
+        if (sid && matchedStudents.has(sid)) return false;
+        if (cname && matchedCustomers.has(cname)) return false;
+        return true;
+      }
     );
     const unmatchedOutstanding = unmatchedInvoices.reduce(
       (s, inv) => s + inv.outstanding_amount, 0
@@ -159,7 +250,7 @@ export default function BatchPendingFeesPage() {
     }
 
     return summaries.sort((a, b) => b.totalOutstanding - a.totalOutstanding);
-  }, [batches, invoices, invoiceCustomers]);
+  }, [batches, invoices, invoiceByStudentId, invoiceCustomers, o2oStudents]);
 
   const totalOutstanding = invoices.reduce(
     (s, inv) => s + inv.outstanding_amount,
@@ -185,7 +276,7 @@ export default function BatchPendingFeesPage() {
         className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
       >
         <div className="flex items-center gap-3">
-          <Link href="/dashboard/branch-manager/fees/pending">
+          <Link href={overdueOnly ? "/dashboard/branch-manager/fees/overdue" : "/dashboard/branch-manager/fees/pending"}>
             <Button variant="ghost" size="sm" className="gap-1">
               <ArrowLeft className="h-4 w-4" /> Back
             </Button>
@@ -195,7 +286,7 @@ export default function BatchPendingFeesPage() {
               {decodedClass}
             </h1>
             <p className="text-sm text-text-secondary mt-0.5">
-              Batch-wise pending fee breakdown
+              {overdueOnly ? "Batch-wise overdue fee breakdown" : "Batch-wise pending fee breakdown"}
             </p>
           </div>
         </div>
@@ -215,7 +306,7 @@ export default function BatchPendingFeesPage() {
               </div>
               <div>
                 <p className="text-xs text-text-tertiary font-medium uppercase tracking-wide">
-                  Total Pending
+                  {overdueOnly ? "Total Overdue" : "Total Pending"}
                 </p>
                 <p className="text-xl font-bold text-text-primary">
                   {formatCurrency(totalOutstanding)}
@@ -248,7 +339,7 @@ export default function BatchPendingFeesPage() {
                   Batches
                 </p>
                 <p className="text-xl font-bold text-text-primary">
-                  {batchSummaries.filter((b) => b.batchName !== "__unmatched__").length}
+                  {batchSummaries.filter((b) => b.batchName !== "__unmatched__" && b.batchName !== "__o2o__").length}
                 </p>
               </div>
             </CardContent>
@@ -278,16 +369,19 @@ export default function BatchPendingFeesPage() {
         <Card>
           <CardContent className="py-12 text-center text-text-secondary">
             <AlertTriangle className="h-8 w-8 mx-auto mb-2 text-text-tertiary" />
-            No batches with pending fees found.
+            {overdueOnly ? "No batches with overdue fees found." : "No batches with pending fees found."}
           </CardContent>
         </Card>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((batch, idx) => {
             const isUnmatched = batch.batchName === "__unmatched__";
+            const isO2O = batch.batchName === "__o2o__";
             const href = isUnmatched
-              ? `/dashboard/branch-manager/fees/pending/${encodeURIComponent(decodedClass)}/__unmatched__`
-              : `/dashboard/branch-manager/fees/pending/${encodeURIComponent(decodedClass)}/${encodeURIComponent(batch.batchName)}`;
+              ? `/dashboard/branch-manager/fees/pending/${encodeURIComponent(decodedClass)}/__unmatched__${overdueOnly ? "?overdue=1" : ""}`
+              : isO2O
+              ? `/dashboard/branch-manager/fees/pending/${encodeURIComponent(decodedClass)}/__o2o__${overdueOnly ? "?overdue=1" : ""}`
+              : `/dashboard/branch-manager/fees/pending/${encodeURIComponent(decodedClass)}/${encodeURIComponent(batch.batchName)}${overdueOnly ? "?overdue=1" : ""}`;
 
             return (
               <motion.div
@@ -299,7 +393,7 @@ export default function BatchPendingFeesPage() {
                 <Link href={href}>
                   <Card
                     className={`hover:shadow-md hover:border-primary/30 transition-all cursor-pointer group ${
-                      isUnmatched ? "border-dashed border-warning/40" : ""
+                      isUnmatched ? "border-dashed border-warning/40" : isO2O ? "border-warning/40" : ""
                     }`}
                   >
                     <CardContent className="py-5">
@@ -309,11 +403,15 @@ export default function BatchPendingFeesPage() {
                             className={`h-10 w-10 rounded-xl flex items-center justify-center ${
                               isUnmatched
                                 ? "bg-warning/10"
+                                : isO2O
+                                ? "bg-warning/10"
                                 : "bg-primary/10"
                             }`}
                           >
                             {isUnmatched ? (
                               <AlertTriangle className="h-5 w-5 text-warning" />
+                            ) : isO2O ? (
+                              <Users className="h-5 w-5 text-warning" />
                             ) : (
                               <BookOpen className="h-5 w-5 text-primary" />
                             )}

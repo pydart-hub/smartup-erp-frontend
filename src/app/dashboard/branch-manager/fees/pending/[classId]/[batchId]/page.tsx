@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import {
@@ -26,6 +26,7 @@ import { Badge } from "@/components/ui/Badge";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { getPendingInvoices, type PendingInvoiceRow } from "@/lib/api/fees";
 import { getBatch } from "@/lib/api/batches";
+import { getStudentGroups } from "@/lib/api/courseSchedule";
 import { getPaymentModesByCustomers } from "@/lib/api/sales";
 import { useAuth } from "@/lib/hooks/useAuth";
 import type { Batch } from "@/lib/types/batch";
@@ -41,10 +42,14 @@ export default function StudentPendingFeesPage() {
     classId: string;
     batchId: string;
   }>();
+  const searchParams = useSearchParams();
   const decodedClass = decodeURIComponent(classId);
   const decodedBatch = decodeURIComponent(batchId);
   const isUnmatched = decodedBatch === "__unmatched__";
+  const isO2O = decodedBatch === "__o2o__";
+  const overdueOnly = searchParams.get("overdue") === "1";
   const { defaultCompany } = useAuth();
+  const today = new Date().toISOString().split("T")[0];
 
   const [invoices, setInvoices] = useState<PendingInvoiceRow[]>([]);
   const [batch, setBatch] = useState<Batch | null>(null);
@@ -64,6 +69,9 @@ export default function StudentPendingFeesPage() {
           item_code: decodedClass,
           limit_page_length: 2000,
         });
+        const scopedInvoices = overdueOnly
+          ? allInvoices.filter((inv) => !!inv.due_date && inv.due_date < today)
+          : allInvoices;
 
         if (isUnmatched) {
           const { getBatches } = await import("@/lib/api/batches");
@@ -88,8 +96,61 @@ export default function StudentPendingFeesPage() {
             }
           }
 
+          // Exclude One-to-One students from unmatched bucket
+          const o2oGroupsRes = await getStudentGroups({
+            branch: defaultCompany || undefined,
+            oneToOneOnly: true,
+          });
+          const o2oGroupIds = (o2oGroupsRes.data ?? []).map((g) => g.name);
+          const fullO2OGroups = await Promise.all(
+            o2oGroupIds.map((id) =>
+              getBatch(id)
+                .then((r) => r.data)
+                .catch(() => null)
+            )
+          );
+          for (const g of fullO2OGroups) {
+            if (!g) continue;
+            for (const s of g.students ?? []) {
+              if (s.student_name) allStudentNames.add(s.student_name);
+            }
+          }
+
           setInvoices(
-            allInvoices.filter((inv) => !allStudentNames.has(inv.customer_name || inv.customer))
+            scopedInvoices.filter((inv) => !allStudentNames.has(inv.customer_name || inv.customer))
+          );
+        } else if (isO2O) {
+          const o2oGroupsRes = await getStudentGroups({
+            branch: defaultCompany || undefined,
+            oneToOneOnly: true,
+          });
+          const o2oGroupIds = (o2oGroupsRes.data ?? []).map((g) => g.name);
+
+          const fullO2OGroups = await Promise.all(
+            o2oGroupIds.map((id) =>
+              getBatch(id)
+                .then((r) => r.data)
+                .catch(() => null)
+            )
+          );
+
+          const o2oStudentIds = new Set<string>();
+          const o2oStudentNames = new Set<string>();
+          for (const g of fullO2OGroups) {
+            if (!g) continue;
+            for (const s of g.students ?? []) {
+              if (s.active === 0) continue;
+              if (s.student) o2oStudentIds.add(s.student);
+              if (s.student_name) o2oStudentNames.add(s.student_name);
+            }
+          }
+
+          setInvoices(
+            scopedInvoices.filter((inv) => {
+              const sid = (inv.student ?? "").trim();
+              const cname = (inv.customer_name || inv.customer || "").trim();
+              return (sid && o2oStudentIds.has(sid)) || (cname && o2oStudentNames.has(cname));
+            })
           );
         } else {
           const batchRes = await getBatch(decodedBatch);
@@ -104,13 +165,13 @@ export default function StudentPendingFeesPage() {
           );
 
           setInvoices(
-            allInvoices.filter((inv) => batchStudentNames.has(inv.customer_name || inv.customer))
+            scopedInvoices.filter((inv) => batchStudentNames.has(inv.customer_name || inv.customer))
           );
         }
 
         // Fetch payment mode per customer from Payment Entries
         try {
-          const customerNames = [...new Set(allInvoices.map(inv => inv.customer_name || inv.customer || "").filter(Boolean))];
+          const customerNames = [...new Set(scopedInvoices.map(inv => inv.customer_name || inv.customer || "").filter(Boolean))];
           const modeMap = await getPaymentModesByCustomers(customerNames, defaultCompany || undefined);
           setPaymentModeMap(modeMap);
         } catch {
@@ -124,7 +185,7 @@ export default function StudentPendingFeesPage() {
     };
 
     fetchData();
-  }, [decodedClass, decodedBatch, defaultCompany, isUnmatched]);
+  }, [decodedClass, decodedBatch, defaultCompany, isO2O, isUnmatched, overdueOnly, today]);
 
   // Group invoices by student
   const studentGroups = useMemo(() => {
@@ -160,8 +221,6 @@ export default function StudentPendingFeesPage() {
     return studentGroups.filter((s) => s.name.toLowerCase().includes(q));
   }, [studentGroups, search]);
 
-  const today = new Date().toISOString().split("T")[0];
-
   const toggleStudent = (name: string) => {
     setExpandedStudent((prev) => (prev === name ? null : name));
   };
@@ -178,7 +237,7 @@ export default function StudentPendingFeesPage() {
       >
         <div className="flex items-center gap-3">
           <Link
-            href={`/dashboard/branch-manager/fees/pending/${encodeURIComponent(decodedClass)}`}
+            href={`/dashboard/branch-manager/fees/pending/${encodeURIComponent(decodedClass)}${overdueOnly ? "?overdue=1" : ""}`}
           >
             <Button variant="ghost" size="sm" className="gap-1">
               <ArrowLeft className="h-4 w-4" /> Back
@@ -186,10 +245,10 @@ export default function StudentPendingFeesPage() {
           </Link>
           <div>
             <h1 className="text-2xl font-bold text-text-primary">
-              {isUnmatched ? "Unassigned Students" : decodedBatch}
+              {isUnmatched ? "Unassigned Students" : isO2O ? "One-to-One Students" : decodedBatch}
             </h1>
             <p className="text-sm text-text-secondary mt-0.5">
-              {decodedClass} &mdash; Student pending fee details
+              {decodedClass} &mdash; Student {overdueOnly ? "overdue" : "pending"} fee details
             </p>
           </div>
         </div>
@@ -209,7 +268,7 @@ export default function StudentPendingFeesPage() {
               </div>
               <div>
                 <p className="text-xs text-text-tertiary font-medium uppercase tracking-wide">
-                  Total Pending
+                  {overdueOnly ? "Total Overdue" : "Total Pending"}
                 </p>
                 <p className="text-xl font-bold text-text-primary">
                   {formatCurrency(totalOutstanding)}
@@ -257,7 +316,7 @@ export default function StudentPendingFeesPage() {
         <Card>
           <CardContent className="py-12 text-center text-text-secondary">
             <AlertTriangle className="h-8 w-8 mx-auto mb-2 text-text-tertiary" />
-            No pending fees found for this batch.
+            {overdueOnly ? "No overdue fees found for this batch." : "No pending fees found for this batch."}
           </CardContent>
         </Card>
       ) : (

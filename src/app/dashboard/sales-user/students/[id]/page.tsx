@@ -317,19 +317,22 @@ export default function SalesUserStudentDetailPage() {
             {/* SO summary */}
             {salesOrdersRes?.length > 0 && (() => {
               const so = salesOrdersRes[0];
+              const soTotalGrand = (salesOrdersRes as { grand_total: number }[]).reduce((s, o) => s + (o.grand_total ?? 0), 0);
               const invTotal = salesInvoicesRes?.reduce((s: number, i: { grand_total: number }) => s + i.grand_total, 0) ?? 0;
               const invOutstanding = salesInvoicesRes?.reduce((s: number, i: { outstanding_amount: number }) => s + i.outstanding_amount, 0) ?? 0;
               const paid = invTotal - invOutstanding;
-              const pct = so.grand_total > 0 ? Math.round((paid / so.grand_total) * 100) : 0;
+              const pct = soTotalGrand > 0 ? Math.min(100, Math.round((paid / soTotalGrand) * 100)) : 0;
+              const multipleOrders = salesOrdersRes.length > 1;
               return (
                 <div className="rounded-[12px] border border-border-light bg-app-bg p-4 mb-4">
                   <div className="flex items-center justify-between mb-2">
                     <div>
                       <span className="text-xs font-mono text-primary">{so.name}</span>
+                      {multipleOrders && <span className="text-[10px] text-text-tertiary ml-2">+{salesOrdersRes.length - 1} more order{salesOrdersRes.length > 2 ? "s" : ""}</span>}
                       {so.custom_plan && <Badge variant="info" className="ml-2">{so.custom_plan}</Badge>}
                       {so.custom_no_of_instalments && <Badge variant="default" className="ml-1">{so.custom_no_of_instalments}x</Badge>}
                     </div>
-                    <span className="text-lg font-bold text-text-primary">₹{so.grand_total.toLocaleString("en-IN")}</span>
+                    <span className="text-lg font-bold text-text-primary">₹{soTotalGrand.toLocaleString("en-IN")}</span>
                   </div>
                   <div className="flex items-center gap-3 text-xs text-text-secondary mb-2">
                     <span>Paid: <strong className="text-success">₹{paid.toLocaleString("en-IN")}</strong></span>

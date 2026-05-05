@@ -8,6 +8,10 @@ import { ChevronRight, Home } from "lucide-react";
 export function BreadcrumbNav() {
   const pathname = usePathname();
 
+  const segmentLabelMap: Record<string, string> = {
+    alumni: "Alumni Connect",
+  };
+
   // Parse path segments
   const segments = pathname.split("/").filter(Boolean);
 
@@ -15,7 +19,8 @@ export function BreadcrumbNav() {
   const breadcrumbs = segments.map((segment, index) => {
     const href = "/" + segments.slice(0, index + 1).join("/");
     const decoded = decodeURIComponent(segment);
-    const label = decoded
+    const normalized = decoded.toLowerCase();
+    const label = segmentLabelMap[normalized] ?? decoded
       .replace(/-/g, " ")
       .replace(/\b\w/g, (c) => c.toUpperCase());
     return { label, href };

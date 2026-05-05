@@ -158,6 +158,15 @@ export interface InstructorPerformanceMetrics {
 export interface BranchAcademicHealth {
   branch: string;
   branch_name: string;
+  metrics_from_date: string;
+  metrics_to_date: string;
+  non_scheduled_dates: string[];
+  attendance_not_marked_dates: string[];
+  total_working_days: number;
+  scheduled_days: number;
+  non_scheduled_days: number;
+  attendance_marked_on_scheduled_days: number;
+  attendance_not_marked_on_scheduled_days: number;
   total_students: number;
   total_batches: number;
   avg_attendance_pct: number;
@@ -206,11 +215,63 @@ export interface InstructorAnalyticsResponse {
 export interface BranchAcademicsResponse {
   branches: BranchAcademicHealth[];
   overall: {
+    metrics_from_date: string;
+    metrics_to_date: string;
+    public_holiday_days: number;
+    total_working_days: number;
     total_students: number;
     avg_attendance_pct: number;
     avg_exam_pct: number;
     overall_pass_rate: number;
   };
+}
+
+export interface BranchActionNeeded {
+  branch: string;
+  branch_name: string;
+  week_from_date: string;
+  week_to_date: string;
+  working_days_this_week: number;
+  scheduled_days_this_week: number;
+  not_scheduled_days_this_week: number;
+  attendance_marked_on_scheduled_days_this_week: number;
+  attendance_not_marked_on_scheduled_days_this_week: number;
+  actions_needed_days: number;
+  instructors_scheduled_this_week: number;
+  action_items: string[];
+}
+
+export interface BranchActionsNeededResponse {
+  branches: BranchActionNeeded[];
+  overall: {
+    week_from_date: string;
+    week_to_date: string;
+    public_holiday_days_this_week: number;
+    working_days_this_week: number;
+    total_branches: number;
+    branches_with_actions: number;
+    total_actions_needed_days: number;
+  };
+}
+
+export interface BranchActionsNeededDetailResponse {
+  branch: string;
+  week_from_date: string;
+  week_to_date: string;
+  public_holiday_days_this_week: number;
+  working_days_this_week: number;
+  scheduled_days_this_week: number;
+  not_scheduled_days_this_week: number;
+  attendance_not_marked_on_scheduled_days_this_week: number;
+  actions_needed_days: number;
+  not_scheduled_dates: string[];
+  attendance_not_marked_dates: string[];
+  day_details: {
+    date: string;
+    scheduled: boolean;
+    attendance_marked: boolean;
+    status: "not_scheduled" | "attendance_not_marked" | "resolved";
+  }[];
 }
 
 // ── Schedule & Event Analytics ──────────────────────────────────

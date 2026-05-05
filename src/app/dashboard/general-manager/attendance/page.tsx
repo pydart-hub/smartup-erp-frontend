@@ -15,6 +15,8 @@ const item = { hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } };
 
 export default function GMAttendancePage() {
   const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
+  const [onlyProblems, setOnlyProblems] = useState(false);
+  const [holidayAdjustment, setHolidayAdjustment] = useState(0);
 
   const { data, isLoading } = useQuery({
     queryKey: ["branch-academics"],
@@ -36,13 +38,47 @@ export default function GMAttendancePage() {
   }
 
   const branches = data?.branches ?? [];
-  const sorted = [...branches].sort((a, b) => b.avg_attendance_pct - a.avg_attendance_pct);
+  const basePublicHolidayDays = safeNum(data?.overall?.public_holiday_days);
+  const publicHolidayDays = Math.max(basePublicHolidayDays + holidayAdjustment, 0);
 
-  const totalStudents = branches.reduce((a, b) => a + b.total_students, 0);
-  const overallAtt = branches.length
-    ? Math.round(branches.reduce((a, b) => a + b.avg_attendance_pct, 0) / branches.length)
+  const adjustedBranchMetrics = branches.map((b) => {
+    const adjustedWorking = Math.max(safeNum(b.total_working_days) - holidayAdjustment, 0);
+    const scheduled = Math.min(safeNum(b.scheduled_days), adjustedWorking);
+    const attendanceMarked = Math.min(safeNum(b.attendance_marked_on_scheduled_days), scheduled);
+    const nonScheduled = Math.max(adjustedWorking - scheduled, 0);
+    const attendanceNotMarked = nonScheduled + Math.max(scheduled - attendanceMarked, 0);
+    return {
+      branch: b.branch,
+      adjustedWorking,
+      scheduled,
+      nonScheduled,
+      attendanceMarked,
+      attendanceNotMarked,
+    };
+  });
+  const metricByBranch = new Map(adjustedBranchMetrics.map((m) => [m.branch, m]));
+
+  const visibleBranches = onlyProblems
+    ? branches.filter((b) => {
+        const m = metricByBranch.get(b.branch);
+        return !!m && (m.nonScheduled > 0 || m.attendanceNotMarked > 0);
+      })
+    : branches;
+
+  const sorted = [...visibleBranches].sort((a, b) => b.avg_attendance_pct - a.avg_attendance_pct);
+
+  const totalStudents = visibleBranches.reduce((a, b) => a + b.total_students, 0);
+  const overallAtt = visibleBranches.length
+    ? Math.round(visibleBranches.reduce((a, b) => a + b.avg_attendance_pct, 0) / visibleBranches.length)
     : 0;
-  const totalAbsentees = branches.reduce((a, b) => a + b.chronic_absentees, 0);
+  const totalAbsentees = visibleBranches.reduce((a, b) => a + b.chronic_absentees, 0);
+  const totalWorkingDays = Math.max(safeNum(data?.overall?.total_working_days) - holidayAdjustment, 0);
+  const totalScheduledDays = visibleBranches.reduce((a, b) => a + (metricByBranch.get(b.branch)?.scheduled ?? 0), 0);
+  const totalNonScheduledDays = visibleBranches.reduce((a, b) => a + (metricByBranch.get(b.branch)?.nonScheduled ?? 0), 0);
+  const totalAttendanceMarked = visibleBranches.reduce((a, b) => a + (metricByBranch.get(b.branch)?.attendanceMarked ?? 0), 0);
+  const totalAttendanceNotMarked = visibleBranches.reduce((a, b) => a + (metricByBranch.get(b.branch)?.attendanceNotMarked ?? 0), 0);
+  const metricsFrom = data?.overall?.metrics_from_date ?? "";
+  const metricsTo = data?.overall?.metrics_to_date ?? "";
 
   return (
     <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto">
@@ -60,6 +96,63 @@ export default function GMAttendancePage() {
             <div>
               <h1 className="text-2xl font-bold text-primary">Attendance Overview</h1>
               <p className="text-sm text-text-tertiary mt-0.5">Cross-branch attendance analytics</p>
+              <div className="mt-1 flex items-center gap-2 text-xs text-text-tertiary">
+                <span>
+                  Public Holidays: <span className="font-semibold text-primary">{publicHolidayDays}</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setHolidayAdjustment((v) => Math.max(v - 1, -basePublicHolidayDays))}
+                  className="w-5 h-5 rounded border border-border-light text-text-secondary hover:text-primary hover:border-primary/40 transition-colors"
+                  aria-label="Decrease public holidays"
+                >
+                  -
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setHolidayAdjustment((v) => v + 1)}
+                  className="w-5 h-5 rounded border border-border-light text-text-secondary hover:text-primary hover:border-primary/40 transition-colors"
+                  aria-label="Increase public holidays"
+                >
+                  +
+                </button>
+                {holidayAdjustment !== 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setHolidayAdjustment(0)}
+                    className="px-2 py-0.5 rounded border border-border-light text-text-secondary hover:text-primary hover:border-primary/40 transition-colors"
+                  >
+                    Reset
+                  </button>
+                )}
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setOnlyProblems(false)}
+                  className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
+                    !onlyProblems
+                      ? "bg-primary text-white border-primary"
+                      : "bg-surface text-text-secondary border-border-light hover:border-primary/40"
+                  }`}
+                >
+                  All Branches ({branches.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOnlyProblems(true)}
+                  className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
+                    onlyProblems
+                      ? "bg-error text-white border-error"
+                      : "bg-surface text-text-secondary border-border-light hover:border-error/40"
+                  }`}
+                >
+                  Only Problem Branches ({branches.filter((b) => {
+                    const m = metricByBranch.get(b.branch);
+                    return !!m && (m.nonScheduled > 0 || m.attendanceNotMarked > 0);
+                  }).length})
+                </button>
+              </div>
             </div>
 
             {/* Summary Cards */}
@@ -69,7 +162,7 @@ export default function GMAttendancePage() {
                   <Building2 className="w-4 h-4 text-text-tertiary" />
                   <span className="text-xs text-text-tertiary font-medium">Branches</span>
                 </div>
-                <p className="text-2xl font-bold text-primary">{branches.length}</p>
+                <p className="text-2xl font-bold text-primary">{visibleBranches.length}</p>
               </motion.div>
               <motion.div variants={item} className="bg-surface rounded-[12px] p-4 border border-border-light">
                 <div className="flex items-center gap-2 mb-2">
@@ -94,6 +187,49 @@ export default function GMAttendancePage() {
               </motion.div>
             </motion.div>
 
+            <motion.div variants={container} initial="hidden" animate="show" className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+              <motion.div variants={item} className="bg-surface rounded-[12px] p-4 border border-border-light">
+                <div className="flex items-center gap-2 mb-2">
+                  <Building2 className="w-4 h-4 text-text-tertiary" />
+                  <span className="text-xs text-text-tertiary font-medium">Working Days</span>
+                </div>
+                <p className="text-2xl font-bold text-primary">{totalWorkingDays}</p>
+                {metricsFrom && metricsTo && (
+                  <p className="text-[11px] text-text-tertiary mt-1">
+                    May onward: {metricsFrom} to {metricsTo} (Sunday excluded, public holidays: {publicHolidayDays})
+                  </p>
+                )}
+              </motion.div>
+              <motion.div variants={item} className="bg-surface rounded-[12px] p-4 border border-border-light">
+                <div className="flex items-center gap-2 mb-2">
+                  <ClipboardCheck className="w-4 h-4 text-info" />
+                  <span className="text-xs text-text-tertiary font-medium">Scheduled Days</span>
+                </div>
+                <p className="text-2xl font-bold text-primary">{totalScheduledDays}</p>
+              </motion.div>
+              <motion.div variants={item} className="bg-surface rounded-[12px] p-4 border border-border-light">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertTriangle className="w-4 h-4 text-warning" />
+                  <span className="text-xs text-text-tertiary font-medium">Not Scheduled</span>
+                </div>
+                <p className="text-2xl font-bold text-warning">{totalNonScheduledDays}</p>
+              </motion.div>
+              <motion.div variants={item} className="bg-surface rounded-[12px] p-4 border border-border-light">
+                <div className="flex items-center gap-2 mb-2">
+                  <UserCheck className="w-4 h-4 text-success" />
+                  <span className="text-xs text-text-tertiary font-medium">Attendance Marked</span>
+                </div>
+                <p className="text-2xl font-bold text-success">{totalAttendanceMarked}</p>
+              </motion.div>
+              <motion.div variants={item} className="bg-surface rounded-[12px] p-4 border border-border-light">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertTriangle className="w-4 h-4 text-error" />
+                  <span className="text-xs text-text-tertiary font-medium">Att Not Marked</span>
+                </div>
+                <p className="text-2xl font-bold text-error">{totalAttendanceNotMarked}</p>
+              </motion.div>
+            </motion.div>
+
             {/* Branch Rows */}
             <motion.div variants={container} initial="hidden" animate="show" className="space-y-2">
               {sorted.map((b) => (
@@ -108,8 +244,18 @@ export default function GMAttendancePage() {
                       {safeNum(b.avg_attendance_pct)}%
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-primary truncate">{b.branch.replace("Smart Up ", "")}</p>
-                      <p className="text-xs text-text-tertiary">{b.total_students} students · {b.total_batches} batches</p>
+                      {(() => {
+                        const m = metricByBranch.get(b.branch);
+                        return (
+                          <>
+                            <p className="text-sm font-semibold text-primary truncate">{b.branch.replace("Smart Up ", "")}</p>
+                            <p className="text-xs text-text-tertiary">{b.total_students} students · {b.total_batches} batches</p>
+                            <p className="text-xs text-text-tertiary mt-1">
+                              Working: <span className="font-medium text-primary">{m?.adjustedWorking ?? 0}</span> · Scheduled: <span className="font-medium text-primary">{m?.scheduled ?? 0}</span> · Not scheduled: <span className="font-medium text-warning">{m?.nonScheduled ?? 0}</span> · Attendance marked: <span className="font-medium text-success">{m?.attendanceMarked ?? 0}</span> · Attendance not marked: <span className="font-medium text-error">{m?.attendanceNotMarked ?? 0}</span>
+                            </p>
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
 
@@ -127,7 +273,7 @@ export default function GMAttendancePage() {
             </motion.div>
 
             {/* Comparison Table */}
-            {branches.length > 1 && (
+            {visibleBranches.length > 1 && (
               <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
                 <h2 className="text-lg font-semibold text-primary mb-3">Branch Comparison</h2>
                 <div className="bg-surface rounded-[12px] border border-border-light overflow-hidden">

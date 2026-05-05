@@ -15,7 +15,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { toast } from "sonner";
 import { getBatches, getBatch } from "@/lib/api/batches";
 import { getAttendance, bulkMarkAttendance } from "@/lib/api/attendance";
-import { getCourseSchedules } from "@/lib/api/courseSchedule";
+import { getCourseSchedules, getStudentGroups } from "@/lib/api/courseSchedule";
 import type { CourseSchedule } from "@/lib/api/courseSchedule";
 import type { Batch, BatchStudent } from "@/lib/types/batch";
 import { useAuth } from "@/lib/hooks/useAuth";
@@ -92,6 +92,17 @@ export default function AttendancePage() {
     [batches]
   );
 
+  // ── O2O student groups ──
+  const [o2oExpanded, setO2oExpanded] = useState(true);
+  const { data: o2oGroupRes } = useQuery({
+    queryKey: ["o2o-groups-attendance", defaultCompany],
+    queryFn: () => getStudentGroups({ branch: defaultCompany || undefined, oneToOneOnly: true }),
+    staleTime: 5 * 60_000,
+    enabled: !!defaultCompany,
+  });
+  const o2oGroups = o2oGroupRes?.data ?? [];
+  const o2oGroupNames = useMemo(() => new Set(o2oGroups.map((g) => g.name)), [o2oGroups]);
+
   // ── Branch attendance records ──
   const { data: branchAttendanceRes, isLoading: classWiseLoading } = useQuery({
     queryKey: ["branch-attendance-records", defaultCompany, selectedDate],
@@ -139,7 +150,7 @@ export default function AttendancePage() {
   });
 
   // Build class summaries
-  const classSummaries: ClassSummary[] = useMemo(() => {
+  const allSummaries: ClassSummary[] = useMemo(() => {
     const rawRecords = branchAttendanceRes?.data ?? [];
     const groupMap = new Map<string, { present: number; absent: number; late: number }>();
 
@@ -162,35 +173,63 @@ export default function AttendancePage() {
       sessionCountMap.set(s.student_group, (sessionCountMap.get(s.student_group) ?? 0) + 1);
     }
 
-    const allGroups = new Set([...groupMap.keys(), ...batches.map((b: Batch) => b.name)]);
+    // Include regular batches + o2o groups
+    const allGroups = new Set([
+      ...groupMap.keys(),
+      ...batches.map((b: Batch) => b.name),
+      ...o2oGroups.map((g) => g.name),
+    ]);
 
     return Array.from(allGroups)
       .map((groupName) => {
         const counts = groupMap.get(groupName) ?? { present: 0, absent: 0, late: 0 };
         const total = counts.present + counts.absent + counts.late;
         const batch = batchMap.get(groupName);
+        const o2oGroup = o2oGroups.find((g) => g.name === groupName);
         const sessionCount = sessionCountMap.get(groupName) ?? 0;
         return {
           name: groupName,
-          displayName: batch?.student_group_name ?? groupName,
+          displayName: batch?.student_group_name ?? o2oGroup?.student_group_name ?? groupName,
           ...counts,
           total,
           percentage: total > 0 ? Math.round((counts.present / total) * 100) : 0,
           sessionCount,
-          sessionsMarked: total > 0 ? sessionCount : 0, // simplified — if attendance exists, all are marked
+          sessionsMarked: total > 0 ? sessionCount : 0,
         };
       })
       .sort((a, b) => a.displayName.localeCompare(b.displayName));
-  }, [branchAttendanceRes, batchMembersMap, batches, batchMap, branchSchedulesRes]);
+  }, [branchAttendanceRes, batchMembersMap, batches, batchMap, branchSchedulesRes, o2oGroups]);
 
-  // Overall totals
-  const overallPresent = classSummaries.reduce((s, c) => s + c.present, 0);
-  const overallAbsent = classSummaries.reduce((s, c) => s + c.absent, 0);
-  const overallLate = classSummaries.reduce((s, c) => s + c.late, 0);
+  // Split into regular classes vs O2O groups
+  const classSummaries = useMemo(
+    () => allSummaries.filter((c) => !o2oGroupNames.has(c.name)),
+    [allSummaries, o2oGroupNames],
+  );
+  const o2oSummaries = useMemo(
+    () => allSummaries.filter((c) => o2oGroupNames.has(c.name)),
+    [allSummaries, o2oGroupNames],
+  );
+
+  // Overall totals (all groups including O2O)
+  const overallPresent = allSummaries.reduce((s, c) => s + c.present, 0);
+  const overallAbsent = allSummaries.reduce((s, c) => s + c.absent, 0);
+  const overallLate = allSummaries.reduce((s, c) => s + c.late, 0);
   const overallTotal = overallPresent + overallAbsent + overallLate;
   const overallPercentage = overallTotal > 0 ? Math.round((overallPresent / overallTotal) * 100) : 0;
 
-  // ── Batch session detail: fetch schedules for selected batch ──
+  // ── Upcoming sessions for the selected batch (shown when no sessions on selected date) ──
+  const { data: upcomingSchedulesRes } = useQuery({
+    queryKey: ["bm-batch-upcoming", selectedBatchId],
+    queryFn: () =>
+      getCourseSchedules({
+        student_group: selectedBatchId || undefined,
+        from_date: new Date().toISOString().split("T")[0],
+        limit_page_length: 5,
+      }),
+    enabled: !!selectedBatchId && viewMode === "batch",
+    staleTime: 5 * 60_000,
+  });
+  const upcomingSchedules = upcomingSchedulesRes?.data ?? [];
   const { data: batchSchedulesRes, isLoading: batchSchedulesLoading } = useQuery({
     queryKey: ["bm-batch-sessions", selectedBatchId, selectedDate],
     queryFn: () =>
@@ -360,8 +399,19 @@ export default function AttendancePage() {
       setExpandedSession(null);
       setStudents([]);
       setAttendance({});
-    } catch {
-      toast.error("Failed to save attendance. Please try again.");
+    } catch (err) {
+      // Extract Frappe's human-readable error from AxiosError response
+      let msg = "Failed to save attendance. Please try again.";
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const raw = (err as any)?.response?.data?._server_messages;
+        if (raw) {
+          const parsed = JSON.parse(raw) as { message: string }[];
+          const text = parsed[0]?.message?.replace(/<[^>]+>/g, "");
+          if (text) msg = text;
+        }
+      } catch { /* use default msg */ }
+      toast.error(msg);
     } finally {
       setSaving(null);
     }
@@ -543,6 +593,125 @@ export default function AttendancePage() {
                 })}
               </div>
             )}
+
+            {/* One-to-One collapsible section */}
+            {o2oGroups.length > 0 && (
+              <div className="space-y-3">
+                {/* O2O header card */}
+                <button
+                  type="button"
+                  onClick={() => setO2oExpanded((v) => !v)}
+                  className="w-full text-left"
+                >
+                  <Card className="hover:shadow-card-hover hover:border-primary/20 transition-all">
+                    <CardContent className="p-5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-[10px] bg-amber-50 flex items-center justify-center">
+                            <Users className="h-4 w-4 text-amber-600" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-text-primary text-sm">One to One</h3>
+                            <p className="text-[11px] text-text-tertiary">{o2oGroups.length} student{o2oGroups.length !== 1 ? "s" : ""}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {o2oSummaries.some((s) => s.total > 0) && (
+                            <div className="flex items-center gap-2 text-xs">
+                              <span className="flex items-center gap-1 text-success font-medium">
+                                <CheckCircle className="h-3 w-3" />{o2oSummaries.reduce((s, c) => s + c.present, 0)}
+                              </span>
+                              <span className="flex items-center gap-1 text-error font-medium">
+                                <XCircle className="h-3 w-3" />{o2oSummaries.reduce((s, c) => s + c.absent, 0)}
+                              </span>
+                            </div>
+                          )}
+                          <ChevronDown className={`h-4 w-4 text-text-tertiary transition-transform ${o2oExpanded ? "rotate-180" : ""}`} />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </button>
+
+                {/* O2O student cards */}
+                <AnimatePresence>
+                  {o2oExpanded && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pl-2 border-l-2 border-amber-200">
+                        {o2oSummaries.map((cls, index) => {
+                          const hasData = cls.total > 0;
+                          return (
+                            <motion.div
+                              key={cls.name}
+                              initial={{ opacity: 0, y: 8 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: index * 0.04 }}
+                            >
+                              <Card
+                                className="cursor-pointer hover:shadow-card-hover hover:border-amber-400/40 transition-all group"
+                                onClick={() => openClassAttendance(cls.name)}
+                              >
+                                <CardContent className="p-5">
+                                  <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-9 h-9 rounded-[10px] bg-amber-50 flex items-center justify-center">
+                                        <GraduationCap className="h-4 w-4 text-amber-600" />
+                                      </div>
+                                      <div>
+                                        <h3 className="font-semibold text-text-primary text-sm leading-tight">
+                                          {cls.displayName}
+                                        </h3>
+                                        <p className="text-[10px] text-text-tertiary font-mono truncate max-w-[140px]">{cls.name}</p>
+                                      </div>
+                                    </div>
+                                    <ChevronRight className="h-4 w-4 text-text-tertiary group-hover:text-amber-600 transition-colors shrink-0" />
+                                  </div>
+
+                                  {hasData ? (
+                                    <>
+                                      <div className="w-full h-2 bg-app-bg rounded-full overflow-hidden mb-3">
+                                        <div className="h-full flex">
+                                          <div className="bg-success transition-all" style={{ width: `${(cls.present / cls.total) * 100}%` }} />
+                                          <div className="bg-warning transition-all" style={{ width: `${(cls.late / cls.total) * 100}%` }} />
+                                          <div className="bg-error transition-all" style={{ width: `${(cls.absent / cls.total) * 100}%` }} />
+                                        </div>
+                                      </div>
+                                      <div className="flex items-center justify-between text-xs">
+                                        <div className="flex items-center gap-3">
+                                          <span className="flex items-center gap-1 text-success font-medium"><CheckCircle className="h-3 w-3" />{cls.present}</span>
+                                          <span className="flex items-center gap-1 text-error font-medium"><XCircle className="h-3 w-3" />{cls.absent}</span>
+                                          {cls.late > 0 && <span className="flex items-center gap-1 text-warning font-medium"><Clock className="h-3 w-3" />{cls.late}</span>}
+                                        </div>
+                                        <Badge variant={cls.percentage >= 80 ? "success" : cls.percentage >= 60 ? "warning" : "error"} className="text-[10px]">
+                                          {cls.percentage}%
+                                        </Badge>
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <div className="text-center py-3">
+                                      <p className="text-xs text-text-tertiary">Not marked yet</p>
+                                      <p className="text-[11px] text-amber-600 font-medium mt-1">
+                                        {cls.sessionCount > 0 ? `${cls.sessionCount} session${cls.sessionCount > 1 ? "s" : ""} scheduled` : "Click to mark attendance"}
+                                      </p>
+                                    </div>
+                                  )}
+                                </CardContent>
+                              </Card>
+                            </motion.div>
+                          );
+                        })}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
           </motion.div>
         ) : (
           /* ── Batch Session Detail View ── */
@@ -594,12 +763,34 @@ export default function AttendancePage() {
 
             {/* No sessions */}
             {!batchSchedulesLoading && batchSchedules.length === 0 && (
-              <div className="text-center py-16 text-text-secondary text-sm">
+              <div className="text-center py-10 text-text-secondary text-sm">
                 <Calendar className="h-10 w-10 mx-auto mb-3 text-text-tertiary" />
                 <p className="font-medium">No sessions scheduled</p>
                 <p className="text-xs mt-1 text-text-tertiary">
                   No classes scheduled for this batch on this date.
                 </p>
+                {upcomingSchedules.length > 0 && (
+                  <div className="mt-5 text-left max-w-sm mx-auto space-y-2">
+                    <p className="text-xs font-semibold text-text-secondary text-center">Upcoming sessions</p>
+                    {upcomingSchedules.map((s) => (
+                      <button
+                        key={s.name}
+                        type="button"
+                        onClick={() => setSelectedDate(s.schedule_date)}
+                        className="w-full flex items-center justify-between px-3 py-2 rounded-[8px] bg-surface border border-border-light hover:border-primary/40 hover:bg-primary/5 transition-all text-xs"
+                      >
+                        <span className="font-medium text-text-primary">
+                          {new Date(s.schedule_date + "T00:00:00").toLocaleDateString("en-IN", {
+                            weekday: "short", day: "numeric", month: "short",
+                          })}
+                        </span>
+                        <span className="text-text-tertiary">
+                          {formatTime12h(s.from_time)} – {formatTime12h(s.to_time)}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 

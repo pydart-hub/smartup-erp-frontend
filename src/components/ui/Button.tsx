@@ -46,7 +46,27 @@ export interface ButtonProps
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, loading, children, disabled, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button";
+    const isDisabled = disabled || loading;
+
+    if (asChild) {
+      return (
+        <motion.div
+          whileTap={{ scale: 0.97 }}
+          whileHover={{ scale: 1.01 }}
+          transition={{ type: "spring", stiffness: 400, damping: 17 }}
+          className="inline-flex"
+        >
+          <Slot
+            className={cn(buttonVariants({ variant, size, className }), isDisabled && "pointer-events-none opacity-50")}
+            ref={ref as React.Ref<HTMLElement>}
+            aria-disabled={isDisabled}
+            {...props}
+          >
+            {children}
+          </Slot>
+        </motion.div>
+      );
+    }
 
     return (
       <motion.div
@@ -55,10 +75,10 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         transition={{ type: "spring", stiffness: 400, damping: 17 }}
         className="inline-flex"
       >
-        <Comp
+        <button
           className={cn(buttonVariants({ variant, size, className }))}
           ref={ref}
-          disabled={disabled || loading}
+          disabled={isDisabled}
           {...props}
         >
           {loading && (
@@ -84,7 +104,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             </svg>
           )}
           {children}
-        </Comp>
+        </button>
       </motion.div>
     );
   }

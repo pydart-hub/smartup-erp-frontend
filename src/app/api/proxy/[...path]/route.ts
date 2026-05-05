@@ -48,6 +48,15 @@ async function proxyRequest(request: NextRequest, method: string) {
     const url = new URL(request.url);
     const proxyPath = url.pathname.replace("/api/proxy/", "");
 
+    let parsedBody: unknown = undefined;
+    if (method !== "GET" && method !== "DELETE") {
+      try {
+        parsedBody = await request.json();
+      } catch {
+        // No body
+      }
+    }
+
     // Get auth from session cookie
     const sessionCookie = request.cookies.get("smartup_session");
     if (!sessionCookie) {
@@ -159,11 +168,24 @@ async function proxyRequest(request: NextRequest, method: string) {
       }
     }
 
+    const isSetValueTopicCoverageRequest =
+      method === "POST" &&
+      proxyPath === "method/frappe.client.set_value" &&
+      !!parsedBody &&
+      typeof parsedBody === "object" &&
+      !Array.isArray(parsedBody) &&
+      (parsedBody as Record<string, unknown>).doctype === "Course Schedule" &&
+      (parsedBody as Record<string, unknown>).fieldname === "custom_topic_covered" &&
+      ((parsedBody as Record<string, unknown>).value === 0 ||
+        (parsedBody as Record<string, unknown>).value === 1) &&
+      typeof (parsedBody as Record<string, unknown>).name === "string";
+
     // ── Instructor write-guard ──
     // Block PURE instructors from modifying Student Group docs directly (only
     // Branch Managers / Admins can do that). BM+Instructors are allowed.
     // Note: instructors are auto-granted "Academics User" role at login,
     // which gives broad write/delete access — so we must also block DELETE.
+    let allowInstructorTopicCoverageWrite = false;
     if (isPureInstructor && (method === "PUT" || method === "POST" || method === "DELETE")) {
       const resourceSingleMatch = proxyPath.match(/^resource\/([^/]+)\/(.+)$/);
       if (resourceSingleMatch) {
@@ -174,6 +196,170 @@ async function proxyRequest(request: NextRequest, method: string) {
             { status: 403 }
           );
         }
+
+        // Allow ONLY topic-coverage toggles on Course Schedule for pure instructors.
+        if (doctype === "Course Schedule" && method === "PUT") {
+          const payload =
+            parsedBody && typeof parsedBody === "object" && !Array.isArray(parsedBody)
+              ? (parsedBody as Record<string, unknown>)
+              : null;
+
+          if (!payload) {
+            return NextResponse.json(
+              { error: "Invalid request payload." },
+              { status: 400 }
+            );
+          }
+
+          const keys = Object.keys(payload);
+          const isTopicCoveredOnlyPayload =
+            keys.length === 1 &&
+            keys[0] === "custom_topic_covered" &&
+            (payload.custom_topic_covered === 0 || payload.custom_topic_covered === 1);
+
+          if (!isTopicCoveredOnlyPayload) {
+            return NextResponse.json(
+              { error: "Instructors can only update topic coverage status." },
+              { status: 403 }
+            );
+          }
+
+          const adminKey = process.env.FRAPPE_API_KEY;
+          const adminSecret = process.env.FRAPPE_API_SECRET;
+          if (!adminKey || !adminSecret) {
+            return NextResponse.json(
+              { error: "Server auth is not configured." },
+              { status: 500 }
+            );
+          }
+
+          const scheduleName = decodeURIComponent(resourceSingleMatch[2]);
+          const guardQuery = new URLSearchParams({
+            fields: JSON.stringify(["name", "instructor", "custom_branch", "custom_event_type"]),
+          });
+          const guardUrl =
+            `${FRAPPE_URL}/api/resource/Course%20Schedule/${encodeURIComponent(scheduleName)}?${guardQuery.toString()}`;
+
+          const guardRes = await fetch(guardUrl, {
+            method: "GET",
+            headers: {
+              Accept: "application/json",
+              Authorization: `token ${adminKey}:${adminSecret}`,
+            },
+            cache: "no-store",
+          });
+
+          if (!guardRes.ok) {
+            return NextResponse.json(
+              { error: "Unable to validate schedule access." },
+              { status: guardRes.status }
+            );
+          }
+
+          const guardJson = (await guardRes.json()) as {
+            data?: {
+              instructor?: string;
+              custom_branch?: string;
+              custom_event_type?: string;
+            };
+          };
+
+          const schedule = guardJson.data;
+          if (!schedule) {
+            return NextResponse.json({ error: "Schedule not found." }, { status: 404 });
+          }
+
+          const scheduleBranch = schedule.custom_branch || "";
+          const scheduleIsEvent = !!schedule.custom_event_type;
+          const inAllowedBranch =
+            !scheduleBranch ||
+            effectiveCompanies.length === 0 ||
+            effectiveCompanies.includes(scheduleBranch);
+
+          const instructorOwnsSchedule =
+            !!sessionData.instructor_name && schedule.instructor === sessionData.instructor_name;
+
+          // Topics must belong to the logged-in instructor.
+          // Events are branch-level and can be toggled by instructors in that branch.
+          const allowedByOwnership = scheduleIsEvent ? inAllowedBranch : instructorOwnsSchedule;
+
+          if (!allowedByOwnership || !inAllowedBranch) {
+            return NextResponse.json(
+              { error: "Access denied for this schedule update." },
+              { status: 403 }
+            );
+          }
+
+          allowInstructorTopicCoverageWrite = true;
+        }
+      }
+
+      if (isSetValueTopicCoverageRequest) {
+        const payload = parsedBody as Record<string, unknown>;
+        const adminKey = process.env.FRAPPE_API_KEY;
+        const adminSecret = process.env.FRAPPE_API_SECRET;
+        if (!adminKey || !adminSecret) {
+          return NextResponse.json(
+            { error: "Server auth is not configured." },
+            { status: 500 }
+          );
+        }
+
+        const scheduleName = String(payload.name || "");
+        const guardQuery = new URLSearchParams({
+          fields: JSON.stringify(["name", "instructor", "custom_branch", "custom_event_type"]),
+        });
+        const guardUrl =
+          `${FRAPPE_URL}/api/resource/Course%20Schedule/${encodeURIComponent(scheduleName)}?${guardQuery.toString()}`;
+
+        const guardRes = await fetch(guardUrl, {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+            Authorization: `token ${adminKey}:${adminSecret}`,
+          },
+          cache: "no-store",
+        });
+
+        if (!guardRes.ok) {
+          return NextResponse.json(
+            { error: "Unable to validate schedule access." },
+            { status: guardRes.status }
+          );
+        }
+
+        const guardJson = (await guardRes.json()) as {
+          data?: {
+            instructor?: string;
+            custom_branch?: string;
+            custom_event_type?: string;
+          };
+        };
+
+        const schedule = guardJson.data;
+        if (!schedule) {
+          return NextResponse.json({ error: "Schedule not found." }, { status: 404 });
+        }
+
+        const scheduleBranch = schedule.custom_branch || "";
+        const scheduleIsEvent = !!schedule.custom_event_type;
+        const inAllowedBranch =
+          !scheduleBranch ||
+          effectiveCompanies.length === 0 ||
+          effectiveCompanies.includes(scheduleBranch);
+
+        const instructorOwnsSchedule =
+          !!sessionData.instructor_name && schedule.instructor === sessionData.instructor_name;
+
+        const allowedByOwnership = scheduleIsEvent ? inAllowedBranch : instructorOwnsSchedule;
+        if (!allowedByOwnership || !inAllowedBranch) {
+          return NextResponse.json(
+            { error: "Access denied for this schedule update." },
+            { status: 403 }
+          );
+        }
+
+        allowInstructorTopicCoverageWrite = true;
       }
     }
 
@@ -192,7 +378,7 @@ async function proxyRequest(request: NextRequest, method: string) {
     //   doctype read permissions. Security is enforced at the proxy layer above
     //   via company-filter injection (effectiveCompanies).
     // - Everyone else (admins, etc.): use personal token if available, else admin.
-    const useAdminToken = (isBranchManager || isHRManager) && !isAdmin;
+    const useAdminToken = ((isBranchManager || isHRManager) && !isAdmin) || allowInstructorTopicCoverageWrite;
     if (!useAdminToken && hasUserToken) {
       headers["Authorization"] = `token ${sessionData.api_key}:${sessionData.api_secret}`;
     } else {
@@ -206,11 +392,8 @@ async function proxyRequest(request: NextRequest, method: string) {
 
     let body: string | undefined = undefined;
     if (method !== "GET" && method !== "DELETE") {
-      try {
-        const json = await request.json();
-        body = JSON.stringify(json);
-      } catch {
-        // No body
+      if (parsedBody !== undefined) {
+        body = JSON.stringify(parsedBody);
       }
     }
 

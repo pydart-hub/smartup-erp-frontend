@@ -45,11 +45,12 @@ import { studentSchema, type StudentFormValues } from "@/lib/validators/student"
 import { admitStudent, getAcademicYears, getBranches, getStudentGroups, getNextSrrId } from "@/lib/api/enrollment";
 import { getFeeStructures } from "@/lib/api/fees";
 import type { FeeConfigEntry, PaymentOptionSummary } from "@/lib/types/fee";
-import { getAllPaymentOptions, applyReferralDiscount } from "@/lib/utils/feeSchedule";
+import { getAllPaymentOptions, applyAdmissionDiscount, applyReferralDiscount } from "@/lib/utils/feeSchedule";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/hooks/useAuth";
 import PostAdmissionPayment from "@/components/payments/PostAdmissionPayment";
 import type { InvoiceForPayment } from "@/components/payments/PostAdmissionPayment";
+import { canApplyManualDiscount } from "@/lib/constants/discountBranches";
 
 // ── Reusable styled select wrapper ──────────────────────────────
 function SelectField({
@@ -135,6 +136,8 @@ function AdmitPageContent() {
   const [currentStep, setCurrentStep] = useState(isReferred ? 0 : 1);
   const [paymentAction, setPaymentAction] = useState<"pay_now" | "send_to_parent" | null>(null);
   const [advanceAmount, setAdvanceAmount] = useState<number | null>(null);
+  const [manualDiscountAmount, setManualDiscountAmount] = useState<number | null>(null);
+  const [manualDiscountRemark, setManualDiscountRemark] = useState("");
 
   // ── Sibling selection state (only for referred/sibling flow) ──
   const [siblingQuery, setSiblingQuery] = useState("");
@@ -398,13 +401,25 @@ function AdmitPageContent() {
   });
 
   const feeConfig: FeeConfigEntry | null = feeConfigRes ?? null;
+  const canUseManualDiscount = canApplyManualDiscount(selectedBranch) && !isDemo && !isFreeAccess;
+
+  useEffect(() => {
+    if (!canUseManualDiscount) {
+      setManualDiscountAmount(null);
+      setManualDiscountRemark("");
+    }
+  }, [canUseManualDiscount]);
 
   const selectedEnrollmentDate = watch("enrollment_date");
   const paymentOptions: PaymentOptionSummary[] = useMemo(() => {
     if (!feeConfig) return [];
-    const options = getAllPaymentOptions(feeConfig, selectedAcademicYear, selectedEnrollmentDate);
-    return isReferred ? applyReferralDiscount(options, selectedPlan) : options;
-  }, [feeConfig, selectedAcademicYear, selectedEnrollmentDate, isReferred, selectedPlan]);
+    let options = getAllPaymentOptions(feeConfig, selectedAcademicYear, selectedEnrollmentDate);
+    if (isReferred) options = applyReferralDiscount(options, selectedPlan);
+    if (canUseManualDiscount && (manualDiscountAmount ?? 0) > 0) {
+      options = applyAdmissionDiscount(options, manualDiscountAmount ?? 0, manualDiscountRemark.trim() || undefined);
+    }
+    return options;
+  }, [feeConfig, selectedAcademicYear, selectedEnrollmentDate, isReferred, selectedPlan, canUseManualDiscount, manualDiscountAmount, manualDiscountRemark]);
 
   const selectedOption: PaymentOptionSummary | null = useMemo(() => {
     if (!selectedInstalments || paymentOptions.length === 0) return null;
@@ -440,6 +455,10 @@ function AdmitPageContent() {
       if (!isDemo && !isFreeAccess) {
         if (!data.custom_plan) { toast.error("Please select a fee plan"); return; }
         if (!data.custom_no_of_instalments) { toast.error("Please select an instalment option"); return; }
+      }
+      if (canUseManualDiscount && (manualDiscountAmount ?? 0) > 0 && !manualDiscountRemark.trim()) {
+        toast.error("Please enter a remark for the discount");
+        return;
       }
       // Non-free-access students must have mode of payment
       if (!isFreeAccess && !data.custom_mode_of_payment) {
@@ -487,6 +506,8 @@ function AdmitPageContent() {
         custom_plan: (isDemo || isFreeAccess) ? "" : data.custom_plan,
         custom_no_of_instalments: (isDemo || isFreeAccess) ? "" : data.custom_no_of_instalments,
         custom_mode_of_payment: isFreeAccess ? "Cash" : data.custom_mode_of_payment,
+        manualDiscountAmount: canUseManualDiscount ? (manualDiscountAmount ?? undefined) : undefined,
+        manualDiscountRemark: canUseManualDiscount ? (manualDiscountRemark.trim() || undefined) : undefined,
         instalmentSchedule: isFreeAccess
           ? undefined
           : isDemo
@@ -495,6 +516,8 @@ function AdmitPageContent() {
               amount: s.amount,
               dueDate: s.dueDate,
               label: s.label,
+              discountApplied: s.discountApplied,
+              discountRemark: s.discountRemark,
             })),
         // Demo flag
         ...(isDemo ? { isDemo: true } : {}),
@@ -1362,6 +1385,14 @@ function AdmitPageContent() {
                                       </span>
                                     </div>
                                   )}
+                                  {canUseManualDiscount && opt.manualDiscount ? (
+                                    <div className="flex items-center gap-1 mb-1">
+                                      <Tag className="h-3 w-3 text-amber-600" />
+                                      <span className="text-xs text-amber-700 font-medium">
+                                        Admission discount: −₹{opt.manualDiscount.toLocaleString("en-IN")}
+                                      </span>
+                                    </div>
+                                  ) : null}
                                 </div>
                                 {opt.instalments > 1 && (
                                   <div className="text-xs text-text-tertiary mt-2">
@@ -1419,6 +1450,11 @@ function AdmitPageContent() {
                                   <span className="text-xs text-text-tertiary ml-2">
                                     Due {new Date(inst.dueDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                                   </span>
+                                  {inst.discountApplied ? (
+                                    <span className="block text-[11px] text-amber-700 mt-0.5">
+                                      Discount: −₹{inst.discountApplied.toLocaleString("en-IN")}{inst.discountRemark ? ` (${inst.discountRemark})` : ""}
+                                    </span>
+                                  ) : null}
                                 </div>
                               </div>
                               <span className="text-sm font-medium text-text-primary">
@@ -1429,6 +1465,34 @@ function AdmitPageContent() {
                         </div>
                       </div>
                     </motion.div>
+                  )}
+
+                  {canUseManualDiscount && selectedPlan && paymentOptions.length > 0 && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-text-secondary">Admission Discount</label>
+                      <div className="bg-amber-50 rounded-[12px] border border-amber-200 p-4 space-y-3">
+                        <p className="text-xs text-amber-800">
+                          Available only for Kadavanthara and Edappally. The discount is deducted from the last invoice first, then the previous invoice if needed.
+                        </p>
+                        <Input
+                          type="number"
+                          min={0}
+                          placeholder="Discount amount in rupees"
+                          value={manualDiscountAmount ?? ""}
+                          onChange={(e) => {
+                            const value = e.target.value ? Number(e.target.value) : null;
+                            setManualDiscountAmount(value !== null && value > 0 ? value : null);
+                          }}
+                        />
+                        <textarea
+                          value={manualDiscountRemark}
+                          onChange={(e) => setManualDiscountRemark(e.target.value)}
+                          rows={2}
+                          placeholder="Reason for discount"
+                          className="w-full rounded-[10px] border border-border-input bg-surface px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
+                        />
+                      </div>
+                    </div>
                   )}
 
                   </>)}
@@ -1616,6 +1680,12 @@ function AdmitPageContent() {
                         {isReferred && selectedOption.referralDiscount && (
                           <p><span className="text-text-tertiary w-36 inline-block">Sibling Discount:</span> <span className="font-semibold text-green-600">- ₹{selectedOption.referralDiscount.toLocaleString("en-IN")}</span></p>
                         )}
+                        {canUseManualDiscount && selectedOption.manualDiscount ? (
+                          <p><span className="text-text-tertiary w-36 inline-block">Admission Discount:</span> <span className="font-semibold text-amber-700">- ₹{selectedOption.manualDiscount.toLocaleString("en-IN")}</span></p>
+                        ) : null}
+                        {canUseManualDiscount && selectedOption.manualDiscount ? (
+                          <p><span className="text-text-tertiary w-36 inline-block">Discount Remark:</span> {manualDiscountRemark || "—"}</p>
+                        ) : null}
                         <p><span className="text-text-tertiary w-36 inline-block">Total Fee:</span> <span className="font-semibold text-primary">₹{selectedOption.total.toLocaleString("en-IN")}</span></p>
                       </>
                     )}

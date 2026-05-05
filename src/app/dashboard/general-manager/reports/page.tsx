@@ -5,19 +5,22 @@ import { motion } from "framer-motion";
 import {
   Building2,
   GraduationCap,
+  BookOpen,
   FileBarChart,
   Users,
-  IndianRupee,
   CalendarCheck,
+  CalendarDays,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
+import { useQuery } from "@tanstack/react-query";
+import { getBranchAcademics } from "@/lib/api/analytics";
+import { safeNum, pctBadgeColor } from "@/components/academics/BranchDrillDown";
+import { useSearchParams } from "next/navigation";
 
-// Overview (existing)
-import { BranchWiseSummary } from "@/components/reports/BranchWiseSummary";
-import { ClassWiseSummary } from "@/components/reports/ClassWiseSummary";
-import { BranchDetail } from "@/components/reports/BranchDetail";
-import { ClassDetail } from "@/components/reports/ClassDetail";
+// Academics - Exam Analytics
+import { AcademicsBranchSummary } from "@/components/reports/AcademicsBranchSummary";
+import { AcademicsClassSummary } from "@/components/reports/AcademicsClassSummary";
 
 // Students
 import { StudentsBranchSummary } from "@/components/reports/StudentsBranchSummary";
@@ -25,27 +28,45 @@ import { StudentsBranchDetail } from "@/components/reports/StudentsBranchDetail"
 import { StudentsClassSummary } from "@/components/reports/StudentsClassSummary";
 import { StudentsClassDetail } from "@/components/reports/StudentsClassDetail";
 
-// Fees
-import { FeesBranchSummary } from "@/components/reports/FeesBranchSummary";
-import { FeesBranchDetail } from "@/components/reports/FeesBranchDetail";
-import { FeesClassSummary } from "@/components/reports/FeesClassSummary2";
-import { FeesClassDetail } from "@/components/reports/FeesClassDetail";
-
 // Attendance
 import { AttendanceBranchSummary } from "@/components/reports/AttendanceBranchSummary";
 import { AttendanceBranchDetail } from "@/components/reports/AttendanceBranchDetail";
 import { AttendanceClassSummary } from "@/components/reports/AttendanceClassSummary";
 import { AttendanceClassDetail } from "@/components/reports/AttendanceClassDetail";
 
-type Category = "overview" | "students" | "fees" | "attendance";
+type Category = "students" | "attendance" | "academics" | "shedules";
 type Mode = "branch" | "class";
 
 const CATEGORIES: { key: Category; label: string; icon: React.ElementType }[] = [
-  { key: "overview", label: "Overview", icon: FileBarChart },
   { key: "students", label: "Students", icon: Users },
-  { key: "fees", label: "Fees", icon: IndianRupee },
   { key: "attendance", label: "Attendance", icon: CalendarCheck },
+  { key: "academics", label: "Academics", icon: BookOpen },
+  { key: "shedules", label: "Shedules", icon: CalendarDays },
 ];
+
+function getAdjustedBranchMetrics(branch: {
+  total_working_days?: number;
+  scheduled_days?: number;
+  attendance_marked_on_scheduled_days?: number;
+}) {
+  const workingDays = safeNum(branch.total_working_days);
+  const scheduledDays = Math.min(safeNum(branch.scheduled_days), workingDays);
+  const attendanceMarkedDays = Math.min(safeNum(branch.attendance_marked_on_scheduled_days), scheduledDays);
+  const nonScheduledDays = Math.max(workingDays - scheduledDays, 0);
+  const attendanceNotMarkedDays = Math.max(workingDays - attendanceMarkedDays, 0);
+  const operationalPct = workingDays > 0
+    ? Math.max(0, Math.round(((workingDays - attendanceNotMarkedDays) / workingDays) * 1000) / 10)
+    : 0;
+
+  return {
+    workingDays,
+    scheduledDays,
+    nonScheduledDays,
+    attendanceMarkedDays,
+    attendanceNotMarkedDays,
+    operationalPct,
+  };
+}
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -68,7 +89,9 @@ function getDefaultDates() {
 }
 
 export default function GeneralManagerReportsPage() {
-  const [category, setCategory] = useState<Category>("overview");
+  const searchParams = useSearchParams();
+  const initialCategory = searchParams.get("tab") === "shedules" ? "shedules" : "students";
+  const [category, setCategory] = useState<Category>(initialCategory);
   const [mode, setMode] = useState<Mode>("branch");
   const [detail, setDetail] = useState<string | null>(null);
 
@@ -90,14 +113,84 @@ export default function GeneralManagerReportsPage() {
 
   const isDetail = !!detail;
 
+  const { data: scheduleData, isLoading: schedulesLoading } = useQuery({
+    queryKey: ["gm-reports-shedules-branch-comparison"],
+    queryFn: getBranchAcademics,
+    staleTime: 120_000,
+    enabled: category === "shedules",
+  });
+
   // ─── Render content per category ───
   function renderContent() {
-    // OVERVIEW
-    if (category === "overview") {
-      if (detail && mode === "branch") return <BranchDetail branch={detail} onBack={() => setDetail(null)} />;
-      if (detail && mode === "class") return <ClassDetail program={detail} onBack={() => setDetail(null)} />;
-      if (mode === "branch") return <BranchWiseSummary onSelectBranch={setDetail} />;
-      return <ClassWiseSummary onSelectClass={setDetail} />;
+    // SHEDULES
+    if (category === "shedules") {
+      if (schedulesLoading) {
+        return (
+          <div className="bg-surface rounded-[12px] border border-border-light p-6">
+            <div className="h-6 w-48 bg-app-bg rounded animate-pulse mb-4" />
+            <div className="space-y-2">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="h-10 bg-app-bg rounded animate-pulse" />
+              ))}
+            </div>
+          </div>
+        );
+      }
+
+      const rows = (scheduleData?.branches ?? [])
+        .map((b) => ({ branch: b, metrics: getAdjustedBranchMetrics(b) }))
+        .sort((a, b) => b.metrics.operationalPct - a.metrics.operationalPct);
+
+      return (
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold text-primary">Branch Comparison</h2>
+          <div className="bg-surface rounded-[12px] border border-border-light overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-app-bg border-b border-border-light">
+                    <th className="text-left p-3 font-medium text-text-secondary">Branch</th>
+                    <th className="text-center p-3 font-medium text-text-secondary">Working</th>
+                    <th className="text-center p-3 font-medium text-text-secondary">Scheduled</th>
+                    <th className="text-center p-3 font-medium text-text-secondary">Non-Scheduled</th>
+                    <th className="text-center p-3 font-medium text-text-secondary">Attendance Marked</th>
+                    <th className="text-center p-3 font-medium text-text-secondary">Attendance Not Marked</th>
+                    <th className="text-center p-3 font-medium text-text-secondary">Batches</th>
+                    <th className="text-center p-3 font-medium text-text-secondary">Teachers</th>
+                    <th className="text-center p-3 font-medium text-text-secondary">Operational %</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map(({ branch: b, metrics }) => (
+                    <tr key={b.branch} className="border-b border-border-light last:border-0">
+                      <td className="p-3 font-medium text-primary">{b.branch.replace("Smart Up ", "")}</td>
+                      <td className="p-3 text-center text-text-secondary">{metrics.workingDays}</td>
+                      <td className="p-3 text-center text-text-secondary">{metrics.scheduledDays}</td>
+                      <td className="p-3 text-center text-text-secondary">{metrics.nonScheduledDays}</td>
+                      <td className="p-3 text-center text-success font-medium">{metrics.attendanceMarkedDays}</td>
+                      <td className="p-3 text-center text-error font-medium">{metrics.attendanceNotMarkedDays}</td>
+                      <td className="p-3 text-center text-text-secondary">{safeNum(b.total_batches)}</td>
+                      <td className="p-3 text-center text-text-secondary">{safeNum(b.total_instructors)}</td>
+                      <td className="p-3 text-center">
+                        <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-bold ${pctBadgeColor(metrics.operationalPct, 80, 60)}`}>
+                          {metrics.operationalPct}%
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                  {rows.length === 0 && (
+                    <tr>
+                      <td colSpan={9} className="p-6 text-center text-sm text-text-tertiary">
+                        No branch comparison data available.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      );
     }
 
     // STUDENTS
@@ -108,12 +201,10 @@ export default function GeneralManagerReportsPage() {
       return <StudentsClassSummary onSelect={setDetail} />;
     }
 
-    // FEES
-    if (category === "fees") {
-      if (detail && mode === "branch") return <FeesBranchDetail branch={detail} onBack={() => setDetail(null)} />;
-      if (detail && mode === "class") return <FeesClassDetail program={detail} onBack={() => setDetail(null)} />;
-      if (mode === "branch") return <FeesBranchSummary onSelect={setDetail} />;
-      return <FeesClassSummary onDrillDown={setDetail} />;
+    // ACADEMICS
+    if (category === "academics") {
+      if (mode === "branch") return <AcademicsBranchSummary onSelect={setDetail} />;
+      return <AcademicsClassSummary onSelect={setDetail} />;
     }
 
     // ATTENDANCE
@@ -141,7 +232,7 @@ export default function GeneralManagerReportsPage() {
           <div>
             <h1 className="text-2xl font-bold text-text-primary">Reports</h1>
             <p className="text-text-secondary text-sm mt-0.5">
-              Download branch-wise or class-wise analytics
+              Students, attendance and academic analytics (branch-wise or class-wise)
             </p>
           </div>
         </div>
@@ -168,8 +259,9 @@ export default function GeneralManagerReportsPage() {
         </div>
       </motion.div>
 
+
       {/* Branch / Class toggle — visible at summary level only */}
-      {!isDetail && (
+      {!isDetail && category !== "shedules" && (
         <motion.div variants={itemVariants}>
           <div className="flex gap-2 p-1 bg-app-bg rounded-[12px] border border-border-light w-fit">
             <button
