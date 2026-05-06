@@ -704,6 +704,7 @@ export interface BranchStudent {
   student_mobile_number: string;
   gender: string;
   enabled: number;
+  custom_student_type?: string;
   custom_branch: string;
   joining_date: string;
   creation: string;
@@ -729,6 +730,7 @@ export async function getBranchStudents(
       "student_mobile_number",
       "gender",
       "enabled",
+      "custom_student_type",
       "custom_branch",
       "joining_date",
       "creation",
