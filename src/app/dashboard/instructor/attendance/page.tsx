@@ -155,9 +155,9 @@ export default function InstructorAttendancePage() {
         continue;
       }
 
-      // Today → check if session has ended
-      const endMinutes = parseTimeToMinutes(s.to_time);
-      if (nowMinutes >= endMinutes) {
+      // Today → unlock when class has started (ongoing or finished)
+      const startMinutes = parseTimeToMinutes(s.from_time);
+      if (nowMinutes >= startMinutes) {
         map.set(s.name, "ready");
       } else {
         map.set(s.name, "locked");
@@ -300,8 +300,22 @@ export default function InstructorAttendancePage() {
       setExpandedSession(null);
       setStudents([]);
       setAttendance({});
-    } catch {
-      toast.error("Failed to save attendance. Please try again.");
+      } catch (err) {
+        let message = "Failed to save attendance. Please try again.";
+        try {
+          const raw = (err as { response?: { data?: { _server_messages?: string } } })
+            ?.response?.data?._server_messages;
+          if (raw) {
+            const parsed = JSON.parse(raw) as { message?: string }[];
+            const text = parsed[0]?.message?.replace(/<[^>]+>/g, "");
+            if (text) {
+              message = text;
+            }
+          }
+        } catch {
+          // Fall back to the default message when the server payload is not parseable.
+        }
+        toast.error(message);
     } finally {
       setSaving(null);
     }

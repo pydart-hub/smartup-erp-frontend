@@ -114,6 +114,108 @@ interface FeeConfigEntry {
   annual_fee: number;
 }
 
+function asNonEmptyString(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  return trimmed.length ? trimmed : undefined;
+}
+
+function extractGuardianIds(studentDoc: Record<string, unknown>): string[] {
+  const guardianRows = Array.isArray(studentDoc.guardians)
+    ? studentDoc.guardians as Array<{ guardian?: unknown }>
+    : [];
+
+  return guardianRows
+    .map((row) => asNonEmptyString(row.guardian))
+    .filter((value): value is string => Boolean(value));
+}
+
+async function getGuardianSignatures(guardianIds: string[]): Promise<string[]> {
+  const signatures = new Set<string>();
+
+  for (const guardianId of guardianIds) {
+    try {
+      const guardianDoc = await frappeGet(`/resource/Guardian/${encodeURIComponent(guardianId)}`);
+      const guardianName = asNonEmptyString(guardianDoc?.guardian_name)?.toLowerCase();
+      const emailAddress = asNonEmptyString(guardianDoc?.email_address)?.toLowerCase();
+      const mobileNumber = asNonEmptyString(guardianDoc?.mobile_number);
+      const alternateNumber = asNonEmptyString(guardianDoc?.alternate_number);
+
+      const signatureParts = [guardianName, emailAddress, mobileNumber, alternateNumber].filter(Boolean);
+      if (signatureParts.length > 0) {
+        signatures.add(signatureParts.join("|"));
+      }
+    } catch {
+      // Ignore one bad guardian doc and continue.
+    }
+  }
+
+  return Array.from(signatures);
+}
+
+async function resolveSiblingByGuardian(
+  studentId: string,
+  branch: string | undefined,
+  guardianIds: string[],
+): Promise<string | undefined> {
+  if (!branch || guardianIds.length === 0) return undefined;
+
+  const sourceGuardianSignatures = await getGuardianSignatures(guardianIds);
+
+  for (const guardianId of guardianIds) {
+    try {
+      const guardianDoc = await frappeGet(`/resource/Guardian/${encodeURIComponent(guardianId)}`);
+      const linkedStudents = Array.isArray(guardianDoc?.students)
+        ? guardianDoc.students as Array<{ student?: unknown; student_name?: unknown }>
+        : [];
+
+      const guardianLinkedStudentId = linkedStudents
+        .map((row) => asNonEmptyString(row.student) ?? asNonEmptyString(row.student_name))
+        .find((value) => value && value !== studentId);
+
+      if (guardianLinkedStudentId) return guardianLinkedStudentId;
+    } catch {
+      // Non-fatal. Fall back to branch scan below.
+    }
+  }
+
+  const branchStudentFilters = encodeURIComponent(
+    JSON.stringify([
+      ["custom_branch", "=", branch],
+      ["enabled", "=", 1],
+      ["name", "!=", studentId],
+    ]),
+  );
+  const branchStudentFields = encodeURIComponent(JSON.stringify(["name"]));
+  const branchStudents = await frappeGet(
+    `/resource/Student?filters=${branchStudentFilters}&fields=${branchStudentFields}&order_by=creation+asc&limit_page_length=500`,
+  );
+
+  for (const candidate of branchStudents ?? []) {
+    const candidateId = asNonEmptyString(candidate?.name);
+    if (!candidateId) continue;
+
+    try {
+      const candidateDoc = await frappeGet(`/resource/Student/${encodeURIComponent(candidateId)}`);
+      const candidateGuardianIds = extractGuardianIds(candidateDoc);
+      if (candidateGuardianIds.some((guardianId) => guardianIds.includes(guardianId))) {
+        return candidateId;
+      }
+
+      if (sourceGuardianSignatures.length > 0) {
+        const candidateGuardianSignatures = await getGuardianSignatures(candidateGuardianIds);
+        if (candidateGuardianSignatures.some((signature) => sourceGuardianSignatures.includes(signature))) {
+          return candidateId;
+        }
+      }
+    } catch {
+      // Ignore a single bad candidate and continue scanning.
+    }
+  }
+
+  return undefined;
+}
+
 // ── Due-date templates (matches constants.ts) ─────────────────────────────────
 
 const INSTALMENT_DUE_DATES = {
@@ -221,12 +323,51 @@ function applyCreditToSchedule(
       ...result[i],
       amount: result[i].amount - applied,
       discountApplied: (result[i].discountApplied ?? 0) + applied,
-      discountRemark: remark,
+      discountRemark: result[i].discountRemark
+        ? `${result[i].discountRemark}; ${remark}`
+        : remark,
     };
     remaining -= applied;
   }
 
   return result;
+}
+
+function applySiblingDiscountToSchedule(
+  schedule: InstalmentEntry[],
+  totalAmount: number,
+  rate: number,
+  remark: string,
+): { schedule: InstalmentEntry[]; discountAmount: number } {
+  if (!schedule.length || totalAmount <= 0 || rate <= 0) {
+    return { schedule, discountAmount: 0 };
+  }
+
+  const discountAmount = Math.round(totalAmount * rate);
+  if (discountAmount <= 0) {
+    return { schedule, discountAmount: 0 };
+  }
+
+  let remaining = Math.min(discountAmount, totalAmount);
+  const updated = schedule.map((entry) => ({ ...entry }));
+
+  for (let index = updated.length - 1; index >= 0 && remaining > 0; index -= 1) {
+    const entry = updated[index];
+    const applied = Math.min(entry.amount, remaining);
+    if (applied <= 0) continue;
+
+    updated[index] = {
+      ...entry,
+      amount: entry.amount - applied,
+      discountApplied: (entry.discountApplied ?? 0) + applied,
+      discountRemark: entry.discountRemark
+        ? `${entry.discountRemark}; ${remark}`
+        : remark,
+    };
+    remaining -= applied;
+  }
+
+  return { schedule: updated, discountAmount };
 }
 
 // ── Tuition fee item lookup (same logic as getTuitionFeeItem in sales.ts) ─────
@@ -324,9 +465,23 @@ export async function POST(request: NextRequest) {
     feeStructureName?: string;
     academicYear: string;
     enrollmentDate?: string;
+    useSiblingOffer?: boolean;
+    siblingStudentId?: string;
+    siblingGroup?: string;
   };
 
-  const { studentId, plan, instalments, feeConfigEntry, feeStructureName, academicYear, enrollmentDate } = body;
+  const {
+    studentId,
+    plan,
+    instalments,
+    feeConfigEntry,
+    feeStructureName,
+    academicYear,
+    enrollmentDate,
+    useSiblingOffer,
+    siblingStudentId,
+    siblingGroup,
+  } = body;
 
   if (!studentId || !plan || !instalments || !feeConfigEntry || !academicYear) {
     return NextResponse.json(
@@ -350,6 +505,97 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Student has no linked Customer" }, { status: 400 });
     }
     log.push(`Student: ${studentId}, Customer: ${customerName}`);
+
+    const siblingOfferEnabled = Boolean(useSiblingOffer || siblingStudentId?.trim());
+    let effectiveSiblingStudentId = asNonEmptyString(siblingStudentId);
+
+    if (siblingOfferEnabled && !effectiveSiblingStudentId) {
+      const linkedSibling = asNonEmptyString(student.custom_sibling_of);
+      if (linkedSibling && linkedSibling !== studentId) {
+        effectiveSiblingStudentId = linkedSibling;
+      }
+    }
+
+    if (siblingOfferEnabled && !effectiveSiblingStudentId) {
+      const linkedGroup = asNonEmptyString(student.custom_sibling_group) ?? asNonEmptyString(siblingGroup);
+      if (linkedGroup) {
+        const siblingFilters = encodeURIComponent(
+          JSON.stringify([
+            ["custom_sibling_group", "=", linkedGroup],
+            ["enabled", "=", 1],
+            ["name", "!=", studentId],
+          ]),
+        );
+        const siblingFields = encodeURIComponent(
+          JSON.stringify(["name", "enabled", "custom_branch", "custom_sibling_group"]),
+        );
+        const linkedSiblings = await frappeGet(
+          `/resource/Student?filters=${siblingFilters}&fields=${siblingFields}&limit_page_length=1`,
+        );
+        if (linkedSiblings?.length) {
+          effectiveSiblingStudentId = linkedSiblings[0].name;
+        }
+      }
+    }
+
+    if (siblingOfferEnabled && !effectiveSiblingStudentId) {
+      const parentName = asNonEmptyString(student.custom_parent_name);
+      if (parentName && student.custom_branch) {
+        const parentSiblingFilters = encodeURIComponent(
+          JSON.stringify([
+            ["custom_parent_name", "=", parentName],
+            ["custom_branch", "=", student.custom_branch],
+            ["enabled", "=", 1],
+            ["name", "!=", studentId],
+          ]),
+        );
+        const parentSiblingFields = encodeURIComponent(
+          JSON.stringify(["name", "enabled", "custom_branch", "custom_parent_name"]),
+        );
+        const parentMatchedSiblings = await frappeGet(
+          `/resource/Student?filters=${parentSiblingFilters}&fields=${parentSiblingFields}&order_by=creation+asc&limit_page_length=1`,
+        );
+        if (parentMatchedSiblings?.length) {
+          effectiveSiblingStudentId = parentMatchedSiblings[0].name;
+          log.push(`Sibling auto-resolved by parent name: ${effectiveSiblingStudentId}`);
+        }
+      }
+    }
+
+    if (siblingOfferEnabled && !effectiveSiblingStudentId) {
+      const guardianSiblingId = await resolveSiblingByGuardian(
+        studentId,
+        asNonEmptyString(student.custom_branch),
+        extractGuardianIds(student),
+      );
+      if (guardianSiblingId) {
+        effectiveSiblingStudentId = guardianSiblingId;
+        log.push(`Sibling auto-resolved by guardian link: ${effectiveSiblingStudentId}`);
+      }
+    }
+
+    if (siblingOfferEnabled && !effectiveSiblingStudentId) {
+      log.push("Sibling link not resolved; applying sibling offer by toggle-only mode.");
+    }
+
+    let siblingStudent: Record<string, unknown> | null = null;
+    if (effectiveSiblingStudentId) {
+      if (effectiveSiblingStudentId === studentId) {
+        return NextResponse.json({ error: "Sibling student cannot be the same student" }, { status: 400 });
+      }
+
+      siblingStudent = await frappeGet(`/resource/Student/${encodeURIComponent(effectiveSiblingStudentId)}`);
+      if (!siblingStudent) {
+        return NextResponse.json({ error: "Selected sibling not found" }, { status: 404 });
+      }
+      if (siblingStudent.enabled !== 1) {
+        return NextResponse.json({ error: "Selected sibling is not active" }, { status: 400 });
+      }
+      if (siblingStudent.custom_branch !== student.custom_branch) {
+        return NextResponse.json({ error: "Sibling offer requires both students to be in the same branch" }, { status: 400 });
+      }
+      log.push(`Sibling selected: ${String(effectiveSiblingStudentId)}`);
+    }
 
     // ── 2. Fetch latest Program Enrollment ────────────────────────────────────
     const peFilters = encodeURIComponent(
@@ -397,6 +643,20 @@ export async function POST(request: NextRequest) {
 
     if (schedule.length === 0) {
       return NextResponse.json({ error: "Could not generate instalment schedule" }, { status: 400 });
+    }
+
+    let siblingDiscountAmount = 0;
+    if (siblingOfferEnabled) {
+      const siblingDiscountRate = plan === "Advanced" ? 0.10 : 0.05;
+      const siblingDiscount = applySiblingDiscountToSchedule(
+        schedule,
+        schedule.reduce((sum, item) => sum + item.amount, 0),
+        siblingDiscountRate,
+        `Sibling offer (${Math.round(siblingDiscountRate * 100)}%)`,
+      );
+      schedule = siblingDiscount.schedule;
+      siblingDiscountAmount = siblingDiscount.discountAmount;
+      log.push(`Applied sibling discount: ₹${siblingDiscountAmount}`);
     }
 
     // ── 5. Apply demo-paid credit to last invoice(s) backwards ────────────────
@@ -500,16 +760,36 @@ export async function POST(request: NextRequest) {
     log.push(`Program Enrollment updated: ${enrollment.name}`);
 
     // ── 10. Update Student record ──────────────────────────────────────────────
-    await frappePut(`/resource/Student/${encodeURIComponent(studentId)}`, {
+    const studentUpdates: Record<string, unknown> = {
       custom_student_type: "Fresher",
+    };
+    if (effectiveSiblingStudentId) {
+      studentUpdates.custom_sibling_of = effectiveSiblingStudentId;
+    }
+    if (siblingOfferEnabled) {
+      studentUpdates.custom_sibling_discount_applied = 1;
+    }
+    if (siblingGroup) {
+      studentUpdates.custom_sibling_group = siblingGroup;
+    }
+    await frappePut(`/resource/Student/${encodeURIComponent(studentId)}`, {
+      ...studentUpdates,
     });
     log.push(`Student type updated to Fresher: ${studentId}`);
+
+    if (effectiveSiblingStudentId && siblingGroup && siblingStudent && !siblingStudent.custom_sibling_group) {
+      await frappePut(`/resource/Student/${encodeURIComponent(effectiveSiblingStudentId)}`, {
+        custom_sibling_group: siblingGroup,
+      });
+      log.push(`Sibling group linked on existing sibling: ${effectiveSiblingStudentId}`);
+    }
 
     return NextResponse.json({
       success: true,
       salesOrderName,
       invoices,
       paidAmount,
+      siblingDiscountAmount,
       instalments,
       plan,
       log,

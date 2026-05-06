@@ -1,15 +1,71 @@
 # SmartUp ERP — Task Tracker
 
-## Current: ERP Frontend Server Deployment (2026-05-06)
+## Current: Demo Conversion Sibling Discount Backward Allocation (2026-05-06)
 
-- [ ] Verify current deployment status on portal server (repo, PM2, Nginx)
-- [ ] Pull latest code and install dependencies on server
-- [ ] Build and restart `smartup-erp` on port 3001 via PM2
-- [ ] Run post-deploy health checks for app and domain
-- [ ] Add review notes with deployed commit and verification result
+- [x] Change demo-conversion sibling discount allocation from first instalment to last-invoice-backward in backend
+- [x] Mirror the same backward sibling discount allocation in conversion preview UI
+- [x] Validate TypeScript compile and add review notes
 
 ### Review
-- In progress.
+- Updated demo-conversion sibling offer allocation so the sibling discount is deducted from the last invoice first, then second-last, and so on when needed.
+- Kept the existing operation order: sibling discount is applied first, then demo credit is also reduced from the end backward on the already-discounted schedule.
+- Preserved accumulated discount metadata on schedule rows so invoice descriptions can reflect combined adjustments more safely.
+- Verified with `npx tsc --noEmit`.
+
+## Current: Demo Conversion Sibling Toggle-Only (2026-05-06)
+
+- [x] Remove sibling picker UI from demo conversion modal and keep only toggle behavior
+- [x] Add backend auto-resolution for eligible sibling when toggle is ON
+- [x] Keep strict validation and discount order (sibling first, demo credit second)
+- [x] Validate TypeScript compile and add review notes
+
+### Review
+- Removed manual sibling search/select UI from demo conversion and retained a toggle-only sibling offer interaction.
+- Updated conversion API so sibling offer can be enabled without sending a sibling ID; backend now auto-resolves sibling from `custom_sibling_of` first, then `custom_sibling_group`.
+- Added first-student fallback auto-resolution by matching `custom_parent_name` within the same branch when sibling link/group is not yet set.
+- Added guardian-based auto-resolution fallback so first-student conversion can still resolve a sibling when the sibling relationship exists through shared guardian links instead of text/link fields.
+- Fixed a stale React callback dependency in conversion submit logic that could send sibling offer as OFF despite toggle ON, causing full-amount invoices.
+- Preserved existing safety checks (same student blocked, inactive sibling blocked, cross-branch blocked) and preserved discount order: sibling discount first, demo credit second.
+- Verified with `npx tsc --noEmit`.
+
+## Current: Demo To Regular Sibling Offer (2026-05-06)
+
+- [x] Add sibling selection and preview support in demo-to-regular conversion modal
+- [x] Apply sibling-offer discount in conversion API before demo credit adjustment
+- [x] Persist sibling linking fields during conversion without touching demo payments
+- [x] Validate TypeScript compile and add review notes
+
+### Review
+- Added sibling-offer selection to the demo-to-regular conversion modal using the existing sibling search endpoints, scoped to the same branch.
+- Conversion preview now shows sibling-offer math together with demo credit math: sibling discount is applied first to the first instalment, then demo credit is reduced from the last instalment(s).
+- Updated the conversion API to validate the selected sibling, apply the sibling discount during regular invoice generation, and persist sibling linking fields without altering existing demo payments.
+- Verified with `npx tsc --noEmit` after implementation.
+
+## Current: Instructor Attendance Start-Time Unlock + Error Surface (2026-05-06)
+
+- [x] Change instructor attendance session unlock from class end time to class start time
+- [x] Add backend error message parsing on instructor attendance save failures
+- [x] Validate TypeScript compile and add review notes
+
+### Review
+- Updated instructor attendance session gating so instructors can open and mark attendance once a class starts, while still keeping future sessions locked.
+- Added Frappe `_server_messages` parsing to the instructor attendance save path, so select-field validation and similar backend failures now show the actual message instead of a generic failure toast.
+- Verified the changed file has no editor diagnostics and ran `npx tsc --noEmit` without reported diagnostics.
+
+## Current: ERP Frontend Server Deployment (2026-05-06)
+
+- [x] Verify current deployment status on portal server (repo, PM2, Nginx)
+- [x] Pull latest code and install dependencies on server
+- [x] Build and restart `smartup-erp` on port 3001 via PM2
+- [x] Run post-deploy health checks for app and domain
+- [x] Add review notes with deployed commit and verification result
+
+### Review
+- Verified server repo at `/var/www/smartup-erp` on branch `main` with commit `691b8434f6d941372b26804210d3714c7b610d6a`.
+- Executed `git fetch` and `git pull --ff-only origin main`; server was already up to date.
+- Ran production build with `npx next build` successfully (compiled and generated all routes).
+- Restarted PM2 process `smartup-erp` with `--update-env` and saved PM2 process list.
+- Post-deploy checks passed: `pm2 status smartup-erp` is `online`, `http://localhost:3001` returns `HTTP/1.1 307 Temporary Redirect`, and `https://smartuplearning.net` returns `HTTP/2 307`.
 
 ## Current: GM Reports Tab Simplification (2026-05-05)
 

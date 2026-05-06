@@ -1,5 +1,17 @@
 # Lessons Learned
 
+## Demo Conversion Sibling Resolver — Text Fields Alone Are Not Enough
+- **Date**: 2026-05-06
+- **Issue**: Toggle-only sibling offer still failed for some first-student conversions because neither `custom_sibling_of`, nor `custom_sibling_group`, nor `custom_parent_name` was reliably populated/matched.
+- **Correction**: Added guardian-based auto-resolution fallback in the conversion API, using shared guardian links within the same branch when text/link fields are missing.
+- **Rule**: For SmartUp sibling detection, never rely only on sibling group or parent-name text. Resolver order should include guardian linkage as a backend fallback.
+
+## Demo Conversion Sibling Discount — Allocation Direction Matters
+- **Date**: 2026-05-06
+- **Issue**: I initially applied demo-conversion sibling discount to the first instalment because that matched the older referral-discount helper, but operations expected it to be deducted from the last invoice backward, just like other end-loaded adjustments.
+- **Correction**: Updated both the conversion backend and preview UI to apply sibling discount from the last invoice backward, then apply demo credit from the end on the already-discounted schedule.
+- **Rule**: For demo-to-regular conversion in SmartUp, end-loaded monetary adjustments must follow this order: sibling discount backward from the last invoice, then demo credit backward from the last remaining balance.
+
 ## Director Dashboard Permissions — Prefer Authorized Server Fallback Over Empty UI
 - **Date**: 2026-05-05
 - **Issue**: I surfaced a clear permission message for restricted doctypes (`Student Group`, `Program Enrollment`) but stopped there, leaving Director branch pages non-functional for program/batch views.

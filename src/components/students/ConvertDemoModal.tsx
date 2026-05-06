@@ -38,7 +38,8 @@ interface SchedulePreviewRow {
   label: string;
   originalAmount: number;
   amount: number;
-  creditApplied: number;
+  siblingDiscountApplied: number;
+  demoCreditApplied: number;
   dueDate: string;
 }
 
@@ -60,9 +61,6 @@ const INSTALMENT_OPTIONS = [
   { value: 6, label: "6 Months", sublabel: "6 instalments" },
   { value: 8, label: "8 Months", sublabel: "8 instalments" },
 ];
-
-const selectCls =
-  "h-10 w-full rounded-[10px] border border-border-input bg-surface px-3 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:opacity-50";
 
 // ── Due-date helpers (mirrors feeSchedule.ts constants) ──────────────────────
 
@@ -88,6 +86,7 @@ function buildSchedulePreview(
   instalments: number,
   academicYear: string,
   paidAmount: number,
+  siblingDiscountRate = 0,
   enrollmentDate?: string,
 ): SchedulePreviewRow[] {
   const startYear = parseInt(academicYear.split("-")[0], 10);
@@ -97,30 +96,73 @@ function buildSchedulePreview(
     return `${year}-${String(tmpl.month + 1).padStart(2, "0")}-${String(tmpl.day).padStart(2, "0")}`;
   }
 
-  let raw: { label: string; amount: number; dueDate: string }[] = [];
+  let raw: SchedulePreviewRow[] = [];
 
   if (instalments === 1) {
-    raw = [{ label: "Full Payment", amount: config.otp, dueDate: enrollmentDate || dueDate(DUE_DATES.quarterly[0]) }];
+    raw = [{
+      label: "Full Payment",
+      originalAmount: config.otp,
+      amount: config.otp,
+      siblingDiscountApplied: 0,
+      demoCreditApplied: 0,
+      dueDate: enrollmentDate || dueDate(DUE_DATES.quarterly[0]),
+    }];
   } else if (instalments === 4) {
     const labels = ["Q1", "Q2", "Q3", "Q4"];
     const amounts = [config.q1, config.q2, config.q3, config.q4];
-    raw = DUE_DATES.quarterly.map((t, i) => ({ label: labels[i], amount: amounts[i], dueDate: dueDate(t) }));
+    raw = DUE_DATES.quarterly.map((t, i) => ({
+      label: labels[i],
+      originalAmount: amounts[i],
+      amount: amounts[i],
+      siblingDiscountApplied: 0,
+      demoCreditApplied: 0,
+      dueDate: dueDate(t),
+    }));
   } else if (instalments === 6) {
     raw = DUE_DATES.inst6.map((t, i) => ({
-      label: `Inst ${i + 1}`, amount: i < 5 ? config.inst6_per : config.inst6_last, dueDate: dueDate(t),
+      label: `Inst ${i + 1}`,
+      originalAmount: i < 5 ? config.inst6_per : config.inst6_last,
+      amount: i < 5 ? config.inst6_per : config.inst6_last,
+      siblingDiscountApplied: 0,
+      demoCreditApplied: 0,
+      dueDate: dueDate(t),
     }));
   } else if (instalments === 8) {
     raw = DUE_DATES.inst8.map((t, i) => ({
-      label: `Inst ${i + 1}`, amount: i < 7 ? config.inst8_per : config.inst8_last, dueDate: dueDate(t),
+      label: `Inst ${i + 1}`,
+      originalAmount: i < 7 ? config.inst8_per : config.inst8_last,
+      amount: i < 7 ? config.inst8_per : config.inst8_last,
+      siblingDiscountApplied: 0,
+      demoCreditApplied: 0,
+      dueDate: dueDate(t),
     }));
+  }
+
+  if (raw.length > 0 && siblingDiscountRate > 0) {
+    const total = raw.reduce((sum, row) => sum + row.amount, 0);
+    const siblingDiscount = Math.round(total * siblingDiscountRate);
+    let remainingSiblingDiscount = siblingDiscount;
+    raw = raw.map((row) => ({ ...row }));
+
+    for (let index = raw.length - 1; index >= 0 && remainingSiblingDiscount > 0; index -= 1) {
+      const applied = Math.min(raw[index].amount, remainingSiblingDiscount);
+      if (applied <= 0) continue;
+
+      raw[index] = {
+        ...raw[index],
+        amount: raw[index].amount - applied,
+        siblingDiscountApplied: raw[index].siblingDiscountApplied + applied,
+      };
+      remainingSiblingDiscount -= applied;
+    }
   }
 
   // Apply credit backwards
   let remaining = paidAmount;
-  const result: SchedulePreviewRow[] = raw.map((r) => ({ ...r, originalAmount: r.amount, creditApplied: 0 }));
+  const result: SchedulePreviewRow[] = raw.map((r) => ({ ...r }));
   for (let i = result.length - 1; i >= 0 && remaining > 0; i--) {
     const applied = Math.min(result[i].amount, remaining);
-    result[i].creditApplied = applied;
+    result[i].demoCreditApplied = applied;
     result[i].amount -= applied;
     remaining -= applied;
   }
@@ -130,6 +172,14 @@ function buildSchedulePreview(
 
 function fmtCurrency(amount: number) {
   return `₹${Math.round(amount).toLocaleString("en-IN")}`;
+}
+
+function getBaseOptionTotal(config: FeeConfigEntry, instalments: number): number {
+  if (instalments === 1) return config.otp;
+  if (instalments === 4) return config.quarterly_total;
+  if (instalments === 6) return config.inst6_total;
+  if (instalments === 8) return config.inst8_total;
+  return 0;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -152,6 +202,8 @@ export function ConvertDemoModal({ student, onClose, onSuccess }: Props) {
   const [converting, setConverting] = useState(false);
   const [resultError, setResultError] = useState<string | null>(null);
   const [resultData, setResultData] = useState<{ salesOrderName: string; invoices: string[]; paidAmount: number } | null>(null);
+  const [useSiblingOffer, setUseSiblingOffer] = useState(false);
+  const siblingGroup = student.custom_sibling_group ?? null;
 
   // ── Load conversion info on mount ─────────────────────────────────────────
   useEffect(() => {
@@ -212,15 +264,19 @@ export function ConvertDemoModal({ student, onClose, onSuccess }: Props) {
   // Recompute preview when plan/instalments/feeConfig changes
   useEffect(() => {
     if (!feeConfig || !conversionInfo?.enrollment) return;
+    const siblingDiscountRate = useSiblingOffer
+      ? (plan === "Advanced" ? 0.10 : 0.05)
+      : 0;
     const preview = buildSchedulePreview(
       feeConfig,
       instalments,
       conversionInfo.enrollment.academic_year,
       conversionInfo.paidAmount,
+      siblingDiscountRate,
       undefined,
     );
     setSchedulePreview(preview);
-  }, [feeConfig, instalments, conversionInfo]);
+  }, [feeConfig, instalments, conversionInfo, useSiblingOffer, plan]);
 
   // ── Convert handler ────────────────────────────────────────────────────────
   const handleConvert = useCallback(async () => {
@@ -241,6 +297,8 @@ export function ConvertDemoModal({ student, onClose, onSuccess }: Props) {
           feeConfigEntry: feeConfig,
           academicYear: conversionInfo.enrollment.academic_year,
           enrollmentDate: new Date().toISOString().split("T")[0],
+          useSiblingOffer,
+          siblingGroup: useSiblingOffer ? (siblingGroup ?? undefined) : undefined,
         }),
       });
       const data = await res.json() as {
@@ -270,12 +328,16 @@ export function ConvertDemoModal({ student, onClose, onSuccess }: Props) {
     } finally {
       setConverting(false);
     }
-  }, [feeConfig, conversionInfo, studentId, plan, instalments, onSuccess]);
+  }, [feeConfig, conversionInfo, studentId, plan, instalments, useSiblingOffer, siblingGroup, onSuccess]);
 
   const totalAfterCredit = schedulePreview.reduce((s, r) => s + r.amount, 0);
   const totalOriginal = schedulePreview.reduce((s, r) => s + r.originalAmount, 0);
   const enrollment = conversionInfo?.enrollment;
   const isKadavantharaBranch = conversionInfo?.branch === "Smart Up Kadavanthara";
+  const siblingDiscountRate = useSiblingOffer ? (plan === "Advanced" ? 0.10 : 0.05) : 0;
+  const siblingDiscountAmount = feeConfig && siblingDiscountRate > 0
+    ? Math.round(getBaseOptionTotal(feeConfig, instalments) * siblingDiscountRate)
+    : 0;
 
   function isPlanDisabled(planValue: string): boolean {
     return isKadavantharaBranch && planValue !== "Basic";
@@ -417,6 +479,34 @@ export function ConvertDemoModal({ student, onClose, onSuccess }: Props) {
                   </div>
                 )}
 
+                {/* Sibling offer */}
+                <div className="space-y-3 rounded-xl border border-border-light p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-text-primary">Sibling Offer</p>
+                      <p className="text-xs text-text-secondary mt-0.5">
+                        Apply sibling discount during conversion. Advanced gets 10%; all other plans get 5%.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setUseSiblingOffer((prev) => !prev)}
+                      disabled={step === "converting"}
+                      className={`inline-flex h-6 w-11 items-center rounded-full transition-colors ${useSiblingOffer ? "bg-primary" : "bg-border-light"}`}
+                    >
+                      <span className={`h-5 w-5 rounded-full bg-white shadow transition-transform ${useSiblingOffer ? "translate-x-5" : "translate-x-0.5"}`} />
+                    </button>
+                  </div>
+
+                  {useSiblingOffer && (
+                    <div className="rounded-xl bg-app-bg border border-border-light p-3">
+                      <p className="text-xs text-text-secondary">
+                        Sibling is resolved automatically from linked sibling data. Keep this ON only for verified sibling admissions.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
                 {/* Plan selection */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-text-secondary">Select Plan</label>
@@ -479,36 +569,52 @@ export function ConvertDemoModal({ student, onClose, onSuccess }: Props) {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <label className="text-sm font-medium text-text-secondary">Fee Schedule Preview</label>
-                      {(conversionInfo?.paidAmount ?? 0) > 0 && (
-                        <span className="text-xs text-success font-medium">
-                          After {fmtCurrency(conversionInfo!.paidAmount)} credit
-                        </span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {siblingDiscountAmount > 0 && (
+                          <span className="text-xs text-primary font-medium">
+                            Sibling discount {fmtCurrency(siblingDiscountAmount)}
+                          </span>
+                        )}
+                        {(conversionInfo?.paidAmount ?? 0) > 0 && (
+                          <span className="text-xs text-success font-medium">
+                            After {fmtCurrency(conversionInfo!.paidAmount)} credit
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="rounded-xl border border-border-light overflow-hidden">
                       {schedulePreview.map((row, i) => (
                         <div
                           key={i}
                           className={`flex items-center justify-between px-4 py-3 text-sm border-b border-border-light last:border-0 ${
-                            row.creditApplied > 0 ? "bg-success/4" : ""
+                            row.demoCreditApplied > 0 || row.siblingDiscountApplied > 0 ? "bg-success/4" : ""
                           }`}
                         >
                           <div>
                             <span className="font-medium text-text-primary">{row.label}</span>
                             <span className="ml-2 text-xs text-text-tertiary">{row.dueDate}</span>
                           </div>
-                          <div className="text-right">
-                            {row.creditApplied > 0 && (
-                              <p className="text-[10px] text-text-tertiary line-through">{fmtCurrency(row.originalAmount)}</p>
+                          <div className="text-right space-y-0.5">
+                            {row.siblingDiscountApplied > 0 || row.demoCreditApplied > 0 ? (
+                              <>
+                                <p className="text-[10px] text-text-tertiary">Original {fmtCurrency(row.originalAmount)}</p>
+                                {row.siblingDiscountApplied > 0 && (
+                                  <p className="text-[10px] text-primary">
+                                    Sibling offer -{fmtCurrency(row.siblingDiscountApplied)}
+                                  </p>
+                                )}
+                                {row.demoCreditApplied > 0 && (
+                                  <p className="text-[10px] text-success">
+                                    Demo credit -{fmtCurrency(row.demoCreditApplied)}
+                                  </p>
+                                )}
+                                <p className={`font-semibold ${row.amount === 0 ? "text-success" : "text-text-primary"}`}>
+                                  Final {row.amount === 0 ? "₹0 (Paid)" : fmtCurrency(row.amount)}
+                                </p>
+                              </>
+                            ) : (
+                              <p className="font-semibold text-text-primary">{fmtCurrency(row.amount)}</p>
                             )}
-                            <p className={`font-semibold ${row.amount === 0 ? "text-success" : "text-text-primary"}`}>
-                              {row.amount === 0 ? "₹0 (Paid)" : fmtCurrency(row.amount)}
-                              {row.creditApplied > 0 && row.amount > 0 && (
-                                <span className="ml-1 text-[10px] text-success font-normal">
-                                  (-{fmtCurrency(row.creditApplied)})
-                                </span>
-                              )}
-                            </p>
                           </div>
                         </div>
                       ))}
