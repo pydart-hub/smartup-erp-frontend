@@ -1,5 +1,16 @@
 # SmartUp ERP — Task Tracker
 
+## Current: ERP Frontend Server Deployment (2026-05-06)
+
+- [ ] Verify current deployment status on portal server (repo, PM2, Nginx)
+- [ ] Pull latest code and install dependencies on server
+- [ ] Build and restart `smartup-erp` on port 3001 via PM2
+- [ ] Run post-deploy health checks for app and domain
+- [ ] Add review notes with deployed commit and verification result
+
+### Review
+- In progress.
+
 ## Current: GM Reports Tab Simplification (2026-05-05)
 
 - [x] Remove Overview and Fees categories from General Manager reports

@@ -9,6 +9,7 @@ import {
   ArrowLeft, Pencil, User, School, Users, Phone, Mail,
   Calendar, Hash, Building2, AlertCircle, Loader2, IndianRupee, FileText,
   Clock, CreditCard, ExternalLink, UserX, KeyRound, Eye, EyeOff, RotateCcw, Copy, Check,
+  GraduationCap,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Button } from "@/components/ui/Button";
@@ -19,6 +20,7 @@ import { getStudent } from "@/lib/api/students";
 import { getStudentGroups, getCourseSchedules } from "@/lib/api/courseSchedule";
 import apiClient from "@/lib/api/client";
 import { DiscontinueStudentModal } from "@/components/students/DiscontinueStudentModal";
+import { ConvertDemoModal } from "@/components/students/ConvertDemoModal";
 import { getO2OHourlyRate } from "@/lib/utils/o2oFeeRates";
 import { toast } from "sonner";
 
@@ -93,6 +95,9 @@ export default function StudentViewPage() {
 
   // ── Discontinue modal state ───────────────────────────────
   const [showDiscontinue, setShowDiscontinue] = useState(false);
+
+  // ── Convert Demo modal state ──────────────────────────────
+  const [showConvertDemo, setShowConvertDemo] = useState(false);
 
   // ── Parent login password state ───────────────────────────
   const [parentPassword, setParentPassword] = useState<string | null>(null);
@@ -301,6 +306,13 @@ export default function StudentViewPage() {
   const enrollment = enrollmentRes;
   const guardian = guardianRes;
   const queryClient = useQueryClient();
+  const hasRegularOrder = (salesOrdersRes ?? []).some(
+    (so: { custom_plan?: string }) => ["Basic", "Intermediate", "Advanced"].includes((so.custom_plan ?? "").trim()),
+  );
+  const hasDemoLikeOrder = (salesOrdersRes ?? []).some(
+    (so: { custom_plan?: string }) => !["Basic", "Intermediate", "Advanced"].includes((so.custom_plan ?? "").trim()),
+  );
+  const isConvertedStudent = student.custom_student_type !== "Demo" && hasRegularOrder && hasDemoLikeOrder;
   const isO2OStudent = Boolean(o2oBillingContext?.groupName);
   const hasSalesOrder = (salesOrdersRes?.length ?? 0) > 0;
   const hasSalesInvoice = (salesInvoicesRes?.length ?? 0) > 0;
@@ -359,6 +371,17 @@ export default function StudentViewPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {student.enabled === 1 && student.custom_student_type === "Demo" && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowConvertDemo(true)}
+              className="!border-primary/40 !text-primary hover:!bg-primary/5 gap-1.5"
+            >
+              <GraduationCap className="h-4 w-4" />
+              Convert to Regular
+            </Button>
+          )}
           {student.enabled === 1 && (
             <Button
               variant="outline"
@@ -392,6 +415,11 @@ export default function StudentViewPage() {
                 <Badge variant={student.enabled === 1 ? "success" : isDiscontinued ? "error" : "default"}>
                   {student.enabled === 1 ? "Active" : isDiscontinued ? "Discontinued" : "Inactive"}
                 </Badge>
+                {isConvertedStudent && (
+                  <Badge variant="outline" className="border-cyan-300 text-cyan-700 bg-cyan-50">
+                    Converted
+                  </Badge>
+                )}
               </div>
               <div className="flex flex-wrap gap-4 text-sm text-text-secondary mt-1">
                 {student.custom_srr_id && (
@@ -693,11 +721,12 @@ export default function StudentViewPage() {
               const soTotalGrand = (salesOrdersRes as { grand_total: number }[]).reduce((s, o) => s + (o.grand_total ?? 0), 0);
               const invTotal = salesInvoicesRes?.reduce((s: number, i: { grand_total: number }) => s + i.grand_total, 0) ?? 0;
               const invOutstanding = salesInvoicesRes?.reduce((s: number, i: { outstanding_amount: number }) => s + i.outstanding_amount, 0) ?? 0;
+              const displayedTotal = invTotal > 0 ? invTotal : soTotalGrand;
               const paid = invTotal - invOutstanding;
-              const pct = soTotalGrand > 0 ? Math.min(100, Math.round((paid / soTotalGrand) * 100)) : 0;
+              const pct = displayedTotal > 0 ? Math.min(100, Math.round((paid / displayedTotal) * 100)) : 0;
               const totalDiscount = salesOrderDiscountMeta?.totalDiscount ?? 0;
               const discountRemark = salesOrderDiscountMeta?.remark;
-              const originalTotalFees = soTotalGrand + totalDiscount;
+              const originalTotalFees = displayedTotal + totalDiscount;
               const multipleOrders = salesOrdersRes.length > 1;
               return (
                 <div className="rounded-[12px] border border-border-light bg-app-bg p-4 mb-4">
@@ -708,7 +737,7 @@ export default function StudentViewPage() {
                       {so.custom_plan && <Badge variant="info" className="ml-2">{so.custom_plan}</Badge>}
                       {so.custom_no_of_instalments && <Badge variant="default" className="ml-1">{so.custom_no_of_instalments}x</Badge>}
                     </div>
-                    <span className="text-lg font-bold text-text-primary">₹{soTotalGrand.toLocaleString("en-IN")}</span>
+                    <span className="text-lg font-bold text-text-primary">₹{displayedTotal.toLocaleString("en-IN")}</span>
                   </div>
                   <div className="flex items-center gap-3 text-xs text-text-secondary mb-2">
                     <span>Paid: <strong className="text-success">₹{paid.toLocaleString("en-IN")}</strong></span>
@@ -838,6 +867,22 @@ export default function StudentViewPage() {
             queryClient.invalidateQueries({ queryKey: ["student", id] });
             queryClient.invalidateQueries({ queryKey: ["student-invoices"] });
             queryClient.invalidateQueries({ queryKey: ["student-sales-orders"] });
+          }}
+        />
+      )}
+
+      {/* Convert Demo → Regular Modal */}
+      {showConvertDemo && student && (
+        <ConvertDemoModal
+          student={student}
+          onClose={() => setShowConvertDemo(false)}
+          onSuccess={() => {
+            setShowConvertDemo(false);
+            toast.success(`${fullName} converted to Regular student successfully.`);
+            queryClient.invalidateQueries({ queryKey: ["student", id] });
+            queryClient.invalidateQueries({ queryKey: ["enrollment", id] });
+            queryClient.invalidateQueries({ queryKey: ["student-invoices", customerName] });
+            queryClient.invalidateQueries({ queryKey: ["student-sales-orders", customerName] });
           }}
         />
       )}

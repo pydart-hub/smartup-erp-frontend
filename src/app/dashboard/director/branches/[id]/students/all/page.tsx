@@ -108,6 +108,42 @@ export default function BranchAllStudentsPage() {
     staleTime: 60_000,
   });
 
+  const { data: convertedMap = {} } = useQuery({
+    queryKey: ["director-branch-converted-map", studentIds],
+    queryFn: async () => {
+      if (!studentIds.length) return {} as Record<string, boolean>;
+      const { data } = await apiClient.get("/resource/Sales Order", {
+        params: {
+          fields: JSON.stringify(["student", "custom_plan"]),
+          filters: JSON.stringify([["docstatus", "=", 1], ["student", "in", studentIds]]),
+          limit_page_length: studentIds.length * 8,
+          order_by: "creation asc",
+        },
+      });
+
+      const regularPlans = new Set(["Basic", "Intermediate", "Advanced"]);
+      const flags: Record<string, { hasDemoLike: boolean; hasRegular: boolean }> = {};
+
+      for (const row of (data.data ?? []) as Array<{ student?: string; custom_plan?: string | null }>) {
+        const student = row.student;
+        if (!student) continue;
+        if (!flags[student]) flags[student] = { hasDemoLike: false, hasRegular: false };
+
+        const plan = (row.custom_plan ?? "").trim();
+        if (regularPlans.has(plan)) flags[student].hasRegular = true;
+        else flags[student].hasDemoLike = true;
+      }
+
+      const out: Record<string, boolean> = {};
+      for (const [student, f] of Object.entries(flags)) {
+        out[student] = f.hasDemoLike && f.hasRegular;
+      }
+      return out;
+    },
+    enabled: studentIds.length > 0,
+    staleTime: 60_000,
+  });
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -204,7 +240,17 @@ export default function BranchAllStudentsPage() {
                     >
                       <td className="px-4 py-3">
                         <div>
-                          <p className="font-medium text-text-primary">{s.student_name}</p>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="font-medium text-text-primary">{s.student_name}</p>
+                            {convertedMap[s.name] && s.custom_student_type !== "Demo" && (
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] px-1.5 py-0 gap-0.5 border-cyan-300 text-cyan-700 bg-cyan-50"
+                              >
+                                Converted
+                              </Badge>
+                            )}
+                          </div>
                           <p className="text-xs text-text-tertiary">{s.name}</p>
                         </div>
                       </td>

@@ -170,6 +170,13 @@ export default function SalesUserStudentDetailPage() {
   const fullName = student.student_name || [student.first_name, student.middle_name, student.last_name].filter(Boolean).join(" ");
   const enrollment = enrollmentRes;
   const guardian = guardianRes;
+  const hasRegularOrder = (salesOrdersRes ?? []).some(
+    (so: { custom_plan?: string }) => ["Basic", "Intermediate", "Advanced"].includes((so.custom_plan ?? "").trim()),
+  );
+  const hasDemoLikeOrder = (salesOrdersRes ?? []).some(
+    (so: { custom_plan?: string }) => !["Basic", "Intermediate", "Advanced"].includes((so.custom_plan ?? "").trim()),
+  );
+  const isConvertedStudent = student.custom_student_type !== "Demo" && hasRegularOrder && hasDemoLikeOrder;
   const isDiscontinued = student.enabled === 0 && !!student.custom_discontinuation_date;
 
   return (
@@ -203,6 +210,11 @@ export default function SalesUserStudentDetailPage() {
                 <Badge variant={student.enabled === 1 ? "success" : isDiscontinued ? "error" : "default"}>
                   {student.enabled === 1 ? "Active" : isDiscontinued ? "Discontinued" : "Inactive"}
                 </Badge>
+                {isConvertedStudent && (
+                  <Badge variant="outline" className="border-cyan-300 text-cyan-700 bg-cyan-50">
+                    Converted
+                  </Badge>
+                )}
               </div>
               <div className="flex flex-wrap gap-4 text-sm text-text-secondary mt-1">
                 {student.custom_srr_id && (
@@ -320,8 +332,9 @@ export default function SalesUserStudentDetailPage() {
               const soTotalGrand = (salesOrdersRes as { grand_total: number }[]).reduce((s, o) => s + (o.grand_total ?? 0), 0);
               const invTotal = salesInvoicesRes?.reduce((s: number, i: { grand_total: number }) => s + i.grand_total, 0) ?? 0;
               const invOutstanding = salesInvoicesRes?.reduce((s: number, i: { outstanding_amount: number }) => s + i.outstanding_amount, 0) ?? 0;
+              const displayedTotal = invTotal > 0 ? invTotal : soTotalGrand;
               const paid = invTotal - invOutstanding;
-              const pct = soTotalGrand > 0 ? Math.min(100, Math.round((paid / soTotalGrand) * 100)) : 0;
+              const pct = displayedTotal > 0 ? Math.min(100, Math.round((paid / displayedTotal) * 100)) : 0;
               const multipleOrders = salesOrdersRes.length > 1;
               return (
                 <div className="rounded-[12px] border border-border-light bg-app-bg p-4 mb-4">
@@ -332,7 +345,7 @@ export default function SalesUserStudentDetailPage() {
                       {so.custom_plan && <Badge variant="info" className="ml-2">{so.custom_plan}</Badge>}
                       {so.custom_no_of_instalments && <Badge variant="default" className="ml-1">{so.custom_no_of_instalments}x</Badge>}
                     </div>
-                    <span className="text-lg font-bold text-text-primary">₹{soTotalGrand.toLocaleString("en-IN")}</span>
+                    <span className="text-lg font-bold text-text-primary">₹{displayedTotal.toLocaleString("en-IN")}</span>
                   </div>
                   <div className="flex items-center gap-3 text-xs text-text-secondary mb-2">
                     <span>Paid: <strong className="text-success">₹{paid.toLocaleString("en-IN")}</strong></span>

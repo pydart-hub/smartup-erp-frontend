@@ -51,6 +51,40 @@ async function fetchEnrollmentMap(
   return map;
 }
 
+// Detect demo->regular converted students by Sales Order history.
+async function fetchConvertedMap(
+  studentIds: string[],
+): Promise<Record<string, boolean>> {
+  if (!studentIds.length) return {};
+  const { data } = await apiClient.get("/resource/Sales Order", {
+    params: {
+      fields: JSON.stringify(["student", "custom_plan"]),
+      filters: JSON.stringify([["docstatus", "=", 1], ["student", "in", studentIds]]),
+      limit_page_length: studentIds.length * 8,
+      order_by: "creation asc",
+    },
+  });
+
+  const regularPlans = new Set(["Basic", "Intermediate", "Advanced"]);
+  const flags: Record<string, { hasDemoLike: boolean; hasRegular: boolean }> = {};
+
+  for (const row of (data.data ?? []) as Array<{ student?: string; custom_plan?: string | null }>) {
+    const student = row.student;
+    if (!student) continue;
+    if (!flags[student]) flags[student] = { hasDemoLike: false, hasRegular: false };
+
+    const plan = (row.custom_plan ?? "").trim();
+    if (regularPlans.has(plan)) flags[student].hasRegular = true;
+    else flags[student].hasDemoLike = true;
+  }
+
+  const converted: Record<string, boolean> = {};
+  for (const [student, f] of Object.entries(flags)) {
+    converted[student] = f.hasDemoLike && f.hasRegular;
+  }
+  return converted;
+}
+
 export default function SalesUserStudentsPage() {
   const { defaultCompany } = useAuth();
 
@@ -101,6 +135,13 @@ export default function SalesUserStudentsPage() {
   const { data: enrollmentMap = {} } = useQuery({
     queryKey: ["sales-enrollment-map", studentIds],
     queryFn: () => fetchEnrollmentMap(studentIds),
+    enabled: studentIds.length > 0,
+    staleTime: 60_000,
+  });
+
+  const { data: convertedMap = {} } = useQuery({
+    queryKey: ["sales-converted-map", studentIds],
+    queryFn: () => fetchConvertedMap(studentIds),
     enabled: studentIds.length > 0,
     staleTime: 60_000,
   });
@@ -233,6 +274,14 @@ export default function SalesUserStudentsPage() {
                                   <p className="font-medium text-text-primary truncate">
                                     {student.student_name}
                                   </p>
+                                  {convertedMap[student.name] && student.custom_student_type !== "Demo" && (
+                                    <Badge
+                                      variant="outline"
+                                      className="text-[10px] px-1.5 py-0 gap-0.5 border-cyan-300 text-cyan-700 bg-cyan-50"
+                                    >
+                                      Converted
+                                    </Badge>
+                                  )}
                                   <DisabilityBadge disabilities={student.custom_disabilities} />
                                 </div>
                                 <p className="text-xs text-text-tertiary truncate">{student.name}</p>

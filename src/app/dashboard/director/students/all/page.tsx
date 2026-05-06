@@ -96,6 +96,40 @@ async function fetchFeeMap(
   return map;
 }
 
+// Detect demo->regular converted students by Sales Order history.
+async function fetchConvertedMap(
+  studentIds: string[],
+): Promise<Record<string, boolean>> {
+  if (!studentIds.length) return {};
+  const { data } = await apiClient.get("/resource/Sales Order", {
+    params: {
+      fields: JSON.stringify(["student", "custom_plan"]),
+      filters: JSON.stringify([["docstatus", "=", 1], ["student", "in", studentIds]]),
+      limit_page_length: studentIds.length * 8,
+      order_by: "creation asc",
+    },
+  });
+
+  const regularPlans = new Set(["Basic", "Intermediate", "Advanced"]);
+  const flags: Record<string, { hasDemoLike: boolean; hasRegular: boolean }> = {};
+
+  for (const row of (data.data ?? []) as Array<{ student?: string; custom_plan?: string | null }>) {
+    const student = row.student;
+    if (!student) continue;
+    if (!flags[student]) flags[student] = { hasDemoLike: false, hasRegular: false };
+
+    const plan = (row.custom_plan ?? "").trim();
+    if (regularPlans.has(plan)) flags[student].hasRegular = true;
+    else flags[student].hasDemoLike = true;
+  }
+
+  const converted: Record<string, boolean> = {};
+  for (const [student, f] of Object.entries(flags)) {
+    converted[student] = f.hasDemoLike && f.hasRegular;
+  }
+  return converted;
+}
+
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
@@ -211,6 +245,13 @@ export default function DirectorAllStudentsPage() {
   const { data: guardianMap = {} } = useQuery({
     queryKey: ["director-all-guardian-map", studentIds],
     queryFn: () => fetchGuardianMap(studentIds),
+    enabled: studentIds.length > 0,
+    staleTime: 60_000,
+  });
+
+  const { data: convertedMap = {} } = useQuery({
+    queryKey: ["director-all-converted-map", studentIds],
+    queryFn: () => fetchConvertedMap(studentIds),
     enabled: studentIds.length > 0,
     staleTime: 60_000,
   });
@@ -593,6 +634,14 @@ export default function DirectorAllStudentsPage() {
                                     >
                                       {enr.custom_plan === "Advanced" && <Star className="h-2.5 w-2.5" />}
                                       {enr.custom_plan}
+                                    </Badge>
+                                  )}
+                                  {convertedMap[student.name] && student.custom_student_type !== "Demo" && (
+                                    <Badge
+                                      variant="outline"
+                                      className="text-[10px] px-1.5 py-0 gap-0.5 border-cyan-300 text-cyan-700 bg-cyan-50"
+                                    >
+                                      Converted
                                     </Badge>
                                   )}
                                   <DisabilityBadge disabilities={student.custom_disabilities} />
