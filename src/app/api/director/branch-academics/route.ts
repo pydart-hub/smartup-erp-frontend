@@ -117,24 +117,33 @@ async function fetchBatchStudents(batch: string, branch: string): Promise<BatchS
   return (doc.students ?? []) as BatchStudent[];
 }
 
+async function fetchActiveBranchStudentIds(branch: string): Promise<string[]> {
+  const json = await frappeGet("resource/Student", {
+    fields: JSON.stringify(["name"]),
+    filters: JSON.stringify([
+      ["custom_branch", "=", branch],
+      ["enabled", "=", 1],
+    ]),
+    limit_page_length: "0",
+  });
+
+  const rows: Array<{ name?: string }> = json?.data ?? [];
+  return rows.map((r) => r.name).filter((v): v is string => Boolean(v));
+}
+
 async function fetchPlanCounts(batchNames: string[], branch: string): Promise<{
   advanced: number;
   intermediate: number;
   basic: number;
   freeAccess: number;
+  demo: number;
 }> {
-  const result = { advanced: 0, intermediate: 0, basic: 0, freeAccess: 0 };
-  if (!batchNames.length) return result;
+  const result = { advanced: 0, intermediate: 0, basic: 0, freeAccess: 0, demo: 0 };
+  void batchNames;
 
-  const studentIds = new Set<string>();
-  for (const batch of batchNames) {
-    const students = await fetchBatchStudents(batch, branch);
-    for (const s of students) {
-      if (s.student) studentIds.add(s.student);
-    }
-  }
-
-  const ids = [...studentIds];
+  // Use the same source-of-truth as global counts: all active students in branch,
+  // then latest submitted Program Enrollment per student.
+  const ids = await fetchActiveBranchStudentIds(branch);
   if (!ids.length) return result;
 
   const latestByStudent = new Map<string, { plan?: string; student_category?: string }>();
@@ -174,8 +183,13 @@ async function fetchPlanCounts(batchNames: string[], branch: string): Promise<{
   }
 
   for (const row of latestByStudent.values()) {
-    if (row.student_category === "Free Access") {
+    const category = (row.student_category ?? "").toLowerCase();
+    if (category === "free access") {
       result.freeAccess += 1;
+      continue;
+    }
+    if (category === "demo") {
+      result.demo += 1;
       continue;
     }
     const plan = (row.plan ?? "").toLowerCase();

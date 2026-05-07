@@ -64,9 +64,9 @@ export async function GET(request: NextRequest) {
 
       const plan = (row.plan || "").toLowerCase().trim();
       const count = Number(row.count ?? 0);
-      if (plan === "advanced") result.advanced = count;
-      else if (plan === "intermediate") result.intermediate = count;
-      else if (plan === "basic") result.basic = count;
+      if (plan === "advanced") result.advanced += count;
+      else if (plan === "intermediate") result.intermediate += count;
+      else if (plan === "basic") result.basic += count;
     }
 
     return NextResponse.json(result);

@@ -56,42 +56,44 @@ async function fetchEnrollmentMap(
   studentIds: string[],
 ): Promise<Record<string, { program: string; student_batch_name?: string; custom_fee_structure?: string; custom_plan?: string }>> {
   if (!studentIds.length) return {};
-  const filters: (string | number | string[])[][] = [
-    ["student", "in", studentIds],
-    ["docstatus", "=", 1],
-  ];
-  const { data } = await apiClient.get("/resource/Program Enrollment", {
-    params: {
-      filters: JSON.stringify(filters),
-      fields: JSON.stringify(["student", "program", "student_batch_name", "custom_fee_structure", "custom_plan"]),
-      order_by: "enrollment_date desc",
-      limit_page_length: studentIds.length * 3,
-    },
+  // Use server-side admin route — Directors may not have PE read permission via user token
+  const res = await fetch("/api/director/student-enrollments", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ studentIds }),
   });
-  const map: Record<string, { program: string; student_batch_name?: string; custom_fee_structure?: string; custom_plan?: string }> = {};
-  for (const row of (data.data ?? [])) {
-    if (!map[row.student]) {
-      map[row.student] = { program: row.program, student_batch_name: row.student_batch_name, custom_fee_structure: row.custom_fee_structure, custom_plan: row.custom_plan };
-    }
-  }
-  return map;
+  if (!res.ok) return {};
+  return res.json();
 }
 
 async function fetchFeeMap(
   customers: string[],
 ): Promise<Record<string, { total: number; pending: number }>> {
   if (!customers.length) return {};
-  const { data } = await apiClient.get("/resource/Sales Invoice", {
-    params: {
-      fields: JSON.stringify(["customer", "sum(grand_total) as total_fee", "sum(outstanding_amount) as pending_fee"]),
-      filters: JSON.stringify([["docstatus", "=", 1], ["customer", "in", customers]]),
-      group_by: "customer",
-      limit_page_length: customers.length,
-    },
-  });
   const map: Record<string, { total: number; pending: number }> = {};
-  for (const row of data.data ?? []) {
-    map[row.customer] = { total: row.total_fee ?? 0, pending: row.pending_fee ?? 0 };
+  const chunkSize = 50;
+  for (let i = 0; i < customers.length; i += chunkSize) {
+    const chunk = customers.slice(i, i + chunkSize);
+    try {
+      const { data } = await apiClient.get("/resource/Sales Invoice", {
+        params: {
+          fields: JSON.stringify(["customer", "sum(grand_total) as total_fee", "sum(outstanding_amount) as pending_fee"]),
+          filters: JSON.stringify([["docstatus", "=", 1], ["customer", "in", chunk]]),
+          group_by: "customer",
+          limit_page_length: chunk.length,
+        },
+      });
+      for (const row of data.data ?? []) {
+        if (!map[row.customer]) {
+          map[row.customer] = { total: 0, pending: 0 };
+        }
+        map[row.customer].total += row.total_fee ?? 0;
+        map[row.customer].pending += row.pending_fee ?? 0;
+      }
+    } catch {
+      // skip chunk on error, continue with rest
+    }
   }
   return map;
 }
@@ -101,28 +103,32 @@ async function fetchConvertedMap(
   studentIds: string[],
 ): Promise<Record<string, boolean>> {
   if (!studentIds.length) return {};
-  const { data } = await apiClient.get("/resource/Sales Order", {
-    params: {
-      fields: JSON.stringify(["student", "custom_plan"]),
-      filters: JSON.stringify([["docstatus", "=", 1], ["student", "in", studentIds]]),
-      limit_page_length: studentIds.length * 8,
-      order_by: "creation asc",
-    },
-  });
-
   const regularPlans = new Set(["Basic", "Intermediate", "Advanced"]);
   const flags: Record<string, { hasDemoLike: boolean; hasRegular: boolean }> = {};
-
-  for (const row of (data.data ?? []) as Array<{ student?: string; custom_plan?: string | null }>) {
-    const student = row.student;
-    if (!student) continue;
-    if (!flags[student]) flags[student] = { hasDemoLike: false, hasRegular: false };
-
-    const plan = (row.custom_plan ?? "").trim();
-    if (regularPlans.has(plan)) flags[student].hasRegular = true;
-    else flags[student].hasDemoLike = true;
+  const chunkSize = 50;
+  for (let i = 0; i < studentIds.length; i += chunkSize) {
+    const chunk = studentIds.slice(i, i + chunkSize);
+    try {
+      const { data } = await apiClient.get("/resource/Sales Order", {
+        params: {
+          fields: JSON.stringify(["student", "custom_plan"]),
+          filters: JSON.stringify([["docstatus", "=", 1], ["student", "in", chunk]]),
+          limit_page_length: chunk.length * 8,
+          order_by: "creation asc",
+        },
+      });
+      for (const row of (data.data ?? []) as Array<{ student?: string; custom_plan?: string | null }>) {
+        const student = row.student;
+        if (!student) continue;
+        if (!flags[student]) flags[student] = { hasDemoLike: false, hasRegular: false };
+        const plan = (row.custom_plan ?? "").trim();
+        if (regularPlans.has(plan)) flags[student].hasRegular = true;
+        else flags[student].hasDemoLike = true;
+      }
+    } catch {
+      // skip chunk on error
+    }
   }
-
   const converted: Record<string, boolean> = {};
   for (const [student, f] of Object.entries(flags)) {
     converted[student] = f.hasDemoLike && f.hasRegular;
@@ -310,6 +316,7 @@ export default function DirectorAllStudentsPage() {
       ws.columns = [
         { header: "Student Name", key: "name", width: 25 },
         { header: "Student ID", key: "id", width: 20 },
+        { header: "Type", key: "type", width: 12 },
         { header: "Class", key: "class", width: 18 },
         { header: "Batch", key: "batch", width: 15 },
         { header: "Branch", key: "branch", width: 18 },
@@ -330,6 +337,7 @@ export default function DirectorAllStudentsPage() {
         ws.addRow({
           name: s.student_name,
           id: s.name,
+          type: s.custom_student_type ?? "",
           class: enr?.program ?? "",
           batch: enr?.student_batch_name ?? "",
           branch: (s.custom_branch ?? "").replace("Smart Up ", ""),

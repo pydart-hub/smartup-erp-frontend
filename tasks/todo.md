@@ -1,5 +1,13 @@
 # SmartUp ERP — Task Tracker
 
+## Current: Director N/A Plan Count Mismatch (2026-05-07)
+
+- [x] Reproduce global vs branch-wise N/A mismatch from current counting paths
+- [x] Align branch fallback plan-count source with global per-student latest PE logic
+- [x] Fix global plan aggregation to sum grouped rows safely
+- [x] Update branch students summary math to include Demo bucket in known plans
+- [x] Validate with typecheck/build and summarize root cause + resolution
+
 ## Current: Director Student Plan Count Reconciliation (2026-05-07)
 
 - [x] Trace Director overview and branch-card count mismatch to plan aggregation logic

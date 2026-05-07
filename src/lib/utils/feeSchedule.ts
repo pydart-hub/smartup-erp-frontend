@@ -142,9 +142,14 @@ export function generateInstalmentSchedule(
 export function getOptionTotal(config: FeeConfigEntry, instalments: number): number {
   switch (instalments) {
     case 1: return config.otp;
-    case 4: return config.quarterly_total;
-    case 6: return config.inst6_total;
-    case 8: return config.inst8_total;
+    case 4:
+      // Derive from quarter splits so UI totals always match displayed instalments.
+      return config.q1 + config.q2 + config.q3 + config.q4;
+    case 6:
+      // Derive from per-instalment values to avoid stale total field mismatches.
+      return (config.inst6_per * 5) + config.inst6_last;
+    case 8:
+      return (config.inst8_per * 7) + config.inst8_last;
     default: return 0;
   }
 }

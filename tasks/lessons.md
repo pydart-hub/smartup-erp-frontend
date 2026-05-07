@@ -1,5 +1,11 @@
 # Lessons Learned
 
+## Branch vs Global N/A Must Share Counting Logic
+- **Date**: 2026-05-07
+- **Issue**: Branch-level fallback used batch-scoped student lists while global totals used active branch students, causing inflated branch N/A despite low global N/A.
+- **Correction**: Make branch fallback compute latest submitted PE over active branch students, matching global source-of-truth.
+- **Rule**: Never mix batch-membership counts with active-student counts in reconciliation cards unless the UI labels that scope explicitly.
+
 ## Director Student Plans — Avoid Synthetic "Other" Labels
 - **Date**: 2026-05-07
 - **Issue**: I introduced an "Other" bucket as a remainder (`active - known plans`) to force reconciliation, which was technically balanced but operationally ambiguous.

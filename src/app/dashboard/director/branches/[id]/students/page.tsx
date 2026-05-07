@@ -106,7 +106,8 @@ export default function BranchStudentsPage() {
       (planCounts?.advanced ?? 0) +
       (planCounts?.intermediate ?? 0) +
       (planCounts?.basic ?? 0) +
-      (planCounts?.freeAccess ?? 0)
+      (planCounts?.freeAccess ?? 0) +
+      (planCounts?.demo ?? 0)
     )
   );
 
@@ -224,6 +225,12 @@ export default function BranchStudentsPage() {
                   <div className="rounded-md bg-amber-50 px-2.5 py-1 text-center">
                     <p className="text-xs font-bold text-amber-700 tabular-nums">{planCounts.freeAccess}</p>
                     <p className="text-[9px] text-amber-400 font-medium uppercase tracking-wider">Free</p>
+                  </div>
+                )}
+                {planCounts.demo > 0 && (
+                  <div className="rounded-md bg-fuchsia-50 px-2.5 py-1 text-center">
+                    <p className="text-xs font-bold text-fuchsia-700 tabular-nums">{planCounts.demo}</p>
+                    <p className="text-[9px] text-fuchsia-400 font-medium uppercase tracking-wider">Demo</p>
                   </div>
                 )}
                 {oneToOneCount > 0 && (
