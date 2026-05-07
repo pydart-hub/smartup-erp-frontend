@@ -4,8 +4,13 @@
 
 - [x] Reproduce and study mismatch between student Fee & Payments card and View Order page
 - [x] Scope student invoice list/totals to the same Sales Order opened by View Order
-- [ ] Validate TypeScript compile and runtime data path assumptions
-- [ ] Push and deploy after fix verification
+- [x] Validate TypeScript compile and runtime data path assumptions
+- [ ] Push and deploy after fix verification (paused by user)
+
+### Review
+- Verified live data mismatch: order `SAL-ORD-2026-00903` has zero linked invoices, while customer invoices exist under another order (`SAL-ORD-2026-00905`).
+- Updated student page to select a primary billed order (`per_billed > 0`) so Fee & Payments and View Order target the same order context.
+- Kept the invoice list scoped to the selected order only (no customer-wide mixing), preventing cross-order confusion.
 
 ## Current: Push + Server Deployment (2026-05-07)
 

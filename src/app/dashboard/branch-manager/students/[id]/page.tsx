@@ -180,30 +180,33 @@ export default function StudentViewPage() {
     staleTime: 60_000,
   });
 
-  const latestSalesOrderName = salesOrdersRes?.[0]?.name;
+  const primarySalesOrder =
+    salesOrdersRes?.find((row: { per_billed?: number }) => (row.per_billed ?? 0) > 0) ??
+    salesOrdersRes?.[0];
+  const primarySalesOrderName = primarySalesOrder?.name;
 
   // ── Sales Invoices linked to the latest displayed Sales Order ────────────
   const { data: salesInvoicesRes } = useQuery({
-    queryKey: ["student-invoices", latestSalesOrderName],
+    queryKey: ["student-invoices", primarySalesOrderName],
     queryFn: async () => {
-      if (!latestSalesOrderName) return [];
+      if (!primarySalesOrderName) return [];
       const res = await getSalesInvoices({
-        sales_order: latestSalesOrderName,
+        sales_order: primarySalesOrderName,
         docstatus: 1,
         order_by: "due_date asc",
         limit_page_length: 20,
       });
       return res.data ?? [];
     },
-    enabled: !!latestSalesOrderName,
+    enabled: !!primarySalesOrderName,
     staleTime: 60_000,
   });
   const salesInvoices = salesInvoicesRes ?? [];
 
   const { data: salesOrderDiscountMeta } = useQuery({
-    queryKey: ["student-so-discount-meta", latestSalesOrderName],
+    queryKey: ["student-so-discount-meta", primarySalesOrderName],
     queryFn: async () => {
-      const { data } = await apiClient.get(`/resource/Sales Order/${encodeURIComponent(latestSalesOrderName!)}`);
+      const { data } = await apiClient.get(`/resource/Sales Order/${encodeURIComponent(primarySalesOrderName!)}`);
       const rows = (data.data?.items ?? []) as Array<{ description?: string | null }>;
       let totalDiscount = 0;
       let remark: string | undefined;
@@ -217,7 +220,7 @@ export default function StudentViewPage() {
 
       return { totalDiscount, remark };
     },
-    enabled: !!latestSalesOrderName,
+    enabled: !!primarySalesOrderName,
     staleTime: 60_000,
   });
 
@@ -706,8 +709,8 @@ export default function StudentViewPage() {
                 <span className="text-primary"><CreditCard className="h-4 w-4" /></span>
                 <h3 className="font-semibold text-text-primary">Fee & Payments</h3>
               </div>
-              {salesOrdersRes?.[0]?.name && (
-                <Link href={`/dashboard/branch-manager/sales-orders/${encodeURIComponent(salesOrdersRes[0].name)}`}>
+              {primarySalesOrderName && (
+                <Link href={`/dashboard/branch-manager/sales-orders/${encodeURIComponent(primarySalesOrderName)}`}>
                   <Button variant="outline" size="sm">
                     <ExternalLink className="h-3.5 w-3.5" />
                     View Order
@@ -717,10 +720,9 @@ export default function StudentViewPage() {
             </div>
 
             {/* SO summary */}
-            {salesOrdersRes?.length > 0 && (() => {
-              const so = salesOrdersRes[0];
-              // Aggregate ALL submitted SOs so totals stay consistent when a student has multiple orders
-              const soTotalGrand = (salesOrdersRes as { grand_total: number }[]).reduce((s, o) => s + (o.grand_total ?? 0), 0);
+            {primarySalesOrder && (() => {
+              const so = primarySalesOrder;
+              const soTotalGrand = so.grand_total ?? 0;
               const invTotal = salesInvoices.reduce((s: number, i: { grand_total: number }) => s + i.grand_total, 0);
               const invOutstanding = salesInvoices.reduce((s: number, i: { outstanding_amount: number }) => s + i.outstanding_amount, 0);
               const displayedTotal = invTotal > 0 ? invTotal : soTotalGrand;
