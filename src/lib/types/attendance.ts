@@ -36,6 +36,7 @@ export interface AttendanceSummary {
 export interface BulkAttendancePayload {
   student_group: string;        // Student Group name
   date: string;
+  course_schedule?: string;     // Course Schedule name for session-level attendance
   /** Each entry: { student: "STU-...", student_name: "Name", status: "Present"|"Absent"|"Late" } */
   students: { student: string; student_name: string; status: "Present" | "Absent" | "Late" }[];
   custom_branch?: string;       // Company / branch for the student group

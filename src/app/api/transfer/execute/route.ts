@@ -627,12 +627,13 @@ export async function POST(request: NextRequest) {
       // Use raw division for SO rate — same as admission flow.
       // Frappe rounds qty × rate server-side to the exact total.
       const soRate = adjustedAmount / numInstalments;
+      const transferDate = new Date().toISOString().split("T")[0];
 
       const soPayload = {
         customer: customerName,
         company: transfer.to_branch,
-        transaction_date: new Date().toISOString().split("T")[0],
-        delivery_date: new Date().toISOString().split("T")[0],
+        transaction_date: transferDate,
+        delivery_date: transferDate,
         student: transfer.student,
         custom_academic_year: transfer.academic_year,
         custom_plan: transfer.new_payment_plan || "",
@@ -667,6 +668,7 @@ export async function POST(request: NextRequest) {
         adjustedAmount,
         numInstalments,
         transfer.academic_year,
+        transferDate,
         transfer.to_branch,
         transfer.program,
         transfer.new_payment_plan,
@@ -855,6 +857,7 @@ function generateInstalmentScheduleForTransfer(
   adjustedAmount: number,
   instalments: number,
   academicYear: string,
+  enrollmentDate: string,
   toBranch: string,
   program: string,
   plan: string,
@@ -868,7 +871,7 @@ function generateInstalmentScheduleForTransfer(
 
   if (config && planTotal > 0) {
     // ── Fee-config-based proportional scaling ──
-    const originalSchedule = generateInstalmentSchedule(config, instalments, academicYear);
+    const originalSchedule = generateInstalmentSchedule(config, instalments, academicYear, enrollmentDate);
     if (originalSchedule.length > 0) {
       const ratio = totalInt / planTotal;
       const scaled = originalSchedule.map(entry => Math.round(entry.amount * ratio));
@@ -889,7 +892,7 @@ function generateInstalmentScheduleForTransfer(
     return [{
       label: "Full Payment",
       amount: totalInt,
-      dueDate: new Date().toISOString().split("T")[0],
+      dueDate: enrollmentDate,
     }];
   }
 
@@ -905,7 +908,7 @@ function generateInstalmentScheduleForTransfer(
     inst8_total: totalInt, inst8_per: perInstalment, inst8_last: lastAmount,
   };
 
-  const schedule = generateInstalmentSchedule(stubConfig, instalments, academicYear);
+  const schedule = generateInstalmentSchedule(stubConfig, instalments, academicYear, enrollmentDate);
   return schedule.map((entry, i) => ({
     label: entry.label,
     amount: i < instalments - 1 ? perInstalment : lastAmount,

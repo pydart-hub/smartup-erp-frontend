@@ -70,6 +70,12 @@ const inputCls =
 // ── Page ─────────────────────────────────────────────────────────────────────────────
 
 function NewCourseSchedulePage() {
+  const normalize = (value?: string) =>
+    String(value ?? "")
+      .trim()
+      .replace(/\s+/g, " ")
+      .toLowerCase();
+
   const { defaultCompany, allowedCompanies } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -147,7 +153,12 @@ function NewCourseSchedulePage() {
     // Get the course names from this instructor's log for the current program
     const assignedCourses = new Set(
       instructor.instructor_log
-        .filter((log) => log.program === selectedGroupProgram && log.course)
+        .filter(
+          (log) =>
+            normalize(log.custom_branch) === normalize(branch) &&
+            normalize(log.program) === normalize(selectedGroupProgram) &&
+            log.course
+        )
         .map((log) => log.course!)
     );
 
@@ -162,7 +173,11 @@ function NewCourseSchedulePage() {
 
     // First filter by program — only show instructors assigned to this program
     const programInstructors = branchInstructors.filter((i) =>
-      i.instructor_log.some((log) => log.program === selectedGroupProgram)
+      i.instructor_log.some(
+        (log) =>
+          normalize(log.custom_branch) === normalize(branch) &&
+          normalize(log.program) === normalize(selectedGroupProgram)
+      )
     );
 
     // If a course is also selected, further filter to only instructors assigned to that course
@@ -170,7 +185,10 @@ function NewCourseSchedulePage() {
 
     const courseInstructors = programInstructors.filter((i) =>
       i.instructor_log.some(
-        (log) => log.program === selectedGroupProgram && log.course === form.course
+        (log) =>
+          normalize(log.custom_branch) === normalize(branch) &&
+          normalize(log.program) === normalize(selectedGroupProgram) &&
+          normalize(log.course) === normalize(form.course)
       )
     );
 
@@ -299,7 +317,12 @@ function NewCourseSchedulePage() {
         if (instructor) {
           const assignedCourses = new Set(
             instructor.instructor_log
-              .filter((log) => log.program === selectedGroupProgram && log.course)
+              .filter(
+                (log) =>
+                  normalize(log.custom_branch) === normalize(branch) &&
+                  normalize(log.program) === normalize(selectedGroupProgram) &&
+                  log.course
+              )
               .map((log) => log.course!)
           );
           // If instructor has explicit course assignments and current course isn't in them, reset
@@ -323,7 +346,10 @@ function NewCourseSchedulePage() {
         const instructor = branchInstructors.find((i) => i.name === prev.instructor);
         if (instructor) {
           const teachesThisCourse = instructor.instructor_log.some(
-            (log) => log.program === selectedGroupProgram && log.course === newCourse
+            (log) =>
+              normalize(log.custom_branch) === normalize(branch) &&
+              normalize(log.program) === normalize(selectedGroupProgram) &&
+              normalize(log.course) === normalize(newCourse)
           );
           if (!teachesThisCourse) {
             return { ...prev, course: newCourse, instructor: "", custom_topic: "" };

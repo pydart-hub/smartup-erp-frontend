@@ -249,14 +249,16 @@ export async function updateEmployee(
 /** List employee attendance records for a company/date range */
 export async function getEmployeeAttendance(params?: {
   company?: string;
+  employees?: string[];
   date?: string;
   from_date?: string;
   to_date?: string;
   status?: string;
   limit_page_length?: number;
 }): Promise<FrappeListResponse<EmployeeAttendance>> {
-  const filters: (string | number)[][] = [["docstatus", "=", 1]];
+  const filters: (string | number)[][] = [["docstatus", "!=", 2]];
   if (params?.company) filters.push(["company", "=", params.company]);
+  if (params?.employees?.length) filters.push(["employee", "in", params.employees as unknown as string]);
   if (params?.date) filters.push(["attendance_date", "=", params.date]);
   if (params?.from_date) filters.push(["attendance_date", ">=", params.from_date]);
   if (params?.to_date) filters.push(["attendance_date", "<=", params.to_date]);
@@ -332,11 +334,35 @@ export async function getInstructorDoc(name: string): Promise<InstructorWithLog>
  * Results should be cached aggressively (staleTime: 10+ min).
  */
 export async function getInstructorsWithCourses(branch: string): Promise<InstructorWithLog[]> {
-  const branchInstructors = await getInstructorsByCompany(branch);
+  try {
+    const { data } = await apiClient.get<{ data: InstructorWithLog[] }>(
+      `/branch-manager/instructors?branch=${encodeURIComponent(branch)}`,
+      { baseURL: "/api" }
+    );
+    return data?.data ?? [];
+  } catch {
+    // Fallback to legacy client-side composition path if server route fails.
+  }
 
-  // Fetch full docs in parallel (for instructor_log with courses)
+  const normalize = (value?: string) =>
+    String(value ?? "")
+      .trim()
+      .replace(/\s+/g, " ")
+      .toLowerCase();
+
+  const targetBranch = normalize(branch);
+
+  const [allInstructorsRes, branchEmployeesRes] = await Promise.all([
+    getInstructors({ limit_page_length: 500 }),
+    getEmployees({ company: branch, status: "Active", limit_page_length: 500 }),
+  ]);
+
+  const allInstructors = allInstructorsRes.data ?? [];
+  const branchEmployeeSet = new Set((branchEmployeesRes.data ?? []).map((e) => e.name));
+
+  // Fetch full docs in parallel (for instructor_log with branch/course assignments)
   const docs = await Promise.all(
-    branchInstructors.map((i) =>
+    allInstructors.map((i) =>
       getInstructorDoc(i.name).catch(() => ({
         ...i,
         instructor_log: [] as InstructorLogEntry[],
@@ -344,14 +370,22 @@ export async function getInstructorsWithCourses(branch: string): Promise<Instruc
     )
   );
 
-  return docs as InstructorWithLog[];
+  return (docs as InstructorWithLog[]).filter((instr) => {
+    const logs = instr.instructor_log ?? [];
+    if (logs.length > 0) {
+      // Primary source of truth for multi-branch teaching eligibility.
+      return logs.some((log) => normalize(log.custom_branch) === targetBranch);
+    }
+    // Legacy fallback: include instructor if linked employee belongs to this branch.
+    return branchEmployeeSet.has(instr.employee);
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Create / Update Employee Attendance
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Create a new Attendance record and submit it (docstatus: 1) */
+/** Create a new Attendance record */
 export async function createEmployeeAttendance(payload: {
   employee: string;
   employee_name: string;
@@ -359,11 +393,34 @@ export async function createEmployeeAttendance(payload: {
   status: string;
   company: string;
 }): Promise<{ data: EmployeeAttendance }> {
-  const { data } = await apiClient.post("/resource/Attendance", {
-    ...payload,
-    docstatus: 1,
-  });
-  return data;
+  try {
+    const { data } = await apiClient.post("/resource/Attendance", {
+      ...payload,
+      docstatus: 1,
+    });
+    return data;
+  } catch (error: unknown) {
+    const err = error as {
+      response?: { data?: { exception?: string; message?: string; _error_message?: string } };
+    };
+    const text = String(
+      err?.response?.data?._error_message ||
+      err?.response?.data?.message ||
+      err?.response?.data?.exception ||
+      ""
+    );
+
+    // Frappe duplicate-error payload often includes an existing attendance ID like HR-ATT-2026-00187.
+    if (text.toLowerCase().includes("duplicateattendanceerror") || text.toLowerCase().includes("already marked")) {
+      const match = text.match(/(HR-ATT-[A-Za-z0-9-]+)/i);
+      const existingName = match?.[1];
+      if (existingName) {
+        await updateEmployeeAttendance(existingName, payload);
+        return { data: { name: existingName, ...payload } as EmployeeAttendance };
+      }
+    }
+    throw error;
+  }
 }
 
 /** Update an existing Attendance record: cancel old → create new submitted */
@@ -377,12 +434,26 @@ export async function updateEmployeeAttendance(
     company: string;
   }
 ): Promise<void> {
-  // Cancel the existing record first
+  // Read current docstatus to pick a safe update path.
+  const { data: existingRes } = await apiClient.get<{ data?: { docstatus?: number } }>(
+    `/resource/Attendance/${encodeURIComponent(existingName)}`
+  );
+  const docstatus = Number(existingRes?.data?.docstatus ?? 0);
+
+  if (docstatus === 0) {
+    // Draft can be updated in place.
+    await apiClient.put(`/resource/Attendance/${encodeURIComponent(existingName)}`, {
+      ...payload,
+    });
+    return;
+  }
+
+  // Submitted record: cancel then create replacement.
   await apiClient.post("/method/frappe.client.cancel", {
     doctype: "Attendance",
     name: existingName,
   });
-  // Create a new submitted record
+
   await apiClient.post("/resource/Attendance", {
     ...payload,
     docstatus: 1,

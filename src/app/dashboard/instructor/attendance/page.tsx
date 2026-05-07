@@ -106,25 +106,26 @@ export default function InstructorAttendancePage() {
 
   const schedules = schedulesRes?.data ?? [];
 
-  // ── Query 2: Attendance records for all batches that have sessions today ──
-  const batchIds = useMemo(
-    () => [...new Set(schedules.map((s) => s.student_group))],
+  // ── Query 2: Attendance records for each session on the selected date ──
+  const scheduleIds = useMemo(
+    () => schedules.map((s) => s.name),
     [schedules]
   );
 
-  const { data: attendanceByBatch } = useQuery({
-    queryKey: ["session-attendance-check", selectedDate, batchIds],
+  const { data: attendanceBySchedule } = useQuery({
+    queryKey: ["session-attendance-check", selectedDate, scheduleIds],
     queryFn: async () => {
       const map = new Map<string, number>();
-      for (const batchId of batchIds) {
+      for (const schedule of schedules) {
         const res = await getAttendance(selectedDate, {
-          student_group: batchId,
+          student_group: schedule.student_group,
+          course_schedule: schedule.name,
         });
-        map.set(batchId, res.data.length);
+        map.set(schedule.name, res.data.length);
       }
       return map;
     },
-    enabled: batchIds.length > 0,
+    enabled: schedules.length > 0,
     staleTime: 30_000,
   });
 
@@ -136,8 +137,8 @@ export default function InstructorAttendancePage() {
     const nowMinutes = now.getHours() * 60 + now.getMinutes();
 
     for (const s of schedules) {
-      // If attendance exists for this batch → completed
-      const attCount = attendanceByBatch?.get(s.student_group) ?? 0;
+      // If attendance exists for this schedule → completed
+      const attCount = attendanceBySchedule?.get(s.name) ?? 0;
       if (attCount > 0) {
         map.set(s.name, "completed");
         continue;
@@ -164,7 +165,7 @@ export default function InstructorAttendancePage() {
       }
     }
     return map;
-  }, [schedules, selectedDate, attendanceByBatch]);
+  }, [schedules, selectedDate, attendanceBySchedule]);
 
   // ── Load students when a session is expanded ──
   const loadSessionStudents = useCallback(
@@ -179,6 +180,7 @@ export default function InstructorAttendancePage() {
           getBatch(schedule.student_group),
           getAttendance(selectedDate, {
             student_group: schedule.student_group,
+            course_schedule: schedule.name,
           }),
         ]);
 
@@ -281,6 +283,7 @@ export default function InstructorAttendancePage() {
       await bulkMarkAttendance({
         student_group: schedule.student_group,
         date: selectedDate,
+        course_schedule: schedule.name,
         students: entries,
         custom_branch: schedule.custom_branch || undefined,
       });

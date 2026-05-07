@@ -65,24 +65,39 @@ export default function TeachersPage() {
   const isLoading = empLoading || instrLoading;
 
   // Cross-reference: instructors whose employee link is in this branch's employee list
+  // PLUS multi-branch instructors from Instructor Log
   const teachers = useMemo(() => {
     const employees = empRes?.data ?? [];
     const instructors = instrRes?.data ?? [];
+    const instrWithCourses = instrWithCoursesRes ?? [];
     const employeeNames = new Set(employees.map((e) => e.name));
     const empMap = new Map(employees.map((e) => [e.name, e]));
 
-    return instructors
+    // Base: instructors whose employee record is in this branch
+    const baseSet = new Set<string>();
+    const base = instructors
       .filter((i) => employeeNames.has(i.employee))
+      .map((i) => {
+        baseSet.add(i.name);
+        return { ...i, employee_data: empMap.get(i.employee), is_visiting: false, other_branches: [] as string[] };
+      });
+
+    // Extra: multi-branch instructors resolved via Instructor Log not already in base
+    const extra = instrWithCourses
+      .filter((i) => !baseSet.has(i.name))
       .map((i) => ({
         ...i,
-        employee_data: empMap.get(i.employee),
-      }))
-      .filter((t) =>
-        !search ||
-        t.instructor_name.toLowerCase().includes(search.toLowerCase()) ||
-        t.employee.toLowerCase().includes(search.toLowerCase())
-      );
-  }, [empRes, instrRes, search]);
+        employee_data: undefined as ReturnType<typeof empMap.get>,
+        is_visiting: true,
+        other_branches: (i as { other_branches?: string[] }).other_branches ?? [],
+      }));
+
+    return [...base, ...extra].filter((t) =>
+      !search ||
+      t.instructor_name.toLowerCase().includes(search.toLowerCase()) ||
+      t.name.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [empRes, instrRes, instrWithCoursesRes, search]);
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
@@ -170,19 +185,33 @@ export default function TeachersPage() {
                         <h3 className="font-semibold text-text-primary">
                           {teacher.instructor_name}
                         </h3>
-                        <Badge
-                          variant={
-                            teacher.employee_data?.status === "Active" ? "success"
-                            : teacher.employee_data?.status === "Left" ? "error"
-                            : "default"
-                          }
-                          className="text-[10px]"
-                        >
-                          {teacher.employee_data?.status ?? "Unknown"}
-                        </Badge>
+                        {teacher.is_visiting ? (
+                          <Badge variant="default" className="text-[10px] bg-amber-100 text-amber-700 border-amber-200">
+                            Visiting
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant={
+                              teacher.employee_data?.status === "Active" ? "success"
+                              : teacher.employee_data?.status === "Left" ? "error"
+                              : "default"
+                            }
+                            className="text-[10px]"
+                          >
+                            {teacher.employee_data?.status ?? "Unknown"}
+                          </Badge>
+                        )}
                       </div>
 
                       <p className="text-xs text-text-secondary font-mono mb-2">{teacher.name}</p>
+
+                      {/* Visiting instructor home branch indicator */}
+                      {teacher.is_visiting && teacher.custom_company && (
+                        <div className="flex items-center gap-1.5 text-xs text-amber-600 mb-2">
+                          <Building2 className="h-3 w-3" />
+                          <span className="truncate">Home: {teacher.custom_company}</span>
+                        </div>
+                      )}
 
                       <div className="space-y-1">
                         {teacher.employee_data?.designation && (

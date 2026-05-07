@@ -64,6 +64,7 @@ export async function getFeeStructures(params?: {
       "custom_plan", "custom_no_of_instalments", "custom_branch_abbr", "docstatus",
     ]),
     limit_page_length: "200",
+    order_by: "modified desc",
     ...(filters.length ? { filters: JSON.stringify(filters) } : {}),
   });
   const { data } = await apiClient.get(`/resource/Fee Structure?${query.toString()}`);

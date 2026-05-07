@@ -1,5 +1,76 @@
 # SmartUp ERP — Task Tracker
 
+## Current: Edappally Fee Structure Study From Kadavanthra Workbook (2026-05-07)
+
+- [x] Inspect the provided Kadavanthra fee structure workbook directly
+- [x] Normalize the pricing blocks into a branch-ready structure for Edappally
+- [x] Confirm this is analysis only and defer implementation until user command
+
+### Review
+- Studied [docs/kadavanthra fee structure newww.xlsx](c:\Users\arjun\Desktop\Stibe\smartup-erp-frontend\docs\kadavanthra fee structure newww.xlsx) directly instead of relying on older parsed JSON.
+- Confirmed the workbook is a single-sheet table with six pricing blocks: Basic quarterly, Basic 6/8 instalment, HSS quarterly, HSS 6/8 instalment, 10th subject-wise quarterly, and 10th subject-wise 6/8 instalment.
+- Normalized the structure for Edappally on the stated assumption that Edappally and Kadavanthra use the same fee structure.
+- No implementation or backend/frontend data changes were made.
+
+## Current: Edappally Basic Fee Structure Sync (2026-05-07)
+
+- [x] Update Edappally Basic standard-program pricing data to match the provided workbook
+- [x] Add a targeted audit script for matching Edappally Basic Fee Structure records in Frappe
+- [x] Route admission billing to prefer the computed schedule total so new Edappally pricing is used even when submitted Fee Structure totals are stale
+- [x] Validate TypeScript and verify the updated Edappally pricing slice
+
+### Review
+- Updated Edappally Basic standard-program entries in [docs/fee_structure_parsed.json](c:\Users\arjun\Desktop\Stibe\smartup-erp-frontend\docs\fee_structure_parsed.json) for 9th CBSE, 10th State, 10th CBSE, Plus One, and Plus Two to match the provided Kadavanthara workbook values.
+- Updated [src/lib/api/enrollment.ts](c:\Users\arjun\Desktop\Stibe\smartup-erp-frontend\src\lib\api\enrollment.ts) so Sales Order pricing prefers the computed instalment schedule total for one-time payment too, removing dependence on stale immutable Fee Structure totals for new admissions.
+- Updated [src/lib/api/fees.ts](c:\Users\arjun\Desktop\Stibe\smartup-erp-frontend\src\lib\api\fees.ts) to request the newest matching Fee Structures first.
+- Confirmed live submitted Fee Structure docs for Edappally reject `total_amount` changes via Frappe `UpdateAfterSubmitError`, so backend document totals were not modified through the available API.
+- Added [scripts/sync-edappally-basic-fees.mjs](c:\Users\arjun\Desktop\Stibe\smartup-erp-frontend\scripts\sync-edappally-basic-fees.mjs) as an audit script to compare live Edappally Basic records against the workbook target values without attempting an invalid in-place mutation.
+
+## Current: Admission-Date Based Instalment Due Dates (2026-05-07)
+
+- [x] Update central instalment due-date generation to derive dates from enrollment/admission date for 1/4/6/8 options
+- [x] Reuse shared schedule generator in demo-conversion backend route to remove fixed calendar templates
+- [x] Update demo-conversion preview UI to use shared schedule generator for consistent due dates
+- [x] Update branch-manager manual invoice generation flow to anchor due dates to Sales Order transaction date
+- [x] Update branch-transfer schedule generation to pass transfer enrollment date into shared generator
+- [x] Validate TypeScript compile and add review notes
+
+### Review
+- Centralized due-date logic now computes due dates from `enrollmentDate` using month offsets: `1:[0]`, `4:[0,3,6,9]`, `6:[0,2,4,6,8,10]`, `8:[0..7]`.
+- Added robust month-addition with day clamping (e.g., 31st to shorter months) in `feeSchedule.ts`.
+- Demo conversion backend and preview UI now consume the same shared generator, eliminating hardcoded June/September/December/March templates.
+- Branch Manager invoice-generation fallback now derives due dates from SO `transaction_date` instead of fixed academic-month templates.
+- Transfer execution schedule generation now passes transfer date to the shared generator, so transfer invoices also follow admission-date anchoring.
+- Verified with `npx tsc --noEmit` (clean).
+
+## Current: Multi-Branch Instructor Scheduling + Attendance Design (2026-05-06)
+
+- [x] Audit current instructor assignment, scheduling, and attendance flows across frontend and backend routes
+- [x] Identify single-branch assumptions that block cross-branch instructor scheduling
+- [x] Propose target data structure, API contract, permissions model, and operational workflow (design only)
+- [x] Document phased implementation plan with validation and rollout safeguards (no code implementation yet)
+
+### Review
+- Completed deep code and docs study for instructor assignment, course schedule creation, and attendance marking paths.
+- Confirmed the primary blocker: instructor discovery is filtered by employee home company rather than instructor_log branch assignments.
+- Confirmed attendance flow is session-driven and can support multi-branch instructors once schedule + permission scoping is made explicit.
+- Prepared a phased, non-destructive implementation structure covering backend data model, API changes, frontend UX, conflict checks, and rollout strategy.
+
+## Current: Multi-Branch Instructor Scheduling + Attendance Implementation (2026-05-06)
+
+- [x] Switch instructor discovery to instructor_log branch matching (with legacy fallback)
+- [x] Enforce branch+program+course instructor assignment validation before schedule creation
+- [x] Update branch-manager schedule filtering to include branch-aware instructor_log checks
+- [x] Make instructor attendance session completion and save path course_schedule-aware
+- [x] Validate TypeScript compile and add review notes
+
+### Review
+- Updated instructor discovery so branch eligibility is read primarily from `instructor_log.custom_branch`, with a legacy fallback to employee company only when logs are empty.
+- Added server-side assignment validation endpoint (`/api/course-schedule/validate-assignment`) and wired schedule creation to validate branch+program+course before writing standard class schedules.
+- Updated branch-manager schedule filtering logic to require branch-aware instructor_log matches in all program/course narrowing paths.
+- Updated instructor attendance to treat completion and writes as session-specific (`course_schedule`) rather than only batch+date, fixing same-day multi-session ambiguity.
+- Verified with `npx tsc --noEmit` and workspace diagnostics (no errors).
+
 ## Current: Demo Conversion Sibling Discount Backward Allocation (2026-05-06)
 
 - [x] Change demo-conversion sibling discount allocation from first instalment to last-invoice-backward in backend
@@ -41,7 +112,26 @@
 - Updated the conversion API to validate the selected sibling, apply the sibling discount during regular invoice generation, and persist sibling linking fields without altering existing demo payments.
 - Verified with `npx tsc --noEmit` after implementation.
 
-## Current: Instructor Attendance Start-Time Unlock + Error Surface (2026-05-06)
+## Current: Director Teachers Page — Permission Fix (2026-05-06)
+
+- [x] Trace "Failed to load teachers" error on Director Teachers page
+- [x] Create server-side `/api/director/branch-instructors` route with admin token fallback
+- [x] Update client API to call server route instead of direct Frappe API calls
+- [x] Fix route authorization to check Director role instead of branch restrictions
+- [x] Fix response structure mismatch (API wrapper and axios double-wrapping)
+- [x] Fix instructor count consistency — overview now shows Instructor count, not total staff count
+- [x] Validate TypeScript compile and add review notes
+
+### Review
+- The Director Teachers page was failing because it tried to fetch Instructor and Employee records directly from Frappe API, which are restricted by role permissions for non-admin users.
+- Added a new server-side route at `/api/director/branch-instructors` that uses admin credentials (`FRAPPE_API_KEY`/`FRAPPE_API_SECRET`) to safely fetch instructors for a branch without permission issues.
+- Updated `getBranchInstructors()` to call the server route instead of making direct Frappe calls.
+- Fixed the route authorization to check for Director/Management/Administrator role instead of branch-company restrictions. This allows Directors to view instructors for any branch they request, consistent with the leaderboard and other Director endpoints.
+- Fixed API response structure: server now returns the array directly, and the client properly extracts it from axios response.
+- Updated `getInstructorCountForBranch()` to count only employees with Instructor records (via the new route), not all Active Employees. This makes the overview branch card counts consistent with the detailed instructors page.
+- Verified all changes have no TypeScript errors.
+
+## Previous: Instructor Attendance Start-Time Unlock + Error Surface (2026-05-06)
 
 - [x] Change instructor attendance session unlock from class end time to class start time
 - [x] Add backend error message parsing on instructor attendance save failures

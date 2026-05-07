@@ -100,9 +100,10 @@ export async function getBatchCountForBranch(
 export async function getInstructorCountForBranch(
   branch: string
 ): Promise<number> {
-  // Instructors don't have custom_branch; linked via Employee → company
-  // Use Employee count with company filter as proxy
-  return getCount("Employee", { company: branch, status: "Active" });
+  // Get the full instructors list and return its length
+  // This ensures we count only employees with Instructor records, not all staff
+  const instructors = await getBranchInstructors(branch);
+  return instructors.length;
 }
 
 export async function getScheduleCountForBranch(
@@ -1012,72 +1013,12 @@ export interface BranchInstructor {
 export async function getBranchInstructors(
   branch: string
 ): Promise<BranchInstructor[]> {
-  // First get employees for this branch
-  const empParams = new URLSearchParams({
-    fields: JSON.stringify(["name", "employee_name", "designation"]),
-    filters: JSON.stringify([
-      ["company", "=", branch],
-      ["status", "=", "Active"],
-    ]),
-    limit_page_length: "500",
-  });
-  const { data: empData } = await apiClient.get(
-    `/resource/Employee?${empParams}`
+  // Call server-side route that uses admin token to safely fetch instructors
+  const { data } = await apiClient.get(
+    `/director/branch-instructors?branch=${encodeURIComponent(branch)}`,
+    { baseURL: "/api" }
   );
-  const employees: { name: string; employee_name: string; designation?: string }[] =
-    empData.data ?? [];
-  if (!employees.length) return [];
-
-  const empDesignationMap = new Map(
-    employees.map((e) => [e.name, e.designation ?? ""])
-  );
-
-  // Then get instructors linked to those employees
-  const empNames = employees.map((e) => e.name);
-  const instrParams = new URLSearchParams({
-    fields: JSON.stringify([
-      "name",
-      "instructor_name",
-      "employee",
-      "department",
-    ]),
-    filters: JSON.stringify([["employee", "in", empNames]]),
-    limit_page_length: "500",
-  });
-  const { data: instrData } = await apiClient.get(
-    `/resource/Instructor?${instrParams}`
-  );
-  const instructors: Omit<BranchInstructor, "designation" | "subjects">[] = instrData.data ?? [];
-  if (!instructors.length) return [];
-
-  // Fetch each Instructor's full doc in parallel to get instructor_log (subjects)
-  const fullDocs = await Promise.all(
-    instructors.map((i) =>
-      apiClient
-        .get(`/resource/Instructor/${encodeURIComponent(i.name)}`)
-        .then((r) => r.data?.data)
-        .catch(() => null)
-    )
-  );
-
-  return instructors.map((i, idx) => {
-    const doc = fullDocs[idx];
-    const log: { course?: string; custom_branch?: string }[] =
-      doc?.instructor_log ?? [];
-    // Only keep courses assigned to this branch, deduplicated
-    const subjects = [
-      ...new Set(
-        log
-          .filter((entry) => entry.custom_branch === branch && entry.course)
-          .map((entry) => entry.course as string)
-      ),
-    ];
-    return {
-      ...i,
-      designation: empDesignationMap.get(i.employee) || "Instructor",
-      subjects,
-    };
-  });
+  return Array.isArray(data) ? data : [];
 }
 
 export interface BranchSchedule {

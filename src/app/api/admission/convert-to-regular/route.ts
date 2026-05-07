@@ -20,11 +20,13 @@
  *   feeConfigEntry     — the FeeConfigEntry from /api/fee-config (pre-fetched on client)
  *   feeStructureName   — resolved Fee Structure name to store on PE (optional)
  *   academicYear       — e.g. "2026-2027"
- *   enrollmentDate     — ISO date string, used as due date for 1-instalment option
+ *   enrollmentDate     — ISO date string, used as the due-date anchor for all instalment options
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole, STAFF_ROLES } from "@/lib/utils/apiAuth";
+import { generateInstalmentSchedule } from "@/lib/utils/feeSchedule";
+import type { FeeConfigEntry, InstalmentEntry } from "@/lib/types/fee";
 
 const FRAPPE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL;
 const API_KEY = process.env.FRAPPE_API_KEY;
@@ -85,33 +87,6 @@ async function frappePut(path: string, body: unknown) {
     throw new Error(`Frappe PUT ${path} → ${res.status}: ${text.slice(0, 400)}`);
   }
   return (await res.json()).data;
-}
-
-// ── Instalment schedule types (mirrored from feeSchedule.ts) ─────────────────
-
-interface InstalmentEntry {
-  index: number;
-  label: string;
-  amount: number;
-  dueDate: string;
-  discountApplied?: number;
-  discountRemark?: string;
-}
-
-interface FeeConfigEntry {
-  otp: number;
-  q1: number;
-  q2: number;
-  q3: number;
-  q4: number;
-  quarterly_total: number;
-  inst6_per: number;
-  inst6_last: number;
-  inst6_total: number;
-  inst8_per: number;
-  inst8_last: number;
-  inst8_total: number;
-  annual_fee: number;
 }
 
 function asNonEmptyString(value: unknown): string | undefined {
@@ -214,93 +189,6 @@ async function resolveSiblingByGuardian(
   }
 
   return undefined;
-}
-
-// ── Due-date templates (matches constants.ts) ─────────────────────────────────
-
-const INSTALMENT_DUE_DATES = {
-  quarterly: [
-    { month: 5, day: 1 },   // Q1: June 1
-    { month: 8, day: 1 },   // Q2: September 1
-    { month: 11, day: 1 },  // Q3: December 1
-    { month: 2, day: 1 },   // Q4: March 1 (next year)
-  ],
-  inst6: [
-    { month: 5, day: 1 },
-    { month: 7, day: 1 },
-    { month: 9, day: 1 },
-    { month: 11, day: 1 },
-    { month: 1, day: 1 },
-    { month: 2, day: 1 },
-  ],
-  inst8: [
-    { month: 5, day: 1 },
-    { month: 6, day: 1 },
-    { month: 7, day: 1 },
-    { month: 8, day: 1 },
-    { month: 9, day: 1 },
-    { month: 10, day: 1 },
-    { month: 11, day: 1 },
-    { month: 2, day: 1 },
-  ],
-};
-
-function parseStartYear(academicYear: string): number {
-  return parseInt(academicYear.split("-")[0], 10);
-}
-
-function buildDueDate(template: { month: number; day: number }, startYear: number): string {
-  const calendarYear = template.month < 3 ? startYear + 1 : startYear;
-  return `${calendarYear}-${String(template.month + 1).padStart(2, "0")}-${String(template.day).padStart(2, "0")}`;
-}
-
-function generateInstalmentSchedule(
-  config: FeeConfigEntry,
-  instalments: number,
-  academicYear: string,
-  enrollmentDate?: string,
-): InstalmentEntry[] {
-  const startYear = parseStartYear(academicYear);
-
-  if (instalments === 1) {
-    return [{
-      index: 1,
-      label: "Full Payment",
-      amount: config.otp,
-      dueDate: enrollmentDate || buildDueDate(INSTALMENT_DUE_DATES.quarterly[0], startYear),
-    }];
-  }
-
-  if (instalments === 4) {
-    const labels = ["Q1", "Q2", "Q3", "Q4"];
-    const amounts = [config.q1, config.q2, config.q3, config.q4];
-    return INSTALMENT_DUE_DATES.quarterly.map((tmpl, i) => ({
-      index: i + 1,
-      label: labels[i],
-      amount: amounts[i],
-      dueDate: buildDueDate(tmpl, startYear),
-    }));
-  }
-
-  if (instalments === 6) {
-    return INSTALMENT_DUE_DATES.inst6.map((tmpl, i) => ({
-      index: i + 1,
-      label: `Inst ${i + 1}`,
-      amount: i < 5 ? config.inst6_per : config.inst6_last,
-      dueDate: buildDueDate(tmpl, startYear),
-    }));
-  }
-
-  if (instalments === 8) {
-    return INSTALMENT_DUE_DATES.inst8.map((tmpl, i) => ({
-      index: i + 1,
-      label: `Inst ${i + 1}`,
-      amount: i < 7 ? config.inst8_per : config.inst8_last,
-      dueDate: buildDueDate(tmpl, startYear),
-    }));
-  }
-
-  return [];
 }
 
 /**

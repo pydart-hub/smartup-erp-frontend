@@ -52,6 +52,12 @@ interface ScheduleEntry {
   discountRemark?: string;
 }
 
+interface CreatedInstalmentSummary {
+  label: string;
+  amount: number;
+  dueDate: string;
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Auth: require staff role (BM / Admin / Director)
@@ -130,6 +136,7 @@ export async function POST(request: NextRequest) {
 
     // 2. Create one Sales Invoice per instalment
     const createdInvoices: string[] = [];
+    const createdInstalments: CreatedInstalmentSummary[] = [];
     const draftInvoices: string[] = []; // Created but submission failed
     const failedInstalments: { index: number; label: string; error: string }[] = [];
 
@@ -225,6 +232,11 @@ export async function POST(request: NextRequest) {
         failedInstalments.push({ index: i, label: inst.label, error: `Created as draft but submission failed: ${submitErr}` });
       } else {
         createdInvoices.push(invName);
+        createdInstalments.push({
+          label: inst.label,
+          amount: inst.amount,
+          dueDate: effectiveDate,
+        });
       }
     }
 
@@ -279,6 +291,11 @@ export async function POST(request: NextRequest) {
           stillFailed.push({ ...failed, error: `Created as draft but submission failed: ${submitErr}` });
         } else {
           createdInvoices.push(retryInvName);
+          createdInstalments.push({
+            label: inst.label,
+            amount: inst.amount,
+            dueDate: effectiveDate,
+          });
           console.log(`[create-invoices] Retry succeeded for instalment ${failed.index + 1}: ${retryInvName}`);
         }
       }
@@ -330,12 +347,13 @@ export async function POST(request: NextRequest) {
           const programName = firstItem?.item_name
             ? firstItem.item_name.replace(/^Tuition Fee\s*[-–—]\s*/i, "").trim() || firstItem.item_name
             : "";
-          const totalAmount = schedule.reduce((s: number, inst: ScheduleEntry) => s + inst.amount, 0);
+          const scheduleForMessage = createdInstalments.length > 0 ? createdInstalments : schedule;
+          const totalAmount = scheduleForMessage.reduce((s: number, inst) => s + inst.amount, 0);
 
-          const instalmentSummary = schedule.length === 1
-            ? `Full payment — ₹${schedule[0].amount.toLocaleString("en-IN")}`
-            : schedule
-              .map((inst: ScheduleEntry, i: number) => {
+          const instalmentSummary = scheduleForMessage.length === 1
+            ? `Full payment — ₹${scheduleForMessage[0].amount.toLocaleString("en-IN")}`
+            : scheduleForMessage
+              .map((inst, i: number) => {
                 const mon = new Date(inst.dueDate).toLocaleDateString("en-IN", { month: "short", year: "2-digit" });
                 return `${i + 1}. ₹${inst.amount.toLocaleString("en-IN")} (${mon})`;
               })

@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/Input";
 import { getSalesOrder, getSalesInvoices, cancelSalesOrder } from "@/lib/api/sales";
 import { getStudent } from "@/lib/api/students";
 import { formatDate, formatCurrency } from "@/lib/utils/formatters";
-import { INSTALMENT_DUE_DATES } from "@/lib/utils/constants";
+import { generateInstalmentDueDates } from "@/lib/utils/feeSchedule";
 import { toast } from "sonner";
 import type { SalesOrderStatus, SalesInvoice } from "@/lib/types/sales";
 import RazorpayPayButton from "@/components/payments/RazorpayPayButton";
@@ -180,28 +180,20 @@ export default function SalesOrderDetailPage() {
       const numInst = Number(so.custom_no_of_instalments) || 1;
       const total = so.grand_total;
       const academicYear = so.custom_academic_year || "2026-2027";
-      const startYear = parseInt(academicYear.split("-")[0], 10);
-
-      // Build due dates
-      function buildDueDate(tmpl: { month: number; day: number }) {
-        const calYear = tmpl.month < 3 ? startYear + 1 : startYear;
-        return `${calYear}-${String(tmpl.month + 1).padStart(2, "0")}-${String(tmpl.day).padStart(2, "0")}`;
-      }
+      const enrollmentDate = so.transaction_date || undefined;
 
       let schedule: { amount: number; dueDate: string; label: string }[];
       if (numInst === 1) {
-        schedule = [{ amount: total, dueDate: new Date().toISOString().split("T")[0], label: "Full Payment" }];
+        const [singleDueDate] = generateInstalmentDueDates(1, academicYear, enrollmentDate);
+        schedule = [{ amount: total, dueDate: singleDueDate, label: "Full Payment" }];
       } else {
-        const dueDates = numInst === 4 ? INSTALMENT_DUE_DATES.quarterly
-          : numInst === 6 ? INSTALMENT_DUE_DATES.inst6
-          : numInst === 8 ? INSTALMENT_DUE_DATES.inst8
-          : INSTALMENT_DUE_DATES.quarterly;
+        const dueDates = generateInstalmentDueDates(numInst, academicYear, enrollmentDate);
         const perInst = Math.floor(total / numInst);
         const remainder = total - perInst * (numInst - 1);
         const labels = numInst === 4 ? ["Q1", "Q2", "Q3", "Q4"] : null;
-        schedule = dueDates.slice(0, numInst).map((tmpl, i) => ({
+        schedule = dueDates.slice(0, numInst).map((dueDate, i) => ({
           amount: i === numInst - 1 ? remainder : perInst,
-          dueDate: buildDueDate(tmpl),
+          dueDate,
           label: labels?.[i] || `Instalment ${i + 1}`,
         }));
       }

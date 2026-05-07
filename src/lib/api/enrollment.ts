@@ -1073,12 +1073,13 @@ export async function admitStudent(
       // 5d. Create Sales Order
       // For multi-instalment plans, use qty=number_of_instalments so each
       // invoice can bill qty=1 without triggering Frappe's overbilling check.
-      // Don't round the per-instalment rate — let Frappe handle currency
-      // precision server-side so qty × rate rounds to the exact total.
+      // Prefer the computed schedule total whenever one exists so pricing stays
+      // aligned with the fee-config data even if the linked Fee Structure total
+      // in Frappe is stale and cannot be edited after submit.
       const numInstalments = parseInt(form.custom_no_of_instalments || "1", 10) || 1;
       const scheduleSum = form.instalmentSchedule?.reduce((sum, s) => sum + s.amount, 0) ?? 0;
       const soQty = numInstalments > 1 ? numInstalments : 1;
-      const soRate = numInstalments > 1 && scheduleSum > 0
+      const soRate = scheduleSum > 0
         ? scheduleSum / numInstalments
         : rate;
 

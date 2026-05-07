@@ -1,5 +1,11 @@
 # Lessons Learned
 
+## Multi-Branch Instructor Analysis — Verify Live Data Before Assumptions
+- **Date**: 2026-05-06
+- **Issue**: I assumed there were no multi-branch instructor_log entries based on prior context, but production data already had instructors assigned to multiple branches.
+- **Correction**: Confirm live Instructor Log rows first (program + course + custom_branch) before proposing migration-first plans.
+- **Rule**: For SmartUp instructor scheduling/attendance analysis, treat live Frappe Instructor Log data as source of truth and validate assumptions against it before final recommendations.
+
 ## Demo Conversion Sibling Resolver — Text Fields Alone Are Not Enough
 - **Date**: 2026-05-06
 - **Issue**: Toggle-only sibling offer still failed for some first-student conversions because neither `custom_sibling_of`, nor `custom_sibling_group`, nor `custom_parent_name` was reliably populated/matched.

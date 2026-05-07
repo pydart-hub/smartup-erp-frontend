@@ -27,6 +27,63 @@ function buildDueDate(template: { month: number; day: number }, startYear: numbe
   return `${calendarYear}-${m}-${d}`;
 }
 
+function getDaysInMonth(year: number, month: number): number {
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
+function addMonthsClamped(dateIso: string, monthsToAdd: number): string {
+  const [rawYear, rawMonth, rawDay] = dateIso.split("-").map(Number);
+  if (!rawYear || !rawMonth || !rawDay) return dateIso;
+
+  const baseMonthIndex = rawMonth - 1;
+  const totalMonths = baseMonthIndex + monthsToAdd;
+  const year = rawYear + Math.floor(totalMonths / 12);
+  const month = (totalMonths % 12) + 1;
+  const day = Math.min(rawDay, getDaysInMonth(year, month));
+
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function getInstalmentOffsets(instalments: number): number[] {
+  switch (instalments) {
+    case 1: return [0];
+    case 4: return [0, 3, 6, 9];
+    case 6: return [0, 2, 4, 6, 8, 10];
+    case 8: return [0, 1, 2, 3, 4, 5, 6, 7];
+    default: return [];
+  }
+}
+
+/**
+ * Generate due dates for an instalment option.
+ * If enrollmentDate is provided, dates are computed relative to admission.
+ * Otherwise, the academic-year fixed template is used as fallback.
+ */
+export function generateInstalmentDueDates(
+  instalments: number,
+  academicYear: string,
+  enrollmentDate?: string,
+): string[] {
+  if (enrollmentDate) {
+    return getInstalmentOffsets(instalments).map((offset) => addMonthsClamped(enrollmentDate, offset));
+  }
+
+  const startYear = parseStartYear(academicYear);
+  if (instalments === 1) {
+    return [buildDueDate(INSTALMENT_DUE_DATES.quarterly[0], startYear)];
+  }
+  if (instalments === 4) {
+    return INSTALMENT_DUE_DATES.quarterly.map((tmpl) => buildDueDate(tmpl, startYear));
+  }
+  if (instalments === 6) {
+    return INSTALMENT_DUE_DATES.inst6.map((tmpl) => buildDueDate(tmpl, startYear));
+  }
+  if (instalments === 8) {
+    return INSTALMENT_DUE_DATES.inst8.map((tmpl) => buildDueDate(tmpl, startYear));
+  }
+  return [];
+}
+
 /**
  * Generate the instalment schedule for a given payment option.
  */
@@ -36,43 +93,43 @@ export function generateInstalmentSchedule(
   academicYear: string,
   enrollmentDate?: string,
 ): InstalmentEntry[] {
-  const startYear = parseStartYear(academicYear);
+  const dueDates = generateInstalmentDueDates(instalments, academicYear, enrollmentDate);
 
   if (instalments === 1) {
     return [{
       index: 1,
       label: "Full Payment",
       amount: config.otp,
-      dueDate: enrollmentDate || buildDueDate(INSTALMENT_DUE_DATES.quarterly[0], startYear),
+      dueDate: dueDates[0],
     }];
   }
 
   if (instalments === 4) {
     const labels = ["Q1", "Q2", "Q3", "Q4"];
     const amounts = [config.q1, config.q2, config.q3, config.q4];
-    return INSTALMENT_DUE_DATES.quarterly.map((tmpl, i) => ({
+    return INSTALMENT_DUE_DATES.quarterly.map((_, i) => ({
       index: i + 1,
       label: labels[i],
       amount: amounts[i],
-      dueDate: buildDueDate(tmpl, startYear),
+      dueDate: dueDates[i],
     }));
   }
 
   if (instalments === 6) {
-    return INSTALMENT_DUE_DATES.inst6.map((tmpl, i) => ({
+    return INSTALMENT_DUE_DATES.inst6.map((_, i) => ({
       index: i + 1,
       label: `Inst ${i + 1}`,
       amount: i < 5 ? config.inst6_per : config.inst6_last,
-      dueDate: buildDueDate(tmpl, startYear),
+      dueDate: dueDates[i],
     }));
   }
 
   if (instalments === 8) {
-    return INSTALMENT_DUE_DATES.inst8.map((tmpl, i) => ({
+    return INSTALMENT_DUE_DATES.inst8.map((_, i) => ({
       index: i + 1,
       label: `Inst ${i + 1}`,
       amount: i < 7 ? config.inst8_per : config.inst8_last,
-      dueDate: buildDueDate(tmpl, startYear),
+      dueDate: dueDates[i],
     }));
   }
 

@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ClipboardCheck, Calendar, Search, Users, CheckCircle,
-  XCircle, Clock, Loader2, UserX, Save, ArrowLeft,
+  XCircle, Clock, Loader2, UserX, Save, ArrowLeft, Building2,
 } from "lucide-react";
 import Link from "next/link";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
@@ -17,11 +17,14 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/hooks/useAuth";
 import {
+  type EmployeeAttendance,
   getEmployeeAttendance,
   getEmployees,
+  getInstructorsWithCourses,
   createEmployeeAttendance,
   updateEmployeeAttendance,
 } from "@/lib/api/employees";
+import { getCourseSchedules } from "@/lib/api/courseSchedule";
 
 type StaffStatus = "Present" | "Absent" | "Half Day" | "On Leave" | "Work From Home";
 
@@ -48,6 +51,8 @@ export default function StaffAttendancePage() {
   const [pendingChanges, setPendingChanges] = useState<Record<string, StaffStatus>>({});
   const [saving, setSaving] = useState(false);
 
+  const employeeAttendanceQueryKey = ["employee-attendance", defaultCompany, selectedDate] as const;
+
   useEffect(() => {
     const t = setTimeout(() => setSearch(searchInput), 400);
     return () => clearTimeout(t);
@@ -66,9 +71,25 @@ export default function StaffAttendancePage() {
     enabled: !!defaultCompany,
   });
 
+  // Fetch instructors via branch-manager route (includes visiting instructors)
+  const { data: allInstrRes } = useQuery({
+    queryKey: ["instructors-with-courses", defaultCompany],
+    queryFn: () => getInstructorsWithCourses(defaultCompany!),
+    staleTime: 10 * 60_000,
+    enabled: !!defaultCompany,
+  });
+
+  // Fetch course schedules for the selected date at this branch
+  const { data: schedulesRes } = useQuery({
+    queryKey: ["course-schedules-date", defaultCompany, selectedDate],
+    queryFn: () => getCourseSchedules({ branch: defaultCompany!, date: selectedDate, limit_page_length: 100 }),
+    staleTime: 30_000,
+    enabled: !!defaultCompany,
+  });
+
   // Fetch attendance for selected date
   const { data: attRes, isLoading: attLoading } = useQuery({
-    queryKey: ["employee-attendance", defaultCompany, selectedDate],
+    queryKey: employeeAttendanceQueryKey,
     queryFn: () =>
       getEmployeeAttendance({
         company: defaultCompany || undefined,
@@ -80,6 +101,75 @@ export default function StaffAttendancePage() {
 
   const employees = empRes?.data ?? [];
   const attendanceRecords = attRes?.data ?? [];
+
+  // Build instructor map: instructor-doc-name → { employee, instructor_name, custom_company, image }
+  const instrMap = React.useMemo(() => {
+    const map = new Map<string, { employee: string; instructor_name: string; custom_company?: string; image?: string }>();
+    for (const i of allInstrRes ?? []) {
+      map.set(i.name, { employee: i.employee, instructor_name: i.instructor_name, custom_company: i.custom_company, image: i.image });
+    }
+    return map;
+  }, [allInstrRes]);
+
+  // Derive visiting instructors from today's schedules (not in branch employee list)
+  const visitingInstructors = React.useMemo(() => {
+    const employeeNames = new Set((empRes?.data ?? []).map((e) => e.name));
+    const schedules = schedulesRes?.data ?? [];
+    const seen = new Set<string>();
+    const result: Array<{ instructorId: string; instructor_name: string; employee: string; custom_company?: string; image?: string; schedules: typeof schedules }> = [];
+    for (const sched of schedules) {
+      if (!sched.instructor || seen.has(sched.instructor)) continue;
+      const instr = instrMap.get(sched.instructor);
+      if (!instr) continue;
+      if (employeeNames.has(instr.employee)) continue; // already in branch list
+      seen.add(sched.instructor);
+      result.push({
+        instructorId: sched.instructor,
+        instructor_name: instr.instructor_name,
+        employee: instr.employee,
+        custom_company: instr.custom_company,
+        image: instr.image,
+        schedules: schedules.filter((s) => s.instructor === sched.instructor),
+      });
+    }
+    return result;
+  }, [schedulesRes, instrMap, empRes]);
+
+  // Fetch attendance for visiting instructors on selected date
+  const visitingEmployeeIds = visitingInstructors.map((v) => v.employee);
+  const visitingAttendanceQueryKey = ["visiting-attendance", defaultCompany, selectedDate, visitingEmployeeIds.join(",")] as const;
+  const { data: visitingAttRes } = useQuery({
+    queryKey: visitingAttendanceQueryKey,
+    queryFn: async () => {
+      const qs = new URLSearchParams({
+        branch: defaultCompany || "",
+        date: selectedDate,
+        employees: visitingEmployeeIds.join(","),
+      });
+
+      const res = await fetch(`/api/branch-manager/visiting-attendance?${qs.toString()}`, {
+        method: "GET",
+        credentials: "include",
+        headers: { Accept: "application/json" },
+        cache: "no-store",
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || "Failed to load visiting attendance");
+      }
+
+      const json = (await res.json()) as { data?: EmployeeAttendance[] };
+      return { data: json.data ?? [] };
+    },
+    staleTime: 30_000,
+    enabled: visitingEmployeeIds.length > 0 && !!defaultCompany,
+  });
+
+  const visitingAttMap = React.useMemo(
+    () => new Map((visitingAttRes?.data ?? []).map((r) => [r.employee, r])),
+    [visitingAttRes]
+  );
 
   // Build lookup: employee name → attendance record
   const attMap = new Map(attendanceRecords.map((r) => [r.employee, r]));
@@ -136,6 +226,12 @@ export default function StaffAttendancePage() {
         changes[emp.name] = "Present";
       }
     }
+    for (const v of visitingInstructors) {
+      const original = visitingAttMap.get(v.employee)?.status;
+      if (original !== "Present") {
+        changes[`visiting_${v.employee}`] = "Present";
+      }
+    }
     setPendingChanges(changes);
   }
 
@@ -144,11 +240,35 @@ export default function StaffAttendancePage() {
     if (pendingCount === 0) return;
     setSaving(true);
     try {
-      const promises = Object.entries(pendingChanges).map(async ([empId, status]) => {
+      type SaveResult = { key: string; employee: string; status: StaffStatus; kind: "employee" | "visiting" };
+      const entries = Object.entries(pendingChanges);
+      const promises = entries.map(async ([key, status]) => {
+        // Visiting instructor key: "visiting_{employeeId}"
+        if (key.startsWith("visiting_")) {
+          const empId = key.replace("visiting_", "");
+          const v = visitingInstructors.find((vi) => vi.employee === empId);
+          if (!v) return;
+          const existing = visitingAttMap.get(empId);
+          const payload = {
+            employee: empId,
+            employee_name: v.instructor_name,
+            attendance_date: selectedDate,
+            status,
+            company: v.custom_company || defaultCompany || "",
+          };
+          if (existing) {
+            await updateEmployeeAttendance(existing.name, payload);
+          } else {
+            await createEmployeeAttendance(payload);
+          }
+          return { key, employee: empId, status, kind: "visiting" } as SaveResult;
+        }
+
+        // Regular branch employee
+        const empId = key;
         const existing = attMap.get(empId);
         const emp = employees.find((e) => e.name === empId);
         if (!emp) return;
-
         const payload = {
           employee: empId,
           employee_name: emp.employee_name,
@@ -164,19 +284,107 @@ export default function StaffAttendancePage() {
           // Create new submitted record
           await createEmployeeAttendance(payload);
         }
+        return { key, employee: empId, status, kind: "employee" } as SaveResult;
       });
 
-      await Promise.all(promises);
-      setPendingChanges({});
-      queryClient.invalidateQueries({ queryKey: ["employee-attendance"] });
-      queryClient.invalidateQueries({ queryKey: ["employee-attendance-quick"] });
-      toast.success(`Staff attendance saved for ${selectedDate}`);
-    } catch {
-      toast.error("Failed to save some records. Please try again.");
+      const results = await Promise.allSettled(promises);
+      const failed: Array<{ key: string; reason: unknown }> = [];
+      const succeeded: SaveResult[] = [];
+      const nextPending: Record<string, StaffStatus> = {};
+      for (let i = 0; i < results.length; i += 1) {
+        const result = results[i];
+        const [key, status] = entries[i];
+        if (result.status === "rejected") {
+          failed.push({ key, reason: result.reason });
+          nextPending[key] = status;
+        } else if (result.value) {
+          succeeded.push(result.value);
+        }
+      }
+
+      setPendingChanges(nextPending);
+
+      // Optimistically sync successful statuses into cache so UI updates immediately.
+      if (succeeded.length > 0) {
+        queryClient.setQueryData(employeeAttendanceQueryKey, (old: unknown) => {
+          const prev = (old as { data?: Array<Record<string, unknown>> } | undefined)?.data ?? [];
+          const byEmployee = new Map(prev.map((r) => [String(r.employee), { ...r }]));
+          for (const row of succeeded.filter((s) => s.kind === "employee")) {
+            const existing = byEmployee.get(row.employee) ?? {
+              name: `LOCAL-${row.employee}-${selectedDate}`,
+              employee: row.employee,
+              employee_name: employees.find((e) => e.name === row.employee)?.employee_name ?? row.employee,
+              attendance_date: selectedDate,
+              company: defaultCompany || "",
+            };
+            byEmployee.set(row.employee, { ...existing, status: row.status, attendance_date: selectedDate });
+          }
+          return { data: Array.from(byEmployee.values()) };
+        });
+
+        queryClient.setQueryData(visitingAttendanceQueryKey, (old: unknown) => {
+          const prev = (old as { data?: Array<Record<string, unknown>> } | undefined)?.data ?? [];
+          const byEmployee = new Map(prev.map((r) => [String(r.employee), { ...r }]));
+          for (const row of succeeded.filter((s) => s.kind === "visiting")) {
+            const v = visitingInstructors.find((vi) => vi.employee === row.employee);
+            const existing = byEmployee.get(row.employee) ?? {
+              name: `LOCAL-${row.employee}-${selectedDate}`,
+              employee: row.employee,
+              employee_name: v?.instructor_name ?? row.employee,
+              attendance_date: selectedDate,
+              company: v?.custom_company || defaultCompany || "",
+            };
+            byEmployee.set(row.employee, { ...existing, status: row.status, attendance_date: selectedDate });
+          }
+          return { data: Array.from(byEmployee.values()) };
+        });
+      }
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: employeeAttendanceQueryKey, exact: true }),
+        queryClient.invalidateQueries({ queryKey: ["employee-attendance-quick"] }),
+        queryClient.invalidateQueries({ queryKey: visitingAttendanceQueryKey, exact: true }),
+      ]);
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: employeeAttendanceQueryKey, exact: true }),
+        queryClient.refetchQueries({ queryKey: visitingAttendanceQueryKey, exact: true }),
+      ]);
+      if (failed.length > 0) {
+        const firstError = failed[0].reason as { response?: { data?: { message?: string; exception?: string; _error_message?: string } }; message?: string };
+        const backendMessage =
+          firstError?.response?.data?._error_message ||
+          firstError?.response?.data?.message ||
+          firstError?.response?.data?.exception ||
+          firstError?.message;
+
+        toast.error(backendMessage ? `Failed for ${failed.length} record(s): ${String(backendMessage)}` : `Failed to save ${failed.length} record(s). Please try again.`);
+      } else {
+        toast.success(`Staff attendance saved for ${selectedDate}`);
+      }
+    } catch (error) {
+      const e = error as { response?: { data?: { message?: string; exception?: string; _error_message?: string } }; message?: string };
+      const backendMessage =
+        e?.response?.data?._error_message ||
+        e?.response?.data?.message ||
+        e?.response?.data?.exception ||
+        e?.message;
+      toast.error(backendMessage ? `Failed to save attendance: ${String(backendMessage)}` : "Failed to save some records. Please try again.");
     } finally {
       setSaving(false);
     }
-  }, [pendingChanges, pendingCount, attMap, employees, selectedDate, defaultCompany, queryClient]);
+  }, [
+    pendingChanges,
+    pendingCount,
+    attMap,
+    employees,
+    selectedDate,
+    defaultCompany,
+    queryClient,
+    visitingAttMap,
+    visitingInstructors,
+    employeeAttendanceQueryKey,
+    visitingAttendanceQueryKey,
+  ]);
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
@@ -361,6 +569,104 @@ export default function StaffAttendancePage() {
 
             <p className="text-xs text-text-tertiary mt-4 text-center">
               Click on an employee card to cycle through: Present → Absent → Half Day → On Leave → Work From Home
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Visiting Instructors Section */}
+      {visitingInstructors.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Building2 className="h-5 w-5 text-amber-500" />
+                Visiting Instructors
+              </CardTitle>
+              <Badge variant="outline">{visitingInstructors.length} scheduled today</Badge>
+            </div>
+            <p className="text-xs text-text-secondary mt-0.5">
+              Instructors from other branches with classes scheduled on {selectedDate}
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {visitingInstructors
+                .filter((v) =>
+                  !search || v.instructor_name.toLowerCase().includes(search.toLowerCase())
+                )
+                .map((v, index) => {
+                  const pendingStatus = pendingChanges[`visiting_${v.employee}`];
+                  const existingAtt = visitingAttMap.get(v.employee);
+                  const currentStatus = (pendingStatus ?? existingAtt?.status ?? "Not Marked") as string;
+                  const hasChange = pendingStatus !== undefined && pendingStatus !== (existingAtt?.status ?? "Not Marked");
+                  const cfg = statusConfig[currentStatus] ?? statusConfig["Not Marked"];
+                  const Icon = cfg.icon;
+
+                  return (
+                    <motion.button
+                      key={v.employee}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: index * 0.03 }}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => {
+                        const key = `visiting_${v.employee}`;
+                        const currentIndex = STATUS_OPTIONS.indexOf(currentStatus as StaffStatus);
+                        const nextIndex = currentStatus === "Not Marked" ? 0 : (currentIndex + 1) % STATUS_OPTIONS.length;
+                        const nextStatus = STATUS_OPTIONS[nextIndex];
+                        const original = existingAtt?.status ?? "Not Marked";
+                        if (nextStatus === original) {
+                          setPendingChanges((prev) => { const next = { ...prev }; delete next[key]; return next; });
+                        } else {
+                          setPendingChanges((prev) => ({ ...prev, [key]: nextStatus }));
+                        }
+                      }}
+                      className={`flex items-center gap-3 p-3 rounded-[10px] border-2 transition-all cursor-pointer text-left ${cfg.bg} ${
+                        hasChange ? "ring-2 ring-primary/30 border-primary/20" : "border-transparent"
+                      }`}
+                    >
+                      {/* Avatar */}
+                      <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                        {v.image ? (
+                          <img
+                            src={`${process.env.NEXT_PUBLIC_FRAPPE_URL}${v.image}`}
+                            alt={v.instructor_name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-sm font-semibold text-amber-700">
+                            {v.instructor_name?.charAt(0)?.toUpperCase() || "?"}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className="text-sm font-medium text-text-primary truncate">{v.instructor_name}</p>
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
+                            Visiting
+                          </span>
+                        </div>
+                        <p className="text-xs text-text-tertiary truncate">
+                          {v.custom_company ?? v.employee} · {v.schedules.length} class{v.schedules.length !== 1 ? "es" : ""}
+                        </p>
+                      </div>
+
+                      {/* Status */}
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <Icon className={`h-4 w-4 ${cfg.color}`} />
+                        <Badge variant={cfg.variant} className="text-[10px]">
+                          {currentStatus}
+                        </Badge>
+                      </div>
+                    </motion.button>
+                  );
+                })}
+            </div>
+            <p className="text-xs text-text-tertiary mt-4 text-center">
+              Click on a card to cycle through attendance statuses
             </p>
           </CardContent>
         </Card>

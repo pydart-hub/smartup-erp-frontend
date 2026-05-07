@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import type { Student } from "@/lib/types/student";
-import { buildFeeConfigKey } from "@/lib/utils/feeSchedule";
+import { generateInstalmentSchedule } from "@/lib/utils/feeSchedule";
 import type { FeeConfigEntry } from "@/lib/types/fee";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -62,25 +62,6 @@ const INSTALMENT_OPTIONS = [
   { value: 8, label: "8 Months", sublabel: "8 instalments" },
 ];
 
-// ── Due-date helpers (mirrors feeSchedule.ts constants) ──────────────────────
-
-const DUE_DATES = {
-  quarterly: [
-    { month: 5, day: 1 },
-    { month: 8, day: 1 },
-    { month: 11, day: 1 },
-    { month: 2, day: 1 },
-  ],
-  inst6: [
-    { month: 5, day: 1 }, { month: 7, day: 1 }, { month: 9, day: 1 },
-    { month: 11, day: 1 }, { month: 1, day: 1 }, { month: 2, day: 1 },
-  ],
-  inst8: [
-    { month: 5, day: 1 }, { month: 6, day: 1 }, { month: 7, day: 1 }, { month: 8, day: 1 },
-    { month: 9, day: 1 }, { month: 10, day: 1 }, { month: 11, day: 1 }, { month: 2, day: 1 },
-  ],
-};
-
 function buildSchedulePreview(
   config: FeeConfigEntry,
   instalments: number,
@@ -89,54 +70,14 @@ function buildSchedulePreview(
   siblingDiscountRate = 0,
   enrollmentDate?: string,
 ): SchedulePreviewRow[] {
-  const startYear = parseInt(academicYear.split("-")[0], 10);
-
-  function dueDate(tmpl: { month: number; day: number }): string {
-    const year = tmpl.month < 3 ? startYear + 1 : startYear;
-    return `${year}-${String(tmpl.month + 1).padStart(2, "0")}-${String(tmpl.day).padStart(2, "0")}`;
-  }
-
-  let raw: SchedulePreviewRow[] = [];
-
-  if (instalments === 1) {
-    raw = [{
-      label: "Full Payment",
-      originalAmount: config.otp,
-      amount: config.otp,
-      siblingDiscountApplied: 0,
-      demoCreditApplied: 0,
-      dueDate: enrollmentDate || dueDate(DUE_DATES.quarterly[0]),
-    }];
-  } else if (instalments === 4) {
-    const labels = ["Q1", "Q2", "Q3", "Q4"];
-    const amounts = [config.q1, config.q2, config.q3, config.q4];
-    raw = DUE_DATES.quarterly.map((t, i) => ({
-      label: labels[i],
-      originalAmount: amounts[i],
-      amount: amounts[i],
-      siblingDiscountApplied: 0,
-      demoCreditApplied: 0,
-      dueDate: dueDate(t),
-    }));
-  } else if (instalments === 6) {
-    raw = DUE_DATES.inst6.map((t, i) => ({
-      label: `Inst ${i + 1}`,
-      originalAmount: i < 5 ? config.inst6_per : config.inst6_last,
-      amount: i < 5 ? config.inst6_per : config.inst6_last,
-      siblingDiscountApplied: 0,
-      demoCreditApplied: 0,
-      dueDate: dueDate(t),
-    }));
-  } else if (instalments === 8) {
-    raw = DUE_DATES.inst8.map((t, i) => ({
-      label: `Inst ${i + 1}`,
-      originalAmount: i < 7 ? config.inst8_per : config.inst8_last,
-      amount: i < 7 ? config.inst8_per : config.inst8_last,
-      siblingDiscountApplied: 0,
-      demoCreditApplied: 0,
-      dueDate: dueDate(t),
-    }));
-  }
+  let raw = generateInstalmentSchedule(config, instalments, academicYear, enrollmentDate).map((row) => ({
+    label: row.label,
+    originalAmount: row.amount,
+    amount: row.amount,
+    siblingDiscountApplied: 0,
+    demoCreditApplied: 0,
+    dueDate: row.dueDate,
+  }));
 
   if (raw.length > 0 && siblingDiscountRate > 0) {
     const total = raw.reduce((sum, row) => sum + row.amount, 0);

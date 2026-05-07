@@ -205,6 +205,33 @@ export async function createCourseSchedule(payload: {
   custom_event_type?: string;
   custom_event_title?: string;
 }): Promise<{ data: CourseSchedule }> {
+  const isStandardClassSchedule =
+    !!payload.student_group &&
+    !!payload.instructor &&
+    !!payload.course &&
+    !payload.custom_event_type;
+
+  if (isStandardClassSchedule) {
+    const validationRes = await fetch("/api/course-schedule/validate-assignment", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        student_group: payload.student_group,
+        instructor: payload.instructor,
+        course: payload.course,
+        custom_branch: payload.custom_branch,
+      }),
+    });
+
+    if (!validationRes.ok) {
+      const validationBody = (await validationRes.json().catch(() => ({}))) as { error?: string };
+      throw new Error(
+        validationBody.error || "Instructor assignment validation failed before schedule creation.",
+      );
+    }
+  }
+
   const hasScript = await ensureForceCreateScript();
   if (hasScript) {
     const { data } = await apiClient.post(`/method/${FORCE_METHOD_NAME}`, payload);

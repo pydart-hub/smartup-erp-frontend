@@ -6,10 +6,12 @@ import type { FrappeListResponse, FrappeSingleResponse } from "@/lib/types/api";
 export async function getAttendance(date: string, params?: {
   student_group?: string;
   custom_branch?: string;
+  course_schedule?: string;
 }): Promise<FrappeListResponse<AttendanceRecord>> {
   const filters: string[][] = [["date", "=", date]];
   if (params?.student_group) filters.push(["student_group", "=", params.student_group]);
   if (params?.custom_branch) filters.push(["custom_branch", "=", params.custom_branch]);
+  if (params?.course_schedule) filters.push(["course_schedule", "=", params.course_schedule]);
   const query = new URLSearchParams({
     filters: JSON.stringify(filters),
     fields: JSON.stringify(["name", "student", "student_name", "date", "status", "student_group", "course_schedule", "custom_branch"]),
@@ -42,10 +44,10 @@ export async function updateAttendance(id: string, updates: Partial<AttendanceRe
  *     - Existing with different status → cancel old, create new submitted
  */
 export async function bulkMarkAttendance(payload: BulkAttendancePayload): Promise<{ message: string }> {
-  const { student_group, date, students, custom_branch } = payload;
+  const { student_group, date, students, custom_branch, course_schedule } = payload;
 
   // 1. Fetch existing attendance for this date + group (only submitted, docstatus=1)
-  const existingRes = await getAttendance(date, { student_group });
+  const existingRes = await getAttendance(date, { student_group, course_schedule });
   const existingMap = new Map<string, AttendanceRecord>();
   for (const rec of existingRes.data) {
     existingMap.set(rec.student, rec);
@@ -77,6 +79,7 @@ export async function bulkMarkAttendance(payload: BulkAttendancePayload): Promis
               date,
               status,
               student_group,
+              course_schedule: course_schedule || existing.course_schedule || undefined,
               custom_branch: custom_branch || existing.custom_branch || undefined,
               docstatus: 1,
             })
@@ -91,6 +94,7 @@ export async function bulkMarkAttendance(payload: BulkAttendancePayload): Promis
           date,
           status,
           student_group,
+          course_schedule: course_schedule || undefined,
           custom_branch: custom_branch || undefined,
           docstatus: 1,
         })
