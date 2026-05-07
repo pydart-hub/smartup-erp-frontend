@@ -177,22 +177,13 @@ export async function getStudentCountByPlan(): Promise<{
   intermediate: number;
   basic: number;
 }> {
-  const params = new URLSearchParams({
-    fields: JSON.stringify(["custom_plan as plan", "count(name) as count"]),
-    filters: JSON.stringify([["docstatus", "=", 1]]),
-    group_by: "custom_plan",
-    limit_page_length: "0",
-  });
-  const { data } = await apiClient.get(`/resource/Program Enrollment?${params}`);
-  const rows = data?.data ?? [];
-  const result = { advanced: 0, intermediate: 0, basic: 0 };
-  for (const row of rows) {
-    const plan = (row.plan || "").toLowerCase();
-    if (plan === "advanced") result.advanced = row.count ?? 0;
-    else if (plan === "intermediate") result.intermediate = row.count ?? 0;
-    else if (plan === "basic") result.basic = row.count ?? 0;
-  }
-  return result;
+  // Uses a server-side route with admin credentials to ensure cross-branch
+  // Program Enrollment data is accessible regardless of the logged-in user's
+  // Frappe role permissions.
+  const res = await fetch("/api/director/student-plan-counts", { credentials: "include" });
+  if (!res.ok) return { advanced: 0, intermediate: 0, basic: 0 };
+  const data = await res.json();
+  return data ?? { advanced: 0, intermediate: 0, basic: 0 };
 }
 
 /** Get student count grouped by plan for a specific branch */

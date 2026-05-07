@@ -347,8 +347,8 @@ export function ConvertDemoModal({ student, onClose, onSuccess }: Props) {
                   <span className="font-medium text-text-primary">{resultData.salesOrderName}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-text-tertiary">Invoices Created</span>
-                  <span className="font-medium text-text-primary">{resultData.invoices.length}</span>
+                  <span className="text-text-tertiary">Invoices</span>
+                  <span className="font-medium text-text-secondary italic">{instalments} being created…</span>
                 </div>
                 {resultData.paidAmount > 0 && (
                   <div className="flex justify-between text-sm">

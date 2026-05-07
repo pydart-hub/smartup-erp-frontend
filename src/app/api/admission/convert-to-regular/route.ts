@@ -23,7 +23,7 @@
  *   enrollmentDate     — ISO date string, used as the due-date anchor for all instalment options
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { requireRole, STAFF_ROLES } from "@/lib/utils/apiAuth";
 import { generateInstalmentSchedule } from "@/lib/utils/feeSchedule";
 import type { FeeConfigEntry, InstalmentEntry } from "@/lib/types/fee";
@@ -602,28 +602,6 @@ export async function POST(request: NextRequest) {
     await frappePut(`/resource/Sales Order/${encodeURIComponent(salesOrderName)}`, { docstatus: 1 });
     log.push(`Sales Order submitted: ${salesOrderName}`);
 
-    // ── 8. Create Sales Invoices via existing create-invoices route ──────────
-    // Build the request to our own route (uses admin token, handles retry, WhatsApp etc.)
-    const invRes = await fetch(
-      new URL("/api/admission/create-invoices", request.url).toString(),
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          // Forward the original cookies so requireRole passes in the sub-route
-          Cookie: request.headers.get("cookie") ?? "",
-        },
-        body: JSON.stringify({ salesOrderName, schedule }),
-      },
-    );
-    const invData = await invRes.json() as { invoices?: string[]; error?: string };
-    if (!invRes.ok) {
-      // Non-fatal — SO is already created, BM can create invoices from SO page
-      log.push(`Invoice creation warning: ${invData.error ?? "unknown"}`);
-    }
-    const invoices: string[] = invData.invoices ?? [];
-    log.push(`Invoices created: ${invoices.join(", ")}`);
-
     // ── 9. Update Program Enrollment ──────────────────────────────────────────
     // Use frappe.client.set_value for each field (avoids cancel/resubmit cycle)
     const peUpdates: Record<string, string> = {
@@ -672,10 +650,31 @@ export async function POST(request: NextRequest) {
       log.push(`Sibling group linked on existing sibling: ${effectiveSiblingStudentId}`);
     }
 
+    // ── 8. Create Sales Invoices in the background (after response is sent) ───
+    // Invoice creation involves SO polling + sequential Frappe calls (10–40s).
+    // Running it inside `after()` lets the browser receive a fast success response
+    // immediately, avoiding "Failed to fetch" timeouts on slow connections.
+    const createInvoicesUrl = new URL("/api/admission/create-invoices", request.url).toString();
+    const cookieForward = request.headers.get("cookie") ?? "";
+    const invoiceBody = JSON.stringify({ salesOrderName, schedule });
+
+    after(async () => {
+      try {
+        await fetch(createInvoicesUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Cookie: cookieForward },
+          body: invoiceBody,
+        });
+      } catch {
+        // Non-fatal background task — SO exists, invoices can be created from SO page
+        console.error(`[convert-to-regular] Background invoice creation failed for ${salesOrderName}`);
+      }
+    });
+
     return NextResponse.json({
       success: true,
       salesOrderName,
-      invoices,
+      invoices: [],
       paidAmount,
       siblingDiscountAmount,
       instalments,

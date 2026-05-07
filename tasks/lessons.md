@@ -1,5 +1,11 @@
 # Lessons Learned
 
+## Deploy Requests Can Pivot to Critical Bug Fixes Mid-Flow
+- **Date**: 2026-05-07
+- **Issue**: I was executing push/deploy workflow when the user reported a production-facing billing mismatch that needed immediate attention first.
+- **Correction**: Halt deployment steps immediately, switch to root-cause analysis + fix, validate, then resume push/deploy only after behavior is correct.
+- **Rule**: For SmartUp production flows, treat user-reported live billing/finance UI inconsistencies as higher priority than deployment sequencing.
+
 ## Multi-Branch Instructor Analysis — Verify Live Data Before Assumptions
 - **Date**: 2026-05-06
 - **Issue**: I assumed there were no multi-branch instructor_log entries based on prior context, but production data already had instructors assigned to multiple branches.

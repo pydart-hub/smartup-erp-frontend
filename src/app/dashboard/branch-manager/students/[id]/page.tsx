@@ -18,6 +18,7 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { getStudent } from "@/lib/api/students";
 import { getStudentGroups, getCourseSchedules } from "@/lib/api/courseSchedule";
+import { getSalesInvoices } from "@/lib/api/sales";
 import apiClient from "@/lib/api/client";
 import { DiscontinueStudentModal } from "@/components/students/DiscontinueStudentModal";
 import { ConvertDemoModal } from "@/components/students/ConvertDemoModal";
@@ -179,25 +180,26 @@ export default function StudentViewPage() {
     staleTime: 60_000,
   });
 
-  // ── Sales Invoices for this student's customer ────────────
+  const latestSalesOrderName = salesOrdersRes?.[0]?.name;
+
+  // ── Sales Invoices linked to the latest displayed Sales Order ────────────
   const { data: salesInvoicesRes } = useQuery({
-    queryKey: ["student-invoices", customerName],
+    queryKey: ["student-invoices", latestSalesOrderName],
     queryFn: async () => {
-      const { data } = await apiClient.get("/resource/Sales Invoice", {
-        params: {
-          filters: JSON.stringify([["customer", "=", customerName], ["docstatus", "=", 1]]),
-          fields: JSON.stringify(["name", "grand_total", "outstanding_amount", "posting_date", "due_date", "status"]),
-          order_by: "due_date asc",
-          limit_page_length: 20,
-        },
+      if (!latestSalesOrderName) return [];
+      const res = await getSalesInvoices({
+        sales_order: latestSalesOrderName,
+        docstatus: 1,
+        order_by: "due_date asc",
+        limit_page_length: 20,
       });
-      return data.data ?? [];
+      return res.data ?? [];
     },
-    enabled: !!customerName,
+    enabled: !!latestSalesOrderName,
     staleTime: 60_000,
   });
+  const salesInvoices = salesInvoicesRes ?? [];
 
-  const latestSalesOrderName = salesOrdersRes?.[0]?.name;
   const { data: salesOrderDiscountMeta } = useQuery({
     queryKey: ["student-so-discount-meta", latestSalesOrderName],
     queryFn: async () => {
@@ -696,7 +698,7 @@ export default function StudentViewPage() {
       )}
 
       {/* Fee & Payments Section */}
-      {(salesOrdersRes?.length > 0 || salesInvoicesRes?.length > 0) && (
+      {(salesOrdersRes?.length > 0 || salesInvoices.length > 0) && (
         <Card>
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-4">
@@ -719,8 +721,8 @@ export default function StudentViewPage() {
               const so = salesOrdersRes[0];
               // Aggregate ALL submitted SOs so totals stay consistent when a student has multiple orders
               const soTotalGrand = (salesOrdersRes as { grand_total: number }[]).reduce((s, o) => s + (o.grand_total ?? 0), 0);
-              const invTotal = salesInvoicesRes?.reduce((s: number, i: { grand_total: number }) => s + i.grand_total, 0) ?? 0;
-              const invOutstanding = salesInvoicesRes?.reduce((s: number, i: { outstanding_amount: number }) => s + i.outstanding_amount, 0) ?? 0;
+              const invTotal = salesInvoices.reduce((s: number, i: { grand_total: number }) => s + i.grand_total, 0);
+              const invOutstanding = salesInvoices.reduce((s: number, i: { outstanding_amount: number }) => s + i.outstanding_amount, 0);
               const displayedTotal = invTotal > 0 ? invTotal : soTotalGrand;
               const paid = invTotal - invOutstanding;
               const pct = displayedTotal > 0 ? Math.min(100, Math.round((paid / displayedTotal) * 100)) : 0;
@@ -766,7 +768,7 @@ export default function StudentViewPage() {
             })()}
 
             {/* Invoice list */}
-            {salesInvoicesRes?.length > 0 && (
+            {salesInvoices.length > 0 && (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -779,7 +781,7 @@ export default function StudentViewPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {salesInvoicesRes.map((inv: { name: string; due_date?: string; posting_date: string; grand_total: number; outstanding_amount: number; status: string }) => {
+                    {salesInvoices.map((inv: { name: string; due_date?: string; posting_date: string; grand_total: number; outstanding_amount: number; status: string }) => {
                       const todayStr = new Date().toISOString().split("T")[0];
                       const dueDate = inv.due_date ?? inv.posting_date;
                       const isPaid = inv.outstanding_amount <= 0;
@@ -815,7 +817,7 @@ export default function StudentViewPage() {
               </div>
             )}
 
-            {!salesInvoicesRes?.length && salesOrdersRes?.length > 0 && (
+            {salesInvoices.length === 0 && salesOrdersRes?.length > 0 && (
               <p className="text-xs text-text-tertiary text-center py-3">Invoices will appear here once generated.</p>
             )}
           </CardContent>

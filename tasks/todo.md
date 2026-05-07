@@ -1,5 +1,20 @@
 # SmartUp ERP — Task Tracker
 
+## Current: Converted Student Invoice Mismatch Fix (2026-05-07)
+
+- [x] Reproduce and study mismatch between student Fee & Payments card and View Order page
+- [x] Scope student invoice list/totals to the same Sales Order opened by View Order
+- [ ] Validate TypeScript compile and runtime data path assumptions
+- [ ] Push and deploy after fix verification
+
+## Current: Push + Server Deployment (2026-05-07)
+
+- [ ] Verify repo state and deployment target
+- [ ] Run pre-push validation (type check/build where needed)
+- [ ] Commit and push latest changes to origin/main
+- [ ] Deploy latest commit on server and restart process
+- [ ] Run post-deploy health checks and record review notes
+
 ## Current: Edappally Fee Structure Study From Kadavanthra Workbook (2026-05-07)
 
 - [x] Inspect the provided Kadavanthra fee structure workbook directly
