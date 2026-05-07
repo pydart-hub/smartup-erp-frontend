@@ -1,5 +1,11 @@
 # Lessons Learned
 
+## Director Student Plans — Avoid Synthetic "Other" Labels
+- **Date**: 2026-05-07
+- **Issue**: I introduced an "Other" bucket as a remainder (`active - known plans`) to force reconciliation, which was technically balanced but operationally ambiguous.
+- **Correction**: Use explicit data buckets that reflect business meaning (`Free`, `Demo`, `N/A`) instead of synthetic "Other" labels.
+- **Rule**: For SmartUp reporting cards, never ship residual categories as "Other" when the domain expects named buckets; reconcile with explicit labels only.
+
 ## Deploy Requests Can Pivot to Critical Bug Fixes Mid-Flow
 - **Date**: 2026-05-07
 - **Issue**: I was executing push/deploy workflow when the user reported a production-facing billing mismatch that needed immediate attention first.

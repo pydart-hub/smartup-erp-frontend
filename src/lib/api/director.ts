@@ -176,14 +176,16 @@ export async function getStudentCountByPlan(): Promise<{
   advanced: number;
   intermediate: number;
   basic: number;
+  freeAccess: number;
+  demo: number;
 }> {
   // Uses a server-side route with admin credentials to ensure cross-branch
   // Program Enrollment data is accessible regardless of the logged-in user's
   // Frappe role permissions.
   const res = await fetch("/api/director/student-plan-counts", { credentials: "include" });
-  if (!res.ok) return { advanced: 0, intermediate: 0, basic: 0 };
+  if (!res.ok) return { advanced: 0, intermediate: 0, basic: 0, freeAccess: 0, demo: 0 };
   const data = await res.json();
-  return data ?? { advanced: 0, intermediate: 0, basic: 0 };
+  return data ?? { advanced: 0, intermediate: 0, basic: 0, freeAccess: 0, demo: 0 };
 }
 
 /** Get student count grouped by plan for a specific branch */
@@ -214,8 +216,9 @@ export async function getStudentCountByPlanForBranch(branch: string): Promise<{
   intermediate: number;
   basic: number;
   freeAccess: number;
+  demo: number;
 }> {
-  const result = { advanced: 0, intermediate: 0, basic: 0, freeAccess: 0 };
+  const result = { advanced: 0, intermediate: 0, basic: 0, freeAccess: 0, demo: 0 };
 
   if (noProgramEnrollmentReadPermission) {
     const batches = await getBranchBatches(branch);
@@ -271,6 +274,8 @@ export async function getStudentCountByPlanForBranch(branch: string): Promise<{
     seen.add(row.student);
     if (row.student_category === "Free Access") {
       result.freeAccess++;
+    } else if (row.student_category === "Demo") {
+      result.demo++;
     } else {
       const plan = (row.custom_plan || "").toLowerCase();
       if (plan === "advanced") result.advanced++;
@@ -901,8 +906,8 @@ export async function getProgramBatchesStudentStats(
 export async function getPlanCountsForBatches(
   batchNames: string[],
   branch: string
-): Promise<{ advanced: number; intermediate: number; basic: number; freeAccess: number }> {
-  const result = { advanced: 0, intermediate: 0, basic: 0, freeAccess: 0 };
+): Promise<{ advanced: number; intermediate: number; basic: number; freeAccess: number; demo: number }> {
+  const result = { advanced: 0, intermediate: 0, basic: 0, freeAccess: 0, demo: 0 };
   if (!batchNames.length) return result;
 
   if (noProgramEnrollmentReadPermission) {
@@ -912,6 +917,7 @@ export async function getPlanCountsForBatches(
         intermediate: number;
         basic: number;
         freeAccess: number;
+        demo: number;
       }>({
         action: "plan-counts",
         branch,
@@ -936,7 +942,7 @@ export async function getPlanCountsForBatches(
   // Program Enrollment is the source of truth for enrollment plans
   // Batch requests in chunks of 50 to avoid URL length limits
   const batchSize = 50;
-  const allPlans = { advanced: 0, intermediate: 0, basic: 0, freeAccess: 0 };
+  const allPlans = { advanced: 0, intermediate: 0, basic: 0, freeAccess: 0, demo: 0 };
   
   try {
     for (let i = 0; i < studentIds.length; i += batchSize) {
@@ -958,6 +964,8 @@ export async function getPlanCountsForBatches(
         // Check if student is Free Access
         if (row.student_category === "Free Access") {
           allPlans.freeAccess += row.count ?? 0;
+        } else if (row.student_category === "Demo") {
+          allPlans.demo += row.count ?? 0;
         } else {
           // Otherwise count by plan
           const plan = (row.plan || "").toLowerCase();
@@ -976,6 +984,7 @@ export async function getPlanCountsForBatches(
           intermediate: number;
           basic: number;
           freeAccess: number;
+          demo: number;
         }>({
           action: "plan-counts",
           branch,

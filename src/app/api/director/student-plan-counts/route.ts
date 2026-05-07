@@ -30,9 +30,9 @@ export async function GET(request: NextRequest) {
 
   try {
     const params = new URLSearchParams({
-      fields: JSON.stringify(["custom_plan as plan", "count(name) as count"]),
+      fields: JSON.stringify(["custom_plan as plan", "student_category", "count(name) as count"]),
       filters: JSON.stringify([["docstatus", "=", 1]]),
-      group_by: "custom_plan",
+      group_by: "custom_plan,student_category",
       limit_page_length: "0",
     });
 
@@ -49,10 +49,19 @@ export async function GET(request: NextRequest) {
     }
 
     const json = await res.json();
-    const rows: Array<{ plan?: string; count?: number }> = json?.data ?? [];
+    const rows: Array<{ plan?: string; student_category?: string; count?: number }> = json?.data ?? [];
 
-    const result = { advanced: 0, intermediate: 0, basic: 0 };
+    const result = { advanced: 0, intermediate: 0, basic: 0, freeAccess: 0, demo: 0 };
     for (const row of rows) {
+      if ((row.student_category || "").toLowerCase().trim() === "free access") {
+        result.freeAccess += Number(row.count ?? 0);
+        continue;
+      }
+      if ((row.student_category || "").toLowerCase().trim() === "demo") {
+        result.demo += Number(row.count ?? 0);
+        continue;
+      }
+
       const plan = (row.plan || "").toLowerCase().trim();
       const count = Number(row.count ?? 0);
       if (plan === "advanced") result.advanced = count;
@@ -63,6 +72,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(result);
   } catch (err) {
     console.error("[student-plan-counts] Error:", err);
-    return NextResponse.json({ advanced: 0, intermediate: 0, basic: 0 });
+    return NextResponse.json({ advanced: 0, intermediate: 0, basic: 0, freeAccess: 0, demo: 0 });
   }
 }

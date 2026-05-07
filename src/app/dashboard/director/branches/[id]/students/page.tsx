@@ -100,6 +100,16 @@ export default function BranchStudentsPage() {
     staleTime: 120_000,
   });
 
+  const oneToOneCount = Math.max(
+    0,
+    (activeCount ?? 0) - (
+      (planCounts?.advanced ?? 0) +
+      (planCounts?.intermediate ?? 0) +
+      (planCounts?.basic ?? 0) +
+      (planCounts?.freeAccess ?? 0)
+    )
+  );
+
   const {
     data: batchesRes,
     isLoading,
@@ -196,7 +206,7 @@ export default function BranchStudentsPage() {
                 <p className="text-[10px] text-text-tertiary uppercase tracking-wide">Discontinued</p>
               </div>
             </div>
-            {planCounts && (planCounts.advanced + planCounts.intermediate + planCounts.basic + planCounts.freeAccess > 0) && (
+            {planCounts && (planCounts.advanced + planCounts.intermediate + planCounts.basic + planCounts.freeAccess + oneToOneCount > 0) && (
               <div className="flex justify-center gap-2 mt-2 pt-2 border-t border-border-light">
                 <div className="rounded-md bg-purple-50 px-2.5 py-1 text-center">
                   <p className="text-xs font-bold text-purple-700 tabular-nums">{planCounts.advanced}</p>
@@ -214,6 +224,12 @@ export default function BranchStudentsPage() {
                   <div className="rounded-md bg-amber-50 px-2.5 py-1 text-center">
                     <p className="text-xs font-bold text-amber-700 tabular-nums">{planCounts.freeAccess}</p>
                     <p className="text-[9px] text-amber-400 font-medium uppercase tracking-wider">Free</p>
+                  </div>
+                )}
+                {oneToOneCount > 0 && (
+                  <div className="rounded-md bg-cyan-50 px-2.5 py-1 text-center">
+                    <p className="text-xs font-bold text-cyan-700 tabular-nums">{oneToOneCount}</p>
+                    <p className="text-[9px] text-cyan-500 font-medium uppercase tracking-wider">1:1</p>
                   </div>
                 )}
               </div>

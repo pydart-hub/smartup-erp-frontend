@@ -68,7 +68,14 @@ function BranchCard({ branch }: { branch: { name: string; abbr: string } }) {
   });
 
   const shortName = branch.name.replace("Smart Up ", "").replace("Smart Up", "HQ");
-  const hasPlan = !loadingPlans && planCounts && (planCounts.advanced + planCounts.intermediate + planCounts.basic > 0);
+  const branchKnownPlanTotal =
+    (planCounts?.advanced ?? 0) +
+    (planCounts?.intermediate ?? 0) +
+    (planCounts?.basic ?? 0) +
+    (planCounts?.freeAccess ?? 0) +
+    (planCounts?.demo ?? 0);
+  const branchNaPlanCount = Math.max(0, (activeCount ?? 0) - branchKnownPlanTotal);
+  const hasPlan = !loadingPlans && planCounts && (branchKnownPlanTotal + branchNaPlanCount > 0);
   const hasType = !loadingTypes && typeCounts && (typeCounts.fresher + typeCounts.existing + typeCounts.rejoining > 0);
 
   return (
@@ -135,7 +142,8 @@ function BranchCard({ branch }: { branch: { name: string; abbr: string } }) {
 
             {/* Plan distribution */}
             {hasPlan ? (
-              <div className="mx-4 mb-3 grid grid-cols-3 gap-1.5">
+              <>
+                <div className="mx-4 mb-2 grid grid-cols-3 gap-1.5">
                 <div className="rounded-[6px] bg-purple-50 py-1.5 text-center">
                   <p className="text-sm font-bold text-purple-700 tabular-nums leading-none">{planCounts.advanced}</p>
                   <p className="text-[9px] text-purple-400 font-medium mt-1 uppercase tracking-wider">Advanced</p>
@@ -148,7 +156,30 @@ function BranchCard({ branch }: { branch: { name: string; abbr: string } }) {
                   <p className="text-sm font-bold text-emerald-700 tabular-nums leading-none">{planCounts.basic}</p>
                   <p className="text-[9px] text-emerald-400 font-medium mt-1 uppercase tracking-wider">Basic</p>
                 </div>
-              </div>
+                </div>
+                {((planCounts.freeAccess ?? 0) > 0 || (planCounts.demo ?? 0) > 0 || branchNaPlanCount > 0) && (
+                  <div className="mx-4 mb-3 flex items-center gap-1.5 flex-wrap">
+                    {(planCounts.freeAccess ?? 0) > 0 && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-50 rounded-full px-2 py-0.5">
+                        <span className="w-1 h-1 rounded-full bg-amber-500" />
+                        {planCounts.freeAccess} Free
+                      </span>
+                    )}
+                    {(planCounts.demo ?? 0) > 0 && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-fuchsia-700 bg-fuchsia-50 rounded-full px-2 py-0.5">
+                        <span className="w-1 h-1 rounded-full bg-fuchsia-500" />
+                        {planCounts.demo} Demo
+                      </span>
+                    )}
+                    {branchNaPlanCount > 0 && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-cyan-700 bg-cyan-50 rounded-full px-2 py-0.5">
+                        <span className="w-1 h-1 rounded-full bg-cyan-500" />
+                        {branchNaPlanCount} N/A
+                      </span>
+                    )}
+                  </div>
+                )}
+              </>
             ) : loadingPlans ? (
               <div className="mx-4 mb-3 grid grid-cols-3 gap-1.5">
                 {[0, 1, 2].map((i) => (
@@ -235,6 +266,13 @@ export default function DirectorStudentsPage() {
     : activeBranches;
 
   const totalAll = (totalActive ?? 0) + (totalDiscontinued ?? 0);
+  const globalKnownPlanTotal =
+    (globalPlanCounts?.advanced ?? 0) +
+    (globalPlanCounts?.intermediate ?? 0) +
+    (globalPlanCounts?.basic ?? 0) +
+    (globalPlanCounts?.freeAccess ?? 0) +
+    (globalPlanCounts?.demo ?? 0);
+  const globalNaPlanCount = Math.max(0, (totalActive ?? 0) - globalKnownPlanTotal);
 
   return (
     <motion.div
@@ -338,19 +376,43 @@ export default function DirectorStudentsPage() {
                     {[0,1,2].map((i) => <div key={i} className="h-10 flex-1 rounded-lg bg-border-light/40 animate-pulse" />)}
                   </div>
                 ) : globalPlanCounts && (
-                  <div className="grid grid-cols-3 gap-1.5">
-                    <div className="rounded-lg bg-purple-50 border border-purple-100 py-2 text-center">
-                      <p className="text-base font-black text-purple-700 tabular-nums leading-none"><AnimatedNumber value={globalPlanCounts.advanced} /></p>
-                      <p className="text-[9px] text-purple-400 font-semibold mt-1 uppercase tracking-wider">Advanced</p>
+                  <div className="space-y-1.5">
+                    <div className="grid grid-cols-3 gap-1.5">
+                      <div className="rounded-lg bg-purple-50 border border-purple-100 py-2 text-center">
+                        <p className="text-base font-black text-purple-700 tabular-nums leading-none"><AnimatedNumber value={globalPlanCounts.advanced} /></p>
+                        <p className="text-[9px] text-purple-400 font-semibold mt-1 uppercase tracking-wider">Advanced</p>
+                      </div>
+                      <div className="rounded-lg bg-blue-50 border border-blue-100 py-2 text-center">
+                        <p className="text-base font-black text-blue-700 tabular-nums leading-none"><AnimatedNumber value={globalPlanCounts.intermediate} /></p>
+                        <p className="text-[9px] text-blue-400 font-semibold mt-1 uppercase tracking-wider">Inter</p>
+                      </div>
+                      <div className="rounded-lg bg-emerald-50 border border-emerald-100 py-2 text-center">
+                        <p className="text-base font-black text-emerald-700 tabular-nums leading-none"><AnimatedNumber value={globalPlanCounts.basic} /></p>
+                        <p className="text-[9px] text-emerald-500 font-semibold mt-1 uppercase tracking-wider">Basic</p>
+                      </div>
                     </div>
-                    <div className="rounded-lg bg-blue-50 border border-blue-100 py-2 text-center">
-                      <p className="text-base font-black text-blue-700 tabular-nums leading-none"><AnimatedNumber value={globalPlanCounts.intermediate} /></p>
-                      <p className="text-[9px] text-blue-400 font-semibold mt-1 uppercase tracking-wider">Inter</p>
-                    </div>
-                    <div className="rounded-lg bg-emerald-50 border border-emerald-100 py-2 text-center">
-                      <p className="text-base font-black text-emerald-700 tabular-nums leading-none"><AnimatedNumber value={globalPlanCounts.basic} /></p>
-                      <p className="text-[9px] text-emerald-500 font-semibold mt-1 uppercase tracking-wider">Basic</p>
-                    </div>
+                    {((globalPlanCounts.freeAccess ?? 0) > 0 || (globalPlanCounts.demo ?? 0) > 0 || globalNaPlanCount > 0) && (
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {(globalPlanCounts.freeAccess ?? 0) > 0 && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-50 rounded-full px-2 py-0.5">
+                            <span className="w-1 h-1 rounded-full bg-amber-500" />
+                            <AnimatedNumber value={globalPlanCounts.freeAccess} /> Free
+                          </span>
+                        )}
+                        {(globalPlanCounts.demo ?? 0) > 0 && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-fuchsia-700 bg-fuchsia-50 rounded-full px-2 py-0.5">
+                            <span className="w-1 h-1 rounded-full bg-fuchsia-500" />
+                            <AnimatedNumber value={globalPlanCounts.demo} /> Demo
+                          </span>
+                        )}
+                        {globalNaPlanCount > 0 && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-cyan-700 bg-cyan-50 rounded-full px-2 py-0.5">
+                            <span className="w-1 h-1 rounded-full bg-cyan-500" />
+                            <AnimatedNumber value={globalNaPlanCount} /> N/A
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

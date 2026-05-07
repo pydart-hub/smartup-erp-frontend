@@ -1,5 +1,12 @@
 # SmartUp ERP — Task Tracker
 
+## Current: Director Student Plan Count Reconciliation (2026-05-07)
+
+- [x] Trace Director overview and branch-card count mismatch to plan aggregation logic
+- [x] Extend plan-count data source to include Free Access and reconcile uncategorized active students
+- [x] Update Director overview and branch cards to display the missing buckets clearly
+- [x] Validate TypeScript compile and summarize root cause
+
 ## Current: Converted Student Invoice Mismatch Fix (2026-05-07)
 
 - [x] Reproduce and study mismatch between student Fee & Payments card and View Order page
