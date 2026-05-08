@@ -179,7 +179,7 @@ export function getAllPaymentOptions(
 /**
  * Apply a sibling referral discount to payment options.
  * Advanced plan → 10%, all other plans → 5%.
- * The discount is deducted entirely from the first instalment.
+ * The discount is deducted entirely from the last instalment.
  */
 export function applyReferralDiscount(
   options: PaymentOptionSummary[],
@@ -190,7 +190,7 @@ export function applyReferralDiscount(
     const discount = Math.round(opt.total * rate);
     const newTotal = opt.total - discount;
     const newSchedule = opt.schedule.map((s, i) =>
-      i === 0 ? { ...s, amount: s.amount - discount } : s,
+      i === opt.schedule.length - 1 ? { ...s, amount: s.amount - discount } : s,
     );
     return { ...opt, total: newTotal, schedule: newSchedule, referralDiscount: discount };
   });

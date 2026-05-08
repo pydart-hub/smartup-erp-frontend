@@ -1233,7 +1233,7 @@ export async function admitStudent(
 
   // ───────────────────────────────────────────────────
   // Step 7 — Apply retroactive sibling discount to existing sibling
-  //          (5% of existing sibling's total fee via Credit Note)
+  //          (5% of existing sibling's total fee — cancel+recreate last invoice)
   // ───────────────────────────────────────────────────
   if (form.siblingOf) {
     updateStage("sibling_discount", "in_progress");
@@ -1251,7 +1251,7 @@ export async function admitStudent(
           warnings.push(`Existing sibling discount: ${discountData.message}`);
           updateStage("sibling_discount", "skipped");
         } else {
-          console.log(`[admitStudent] Sibling discount applied: Credit Note ${discountData.creditNote} for ₹${discountData.discountAmount}`);
+          console.log(`[admitStudent] Sibling discount applied: cancelled ${discountData.oldInvoice}, new invoice ${discountData.newInvoice} at ₹${discountData.newInvoiceAmount} (discount: ₹${discountData.discountAmount})`); 
           updateStage("sibling_discount", "success");
         }
       } else {

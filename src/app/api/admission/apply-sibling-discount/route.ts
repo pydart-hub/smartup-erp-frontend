@@ -2,13 +2,13 @@
  * POST /api/admission/apply-sibling-discount
  *
  * Applies a retroactive sibling discount to the EXISTING sibling's
- * first upcoming unpaid invoice when a new sibling is admitted.
+ * last unpaid invoice when a new sibling is admitted.
  *
  * Discount = 10% for Advanced plan, 5% for other plans
  * (based on existing sibling's Sales Order custom_plan).
  *
- * Mechanism: Creates a Credit Note (is_return=1) against the first
- * unpaid invoice, which auto-reduces its outstanding_amount.
+ * Mechanism: Cancels the last unpaid invoice and recreates it at
+ * the reduced rate (original amount − discount), then submits.
  *
  * Body: { existingSiblingId: string }
  *
@@ -176,7 +176,7 @@ export async function POST(req: NextRequest) {
       ],
       ["name", "grand_total", "outstanding_amount", "due_date", "posting_date", "company"],
       100,
-      "due_date asc, posting_date asc",
+      "due_date desc, posting_date desc",
     );
 
     if (unpaidInvoices.length === 0) {
@@ -192,15 +192,24 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 6. Pick the first unpaid invoice
+    // 6. Pick the LAST unpaid invoice (first in desc-sorted list)
     const targetInvoice = unpaidInvoices[0];
     const invoiceName = targetInvoice.name as string;
+    const invoiceGrandTotal = targetInvoice.grand_total as number;
     const invoiceOutstanding = targetInvoice.outstanding_amount as number;
 
-    // Safety cap: discount cannot exceed the invoice's outstanding amount
-    const effectiveDiscount = Math.min(discountAmount, invoiceOutstanding);
+    // Safety: only cancel if invoice is fully unpaid (no partial payments made)
+    if (invoiceOutstanding < invoiceGrandTotal) {
+      return NextResponse.json(
+        { error: `Last invoice ${invoiceName} has a partial payment (outstanding: ₹${invoiceOutstanding} of ₹${invoiceGrandTotal}). Cannot safely cancel. Apply discount manually.` },
+        { status: 409 },
+      );
+    }
 
-    // 7. Fetch the full invoice to get item details for the credit note
+    // Safety cap: discount cannot exceed the invoice amount
+    const effectiveDiscount = Math.min(discountAmount, invoiceGrandTotal);
+
+    // 7. Fetch full invoice to get item details for recreation
     const fullInvoice = await frappeGetDoc("Sales Invoice", invoiceName);
     if (!fullInvoice) {
       return NextResponse.json(
@@ -218,65 +227,64 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 8. Create Credit Note — mirror the original invoice item exactly
-    //    so Frappe's return validation passes ("Returned Item must exist in original invoice").
-    const today = new Date().toISOString().split("T")[0];
-    const cnItem: Record<string, unknown> = {
-      item_code: firstItem.item_code,
-      item_name: firstItem.item_name,
-      description: `Sibling discount — ${Math.round(discountRate * 100)}% of total fee ₹${totalFee.toLocaleString("en-IN")}`,  
-      qty: -1,
-      rate: effectiveDiscount,
-      amount: -effectiveDiscount,
-      uom: firstItem.uom || firstItem.stock_uom || "Nos",
-      income_account: firstItem.income_account,
-      cost_center: firstItem.cost_center,
-      // Link back to the original invoice item so Frappe's return matching works
-      si_detail: firstItem.name,
-    };
-    // Only link SO fields if they exist on the original item
-    if (firstItem.sales_order) cnItem.sales_order = firstItem.sales_order;
-    if (firstItem.so_detail) cnItem.so_detail = firstItem.so_detail;
+    // 8. Cancel the last invoice (docstatus 1 → 2)
+    const cancelResult = await frappePut("Sales Invoice", invoiceName, { docstatus: 2 });
+    if (!cancelResult.ok) {
+      return NextResponse.json(
+        { error: `Failed to cancel invoice ${invoiceName}: ${cancelResult.error}` },
+        { status: 500 },
+      );
+    }
 
-    const creditNotePayload: Record<string, unknown> = {
+    // 9. Recreate the invoice at the reduced rate
+    const newRate = invoiceGrandTotal - effectiveDiscount;
+    const newInvoicePayload: Record<string, unknown> = {
       doctype: "Sales Invoice",
       customer: customerName,
       company: fullInvoice.company as string,
-      posting_date: today,
-      due_date: today,
-      is_return: 1,
-      return_against: invoiceName,
-      update_outstanding_for_self: 0,
-      update_billed_amount_in_sales_order: 0,
-      items: [cnItem],
+      posting_date: fullInvoice.posting_date as string,
+      due_date: fullInvoice.due_date as string,
+      is_return: 0,
+      items: [{
+        item_code: firstItem.item_code,
+        item_name: firstItem.item_name,
+        description: `${firstItem.description ?? firstItem.item_name} | Sibling discount: -₹${effectiveDiscount.toLocaleString("en-IN")}`,
+        qty: 1,
+        rate: newRate,
+        amount: newRate,
+        uom: firstItem.uom || firstItem.stock_uom || "Nos",
+        income_account: firstItem.income_account,
+        cost_center: firstItem.cost_center,
+        ...(firstItem.sales_order ? { sales_order: firstItem.sales_order } : {}),
+        ...(firstItem.so_detail ? { so_detail: firstItem.so_detail } : {}),
+      }],
     };
-    // Copy mandatory custom fields from the original invoice
     if (fullInvoice.custom_academic_year) {
-      creditNotePayload.custom_academic_year = fullInvoice.custom_academic_year;
+      newInvoicePayload.custom_academic_year = fullInvoice.custom_academic_year;
     }
 
-    const createResult = await frappePost("Sales Invoice", creditNotePayload);
+    const createResult = await frappePost("Sales Invoice", newInvoicePayload);
     if (!createResult.ok) {
-      console.error("[apply-sibling-discount] Credit Note creation failed:", createResult.error);
+      console.error("[apply-sibling-discount] Invoice recreation failed after cancel:", createResult.error);
       return NextResponse.json(
-        { error: `Credit Note creation failed: ${createResult.error}` },
+        { error: `Invoice recreation failed after cancelling ${invoiceName}: ${createResult.error}` },
         { status: 500 },
       );
     }
 
-    const cnName = createResult.data!.name as string;
+    const newInvoiceName = createResult.data!.name as string;
 
-    // 9. Submit the Credit Note (docstatus 0 → 1)
-    const submitResult = await frappePut("Sales Invoice", cnName, { docstatus: 1 });
+    // 10. Submit the new invoice (docstatus 0 → 1)
+    const submitResult = await frappePut("Sales Invoice", newInvoiceName, { docstatus: 1 });
     if (!submitResult.ok) {
-      console.error("[apply-sibling-discount] Credit Note submission failed:", submitResult.error);
+      console.error("[apply-sibling-discount] New invoice submission failed:", submitResult.error);
       return NextResponse.json(
-        { error: `Credit Note created (${cnName}) but submission failed: ${submitResult.error}` },
+        { error: `New invoice ${newInvoiceName} created but submission failed: ${submitResult.error}` },
         { status: 500 },
       );
     }
 
-    // 10. Mark existing sibling's discount as applied (non-blocking)
+    // 11. Mark existing sibling's discount as applied (non-blocking)
     try {
       await frappePut("Student", existingSiblingId, {
         custom_sibling_discount_applied: 1,
@@ -286,17 +294,17 @@ export async function POST(req: NextRequest) {
     }
 
     console.log(
-      `[apply-sibling-discount] Created Credit Note ${cnName} for ₹${effectiveDiscount} against ${invoiceName} (student: ${existingSiblingId}, total fee: ${totalFee})`,
+      `[apply-sibling-discount] Cancelled ${invoiceName} and recreated as ${newInvoiceName} at ₹${newRate} (discount: ₹${effectiveDiscount}, student: ${existingSiblingId})`,
     );
 
     return NextResponse.json({
       success: true,
-      creditNote: cnName,
+      oldInvoice: invoiceName,
+      newInvoice: newInvoiceName,
       discountAmount: effectiveDiscount,
       totalFee,
-      invoiceAffected: invoiceName,
-      previousOutstanding: invoiceOutstanding,
-      newOutstanding: invoiceOutstanding - effectiveDiscount,
+      originalInvoiceAmount: invoiceGrandTotal,
+      newInvoiceAmount: newRate,
     });
   } catch (err) {
     console.error("[apply-sibling-discount] Unexpected error:", err);

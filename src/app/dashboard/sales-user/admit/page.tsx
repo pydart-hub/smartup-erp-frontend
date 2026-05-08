@@ -667,7 +667,7 @@ function AdmitPageContent() {
         </button>
         <div>
           <h1 className="text-2xl font-bold text-text-primary">{isFreeAccess ? "Free Access Admission" : isDemo ? "Demo Student Admission" : isReferred ? "Siblings Admission" : "New Student Admission"}</h1>
-          <p className="text-sm text-text-secondary">{isFreeAccess ? "No fees — student will be enrolled with full access at zero cost" : isDemo ? "Flat ₹499 demo fee — 1 month duration" : isReferred ? `${selectedPlan === "Advanced" ? "10" : "5"}% sibling discount applied on first instalment` : "Fill in the details to register a new student"}</p>
+          <p className="text-sm text-text-secondary">{isFreeAccess ? "No fees — student will be enrolled with full access at zero cost" : isDemo ? "Flat ₹499 demo fee — 1 month duration" : isReferred ? `${selectedPlan === "Advanced" ? "10" : "5"}% sibling discount applied on last instalment` : "Fill in the details to register a new student"}</p>
         </div>
       </div>
 
@@ -1257,7 +1257,7 @@ function AdmitPageContent() {
                       <Tag className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
                       <div>
                         <p className="text-sm font-medium text-green-700">{selectedPlan === "Advanced" ? "10" : "5"}% Sibling Discount Applied</p>
-                        <p className="text-xs text-green-600 mt-0.5">The discount is deducted from the first instalment. For one-time payment, it&apos;s deducted from the total.</p>
+                        <p className="text-xs text-green-600 mt-0.5">The discount is deducted from the last instalment. For one-time payment, it&apos;s deducted from the total.</p>
                       </div>
                     </div>
                   )}
