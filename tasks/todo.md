@@ -1,5 +1,101 @@
 # SmartUp ERP — Task Tracker
 
+## Current: Instructor Dashboard Batches Not Loading on 403 Instructor Doc Access (2026-05-08)
+
+- [x] Reproduce and trace instructor dashboard batch-loading path for restricted Instructor role
+- [x] Add permission-safe fallback in instructor batches hook when Instructor doctype read fails (403)
+- [x] Ensure fallback sources use existing session permissions (`allowed_batches`) and instructor-owned schedules
+- [x] Validate with TypeScript compile and summarize behavioral impact
+
+### Review
+- Root cause confirmed: `useInstructorBatches` depended on direct `GET /resource/Instructor/{name}`. Restricted instructor users can get `403 PermissionError` for the Instructor doctype, so batch resolution failed early and returned no groups.
+- Updated `src/lib/hooks/useInstructorBatches.ts` to use a resilient lookup chain:
+  - Primary: Instructor `instructor_log` mapping (existing behavior)
+  - Fallback A: session `allowed_batches` permissions from login cookie/store
+  - Fallback B: infer assigned `student_group` values from the instructor's own Course Schedule rows
+- This keeps existing behavior for fully permitted users while allowing restricted-role instructors to still load My Batches.
+- Validation: `npx tsc --noEmit` completed cleanly after the patch.
+
+## Current: Submit SUHANA Program Enrollment (2026-05-08)
+
+- [x] Submit Program Enrollment `PEN-10th--169` for `STU-SU ERV-26-169`
+- [x] Verify Program Enrollment moved to `docstatus = 1`
+- [x] Verify downstream academic records (course enrollment / student group) status after submit
+
+### Review
+- First submit attempt failed with mandatory validation: Course Enrollment required Batch Name (`custom_batch_name`).
+- Patched Program Enrollment `student_batch_name` to `Eraveli 26-27` (matching successful Eraveli admissions).
+- Re-submitted Program Enrollment successfully; `docstatus` moved from `0` to `1`.
+- Auto-created Course Enrollment rows now exist (10 rows) with `custom_batch_name = Eraveli 26-27`, linked to `PEN-10th--169`.
+
+## Current: SUHANA PARVEEN KS Admission Integrity Audit (2026-05-08)
+
+- [x] Locate student record in Eraveli branch and confirm identity fields
+- [x] Trace latest admission/program enrollment and submission state
+- [x] Verify linked course schedule/course enrollment/student group consistency
+- [x] Verify linked Sales Order and Sales Invoice chain consistency
+- [x] Document whether all required records are correctly created and note any mismatch
+
+### Review
+- Student exists and branch is correct: `STU-SU ERV-26-169` / `SUHANA PARVEEN KS` / `Smart Up Eraveli`.
+- Program Enrollment `PEN-10th--169` exists but is `docstatus = 0` (Draft), with `student_batch_name = null`.
+- No Course Enrollment rows were found for this student.
+- No Course Schedule evidence was found for this student path.
+- Sales Order `SAL-ORD-2026-00911` exists and is submitted (`docstatus = 1`) with `grand_total = 16300`, `per_billed = 100`, `billing_status = Fully Billed`.
+- 8 Sales Invoices exist for this customer (`ACC-SINV-2026-06912` to `ACC-SINV-2026-06919`) under company `Smart Up Eraveli`.
+- Core mismatch: finance flow completed, but admission academic flow did not complete (PE still Draft), so downstream academic artifacts were not generated.
+
+## Current: Director Actions Needed Page + Nav Integration (2026-05-07)
+
+- [x] Create Director Actions Needed overview page matching GM actions-needed behavior
+- [x] Create Director branch-level Actions Needed detail page
+- [x] Add top-level Director sidebar/nav item for Actions Needed and validate TypeScript
+
+### Review
+- Added Director routes at `dashboard/director/actions-needed` and `dashboard/director/actions-needed/[branch]` using the same weekly analytics workflow as General Manager.
+- Wired Director navigation with a top-level `Actions Needed` item so it appears in the main sidebar/top nav hierarchy.
+- Added enhanced visual motion in the Director actions overview (animated hero glow + hover lift) for a more attractive animated feel.
+- Verified with `npx tsc --noEmit` (`tsc_ok`).
+
+## Current: Director Academics Course Schedule Parity with GM (2026-05-07)
+
+- [x] Mirror GM course-schedule controls and KPI layout in Director Academics course-schedule page
+- [x] Add branch expansion details and export actions on Director Academics course-schedule page
+- [x] Validate with TypeScript compile and add review notes
+
+### Review
+- Replaced Director Academics Course Schedule overview with GM-parity layout and behavior.
+- Added public-holiday adjustment, All/Only Problem Branches filter chips, and the 5 KPI cards (Working, Scheduled, Attendance Marked, Attendance Not Marked, Operational %).
+- Added expandable branch rows with Not Scheduled Dates and Attendance Not Marked Dates chips.
+- Added export actions (PDF/Excel) and full branch comparison table matching GM structure.
+- Verified with `npx tsc --noEmit` (`tsc_ok`).
+
+## Current: Director Academics Exams Scheduled/Completed Metrics (2026-05-07)
+
+- [x] Add scheduled/upcoming/completed exam status metrics to Director Academics Exams overview
+- [x] Show branch-wise scheduled/upcoming/completed counts in branch rows
+- [x] Validate with TypeScript compile and add review notes
+
+### Review
+- Added a second KPI row on Director Academics Exams for Scheduled, Upcoming, and Completed counts.
+- Wired status counts from live Assessment Plan data (`schedule_date` vs today) and grouped by branch.
+- Added branch-row detail line to show branch-wise Scheduled/Upcoming/Completed counts under existing exam/pass-rate text.
+- Fixed zero-value mismatch by normalizing branch keys during Assessment Plan grouping (`branch`, `branch_name`, and `custom_branch`) and adding fallback to `total_exams_conducted` when matching plans are unavailable.
+- Verified with `npx tsc --noEmit` (`tsc_ok`).
+
+## Current: Director Academics Attendance Parity with GM (2026-05-07)
+
+- [x] Study General Manager attendance implementation and identify parity gaps in Director Academics attendance page
+- [x] Update Director Academics attendance page to match GM attendance controls, summary cards, and branch metrics presentation
+- [x] Validate with TypeScript compile and add review notes
+
+### Review
+- Updated Director Academics attendance page to mirror General Manager attendance behavior and layout.
+- Added public-holiday adjustment controls (`-`, `+`, `Reset`) and problem-branch filter chips (`All Branches`, `Only Problem Branches`).
+- Added second KPI row: Working Days, Scheduled Days, Not Scheduled, Attendance Marked, and Att Not Marked.
+- Extended each branch row to show detailed metrics line (working/scheduled/not scheduled/attendance marked/attendance not marked), matching GM presentation.
+- Verified with `npx tsc --noEmit` (`tsc_ok`).
+
 ## Current: Director N/A Plan Count Mismatch (2026-05-07)
 
 - [x] Reproduce global vs branch-wise N/A mismatch from current counting paths

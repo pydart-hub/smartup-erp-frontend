@@ -378,7 +378,22 @@ async function proxyRequest(request: NextRequest, method: string) {
     //   doctype read permissions. Security is enforced at the proxy layer above
     //   via company-filter injection (effectiveCompanies).
     // - Everyone else (admins, etc.): use personal token if available, else admin.
-    const useAdminToken = ((isBranchManager || isHRManager) && !isAdmin) || allowInstructorTopicCoverageWrite;
+    //
+    // Special case: an instructor reading their OWN Instructor doc gets admin
+    // token because Frappe's default role configuration denies Instructor doctype
+    // read access to the Instructor role itself. We scope this strictly to the
+    // instructor reading their own record (name match).
+    const ownInstructorDocMatch = proxyPath.match(/^resource\/Instructor\/(.+)$/);
+    const isOwnInstructorDocRead =
+      isPureInstructor &&
+      method === "GET" &&
+      !!ownInstructorDocMatch &&
+      decodeURIComponent(ownInstructorDocMatch[1]) === sessionData.instructor_name;
+
+    const useAdminToken =
+      ((isBranchManager || isHRManager) && !isAdmin) ||
+      allowInstructorTopicCoverageWrite ||
+      isOwnInstructorDocRead;
     if (!useAdminToken && hasUserToken) {
       headers["Authorization"] = `token ${sessionData.api_key}:${sessionData.api_secret}`;
     } else {

@@ -3,12 +3,20 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getBranchAcademics } from "@/lib/api/analytics";
+import { getAssessmentPlans } from "@/lib/api/assessment";
 import { BranchDrillDown, safeNum, pctColor, pctBadgeColor } from "@/components/academics/BranchDrillDown";
 import { motion, AnimatePresence } from "framer-motion";
-import { Building2, Trophy, BarChart3, ChevronRight, ClipboardList } from "lucide-react";
+import { Building2, Trophy, BarChart3, ChevronRight, ClipboardList, CalendarClock, CalendarDays, CheckCircle2 } from "lucide-react";
 
 const container = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.06 } } };
 const item = { hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } };
+
+function normalizeBranchKey(value?: string | null): string {
+  return (value ?? "")
+    .toLowerCase()
+    .replace(/^smart\s*up\s*/i, "")
+    .replace(/[^a-z0-9]/g, "");
+}
 
 export default function DirectorAcademicsExamsPage() {
   const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
@@ -19,7 +27,13 @@ export default function DirectorAcademicsExamsPage() {
     staleTime: 120_000,
   });
 
-  if (isLoading) {
+  const { data: allExams = [], isLoading: examsLoading } = useQuery({
+    queryKey: ["director-academics-all-exams"],
+    queryFn: () => getAssessmentPlans(),
+    staleTime: 60_000,
+  });
+
+  if (isLoading || examsLoading) {
     return (
       <div className="p-4 sm:p-6 space-y-4">
         <div className="h-8 w-64 bg-surface rounded animate-pulse" />
@@ -29,10 +43,49 @@ export default function DirectorAcademicsExamsPage() {
   }
 
   const branches = data?.branches ?? [];
+  const today = new Date().toISOString().split("T")[0];
+
+  const examsByNormalizedBranch = new Map<string, typeof allExams>();
+  for (const exam of allExams) {
+    if (exam.docstatus === 2) continue;
+    const key = normalizeBranchKey(exam.custom_branch);
+    if (!key) continue;
+    const bucket = examsByNormalizedBranch.get(key) ?? [];
+    bucket.push(exam);
+    examsByNormalizedBranch.set(key, bucket);
+  }
+
+  const examStatusByBranch = new Map(
+    branches.map((b) => {
+      const branchKey = normalizeBranchKey(b.branch);
+      const branchNameKey = normalizeBranchKey((b as { branch_name?: string }).branch_name);
+      const branchExams = [
+        ...(examsByNormalizedBranch.get(branchKey) ?? []),
+        ...(branchNameKey && branchNameKey !== branchKey ? examsByNormalizedBranch.get(branchNameKey) ?? [] : []),
+      ];
+      const upcoming = branchExams.filter((e) => e.schedule_date >= today).length;
+      const completed = branchExams.filter((e) => e.schedule_date < today).length;
+      const conductedFallback = safeNum(b.total_exams_conducted);
+      const resolvedScheduled = branchExams.length > 0 ? branchExams.length : conductedFallback;
+      const resolvedCompleted = branchExams.length > 0 ? completed : conductedFallback;
+      return [
+        b.branch,
+        {
+          scheduled: resolvedScheduled,
+          upcoming,
+          completed: resolvedCompleted,
+        },
+      ] as const;
+    }),
+  );
+
   const sorted = [...branches].sort((a, b) => b.avg_exam_score_pct - a.avg_exam_score_pct);
   const overallAvgScore = branches.length ? Math.round(branches.reduce((a, b) => a + safeNum(b.avg_exam_score_pct), 0) / branches.length) : 0;
   const overallPassRate = branches.length ? Math.round(branches.reduce((a, b) => a + safeNum(b.pass_rate), 0) / branches.length) : 0;
   const totalExams = branches.reduce((a, b) => a + safeNum(b.total_exams_conducted), 0);
+  const totalScheduled = branches.reduce((acc, b) => acc + (examStatusByBranch.get(b.branch)?.scheduled ?? 0), 0);
+  const totalUpcoming = branches.reduce((acc, b) => acc + (examStatusByBranch.get(b.branch)?.upcoming ?? 0), 0);
+  const totalCompleted = branches.reduce((acc, b) => acc + (examStatusByBranch.get(b.branch)?.completed ?? 0), 0);
 
   return (
     <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto">
@@ -60,6 +113,30 @@ export default function DirectorAcademicsExamsPage() {
               ))}
             </motion.div>
 
+            <motion.div variants={container} initial="hidden" animate="show" className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <motion.div variants={item} className="bg-surface rounded-[12px] p-4 border border-border-light">
+                <div className="flex items-center gap-2 mb-2">
+                  <CalendarClock className="w-4 h-4 text-info" />
+                  <span className="text-xs text-text-tertiary font-medium">Scheduled</span>
+                </div>
+                <p className="text-2xl font-bold text-primary">{totalScheduled}</p>
+              </motion.div>
+              <motion.div variants={item} className="bg-surface rounded-[12px] p-4 border border-border-light">
+                <div className="flex items-center gap-2 mb-2">
+                  <CalendarDays className="w-4 h-4 text-primary" />
+                  <span className="text-xs text-text-tertiary font-medium">Upcoming</span>
+                </div>
+                <p className="text-2xl font-bold text-primary">{totalUpcoming}</p>
+              </motion.div>
+              <motion.div variants={item} className="bg-surface rounded-[12px] p-4 border border-border-light">
+                <div className="flex items-center gap-2 mb-2">
+                  <CheckCircle2 className="w-4 h-4 text-success" />
+                  <span className="text-xs text-text-tertiary font-medium">Completed</span>
+                </div>
+                <p className="text-2xl font-bold text-success">{totalCompleted}</p>
+              </motion.div>
+            </motion.div>
+
             <motion.div variants={container} initial="hidden" animate="show" className="space-y-2">
               {sorted.map((b) => (
                 <motion.button key={b.branch} variants={item} onClick={() => setSelectedBranch(b.branch)}
@@ -72,6 +149,16 @@ export default function DirectorAcademicsExamsPage() {
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-primary truncate">{b.branch.replace("Smart Up ", "")}</p>
                       <p className="text-xs text-text-tertiary">{safeNum(b.total_exams_conducted)} exams · Pass rate: {safeNum(b.pass_rate)}%</p>
+                      <p className="text-xs text-text-tertiary mt-1">
+                        {(() => {
+                          const stats = examStatusByBranch.get(b.branch);
+                          return (
+                            <>
+                              Scheduled: <span className="font-medium text-primary">{stats?.scheduled ?? 0}</span> · Upcoming: <span className="font-medium text-primary">{stats?.upcoming ?? 0}</span> · Completed: <span className="font-medium text-success">{stats?.completed ?? 0}</span>
+                            </>
+                          );
+                        })()}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4 shrink-0">

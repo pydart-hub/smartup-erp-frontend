@@ -38,35 +38,99 @@ export function useInstructorBatches() {
     useAuthStore();
 
   const query = useQuery<Batch[]>({
-    queryKey: ["instructor-all-batches", defaultCompany, instructorName],
+    queryKey: [
+      "instructor-all-batches",
+      defaultCompany,
+      instructorName,
+      allowedBatches.join("|"),
+    ],
     queryFn: async () => {
       if (!instructorName) return [];
 
-      // Step 1: Fetch the Instructor doc to get instructor_log assignments
-      const instrDoc = await getInstructorDoc(instructorName);
-      const logEntries = instrDoc.instructor_log ?? [];
-
-      if (logEntries.length === 0) return [];
-
-      // Build a set of "program|branch" keys for fast lookup
-      const assignmentKeys = new Set(
-        logEntries.map((e) => `${e.program}|${e.custom_branch}`)
-      );
-
-      // Step 2: Get list of Student Group IDs.
+      // Step 1: Get list of Student Group IDs.
       // The list endpoint only returns scalar fields (no child tables).
       const listRes = await getBatches({ limit_page_length: 500 });
       const allGroups = listRes.data ?? [];
+      if (allGroups.length === 0) return [];
 
-      // Step 3: Filter to only groups matching an instructor_log entry
-      const matchedGroups = allGroups.filter((sg) => {
-        const key = `${sg.program ?? ""}|${sg.custom_branch ?? ""}`;
-        return assignmentKeys.has(key);
-      });
+      const matchedGroupNames = new Set<string>();
 
-      if (matchedGroups.length === 0) return [];
+      // Primary path: Instructor doc -> instructor_log mapping.
+      try {
+        const instrDoc = await getInstructorDoc(instructorName);
+        const logEntries = instrDoc.instructor_log ?? [];
 
-      // Step 4: Fetch each matched Student Group individually to get the
+        if (logEntries.length > 0) {
+          const assignmentKeys = new Set(
+            logEntries.map((e) => `${e.program}|${e.custom_branch}`)
+          );
+
+          for (const sg of allGroups) {
+            const key = `${sg.program ?? ""}|${sg.custom_branch ?? ""}`;
+            if (assignmentKeys.has(key)) matchedGroupNames.add(sg.name);
+          }
+        }
+      } catch (error) {
+        console.warn(
+          "[useInstructorBatches] Instructor doc not readable for user, falling back to session permissions.",
+          error,
+        );
+      }
+
+      // Fallback A: session-scoped Student Batch Name permissions from login.
+      if (matchedGroupNames.size === 0 && allowedBatches.length > 0) {
+        const normalizedAllowed = new Set(
+          allowedBatches.map((v) => String(v).trim().toLowerCase())
+        );
+
+        for (const sg of allGroups) {
+          const candidates = [sg.batch, sg.student_group_name, sg.name]
+            .filter(Boolean)
+            .map((v) => String(v).trim().toLowerCase());
+
+          if (candidates.some((v) => normalizedAllowed.has(v))) {
+            matchedGroupNames.add(sg.name);
+          }
+        }
+      }
+
+      // Fallback B: infer batches from schedules owned by this instructor.
+      if (matchedGroupNames.size === 0) {
+        try {
+          const filters = encodeURIComponent(
+            JSON.stringify([["instructor", "=", instructorName]])
+          );
+          const fields = encodeURIComponent(JSON.stringify(["student_group"]));
+          const { data } = await apiClient.get(
+            `/resource/Course Schedule?filters=${filters}&fields=${fields}&limit_page_length=500&order_by=schedule_date desc, from_time desc`
+          );
+
+          const scheduleRows = (data?.data ?? []) as { student_group?: string }[];
+          const scheduledGroups = new Set(
+            scheduleRows
+              .map((row) => row.student_group)
+              .filter(
+                (name): name is string =>
+                  typeof name === "string" && name.trim().length > 0,
+              )
+          );
+
+          for (const sg of allGroups) {
+            if (scheduledGroups.has(sg.name)) matchedGroupNames.add(sg.name);
+          }
+        } catch (error) {
+          console.warn(
+            "[useInstructorBatches] Failed to infer batches from Course Schedule fallback.",
+            error,
+          );
+        }
+      }
+
+      if (matchedGroupNames.size === 0) return [];
+
+      const matchedGroups = allGroups.filter((sg) => matchedGroupNames.has(sg.name));
+
+      // Step 2: Fetch each matched Student Group individually to get the
       // full doc including the `students` child table (for counts & list).
       const fullDocs = await Promise.all(
         matchedGroups.map((sg) =>

@@ -150,6 +150,7 @@ export const DIRECTOR_NAV: NavItem[] = [
       { label: "Staff", href: "/dashboard/director/attendance/staff", icon: "Briefcase", emoji: "💼" },
     ],
   },
+  { label: "Actions Needed", href: "/dashboard/director/actions-needed", icon: "MessageSquareWarning", emoji: "⚠️" },
   { label: "Course Schedule", href: "/dashboard/director/course-schedule", icon: "CalendarDays", emoji: "📅" },
   { label: "Fees", href: "/dashboard/director/fees", icon: "IndianRupee", emoji: "💰" },
   { label: "Accounts", href: "/dashboard/director/accounts", icon: "Coins", emoji: "🪙",

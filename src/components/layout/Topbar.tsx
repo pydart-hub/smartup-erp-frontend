@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/hooks/useAuth";
 import { useUIStore } from "@/lib/stores/uiStore";
 import { getInitials } from "@/lib/utils/formatters";
 import { NotificationDropdown } from "@/components/layout/NotificationDropdown";
+import { ActionsNeededButton } from "@/components/layout/ActionsNeededButton";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 
 const ROLE_ICONS: Record<string, React.ReactNode> = {
@@ -87,6 +88,9 @@ export function Topbar() {
 
         {/* Notification Bell */}
         <NotificationDropdown />
+
+        {/* Actions Needed Button */}
+        <ActionsNeededButton />
 
         {/* Theme Toggle */}
         <ThemeToggle />
