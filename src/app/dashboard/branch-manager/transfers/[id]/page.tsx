@@ -245,7 +245,7 @@ export default function TransferDetailPage() {
                 <Button
                   onClick={handleRetryExecute}
                   disabled={retrying}
-                  variant={transfer.status === "Failed" ? "destructive" : "default"}
+                  variant={transfer.status === "Failed" ? "danger" : "primary"}
                   className="w-full"
                 >
                   {retrying ? (
