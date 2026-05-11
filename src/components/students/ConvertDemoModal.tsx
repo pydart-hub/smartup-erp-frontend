@@ -142,7 +142,7 @@ export function ConvertDemoModal({ student, onClose, onSuccess }: Props) {
   const [schedulePreview, setSchedulePreview] = useState<SchedulePreviewRow[]>([]);
   const [converting, setConverting] = useState(false);
   const [resultError, setResultError] = useState<string | null>(null);
-  const [resultData, setResultData] = useState<{ salesOrderName: string; invoices: string[]; paidAmount: number } | null>(null);
+  const [resultData, setResultData] = useState<{ salesOrderName: string; invoices: string[]; paidAmount: number; invoiceError?: string } | null>(null);
   const [useSiblingOffer, setUseSiblingOffer] = useState(false);
   const siblingGroup = student.custom_sibling_group ?? null;
 
@@ -248,6 +248,7 @@ export function ConvertDemoModal({ student, onClose, onSuccess }: Props) {
         invoices?: string[];
         paidAmount?: number;
         error?: string;
+        invoiceError?: string;
       };
 
       if (!res.ok || !data.success) {
@@ -260,6 +261,7 @@ export function ConvertDemoModal({ student, onClose, onSuccess }: Props) {
         salesOrderName: data.salesOrderName ?? "",
         invoices: data.invoices ?? [],
         paidAmount: data.paidAmount ?? 0,
+        invoiceError: data.invoiceError,
       });
       setStep("success");
       onSuccess();
@@ -348,7 +350,13 @@ export function ConvertDemoModal({ student, onClose, onSuccess }: Props) {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-text-tertiary">Invoices</span>
-                  <span className="font-medium text-text-secondary italic">{instalments} being created…</span>
+                  {resultData.invoices.length > 0 ? (
+                    <span className="font-medium text-success">{resultData.invoices.length} created</span>
+                  ) : resultData.invoiceError ? (
+                    <span className="font-medium text-warning text-xs text-right max-w-[200px]">{resultData.invoiceError.slice(0, 80)}</span>
+                  ) : (
+                    <span className="font-medium text-text-secondary italic">being created…</span>
+                  )}
                 </div>
                 {resultData.paidAmount > 0 && (
                   <div className="flex justify-between text-sm">

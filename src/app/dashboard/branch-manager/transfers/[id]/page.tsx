@@ -40,11 +40,17 @@ export default function TransferDetailPage() {
 
   const canRespond = transfer?.to_branch === defaultCompany && transfer?.status === "Pending";
 
-  // Show retry button if transfer is Approved but not yet Completed (execute chain never ran)
+  // Show retry button if:
+  //  - Approved but execute chain never ran (execute crashed before starting)
+  //  - Failed — transfer was previously attempted but errored partway through
+  // Visible to the receiver BM (to_branch), sender BM (from_branch), or Director/Admin
   const isStaffOrDirector = ["Branch Manager", "Director", "Administrator", "System Manager"].includes(role || "");
+  const isBranchInvolved =
+    transfer?.to_branch === defaultCompany || transfer?.from_branch === defaultCompany;
   const canRetryExecute =
     isStaffOrDirector &&
-    transfer?.status === "Approved" &&
+    isBranchInvolved &&
+    (transfer?.status === "Approved" || transfer?.status === "Failed") &&
     !transfer?.completion_date;
 
   const handleResponded = () => {
@@ -214,20 +220,21 @@ export default function TransferDetailPage() {
             />
           )}
 
-          {/* Retry execution (transfer approved but execute chain never ran) */}
+          {/* Retry execution (Approved or Failed transfer) */}
           {canRetryExecute && (
-            <Card className="border-warning/40 bg-warning-light/30">
+            <Card className={transfer.status === "Failed" ? "border-error/40 bg-error-light/30" : "border-warning/40 bg-warning-light/30"}>
               <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2 text-warning">
+                <CardTitle className={`text-base flex items-center gap-2 ${transfer.status === "Failed" ? "text-error" : "text-warning"}`}>
                   <RefreshCw className="h-4 w-4" />
-                  Transfer Pending Execution
+                  {transfer.status === "Failed" ? "Transfer Failed — Retry" : "Transfer Pending Execution"}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-sm text-text-secondary">
-                  This transfer was approved but the execution chain has not run yet.
-                  The student is still at {transfer.from_branch?.replace("Smart Up ", "")} branch.
-                  Click below to run the full transfer chain now.
+                  {transfer.status === "Failed"
+                    ? `The transfer execution failed partway through. The student may still be at ${transfer.from_branch?.replace("Smart Up ", "")} branch. Click below to retry the full transfer chain.`
+                    : `This transfer was approved but the execution chain has not run yet. The student is still at ${transfer.from_branch?.replace("Smart Up ", "")} branch. Click below to run the full transfer chain now.`
+                  }
                 </p>
                 {retryError && (
                   <div className="bg-error-light rounded-[10px] p-3">
@@ -238,6 +245,7 @@ export default function TransferDetailPage() {
                 <Button
                   onClick={handleRetryExecute}
                   disabled={retrying}
+                  variant={transfer.status === "Failed" ? "destructive" : "default"}
                   className="w-full"
                 >
                   {retrying ? (
@@ -248,7 +256,7 @@ export default function TransferDetailPage() {
                   ) : (
                     <>
                       <RefreshCw className="h-4 w-4 mr-2" />
-                      Execute Transfer Now
+                      {transfer.status === "Failed" ? "Retry Transfer" : "Execute Transfer Now"}
                     </>
                   )}
                 </Button>

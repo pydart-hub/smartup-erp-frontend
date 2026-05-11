@@ -22,12 +22,12 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole, STAFF_ROLES } from "@/lib/utils/apiAuth";
-import { generateInstalmentSchedule, buildFeeConfigKey, getOptionTotal } from "@/lib/utils/feeSchedule";
+import { generateInstalmentSchedule, generateInstalmentDueDates, buildFeeConfigKey } from "@/lib/utils/feeSchedule";
 import { generateToken } from "@/lib/utils/invoiceToken";
 import { sendTemplate } from "@/lib/utils/whatsapp";
 import { buildInvoiceGenerated } from "@/lib/utils/whatsappTemplates";
 import feeConfigData from "@/../docs/fee_structure_parsed.json";
-import type { FeeConfigEntry } from "@/lib/types/fee";
+import type { FeeConfigEntry } from "@/lib/types/fee"; // used by feeConfig type cast
 
 const feeConfig = feeConfigData as Record<string, FeeConfigEntry>;
 
@@ -50,8 +50,25 @@ async function frappeGet(path: string) {
   return (await res.json()).data;
 }
 
+/** Retry fetch on transient network errors (socket drops, ECONNRESET). */
+async function fetchRetry(url: string, init: RequestInit, retries = 3): Promise<Response> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await fetch(url, init);
+    } catch (err: unknown) {
+      const isNetwork =
+        err instanceof TypeError ||
+        (err as { code?: string })?.code === "UND_ERR_SOCKET" ||
+        (err as { cause?: { code?: string } })?.cause?.code === "UND_ERR_SOCKET" ||
+        (err as { cause?: { code?: string } })?.cause?.code === "ECONNRESET";
+      if (!isNetwork || attempt >= retries) throw err;
+      await new Promise(r => setTimeout(r, 800 * (attempt + 1)));
+    }
+  }
+}
+
 async function frappePost(path: string, body: Record<string, unknown>) {
-  const res = await fetch(`${FRAPPE_URL}${path}`, {
+  const res = await fetchRetry(`${FRAPPE_URL}${path}`, {
     method: "POST",
     headers,
     body: JSON.stringify(body),
@@ -139,11 +156,20 @@ export async function POST(request: NextRequest) {
       `/api/resource/Student Branch Transfer/${encodeURIComponent(transferId)}`,
     );
 
-    if (transfer.status !== "Approved") {
+    if (transfer.status !== "Approved" && transfer.status !== "Failed") {
       return NextResponse.json(
-        { error: `Transfer must be Approved to execute (current: ${transfer.status})` },
+        { error: `Transfer must be Approved or Failed to execute (current: ${transfer.status})` },
         { status: 400 },
       );
+    }
+
+    // If retrying a Failed transfer, reset status to Approved so the chain can proceed
+    if (transfer.status === "Failed") {
+      await frappePut(
+        `/api/resource/Student Branch Transfer/${encodeURIComponent(transferId)}`,
+        { status: "Approved", transfer_log: "" },
+      );
+      step("Reset Failed → Approved for retry");
     }
 
     step(`Starting transfer ${transferId}: ${transfer.student_name} from ${transfer.from_branch} → ${transfer.to_branch}`);
@@ -348,57 +374,69 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // ── Step 4: Cancel & delete old Course Enrollments ──
-    step("Step 4: Cancelling & deleting old Course Enrollments");
+    // ── Steps 4 & 5: Cancel & delete ALL Program Enrollments for this student ──
+    // Collects PEs from TWO sources to handle retry scenarios:
+    //   a) transfer.old_program_enrollment (may be empty if cleared by a prior run's Pre-step)
+    //   b) Direct live lookup — finds any orphaned PEs from previous partial executions
+    step("Step 4: Cancelling & deleting all Program Enrollments for student");
+    const peNamesToDelete = new Set<string>();
     if (transfer.old_program_enrollment) {
-      const oldCEs = await frappeList(
-        "Course Enrollment",
-        [["program_enrollment", "=", transfer.old_program_enrollment]],
+      peNamesToDelete.add(transfer.old_program_enrollment);
+    }
+    // Direct lookup — catches orphaned PEs when old_program_enrollment link was already cleared
+    try {
+      const livePEs = await frappeList(
+        "Program Enrollment",
+        [["student", "=", transfer.student]],
         ["name", "docstatus"],
       );
-      for (const ce of oldCEs) {
-        try {
-          if (ce.docstatus === 1) {
-            await frappePut(
-              `/api/resource/Course Enrollment/${encodeURIComponent(ce.name)}`,
-              { docstatus: 2 },
-            );
-            step(`  Cancelled CE ${ce.name}`);
-          }
-          // Delete regardless (cancel already done or was already cancelled)
-          await frappeDelete(
-            `/api/resource/Course Enrollment/${encodeURIComponent(ce.name)}`,
-          );
-          step(`  Deleted CE ${ce.name}`);
-        } catch (err) {
-          step(`  WARNING: Could not cancel/delete CE ${ce.name}: ${err}`);
-        }
-      }
-    } else {
-      step("  No old Program Enrollment — skipping CE cancellation");
+      for (const pe of livePEs) peNamesToDelete.add(pe.name);
+    } catch (err) {
+      step(`  WARNING: Could not list PEs for student: ${err}`);
     }
+    step(`  Found ${peNamesToDelete.size} PE(s) to clean up: ${[...peNamesToDelete].join(", ") || "none"}`);
 
-    // ── Step 5: Cancel & delete old Program Enrollment ──
     step("Step 5: Cancelling & deleting old Program Enrollment");
-    if (transfer.old_program_enrollment) {
+    for (const peName of peNamesToDelete) {
       try {
+        // 1. Cancel & delete all Course Enrollments under this PE
+        const ces = await frappeList(
+          "Course Enrollment",
+          [["program_enrollment", "=", peName]],
+          ["name", "docstatus"],
+        );
+        for (const ce of ces) {
+          try {
+            if (ce.docstatus === 1) {
+              await frappePut(
+                `/api/resource/Course Enrollment/${encodeURIComponent(ce.name)}`,
+                { docstatus: 2 },
+              );
+            }
+            await frappeDelete(
+              `/api/resource/Course Enrollment/${encodeURIComponent(ce.name)}`,
+            );
+            step(`  Deleted CE ${ce.name}`);
+          } catch (ceErr) {
+            step(`  WARNING: Could not delete CE ${ce.name}: ${ceErr}`);
+          }
+        }
+        // 2. Cancel & delete the PE itself
         const peDoc = await frappeGet(
-          `/api/resource/Program Enrollment/${encodeURIComponent(transfer.old_program_enrollment)}`,
+          `/api/resource/Program Enrollment/${encodeURIComponent(peName)}`,
         );
         if (peDoc.docstatus === 1) {
           await frappePut(
-            `/api/resource/Program Enrollment/${encodeURIComponent(transfer.old_program_enrollment)}`,
+            `/api/resource/Program Enrollment/${encodeURIComponent(peName)}`,
             { docstatus: 2 },
           );
-          step(`  Cancelled PE ${transfer.old_program_enrollment}`);
         }
-        // Delete the cancelled PE
         await frappeDelete(
-          `/api/resource/Program Enrollment/${encodeURIComponent(transfer.old_program_enrollment)}`,
+          `/api/resource/Program Enrollment/${encodeURIComponent(peName)}`,
         );
-        step(`  Deleted PE ${transfer.old_program_enrollment}`);
+        step(`  Deleted PE ${peName}`);
       } catch (err) {
-        step(`  WARNING: Could not cancel/delete PE: ${err}`);
+        step(`  WARNING: Could not cancel/delete PE ${peName}: ${err}`);
       }
     }
 
@@ -468,7 +506,79 @@ export async function POST(request: NextRequest) {
       if (assignedBatchCode) {
         pePayload.student_batch_name = assignedBatchCode;
       }
-      const newPE = await frappePost("/api/resource/Program Enrollment", pePayload);
+
+      // Helper: attempt to force-delete a PE and all its CEs regardless of docstatus
+      const forceDeletePE = async (peName: string) => {
+        step(`  Force-deleting orphaned PE ${peName}`);
+        // Delete CEs first
+        try {
+          const orphanCEs = await frappeList(
+            "Course Enrollment",
+            [["program_enrollment", "=", peName]],
+            ["name", "docstatus"],
+          );
+          for (const ce of orphanCEs) {
+            try {
+              if (ce.docstatus === 1) {
+                await frappePut(`/api/resource/Course Enrollment/${encodeURIComponent(ce.name)}`, { docstatus: 2 });
+              }
+              await frappeDelete(`/api/resource/Course Enrollment/${encodeURIComponent(ce.name)}`);
+              step(`    Deleted orphan CE ${ce.name}`);
+            } catch { /* non-fatal per CE */ }
+          }
+        } catch { /* non-fatal */ }
+        // Cancel then delete PE
+        try {
+          const orphanDoc = await frappeGet(`/api/resource/Program Enrollment/${encodeURIComponent(peName)}`);
+          if (orphanDoc.docstatus === 1) {
+            await frappePut(`/api/resource/Program Enrollment/${encodeURIComponent(peName)}`, { docstatus: 2 });
+          }
+        } catch { /* may already be cancelled */ }
+        await frappeDelete(`/api/resource/Program Enrollment/${encodeURIComponent(peName)}`);
+        step(`  Deleted orphaned PE ${peName}`);
+      };
+
+      // Attempt PE creation — with one DuplicateEntry recovery
+      let newPE;
+      try {
+        newPE = await frappePost("/api/resource/Program Enrollment", pePayload);
+      } catch (createErr) {
+        const errStr = String(createErr);
+        const isDuplicate =
+          errStr.includes("DuplicateEntryError") ||
+          errStr.includes("already exists") ||
+          errStr.includes("Duplicate entry") ||
+          errStr.includes("409");
+
+        if (isDuplicate) {
+          // Extract the existing PE name from the error message.
+          // Frappe wraps the name in single quotes: 'PEN-10th-Chullickal 26-27-056'
+          // The name can contain spaces so we match everything between the quotes.
+          const peNameMatch = errStr.match(/'(PEN-[^']+)'/);
+          const orphanName = peNameMatch?.[1];
+          if (orphanName) {
+            step(`  DuplicateEntry detected — orphaned PE: ${orphanName}`);
+            await forceDeletePE(orphanName);
+            step(`  Retrying PE creation after cleanup`);
+            newPE = await frappePost("/api/resource/Program Enrollment", pePayload);
+          } else {
+            // No name found in error — do a live lookup and purge all PEs for student
+            step(`  DuplicateEntry but could not parse PE name — doing full cleanup before retry`);
+            const strayPEs = await frappeList(
+              "Program Enrollment",
+              [["student", "=", transfer.student]],
+              ["name", "docstatus"],
+            );
+            for (const stray of strayPEs) {
+              await forceDeletePE(stray.name);
+            }
+            newPE = await frappePost("/api/resource/Program Enrollment", pePayload);
+          }
+        } else {
+          throw createErr;
+        }
+      }
+
       newPEName = newPE.name;
       step(`  Created PE draft ${newPEName}`);
 
@@ -660,20 +770,38 @@ export async function POST(request: NextRequest) {
       );
       step(`  Submitted SO ${newSORef}`);
 
+      // Wait for SO post-submit hooks to commit before creating invoices
+      // (avoids DB row-lock race that causes the first invoice to fail)
+      const soWaitStart = Date.now();
+      for (let soCheck = 0; soCheck < 8; soCheck++) {
+        await new Promise(r => setTimeout(r, 600));
+        try {
+          const soStatus = await frappeGet(
+            `/api/resource/Sales Order/${encodeURIComponent(newSORef)}?fields=["billing_status","docstatus"]`,
+          );
+          if (soStatus.billing_status === "Not Billed" && soStatus.docstatus === 1) break;
+        } catch { /* keep polling */ }
+      }
+      step(`  SO ready after ${Math.round((Date.now() - soWaitStart) / 100) / 10}s`);
+
       // ── Step 11: Create Sales Invoices ──
       step("Step 11: Creating Sales Invoices");
 
-      // Use fee config for proper per-instalment amounts (proportionally scaled)
-      const schedule = generateInstalmentScheduleForTransfer(
+      // Build SI schedule: real fee-config amounts with amountAlreadyPaid
+      // deducted from the LAST instalment first, cascading backward.
+      // This gives the correct unequal splits (Q1/Q2/Q3/Q4) not equal ones.
+      const amountAlreadyPaid = transfer.amount_already_paid || 0;
+      const schedule = buildTransferSISchedule(
+        amountAlreadyPaid,
         adjustedAmount,
         numInstalments,
         transfer.academic_year,
         transferDate,
         transfer.to_branch,
         transfer.program,
-        transfer.new_payment_plan,
+        transfer.new_payment_plan || "",
       );
-      step(`  Schedule: ${schedule.map(s => s.label + '=' + s.amount).join(', ')}`);
+      step(`  Schedule (${schedule.length} instalments): ${schedule.map(s => `${s.label}=₹${s.amount}`).join(", ")}`);
 
       // Fetch SO item details for proper linking
       const soDoc = await frappeGet(
@@ -681,16 +809,21 @@ export async function POST(request: NextRequest) {
       );
       const soItem = soDoc.items?.[0];
 
+      const today = new Date().toISOString().split("T")[0];
       const createdSIs: string[] = [];
+      const failedInsts: { label: string; amount: number; dueDate: string }[] = [];
+
       for (let i = 0; i < schedule.length; i++) {
         const inst = schedule[i];
+        // Guard: if due date is in the past use today (avoids Frappe date validation error)
+        const effectiveDate = inst.dueDate < today ? today : inst.dueDate;
         try {
           const siPayload = {
             doctype: "Sales Invoice",
             customer: customerName,
             company: transfer.to_branch,
-            posting_date: inst.dueDate,
-            due_date: inst.dueDate,
+            posting_date: effectiveDate,
+            due_date: effectiveDate,
             student: transfer.student,
             custom_academic_year: transfer.academic_year,
             items: [
@@ -706,17 +839,56 @@ export async function POST(request: NextRequest) {
               },
             ],
           };
-
           const si = await frappePost("/api/resource/Sales Invoice", siPayload);
-          // Submit the SI
           await frappePut(
             `/api/resource/Sales Invoice/${encodeURIComponent(si.name)}`,
             { docstatus: 1 },
           );
           createdSIs.push(si.name);
-          step(`  Created & submitted SI ${si.name} (${inst.label}: ${inst.amount})`);
+          step(`  Created & submitted SI ${si.name} (${inst.label}: ₹${inst.amount})`);
         } catch (err) {
-          step(`  WARNING: Failed to create SI for ${inst.label}: ${err}`);
+          step(`  WARNING: Failed SI for ${inst.label}: ${err}`);
+          failedInsts.push(inst);
+        }
+      }
+
+      // Retry failed SIs once after a short pause (handles transient Frappe errors)
+      if (failedInsts.length > 0) {
+        await new Promise(r => setTimeout(r, 2000));
+        for (const inst of failedInsts) {
+          const effectiveDate = inst.dueDate < today ? today : inst.dueDate;
+          try {
+            const retryPayload = {
+              doctype: "Sales Invoice",
+              customer: customerName,
+              company: transfer.to_branch,
+              posting_date: effectiveDate,
+              due_date: effectiveDate,
+              student: transfer.student,
+              custom_academic_year: transfer.academic_year,
+              items: [
+                {
+                  item_code: soItem?.item_code || tuitionItem,
+                  item_name: soItem?.item_name || tuitionItem,
+                  description: `${inst.label} — Transfer from ${transfer.from_branch}`,
+                  qty: 1,
+                  rate: inst.amount,
+                  amount: inst.amount,
+                  sales_order: newSORef,
+                  so_detail: soItem?.name || "",
+                },
+              ],
+            };
+            const si = await frappePost("/api/resource/Sales Invoice", retryPayload);
+            await frappePut(
+              `/api/resource/Sales Invoice/${encodeURIComponent(si.name)}`,
+              { docstatus: 1 },
+            );
+            createdSIs.push(si.name);
+            step(`  Retry succeeded SI ${si.name} (${inst.label}: ₹${inst.amount})`);
+          } catch (retryErr) {
+            step(`  RETRY FAILED for ${inst.label}: ${retryErr}`);
+          }
         }
       }
       step(`  Created ${createdSIs.length}/${schedule.length} invoices`);
@@ -847,14 +1019,25 @@ export async function POST(request: NextRequest) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Schedule helper for transfers
-// Uses the XLSX fee config for proper per-instalment amounts
-// (proportionally scaled by credit). Falls back to equal splits
-// if the fee config entry is not found.
+// SI schedule builder for transfers
+//
+// Strategy:
+//  1. Get the REAL per-instalment amounts from the fee config
+//     (unequal splits — e.g. Q1=14300, Q2=10200, Q3=10200, Q4=6200)
+//  2. Deduct amountAlreadyPaid from the LAST instalment first,
+//     then cascade backward if that instalment is fully covered
+//  3. Drop instalments whose amount reaches ≤ 0 (already paid)
+//
+//  Result: sum of returned instalments == adjustedAmount
+//  (because adjustedAmount = planTotal - amountAlreadyPaid)
+//
+// Fallback: equal integer splits of adjustedAmountFallback when
+// the fee config entry cannot be found.
 // ─────────────────────────────────────────────────────────────
 
-function generateInstalmentScheduleForTransfer(
-  adjustedAmount: number,
+function buildTransferSISchedule(
+  amountAlreadyPaid: number,
+  adjustedAmountFallback: number,
   instalments: number,
   academicYear: string,
   enrollmentDate: string,
@@ -862,56 +1045,43 @@ function generateInstalmentScheduleForTransfer(
   program: string,
   plan: string,
 ): { label: string; amount: number; dueDate: string }[] {
-  const totalInt = Math.round(adjustedAmount);
-
-  // Try to look up XLSX fee config for proper per-instalment amounts
   const configKey = buildFeeConfigKey(toBranch, program, plan);
   const config = configKey ? feeConfig[configKey] : null;
-  const planTotal = config ? getOptionTotal(config, instalments) : 0;
 
-  if (config && planTotal > 0) {
-    // ── Fee-config-based proportional scaling ──
-    const originalSchedule = generateInstalmentSchedule(config, instalments, academicYear, enrollmentDate);
-    if (originalSchedule.length > 0) {
-      const ratio = totalInt / planTotal;
-      const scaled = originalSchedule.map(entry => Math.round(entry.amount * ratio));
-      // Last instalment absorbs rounding remainder
-      const sumSoFar = scaled.reduce((s, a) => s + a, 0);
-      scaled[scaled.length - 1] += totalInt - sumSoFar;
-
-      return originalSchedule.map((entry, i) => ({
-        label: entry.label,
-        amount: scaled[i],
-        dueDate: entry.dueDate,
-      }));
+  if (config) {
+    // ── Use real fee-config amounts (unequal splits) ──
+    const rawEntries = generateInstalmentSchedule(config, instalments, academicYear, enrollmentDate);
+    if (rawEntries.length > 0) {
+      // Deduct amountAlreadyPaid from last instalment backward
+      let remaining = Math.max(0, Math.round(amountAlreadyPaid));
+      const adjusted = rawEntries.map(e => ({ label: e.label, amount: e.amount, dueDate: e.dueDate }));
+      for (let i = adjusted.length - 1; i >= 0 && remaining > 0; i--) {
+        const deduct = Math.min(adjusted[i].amount, remaining);
+        adjusted[i].amount -= deduct;
+        remaining -= deduct;
+      }
+      // Drop fully-covered instalments
+      return adjusted.filter(e => e.amount > 0);
     }
   }
 
-  // ── Fallback: equal integer splits with standard due dates ──
+  // ── Fallback: equal integer splits of adjustedAmount ──
+  // (adjustedAmount already excludes amountAlreadyPaid, no further deduction needed)
+  const total = Math.round(adjustedAmountFallback);
+  if (total <= 0) return [];
+
   if (instalments === 1) {
-    return [{
-      label: "Full Payment",
-      amount: totalInt,
-      dueDate: enrollmentDate,
-    }];
+    return [{ label: "Full Payment", amount: total, dueDate: enrollmentDate }];
   }
 
-  const perInstalment = Math.floor(totalInt / instalments);
-  const lastAmount = totalInt - perInstalment * (instalments - 1);
+  const dueDates = generateInstalmentDueDates(instalments, academicYear, enrollmentDate);
+  const labels4 = ["Q1", "Q2", "Q3", "Q4"];
+  const per = Math.floor(total / instalments);
+  const last = total - per * (instalments - 1);
 
-  const stubConfig: FeeConfigEntry = {
-    branch: "", plan: "", class: "",
-    early_bird: 0, annual_fee: totalInt, otp: totalInt,
-    quarterly_total: totalInt,
-    q1: perInstalment, q2: perInstalment, q3: perInstalment, q4: lastAmount,
-    inst6_total: totalInt, inst6_per: perInstalment, inst6_last: lastAmount,
-    inst8_total: totalInt, inst8_per: perInstalment, inst8_last: lastAmount,
-  };
-
-  const schedule = generateInstalmentSchedule(stubConfig, instalments, academicYear, enrollmentDate);
-  return schedule.map((entry, i) => ({
-    label: entry.label,
-    amount: i < instalments - 1 ? perInstalment : lastAmount,
-    dueDate: entry.dueDate,
-  }));
+  return dueDates.map((dueDate, i) => ({
+    label: instalments === 4 ? labels4[i] : `Inst ${i + 1}`,
+    amount: i < instalments - 1 ? per : last,
+    dueDate,
+  })).filter(e => e.amount > 0);
 }

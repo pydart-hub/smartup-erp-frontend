@@ -1,5 +1,17 @@
 # SmartUp ERP — Task Tracker
 
+## Current: HR Manager Attendance UI Polish (2026-05-08)
+
+- [x] Audit current HR attendance page layout and preserve all existing behavior/data flow
+- [x] Apply professional visual redesign (header, KPI cards, list rows, status chips, save bar) with UI-only class/markup updates
+- [x] Validate with TypeScript compile and document review notes
+
+### Review
+- Updated only `src/app/dashboard/hr-manager/attendance/page.tsx` with class/markup-level UI polish; no API, query, save, or attendance-status logic was changed.
+- Refined visual hierarchy: premium header card with date control, upgraded search container, richer KPI cards with icons, cleaner employee rows, clearer status/pending badges, and glass-style sticky save bar.
+- Kept all existing interactions unchanged: date selection reset behavior, search filtering, per-employee status toggles, pending-change tracking, and save flow.
+- Validation: file diagnostics reported no errors and `npx tsc --noEmit` completed without TypeScript output (clean run).
+
 ## Current: Instructor Dashboard Batches Not Loading on 403 Instructor Doc Access (2026-05-08)
 
 - [x] Reproduce and trace instructor dashboard batch-loading path for restricted Instructor role

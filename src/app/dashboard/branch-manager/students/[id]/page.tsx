@@ -724,7 +724,7 @@ export default function StudentViewPage() {
               const so = primarySalesOrder;
               const soTotalGrand = so.grand_total ?? 0;
               const invTotal = salesInvoices.reduce((s: number, i: { grand_total: number }) => s + i.grand_total, 0);
-              const invOutstanding = salesInvoices.reduce((s: number, i: { outstanding_amount: number }) => s + i.outstanding_amount, 0);
+              const invOutstanding = salesInvoices.reduce((s: number, i: { outstanding_amount: number; grand_total: number }) => s + Math.min(i.outstanding_amount, i.grand_total), 0);
               const displayedTotal = invTotal > 0 ? invTotal : soTotalGrand;
               const paid = invTotal - invOutstanding;
               const pct = displayedTotal > 0 ? Math.min(100, Math.round((paid / displayedTotal) * 100)) : 0;
@@ -750,7 +750,7 @@ export default function StudentViewPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs mb-2">
                     <div className="rounded-[8px] border border-border-light bg-surface p-2.5">
                       <p className="text-text-tertiary">Overall Total Fees</p>
-                      <p className="font-semibold text-text-primary">₹{originalTotalFees.toLocaleString("en-IN")}</p>
+                      <p className="font-semibold text-text-primary">₹{Math.round(originalTotalFees).toLocaleString("en-IN")}</p>
                     </div>
                     <div className="rounded-[8px] border border-border-light bg-surface p-2.5">
                       <p className="text-text-tertiary">Overall Discount</p>

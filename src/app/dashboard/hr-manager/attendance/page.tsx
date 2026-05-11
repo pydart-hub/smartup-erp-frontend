@@ -173,70 +173,105 @@ export default function HRAttendancePage() {
   };
 
   const pendingCount = Object.keys(pendingChanges).length;
+  const statusBadgeVariant: Record<AttendanceStatus, "success" | "error" | "warning" | "info"> = {
+    Present: "success",
+    Absent: "error",
+    "Half Day": "warning",
+    "On Leave": "info",
+    "Work From Home": "info",
+  };
 
   return (
-    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
+    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6 pb-24">
       <BreadcrumbNav />
 
       {/* Header */}
       <motion.div variants={itemVariants}>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-text-primary">Employee Attendance</h1>
-            <p className="text-text-secondary text-sm mt-0.5">
-              Mark and track daily employee attendance
-            </p>
-          </div>
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => {
-              setSelectedDate(e.target.value);
-              setPendingChanges({});
-            }}
-            className="px-3 py-2 border border-border-light rounded-[10px] text-sm bg-surface text-text-primary"
-          />
-        </div>
-      </motion.div>
+        <Card className="relative overflow-hidden border-border-light/70 bg-gradient-to-br from-surface via-surface to-brand-wash/35 shadow-card">
+          <div className="pointer-events-none absolute -top-20 -right-10 h-52 w-52 rounded-full bg-primary/10 blur-2xl" />
+          <CardContent className="relative p-5 sm:p-6">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.18em] font-semibold text-text-tertiary">
+                  Human Resources
+                </p>
+                <h1 className="text-2xl sm:text-[30px] leading-tight font-semibold text-text-primary mt-1">
+                  Employee Attendance
+                </h1>
+                <p className="text-text-secondary text-sm mt-1.5 max-w-xl">
+                  Mark and track daily employee attendance with a clear branch-ready view.
+                </p>
+              </div>
 
-      {/* Summary Cards */}
-      <motion.div variants={itemVariants} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        {STATUSES.map(({ value, bg }) => (
-          <Card key={value}>
-            <CardContent className="p-3 text-center">
-              <div className={`w-2.5 h-2.5 rounded-full ${bg} mx-auto mb-1.5`} />
-              <p className="text-lg font-bold text-text-primary">{summary[value]}</p>
-              <p className="text-[10px] text-text-tertiary uppercase tracking-wide">{value}</p>
-            </CardContent>
-          </Card>
-        ))}
-        <Card>
-          <CardContent className="p-3 text-center">
-            <div className="w-2.5 h-2.5 rounded-full bg-text-tertiary mx-auto mb-1.5" />
-            <p className="text-lg font-bold text-text-primary">{summary["Not Marked"]}</p>
-            <p className="text-[10px] text-text-tertiary uppercase tracking-wide">Not Marked</p>
+              <div className="flex flex-col sm:items-end gap-2">
+                <p className="text-xs font-medium text-text-tertiary">Attendance Date</p>
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => {
+                    setSelectedDate(e.target.value);
+                    setPendingChanges({});
+                  }}
+                  className="h-11 px-3.5 border border-border-light rounded-[12px] text-sm bg-surface text-text-primary shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
+                />
+              </div>
+            </div>
           </CardContent>
         </Card>
       </motion.div>
 
       {/* Search */}
       <motion.div variants={itemVariants}>
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-tertiary" />
-          <Input
-            placeholder="Search employees..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
+        <Card className="border-border-light/70 shadow-sm">
+          <CardContent className="p-4">
+            <div className="relative max-w-lg">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-tertiary" />
+              <Input
+                placeholder="Search by employee, ID, or department"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 h-11"
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Summary Cards */}
+      <motion.div variants={itemVariants} className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
+        {STATUSES.map(({ value, bg, icon: Icon }) => (
+          <Card key={value} className="border-border-light/70 hover:border-primary/20 transition-colors">
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between mb-4">
+                <div className={`w-8 h-8 rounded-[10px] ${bg} text-white flex items-center justify-center shadow-sm`}>
+                  <Icon className="h-4 w-4" />
+                </div>
+                <p className="text-2xl font-semibold text-text-primary leading-none">{summary[value]}</p>
+              </div>
+              <p className="text-[11px] text-text-tertiary uppercase tracking-[0.14em] font-semibold">{value}</p>
+            </CardContent>
+          </Card>
+        ))}
+        <Card className="border-border-light/70 hover:border-primary/20 transition-colors">
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-8 h-8 rounded-[10px] bg-text-tertiary text-white flex items-center justify-center shadow-sm">
+                <ClipboardCheck className="h-4 w-4" />
+              </div>
+              <p className="text-2xl font-semibold text-text-primary leading-none">{summary["Not Marked"]}</p>
+            </div>
+            <p className="text-[11px] text-text-tertiary uppercase tracking-[0.14em] font-semibold">Not Marked</p>
+          </CardContent>
+        </Card>
       </motion.div>
 
       {/* Employee Attendance List */}
       {loadingEmployees || loadingAttendance ? (
-        <div className="flex items-center justify-center h-48">
-          <Loader2 className="animate-spin h-6 w-6 text-primary" />
-        </div>
+        <Card>
+          <CardContent className="flex items-center justify-center h-48">
+            <Loader2 className="animate-spin h-6 w-6 text-primary" />
+          </CardContent>
+        </Card>
       ) : filtered.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16 gap-3">
@@ -245,7 +280,7 @@ export default function HRAttendancePage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {filtered.map((emp) => {
             const existing = attendanceMap.get(emp.name);
             const currentStatus = pendingChanges[emp.name] ?? existing?.status ?? null;
@@ -253,57 +288,77 @@ export default function HRAttendancePage() {
 
             return (
               <motion.div key={emp.name} variants={itemVariants}>
-                <div
-                  className={`flex flex-col sm:flex-row sm:items-center gap-3 bg-surface rounded-[12px] p-3 border transition-colors ${
+                <Card
+                  className={`transition-all border shadow-sm ${
                     isPending
-                      ? "border-primary/40 bg-brand-wash/30"
-                      : "border-border-light"
+                      ? "border-primary/50 bg-gradient-to-r from-brand-wash/35 to-surface"
+                      : "border-border-light/70"
                   }`}
                 >
-                  {/* Employee Info */}
-                  <div className="flex items-center gap-3 min-w-[200px]">
-                    {emp.image ? (
-                      <img
-                        src={emp.image}
-                        alt={emp.employee_name}
-                        className="w-9 h-9 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-9 h-9 rounded-full bg-brand-wash flex items-center justify-center text-xs font-semibold text-primary">
-                        {getInitials(emp.employee_name)}
-                      </div>
-                    )}
-                    <div>
-                      <p className="text-sm font-medium text-text-primary">
-                        {emp.employee_name}
-                      </p>
-                      <p className="text-xs text-text-tertiary">
-                        {emp.department ?? "—"} · {emp.designation ?? "—"}
-                      </p>
-                    </div>
-                  </div>
+                  <CardContent className="p-4">
+                    <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+                      <div className="flex items-center gap-3 min-w-[220px]">
+                        {emp.image ? (
+                          <img
+                            src={emp.image}
+                            alt={emp.employee_name}
+                            className="w-11 h-11 rounded-full object-cover ring-2 ring-white shadow-sm"
+                          />
+                        ) : (
+                          <div className="w-11 h-11 rounded-full bg-brand-wash flex items-center justify-center text-sm font-semibold text-primary ring-2 ring-white shadow-sm">
+                            {getInitials(emp.employee_name)}
+                          </div>
+                        )}
 
-                  {/* Status Buttons */}
-                  <div className="flex flex-wrap gap-1.5 sm:ml-auto">
-                    {STATUSES.map(({ value, icon: Icon, color, bg }) => {
-                      const isActive = currentStatus === value;
-                      return (
-                        <button
-                          key={value}
-                          onClick={() => handleStatusClick(emp.name, value)}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] text-xs font-medium transition-all border ${
-                            isActive
-                              ? `${bg} text-white border-transparent shadow-sm`
-                              : `bg-surface ${color} border-border-light hover:bg-app-bg`
-                          }`}
-                        >
-                          <Icon className="h-3 w-3" />
-                          <span className="hidden sm:inline">{value}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+                        <div>
+                          <p className="text-sm font-semibold text-text-primary">
+                            {emp.employee_name}
+                          </p>
+                          <p className="text-xs text-text-tertiary mt-0.5">
+                            {emp.department ?? "-"} | {emp.designation ?? "-"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 lg:ml-auto">
+                        {currentStatus ? (
+                          <Badge variant={statusBadgeVariant[currentStatus]} className="h-6 px-2.5">
+                            {currentStatus}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="h-6 px-2.5">
+                            Not Marked
+                          </Badge>
+                        )}
+                        {isPending && (
+                          <Badge variant="default" className="h-6 px-2.5">
+                            Pending Save
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="mt-4 pt-3 border-t border-border-light/70 flex flex-wrap gap-2">
+                      {STATUSES.map(({ value, icon: Icon, color, bg }) => {
+                        const isActive = currentStatus === value;
+                        return (
+                          <button
+                            key={value}
+                            onClick={() => handleStatusClick(emp.name, value)}
+                            className={`flex items-center gap-1.5 px-3 py-2 rounded-[10px] text-xs font-medium transition-all border ${
+                              isActive
+                                ? `${bg} text-white border-transparent shadow-sm`
+                                : `bg-surface ${color} border-border-light hover:bg-app-bg`
+                            }`}
+                          >
+                            <Icon className="h-3.5 w-3.5" />
+                            <span>{value}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
               </motion.div>
             );
           })}
@@ -317,14 +372,14 @@ export default function HRAttendancePage() {
           animate={{ y: 0, opacity: 1 }}
           className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50"
         >
-          <div className="flex items-center gap-4 bg-surface border border-border-light rounded-[14px] shadow-lg px-5 py-3">
-            <span className="text-sm text-text-secondary">
+          <div className="flex items-center gap-4 bg-surface/95 backdrop-blur border border-border-light rounded-[14px] shadow-lg px-5 py-3">
+            <span className="text-sm text-text-secondary whitespace-nowrap">
               <span className="font-semibold text-primary">{pendingCount}</span> unsaved change{pendingCount !== 1 ? "s" : ""}
             </span>
             <Button
               onClick={handleSave}
               disabled={saving}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 h-9"
             >
               {saving ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

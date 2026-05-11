@@ -91,7 +91,6 @@ for (const co of companies) {
     console.log(`  ${co.abbr}: nothing to move`);
     continue;
   }
-
   for (const acct of toMove) {
     const res = await put(`/resource/Account/${encodeURIComponent(acct.name)}`, {
       parent_account: newParent,

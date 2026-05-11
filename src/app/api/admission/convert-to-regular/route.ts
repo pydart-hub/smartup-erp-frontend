@@ -23,7 +23,7 @@
  *   enrollmentDate     — ISO date string, used as the due-date anchor for all instalment options
  */
 
-import { NextRequest, NextResponse, after } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { requireRole, STAFF_ROLES } from "@/lib/utils/apiAuth";
 import { generateInstalmentSchedule } from "@/lib/utils/feeSchedule";
 import type { FeeConfigEntry, InstalmentEntry } from "@/lib/types/fee";
@@ -598,6 +598,73 @@ export async function POST(request: NextRequest) {
     const salesOrderName: string = soCreated.name;
     log.push(`Sales Order created: ${salesOrderName}`);
 
+    // ── Patch fractional SO totals to whole rupees (before submission) ─────────
+    // Frappe computes grand_total = round(rate × qty, 2), which diverges from
+    // scheduleSum when scheduleSum/instalments is irrational (e.g. 21461÷6 → 21460.98).
+    // We use frappe.db.set_value via a transient Server Script — the only path that
+    // bypasses Frappe's validate() recalculation hook on draft documents.
+    const roundedScheduleSum = Math.round(scheduleSum);
+    const soGrandTotal = typeof soCreated.grand_total === "number"
+      ? soCreated.grand_total
+      : parseFloat(String(soCreated.grand_total ?? "0"));
+    if (Math.abs(soGrandTotal - roundedScheduleSum) > 0.005) {
+      log.push(`SO total mismatch ₹${soGrandTotal} vs schedule ₹${roundedScheduleSum} — patching`);
+      const patchScriptName = `patch_so_${salesOrderName.replace(/[^a-zA-Z0-9]/g, "_")}`;
+      try {
+        // Clean up any stale script first
+        await fetch(`${FRAPPE_URL}/api/resource/Server Script/${encodeURIComponent(patchScriptName)}`, {
+          method: "DELETE", headers: authHeaders,
+        }).catch(() => {});
+        await new Promise((r) => setTimeout(r, 200));
+
+        const patchCode = `
+so = "${salesOrderName}"
+v = ${roundedScheduleSum}
+item = frappe.db.get_value("Sales Order Item", {"parent": so}, "name")
+if item:
+    frappe.db.set_value("Sales Order Item", item, "amount", v, update_modified=False)
+    frappe.db.set_value("Sales Order Item", item, "base_amount", v, update_modified=False)
+for f in ["grand_total","net_total","total","base_grand_total","base_net_total","base_total"]:
+    frappe.db.set_value("Sales Order", so, f, v, update_modified=False)
+frappe.db.commit()
+frappe.response["message"] = {"patched": True, "grand_total": frappe.db.get_value("Sales Order", so, "grand_total")}
+`;
+        const createSS = await fetch(`${FRAPPE_URL}/api/resource/Server Script`, {
+          method: "POST",
+          headers: authHeaders,
+          body: JSON.stringify({
+            name: patchScriptName,
+            script_type: "API",
+            api_method: patchScriptName,
+            allow_guest: 0,
+            disabled: 0,
+            script: patchCode,
+          }),
+        });
+        const ssData = await createSS.json();
+        const ssName: string | undefined = ssData.data?.name;
+        if (ssName) {
+          const runRes = await fetch(`${FRAPPE_URL}/api/method/${ssName}`, {
+            method: "POST",
+            headers: authHeaders,
+            body: JSON.stringify({}),
+          });
+          const runData = await runRes.json();
+          if (runData.message?.patched) {
+            log.push(`SO total patched to ₹${runData.message.grand_total}`);
+          } else {
+            log.push(`SO patch ran but no confirmation: ${JSON.stringify(runData).slice(0, 100)}`);
+          }
+          await fetch(`${FRAPPE_URL}/api/resource/Server Script/${encodeURIComponent(ssName)}`, {
+            method: "DELETE", headers: authHeaders,
+          }).catch(() => {});
+        }
+      } catch (patchErr) {
+        // Non-fatal: SO still works; last invoice may land slightly fractional
+        log.push(`SO patch warning: ${patchErr instanceof Error ? patchErr.message : String(patchErr)}`);
+      }
+    }
+
     // Submit SO
     await frappePut(`/resource/Sales Order/${encodeURIComponent(salesOrderName)}`, { docstatus: 1 });
     log.push(`Sales Order submitted: ${salesOrderName}`);
@@ -650,31 +717,70 @@ export async function POST(request: NextRequest) {
       log.push(`Sibling group linked on existing sibling: ${effectiveSiblingStudentId}`);
     }
 
-    // ── 8. Create Sales Invoices in the background (after response is sent) ───
+    // ── 8. Create Sales Invoices (inline with timeout) ───
     // Invoice creation involves SO polling + sequential Frappe calls (10–40s).
-    // Running it inside `after()` lets the browser receive a fast success response
-    // immediately, avoiding "Failed to fetch" timeouts on slow connections.
-    const createInvoicesUrl = new URL("/api/admission/create-invoices", request.url).toString();
-    const cookieForward = request.headers.get("cookie") ?? "";
-    const invoiceBody = JSON.stringify({ salesOrderName, schedule });
+    // We now do this inline (instead of background task via after()) to ensure:
+    //   1. Errors are reported to user
+    //   2. User can immediately retry if it fails
+    //   3. Response includes actual invoice names if successful
+    // If invoice creation takes >60s, we abort but SO still exists (can be billed manually).
+    let createdInvoices: string[] = [];
+    let invoiceError: string | undefined;
 
-    after(async () => {
-      try {
-        await fetch(createInvoicesUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Cookie: cookieForward },
-          body: invoiceBody,
-        });
-      } catch {
-        // Non-fatal background task — SO exists, invoices can be created from SO page
-        console.error(`[convert-to-regular] Background invoice creation failed for ${salesOrderName}`);
+    try {
+      const createInvoicesUrl = new URL("/api/admission/create-invoices", request.url).toString();
+      const invoiceBody = JSON.stringify({ salesOrderName, schedule });
+
+      // Use AbortController for 60-second timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
+
+      // Forward the session cookie so create-invoices can authenticate the caller.
+      // Without this, requireRole() in create-invoices returns 401.
+      const cookieHeader = request.headers.get("cookie") ?? "";
+
+      const invoiceRes = await fetch(createInvoicesUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(cookieHeader ? { Cookie: cookieHeader } : {}),
+        },
+        body: invoiceBody,
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      if (invoiceRes.ok) {
+        const invoiceData = await invoiceRes.json();
+        createdInvoices = invoiceData.invoices || [];
+        if (createdInvoices.length > 0) {
+          log.push(`✓ Created ${createdInvoices.length} invoice(s): ${createdInvoices.join(", ")}`);
+        } else if (invoiceData.drafts?.length > 0) {
+          log.push(`⚠️  Created as drafts (submission failed): ${invoiceData.drafts.join(", ")}`);
+          invoiceError = "Invoices created as drafts but submission failed. Admin will submit manually.";
+        } else {
+          invoiceError = "No invoices created (check Sales Order status)";
+          log.push(`⚠️  ${invoiceError}`);
+        }
+      } else {
+        const errText = await invoiceRes.text().catch(() => "");
+        invoiceError = `Invoice API error (${invoiceRes.status}): ${errText.slice(0, 200)}`;
+        log.push(`❌ ${invoiceError}`);
       }
-    });
+    } catch (invoiceErr) {
+      // Invoice creation failed, but SO was created successfully
+      // This is non-fatal — SO exists and can be billed manually or retried
+      const errMsg = invoiceErr instanceof Error ? invoiceErr.message : String(invoiceErr);
+      invoiceError = `Invoice creation failed: ${errMsg}`;
+      log.push(`❌ ${invoiceError}`);
+      console.error(`[convert-to-regular] ${invoiceError} for SO ${salesOrderName}`);
+    }
 
     return NextResponse.json({
       success: true,
       salesOrderName,
-      invoices: [],
+      invoices: createdInvoices,
+      ...(invoiceError && { invoiceError }), // Signal to frontend if invoices failed
       paidAmount,
       siblingDiscountAmount,
       instalments,

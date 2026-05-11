@@ -331,7 +331,7 @@ export default function SalesUserStudentDetailPage() {
               const so = salesOrdersRes[0];
               const soTotalGrand = (salesOrdersRes as { grand_total: number }[]).reduce((s, o) => s + (o.grand_total ?? 0), 0);
               const invTotal = salesInvoicesRes?.reduce((s: number, i: { grand_total: number }) => s + i.grand_total, 0) ?? 0;
-              const invOutstanding = salesInvoicesRes?.reduce((s: number, i: { outstanding_amount: number }) => s + i.outstanding_amount, 0) ?? 0;
+              const invOutstanding = salesInvoicesRes?.reduce((s: number, i: { outstanding_amount: number; grand_total: number }) => s + Math.min(i.outstanding_amount, i.grand_total), 0) ?? 0;
               const displayedTotal = invTotal > 0 ? invTotal : soTotalGrand;
               const paid = invTotal - invOutstanding;
               const pct = displayedTotal > 0 ? Math.min(100, Math.round((paid / displayedTotal) * 100)) : 0;
