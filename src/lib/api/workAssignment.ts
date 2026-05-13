@@ -91,7 +91,7 @@ export async function deleteWorkAssignment(id: string): Promise<void> {
   while (cursor) {
     chain.push(cursor);
     try {
-      const res = await apiClient.get(`/resource/Work Assignment/${encodeURIComponent(cursor)}`);
+      const res: { data?: { data?: Record<string, unknown> } } = await apiClient.get(`/resource/Work Assignment/${encodeURIComponent(cursor)}`);
       const data = res.data?.data;
       // Cancel the head doc (the one we're deleting) if submitted
       if (cursor === id && (data?.docstatus ?? 0) === 1) {
