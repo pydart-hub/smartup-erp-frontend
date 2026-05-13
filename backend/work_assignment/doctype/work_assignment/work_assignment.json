@@ -1,0 +1,270 @@
+{
+  "actions": [],
+  "autoname": "naming_series:",
+  "creation": "2026-05-12T10:00:00.000000",
+  "docstatus": 0,
+  "doctype": "DocType",
+  "document_type": "Document",
+  "editable_grid": false,
+  "engine": "InnoDB",
+  "field_order": [
+    "naming_series",
+    "title",
+    "description",
+    "basic_information",
+    "topic",
+    "created_by",
+    "created_on",
+    "scope_and_deadline",
+    "for_branch",
+    "academic_year",
+    "deadline",
+    "enabled",
+    "status_section",
+    "workflow_state",
+    "status",
+    "total_assigned",
+    "submitted_count",
+    "approved_count",
+    "optional_section",
+    "instructions_file",
+    "reference_link",
+    "assignments_section",
+    "assignments"
+  ],
+  "fields": [
+    {
+      "fieldname": "naming_series",
+      "fieldtype": "Select",
+      "label": "Series",
+      "options": "WA-",
+      "set_only_once": 1
+    },
+    {
+      "fieldname": "basic_information",
+      "fieldtype": "Section Break",
+      "label": "Basic Information"
+    },
+    {
+      "fieldname": "title",
+      "fieldtype": "Data",
+      "label": "Title",
+      "mandatory": 1,
+      "reqd": 1,
+      "length": 150
+    },
+    {
+      "fieldname": "description",
+      "fieldtype": "Text Editor",
+      "label": "Description",
+      "help": "What needs to be done"
+    },
+    {
+      "fieldname": "topic",
+      "fieldtype": "Data",
+      "label": "Topic/Subject",
+      "length": 50,
+      "help": "e.g., Math, Science, English (just a label)"
+    },
+    {
+      "fieldname": "created_by",
+      "fieldtype": "Link",
+      "label": "Created By",
+      "options": "User",
+      "read_only": 1
+    },
+    {
+      "fieldname": "created_on",
+      "fieldtype": "Date",
+      "label": "Created On",
+      "read_only": 1
+    },
+    {
+      "fieldname": "scope_and_deadline",
+      "fieldtype": "Section Break",
+      "label": "Scope & Deadline"
+    },
+    {
+      "fieldname": "for_branch",
+      "fieldtype": "Link",
+      "label": "For Branch",
+      "options": "Company",
+      "mandatory": 1,
+      "reqd": 1,
+      "help": "Branch this assignment applies to"
+    },
+    {
+      "fieldname": "academic_year",
+      "fieldtype": "Link",
+      "label": "Academic Year",
+      "options": "Academic Year",
+      "help": "e.g., 2025-2026"
+    },
+    {
+      "fieldname": "deadline",
+      "fieldtype": "Date",
+      "label": "Deadline",
+      "mandatory": 1,
+      "reqd": 1,
+      "help": "Same deadline for all instructors"
+    },
+    {
+      "fieldname": "enabled",
+      "fieldtype": "Check",
+      "label": "Enabled",
+      "default": 1,
+      "help": "Disable to hide assignment from instructors"
+    },
+    {
+      "fieldname": "status_section",
+      "fieldtype": "Section Break",
+      "label": "Status & Tracking"
+    },
+    {
+      "fieldname": "workflow_state",
+      "fieldtype": "Select",
+      "label": "Workflow State",
+      "options": "Draft\nActive\nCompleted",
+      "read_only": 1,
+      "default": "Draft"
+    },
+    {
+      "fieldname": "status",
+      "fieldtype": "Select",
+      "label": "Status",
+      "options": "Draft\nActive\nCompleted\nCancelled",
+      "read_only": 1,
+      "default": "Draft"
+    },
+    {
+      "fieldname": "total_assigned",
+      "fieldtype": "Int",
+      "label": "Total Assigned",
+      "read_only": 1,
+      "help": "Total number of instructors assigned"
+    },
+    {
+      "fieldname": "submitted_count",
+      "fieldtype": "Int",
+      "label": "Submitted Count",
+      "read_only": 1,
+      "help": "Number of instructors who submitted work"
+    },
+    {
+      "fieldname": "approved_count",
+      "fieldtype": "Int",
+      "label": "Approved Count",
+      "read_only": 1,
+      "help": "Number of approved submissions"
+    },
+    {
+      "fieldname": "optional_section",
+      "fieldtype": "Section Break",
+      "label": "Optional"
+    },
+    {
+      "fieldname": "instructions_file",
+      "fieldtype": "Attachment",
+      "label": "Instructions File",
+      "help": "PDF or document with instructions (optional)"
+    },
+    {
+      "fieldname": "reference_link",
+      "fieldtype": "Data",
+      "label": "Reference Link",
+      "fieldtype": "Small Text",
+      "help": "URL reference (optional)"
+    },
+    {
+      "fieldname": "assignments_section",
+      "fieldtype": "Section Break",
+      "label": "Instructor Assignments"
+    },
+    {
+      "fieldname": "assignments",
+      "fieldtype": "Table",
+      "label": "Assignments",
+      "options": "Work Assignment Detail",
+      "mandatory": 1,
+      "reqd": 1
+    }
+  ],
+  "idx": 1,
+  "is_submittable": 1,
+  "links": [],
+  "modified": "2026-05-12T10:00:00.000000",
+  "modified_by": "Administrator",
+  "module": "Academic",
+  "name": "Work Assignment",
+  "owner": "Administrator",
+  "permissions": [
+    {
+      "amend": 1,
+      "cancel": 1,
+      "create": 1,
+      "delete": 1,
+      "email": 1,
+      "export": 1,
+      "if_owner": 0,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "Administrator",
+      "share": 1,
+      "submit": 1,
+      "write": 1
+    },
+    {
+      "amend": 1,
+      "cancel": 1,
+      "create": 1,
+      "delete": 0,
+      "email": 1,
+      "export": 1,
+      "if_owner": 0,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "General Manager",
+      "share": 0,
+      "submit": 1,
+      "write": 1
+    },
+    {
+      "amend": 0,
+      "cancel": 0,
+      "create": 0,
+      "delete": 0,
+      "email": 0,
+      "export": 1,
+      "if_owner": 0,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "Instructor",
+      "share": 0,
+      "submit": 0,
+      "write": 0
+    },
+    {
+      "amend": 0,
+      "cancel": 0,
+      "create": 0,
+      "delete": 0,
+      "email": 0,
+      "export": 1,
+      "if_owner": 0,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "Branch Manager",
+      "share": 0,
+      "submit": 0,
+      "write": 0
+    }
+  ],
+  "quick_entry": 0,
+  "sort_field": "modified",
+  "sort_order": "Desc",
+  "track_changes": 1
+}
