@@ -139,11 +139,27 @@ async function fetchPlanCounts(batchNames: string[], branch: string): Promise<{
   demo: number;
 }> {
   const result = { advanced: 0, intermediate: 0, basic: 0, freeAccess: 0, demo: 0 };
-  void batchNames;
 
-  // Use the same source-of-truth as global counts: all active students in branch,
-  // then latest submitted Program Enrollment per student.
-  const ids = await fetchActiveBranchStudentIds(branch);
+  // Resolve student IDs:
+  //   - If batchNames provided → union of students across those batches (per-program count)
+  //   - Otherwise → all active students in the branch (whole-branch fallback)
+  let ids: string[] = [];
+  if (Array.isArray(batchNames) && batchNames.length > 0) {
+    const seen = new Set<string>();
+    const batchResults = await Promise.all(
+      batchNames.map((b) => fetchBatchStudents(b, branch).catch(() => [] as BatchStudent[]))
+    );
+    for (const list of batchResults) {
+      for (const s of list) {
+        if (s.student && !seen.has(s.student)) {
+          seen.add(s.student);
+          ids.push(s.student);
+        }
+      }
+    }
+  } else {
+    ids = await fetchActiveBranchStudentIds(branch);
+  }
   if (!ids.length) return result;
 
   const latestByStudent = new Map<string, { plan?: string; student_category?: string }>();

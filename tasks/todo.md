@@ -1,5 +1,47 @@
 # SmartUp ERP — Task Tracker
 
+## Current: Kadavanthra + Edappally Advanced Fee Structure Deep Study (2026-05-13)
+
+- [x] Locate and inspect the workbook `docs/kadavanthra&EDAPPALLY fee structure newww.xlsx`
+- [x] Extract all Advanced pricing blocks branch-wise from both sheets
+- [x] Validate instalment and quarterly arithmetic for each block
+- [x] Produce an update-ready normalized structure for existing Advanced fee updates
+
+### Review
+- Deeply studied the workbook with two sheets: `KADAVANTHARA` and `EDAPPALLY`.
+- Confirmed common class-level Advanced pricing is identical across branches for overlapping classes.
+- Identified Edappally-specific row `9 State` and Kadavanthra-only additional blocks (HSS + 10th subject-wise in quarterly and 6/8 formats).
+- Created a full reference structure document in `docs/ADVANCED_FEE_STRUCTURE_KDV_EDAPPALLY_2026-27.md` with all extracted tables and validation notes.
+
+## Current: Work Assignment MVP Completion (2026-05-12)
+
+- [x] Build General Manager Work Assignment form (create/edit draft) with instructor row management
+- [x] Build General Manager Work Assignment detail review page with approve/reject actions
+- [x] Build Instructor Assignment detail page with submission modal and status timeline
+- [x] Add missing routes for create/details and align list page links
+- [x] Validate with TypeScript compile and add review notes
+
+### Review
+- Implemented `WorkAssignmentForm`, `WorkAssignmentDetail`, and `InstructorAssignmentDetail` components with live API integration for create/save/submit, instructor submission, and GM approve/reject workflow.
+- Added missing routes for GM create/detail and instructor detail pages under the dashboard route tree.
+- Fixed initial scaffolding issues in work-assignment files (invalid UI imports and non-existent components) and aligned links to real dashboard paths.
+- Added Work Assignment navigation entries for General Manager and My Assignments for Instructor.
+- Validation: `npx tsc --noEmit` completed with no TypeScript output and focused diagnostics on newly added files returned no errors.
+
+## Current: Director Students Dark Mode Visual Refresh (2026-05-11)
+
+- [x] Audit current Director Students dark-mode visual hierarchy and identify low-contrast/flat sections
+- [x] Redesign dark-mode styling for header, summary strip, and branch cards with stronger depth and accents
+- [x] Preserve existing data logic/interactions and improve perceived motion/hover states only
+- [x] Validate with TypeScript compile and document review notes
+
+### Review
+- Updated only `src/app/dashboard/director/students/page.tsx` with class/markup-level styling improvements; no query keys, API calls, counting logic, or navigation routes were changed.
+- Added a stronger dark-mode visual direction: atmospheric gradient glows, glass-like card surfaces, richer contrast, and premium accent tones across summary blocks and branch cards.
+- Reworked light-only chips/tiles into dark-aware palettes for plan and type distribution so counts remain readable and visually distinct in dark mode.
+- Improved polish in header/search CTA surfaces and button emphasis while preserving existing interactions and motion behavior.
+- Validation: `npx tsc --noEmit` completed with no TypeScript output (clean run).
+
 ## Current: HR Manager Attendance UI Polish (2026-05-08)
 
 - [x] Audit current HR attendance page layout and preserve all existing behavior/data flow

@@ -11,6 +11,7 @@ import {
   AlertCircle,
   ChevronRight,
   Users,
+  Sparkles,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -87,12 +88,12 @@ function BranchCard({ branch }: { branch: { name: string; abbr: string } }) {
         whileHover={{ y: -3 }}
         whileTap={{ scale: 0.98 }}
       >
-        <Card className="h-full cursor-pointer border-border-light hover:border-primary/20 hover:shadow-lg transition-all duration-200 group">
+        <Card className="h-full cursor-pointer border-border-light dark:border-cyan-500/20 hover:border-primary/20 dark:hover:border-cyan-400/45 hover:shadow-lg dark:hover:shadow-[0_18px_40px_-22px_rgba(45,212,191,0.65)] transition-all duration-200 group bg-surface dark:bg-gradient-to-br dark:from-slate-900/95 dark:via-slate-900/90 dark:to-cyan-950/40 backdrop-blur-sm">
           <CardContent className="p-0">
             {/* Header */}
             <div className="flex items-start justify-between p-4 pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-lg bg-primary/8 flex items-center justify-center shrink-0">
+                <div className="w-9 h-9 rounded-lg bg-primary/8 dark:bg-cyan-400/10 ring-1 ring-transparent dark:ring-cyan-300/20 flex items-center justify-center shrink-0">
                   <Building2 className="h-[18px] w-[18px] text-primary" />
                 </div>
                 <div>
@@ -144,35 +145,35 @@ function BranchCard({ branch }: { branch: { name: string; abbr: string } }) {
             {hasPlan ? (
               <>
                 <div className="mx-4 mb-2 grid grid-cols-3 gap-1.5">
-                <div className="rounded-[6px] bg-purple-50 py-1.5 text-center">
-                  <p className="text-sm font-bold text-purple-700 tabular-nums leading-none">{planCounts.advanced}</p>
-                  <p className="text-[9px] text-purple-400 font-medium mt-1 uppercase tracking-wider">Advanced</p>
+                <div className="rounded-[6px] bg-purple-50 border border-purple-100 dark:bg-fuchsia-500/12 dark:border-fuchsia-300/20 py-1.5 text-center">
+                  <p className="text-sm font-bold text-purple-700 dark:text-fuchsia-200 tabular-nums leading-none">{planCounts.advanced}</p>
+                  <p className="text-[9px] text-purple-400 dark:text-fuchsia-300/70 font-medium mt-1 uppercase tracking-wider">Advanced</p>
                 </div>
-                <div className="rounded-[6px] bg-blue-50 py-1.5 text-center">
-                  <p className="text-sm font-bold text-blue-700 tabular-nums leading-none">{planCounts.intermediate}</p>
-                  <p className="text-[9px] text-blue-400 font-medium mt-1 uppercase tracking-wider">Intermediate</p>
+                <div className="rounded-[6px] bg-blue-50 border border-blue-100 dark:bg-sky-500/12 dark:border-sky-300/20 py-1.5 text-center">
+                  <p className="text-sm font-bold text-blue-700 dark:text-sky-200 tabular-nums leading-none">{planCounts.intermediate}</p>
+                  <p className="text-[9px] text-blue-400 dark:text-sky-300/70 font-medium mt-1 uppercase tracking-wider">Intermediate</p>
                 </div>
-                <div className="rounded-[6px] bg-emerald-50 py-1.5 text-center">
-                  <p className="text-sm font-bold text-emerald-700 tabular-nums leading-none">{planCounts.basic}</p>
-                  <p className="text-[9px] text-emerald-400 font-medium mt-1 uppercase tracking-wider">Basic</p>
+                <div className="rounded-[6px] bg-emerald-50 border border-emerald-100 dark:bg-emerald-500/12 dark:border-emerald-300/20 py-1.5 text-center">
+                  <p className="text-sm font-bold text-emerald-700 dark:text-emerald-200 tabular-nums leading-none">{planCounts.basic}</p>
+                  <p className="text-[9px] text-emerald-400 dark:text-emerald-300/70 font-medium mt-1 uppercase tracking-wider">Basic</p>
                 </div>
                 </div>
                 {((planCounts.freeAccess ?? 0) > 0 || (planCounts.demo ?? 0) > 0 || branchNaPlanCount > 0) && (
                   <div className="mx-4 mb-3 flex items-center gap-1.5 flex-wrap">
                     {(planCounts.freeAccess ?? 0) > 0 && (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-50 rounded-full px-2 py-0.5">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 dark:text-amber-200 bg-amber-50 dark:bg-amber-400/12 rounded-full px-2 py-0.5">
                         <span className="w-1 h-1 rounded-full bg-amber-500" />
                         {planCounts.freeAccess} Free
                       </span>
                     )}
                     {(planCounts.demo ?? 0) > 0 && (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-fuchsia-700 bg-fuchsia-50 rounded-full px-2 py-0.5">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-fuchsia-700 dark:text-fuchsia-200 bg-fuchsia-50 dark:bg-fuchsia-400/12 rounded-full px-2 py-0.5">
                         <span className="w-1 h-1 rounded-full bg-fuchsia-500" />
                         {planCounts.demo} Demo
                       </span>
                     )}
                     {branchNaPlanCount > 0 && (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-cyan-700 bg-cyan-50 rounded-full px-2 py-0.5">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-cyan-700 dark:text-cyan-200 bg-cyan-50 dark:bg-cyan-400/12 rounded-full px-2 py-0.5">
                         <span className="w-1 h-1 rounded-full bg-cyan-500" />
                         {branchNaPlanCount} N/A
                       </span>
@@ -194,23 +195,23 @@ function BranchCard({ branch }: { branch: { name: string; abbr: string } }) {
               const notEntered = Math.max(0, (activeCount ?? 0) - entered);
               return (
                 <div className="mx-4 mb-3 flex items-center gap-1.5 flex-wrap">
-                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-green-700 bg-green-50 rounded-full px-2 py-0.5">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-green-700 dark:text-emerald-200 bg-green-50 dark:bg-emerald-400/12 rounded-full px-2 py-0.5">
                     <span className="w-1 h-1 rounded-full bg-green-500" />
                     {typeCounts.fresher} Fresher
                   </span>
-                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-700 bg-blue-50 rounded-full px-2 py-0.5">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-700 dark:text-sky-200 bg-blue-50 dark:bg-sky-400/12 rounded-full px-2 py-0.5">
                     <span className="w-1 h-1 rounded-full bg-blue-500" />
                     {typeCounts.existing} Existing
                   </span>
                   {typeCounts.rejoining > 0 && (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-50 rounded-full px-2 py-0.5">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 dark:text-amber-200 bg-amber-50 dark:bg-amber-400/12 rounded-full px-2 py-0.5">
                       <span className="w-1 h-1 rounded-full bg-amber-500" />
                       {typeCounts.rejoining} Rejoin
                     </span>
                   )}
                   {notEntered > 0 && (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-text-tertiary bg-border-light/60 rounded-full px-2 py-0.5">
-                      <span className="w-1 h-1 rounded-full bg-text-tertiary/40" />
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-text-tertiary dark:text-slate-300 bg-border-light/60 dark:bg-slate-400/12 rounded-full px-2 py-0.5">
+                      <span className="w-1 h-1 rounded-full bg-text-tertiary/40 dark:bg-slate-300/70" />
                       {notEntered} N/A
                     </span>
                   )}
@@ -279,18 +280,25 @@ export default function DirectorStudentsPage() {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="space-y-6"
+      className="relative isolate space-y-6"
     >
+      <div className="pointer-events-none absolute -top-20 -right-16 h-72 w-72 rounded-full bg-primary/10 blur-3xl dark:bg-cyan-400/10" />
+      <div className="pointer-events-none absolute top-44 -left-20 h-80 w-80 rounded-full bg-secondary/10 blur-3xl dark:bg-sky-400/10" />
+
       <BreadcrumbNav />
 
       {/* Page header */}
       <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-text-primary">Students</h1>
+          <div className="inline-flex items-center gap-2 rounded-full border border-border-light dark:border-cyan-400/25 bg-surface/80 dark:bg-slate-900/70 px-3 py-1 mb-2">
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            <span className="text-[11px] uppercase tracking-[0.14em] font-semibold text-text-secondary dark:text-cyan-200/80">Director View</span>
+          </div>
+          <h1 className="text-2xl font-black text-text-primary tracking-tight">Students</h1>
           <p className="text-sm text-text-secondary mt-0.5">Overview across all branches</p>
         </div>
         <Link href="/dashboard/director/students/all">
-          <Button variant="primary" size="md" className="gap-2">
+          <Button variant="primary" size="md" className="gap-2 shadow-md shadow-primary/20 dark:shadow-cyan-400/25">
             <Users className="h-4 w-4" />
             All Students
             {totalActive !== undefined && (
@@ -302,13 +310,13 @@ export default function DirectorStudentsPage() {
 
       {/* Summary strip — 3 sections */}
       <motion.div variants={itemVariants}>
-        <Card className="border-border-light">
+        <Card className="border-border-light dark:border-cyan-500/20 bg-surface dark:bg-gradient-to-br dark:from-slate-900/95 dark:via-slate-900/90 dark:to-cyan-950/35 overflow-hidden">
           <CardContent className="p-0">
-            <div className="grid grid-cols-3 divide-x divide-border-light">
+            <div className="grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-border-light dark:divide-cyan-900/50">
 
               {/* ── Section 1: Total & Active ── */}
               <div className="flex items-center gap-4 px-5 py-4">
-                <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <div className="w-9 h-9 rounded-full bg-primary/10 dark:bg-cyan-400/12 ring-1 ring-transparent dark:ring-cyan-300/25 flex items-center justify-center shrink-0">
                   <GraduationCap className="h-4 w-4 text-primary" />
                 </div>
                 <div className="flex gap-5">
@@ -348,21 +356,21 @@ export default function DirectorStudentsPage() {
                   </div>
                 ) : globalTypeCounts && (
                   <div className="grid grid-cols-4 gap-1.5">
-                    <div className="rounded-lg bg-green-50 border border-green-100 py-2 text-center">
-                      <p className="text-base font-black text-green-700 tabular-nums leading-none"><AnimatedNumber value={globalTypeCounts.fresher} /></p>
-                      <p className="text-[9px] text-green-500 font-semibold mt-1 uppercase tracking-wider">Fresher</p>
+                    <div className="rounded-lg bg-green-50 border border-green-100 dark:bg-emerald-500/12 dark:border-emerald-300/20 py-2 text-center">
+                      <p className="text-base font-black text-green-700 dark:text-emerald-200 tabular-nums leading-none"><AnimatedNumber value={globalTypeCounts.fresher} /></p>
+                      <p className="text-[9px] text-green-500 dark:text-emerald-300/70 font-semibold mt-1 uppercase tracking-wider">Fresher</p>
                     </div>
-                    <div className="rounded-lg bg-blue-50 border border-blue-100 py-2 text-center">
-                      <p className="text-base font-black text-blue-700 tabular-nums leading-none"><AnimatedNumber value={globalTypeCounts.existing} /></p>
-                      <p className="text-[9px] text-blue-400 font-semibold mt-1 uppercase tracking-wider">Existing</p>
+                    <div className="rounded-lg bg-blue-50 border border-blue-100 dark:bg-sky-500/12 dark:border-sky-300/20 py-2 text-center">
+                      <p className="text-base font-black text-blue-700 dark:text-sky-200 tabular-nums leading-none"><AnimatedNumber value={globalTypeCounts.existing} /></p>
+                      <p className="text-[9px] text-blue-400 dark:text-sky-300/70 font-semibold mt-1 uppercase tracking-wider">Existing</p>
                     </div>
-                    <div className="rounded-lg bg-amber-50 border border-amber-100 py-2 text-center">
-                      <p className="text-base font-black text-amber-700 tabular-nums leading-none"><AnimatedNumber value={globalTypeCounts.rejoining} /></p>
-                      <p className="text-[9px] text-amber-500 font-semibold mt-1 uppercase tracking-wider">Rejoin</p>
+                    <div className="rounded-lg bg-amber-50 border border-amber-100 dark:bg-amber-500/12 dark:border-amber-300/20 py-2 text-center">
+                      <p className="text-base font-black text-amber-700 dark:text-amber-200 tabular-nums leading-none"><AnimatedNumber value={globalTypeCounts.rejoining} /></p>
+                      <p className="text-[9px] text-amber-500 dark:text-amber-300/70 font-semibold mt-1 uppercase tracking-wider">Rejoin</p>
                     </div>
-                    <div className="rounded-lg bg-app-bg border border-border-light py-2 text-center">
-                      <p className="text-base font-black text-text-tertiary tabular-nums leading-none"><AnimatedNumber value={globalTypeCounts.unenrolled} /></p>
-                      <p className="text-[9px] text-text-tertiary/60 font-semibold mt-1 uppercase tracking-wider">N/A</p>
+                    <div className="rounded-lg bg-app-bg border border-border-light dark:bg-slate-400/10 dark:border-slate-500/30 py-2 text-center">
+                      <p className="text-base font-black text-text-tertiary dark:text-slate-200 tabular-nums leading-none"><AnimatedNumber value={globalTypeCounts.unenrolled} /></p>
+                      <p className="text-[9px] text-text-tertiary/60 dark:text-slate-300/70 font-semibold mt-1 uppercase tracking-wider">N/A</p>
                     </div>
                   </div>
                 )}
@@ -378,35 +386,35 @@ export default function DirectorStudentsPage() {
                 ) : globalPlanCounts && (
                   <div className="space-y-1.5">
                     <div className="grid grid-cols-3 gap-1.5">
-                      <div className="rounded-lg bg-purple-50 border border-purple-100 py-2 text-center">
-                        <p className="text-base font-black text-purple-700 tabular-nums leading-none"><AnimatedNumber value={globalPlanCounts.advanced} /></p>
-                        <p className="text-[9px] text-purple-400 font-semibold mt-1 uppercase tracking-wider">Advanced</p>
+                      <div className="rounded-lg bg-purple-50 border border-purple-100 dark:bg-fuchsia-500/12 dark:border-fuchsia-300/20 py-2 text-center">
+                        <p className="text-base font-black text-purple-700 dark:text-fuchsia-200 tabular-nums leading-none"><AnimatedNumber value={globalPlanCounts.advanced} /></p>
+                        <p className="text-[9px] text-purple-400 dark:text-fuchsia-300/70 font-semibold mt-1 uppercase tracking-wider">Advanced</p>
                       </div>
-                      <div className="rounded-lg bg-blue-50 border border-blue-100 py-2 text-center">
-                        <p className="text-base font-black text-blue-700 tabular-nums leading-none"><AnimatedNumber value={globalPlanCounts.intermediate} /></p>
-                        <p className="text-[9px] text-blue-400 font-semibold mt-1 uppercase tracking-wider">Inter</p>
+                      <div className="rounded-lg bg-blue-50 border border-blue-100 dark:bg-sky-500/12 dark:border-sky-300/20 py-2 text-center">
+                        <p className="text-base font-black text-blue-700 dark:text-sky-200 tabular-nums leading-none"><AnimatedNumber value={globalPlanCounts.intermediate} /></p>
+                        <p className="text-[9px] text-blue-400 dark:text-sky-300/70 font-semibold mt-1 uppercase tracking-wider">Inter</p>
                       </div>
-                      <div className="rounded-lg bg-emerald-50 border border-emerald-100 py-2 text-center">
-                        <p className="text-base font-black text-emerald-700 tabular-nums leading-none"><AnimatedNumber value={globalPlanCounts.basic} /></p>
-                        <p className="text-[9px] text-emerald-500 font-semibold mt-1 uppercase tracking-wider">Basic</p>
+                      <div className="rounded-lg bg-emerald-50 border border-emerald-100 dark:bg-emerald-500/12 dark:border-emerald-300/20 py-2 text-center">
+                        <p className="text-base font-black text-emerald-700 dark:text-emerald-200 tabular-nums leading-none"><AnimatedNumber value={globalPlanCounts.basic} /></p>
+                        <p className="text-[9px] text-emerald-500 dark:text-emerald-300/70 font-semibold mt-1 uppercase tracking-wider">Basic</p>
                       </div>
                     </div>
                     {((globalPlanCounts.freeAccess ?? 0) > 0 || (globalPlanCounts.demo ?? 0) > 0 || globalNaPlanCount > 0) && (
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {(globalPlanCounts.freeAccess ?? 0) > 0 && (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-50 rounded-full px-2 py-0.5">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 dark:text-amber-200 bg-amber-50 dark:bg-amber-400/12 rounded-full px-2 py-0.5">
                             <span className="w-1 h-1 rounded-full bg-amber-500" />
                             <AnimatedNumber value={globalPlanCounts.freeAccess} /> Free
                           </span>
                         )}
                         {(globalPlanCounts.demo ?? 0) > 0 && (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-fuchsia-700 bg-fuchsia-50 rounded-full px-2 py-0.5">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-fuchsia-700 dark:text-fuchsia-200 bg-fuchsia-50 dark:bg-fuchsia-400/12 rounded-full px-2 py-0.5">
                             <span className="w-1 h-1 rounded-full bg-fuchsia-500" />
                             <AnimatedNumber value={globalPlanCounts.demo} /> Demo
                           </span>
                         )}
                         {globalNaPlanCount > 0 && (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-cyan-700 bg-cyan-50 rounded-full px-2 py-0.5">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-cyan-700 dark:text-cyan-200 bg-cyan-50 dark:bg-cyan-400/12 rounded-full px-2 py-0.5">
                             <span className="w-1 h-1 rounded-full bg-cyan-500" />
                             <AnimatedNumber value={globalNaPlanCount} /> N/A
                           </span>
@@ -430,10 +438,10 @@ export default function DirectorStudentsPage() {
             placeholder="Search branches..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
+            className="pl-9 bg-surface/80 dark:bg-slate-900/70 border-border-light dark:border-cyan-500/25"
           />
         </div>
-        <Badge variant="outline" className="text-xs font-medium shrink-0">
+        <Badge variant="outline" className="text-xs font-medium shrink-0 bg-surface/80 dark:bg-slate-900/70 dark:border-cyan-500/25">
           {filtered.length} branches
         </Badge>
       </motion.div>

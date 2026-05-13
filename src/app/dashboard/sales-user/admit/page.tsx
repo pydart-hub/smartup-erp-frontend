@@ -372,7 +372,7 @@ function AdmitPageContent() {
         docstatus: 1,
       }),
     enabled: !!(selectedBranch && feeProgram && selectedAcademicYear),
-    staleTime: 60_000,
+    staleTime: 0,
   });
 
   const feeStructures = useMemo(() => feeStructuresRes?.data ?? [], [feeStructuresRes]);

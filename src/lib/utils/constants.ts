@@ -180,6 +180,7 @@ export const DIRECTOR_NAV: NavItem[] = [
 
 export const INSTRUCTOR_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard/instructor", icon: "LayoutDashboard", emoji: "📊" },
+  { label: "My Assignments", href: "/dashboard/instructor/my-assignments", icon: "ClipboardList", emoji: "🗂️" },
   { label: "My Batches", href: "/dashboard/instructor/batches", icon: "Users", emoji: "👥" },
   { label: "Students", href: "/dashboard/instructor/students", icon: "GraduationCap", emoji: "👨‍🎓" },
   { label: "Attendance", href: "/dashboard/instructor/attendance", icon: "ClipboardCheck", emoji: "✅" },
@@ -215,6 +216,7 @@ export const SALES_USER_NAV: NavItem[] = [
 
 export const GENERAL_MANAGER_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard/general-manager", icon: "LayoutDashboard", emoji: "📊" },
+  { label: "Work Assignments", href: "/dashboard/general-manager/work-assignments", icon: "ClipboardList", emoji: "🗂️" },
   {
     label: "Students", href: "/dashboard/general-manager/students", icon: "GraduationCap", emoji: "👨‍🎓",
     children: [

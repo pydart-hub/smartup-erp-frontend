@@ -293,14 +293,22 @@ export async function getInstructors(params?: {
 
 /** Get instructors filtered by company (branch) via Employee cross-reference */
 export async function getInstructorsByCompany(company: string): Promise<Instructor[]> {
-  // Step 1: Get employee names for this company
+  // Strategy 1: filter directly by custom_company field on the Instructor doctype
+  try {
+    const filters = encodeURIComponent(JSON.stringify([["custom_company", "=", company]]));
+    const { data } = await apiClient.get(
+      `/resource/Instructor?fields=${encodeURIComponent(INSTRUCTOR_FIELDS)}&filters=${filters}&limit_page_length=500&order_by=instructor_name asc`
+    );
+    const direct: Instructor[] = data?.data ?? [];
+    if (direct.length > 0) return direct;
+  } catch {
+    // fall through to employee cross-reference
+  }
+
+  // Strategy 2: cross-reference via Employee doctype (legacy fallback)
   const empRes = await getEmployees({ company, status: "Active", limit_page_length: 500 });
   const employeeNames = new Set(empRes.data.map((e) => e.name));
-
-  // Step 2: Get all instructors
   const instrRes = await getInstructors({ limit_page_length: 500 });
-
-  // Step 3: Filter instructors whose employee is in this company
   return instrRes.data.filter((i) => employeeNames.has(i.employee));
 }
 

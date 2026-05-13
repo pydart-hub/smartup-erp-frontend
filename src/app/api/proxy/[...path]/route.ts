@@ -197,6 +197,13 @@ async function proxyRequest(request: NextRequest, method: string) {
           );
         }
 
+        // Allow instructors to PUT on Work Assignment (submitting their own work).
+        // Security: admin token is used so Frappe accepts the write; the client-side
+        // code only updates the instructor's own child row.
+        if (doctype === "Work Assignment" && method === "PUT") {
+          allowInstructorTopicCoverageWrite = true; // reuse flag → admin token path
+        }
+
         // Allow ONLY topic-coverage toggles on Course Schedule for pure instructors.
         if (doctype === "Course Schedule" && method === "PUT") {
           const payload =
@@ -390,10 +397,21 @@ async function proxyRequest(request: NextRequest, method: string) {
       !!ownInstructorDocMatch &&
       decodeURIComponent(ownInstructorDocMatch[1]) === sessionData.instructor_name;
 
+    // Work Assignment reads — Frappe's custom doctype permissions may not grant
+    // read access to all roles (GM, Instructor, etc.) or to docs created by
+    // a different owner. Use admin token for ALL Work Assignment GETs so every
+    // authenticated user can read them. Write access is still controlled by the
+    // frontend and existing instructor write-guard above.
+    const isWorkAssignmentRead =
+      method === "GET" &&
+      (proxyPath.startsWith("resource/Work%20Assignment") ||
+        proxyPath.startsWith("resource/Work Assignment"));
+
     const useAdminToken =
       ((isBranchManager || isHRManager) && !isAdmin) ||
       allowInstructorTopicCoverageWrite ||
-      isOwnInstructorDocRead;
+      isOwnInstructorDocRead ||
+      isWorkAssignmentRead;
     if (!useAdminToken && hasUserToken) {
       headers["Authorization"] = `token ${sessionData.api_key}:${sessionData.api_secret}`;
     } else {

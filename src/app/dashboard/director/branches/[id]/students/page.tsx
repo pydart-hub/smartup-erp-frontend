@@ -49,19 +49,24 @@ function ProgramStudentCount({ batchNames, branchName }: { batchNames: string[];
         {isLoading ? "..." : `${total} student${total !== 1 ? "s" : ""}`}
       </p>
       {hasPlan && (
-        <div className="flex items-center gap-1.5">
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-purple-50 text-[10px] font-semibold text-purple-700">
-            <span className="w-1 h-1 rounded-full bg-purple-500" />{planCounts.advanced} Adv
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded font-bold text-xs bg-purple-600 text-white dark:bg-fuchsia-500 dark:text-white">
+            <span className="w-1.5 h-1.5 rounded-full bg-white" />{planCounts.advanced} Adv
           </span>
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-50 text-[10px] font-semibold text-blue-700">
-            <span className="w-1 h-1 rounded-full bg-blue-500" />{planCounts.intermediate} Int
+          <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded font-bold text-xs bg-sky-600 text-white dark:bg-sky-500 dark:text-white">
+            <span className="w-1.5 h-1.5 rounded-full bg-white" />{planCounts.intermediate} Int
           </span>
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 text-[10px] font-semibold text-emerald-700">
-            <span className="w-1 h-1 rounded-full bg-emerald-500" />{planCounts.basic} Basic
+          <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded font-bold text-xs bg-emerald-600 text-white dark:bg-emerald-500 dark:text-white">
+            <span className="w-1.5 h-1.5 rounded-full bg-white" />{planCounts.basic} Basic
           </span>
           {planCounts.freeAccess > 0 && (
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 text-[10px] font-semibold text-amber-700">
-              <span className="w-1 h-1 rounded-full bg-amber-500" />{planCounts.freeAccess} Free
+            <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded font-bold text-xs bg-amber-600 text-white dark:bg-amber-500 dark:text-white">
+              <span className="w-1.5 h-1.5 rounded-full bg-white" />{planCounts.freeAccess} Free
+            </span>
+          )}
+          {planCounts.demo > 0 && (
+            <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded font-bold text-xs bg-fuchsia-600 text-white dark:bg-fuchsia-500 dark:text-white">
+              <span className="w-1.5 h-1.5 rounded-full bg-white" />{planCounts.demo} Demo
             </span>
           )}
         </div>
@@ -208,35 +213,35 @@ export default function BranchStudentsPage() {
               </div>
             </div>
             {planCounts && (planCounts.advanced + planCounts.intermediate + planCounts.basic + planCounts.freeAccess + oneToOneCount > 0) && (
-              <div className="flex justify-center gap-2 mt-2 pt-2 border-t border-border-light">
-                <div className="rounded-md bg-purple-50 px-2.5 py-1 text-center">
-                  <p className="text-xs font-bold text-purple-700 tabular-nums">{planCounts.advanced}</p>
-                  <p className="text-[9px] text-purple-400 font-medium uppercase tracking-wider">Adv</p>
+              <div className="flex flex-wrap justify-center gap-2 mt-3 pt-3 border-t border-border-light">
+                <div className="rounded px-3 py-2 text-center bg-purple-600 dark:bg-fuchsia-500">
+                  <p className="text-sm font-bold text-white tabular-nums">{planCounts.advanced}</p>
+                  <p className="text-[9px] text-white font-semibold uppercase tracking-wider">Adv</p>
                 </div>
-                <div className="rounded-md bg-blue-50 px-2.5 py-1 text-center">
-                  <p className="text-xs font-bold text-blue-700 tabular-nums">{planCounts.intermediate}</p>
-                  <p className="text-[9px] text-blue-400 font-medium uppercase tracking-wider">Int</p>
+                <div className="rounded px-3 py-2 text-center bg-sky-600 dark:bg-sky-500">
+                  <p className="text-sm font-bold text-white tabular-nums">{planCounts.intermediate}</p>
+                  <p className="text-[9px] text-white font-semibold uppercase tracking-wider">Int</p>
                 </div>
-                <div className="rounded-md bg-emerald-50 px-2.5 py-1 text-center">
-                  <p className="text-xs font-bold text-emerald-700 tabular-nums">{planCounts.basic}</p>
-                  <p className="text-[9px] text-emerald-400 font-medium uppercase tracking-wider">Basic</p>
+                <div className="rounded px-3 py-2 text-center bg-emerald-600 dark:bg-emerald-500">
+                  <p className="text-sm font-bold text-white tabular-nums">{planCounts.basic}</p>
+                  <p className="text-[9px] text-white font-semibold uppercase tracking-wider">Basic</p>
                 </div>
                 {planCounts.freeAccess > 0 && (
-                  <div className="rounded-md bg-amber-50 px-2.5 py-1 text-center">
-                    <p className="text-xs font-bold text-amber-700 tabular-nums">{planCounts.freeAccess}</p>
-                    <p className="text-[9px] text-amber-400 font-medium uppercase tracking-wider">Free</p>
+                  <div className="rounded px-3 py-2 text-center bg-amber-600 dark:bg-amber-500">
+                    <p className="text-sm font-bold text-white tabular-nums">{planCounts.freeAccess}</p>
+                    <p className="text-[9px] text-white font-semibold uppercase tracking-wider">Free</p>
                   </div>
                 )}
                 {planCounts.demo > 0 && (
-                  <div className="rounded-md bg-fuchsia-50 px-2.5 py-1 text-center">
-                    <p className="text-xs font-bold text-fuchsia-700 tabular-nums">{planCounts.demo}</p>
-                    <p className="text-[9px] text-fuchsia-400 font-medium uppercase tracking-wider">Demo</p>
+                  <div className="rounded px-3 py-2 text-center bg-fuchsia-600 dark:bg-fuchsia-500">
+                    <p className="text-sm font-bold text-white tabular-nums">{planCounts.demo}</p>
+                    <p className="text-[9px] text-white font-semibold uppercase tracking-wider">Demo</p>
                   </div>
                 )}
                 {oneToOneCount > 0 && (
-                  <div className="rounded-md bg-cyan-50 px-2.5 py-1 text-center">
-                    <p className="text-xs font-bold text-cyan-700 tabular-nums">{oneToOneCount}</p>
-                    <p className="text-[9px] text-cyan-500 font-medium uppercase tracking-wider">1:1</p>
+                  <div className="rounded px-3 py-2 text-center bg-cyan-600 dark:bg-cyan-500">
+                    <p className="text-sm font-bold text-white tabular-nums">{oneToOneCount}</p>
+                    <p className="text-[9px] text-white font-semibold uppercase tracking-wider">1:1</p>
                   </div>
                 )}
               </div>

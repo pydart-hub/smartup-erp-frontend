@@ -18,6 +18,7 @@ import type { DotLottie } from "@lottiefiles/dotlottie-react";
 import Link from "next/link";
 import { useClassReminders } from "@/lib/hooks/useClassReminders";
 import { useTransferNotifications } from "@/lib/hooks/useTransferNotifications";
+import { useWorkAssignmentNotifications } from "@/lib/hooks/useWorkAssignmentNotifications";
 import type { ClassReminder } from "@/lib/stores/notificationStore";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -59,10 +60,11 @@ export function NotificationDropdown() {
   const { reminders, dismissReminder, dismissAll, unreadCount, isInstructor } =
     useClassReminders();
   const { pendingTransfers, pendingCount } = useTransferNotifications();
+  const { pendingAssignments, waPendingCount } = useWorkAssignmentNotifications();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  const totalUnread = unreadCount + pendingCount;
+  const totalUnread = unreadCount + pendingCount + waPendingCount;
 
   // Close on outside click
   useEffect(() => {
@@ -183,6 +185,42 @@ export function NotificationDropdown() {
                 </div>
               )}
 
+              {/* ── Pending Work Assignments (instructor only) ── */}
+              {isInstructor && pendingAssignments.length > 0 && (
+                <div className="p-2 space-y-1">
+                  <div className="px-2 py-1">
+                    <p className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider">
+                      Work Assignments Due
+                    </p>
+                  </div>
+                  {pendingAssignments.map((a) => (
+                    <Link
+                      key={a.name}
+                      href="/dashboard/instructor/my-assignments"
+                      onClick={() => setOpen(false)}
+                      className="block"
+                    >
+                      <motion.div
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="relative rounded-[10px] p-3 bg-primary/5 border border-primary/15 hover:bg-primary/10 transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="mt-0.5 p-1.5 rounded-[8px] bg-primary/10">
+                            <BookOpen className="h-4 w-4 text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0 space-y-0.5">
+                            <p className="font-semibold text-sm text-text-primary truncate">{a.title}</p>
+                            <p className="text-xs text-text-secondary">Due: {a.deadline}</p>
+                            <p className="text-[11px] text-primary font-medium">Submission pending</p>
+                          </div>
+                        </div>
+                      </motion.div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+
               {/* ── Class reminders ── */}
               {!isInstructor && pendingCount === 0 ? (
                 <div className="px-4 py-8 text-center">
@@ -191,7 +229,7 @@ export function NotificationDropdown() {
                 </div>
               ) : !isInstructor && pendingCount > 0 ? (
                 null /* transfers already shown above */
-              ) : reminders.length === 0 && pendingCount === 0 ? (
+              ) : reminders.length === 0 && pendingCount === 0 && waPendingCount === 0 ? (
                 <div className="px-4 py-8 text-center">
                   <Bell className="h-8 w-8 text-text-tertiary mx-auto mb-2 opacity-40" />
                   <p className="text-sm text-text-tertiary">
