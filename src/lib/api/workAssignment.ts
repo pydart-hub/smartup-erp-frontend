@@ -97,7 +97,7 @@ export async function deleteWorkAssignment(id: string): Promise<void> {
       if (cursor === id && (data?.docstatus ?? 0) === 1) {
         await apiClient.put(`/resource/Work Assignment/${encodeURIComponent(cursor)}`, { docstatus: 2 });
       }
-      cursor = data?.amended_from ?? null;
+      cursor = (data?.amended_from as string) ?? null;
     } catch {
       break;
     }
