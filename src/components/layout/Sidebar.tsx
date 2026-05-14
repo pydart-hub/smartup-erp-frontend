@@ -113,9 +113,9 @@ export function Sidebar({ navItems = BRANCH_MANAGER_NAV }: SidebarProps) {
     if (isActive) {
       return (
         <motion.span
-          className={cn("shrink-0 flex items-center justify-center", isChild ? "text-base" : "text-lg")}
-          animate={{ y: [0, -3, 0] }}
-          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+          className={cn("shrink-0 flex items-center justify-center", isChild ? "text-sm" : "text-base")}
+          animate={{ y: [0, -2, 0] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
         >
           {emoji}
         </motion.span>
@@ -123,8 +123,8 @@ export function Sidebar({ navItems = BRANCH_MANAGER_NAV }: SidebarProps) {
     }
 
     const IconComp = iconMap[iconName] || LayoutDashboard;
-    const sizeClass = isChild ? "h-4 w-4" : "h-5 w-5";
-    return <IconComp className={cn(sizeClass, "shrink-0 text-text-tertiary group-hover:text-text-secondary")} />;
+    const sizeClass = isChild ? "h-3.5 w-3.5" : "h-4.5 w-4.5";
+    return <IconComp className={cn(sizeClass, "shrink-0 text-text-tertiary group-hover:text-text-secondary transition-colors")} />;
   };
 
   const renderNavLink = (item: NavItem, isChild = false) => {
@@ -136,11 +136,11 @@ export function Sidebar({ navItems = BRANCH_MANAGER_NAV }: SidebarProps) {
         href={item.href}
         onClick={() => setSidebarOpen(false)}
         className={cn(
-          "group flex items-center gap-3 rounded-[10px] px-3 transition-all duration-200 relative",
+          "group flex items-center gap-3 rounded-xl px-3 transition-all duration-200 relative",
           isChild ? "py-1.5 text-xs font-normal" : "py-2.5 text-sm font-medium",
           isActive
-            ? "bg-brand-wash text-primary"
-            : "text-text-secondary hover:bg-app-bg hover:text-text-primary",
+            ? "text-white"
+            : "text-text-secondary hover:text-text-primary",
           sidebarCollapsed && "justify-center px-0",
           isChild && !sidebarCollapsed && "pl-10"
         )}
@@ -148,19 +148,24 @@ export function Sidebar({ navItems = BRANCH_MANAGER_NAV }: SidebarProps) {
         {isActive && (
           <motion.div
             layoutId="sidebar-active"
-            className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-primary rounded-r-full"
+            className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary to-teal-500 shadow-[0_4px_16px_rgba(26,158,143,0.4)]"
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
           />
         )}
-        {renderIcon(item.icon, item.emoji, isActive, isChild)}
-        {!sidebarCollapsed && <span>{item.label}</span>}
-        {item.badge && !sidebarCollapsed && (
-          <span className="ml-auto text-xs bg-error text-white rounded-full px-2 py-0.5">
-            {item.badge}
-          </span>
+        {!isActive && (
+          <span className="absolute inset-0 rounded-xl bg-transparent group-hover:bg-black/[0.04] dark:group-hover:bg-white/[0.05] transition-colors" />
         )}
+        <span className="relative flex items-center gap-3 w-full">
+          {renderIcon(item.icon, item.emoji, isActive, isChild)}
+          {!sidebarCollapsed && <span className="truncate">{item.label}</span>}
+          {item.badge && !sidebarCollapsed && (
+            <span className="ml-auto text-[10px] font-bold bg-error text-white rounded-full px-1.5 py-0.5 min-w-[18px] text-center">
+              {item.badge}
+            </span>
+          )}
+        </span>
         {sidebarCollapsed && (
-          <div className="absolute left-full ml-2 px-2.5 py-1.5 bg-text-primary text-white text-xs rounded-[8px] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-lg">
+          <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-slate-900/90 dark:bg-slate-800/90 backdrop-blur-sm text-white text-xs rounded-xl opacity-0 group-hover:opacity-100 transition-all pointer-events-none whitespace-nowrap z-50 shadow-xl border border-white/10">
             {item.label}
           </div>
         )}
@@ -177,7 +182,7 @@ export function Sidebar({ navItems = BRANCH_MANAGER_NAV }: SidebarProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/30 z-40 lg:hidden"
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}
@@ -186,40 +191,44 @@ export function Sidebar({ navItems = BRANCH_MANAGER_NAV }: SidebarProps) {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed top-0 left-0 z-50 h-full bg-surface border-r border-border-light flex flex-col transition-all duration-300 ease-in-out",
+          "fixed top-0 left-0 z-50 h-full flex flex-col transition-all duration-300 ease-in-out",
+          "bg-white/80 dark:bg-slate-900/85 backdrop-blur-xl",
+          "border-r border-white/40 dark:border-white/[0.08]",
+          "shadow-[2px_0_24px_rgba(0,0,0,0.06)]",
           // Desktop
           "lg:relative lg:translate-x-0",
-          sidebarCollapsed ? "lg:w-[72px]" : "lg:w-[260px]",
+          sidebarCollapsed ? "lg:w-[72px]" : "lg:w-[256px]",
           // Mobile
-          sidebarOpen ? "translate-x-0 w-[280px]" : "-translate-x-full w-[280px]",
+          sidebarOpen ? "translate-x-0 w-[272px]" : "-translate-x-full w-[272px]",
           "lg:translate-x-0"
         )}
       >
         {/* Header */}
         <div className={cn(
-          "h-16 flex items-center border-b border-border-light px-4 shrink-0",
+          "h-16 flex items-center border-b border-white/30 dark:border-white/[0.08] px-4 shrink-0",
           sidebarCollapsed ? "justify-center" : "justify-between"
         )}>
           {!sidebarCollapsed && (
             <Link href={homeHref} className="flex items-center gap-2.5">
-              <Image src="/smartup-logo.png" alt="SmartUp" width={48} height={48} className="object-contain block flex-shrink-0" />
-              <span className="font-bold text-text-primary text-lg">Smartup</span>
+              <Image src="/smartup-logo.png" alt="SmartUp" width={36} height={36} className="object-contain block flex-shrink-0 drop-shadow-sm" />
+              <span className="font-black text-text-primary text-lg tracking-tight">Smartup</span>
             </Link>
           )}
           {sidebarCollapsed && (
-            <Image src="/smartup-logo.png" alt="SmartUp" width={48} height={48} className="object-contain block flex-shrink-0" />
+            <Image src="/smartup-logo.png" alt="SmartUp" width={36} height={36} className="object-contain block flex-shrink-0 drop-shadow-sm" />
           )}
           {/* Mobile close */}
-          <button
+          <motion.button
+            whileTap={{ scale: 0.9 }}
             onClick={() => setSidebarOpen(false)}
-            className="lg:hidden text-text-tertiary hover:text-text-primary transition-colors"
+            className="lg:hidden text-text-tertiary hover:text-text-primary transition-colors p-1 rounded-lg hover:bg-black/5"
           >
             <X className="h-5 w-5" />
-          </button>
+          </motion.button>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+        <nav className="flex-1 overflow-y-auto py-3 px-2.5 space-y-0.5">
           {visibleNavItems.map((item) => {
             // Items with children → collapsible group
             if (item.children?.length) {
@@ -235,37 +244,44 @@ export function Sidebar({ navItems = BRANCH_MANAGER_NAV }: SidebarProps) {
                       href={item.href}
                       onClick={() => setSidebarOpen(false)}
                       className={cn(
-                        "group flex-1 flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-sm font-medium transition-all duration-200 relative",
+                        "group flex-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 relative",
                         isParentActive
-                          ? "bg-brand-wash text-primary"
+                          ? "text-white"
                           : isChildActive
                             ? "text-primary"
-                            : "text-text-secondary hover:bg-app-bg hover:text-text-primary",
+                            : "text-text-secondary hover:text-text-primary",
                         sidebarCollapsed && "justify-center px-0"
                       )}
                     >
                       {isParentActive && (
                         <motion.div
                           layoutId="sidebar-active"
-                          className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-primary rounded-r-full"
+                          className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary to-teal-500 shadow-[0_4px_16px_rgba(26,158,143,0.4)]"
                           transition={{ type: "spring", stiffness: 300, damping: 30 }}
                         />
                       )}
-                      {renderIcon(item.icon, item.emoji, isParentActive)}
-                      {!sidebarCollapsed && <span>{item.label}</span>}
+                      {!isParentActive && (
+                        <span className="absolute inset-0 rounded-xl bg-transparent group-hover:bg-black/[0.04] dark:group-hover:bg-white/[0.05] transition-colors" />
+                      )}
+                      <span className="relative flex items-center gap-3">
+                        {renderIcon(item.icon, item.emoji, isParentActive)}
+                        {!sidebarCollapsed && <span>{item.label}</span>}
+                      </span>
                       {sidebarCollapsed && (
-                        <div className="absolute left-full ml-2 px-2.5 py-1.5 bg-text-primary text-white text-xs rounded-[8px] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-lg">
+                        <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-slate-900/90 dark:bg-slate-800/90 backdrop-blur-sm text-white text-xs rounded-xl opacity-0 group-hover:opacity-100 transition-all pointer-events-none whitespace-nowrap z-50 shadow-xl border border-white/10">
                           {item.label}
                         </div>
                       )}
                     </Link>
                     {!sidebarCollapsed && (
-                      <button
+                      <motion.button
+                        animate={{ rotate: isOpen ? 180 : 0 }}
+                        transition={{ duration: 0.22 }}
                         onClick={() => toggleGroup(item.href)}
-                        className="p-1.5 rounded-md text-text-tertiary hover:text-text-primary hover:bg-app-bg transition-colors"
+                        className="p-1.5 rounded-lg text-text-tertiary hover:text-text-primary hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-colors"
                       >
-                        <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", isOpen && "rotate-180")} />
-                      </button>
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      </motion.button>
                     )}
                   </div>
 
@@ -277,10 +293,12 @@ export function Sidebar({ navItems = BRANCH_MANAGER_NAV }: SidebarProps) {
                           initial={{ height: 0, opacity: 0 }}
                           animate={{ height: "auto", opacity: 1 }}
                           exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.2 }}
+                          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
                           className="overflow-hidden"
                         >
-                          {item.children.map((child) => renderNavLink(child, true))}
+                          <div className="py-1 space-y-0.5">
+                            {item.children.map((child) => renderNavLink(child, true))}
+                          </div>
                         </motion.div>
                       )}
                     </AnimatePresence>
@@ -295,17 +313,19 @@ export function Sidebar({ navItems = BRANCH_MANAGER_NAV }: SidebarProps) {
         </nav>
 
         {/* Collapse Toggle (Desktop only) */}
-        <div className="hidden lg:flex items-center justify-center p-3 border-t border-border-light">
-          <button
+        <div className="hidden lg:flex items-center justify-center p-3 border-t border-white/30 dark:border-white/[0.08]">
+          <motion.button
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.92 }}
             onClick={toggleSidebarCollapsed}
-            className="w-8 h-8 rounded-full bg-app-bg hover:bg-brand-wash flex items-center justify-center text-text-tertiary hover:text-primary transition-all"
+            className="w-8 h-8 rounded-xl bg-black/[0.04] dark:bg-white/[0.05] hover:bg-primary/10 flex items-center justify-center text-text-tertiary hover:text-primary transition-all border border-white/30 dark:border-white/10"
           >
             {sidebarCollapsed ? (
               <ChevronRight className="h-4 w-4" />
             ) : (
               <ChevronLeft className="h-4 w-4" />
             )}
-          </button>
+          </motion.button>
         </div>
       </aside>
     </>

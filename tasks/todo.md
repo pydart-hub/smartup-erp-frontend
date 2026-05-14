@@ -1,5 +1,18 @@
 # SmartUp ERP — Task Tracker
 
+## Current: Director Leaderboard Route Split (2026-05-14)
+
+- [x] Create a Director leaderboard selector page with two cards (Branch, Instructor)
+- [x] Move existing Director Branch Leaderboard implementation behind the Branch card route
+- [x] Add an empty Instructor leaderboard page as placeholder
+- [x] Validate TypeScript diagnostics on touched files
+
+### Review
+- Replaced the Director leaderboard index route with a two-card selector page so sidebar click now opens Branch/Instructor options.
+- Moved the previous full Branch Leaderboard implementation to `/dashboard/director/leaderboard/branch` by copying the existing page into that route.
+- Added a new Instructor Leaderboard route at `/dashboard/director/leaderboard/instructor` as an intentionally empty placeholder.
+- Verified diagnostics for touched files with no TypeScript errors.
+
 ## Current: Kadavanthra + Edappally Advanced Fee Structure Deep Study (2026-05-13)
 
 - [x] Locate and inspect the workbook `docs/kadavanthra&EDAPPALLY fee structure newww.xlsx`

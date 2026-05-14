@@ -28,6 +28,8 @@ import {
   getStudentCountByPlanForBranch,
   getStudentCountByTypeForBranch,
   getStudentCountByType,
+  getConvertedDemoStudentCount,
+  getConvertedDemoStudentCountForBranch,
 } from "@/lib/api/director";
 import { AnimatedNumber } from "@/components/dashboard/AnimatedValue";
 import { getBranchTarget } from "@/lib/constants/branch-targets";
@@ -59,6 +61,12 @@ function BranchCard({ branch }: { branch: { name: string; abbr: string } }) {
   const { data: planCounts, isLoading: loadingPlans } = useQuery({
     queryKey: ["director-branch-plan-counts", branch.name],
     queryFn: () => getStudentCountByPlanForBranch(branch.name),
+    staleTime: 120_000,
+  });
+
+  const { data: convertedCount } = useQuery({
+    queryKey: ["director-branch-converted-demo", branch.name],
+    queryFn: () => getConvertedDemoStudentCountForBranch(branch.name),
     staleTime: 120_000,
   });
 
@@ -172,6 +180,12 @@ function BranchCard({ branch }: { branch: { name: string; abbr: string } }) {
                         {planCounts.demo} Demo
                       </span>
                     )}
+                    {(convertedCount ?? 0) > 0 && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-200 bg-emerald-50 dark:bg-emerald-400/12 rounded-full px-2 py-0.5">
+                        <span className="w-1 h-1 rounded-full bg-emerald-500" />
+                        {convertedCount} Converted
+                      </span>
+                    )}
                     {branchNaPlanCount > 0 && (
                       <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-cyan-700 dark:text-cyan-200 bg-cyan-50 dark:bg-cyan-400/12 rounded-full px-2 py-0.5">
                         <span className="w-1 h-1 rounded-full bg-cyan-500" />
@@ -250,6 +264,12 @@ export default function DirectorStudentsPage() {
   const { data: globalPlanCounts, isLoading: loadGlobalPlans } = useQuery({
     queryKey: ["director-student-plan-counts"],
     queryFn: getStudentCountByPlan,
+    staleTime: 120_000,
+  });
+
+  const { data: globalConvertedCount } = useQuery({
+    queryKey: ["director-converted-demo-count"],
+    queryFn: getConvertedDemoStudentCount,
     staleTime: 120_000,
   });
 
@@ -411,6 +431,12 @@ export default function DirectorStudentsPage() {
                           <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-fuchsia-700 dark:text-fuchsia-200 bg-fuchsia-50 dark:bg-fuchsia-400/12 rounded-full px-2 py-0.5">
                             <span className="w-1 h-1 rounded-full bg-fuchsia-500" />
                             <AnimatedNumber value={globalPlanCounts.demo} /> Demo
+                          </span>
+                        )}
+                        {(globalConvertedCount ?? 0) > 0 && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-200 bg-emerald-50 dark:bg-emerald-400/12 rounded-full px-2 py-0.5">
+                            <span className="w-1 h-1 rounded-full bg-emerald-500" />
+                            <AnimatedNumber value={globalConvertedCount ?? 0} /> Converted
                           </span>
                         )}
                         {globalNaPlanCount > 0 && (

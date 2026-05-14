@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import { useAuthStore } from "@/lib/stores/authStore";
 import { PARENT_NAV, INSTRUCTOR_NAV, DIRECTOR_NAV, HR_MANAGER_NAV, SALES_USER_NAV, GENERAL_MANAGER_NAV } from "@/lib/utils/constants";
+import { NavigationLoader } from "@/components/NavigationLoader";
 
 function makeQueryClient() {
   return new QueryClient({
@@ -57,7 +58,14 @@ export default function DashboardLayout({
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="flex h-screen overflow-hidden bg-app-bg">
+      <div className="flex h-screen overflow-hidden bg-[#F0F4F8] dark:bg-[#080E1A] relative">
+        {/* Global ambient orbs — fixed behind everything */}
+        <div className="pointer-events-none fixed inset-0 overflow-hidden -z-10">
+          <div className="absolute top-0 left-1/4 w-[600px] h-[400px] rounded-full bg-gradient-to-br from-teal-400/10 to-emerald-300/5 blur-3xl" />
+          <div className="absolute bottom-1/4 right-0 w-[500px] h-[500px] rounded-full bg-gradient-to-tl from-violet-500/8 to-indigo-400/5 blur-3xl" />
+          <div className="absolute top-1/2 left-0 w-[400px] h-[300px] rounded-full bg-gradient-to-r from-blue-400/6 to-cyan-300/4 blur-3xl" />
+        </div>
+
         {/* Sidebar – use role-specific nav items */}
         <Sidebar navItems={sidebarNav} />
 
@@ -73,15 +81,20 @@ export default function DashboardLayout({
         </div>
       </div>
 
+      {/* Global navigation loading overlay */}
+      <NavigationLoader />
+
       {/* Toast Notifications */}
       <Toaster
         position="top-right"
         toastOptions={{
           style: {
-            borderRadius: "10px",
-            border: "1px solid var(--color-border-light)",
-            boxShadow: "var(--shadow-dropdown)",
+            borderRadius: "14px",
+            border: "1px solid rgba(255,255,255,0.4)",
+            boxShadow: "0 16px 40px rgba(0,0,0,0.12)",
             fontSize: "14px",
+            backdropFilter: "blur(12px)",
+            background: "rgba(255,255,255,0.85)",
           },
         }}
       />

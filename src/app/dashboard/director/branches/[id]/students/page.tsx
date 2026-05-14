@@ -49,24 +49,24 @@ function ProgramStudentCount({ batchNames, branchName }: { batchNames: string[];
         {isLoading ? "..." : `${total} student${total !== 1 ? "s" : ""}`}
       </p>
       {hasPlan && (
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded font-bold text-xs bg-purple-600 text-white dark:bg-fuchsia-500 dark:text-white">
-            <span className="w-1.5 h-1.5 rounded-full bg-white" />{planCounts.advanced} Adv
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-500/15 dark:text-purple-300 dark:border-purple-400/25">
+            <span className="w-1 h-1 rounded-full bg-purple-500" />{planCounts.advanced} Adv
           </span>
-          <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded font-bold text-xs bg-sky-600 text-white dark:bg-sky-500 dark:text-white">
-            <span className="w-1.5 h-1.5 rounded-full bg-white" />{planCounts.intermediate} Int
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-sky-50 text-sky-700 border border-sky-200 dark:bg-sky-500/15 dark:text-sky-300 dark:border-sky-400/25">
+            <span className="w-1 h-1 rounded-full bg-sky-500" />{planCounts.intermediate} Int
           </span>
-          <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded font-bold text-xs bg-emerald-600 text-white dark:bg-emerald-500 dark:text-white">
-            <span className="w-1.5 h-1.5 rounded-full bg-white" />{planCounts.basic} Basic
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-400/25">
+            <span className="w-1 h-1 rounded-full bg-emerald-500" />{planCounts.basic} Basic
           </span>
           {planCounts.freeAccess > 0 && (
-            <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded font-bold text-xs bg-amber-600 text-white dark:bg-amber-500 dark:text-white">
-              <span className="w-1.5 h-1.5 rounded-full bg-white" />{planCounts.freeAccess} Free
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-400/25">
+              <span className="w-1 h-1 rounded-full bg-amber-500" />{planCounts.freeAccess} Free
             </span>
           )}
           {planCounts.demo > 0 && (
-            <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded font-bold text-xs bg-fuchsia-600 text-white dark:bg-fuchsia-500 dark:text-white">
-              <span className="w-1.5 h-1.5 rounded-full bg-white" />{planCounts.demo} Demo
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-fuchsia-50 text-fuchsia-700 border border-fuchsia-200 dark:bg-fuchsia-500/15 dark:text-fuchsia-300 dark:border-fuchsia-400/25">
+              <span className="w-1 h-1 rounded-full bg-fuchsia-500" />{planCounts.demo} Demo
             </span>
           )}
         </div>
@@ -188,82 +188,91 @@ export default function BranchStudentsPage() {
         </div>
       </motion.div>
 
-      {/* Summary Cards */}
-      <motion.div variants={itemVariants} className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-        <Card className="border-border-light col-span-2 sm:col-span-1">
-          <CardContent className="p-4 text-center">
-            <GraduationCap className="h-5 w-5 text-primary mx-auto mb-2" />
-            <p className="text-2xl font-bold text-text-primary">
-              {totalCount ?? "..."}
-            </p>
-            <p className="text-xs text-text-tertiary">Total Students</p>
-            <div className="flex justify-center gap-3 mt-2">
+      {/* Summary Cards — 3 equal columns */}
+      <motion.div variants={itemVariants} className="grid grid-cols-3 gap-4">
+        {/* Card 1: Total Students */}
+        <Card className="border-border-light">
+          <CardContent className="p-5 flex flex-col items-center text-center">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+              <GraduationCap className="h-5 w-5 text-primary" />
+            </div>
+            <p className="text-3xl font-bold text-text-primary tabular-nums">{totalCount ?? "..."}</p>
+            <p className="text-xs text-text-tertiary mt-1">Total Students</p>
+            <div className="flex justify-center gap-4 mt-3 pt-3 border-t border-border-light w-full">
               <div className="text-center">
-                <p className="text-sm font-semibold text-success">
-                  {activeCount ?? "..."}
-                </p>
+                <p className="text-sm font-semibold text-success">{activeCount ?? "..."}</p>
                 <p className="text-[10px] text-text-tertiary uppercase tracking-wide">Active</p>
               </div>
               <div className="w-px bg-border-light" />
               <div className="text-center">
-                <p className="text-sm font-semibold text-error">
-                  {discontinuedCount ?? "..."}
-                </p>
-                <p className="text-[10px] text-text-tertiary uppercase tracking-wide">Discontinued</p>
+                <p className="text-sm font-semibold text-error">{discontinuedCount ?? "..."}</p>
+                <p className="text-[10px] text-text-tertiary uppercase tracking-wide">Disc.</p>
               </div>
             </div>
-            {planCounts && (planCounts.advanced + planCounts.intermediate + planCounts.basic + planCounts.freeAccess + oneToOneCount > 0) && (
-              <div className="flex flex-wrap justify-center gap-2 mt-3 pt-3 border-t border-border-light">
-                <div className="rounded px-3 py-2 text-center bg-purple-600 dark:bg-fuchsia-500">
-                  <p className="text-sm font-bold text-white tabular-nums">{planCounts.advanced}</p>
-                  <p className="text-[9px] text-white font-semibold uppercase tracking-wider">Adv</p>
-                </div>
-                <div className="rounded px-3 py-2 text-center bg-sky-600 dark:bg-sky-500">
-                  <p className="text-sm font-bold text-white tabular-nums">{planCounts.intermediate}</p>
-                  <p className="text-[9px] text-white font-semibold uppercase tracking-wider">Int</p>
-                </div>
-                <div className="rounded px-3 py-2 text-center bg-emerald-600 dark:bg-emerald-500">
-                  <p className="text-sm font-bold text-white tabular-nums">{planCounts.basic}</p>
-                  <p className="text-[9px] text-white font-semibold uppercase tracking-wider">Basic</p>
-                </div>
-                {planCounts.freeAccess > 0 && (
-                  <div className="rounded px-3 py-2 text-center bg-amber-600 dark:bg-amber-500">
-                    <p className="text-sm font-bold text-white tabular-nums">{planCounts.freeAccess}</p>
-                    <p className="text-[9px] text-white font-semibold uppercase tracking-wider">Free</p>
-                  </div>
+            {planCounts && (planCounts.advanced + planCounts.intermediate + planCounts.basic + planCounts.freeAccess + (planCounts.demo ?? 0) + oneToOneCount > 0) && (
+              <div className="flex flex-wrap justify-center gap-1.5 mt-3 pt-3 border-t border-border-light w-full">
+                {planCounts.advanced > 0 && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-500/15 dark:text-purple-300 dark:border-purple-400/25">
+                    <span className="w-1 h-1 rounded-full bg-purple-500" />{planCounts.advanced} Adv
+                  </span>
                 )}
-                {planCounts.demo > 0 && (
-                  <div className="rounded px-3 py-2 text-center bg-fuchsia-600 dark:bg-fuchsia-500">
-                    <p className="text-sm font-bold text-white tabular-nums">{planCounts.demo}</p>
-                    <p className="text-[9px] text-white font-semibold uppercase tracking-wider">Demo</p>
-                  </div>
+                {planCounts.intermediate > 0 && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-sky-50 text-sky-700 border border-sky-200 dark:bg-sky-500/15 dark:text-sky-300 dark:border-sky-400/25">
+                    <span className="w-1 h-1 rounded-full bg-sky-500" />{planCounts.intermediate} Int
+                  </span>
+                )}
+                {planCounts.basic > 0 && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-400/25">
+                    <span className="w-1 h-1 rounded-full bg-emerald-500" />{planCounts.basic} Basic
+                  </span>
+                )}
+                {(planCounts.freeAccess ?? 0) > 0 && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-400/25">
+                    <span className="w-1 h-1 rounded-full bg-amber-500" />{planCounts.freeAccess} Free
+                  </span>
+                )}
+                {(planCounts.demo ?? 0) > 0 && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-fuchsia-50 text-fuchsia-700 border border-fuchsia-200 dark:bg-fuchsia-500/15 dark:text-fuchsia-300 dark:border-fuchsia-400/25">
+                    <span className="w-1 h-1 rounded-full bg-fuchsia-500" />{planCounts.demo} Demo
+                  </span>
                 )}
                 {oneToOneCount > 0 && (
-                  <div className="rounded px-3 py-2 text-center bg-cyan-600 dark:bg-cyan-500">
-                    <p className="text-sm font-bold text-white tabular-nums">{oneToOneCount}</p>
-                    <p className="text-[9px] text-white font-semibold uppercase tracking-wider">1:1</p>
-                  </div>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-cyan-50 text-cyan-700 border border-cyan-200 dark:bg-cyan-500/15 dark:text-cyan-300 dark:border-cyan-400/25">
+                    <span className="w-1 h-1 rounded-full bg-cyan-500" />{oneToOneCount} 1:1
+                  </span>
                 )}
               </div>
             )}
           </CardContent>
         </Card>
+
+        {/* Card 2: Programs / Classes */}
         <Card className="border-border-light">
-          <CardContent className="p-4 text-center">
-            <School className="h-5 w-5 text-secondary mx-auto mb-2" />
-            <p className="text-2xl font-bold text-text-primary">
-              {isLoading ? "..." : programs.length}
-            </p>
-            <p className="text-xs text-text-tertiary">Programs / Classes</p>
+          <CardContent className="p-5 flex flex-col items-center text-center">
+            <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center mb-3">
+              <School className="h-5 w-5 text-secondary" />
+            </div>
+            <p className="text-3xl font-bold text-text-primary tabular-nums">{isLoading ? "..." : programs.length}</p>
+            <p className="text-xs text-text-tertiary mt-1">Programs / Classes</p>
+            <div className="mt-3 pt-3 border-t border-border-light w-full">
+              <p className="text-[10px] text-text-tertiary">Select a class below</p>
+            </div>
           </CardContent>
         </Card>
+
+        {/* Card 3: Active Batches */}
         <Card className="border-border-light">
-          <CardContent className="p-4 text-center">
-            <Users className="h-5 w-5 text-info mx-auto mb-2" />
-            <p className="text-2xl font-bold text-text-primary">
-              {isLoading ? "..." : activeBatches.length}
-            </p>
-            <p className="text-xs text-text-tertiary">Active Batches</p>
+          <CardContent className="p-5 flex flex-col items-center text-center">
+            <div className="w-10 h-10 rounded-full bg-info/10 flex items-center justify-center mb-3">
+              <Users className="h-5 w-5 text-info" />
+            </div>
+            <p className="text-3xl font-bold text-text-primary tabular-nums">{isLoading ? "..." : activeBatches.length}</p>
+            <p className="text-xs text-text-tertiary mt-1">Active Batches</p>
+            <div className="mt-3 pt-3 border-t border-border-light w-full">
+              <p className="text-[10px] text-text-tertiary">
+                {isLoading ? "..." : batches.length - activeBatches.length > 0 ? `${batches.length - activeBatches.length} inactive` : "All active"}
+              </p>
+            </div>
           </CardContent>
         </Card>
       </motion.div>

@@ -341,3 +341,71 @@ export interface ScheduleSummaryResponse {
     list: EventEntry[];
   };
 }
+
+// ── Instructor Leaderboard ─────────────────────────────────────────────────
+
+export type InstructorLeaderboardBadge =
+  | "always_on_time"
+  | "zero_rejections"
+  | "punctual"
+  | "full_syllabus"
+  | "had_rejections"
+  | "late_submissions";
+
+export interface InstructorLeaderboardEntry {
+  instructor: string;
+  instructor_name: string;
+  employee: string | null;
+  // HR Attendance
+  hr_present_days: number;
+  hr_total_days: number;
+  hr_attendance_pct: number;
+  late_entries: number;
+  early_exits: number;
+  // Classes
+  classes_scheduled: number;
+  classes_conducted: number;
+  classes_conducted_pct: number;
+  // Topics
+  topics_assigned: number;
+  topics_covered: number;
+  topic_coverage_pct: number;
+  // Work Assignments
+  wa_total: number;
+  wa_approved: number;
+  wa_rejected: number;
+  wa_completion_pct: number;
+  wa_on_time: number;
+  wa_on_time_pct: number;
+  // Student outcomes
+  student_pass_rate: number;
+  student_attendance_pct: number;
+  // Score breakdown
+  score_hr: number;
+  score_classes: number;
+  score_topics: number;
+  score_wa: number;
+  score_exams: number;
+  score_students: number;
+  score_ontime: number;
+  total_score: number;
+  grade: string;
+  badges: InstructorLeaderboardBadge[];
+}
+
+export interface InstructorLeaderboardResponse {
+  instructors: InstructorLeaderboardEntry[];
+  overall: {
+    total_instructors: number;
+    avg_score: number;
+    avg_classes_conducted_pct: number;
+    avg_topic_coverage_pct: number;
+    avg_wa_completion_pct: number;
+    avg_hr_attendance_pct: number;
+    avg_student_pass_rate: number;
+    avg_student_attendance_pct: number;
+    from_date: string | null;
+    to_date: string;
+    period: string;
+  };
+}

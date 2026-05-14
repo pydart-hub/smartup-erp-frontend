@@ -1567,74 +1567,126 @@ export interface DemoStudentRow {
   custom_school_name?: string;
 }
 
-/** Total demo student count (all branches) — sourced from submitted Program Enrollments with student_category="Demo" */
+/** Total demo student count (all branches) — students with custom_student_type="Demo" */
 export async function getDemoStudentCount(): Promise<number> {
-  const { data } = await apiClient.get("/resource/Program Enrollment", {
-    params: {
-      fields: JSON.stringify(["student"]),
-      filters: JSON.stringify([["docstatus", "=", 1], ["student_category", "=", "Demo"]]),
-      limit_page_length: "0",
-    },
-  });
-  const uniqueStudents = new Set<string>(
-    (data?.data ?? []).map((r: { student: string }) => r.student).filter(Boolean)
-  );
-  return uniqueStudents.size;
-}
-
-/** Demo student count for a specific branch — sourced from submitted Program Enrollments with student_category="Demo" */
-export async function getDemoStudentCountForBranch(branch: string): Promise<number> {
-  // Get active student IDs for the branch
-  const studRes = await apiClient.get("/resource/Student", {
+  const { data } = await apiClient.get("/resource/Student", {
     params: {
       fields: JSON.stringify(["name"]),
-      filters: JSON.stringify([["custom_branch", "=", branch], ["enabled", "=", 1]]),
-      limit_page_length: "0",
+      filters: JSON.stringify([["custom_student_type", "=", "Demo"], ["enabled", "=", 1]]),
+      limit_page_length: 0,
     },
   });
-  const branchIds: string[] = (studRes.data?.data ?? []).map((s: { name: string }) => s.name);
-  if (!branchIds.length) return 0;
-
-  // Count submitted Demo PEs for those students
-  const peRes = await apiClient.get("/resource/Program Enrollment", {
-    params: {
-      fields: JSON.stringify(["student"]),
-      filters: JSON.stringify([
-        ["docstatus", "=", 1],
-        ["student_category", "=", "Demo"],
-        ["student", "in", branchIds],
-      ]),
-      limit_page_length: "0",
-    },
-  });
-  const uniqueDemo = new Set<string>(
-    (peRes.data?.data ?? []).map((r: { student: string }) => r.student).filter(Boolean)
-  );
-  return uniqueDemo.size;
+  return (data?.data ?? []).length;
 }
 
-/** Get all demo students with enrollment info — sourced from submitted Program Enrollments with student_category="Demo" */
-export async function getDemoStudents(branch?: string): Promise<DemoStudentRow[]> {
-  // Step 1: Get all submitted PEs with Demo category (latest per student)
-  const peRes = await apiClient.get("/resource/Program Enrollment", {
+/** Demo student count for a specific branch — students with custom_student_type="Demo" */
+export async function getDemoStudentCountForBranch(branch: string): Promise<number> {
+  const { data } = await apiClient.get("/resource/Student", {
     params: {
-      fields: JSON.stringify(["student", "program", "student_batch_name"]),
-      filters: JSON.stringify([["docstatus", "=", 1], ["student_category", "=", "Demo"]]),
-      order_by: "enrollment_date desc",
-      limit_page_length: "0",
+      fields: JSON.stringify(["name"]),
+      filters: JSON.stringify([
+        ["custom_branch", "=", branch],
+        ["custom_student_type", "=", "Demo"],
+        ["enabled", "=", 1],
+      ]),
+      limit_page_length: 0,
     },
   });
-  const latestPEMap = new Map<string, { program?: string; student_batch_name?: string }>();
-  for (const row of peRes.data?.data ?? []) {
-    if (row.student && !latestPEMap.has(row.student)) {
-      latestPEMap.set(row.student, { program: row.program, student_batch_name: row.student_batch_name });
+  return (data?.data ?? []).length;
+}
+
+/**
+ * Count students who were Demo but have since converted to a regular plan.
+ * Detection: submitted PE has student_category="Demo" but Student.custom_student_type != "Demo".
+ * All branches.
+ */
+export async function getConvertedDemoStudentCount(): Promise<number> {
+  // Step 1: All submitted PEs with student_category = Demo
+  const { data: peData } = await apiClient.get("/resource/Program Enrollment", {
+    params: {
+      fields: JSON.stringify(["student"]),
+      filters: JSON.stringify([["docstatus", "=", 1], ["student_category", "=", "Demo"]]),
+      limit_page_length: 1000,
+    },
+  });
+  const peStudentIds = [
+    ...new Set<string>((peData?.data ?? []).map((r: { student: string }) => r.student)),
+  ];
+  if (!peStudentIds.length) return 0;
+
+  // Step 2: Fetch Student records for those IDs and count non-Demo ones
+  const { data: studentData } = await apiClient.get("/resource/Student", {
+    params: {
+      fields: JSON.stringify(["name", "custom_student_type"]),
+      filters: JSON.stringify([["name", "in", peStudentIds]]),
+      limit_page_length: peStudentIds.length + 10,
+    },
+  });
+  const students: { name: string; custom_student_type?: string }[] = studentData?.data ?? [];
+  return students.filter((s) => (s.custom_student_type || "").toLowerCase() !== "demo").length;
+}
+
+/**
+ * Count converted Demo students for a specific branch.
+ * Detection: student in branch whose latest submitted PE has student_category="Demo"
+ * but Student.custom_student_type is no longer "Demo".
+ */
+export async function getConvertedDemoStudentCountForBranch(branch: string): Promise<number> {
+  // Step 1: All branch students (enabled) with their current type
+  const { data: studentsData } = await apiClient.get("/resource/Student", {
+    params: {
+      fields: JSON.stringify(["name", "custom_student_type"]),
+      filters: JSON.stringify([["custom_branch", "=", branch], ["enabled", "=", 1]]),
+      limit_page_length: 500,
+    },
+  });
+  const branchStudents: { name: string; custom_student_type?: string }[] = studentsData?.data ?? [];
+  if (!branchStudents.length) return 0;
+
+  const branchStudentIds = branchStudents.map((s) => s.name);
+  const studentTypeMap = new Map(branchStudents.map((s) => [s.name, s.custom_student_type]));
+
+  // Step 2: Find which of those students have a PE with student_category="Demo"
+  const batchSize = 50;
+  const demoPEStudentIds = new Set<string>();
+  for (let i = 0; i < branchStudentIds.length; i += batchSize) {
+    const chunk = branchStudentIds.slice(i, i + batchSize);
+    try {
+      const { data: peData } = await apiClient.get("/resource/Program Enrollment", {
+        params: {
+          fields: JSON.stringify(["student"]),
+          filters: JSON.stringify([
+            ["docstatus", "=", 1],
+            ["student_category", "=", "Demo"],
+            ["student", "in", chunk],
+          ]),
+          limit_page_length: chunk.length * 2,
+        },
+      });
+      for (const row of peData?.data ?? []) {
+        demoPEStudentIds.add(row.student);
+      }
+    } catch {
+      // PE read permission denied — skip
     }
   }
-  const demoStudentIds = [...latestPEMap.keys()];
-  if (!demoStudentIds.length) return [];
 
-  // Step 2: Fetch Student details (filter by branch if provided, active only)
-  const studentFilters: Array<Array<string | string[] | number>> = [["name", "in", demoStudentIds], ["enabled", "=", 1]];
+  // Step 3: Count those whose Student type is no longer "Demo"
+  let converted = 0;
+  for (const studentId of demoPEStudentIds) {
+    const type = (studentTypeMap.get(studentId) || "").toLowerCase();
+    if (type !== "demo") converted++;
+  }
+  return converted;
+}
+
+/** Get all demo students with enrollment info — students with custom_student_type="Demo" */
+export async function getDemoStudents(branch?: string): Promise<DemoStudentRow[]> {
+  // Step 1: Get demo students directly from Student doctype
+  const studentFilters: Array<[string, string, string | number]> = [
+    ["custom_student_type", "=", "Demo"],
+    ["enabled", "=", 1],
+  ];
   if (branch) studentFilters.push(["custom_branch", "=", branch]);
 
   const { data } = await apiClient.get("/resource/Student", {
@@ -1648,10 +1700,37 @@ export async function getDemoStudents(branch?: string): Promise<DemoStudentRow[]
       ]),
       filters: JSON.stringify(studentFilters),
       order_by: "joining_date desc",
-      limit_page_length: "0",
+      limit_page_length: 0,
     },
   });
   const students: DemoStudentRow[] = data?.data ?? [];
+  if (!students.length) return [];
+
+  // Step 2: Get latest PE per student (for program + batch name) — batched to avoid URL limits
+  const studentIds = students.map((s) => s.name);
+  const batchSize = 50;
+  const latestPEMap = new Map<string, { program?: string; student_batch_name?: string }>();
+
+  for (let i = 0; i < studentIds.length; i += batchSize) {
+    const chunk = studentIds.slice(i, i + batchSize);
+    try {
+      const peRes = await apiClient.get("/resource/Program Enrollment", {
+        params: {
+          fields: JSON.stringify(["student", "program", "student_batch_name"]),
+          filters: JSON.stringify([["docstatus", "=", 1], ["student", "in", chunk]]),
+          order_by: "enrollment_date desc",
+          limit_page_length: chunk.length * 3,
+        },
+      });
+      for (const row of peRes.data?.data ?? []) {
+        if (row.student && !latestPEMap.has(row.student)) {
+          latestPEMap.set(row.student, { program: row.program, student_batch_name: row.student_batch_name });
+        }
+      }
+    } catch {
+      // PE read permission denied — skip enrichment for this chunk
+    }
+  }
 
   // Enrich with PE data
   for (const s of students) {

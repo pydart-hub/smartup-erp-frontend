@@ -216,6 +216,7 @@ export const SALES_USER_NAV: NavItem[] = [
 
 export const GENERAL_MANAGER_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard/general-manager", icon: "LayoutDashboard", emoji: "📊" },
+  { label: "Leaderboard", href: "/dashboard/general-manager/leaderboard", icon: "Trophy", emoji: "🏆" },
   { label: "Work Assignments", href: "/dashboard/general-manager/work-assignments", icon: "ClipboardList", emoji: "🗂️" },
   {
     label: "Students", href: "/dashboard/general-manager/students", icon: "GraduationCap", emoji: "👨‍🎓",

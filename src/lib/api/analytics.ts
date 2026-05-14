@@ -13,6 +13,7 @@ import type {
   BranchActionsNeededResponse,
   BranchActionsNeededDetailResponse,
   ScheduleSummaryResponse,
+  InstructorLeaderboardResponse,
 } from "@/lib/types/analytics";
 
 // ── Attendance Analytics ──
@@ -121,5 +122,20 @@ export async function getScheduleAnalytics(params: {
     credentials: "include",
   });
   if (!res.ok) throw new Error("Failed to fetch schedule analytics");
+  return res.json();
+}
+
+// ── Instructor Leaderboard ──
+
+export async function getInstructorLeaderboard(params: {
+  branch: string;
+  period?: string;
+}): Promise<InstructorLeaderboardResponse> {
+  const query = new URLSearchParams({ branch: params.branch });
+  if (params.period) query.set("period", params.period);
+  const res = await fetch(`/api/analytics/instructor-leaderboard?${query}`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Failed to fetch instructor leaderboard");
   return res.json();
 }

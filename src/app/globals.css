@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* ── Dark mode: respond to .dark class (not system prefers-color-scheme) ── */
+@variant dark (&:where(.dark, .dark *));
+
 /* ═══════════════════════════════════════════════
    SMARTUP ERP — Design Tokens (Light Mode)
    ═══════════════════════════════════════════════ */

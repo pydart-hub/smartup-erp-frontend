@@ -31,6 +31,8 @@ import {
   getAllBranches,
   getDemoStudentCount,
   getDemoStudentCountForBranch,
+  getConvertedDemoStudentCount,
+  getConvertedDemoStudentCountForBranch,
   getDemoStudents,
   type DemoStudentRow,
 } from "@/lib/api/director";
@@ -187,6 +189,12 @@ export default function DemoStudentsPage() {
     staleTime: 60_000,
   });
 
+  const { data: convertedCount, isLoading: loadingConverted } = useQuery({
+    queryKey: ["demo-converted-count"],
+    queryFn: getConvertedDemoStudentCount,
+    staleTime: 60_000,
+  });
+
   const { data: branches, isLoading: loadingBranches, isError } = useQuery({
     queryKey: ["director-branches"],
     queryFn: getAllBranches,
@@ -255,10 +263,22 @@ export default function DemoStudentsPage() {
             </p>
           </div>
         </div>
-        <Badge variant="default" className="text-lg px-4 py-1.5 tabular-nums">
-          {loadingTotal ? "..." : <AnimatedNumber value={totalCount ?? 0} />}
-          <span className="text-xs font-normal ml-1.5 opacity-70">total</span>
-        </Badge>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-fuchsia-50 border border-fuchsia-200 text-fuchsia-700">
+            <span className="w-1.5 h-1.5 rounded-full bg-fuchsia-500" />
+            <span className="text-sm font-semibold tabular-nums">
+              {loadingTotal ? "..." : <AnimatedNumber value={totalCount ?? 0} />}
+            </span>
+            <span className="text-xs opacity-80">Demo</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            <span className="text-sm font-semibold tabular-nums">
+              {loadingConverted ? "..." : <AnimatedNumber value={convertedCount ?? 0} />}
+            </span>
+            <span className="text-xs opacity-80">Converted</span>
+          </div>
+        </div>
       </motion.div>
 
       {/* Drill-down breadcrumb trail */}
@@ -337,6 +357,11 @@ function BranchCountCard({
     queryFn: () => getDemoStudentCountForBranch(branch.name),
     staleTime: 60_000,
   });
+  const { data: convertedCount, isLoading: loadingConverted } = useQuery({
+    queryKey: ["demo-branch-converted-count", branch.name],
+    queryFn: () => getConvertedDemoStudentCountForBranch(branch.name),
+    staleTime: 60_000,
+  });
 
   return (
     <motion.div variants={itemVariants}>
@@ -355,11 +380,22 @@ function BranchCountCard({
                 <p className="text-xs text-text-tertiary">{branch.abbr}</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-2xl font-bold text-text-primary tabular-nums">
-                {isLoading ? "..." : <AnimatedNumber value={count ?? 0} />}
-              </span>
-              <ChevronRight className="h-4 w-4 text-text-tertiary group-hover:text-primary transition-colors" />
+            <div className="flex flex-col items-end gap-1.5">
+              <div className="flex items-center gap-1.5">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-fuchsia-50 text-fuchsia-700 border border-fuchsia-200">
+                  <span className="w-1 h-1 rounded-full bg-fuchsia-500" />
+                  {isLoading ? "..." : <AnimatedNumber value={count ?? 0} />}
+                  <span className="font-normal opacity-80">demo</span>
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <span className="w-1 h-1 rounded-full bg-emerald-500" />
+                  {loadingConverted ? "..." : <AnimatedNumber value={convertedCount ?? 0} />}
+                  <span className="font-normal opacity-80">converted</span>
+                </span>
+              </div>
+              <ChevronRight className="h-4 w-4 text-text-tertiary group-hover:text-primary transition-colors self-end" />
             </div>
           </div>
         </CardContent>
