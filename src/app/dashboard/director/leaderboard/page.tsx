@@ -262,7 +262,7 @@ export default function DirectorLeaderboardIndexPage() {
 
       {/* Header */}
       <div className="space-y-4">
-        <BreadcrumbNav items={[{ label: "Director" }, { label: "Leaderboard" }]} />
+        <BreadcrumbNav />
 
         <motion.div
           className="flex items-center gap-4"
