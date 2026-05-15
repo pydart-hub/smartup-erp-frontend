@@ -1,5 +1,6 @@
 "use client";
 
+import { GifLoader } from "@/components/ui/GifLoader";
 import React, { useState, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -269,7 +270,7 @@ export default function HRAttendancePage() {
       {loadingEmployees || loadingAttendance ? (
         <Card>
           <CardContent className="flex items-center justify-center h-48">
-            <Loader2 className="animate-spin h-6 w-6 text-primary" />
+            <GifLoader />
           </CardContent>
         </Card>
       ) : filtered.length === 0 ? (

@@ -9,6 +9,7 @@ import {
   Users,
   IndianRupee,
   CalendarCheck,
+  AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
@@ -37,7 +38,11 @@ import { AttendanceBranchDetail } from "@/components/reports/AttendanceBranchDet
 import { AttendanceClassSummary } from "@/components/reports/AttendanceClassSummary";
 import { AttendanceClassDetail } from "@/components/reports/AttendanceClassDetail";
 
-type Category = "overview" | "students" | "fees" | "attendance";
+// Overdue
+import { OverdueBranchSummary } from "@/components/reports/OverdueBranchSummary";
+import { OverdueBranchDetail } from "@/components/reports/OverdueBranchDetail";
+
+type Category = "overview" | "students" | "fees" | "attendance" | "overdue";
 type Mode = "branch" | "class";
 
 const CATEGORIES: { key: Category; label: string; icon: React.ElementType }[] = [
@@ -45,6 +50,7 @@ const CATEGORIES: { key: Category; label: string; icon: React.ElementType }[] = 
   { key: "students", label: "Students", icon: Users },
   { key: "fees", label: "Fees", icon: IndianRupee },
   { key: "attendance", label: "Attendance", icon: CalendarCheck },
+  { key: "overdue", label: "Overdue", icon: AlertTriangle },
 ];
 
 const containerVariants = {
@@ -117,10 +123,20 @@ export default function DirectorReportsPage() {
     }
 
     // ATTENDANCE
-    if (detail && mode === "branch") return <AttendanceBranchDetail branch={detail} fromDate={fromDate} toDate={toDate} onBack={() => setDetail(null)} />;
-    if (detail && mode === "class") return <AttendanceClassDetail program={detail} fromDate={fromDate} toDate={toDate} onBack={() => setDetail(null)} />;
-    if (mode === "branch") return <AttendanceBranchSummary fromDate={fromDate} toDate={toDate} onDrillDown={setDetail} />;
-    return <AttendanceClassSummary fromDate={fromDate} toDate={toDate} onDrillDown={setDetail} />;
+    if (category === "attendance") {
+      if (detail && mode === "branch") return <AttendanceBranchDetail branch={detail} fromDate={fromDate} toDate={toDate} onBack={() => setDetail(null)} />;
+      if (detail && mode === "class") return <AttendanceClassDetail program={detail} fromDate={fromDate} toDate={toDate} onBack={() => setDetail(null)} />;
+      if (mode === "branch") return <AttendanceBranchSummary fromDate={fromDate} toDate={toDate} onDrillDown={setDetail} />;
+      return <AttendanceClassSummary fromDate={fromDate} toDate={toDate} onDrillDown={setDetail} />;
+    }
+
+    // OVERDUE
+    if (category === "overdue") {
+      if (detail) return <OverdueBranchDetail branch={detail} onBack={() => setDetail(null)} />;
+      return <OverdueBranchSummary onSelect={setDetail} />;
+    }
+
+    return null;
   }
 
   return (
@@ -168,8 +184,8 @@ export default function DirectorReportsPage() {
         </div>
       </motion.div>
 
-      {/* Branch / Class toggle — visible at summary level only */}
-      {!isDetail && (
+      {/* Branch / Class toggle — visible at summary level only, not for Overdue */}
+      {!isDetail && category !== "overdue" && (
         <motion.div variants={itemVariants}>
           <div className="flex gap-2 p-1 bg-app-bg rounded-[12px] border border-border-light w-fit">
             <button

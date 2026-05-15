@@ -1,10 +1,10 @@
 "use client";
 
+import { GifLoader } from "@/components/ui/GifLoader";
 import React, { useMemo } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Loader2,
   Building2,
   ChevronRight,
 } from "lucide-react";
@@ -54,9 +54,7 @@ export default function DirectorExamsPage() {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center h-48">
-          <Loader2 className="animate-spin h-6 w-6 text-primary" />
-        </div>
+        <GifLoader />
       ) : (
         <div>
           <h2 className="text-sm font-semibold text-text-secondary mb-3 flex items-center gap-1.5">

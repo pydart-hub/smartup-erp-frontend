@@ -1,5 +1,6 @@
 "use client";
 
+import { GifLoader } from "@/components/ui/GifLoader";
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -124,9 +125,7 @@ export default function NewBatchPage() {
       </div>
 
       {loadingOptions ? (
-        <div className="flex items-center justify-center h-48">
-          <Loader2 className="animate-spin h-6 w-6 text-primary" />
-        </div>
+        <GifLoader />
       ) : (
         <form onSubmit={handleSubmit} noValidate>
           <Card>

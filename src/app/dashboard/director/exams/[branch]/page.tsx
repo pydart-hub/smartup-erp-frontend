@@ -1,11 +1,11 @@
 ﻿"use client";
 
+import { GifLoader } from "@/components/ui/GifLoader";
 import React, { useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Loader2,
   BarChart3,
   FileText,
   Calendar,
@@ -168,9 +168,7 @@ export default function DirectorBranchExamsPage() {
         </div>
 
         {examsLoading ? (
-          <div className="flex items-center justify-center h-32">
-            <Loader2 className="animate-spin h-6 w-6 text-primary" />
-          </div>
+          <GifLoader />
         ) : filtered.length === 0 ? (
           <Card>
             <CardContent className="p-8 text-center">

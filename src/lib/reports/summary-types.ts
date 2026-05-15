@@ -223,3 +223,39 @@ export interface AttendanceClassDetailData {
   summary: AttendanceClassRow;
   students: AttendanceClassDetailRow[];
 }
+
+// ── Overdue Report Types ──
+
+export interface OverdueBranchRow {
+  branch: string;
+  totalStudents: number;
+  overdueStudents: number;
+  totalFee: number;
+  collected: number;
+  overdueAmount: number;
+  pending: number;
+  overduePct: number;
+}
+
+export interface OverdueStudentRow {
+  studentId: string;
+  studentName: string;
+  parentName: string;
+  parentPhone: string;
+  program: string;
+  planType: string;
+  totalFee: number;
+  paid: number;
+  overdueAmount: number;
+  installmentAmount: number;
+  installmentPaid: number;
+  pending: number;
+  oldestDueDate: string;
+  daysOverdue: number;
+  invoiceCount: number;
+}
+
+export interface OverdueBranchDetailData {
+  summary: OverdueBranchRow;
+  students: OverdueStudentRow[];
+}

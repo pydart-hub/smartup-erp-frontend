@@ -1,12 +1,12 @@
 "use client";
 
+import { GifLoader } from "@/components/ui/GifLoader";
 import React from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import {
   School,
   Users,
-  Loader2,
   RefreshCw,
   GraduationCap,
 } from "lucide-react";
@@ -56,9 +56,7 @@ export default function InstructorBatchesPage() {
 
       {/* Loading */}
       {loading && (
-        <div className="flex items-center justify-center h-48">
-          <Loader2 className="animate-spin h-6 w-6 text-primary" />
-        </div>
+        <GifLoader />
       )}
 
       {/* Error */}

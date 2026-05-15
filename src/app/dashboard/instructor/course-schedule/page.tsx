@@ -1,5 +1,6 @@
 "use client";
 
+import { GifLoader } from "@/components/ui/GifLoader";
 import React, { useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
@@ -11,7 +12,6 @@ import {
   BookOpen,
   Users,
   MapPin,
-  Loader2,
   LayoutList,
   Grid3X3,
   FileText,
@@ -186,9 +186,7 @@ export default function InstructorCourseSchedulePage() {
   // ── Loading / guard ────────────────────────────────────────────────────────
   if (authLoading) {
     return (
-      <div className="flex items-center justify-center h-48">
-        <Loader2 className="animate-spin h-6 w-6 text-primary" />
-      </div>
+      <GifLoader />
     );
   }
 

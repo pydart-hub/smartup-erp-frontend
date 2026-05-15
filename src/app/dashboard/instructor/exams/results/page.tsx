@@ -1,5 +1,6 @@
 "use client";
 
+import { GifLoader } from "@/components/ui/GifLoader";
 import React, { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
@@ -130,9 +131,7 @@ export default function InstructorExamResultsPage() {
       </motion.div>
 
       {resultsLoading && (
-        <div className="flex items-center justify-center h-48">
-          <Loader2 className="animate-spin h-6 w-6 text-primary" />
-        </div>
+        <GifLoader />
       )}
 
       {(!studentGroup || !assessmentGroup) && (
@@ -284,9 +283,7 @@ export default function InstructorExamResultsPage() {
             </CardHeader>
             <CardContent>
               {reportLoading ? (
-                <div className="flex items-center justify-center h-32">
-                  <Loader2 className="animate-spin h-6 w-6 text-primary" />
-                </div>
+                <GifLoader />
               ) : reportCard?.data ? (
                 <div className="space-y-4" id="report-card">
                   <div className="bg-brand-wash rounded-[12px] p-4 border border-primary/10">

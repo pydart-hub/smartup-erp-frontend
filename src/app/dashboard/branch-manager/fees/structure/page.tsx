@@ -1,9 +1,10 @@
 "use client";
 
+import { GifLoader } from "@/components/ui/GifLoader";
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { ArrowLeft, FileText, Loader2, RefreshCw, Search, IndianRupee } from "lucide-react";
+import { ArrowLeft, FileText, RefreshCw, Search, IndianRupee } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -128,9 +129,7 @@ export default function FeeStructurePage() {
 
       {/* Loading */}
       {loading && (
-        <div className="flex items-center justify-center h-48">
-          <Loader2 className="animate-spin h-6 w-6 text-primary" />
-        </div>
+        <GifLoader />
       )}
 
       {/* Error */}

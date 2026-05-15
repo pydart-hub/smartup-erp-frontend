@@ -461,18 +461,320 @@ export async function GET(request: NextRequest) {
         nameMap.set(s.student, s.student_name || s.student);
       }
 
+      // ── Fetch guardian info for each student ──
+      // The Student Guardian child table and its resource endpoint both return
+      // PermissionError even with the admin token. The only working approach is
+      // fetching each Student document individually (guardians are in the full doc).
+      // Batches are small (≤50 students), so parallel fetches are fast.
+      const studentGuardianMap = new Map<string, string>(); // student → guardian doc ID
+      const guardianNameMap = new Map<string, string>();    // guardian ID → name
+      const guardianPhoneMap = new Map<string, string>();   // guardian ID → phone
+
+      const studentDocResults = await Promise.allSettled(
+        studentIds.map((id) =>
+          frappeGet(`resource/Student/${encodeURIComponent(id)}`, {})
+        )
+      );
+
+      for (let i = 0; i < studentIds.length; i++) {
+        const result = studentDocResults[i];
+        if (result.status === "fulfilled") {
+          const guardians: { guardian?: string; guardian_name?: string }[] =
+            result.value?.data?.guardians ?? [];
+          const first = guardians[0];
+          if (first?.guardian) {
+            studentGuardianMap.set(studentIds[i], first.guardian);
+            if (first.guardian_name) guardianNameMap.set(first.guardian, first.guardian_name);
+          }
+        }
+      }
+
+      // Batch-fetch Guardian docs for mobile numbers
+      const guardianIds = Array.from(new Set(studentGuardianMap.values()));
+      if (guardianIds.length > 0) {
+        try {
+          const guardianRes = await frappeGet("resource/Guardian", {
+            filters: JSON.stringify([["name", "in", guardianIds]]),
+            fields: JSON.stringify(["name", "guardian_name", "mobile_number"]),
+            limit_page_length: "500",
+          });
+          for (const g of (guardianRes.data ?? []) as { name: string; guardian_name?: string; mobile_number?: string }[]) {
+            if (g.guardian_name) guardianNameMap.set(g.name, g.guardian_name);
+            if (g.mobile_number) guardianPhoneMap.set(g.name, g.mobile_number);
+          }
+        } catch {
+          // Guardian doc fetch failed — names already populated from student doc fallback
+        }
+      }
+
       const rows = Array.from(studentMap.entries())
         .map(([studentId, { total_dues, overdue_invoices }]) => {
           const planInfo = studentPlanMap.get(studentId);
+          const guardianId = studentGuardianMap.get(studentId) ?? "";
           return {
             student_id: studentId,
             student_name: nameMap.get(studentId) ?? studentId,
             total_dues,
             plan: planInfo?.plan || "",
             no_of_instalments: planInfo?.no_of_instalments || "",
-            overdue_invoices: overdue_invoices.sort(
-              (a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
-            ),
+            guardian_name: guardianNameMap.get(guardianId) ?? "",
+            guardian_phone: guardianPhoneMap.get(guardianId) ?? "",
+            overdue_invoices: overdue_invoices
+              .map((inv) => ({
+                ...inv,
+                paid: (inv.grand_total ?? 0) - (inv.amount ?? 0),
+              }))
+              .sort(
+                (a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
+              ),
+          };
+        })
+        .sort((a, b) => b.total_dues - a.total_dues);
+
+      return NextResponse.json({ data: rows });
+    }
+
+    // ── LEVEL: all students in a branch (flat list, no batch filter) ──
+    if (level === "branch_students") {
+      if (!branch) {
+        return NextResponse.json({ error: "branch is required" }, { status: 400 });
+      }
+
+      const discCustomers = await getDiscontinuedCustomers(branch);
+
+      // Step 1: Fetch all overdue invoices for this branch
+      const invFilters: (string | number | string[])[][] = [
+        ["docstatus", "=", 1],
+        ["outstanding_amount", ">", 0],
+        ["due_date", "<=", todayDate],
+        ["company", "=", branch],
+      ];
+      if (discCustomers.length > 0) {
+        invFilters.push(["customer", "not in", discCustomers]);
+      }
+
+      const invRes = await frappeGet("resource/Sales Invoice", {
+        filters: JSON.stringify(invFilters),
+        fields: JSON.stringify(["name", "student", "outstanding_amount", "due_date", "grand_total"]),
+        limit_page_length: "3000",
+      });
+
+      const invoices: {
+        name: string;
+        student: string;
+        outstanding_amount: number;
+        due_date: string;
+        grand_total: number;
+      }[] = invRes.data ?? [];
+
+      if (!invoices.length) {
+        return NextResponse.json({ data: [] });
+      }
+
+      const studentIds = Array.from(new Set(invoices.map((i) => i.student).filter(Boolean)));
+
+      // Helper: split array into chunks
+      function chunkArr<T>(arr: T[], size: number): T[][] {
+        const out: T[][] = [];
+        for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+        return out;
+      }
+      const idChunks = chunkArr(studentIds, 50);
+      const invChunks = chunkArr(invoices.map((i) => i.name), 50);
+
+      // Step 1b: Fetch item_codes from Sales Invoice Items (= class per invoice)
+      const invoiceClassMap = new Map<string, string>(); // invoiceName → item_code
+      await Promise.all(
+        invChunks.map(async (names) => {
+          try {
+            const siRes = await frappeGet("resource/Sales Invoice Item", {
+              filters: JSON.stringify([["parent", "in", names]]),
+              fields: JSON.stringify(["parent", "item_code"]),
+              limit_page_length: "500",
+            });
+            for (const item of (siRes.data ?? []) as { parent: string; item_code?: string }[]) {
+              if (item.parent && item.item_code && !invoiceClassMap.has(item.parent)) {
+                invoiceClassMap.set(item.parent, item.item_code);
+              }
+            }
+          } catch { /* skip */ }
+        })
+      );
+
+      // Step 2: Fetch student names in chunks of 50 (avoids URL-too-long for large branches)
+      const nameMap = new Map<string, string>();
+      await Promise.all(
+        idChunks.map(async (ids) => {
+          try {
+            const res = await frappeGet("resource/Student", {
+              filters: JSON.stringify([["name", "in", ids]]),
+              fields: JSON.stringify(["name", "student_name"]),
+              limit_page_length: "100",
+            });
+            for (const s of (res.data ?? []) as { name: string; student_name?: string }[]) {
+              nameMap.set(s.name, s.student_name || s.name);
+            }
+          } catch { /* skip bad chunk */ }
+        })
+      );
+
+      // Step 3: Fetch Sales Orders for plan + instalment info in chunks of 50
+      const studentPlanMap = new Map<string, { plan: string; no_of_instalments: string }>();
+      await Promise.all(
+        idChunks.map(async (ids) => {
+          try {
+            const res = await frappeGet("resource/Sales Order", {
+              filters: JSON.stringify([
+                ["student", "in", ids],
+                ["company", "=", branch],
+                ["docstatus", "=", 1],
+              ]),
+              fields: JSON.stringify(["name", "student", "custom_plan", "custom_no_of_instalments"]),
+              order_by: "creation desc",
+              limit_page_length: "200",
+            });
+            for (const so of (res.data ?? []) as { student: string; custom_plan?: string; custom_no_of_instalments?: string }[]) {
+              if (!so.student || studentPlanMap.has(so.student)) continue;
+              studentPlanMap.set(so.student, {
+                plan: so.custom_plan || "",
+                no_of_instalments: so.custom_no_of_instalments || "1",
+              });
+            }
+          } catch { /* skip bad chunk */ }
+        })
+      );
+
+      // Step 3.5: Fetch Student Groups for this branch → map each student to their batch
+      const studentBatchMap = new Map<string, string>(); // studentId → batch display name
+      try {
+        const sgListRes = await frappeGet("resource/Student Group", {
+          filters: JSON.stringify([["disabled", "=", 0], ["custom_branch", "=", branch]]),
+          fields: JSON.stringify(["name", "student_group_name"]),
+          limit_page_length: "500",
+        });
+        const sgList: { name: string; student_group_name: string }[] = sgListRes.data ?? [];
+        const studentIdSet = new Set(studentIds);
+        await Promise.all(
+          sgList.map(async (sg) => {
+            try {
+              const sgDoc = await frappeGet(`resource/Student Group/${encodeURIComponent(sg.name)}`, {});
+              const sgStudents: { student: string }[] = sgDoc?.data?.students ?? [];
+              for (const s of sgStudents) {
+                if (studentIdSet.has(s.student) && !studentBatchMap.has(s.student)) {
+                  studentBatchMap.set(s.student, sg.student_group_name || sg.name);
+                }
+              }
+            } catch { /* skip */ }
+          })
+        );
+      } catch { /* skip if SG fetch fails */ }
+
+      // Helper: instalment label
+      function getBranchInstalmentLabel(dueDate: string, numInst: string): string {
+        if (numInst === "1") return "Full Payment";
+        const month = new Date(dueDate).getMonth();
+        if (numInst === "4") {
+          const qMap: Record<number, string> = { 3: "Q1", 6: "Q2", 9: "Q3", 0: "Q4" };
+          return qMap[month] ?? "Inst";
+        }
+        if (numInst === "6") {
+          const idx = [3, 5, 7, 9, 11, 1].indexOf(month);
+          return idx !== -1 ? `Inst ${idx + 1} of 6` : "Inst";
+        }
+        if (numInst === "8") {
+          const idx = [3, 4, 5, 6, 7, 8, 9, 10].indexOf(month);
+          return idx !== -1 ? `Inst ${idx + 1} of 8` : "Inst";
+        }
+        return "Inst";
+      }
+
+      // Step 4: Aggregate per student
+      const studentClassMap = new Map<string, string>(); // studentId → class_name (first match)
+      const studentMap = new Map<string, {
+        total_dues: number;
+        overdue_invoices: { name: string; amount: number; grand_total: number; paid: number; due_date: string; instalment_label: string }[];
+      }>();
+      for (const inv of invoices) {
+        if (!inv.student) continue;
+        if (!studentClassMap.has(inv.student)) {
+          const cls = invoiceClassMap.get(inv.name);
+          if (cls) studentClassMap.set(inv.student, cls);
+        }
+        const planInfo = studentPlanMap.get(inv.student);
+        const existing = studentMap.get(inv.student) ?? { total_dues: 0, overdue_invoices: [] };
+        existing.total_dues += inv.outstanding_amount ?? 0;
+        existing.overdue_invoices.push({
+          name: inv.name,
+          amount: inv.outstanding_amount ?? 0,
+          grand_total: inv.grand_total ?? 0,
+          paid: (inv.grand_total ?? 0) - (inv.outstanding_amount ?? 0),
+          due_date: inv.due_date,
+          instalment_label: getBranchInstalmentLabel(inv.due_date, planInfo?.no_of_instalments ?? "1"),
+        });
+        studentMap.set(inv.student, existing);
+      }
+
+      // Step 5: Guardian info — fetch individual Student docs in batches of 20
+      // (163+ concurrent requests would overwhelm the server)
+      const studentGuardianMap = new Map<string, string>();
+      const guardianNameMap = new Map<string, string>();
+      const guardianPhoneMap = new Map<string, string>();
+
+      const studentIdBatches = chunkArr(studentIds, 20);
+      for (const batch of studentIdBatches) {
+        const results = await Promise.allSettled(
+          batch.map((id) => frappeGet(`resource/Student/${encodeURIComponent(id)}`, {}))
+        );
+        for (let i = 0; i < batch.length; i++) {
+          const result = results[i];
+          if (result.status === "fulfilled") {
+            const guardians: { guardian?: string; guardian_name?: string }[] =
+              result.value?.data?.guardians ?? [];
+            const first = guardians[0];
+            if (first?.guardian) {
+              studentGuardianMap.set(batch[i], first.guardian);
+              if (first.guardian_name) guardianNameMap.set(first.guardian, first.guardian_name);
+            }
+          }
+        }
+      }
+      const guardianIds = Array.from(new Set(studentGuardianMap.values()));
+      if (guardianIds.length > 0) {
+        // Chunk guardian IDs too (could be 100+)
+        const gChunks = chunkArr(guardianIds, 50);
+        await Promise.all(
+          gChunks.map(async (ids) => {
+            try {
+              const gRes = await frappeGet("resource/Guardian", {
+                filters: JSON.stringify([["name", "in", ids]]),
+                fields: JSON.stringify(["name", "guardian_name", "mobile_number"]),
+                limit_page_length: "100",
+              });
+              for (const g of (gRes.data ?? []) as { name: string; guardian_name?: string; mobile_number?: string }[]) {
+                if (g.guardian_name) guardianNameMap.set(g.name, g.guardian_name);
+                if (g.mobile_number) guardianPhoneMap.set(g.name, g.mobile_number);
+              }
+            } catch { /* skip */ }
+          })
+        );
+      }
+
+      // Step 6: Build response
+      const rows = Array.from(studentMap.entries())
+        .map(([studentId, { total_dues, overdue_invoices }]) => {
+          const planInfo = studentPlanMap.get(studentId);
+          const guardianId = studentGuardianMap.get(studentId) ?? "";
+          return {
+            student_id: studentId,
+            student_name: nameMap.get(studentId) ?? studentId,
+            class_name: studentClassMap.get(studentId) ?? "",
+            batch_name: studentBatchMap.get(studentId) ?? "",
+            total_dues,
+            plan: planInfo?.plan || "",
+            no_of_instalments: planInfo?.no_of_instalments || "",
+            guardian_name: guardianNameMap.get(guardianId) ?? "",
+            guardian_phone: guardianPhoneMap.get(guardianId) ?? "",
+            overdue_invoices: overdue_invoices.sort((a, b) => a.due_date.localeCompare(b.due_date)),
           };
         })
         .sort((a, b) => b.total_dues - a.total_dues);

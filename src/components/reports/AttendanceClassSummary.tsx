@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Loader2,
   AlertCircle,
   Download,
   FileSpreadsheet,
@@ -80,8 +79,10 @@ export function AttendanceClassSummary({ fromDate, toDate, onDrillDown }: Props)
 
   if (isLoading)
     return (
-      <div className="flex items-center justify-center h-48">
-        <Loader2 className="animate-spin h-6 w-6 text-primary" />
+      <div className="flex flex-col items-center justify-center h-48 gap-3">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/loading.gif" alt="Loading" className="w-20 h-20 object-contain" />
+        <p className="text-xs font-semibold text-text-tertiary animate-pulse tracking-wide">Loading…</p>
       </div>
     );
   if (isError || !rows)
@@ -131,7 +132,7 @@ export function AttendanceClassSummary({ fromDate, toDate, onDrillDown }: Props)
             disabled={loading !== null}
           >
             {loading === "xlsx" ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin inline-block" />
             ) : (
               <FileSpreadsheet className="h-4 w-4" />
             )}
@@ -144,7 +145,7 @@ export function AttendanceClassSummary({ fromDate, toDate, onDrillDown }: Props)
             disabled={loading !== null}
           >
             {loading === "csv" ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin inline-block" />
             ) : (
               <FileText className="h-4 w-4" />
             )}

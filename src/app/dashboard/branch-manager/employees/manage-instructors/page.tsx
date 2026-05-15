@@ -1,5 +1,6 @@
 "use client";
 
+import { GifLoader } from "@/components/ui/GifLoader";
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -239,9 +240,7 @@ export default function ManageInstructorsPage() {
 
       {/* Status Cards */}
       {statusLoading && (
-        <div className="flex items-center justify-center h-40">
-          <Loader2 className="animate-spin h-6 w-6 text-primary" />
-        </div>
+        <GifLoader />
       )}
 
       {statusError && (

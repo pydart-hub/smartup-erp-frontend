@@ -1,5 +1,6 @@
 "use client";
 
+import { GifLoader } from "@/components/ui/GifLoader";
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -91,9 +92,7 @@ export function ClassWiseSummary({ onSelectClass }: Props) {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-48">
-        <Loader2 className="animate-spin h-6 w-6 text-primary" />
-      </div>
+      <GifLoader />
     );
   }
 

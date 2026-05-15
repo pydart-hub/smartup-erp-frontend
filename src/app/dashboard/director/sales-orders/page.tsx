@@ -1,5 +1,6 @@
 "use client";
 
+import { GifLoader } from "@/components/ui/GifLoader";
 import React, { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -10,7 +11,6 @@ import {
   Building2,
   IndianRupee,
   ChevronRight,
-  Loader2,
   AlertCircle,
   CircleCheck,
   Clock,
@@ -108,9 +108,7 @@ export default function DirectorSalesOrdersPage() {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center h-48">
-          <Loader2 className="animate-spin h-6 w-6 text-primary" />
-        </div>
+        <GifLoader />
       ) : isError ? (
         <div className="flex flex-col items-center justify-center h-48 gap-3">
           <AlertCircle className="h-8 w-8 text-error" />

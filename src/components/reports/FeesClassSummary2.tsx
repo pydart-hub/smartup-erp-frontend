@@ -1,5 +1,6 @@
 "use client";
 
+import { GifLoader } from "@/components/ui/GifLoader";
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -70,7 +71,7 @@ export function FeesClassSummary({ onDrillDown }: Props) {
     }
   };
 
-  if (isLoading) return <div className="flex items-center justify-center h-48"><Loader2 className="animate-spin h-6 w-6 text-primary" /></div>;
+  if (isLoading) return <GifLoader />;
   if (isError || !rows) return <div className="flex flex-col items-center justify-center h-48 gap-2"><AlertCircle className="h-6 w-6 text-error" /><p className="text-sm text-error">Failed to load data</p></div>;
 
   const totals = rows.reduce(

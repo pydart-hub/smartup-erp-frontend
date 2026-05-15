@@ -1,5 +1,6 @@
 "use client";
 
+import { GifLoader } from "@/components/ui/GifLoader";
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -493,9 +494,7 @@ export default function AttendancePage() {
 
             {/* Class-wise Cards */}
             {classWiseLoading ? (
-              <div className="flex items-center justify-center h-48">
-                <Loader2 className="animate-spin h-6 w-6 text-primary" />
-              </div>
+              <GifLoader />
             ) : classSummaries.length === 0 ? (
               <div className="text-center py-16 text-text-secondary text-sm">
                 No batches found. Create batches to start tracking attendance.
@@ -756,9 +755,7 @@ export default function AttendancePage() {
 
             {/* Loading */}
             {batchSchedulesLoading && (
-              <div className="flex items-center justify-center h-48">
-                <Loader2 className="animate-spin h-6 w-6 text-primary" />
-              </div>
+              <GifLoader />
             )}
 
             {/* No sessions */}

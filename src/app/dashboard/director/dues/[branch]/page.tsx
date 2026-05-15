@@ -1,5 +1,6 @@
 "use client";
 
+import { GifLoader } from "@/components/ui/GifLoader";
 import React from "react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
@@ -8,7 +9,6 @@ import { useQuery } from "@tanstack/react-query";
 import {
   BookOpen,
   ChevronRight,
-  Loader2,
   AlertCircle,
   CalendarClock,
   ArrowLeft,
@@ -93,9 +93,7 @@ export default function DuesClassPage() {
 
       {/* Class rows */}
       {isLoading ? (
-        <div className="flex items-center justify-center h-48">
-          <Loader2 className="animate-spin h-6 w-6 text-primary" />
-        </div>
+        <GifLoader />
       ) : isError ? (
         <div className="flex flex-col items-center justify-center h-48 gap-3">
           <AlertCircle className="h-8 w-8 text-error" />

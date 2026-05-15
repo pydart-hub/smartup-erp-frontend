@@ -13,11 +13,11 @@ const OPTIONS = [
     description: "View branch-wise ranking, targets, and performance insights.",
     href: "/dashboard/director/leaderboard/branch",
     icon: School,
-    gradient: "from-teal-400 via-cyan-500 to-blue-500",
-    glow: "rgba(20,184,166,0.35)",
-    glowHover: "rgba(20,184,166,0.6)",
+    gradient: "from-teal-500 via-teal-600 to-cyan-600",
+    glow: "rgba(26,158,143,0.28)",
+    glowHover: "rgba(26,158,143,0.52)",
     badge: "#1",
-    badgeColor: "from-teal-400 to-cyan-500",
+    badgeColor: "from-teal-500 to-cyan-600",
     particleColor: "#2dd4bf",
     rank: "1st",
   },
@@ -26,12 +26,12 @@ const OPTIONS = [
     description: "Discover top-performing instructors by student results.",
     href: "/dashboard/director/leaderboard/instructor",
     icon: Users,
-    gradient: "from-violet-500 via-fuchsia-500 to-pink-500",
-    glow: "rgba(139,92,246,0.35)",
-    glowHover: "rgba(139,92,246,0.6)",
+    gradient: "from-emerald-500 via-teal-600 to-teal-700",
+    glow: "rgba(16,185,129,0.28)",
+    glowHover: "rgba(16,185,129,0.52)",
     badge: "#2",
-    badgeColor: "from-violet-500 to-fuchsia-500",
-    particleColor: "#a78bfa",
+    badgeColor: "from-emerald-500 to-teal-600",
+    particleColor: "#34d399",
     rank: "2nd",
   },
 ];
@@ -144,8 +144,8 @@ function TiltCard({ option, index }: { option: typeof OPTIONS[0]; index: number 
               transition={{ duration: 2, repeat: Infinity }}
             />
 
-            {/* Floating particles (dark mode only) */}
-            {isDark && particles.map((p, i) => (
+            {/* Floating rising particles — both themes */}
+            {particles.map((p, i) => (
               <FloatingParticle key={i} color={option.particleColor} delay={p.delay} x={p.x} y={p.y} />
             ))}
 
@@ -160,22 +160,14 @@ function TiltCard({ option, index }: { option: typeof OPTIONS[0]; index: number 
                   transition={{ duration: 0.3 }}
                   style={{ transform: "translateZ(30px)" }}
                 >
-                  <div
-                    className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${option.gradient} flex items-center justify-center shadow-2xl`}
+                  <Icon
+                    className="h-14 w-14 transition-all duration-300"
                     style={{
-                      boxShadow: isHovered
-                        ? `0 20px 40px -8px ${option.glowHover}, 0 0 0 1px rgba(255,255,255,0.2)`
-                        : `0 8px 20px -4px ${option.glow}`,
+                      color: option.particleColor,
+                      filter: isHovered
+                        ? `drop-shadow(0 0 14px ${option.particleColor}) drop-shadow(0 4px 10px ${option.glow})`
+                        : `drop-shadow(0 2px 6px ${option.glow})`,
                     }}
-                  >
-                    <Icon className="h-8 w-8 text-white drop-shadow-lg" />
-                  </div>
-                  {/* Icon glow ring */}
-                  <motion.div
-                    className="absolute inset-0 rounded-2xl"
-                    animate={isHovered ? { scale: [1, 1.3, 1], opacity: [0, 0.5, 0] } : {}}
-                    transition={{ duration: 1.5, repeat: Infinity }}
-                    style={{ background: `radial-gradient(circle, ${option.particleColor} 0%, transparent 70%)` }}
                   />
                 </motion.div>
 
@@ -256,9 +248,9 @@ export default function DirectorLeaderboardIndexPage() {
   return (
     <div className="relative max-w-6xl mx-auto space-y-8 min-h-[60vh]">
       {/* Background ambient orbs */}
-      <BackgroundOrb x="10%" y="20%" size={400} color="#14b8a6" delay={0} />
-      <BackgroundOrb x="60%" y="10%" size={350} color="#8b5cf6" delay={2} />
-      <BackgroundOrb x="80%" y="60%" size={300} color="#f59e0b" delay={4} />
+      <BackgroundOrb x="10%" y="20%" size={400} color="#1a9e8f" delay={0} />
+      <BackgroundOrb x="60%" y="10%" size={350} color="#34d399" delay={2} />
+      <BackgroundOrb x="80%" y="60%" size={300} color="#2dd4bf" delay={4} />
 
       {/* Header */}
       <div className="space-y-4">
@@ -277,14 +269,14 @@ export default function DirectorLeaderboardIndexPage() {
             transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
             style={{ perspective: 400 }}
           >
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400 via-orange-500 to-red-500 flex items-center justify-center shadow-2xl shadow-amber-500/40">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-400 via-teal-500 to-cyan-600 flex items-center justify-center shadow-2xl shadow-teal-500/40">
               <Trophy className="h-7 w-7 text-white drop-shadow-lg" />
             </div>
             <motion.div
               className="absolute inset-0 rounded-2xl"
               animate={{ scale: [1, 1.4, 1], opacity: [0.5, 0, 0.5] }}
               transition={{ duration: 2, repeat: Infinity }}
-              style={{ background: "radial-gradient(circle, rgba(251,191,36,0.4) 0%, transparent 70%)" }}
+              style={{ background: "radial-gradient(circle, rgba(45,212,191,0.4) 0%, transparent 70%)" }}
             />
           </motion.div>
 
@@ -292,7 +284,7 @@ export default function DirectorLeaderboardIndexPage() {
             <motion.h1
               className="text-3xl md:text-4xl font-black"
               style={{
-                background: "linear-gradient(135deg, #f59e0b 0%, #f97316 50%, #ef4444 100%)",
+                background: "linear-gradient(135deg, #168577 0%, #1a9e8f 45%, #2dd4bf 100%)",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
               }}

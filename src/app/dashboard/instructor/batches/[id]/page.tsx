@@ -1,5 +1,6 @@
 "use client";
 
+import { GifLoader } from "@/components/ui/GifLoader";
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -8,7 +9,6 @@ import {
   ArrowLeft,
   Users,
   School,
-  Loader2,
   RefreshCw,
   User,
   Search,
@@ -90,9 +90,7 @@ export default function InstructorBatchDetailPage() {
 
       {/* Loading */}
       {loading && (
-        <div className="flex items-center justify-center h-48">
-          <Loader2 className="animate-spin h-6 w-6 text-primary" />
-        </div>
+        <GifLoader />
       )}
 
       {/* Error */}

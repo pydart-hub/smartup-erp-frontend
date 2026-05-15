@@ -580,6 +580,8 @@ export interface AdmitStudentForm {
   custom_mode_of_payment?: string;   // "Cash" | "Online"
   manualDiscountAmount?: number;
   manualDiscountRemark?: string;
+  /** Vennala Plus Two old student — percentage discount (0-100) applied to last invoice */
+  vennalaDiscountPercent?: number;
   // Subject-wise admission context (not sent to Frappe, only for fee config lookup)
   custom_subject?: string;       // e.g. "Physics", "Phy-Chem"
   // Instalment schedule (from feeSchedule generator)
@@ -1096,6 +1098,10 @@ export async function admitStudent(
           ...(form.manualDiscountAmount && form.manualDiscountAmount > 0
             ? {
                 description: `Admission discount: -₹${form.manualDiscountAmount.toLocaleString("en-IN")}${form.manualDiscountRemark ? ` | Reason: ${form.manualDiscountRemark}` : ""}`,
+              }
+            : form.vennalaDiscountPercent && form.vennalaDiscountPercent > 0
+            ? {
+                description: `Plus Two Old Student Discount: ${form.vennalaDiscountPercent}% off total fees`,
               }
             : {}),
         }],

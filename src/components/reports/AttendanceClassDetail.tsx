@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Loader2,
   AlertCircle,
   Download,
   FileSpreadsheet,
@@ -78,7 +77,13 @@ export function AttendanceClassDetail({ program, fromDate, toDate, onBack }: Pro
     }
   };
 
-  if (isLoading) return <div className="flex items-center justify-center h-48"><Loader2 className="animate-spin h-6 w-6 text-primary" /></div>;
+  if (isLoading) return (
+    <div className="flex flex-col items-center justify-center h-48 gap-3">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/loading.gif" alt="Loading" className="w-20 h-20 object-contain" />
+      <p className="text-xs font-semibold text-text-tertiary animate-pulse tracking-wide">Loading…</p>
+    </div>
+  );
   if (isError || !data) return <div className="flex flex-col items-center justify-center h-48 gap-2"><AlertCircle className="h-6 w-6 text-error" /><p className="text-sm text-error">Failed to load data</p></div>;
 
   const { summary, students } = data;
@@ -122,11 +127,11 @@ export function AttendanceClassDetail({ program, fromDate, toDate, onBack }: Pro
         </p>
         <div className="flex items-center gap-2">
           <Button variant="primary" size="sm" onClick={() => handleExport("xlsx")} disabled={loading !== null}>
-            {loading === "xlsx" ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
+            {loading === "xlsx" ? <span className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin inline-block" /> : <FileSpreadsheet className="h-4 w-4" />}
             Excel <Download className="h-3.5 w-3.5" />
           </Button>
           <Button variant="outline" size="sm" onClick={() => handleExport("csv")} disabled={loading !== null}>
-            {loading === "csv" ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+            {loading === "csv" ? <span className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin inline-block" /> : <FileText className="h-4 w-4" />}
             CSV <Download className="h-3.5 w-3.5" />
           </Button>
         </div>

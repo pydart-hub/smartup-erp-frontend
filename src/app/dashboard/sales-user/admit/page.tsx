@@ -45,12 +45,12 @@ import { studentSchema, type StudentFormValues } from "@/lib/validators/student"
 import { admitStudent, getAcademicYears, getBranches, getStudentGroups, getNextSrrId } from "@/lib/api/enrollment";
 import { getFeeStructures } from "@/lib/api/fees";
 import type { FeeConfigEntry, PaymentOptionSummary } from "@/lib/types/fee";
-import { getAllPaymentOptions, applyAdmissionDiscount, applyReferralDiscount } from "@/lib/utils/feeSchedule";
+import { getAllPaymentOptions, applyAdmissionDiscount, applyReferralDiscount, applyPercentageDiscount } from "@/lib/utils/feeSchedule";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/hooks/useAuth";
 import PostAdmissionPayment from "@/components/payments/PostAdmissionPayment";
 import type { InvoiceForPayment } from "@/components/payments/PostAdmissionPayment";
-import { canApplyManualDiscount } from "@/lib/constants/discountBranches";
+import { canApplyManualDiscount, canApplyVennalaPlusTwoDiscount } from "@/lib/constants/discountBranches";
 
 // ── Reusable styled select wrapper ──────────────────────────────
 function SelectField({
@@ -138,6 +138,9 @@ function AdmitPageContent() {
   const [advanceAmount, setAdvanceAmount] = useState<number | null>(null);
   const [manualDiscountAmount, setManualDiscountAmount] = useState<number | null>(null);
   const [manualDiscountRemark, setManualDiscountRemark] = useState("");
+  // Vennala Plus Two old student percentage discount
+  const [vennalaDiscountEnabled, setVennalaDiscountEnabled] = useState(false);
+  const [vennalaDiscountPercent, setVennalaDiscountPercent] = useState<number | "">("")
 
   // ── Sibling selection state (only for referred/sibling flow) ──
   const [siblingQuery, setSiblingQuery] = useState("");
@@ -402,6 +405,7 @@ function AdmitPageContent() {
 
   const feeConfig: FeeConfigEntry | null = feeConfigRes ?? null;
   const canUseManualDiscount = canApplyManualDiscount(selectedBranch) && !isDemo && !isFreeAccess;
+  const canUseVennalaDiscount = canApplyVennalaPlusTwoDiscount(selectedBranch, selectedProgram) && !isDemo && !isFreeAccess;
 
   useEffect(() => {
     if (!canUseManualDiscount) {
@@ -409,6 +413,13 @@ function AdmitPageContent() {
       setManualDiscountRemark("");
     }
   }, [canUseManualDiscount]);
+
+  useEffect(() => {
+    if (!canUseVennalaDiscount) {
+      setVennalaDiscountEnabled(false);
+      setVennalaDiscountPercent("");
+    }
+  }, [canUseVennalaDiscount]);
 
   const selectedEnrollmentDate = watch("enrollment_date");
   const paymentOptions: PaymentOptionSummary[] = useMemo(() => {
@@ -418,8 +429,11 @@ function AdmitPageContent() {
     if (canUseManualDiscount && (manualDiscountAmount ?? 0) > 0) {
       options = applyAdmissionDiscount(options, manualDiscountAmount ?? 0, manualDiscountRemark.trim() || undefined);
     }
+    if (canUseVennalaDiscount && vennalaDiscountEnabled && Number(vennalaDiscountPercent) > 0) {
+      options = applyPercentageDiscount(options, Number(vennalaDiscountPercent));
+    }
     return options;
-  }, [feeConfig, selectedAcademicYear, selectedEnrollmentDate, isReferred, selectedPlan, canUseManualDiscount, manualDiscountAmount, manualDiscountRemark]);
+  }, [feeConfig, selectedAcademicYear, selectedEnrollmentDate, isReferred, selectedPlan, canUseManualDiscount, manualDiscountAmount, manualDiscountRemark, canUseVennalaDiscount, vennalaDiscountEnabled, vennalaDiscountPercent]);
 
   const selectedOption: PaymentOptionSummary | null = useMemo(() => {
     if (!selectedInstalments || paymentOptions.length === 0) return null;
@@ -458,6 +472,10 @@ function AdmitPageContent() {
       }
       if (canUseManualDiscount && (manualDiscountAmount ?? 0) > 0 && !manualDiscountRemark.trim()) {
         toast.error("Please enter a remark for the discount");
+        return;
+      }
+      if (canUseVennalaDiscount && vennalaDiscountEnabled && !(Number(vennalaDiscountPercent) > 0)) {
+        toast.error("Please enter a valid discount percentage");
         return;
       }
       // Non-free-access students must have mode of payment
@@ -508,6 +526,7 @@ function AdmitPageContent() {
         custom_mode_of_payment: isFreeAccess ? "Cash" : data.custom_mode_of_payment,
         manualDiscountAmount: canUseManualDiscount ? (manualDiscountAmount ?? undefined) : undefined,
         manualDiscountRemark: canUseManualDiscount ? (manualDiscountRemark.trim() || undefined) : undefined,
+        vennalaDiscountPercent: (canUseVennalaDiscount && vennalaDiscountEnabled && Number(vennalaDiscountPercent) > 0) ? Number(vennalaDiscountPercent) : undefined,
         instalmentSchedule: isFreeAccess
           ? undefined
           : isDemo
@@ -1491,6 +1510,70 @@ function AdmitPageContent() {
                           placeholder="Reason for discount"
                           className="w-full rounded-[10px] border border-border-input bg-surface px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
                         />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Vennala Plus Two Old Student Discount */}
+                  {canUseVennalaDiscount && selectedPlan && paymentOptions.length > 0 && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-text-secondary">Old Student Discount (Vennala Plus Two)</label>
+                      <div className="bg-blue-50 rounded-[12px] border border-blue-200 p-4 space-y-3">
+                        <p className="text-xs text-blue-800">
+                          Apply a percentage discount on total fees for Plus Two old students at Vennala. The discount is deducted from the last invoice.
+                        </p>
+                        {/* Apply toggle */}
+                        <label className="flex items-center gap-3 cursor-pointer select-none">
+                          <div
+                            onClick={() => {
+                              setVennalaDiscountEnabled((prev) => !prev);
+                              if (vennalaDiscountEnabled) setVennalaDiscountPercent("");
+                            }}
+                            className={`relative w-10 h-6 rounded-full transition-colors ${vennalaDiscountEnabled ? "bg-primary" : "bg-border-input"}`}
+                          >
+                            <span
+                              className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${vennalaDiscountEnabled ? "translate-x-4" : "translate-x-0"}`}
+                            />
+                          </div>
+                          <span className="text-sm font-medium text-text-primary">
+                            {vennalaDiscountEnabled ? "Discount Applied" : "Apply Discount"}
+                          </span>
+                        </label>
+
+                        {vennalaDiscountEnabled && (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="number"
+                                min={0.01}
+                                max={100}
+                                step={0.01}
+                                placeholder="Enter %"
+                                value={vennalaDiscountPercent}
+                                onChange={(e) => setVennalaDiscountPercent(e.target.value === "" ? "" : Number(e.target.value))}
+                                className="h-10 w-32 rounded-[10px] border border-border-input bg-surface px-3 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                              />
+                              <span className="text-sm text-text-secondary font-medium">%</span>
+                            </div>
+                            {(() => {
+                              const baseTotal = selectedOption?.total ?? paymentOptions[0]?.total;
+                              const pct = Number(vennalaDiscountPercent);
+                              if (!baseTotal || !(pct > 0)) return null;
+                              const discountAmt = Math.round(baseTotal * pct / 100);
+                              return (
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-xs text-blue-700">
+                                    {pct}% of ₹{baseTotal.toLocaleString("en-IN")}
+                                  </span>
+                                  <span className="text-xs font-bold text-white bg-green-600 rounded-full px-2 py-0.5">
+                                    −₹{discountAmt.toLocaleString("en-IN")} discount
+                                  </span>
+                                  <span className="text-xs text-blue-600">deducted from last invoice</span>
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}

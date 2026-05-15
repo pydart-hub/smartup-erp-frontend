@@ -1,10 +1,11 @@
 "use client";
 
+import { GifLoader } from "@/components/ui/GifLoader";
 import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { ArrowLeft, Loader2, RefreshCw, IndianRupee, BookOpen } from "lucide-react";
+import { ArrowLeft, RefreshCw, IndianRupee, BookOpen } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
@@ -57,9 +58,7 @@ export default function FeeStructureDetailPage() {
 
       {/* Loading */}
       {loading && (
-        <div className="flex items-center justify-center h-48">
-          <Loader2 className="animate-spin h-6 w-6 text-primary" />
-        </div>
+        <GifLoader />
       )}
 
       {/* Error */}

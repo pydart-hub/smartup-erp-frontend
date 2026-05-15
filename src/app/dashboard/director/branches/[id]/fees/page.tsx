@@ -1,5 +1,6 @@
 "use client";
 
+import { GifLoader } from "@/components/ui/GifLoader";
 import React, { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -225,9 +226,7 @@ export default function BranchFeesPage() {
         <h2 className="text-lg font-semibold text-text-primary mb-3">By Program / Class</h2>
 
         {loadPrograms ? (
-          <div className="flex items-center justify-center h-48">
-            <Loader2 className="animate-spin h-6 w-6 text-primary" />
-          </div>
+          <GifLoader />
         ) : programError ? (
           <div className="flex flex-col items-center justify-center h-48 gap-3">
             <AlertCircle className="h-8 w-8 text-error" />

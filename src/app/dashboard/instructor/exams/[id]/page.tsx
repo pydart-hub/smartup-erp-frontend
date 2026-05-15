@@ -1,5 +1,6 @@
 "use client";
 
+import { GifLoader } from "@/components/ui/GifLoader";
 import React, { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useParams, useRouter } from "next/navigation";
@@ -189,9 +190,7 @@ export default function InstructorExamMarkEntryPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-48">
-        <Loader2 className="animate-spin h-6 w-6 text-primary" />
-      </div>
+      <GifLoader />
     );
   }
 

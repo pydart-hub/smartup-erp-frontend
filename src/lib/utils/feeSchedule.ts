@@ -239,6 +239,23 @@ export function applyAdmissionDiscount(
   });
 }
 
+/**
+ * Apply a percentage-based discount to payment options (Vennala Plus Two old student).
+ * discountPercent: 0-100. Deducts computed rupee amount from the last instalment first.
+ */
+export function applyPercentageDiscount(
+  options: PaymentOptionSummary[],
+  discountPercent: number,
+  remark?: string,
+): PaymentOptionSummary[] {
+  if (!Number.isFinite(discountPercent) || discountPercent <= 0) return options;
+  const pct = Math.min(100, Math.max(0, discountPercent));
+  return options.map((opt) => {
+    const discountAmount = Math.round(opt.total * pct / 100);
+    return applyAdmissionDiscount([opt], discountAmount, remark ?? `Plus Two Old Student Discount (${pct}%)`)[0];
+  });
+}
+
 // ── Branch & Program Mapping ──
 // Maps Frappe company names to XLSX branch keys.
 

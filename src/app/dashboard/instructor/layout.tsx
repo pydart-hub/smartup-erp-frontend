@@ -1,9 +1,10 @@
 "use client";
 
+import { GifLoader } from "@/components/ui/GifLoader";
 import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/lib/stores/authStore";
-import { Loader2 } from "lucide-react";
+import {} from "lucide-react";
 
 /**
  * Instructor layout — protects all /dashboard/instructor/* routes.
@@ -45,18 +46,14 @@ export default function InstructorDashboardLayout({
   // While auth is loading, show spinner
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <Loader2 className="animate-spin h-6 w-6 text-primary" />
-      </div>
+      <GifLoader />
     );
   }
 
   // Not instructor → show nothing while redirect happens
   if (!isInstructor) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <Loader2 className="animate-spin h-6 w-6 text-primary" />
-      </div>
+      <GifLoader />
     );
   }
 

@@ -61,13 +61,34 @@ const containerVariants = {
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 15 },
+  hidden: { opacity: 0, y: 20, rotateX: -10 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.4, ease: "easeOut" as const },
+    rotateX: 0,
+    transition: { duration: 0.5, ease: "easeOut" as const },
   },
 };
+
+// ── 3D hover wrapper ──
+function ThreeDCard({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <motion.div
+      className={className}
+      style={{ perspective: "800px" }}
+      whileHover={{
+        y: -5,
+        rotateX: -5,
+        rotateY: 4,
+        scale: 1.03,
+        transition: { duration: 0.18, ease: "easeOut" },
+      }}
+      whileTap={{ scale: 0.97 }}
+    >
+      {children}
+    </motion.div>
+  );
+}
 
 // ── Branch card with live stats ──
 function BranchCard({ branch, index: _index }: { branch: { name: string; company_name: string; abbr: string }; index?: number }) {
@@ -97,11 +118,12 @@ function BranchCard({ branch, index: _index }: { branch: { name: string; company
   return (
     <Link href={`/dashboard/director/branches/${encodeURIComponent(branch.name)}`}>
       <motion.div
+        style={{ perspective: "800px" }}
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, ease: "easeOut" }}
-        whileHover={{ y: -3, transition: { duration: 0.15 } }}
-        whileTap={{ scale: 0.98 }}
+        whileHover={{ y: -8, rotateX: -6, rotateY: 5, scale: 1.02, transition: { duration: 0.18 } }}
+        whileTap={{ scale: 0.97 }}
       >
         <Card className="h-full cursor-pointer border-border-light hover:border-primary/30 hover:shadow-md transition-all duration-200 group">
           <CardContent className="p-5">
@@ -285,6 +307,7 @@ export default function DirectorDashboard() {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
+      style={{ perspective: "1200px" }}
       className="space-y-6"
     >
       <BreadcrumbNav />
@@ -376,176 +399,192 @@ export default function DirectorDashboard() {
 
       {/* Summary Stats — Clickable Cards */}
       <motion.div variants={itemVariants} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-8 gap-3">
-        <Link href="/dashboard/director/students" className="min-w-0">
-          <Card className="h-full hover:shadow-card-hover transition-all duration-200 cursor-pointer border-border-light hover:border-primary/30 overflow-hidden">
-            <CardContent className="p-3 text-center">
-              <GraduationCap className="h-4 w-4 text-primary mx-auto mb-1.5" />
-              {errTotalStudents ? (
-                <p className="text-xs text-error flex items-center justify-center gap-1"><AlertCircle className="h-3 w-3" /> Error</p>
-              ) : (
-                <p className="text-xl font-bold text-text-primary leading-tight">
-                  {loadTotalStudents ? "..." : <AnimatedNumber value={totalStudents ?? 0} />}
-                </p>
-              )}
-              <p className="text-[10px] text-text-tertiary mt-0.5">Total Students</p>
-              {!errTotalStudents && (
-                <div className="flex justify-center gap-2 mt-1.5">
-                  <div className="text-center">
-                    <p className="text-xs font-semibold text-success">{loadActiveStudents ? "..." : <AnimatedNumber value={activeStudents ?? 0} />}</p>
-                    <p className="text-[9px] text-text-tertiary uppercase">Active</p>
-                  </div>
-                  <div className="w-px bg-border-light" />
-                  <div className="text-center">
-                    <p className="text-xs font-semibold text-error">{loadDiscontinuedStudents ? "..." : <AnimatedNumber value={discontinuedStudents ?? 0} />}</p>
-                    <p className="text-[9px] text-text-tertiary uppercase">Disc.</p>
-                  </div>
-                </div>
-              )}
-              {!errTotalStudents && (
-                <div className="flex justify-center gap-1.5 mt-1.5 pt-1.5 border-t border-border-light">
-                  <div className="text-center">
-                    <p className="text-[11px] font-semibold text-purple-600">{loadPlanCounts ? "..." : <AnimatedNumber value={planCounts?.advanced ?? 0} />}</p>
-                    <p className="text-[8px] text-text-tertiary uppercase">Adv</p>
-                  </div>
-                  <div className="w-px bg-border-light" />
-                  <div className="text-center">
-                    <p className="text-[11px] font-semibold text-blue-600">{loadPlanCounts ? "..." : <AnimatedNumber value={planCounts?.intermediate ?? 0} />}</p>
-                    <p className="text-[8px] text-text-tertiary uppercase">Int</p>
-                  </div>
-                  <div className="w-px bg-border-light" />
-                  <div className="text-center">
-                    <p className="text-[11px] font-semibold text-emerald-600">{loadPlanCounts ? "..." : <AnimatedNumber value={planCounts?.basic ?? 0} />}</p>
-                    <p className="text-[8px] text-text-tertiary uppercase">Basic</p>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </Link>
-        <Link href="/dashboard/director/teachers" className="min-w-0">
-          <Card className="h-full hover:shadow-card-hover transition-all duration-200 cursor-pointer border-border-light hover:border-info/30 overflow-hidden">
-            <CardContent className="p-3 text-center">
-              <UserCheck className="h-4 w-4 text-info mx-auto mb-1.5" />
-              {errTotalStaff ? (
-                <p className="text-xs text-error flex items-center justify-center gap-1"><AlertCircle className="h-3 w-3" /> Error</p>
-              ) : (
-                <p className="text-xl font-bold text-text-primary leading-tight">
-                  {loadTotalStaff ? "..." : <AnimatedNumber value={totalStaff ?? 0} />}
-                </p>
-              )}
-              <p className="text-[10px] text-text-tertiary mt-0.5">Total Staff</p>
-            </CardContent>
-          </Card>
-        </Link>
-        <Link href="/dashboard/director/fees" className="min-w-0">
-          <Card className="h-full hover:shadow-card-hover transition-all duration-200 cursor-pointer border-border-light hover:border-warning/30 overflow-hidden">
-            <CardContent className="p-3 text-center">
-              <IndianRupee className="h-4 w-4 text-warning mx-auto mb-1.5" />
-              {errInvoiceStats ? (
-                <p className="text-xs text-error flex items-center justify-center gap-1"><AlertCircle className="h-3 w-3" /> Error</p>
-              ) : (
-                <p className="text-xl font-bold text-text-primary leading-tight truncate">
-                  {loadInvoiceStats ? "..." : <AnimatedCurrency value={invoiceStats?.totalInvoiced ?? 0} />}
-                </p>
-              )}
-              <p className="text-[10px] text-text-tertiary mt-0.5">Total Billed</p>
-            </CardContent>
-          </Card>
-        </Link>
-        <Link href="/dashboard/director/fees" className="min-w-0">
-          <Card className="h-full hover:shadow-card-hover transition-all duration-200 cursor-pointer border-success/20 hover:border-success/30 overflow-hidden">
-            <CardContent className="p-3 text-center">
-              <CircleCheck className="h-4 w-4 text-success mx-auto mb-1.5" />
-              {errInvoiceStats ? (
-                <p className="text-xs text-error flex items-center justify-center gap-1"><AlertCircle className="h-3 w-3" /> Error</p>
-              ) : (
-                <p className="text-xl font-bold text-success leading-tight truncate">
-                  {loadInvoiceStats ? "..." : <AnimatedCurrency value={invoiceStats?.totalCollected ?? 0} />}
-                </p>
-              )}
-              <p className="text-[10px] text-text-tertiary mt-0.5">Collected</p>
-              {!errInvoiceStats && (
-                <div className="flex justify-center gap-2 mt-1.5">
-                  <div className="text-center">
-                    <div className="flex items-center justify-center gap-0.5">
-                      <Wifi className="h-2.5 w-2.5 text-blue-500" />
-                      <p className="text-[10px] font-semibold text-blue-600">{loadCollectedByMode ? "..." : <AnimatedCurrency value={collectedByMode?.razorpay ?? 0} />}</p>
+        <ThreeDCard className="min-w-0">
+          <Link href="/dashboard/director/students" className="block h-full">
+            <Card className="h-full hover:shadow-card-hover transition-all duration-200 cursor-pointer border-border-light hover:border-primary/30 overflow-hidden">
+              <CardContent className="p-3 text-center">
+                <GraduationCap className="h-4 w-4 text-primary mx-auto mb-1.5" />
+                {errTotalStudents ? (
+                  <p className="text-xs text-error flex items-center justify-center gap-1"><AlertCircle className="h-3 w-3" /> Error</p>
+                ) : (
+                  <p className="text-xl font-bold text-text-primary leading-tight">
+                    {loadTotalStudents ? "..." : <AnimatedNumber value={totalStudents ?? 0} />}
+                  </p>
+                )}
+                <p className="text-[10px] text-text-tertiary mt-0.5">Total Students</p>
+                {!errTotalStudents && (
+                  <div className="flex justify-center gap-2 mt-1.5">
+                    <div className="text-center">
+                      <p className="text-xs font-semibold text-success">{loadActiveStudents ? "..." : <AnimatedNumber value={activeStudents ?? 0} />}</p>
+                      <p className="text-[9px] text-text-tertiary uppercase">Active</p>
                     </div>
-                    <p className="text-[8px] text-text-tertiary uppercase">Razorpay</p>
-                  </div>
-                  <div className="w-px bg-border-light" />
-                  <div className="text-center">
-                    <div className="flex items-center justify-center gap-0.5">
-                      <Banknote className="h-2.5 w-2.5 text-green-500" />
-                      <p className="text-[10px] font-semibold text-green-600">{loadCollectedByMode ? "..." : <AnimatedCurrency value={collectedByMode?.offline ?? 0} />}</p>
+                    <div className="w-px bg-border-light" />
+                    <div className="text-center">
+                      <p className="text-xs font-semibold text-error">{loadDiscontinuedStudents ? "..." : <AnimatedNumber value={discontinuedStudents ?? 0} />}</p>
+                      <p className="text-[9px] text-text-tertiary uppercase">Disc.</p>
                     </div>
-                    <p className="text-[8px] text-text-tertiary uppercase">Offline</p>
                   </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </Link>
-        <Link href="/dashboard/director/fees" className="min-w-0">
-          <Card className="h-full hover:shadow-card-hover transition-all duration-200 cursor-pointer border-error/20 hover:border-error/30 overflow-hidden">
-            <CardContent className="p-3 text-center">
-              <Clock className="h-4 w-4 text-error mx-auto mb-1.5" />
-              {errInvoiceStats ? (
-                <p className="text-xs text-error flex items-center justify-center gap-1"><AlertCircle className="h-3 w-3" /> Error</p>
-              ) : (
-                <p className="text-xl font-bold text-error leading-tight truncate">
-                  {loadInvoiceStats || loadForfeitedFees ? "..." : <AnimatedCurrency value={(invoiceStats?.totalOutstanding ?? 0) - (forfeitedFees ?? 0)} />}
+                )}
+                {!errTotalStudents && (
+                  <div className="flex justify-center gap-1.5 mt-1.5 pt-1.5 border-t border-border-light">
+                    <div className="text-center">
+                      <p className="text-[11px] font-semibold text-purple-600">{loadPlanCounts ? "..." : <AnimatedNumber value={planCounts?.advanced ?? 0} />}</p>
+                      <p className="text-[8px] text-text-tertiary uppercase">Adv</p>
+                    </div>
+                    <div className="w-px bg-border-light" />
+                    <div className="text-center">
+                      <p className="text-[11px] font-semibold text-blue-600">{loadPlanCounts ? "..." : <AnimatedNumber value={planCounts?.intermediate ?? 0} />}</p>
+                      <p className="text-[8px] text-text-tertiary uppercase">Int</p>
+                    </div>
+                    <div className="w-px bg-border-light" />
+                    <div className="text-center">
+                      <p className="text-[11px] font-semibold text-emerald-600">{loadPlanCounts ? "..." : <AnimatedNumber value={planCounts?.basic ?? 0} />}</p>
+                      <p className="text-[8px] text-text-tertiary uppercase">Basic</p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </Link>
+        </ThreeDCard>
+        <ThreeDCard className="min-w-0">
+          <Link href="/dashboard/director/teachers" className="block h-full">
+            <Card className="h-full hover:shadow-card-hover transition-all duration-200 cursor-pointer border-border-light hover:border-info/30 overflow-hidden">
+              <CardContent className="p-3 text-center">
+                <UserCheck className="h-4 w-4 text-info mx-auto mb-1.5" />
+                {errTotalStaff ? (
+                  <p className="text-xs text-error flex items-center justify-center gap-1"><AlertCircle className="h-3 w-3" /> Error</p>
+                ) : (
+                  <p className="text-xl font-bold text-text-primary leading-tight">
+                    {loadTotalStaff ? "..." : <AnimatedNumber value={totalStaff ?? 0} />}
+                  </p>
+                )}
+                <p className="text-[10px] text-text-tertiary mt-0.5">Total Staff</p>
+              </CardContent>
+            </Card>
+          </Link>
+        </ThreeDCard>
+        <ThreeDCard className="min-w-0">
+          <Link href="/dashboard/director/fees" className="block h-full">
+            <Card className="h-full hover:shadow-card-hover transition-all duration-200 cursor-pointer border-border-light hover:border-warning/30 overflow-hidden">
+              <CardContent className="p-3 text-center">
+                <IndianRupee className="h-4 w-4 text-warning mx-auto mb-1.5" />
+                {errInvoiceStats ? (
+                  <p className="text-xs text-error flex items-center justify-center gap-1"><AlertCircle className="h-3 w-3" /> Error</p>
+                ) : (
+                  <p className="text-xl font-bold text-text-primary leading-tight truncate">
+                    {loadInvoiceStats ? "..." : <AnimatedCurrency value={invoiceStats?.totalInvoiced ?? 0} />}
+                  </p>
+                )}
+                <p className="text-[10px] text-text-tertiary mt-0.5">Total Billed</p>
+              </CardContent>
+            </Card>
+          </Link>
+        </ThreeDCard>
+        <ThreeDCard className="min-w-0">
+          <Link href="/dashboard/director/fees" className="block h-full">
+            <Card className="h-full hover:shadow-card-hover transition-all duration-200 cursor-pointer border-success/20 hover:border-success/30 overflow-hidden">
+              <CardContent className="p-3 text-center">
+                <CircleCheck className="h-4 w-4 text-success mx-auto mb-1.5" />
+                {errInvoiceStats ? (
+                  <p className="text-xs text-error flex items-center justify-center gap-1"><AlertCircle className="h-3 w-3" /> Error</p>
+                ) : (
+                  <p className="text-xl font-bold text-success leading-tight truncate">
+                    {loadInvoiceStats ? "..." : <AnimatedCurrency value={invoiceStats?.totalCollected ?? 0} />}
+                  </p>
+                )}
+                <p className="text-[10px] text-text-tertiary mt-0.5">Collected</p>
+                {!errInvoiceStats && (
+                  <div className="flex justify-center gap-2 mt-1.5">
+                    <div className="text-center">
+                      <div className="flex items-center justify-center gap-0.5">
+                        <Wifi className="h-2.5 w-2.5 text-blue-500" />
+                        <p className="text-[10px] font-semibold text-blue-600">{loadCollectedByMode ? "..." : <AnimatedCurrency value={collectedByMode?.razorpay ?? 0} />}</p>
+                      </div>
+                      <p className="text-[8px] text-text-tertiary uppercase">Razorpay</p>
+                    </div>
+                    <div className="w-px bg-border-light" />
+                    <div className="text-center">
+                      <div className="flex items-center justify-center gap-0.5">
+                        <Banknote className="h-2.5 w-2.5 text-green-500" />
+                        <p className="text-[10px] font-semibold text-green-600">{loadCollectedByMode ? "..." : <AnimatedCurrency value={collectedByMode?.offline ?? 0} />}</p>
+                      </div>
+                      <p className="text-[8px] text-text-tertiary uppercase">Offline</p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </Link>
+        </ThreeDCard>
+        <ThreeDCard className="min-w-0">
+          <Link href="/dashboard/director/fees" className="block h-full">
+            <Card className="h-full hover:shadow-card-hover transition-all duration-200 cursor-pointer border-error/20 hover:border-error/30 overflow-hidden">
+              <CardContent className="p-3 text-center">
+                <Clock className="h-4 w-4 text-error mx-auto mb-1.5" />
+                {errInvoiceStats ? (
+                  <p className="text-xs text-error flex items-center justify-center gap-1"><AlertCircle className="h-3 w-3" /> Error</p>
+                ) : (
+                  <p className="text-xl font-bold text-error leading-tight truncate">
+                    {loadInvoiceStats || loadForfeitedFees ? "..." : <AnimatedCurrency value={(invoiceStats?.totalOutstanding ?? 0) - (forfeitedFees ?? 0)} />}
+                  </p>
+                )}
+                <p className="text-[10px] text-text-tertiary mt-0.5">Pending Fees</p>
+              </CardContent>
+            </Card>
+          </Link>
+        </ThreeDCard>
+        <ThreeDCard className="min-w-0">
+          <Link href="/dashboard/director/dues" className="block h-full">
+            <Card className="h-full hover:shadow-card-hover transition-all duration-200 cursor-pointer border-orange-200/60 hover:border-orange-400/40 overflow-hidden">
+              <CardContent className="p-3 text-center">
+                <CalendarClock className="h-4 w-4 text-orange-500 mx-auto mb-1.5" />
+                {errDuesToday ? (
+                  <p className="text-xs text-error flex items-center justify-center gap-1"><AlertCircle className="h-3 w-3" /> Error</p>
+                ) : (
+                  <p className="text-xl font-bold text-orange-600 leading-tight truncate">
+                    {loadDuesToday ? "..." : <AnimatedCurrency value={duesToday?.total_dues ?? 0} />}
+                  </p>
+                )}
+                <p className="text-[10px] text-text-tertiary mt-0.5">Dues Till Today</p>
+                {!errDuesToday && (
+                  <p className="text-[9px] text-text-tertiary">{loadDuesToday ? "..." : `${duesToday?.student_count ?? 0} students`}</p>
+                )}
+              </CardContent>
+            </Card>
+          </Link>
+        </ThreeDCard>
+        <ThreeDCard className="min-w-0">
+          <Link href="/dashboard/director/students" className="block h-full">
+            <Card className="h-full hover:shadow-card-hover transition-all duration-200 cursor-pointer border-amber-200/60 hover:border-amber-400/40 overflow-hidden">
+              <CardContent className="p-3 text-center">
+                <TriangleAlert className="h-4 w-4 text-amber-500 mx-auto mb-1.5" />
+                {errForfeitedFees ? (
+                  <p className="text-xs text-error flex items-center justify-center gap-1"><AlertCircle className="h-3 w-3" /> Error</p>
+                ) : (
+                  <p className="text-xl font-bold text-amber-600 leading-tight truncate">
+                    {loadForfeitedFees ? "..." : <AnimatedCurrency value={forfeitedFees ?? 0} />}
+                  </p>
+                )}
+                <p className="text-[10px] text-text-tertiary mt-0.5">Forfeited Fees</p>
+                <p className="text-[9px] text-text-tertiary">Discontinued</p>
+              </CardContent>
+            </Card>
+          </Link>
+        </ThreeDCard>
+        <ThreeDCard className="min-w-0">
+          <Link href="/dashboard/director/demo-students" className="block h-full">
+            <Card className="h-full hover:shadow-card-hover transition-all duration-200 cursor-pointer border-teal-200/60 hover:border-teal-400/40 overflow-hidden">
+              <CardContent className="p-3 text-center">
+                <GraduationCap className="h-4 w-4 text-teal-500 mx-auto mb-1.5" />
+                <p className="text-xl font-bold text-teal-600 leading-tight truncate">
+                  {loadDemoCount ? "..." : <AnimatedNumber value={demoStudentCount ?? 0} />}
                 </p>
-              )}
-              <p className="text-[10px] text-text-tertiary mt-0.5">Pending Fees</p>
-            </CardContent>
-          </Card>
-        </Link>
-        <Link href="/dashboard/director/dues" className="min-w-0">
-          <Card className="h-full hover:shadow-card-hover transition-all duration-200 cursor-pointer border-orange-200/60 hover:border-orange-400/40 overflow-hidden">
-            <CardContent className="p-3 text-center">
-              <CalendarClock className="h-4 w-4 text-orange-500 mx-auto mb-1.5" />
-              {errDuesToday ? (
-                <p className="text-xs text-error flex items-center justify-center gap-1"><AlertCircle className="h-3 w-3" /> Error</p>
-              ) : (
-                <p className="text-xl font-bold text-orange-600 leading-tight truncate">
-                  {loadDuesToday ? "..." : <AnimatedCurrency value={duesToday?.total_dues ?? 0} />}
-                </p>
-              )}
-              <p className="text-[10px] text-text-tertiary mt-0.5">Dues Till Today</p>
-              {!errDuesToday && (
-                <p className="text-[9px] text-text-tertiary">{loadDuesToday ? "..." : `${duesToday?.student_count ?? 0} students`}</p>
-              )}
-            </CardContent>
-          </Card>
-        </Link>
-        <Link href="/dashboard/director/students" className="min-w-0">
-          <Card className="h-full hover:shadow-card-hover transition-all duration-200 cursor-pointer border-amber-200/60 hover:border-amber-400/40 overflow-hidden">
-            <CardContent className="p-3 text-center">
-              <TriangleAlert className="h-4 w-4 text-amber-500 mx-auto mb-1.5" />
-              {errForfeitedFees ? (
-                <p className="text-xs text-error flex items-center justify-center gap-1"><AlertCircle className="h-3 w-3" /> Error</p>
-              ) : (
-                <p className="text-xl font-bold text-amber-600 leading-tight truncate">
-                  {loadForfeitedFees ? "..." : <AnimatedCurrency value={forfeitedFees ?? 0} />}
-                </p>
-              )}
-              <p className="text-[10px] text-text-tertiary mt-0.5">Forfeited Fees</p>
-              <p className="text-[9px] text-text-tertiary">Discontinued</p>
-            </CardContent>
-          </Card>
-        </Link>
-        <Link href="/dashboard/director/demo-students" className="min-w-0">
-          <Card className="h-full hover:shadow-card-hover transition-all duration-200 cursor-pointer border-teal-200/60 hover:border-teal-400/40 overflow-hidden">
-            <CardContent className="p-3 text-center">
-              <GraduationCap className="h-4 w-4 text-teal-500 mx-auto mb-1.5" />
-              <p className="text-xl font-bold text-teal-600 leading-tight truncate">
-                {loadDemoCount ? "..." : <AnimatedNumber value={demoStudentCount ?? 0} />}
-              </p>
-              <p className="text-[10px] text-text-tertiary mt-0.5">Demo Students</p>
-            </CardContent>
-          </Card>
-        </Link>
+                <p className="text-[10px] text-text-tertiary mt-0.5">Demo Students</p>
+              </CardContent>
+            </Card>
+          </Link>
+        </ThreeDCard>
       </motion.div>
 
       {/* Academic Analytics Cards */}
@@ -569,13 +608,18 @@ export default function DirectorDashboard() {
             { title: "Topic Coverage", desc: "Curriculum progress", icon: BookOpen, href: "/dashboard/director/academics/topic-coverage", color: "bg-orange-100 text-orange-700" },
           ].map((card) => (
             <Link key={card.title} href={card.href}>
-              <div className="bg-surface rounded-[12px] border border-border-light p-4 hover:border-primary/30 hover:shadow-md transition-all group cursor-pointer h-full">
+              <motion.div
+                style={{ perspective: "600px" }}
+                whileHover={{ y: -5, rotateX: -5, rotateY: 4, scale: 1.03, transition: { duration: 0.18, ease: "easeOut" } }}
+                whileTap={{ scale: 0.97 }}
+                className="bg-surface rounded-[12px] border border-border-light p-4 hover:border-primary/30 hover:shadow-md transition-all group cursor-pointer h-full"
+              >
                 <div className={`w-9 h-9 rounded-[10px] flex items-center justify-center mb-3 ${card.color}`}>
                   <card.icon className="w-4 h-4" />
                 </div>
                 <p className="text-xs font-semibold text-primary group-hover:text-primary/80 transition-colors">{card.title}</p>
                 <p className="text-[11px] text-text-tertiary mt-0.5">{card.desc}</p>
-              </div>
+              </motion.div>
             </Link>
           ))}
         </div>

@@ -212,6 +212,7 @@ export const SALES_USER_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard/sales-user", icon: "LayoutDashboard", emoji: "📊" },
   { label: "New Admission", href: "/dashboard/sales-user/new-admission", icon: "UserPlus", emoji: "🎓" },
   { label: "Students", href: "/dashboard/sales-user/students", icon: "GraduationCap", emoji: "👨‍🎓" },
+  { label: "Fee Overdue", href: "/dashboard/sales-user/fees/overdue", icon: "CalendarClock", emoji: "⏰" },
 ];
 
 export const GENERAL_MANAGER_NAV: NavItem[] = [

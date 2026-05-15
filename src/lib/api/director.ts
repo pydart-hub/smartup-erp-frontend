@@ -1222,10 +1222,14 @@ export interface DuesTodayBatchRow {
 export interface DuesTodayStudentRow {
   student_id: string;
   student_name: string;
+  class_name?: string;
+  batch_name?: string;
   total_dues: number;
   plan: string;
   no_of_instalments: string;
-  overdue_invoices: { name: string; amount: number; grand_total: number; due_date: string; instalment_label: string }[];
+  guardian_name: string;
+  guardian_phone: string;
+  overdue_invoices: { name: string; amount: number; grand_total: number; paid: number; due_date: string; instalment_label: string }[];
 }
 
 /** Get total overdue dues across all branches */
@@ -1270,6 +1274,16 @@ export async function getDuesTodayByBatch(branch: string, itemCode: string, asOf
 /** Get student-wise dues for a specific batch */
 export async function getDuesTodayByStudent(branch: string, batch: string, asOf?: string): Promise<DuesTodayStudentRow[]> {
   const params = new URLSearchParams({ level: "student", branch, batch });
+  if (asOf) params.set("as_of", asOf);
+  const res = await fetch(`/api/fees/dues-till-today?${params}`, { credentials: "include" });
+  if (!res.ok) throw new Error(`dues-till-today failed: ${res.status}`);
+  const json = await res.json();
+  return json.data ?? [];
+}
+
+/** Get ALL overdue students in a branch (flat list, no batch filter) */
+export async function getDuesTodayByBranchStudents(branch: string, asOf?: string): Promise<DuesTodayStudentRow[]> {
+  const params = new URLSearchParams({ level: "branch_students", branch });
   if (asOf) params.set("as_of", asOf);
   const res = await fetch(`/api/fees/dues-till-today?${params}`, { credentials: "include" });
   if (!res.ok) throw new Error(`dues-till-today failed: ${res.status}`);

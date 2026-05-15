@@ -1,12 +1,12 @@
 "use client";
 
+import { GifLoader } from "@/components/ui/GifLoader";
 import React, { useState, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
-  Loader2,
   AlertCircle,
   Download,
   FileSpreadsheet,
@@ -331,9 +331,7 @@ export default function ConsolidatedBankReportPage() {
 
       {/* Loading / Error */}
       {isLoading && (
-        <div className="flex items-center justify-center h-48">
-          <Loader2 className="animate-spin h-6 w-6 text-primary" />
-        </div>
+        <GifLoader />
       )}
 
       {isError && (

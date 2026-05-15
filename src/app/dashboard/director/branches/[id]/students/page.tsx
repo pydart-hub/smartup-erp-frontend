@@ -1,5 +1,6 @@
 "use client";
 
+import { GifLoader } from "@/components/ui/GifLoader";
 import React from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -11,7 +12,6 @@ import {
   Users,
   GraduationCap,
   ChevronRight,
-  Loader2,
   List,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
@@ -284,9 +284,7 @@ export default function BranchStudentsPage() {
         </h2>
 
         {isLoading ? (
-          <div className="flex items-center justify-center h-48">
-            <Loader2 className="animate-spin h-6 w-6 text-primary" />
-          </div>
+          <GifLoader />
         ) : programs.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 gap-1.5">
             <p className="text-sm text-text-tertiary">

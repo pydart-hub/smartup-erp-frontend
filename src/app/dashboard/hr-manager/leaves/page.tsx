@@ -1,11 +1,11 @@
 "use client";
 
+import { GifLoader } from "@/components/ui/GifLoader";
 import React, { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  CalendarDays, Search, CheckCircle2, XCircle, Clock, Filter,
-  Loader2, AlertCircle,
+  CalendarDays, Search, CheckCircle2, XCircle, Clock, Filter, AlertCircle,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
@@ -162,9 +162,7 @@ export default function HRLeavesPage() {
 
       {/* Leave Applications List */}
       {isLoading ? (
-        <div className="flex items-center justify-center h-48">
-          <Loader2 className="animate-spin h-6 w-6 text-primary" />
-        </div>
+        <GifLoader />
       ) : filtered.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16 gap-3">
