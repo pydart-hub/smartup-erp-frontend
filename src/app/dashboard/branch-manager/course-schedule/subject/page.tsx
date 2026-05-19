@@ -122,9 +122,8 @@ export default function SubjectSchedulePage() {
   });
 
   const { data: roomsRes } = useQuery({
-    queryKey: ["rooms", branch],
-    queryFn: () => getRooms(branch),
-    enabled: !!branch,
+    queryKey: ["rooms"],
+    queryFn: () => getRooms(),
     staleTime: 10 * 60_000,
   });
   const rooms = roomsRes?.data ?? [];
