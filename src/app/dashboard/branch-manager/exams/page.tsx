@@ -15,6 +15,7 @@ import {
   ChevronRight,
   Clock,
   Users,
+  FlaskConical,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Button } from "@/components/ui/Button";
@@ -143,6 +144,12 @@ export default function BranchManagerExamsPage() {
             <Button variant="outline" size="md">
               <Users className="h-4 w-4" />
               One-to-One Exam
+            </Button>
+          </Link>
+          <Link href="/dashboard/branch-manager/exams/create-subject">
+            <Button variant="outline" size="md">
+              <FlaskConical className="h-4 w-4" />
+              Subject Exam
             </Button>
           </Link>
           <Link href="/dashboard/branch-manager/exams/create">

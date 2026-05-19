@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Loader2, Calendar, Clock, Hash, BookOpen, Users, FileText, AlertTriangle } from "lucide-react";
+import { Loader2, Calendar, Clock, Hash, BookOpen, Users, FileText, AlertTriangle, FlaskConical } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -18,13 +18,13 @@ import type { AssessmentGroup } from "@/lib/types/assessment";
 const container = {
   hidden: { opacity: 0 },
   show: { opacity: 1, transition: { staggerChildren: 0.05 } },
-};
+} as const;
 const item = {
   hidden: { opacity: 0, y: 12 },
   show: { opacity: 1, y: 0 },
-};
+} as const;
 
-export default function CreateExamPage() {
+export default function CreateSubjectExamPage() {
   const router = useRouter();
   const { defaultCompany } = useAuth();
 
@@ -38,15 +38,15 @@ export default function CreateExamPage() {
   const [maxScore, setMaxScore] = useState("100");
   const [topic, setTopic] = useState("");
 
-  // Fetch student groups for this branch
+  // Fetch ONLY subject-wise student groups for this branch
   const { data: studentGroups = [], isLoading: sgLoading } = useQuery({
-    queryKey: ["student-groups-for-exam", defaultCompany],
+    queryKey: ["subject-groups-for-exam", defaultCompany],
     queryFn: async () => {
       const res = await getStudentGroups({
         custom_branch: defaultCompany || undefined,
       });
-      // Exclude subject-wise groups (they have custom_subject set)
-      return (res.data ?? []).filter((sg) => !sg.custom_subject);
+      // Only subject-wise groups (those with custom_subject set)
+      return (res.data ?? []).filter((sg) => !!sg.custom_subject);
     },
     staleTime: 60_000,
     enabled: !!defaultCompany,
@@ -58,13 +58,39 @@ export default function CreateExamPage() {
     [studentGroups, studentGroup],
   );
 
-  // Fetch courses for the selected batch's program
+  // Fetch courses for the selected group's program
   const { data: programCourses = [], isLoading: coursesLoading } = useQuery({
     queryKey: ["program-courses", selectedSG?.program],
     queryFn: () => getProgramCourses(selectedSG!.program!),
     enabled: !!selectedSG?.program,
     staleTime: 120_000,
   });
+
+  // Filter courses to only those matching the group's custom_subject
+  const filteredCourses = useMemo(() => {
+    if (!selectedSG?.custom_subject || programCourses.length === 0) return programCourses;
+    const subjectLower = selectedSG.custom_subject.toLowerCase();
+    const matched = programCourses.filter(
+      (pc) =>
+        (pc.course_name || pc.course).toLowerCase().includes(subjectLower) ||
+        subjectLower.includes((pc.course_name || pc.course).toLowerCase()),
+    );
+    return matched.length > 0 ? matched : programCourses;
+  }, [selectedSG?.custom_subject, programCourses]);
+
+  // Auto-select the first filtered course when group/courses change
+  useEffect(() => {
+    if (filteredCourses.length === 1) {
+      setCourse(filteredCourses[0].course);
+    } else if (filteredCourses.length > 1) {
+      const subjectLower = (selectedSG?.custom_subject || "").toLowerCase();
+      const exact = filteredCourses.find(
+        (pc) => (pc.course_name || pc.course).toLowerCase().includes(subjectLower),
+      );
+      setCourse(exact ? exact.course : filteredCourses[0].course);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredCourses]);
 
   // Fetch exam types (assessment groups)
   const { data: groups = [] } = useQuery<AssessmentGroup[]>({
@@ -73,9 +99,7 @@ export default function CreateExamPage() {
     staleTime: 120_000,
   });
 
-
-
-  // Fetch existing classes for this batch + date (to show occupied time slots)
+  // Fetch existing classes for this group + date
   const { data: daySchedules = [] } = useQuery({
     queryKey: ["batch-day-schedules", studentGroup, scheduleDate],
     queryFn: async () => {
@@ -86,7 +110,7 @@ export default function CreateExamPage() {
     staleTime: 30_000,
   });
 
-  // Fetch existing exams for this batch + date
+  // Fetch existing exams for this group + date
   const { data: dayExams = [] } = useQuery({
     queryKey: ["batch-day-exams", studentGroup, scheduleDate],
     queryFn: () => getExamsForBatchDate(studentGroup, scheduleDate),
@@ -98,7 +122,7 @@ export default function CreateExamPage() {
   const createMutation = useMutation({
     mutationFn: createExam,
     onSuccess: (data) => {
-      toast.success("Exam created successfully!");
+      toast.success("Subject exam created successfully!");
       router.push(
         `/dashboard/branch-manager/exams/${encodeURIComponent(data.name)}`,
       );
@@ -128,6 +152,17 @@ export default function CreateExamPage() {
 
   const isSubmitting = createMutation.isPending;
 
+  // Group subject groups by subject for display
+  const groupedBySubject = useMemo(() => {
+    const map = new Map<string, typeof studentGroups>();
+    for (const sg of studentGroups) {
+      const subject = sg.custom_subject || "Other";
+      if (!map.has(subject)) map.set(subject, []);
+      map.get(subject)!.push(sg);
+    }
+    return map;
+  }, [studentGroups]);
+
   return (
     <motion.div
       variants={container}
@@ -138,9 +173,9 @@ export default function CreateExamPage() {
       <BreadcrumbNav />
 
       <motion.div variants={item}>
-        <h1 className="text-2xl font-bold text-text-primary">Create Exam</h1>
+        <h1 className="text-2xl font-bold text-text-primary">Create Subject Exam</h1>
         <p className="text-sm text-text-secondary mt-0.5">
-          Schedule a new exam for a batch
+          Schedule an exam for a subject-wise group
         </p>
       </motion.div>
 
@@ -149,16 +184,16 @@ export default function CreateExamPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-text-tertiary" />
+                <FlaskConical className="h-5 w-5 text-text-tertiary" />
                 Exam Details
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-5">
-              {/* Batch (Student Group) */}
+              {/* Subject Group */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-text-primary flex items-center gap-1.5">
                   <Users className="h-4 w-4 text-text-tertiary" />
-                  Batch <span className="text-error">*</span>
+                  Subject Group <span className="text-error">*</span>
                 </label>
                 {sgLoading ? (
                   <div className="h-10 rounded-[10px] border border-border-input bg-surface flex items-center px-3">
@@ -167,17 +202,26 @@ export default function CreateExamPage() {
                 ) : (
                   <select
                     value={studentGroup}
-                    onChange={(e) => { setStudentGroup(e.target.value); setCourse(""); }}
+                    onChange={(e) => { setStudentGroup(e.target.value); setCourse(""); setTopic(""); }}
                     required
                     className="h-10 rounded-[10px] border border-border-input bg-surface px-3 text-sm"
                   >
-                    <option value="">Select batch...</option>
-                    {studentGroups.map((sg) => (
-                      <option key={sg.name} value={sg.name}>
-                        {sg.student_group_name} ({sg.program})
-                      </option>
+                    <option value="">Select subject group...</option>
+                    {Array.from(groupedBySubject.entries()).map(([subject, sgs]) => (
+                      <optgroup key={subject} label={subject}>
+                        {sgs.map((sg) => (
+                          <option key={sg.name} value={sg.name}>
+                            {sg.student_group_name} ({sg.program})
+                          </option>
+                        ))}
+                      </optgroup>
                     ))}
                   </select>
+                )}
+                {selectedSG?.custom_subject && (
+                  <p className="text-xs text-text-tertiary">
+                    Subject: <span className="font-medium text-primary">{selectedSG.custom_subject}</span>
+                  </p>
                 )}
               </div>
 
@@ -185,11 +229,11 @@ export default function CreateExamPage() {
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-text-primary flex items-center gap-1.5">
                   <BookOpen className="h-4 w-4 text-text-tertiary" />
-                  Course (Subject) <span className="text-error">*</span>
+                  Course <span className="text-error">*</span>
                 </label>
                 {!selectedSG ? (
                   <div className="h-10 rounded-[10px] border border-border-input bg-surface flex items-center px-3 text-sm text-text-tertiary">
-                    Select a batch first
+                    Select a group first
                   </div>
                 ) : coursesLoading ? (
                   <div className="h-10 rounded-[10px] border border-border-input bg-surface flex items-center px-3">
@@ -203,7 +247,7 @@ export default function CreateExamPage() {
                     className="h-10 rounded-[10px] border border-border-input bg-surface px-3 text-sm"
                   >
                     <option value="">Select course...</option>
-                    {Array.from(new Map(programCourses.map((pc) => [pc.course, pc])).values()).map((pc) => (
+                    {Array.from(new Map(filteredCourses.map((pc) => [pc.course, pc])).values()).map((pc) => (
                       <option key={pc.course} value={pc.course}>
                         {pc.course_name || pc.course}
                       </option>
@@ -223,7 +267,7 @@ export default function CreateExamPage() {
                     type="text"
                     value={topic}
                     onChange={(e) => setTopic(e.target.value)}
-                    placeholder="e.g. Quadratic Equations"
+                    placeholder="e.g. Electrostatics"
                     className="h-10 rounded-[10px] border border-border-input bg-surface px-3 text-sm"
                   />
                 </div>
@@ -305,9 +349,9 @@ export default function CreateExamPage() {
                           <span className="text-text-tertiary">[Class]</span> {s.course} — {s.from_time?.slice(0, 5)} to {s.to_time?.slice(0, 5)}
                         </p>
                       ))}
-                      {dayExams.map((e) => (
-                        <p key={e.name} className="text-xs text-text-secondary">
-                          <span className="text-primary">[Exam]</span> {e.assessment_name} — {e.from_time?.slice(0, 5)} to {e.to_time?.slice(0, 5)}
+                      {dayExams.map((ex) => (
+                        <p key={ex.name} className="text-xs text-text-secondary">
+                          <span className="text-primary">[Exam]</span> {ex.assessment_name} — {ex.from_time?.slice(0, 5)} to {ex.to_time?.slice(0, 5)}
                         </p>
                       ))}
                     </div>
@@ -370,9 +414,9 @@ export default function CreateExamPage() {
                   {isSubmitting ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    <FileText className="h-4 w-4" />
+                    <FlaskConical className="h-4 w-4" />
                   )}
-                  {isSubmitting ? "Creating..." : "Create Exam"}
+                  {isSubmitting ? "Creating..." : "Create Subject Exam"}
                 </Button>
               </div>
             </CardContent>

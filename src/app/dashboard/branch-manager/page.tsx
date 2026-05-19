@@ -222,11 +222,12 @@ export default function BranchManagerDashboard() {
       <motion.div variants={itemVariants}>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div>
-            <h1 className="text-2xl font-bold text-text-primary">
+            <h1 className="text-2xl font-bold text-text-primary flex items-center gap-2">
               <motion.span initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }}>
                 Welcome back,{" "}
               </motion.span>
               <AnimatedName name={user?.full_name?.split(" ")[0] || "Manager"} />
+              <img src="/welcome.gif" alt="" className="h-20 w-20 object-contain" />
             </h1>
             <motion.p className="text-text-secondary text-sm mt-0.5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8, duration: 0.5 }}>
               Here&apos;s what&apos;s happening at your branch today.

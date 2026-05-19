@@ -210,12 +210,12 @@ export function Sidebar({ navItems = BRANCH_MANAGER_NAV }: SidebarProps) {
         )}>
           {!sidebarCollapsed && (
             <Link href={homeHref} className="flex items-center gap-2.5">
-              <video src="/loading.webm" autoPlay loop muted playsInline width={36} height={36} className="object-contain block flex-shrink-0 drop-shadow-sm" />
-              <span className="font-black text-text-primary text-lg tracking-tight">Smartup</span>
+              <video src="/loading.webm" autoPlay loop muted playsInline width={45} height={45} className="object-contain block flex-shrink-0 drop-shadow-sm" />
+              <span className="text-[#1a1a1a] dark:text-white text-xl tracking-[0.12em] uppercase leading-none" style={{ fontFamily: 'var(--font-montserrat)', fontWeight: 900 }}>SMART UP</span>
             </Link>
           )}
           {sidebarCollapsed && (
-            <video src="/loading.webm" autoPlay loop muted playsInline width={36} height={36} className="object-contain block flex-shrink-0 drop-shadow-sm" />
+            <video src="/loading.webm" autoPlay loop muted playsInline width={45} height={45} className="object-contain block flex-shrink-0 drop-shadow-sm" />
           )}
           {/* Mobile close */}
           <motion.button
