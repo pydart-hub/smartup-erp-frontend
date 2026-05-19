@@ -94,6 +94,7 @@ export default function AttendancePage() {
   );
 
   // ── O2O student groups ──
+  const [subjectExpanded, setSubjectExpanded] = useState(true);
   const [o2oExpanded, setO2oExpanded] = useState(true);
   const { data: o2oGroupRes } = useQuery({
     queryKey: ["o2o-groups-attendance", defaultCompany],
@@ -201,10 +202,20 @@ export default function AttendancePage() {
       .sort((a, b) => a.displayName.localeCompare(b.displayName));
   }, [branchAttendanceRes, batchMembersMap, batches, batchMap, branchSchedulesRes, o2oGroups]);
 
-  // Split into regular classes vs O2O groups
+  // Subject group names — batches that have custom_subject set
+  const subjectGroupNames = useMemo(
+    () => new Set(batches.filter((b: Batch) => !!b.custom_subject).map((b: Batch) => b.name)),
+    [batches],
+  );
+
+  // Split into regular / subject-wise / O2O
   const classSummaries = useMemo(
-    () => allSummaries.filter((c) => !o2oGroupNames.has(c.name)),
-    [allSummaries, o2oGroupNames],
+    () => allSummaries.filter((c) => !o2oGroupNames.has(c.name) && !subjectGroupNames.has(c.name)),
+    [allSummaries, o2oGroupNames, subjectGroupNames],
+  );
+  const subjectSummaries = useMemo(
+    () => allSummaries.filter((c) => subjectGroupNames.has(c.name)),
+    [allSummaries, subjectGroupNames],
   );
   const o2oSummaries = useMemo(
     () => allSummaries.filter((c) => o2oGroupNames.has(c.name)),
@@ -590,6 +601,123 @@ export default function AttendancePage() {
                     </motion.div>
                   );
                 })}
+              </div>
+            )}
+
+            {/* Subject-Wise Classes collapsible section */}
+            {subjectSummaries.length > 0 && (
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={() => setSubjectExpanded((v) => !v)}
+                  className="w-full text-left"
+                >
+                  <Card className="hover:shadow-card-hover hover:border-primary/20 transition-all">
+                    <CardContent className="p-5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-[10px] bg-indigo-50 flex items-center justify-center">
+                            <BookOpen className="h-4 w-4 text-indigo-600" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-text-primary text-sm">Subject-Wise Classes</h3>
+                            <p className="text-[11px] text-text-tertiary">{subjectSummaries.length} group{subjectSummaries.length !== 1 ? "s" : ""}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {subjectSummaries.some((s) => s.total > 0) && (
+                            <div className="flex items-center gap-2 text-xs">
+                              <span className="flex items-center gap-1 text-success font-medium">
+                                <CheckCircle className="h-3 w-3" />{subjectSummaries.reduce((s, c) => s + c.present, 0)}
+                              </span>
+                              <span className="flex items-center gap-1 text-error font-medium">
+                                <XCircle className="h-3 w-3" />{subjectSummaries.reduce((s, c) => s + c.absent, 0)}
+                              </span>
+                            </div>
+                          )}
+                          <ChevronDown className={`h-4 w-4 text-text-tertiary transition-transform ${subjectExpanded ? "rotate-180" : ""}`} />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </button>
+
+                <AnimatePresence>
+                  {subjectExpanded && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pl-2 border-l-2 border-indigo-200">
+                        {subjectSummaries.map((cls, index) => {
+                          const hasData = cls.total > 0;
+                          return (
+                            <motion.div
+                              key={cls.name}
+                              initial={{ opacity: 0, y: 8 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: index * 0.04 }}
+                            >
+                              <Card
+                                className="cursor-pointer hover:shadow-card-hover hover:border-indigo-400/40 transition-all group"
+                                onClick={() => openClassAttendance(cls.name)}
+                              >
+                                <CardContent className="p-5">
+                                  <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-9 h-9 rounded-[10px] bg-indigo-50 flex items-center justify-center">
+                                        <BookOpen className="h-4 w-4 text-indigo-600" />
+                                      </div>
+                                      <div>
+                                        <h3 className="font-semibold text-text-primary text-sm leading-tight">
+                                          {cls.displayName}
+                                        </h3>
+                                        <p className="text-[10px] text-text-tertiary font-mono truncate max-w-[140px]">{cls.name}</p>
+                                      </div>
+                                    </div>
+                                    <ChevronRight className="h-4 w-4 text-text-tertiary group-hover:text-indigo-600 transition-colors shrink-0" />
+                                  </div>
+
+                                  {hasData ? (
+                                    <>
+                                      <div className="w-full h-2 bg-app-bg rounded-full overflow-hidden mb-3">
+                                        <div className="h-full flex">
+                                          <div className="bg-success transition-all" style={{ width: `${(cls.present / cls.total) * 100}%` }} />
+                                          <div className="bg-warning transition-all" style={{ width: `${(cls.late / cls.total) * 100}%` }} />
+                                          <div className="bg-error transition-all" style={{ width: `${(cls.absent / cls.total) * 100}%` }} />
+                                        </div>
+                                      </div>
+                                      <div className="flex items-center justify-between text-xs">
+                                        <div className="flex items-center gap-3">
+                                          <span className="flex items-center gap-1 text-success font-medium"><CheckCircle className="h-3 w-3" />{cls.present}</span>
+                                          <span className="flex items-center gap-1 text-error font-medium"><XCircle className="h-3 w-3" />{cls.absent}</span>
+                                          {cls.late > 0 && <span className="flex items-center gap-1 text-warning font-medium"><Clock className="h-3 w-3" />{cls.late}</span>}
+                                        </div>
+                                        <Badge variant={cls.percentage >= 80 ? "success" : cls.percentage >= 60 ? "warning" : "error"} className="text-[10px]">
+                                          {cls.percentage}%
+                                        </Badge>
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <div className="text-center py-3">
+                                      <p className="text-xs text-text-tertiary">Not marked yet</p>
+                                      <p className="text-[11px] text-indigo-600 font-medium mt-1">
+                                        {cls.sessionCount > 0 ? `${cls.sessionCount} session${cls.sessionCount > 1 ? "s" : ""} scheduled` : "Click to mark attendance"}
+                                      </p>
+                                    </div>
+                                  )}
+                                </CardContent>
+                              </Card>
+                            </motion.div>
+                          );
+                        })}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             )}
 

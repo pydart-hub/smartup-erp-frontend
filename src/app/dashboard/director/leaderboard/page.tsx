@@ -38,12 +38,14 @@ const OPTIONS = [
 
 // Floating particle component
 function FloatingParticle({ color, delay, x, y }: { color: string; delay: number; x: number; y: number }) {
+  // repeatDelay is deterministic (derived from delay) to avoid SSR/client mismatch
+  const repeatDelay = 1 + (delay % 3);
   return (
     <motion.div
       className="absolute rounded-full pointer-events-none"
       style={{ left: `${x}%`, top: `${y}%`, width: 4, height: 4, background: color, opacity: 0 }}
       animate={{ y: [0, -30, -60], opacity: [0, 0.8, 0], scale: [0.5, 1, 0.3] }}
-      transition={{ duration: 2.5, delay, repeat: Infinity, repeatDelay: Math.random() * 3 + 1 }}
+      transition={{ duration: 2.5, delay, repeat: Infinity, repeatDelay }}
     />
   );
 }
@@ -82,11 +84,17 @@ function TiltCard({ option, index }: { option: typeof OPTIONS[0]; index: number 
   }, [rawX, rawY]);
 
   const Icon = option.icon;
-  const particles = Array.from({ length: 8 }, (_, i) => ({
-    x: Math.random() * 100,
-    y: Math.random() * 100,
-    delay: i * 0.3,
-  }));
+  // Generate particles client-side only to avoid SSR/client hydration mismatch
+  const [particles, setParticles] = useState<{ x: number; y: number; delay: number }[]>([]);
+  useEffect(() => {
+    setParticles(
+      Array.from({ length: 8 }, (_, i) => ({
+        x: Math.random() * 100,
+        y: Math.random() * 100,
+        delay: i * 0.3,
+      }))
+    );
+  }, []);
 
   return (
     <motion.div

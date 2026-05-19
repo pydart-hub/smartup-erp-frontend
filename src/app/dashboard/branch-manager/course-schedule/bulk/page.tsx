@@ -86,6 +86,13 @@ function Field({
   );
 }
 
+function localDateStr(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${dd}`;
+}
+
 // ── Date range helpers ───────────────────────────────────────────────────────
 
 function getMatchingDates(
@@ -99,7 +106,7 @@ function getMatchingDates(
   const end = new Date(to + "T00:00:00");
   while (cur <= end) {
     if (selectedDays.has(cur.getDay())) {
-      dates.push(cur.toISOString().split("T")[0]);
+      dates.push(localDateStr(cur));
     }
     cur.setDate(cur.getDate() + 1);
   }
@@ -126,14 +133,11 @@ function BulkScheduleContent() {
 
   // ── Form state ─────────────────────────────────────────────────────────────
   const [selectedDays, setSelectedDays] = useState<Set<number>>(new Set());
-  const [fromDate, setFromDate] = useState(() => {
-    const d = new Date();
-    return d.toISOString().split("T")[0];
-  });
+  const [fromDate, setFromDate] = useState(() => localDateStr(new Date()));
   const [toDate, setToDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 30);
-    return d.toISOString().split("T")[0];
+    return localDateStr(d);
   });
   const [form, setForm] = useState({
     student_group: preselectedGroup,

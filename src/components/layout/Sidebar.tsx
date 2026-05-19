@@ -210,12 +210,12 @@ export function Sidebar({ navItems = BRANCH_MANAGER_NAV }: SidebarProps) {
         )}>
           {!sidebarCollapsed && (
             <Link href={homeHref} className="flex items-center gap-2.5">
-              <Image src="/smartup-logo.png" alt="SmartUp" width={36} height={36} className="object-contain block flex-shrink-0 drop-shadow-sm" />
+              <video src="/loading.webm" autoPlay loop muted playsInline width={36} height={36} className="object-contain block flex-shrink-0 drop-shadow-sm" />
               <span className="font-black text-text-primary text-lg tracking-tight">Smartup</span>
             </Link>
           )}
           {sidebarCollapsed && (
-            <Image src="/smartup-logo.png" alt="SmartUp" width={36} height={36} className="object-contain block flex-shrink-0 drop-shadow-sm" />
+            <video src="/loading.webm" autoPlay loop muted playsInline width={36} height={36} className="object-contain block flex-shrink-0 drop-shadow-sm" />
           )}
           {/* Mobile close */}
           <motion.button

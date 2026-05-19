@@ -226,6 +226,7 @@ export async function getStudentGroups(params?: {
   program?: string;         // Program name e.g. "10th Grade"
   batch?: string;           // Batch code e.g. "CHL-25"
   academic_year?: string;
+  custom_subject?: string;  // Subject filter e.g. "Physics"
   limit_page_length?: number;
 }): Promise<FrappeListResponse<StudentGroup>> {
   const filters: string[][] = [["group_based_on", "=", "Batch"]];
@@ -233,11 +234,12 @@ export async function getStudentGroups(params?: {
   if (params?.program) filters.push(["program", "=", params.program]);
   if (params?.batch) filters.push(["batch", "=", params.batch]);
   if (params?.academic_year) filters.push(["academic_year", "=", params.academic_year]);
+  if (params?.custom_subject) filters.push(["custom_subject", "=", params.custom_subject]);
 
   const query = new URLSearchParams({
     fields: JSON.stringify([
       "name", "student_group_name", "academic_year", "group_based_on",
-      "program", "batch", "max_strength", "disabled", "custom_branch",
+      "program", "batch", "max_strength", "disabled", "custom_branch", "custom_subject",
     ]),
     filters: JSON.stringify(filters),
     limit_page_length: String(params?.limit_page_length ?? 200),

@@ -278,6 +278,9 @@ export default function StudentViewPage() {
     staleTime: 60_000,
   });
 
+  // ── queryClient — must be called before any early returns ──
+  const queryClient = useQueryClient();
+
   // ── Loading state ─────────────────────────────────────────
   if (isLoading) {
     return (
@@ -310,7 +313,6 @@ export default function StudentViewPage() {
   const fullName = student.student_name || [student.first_name, student.middle_name, student.last_name].filter(Boolean).join(" ");
   const enrollment = enrollmentRes;
   const guardian = guardianRes;
-  const queryClient = useQueryClient();
   const hasRegularOrder = (salesOrdersRes ?? []).some(
     (so: { custom_plan?: string }) => ["Basic", "Intermediate", "Advanced"].includes((so.custom_plan ?? "").trim()),
   );

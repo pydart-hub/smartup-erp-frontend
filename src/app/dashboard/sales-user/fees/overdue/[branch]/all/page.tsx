@@ -19,6 +19,8 @@ import {
   Search,
   X,
   Users,
+  FileDown,
+  Sheet,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -127,6 +129,145 @@ export default function BranchAllStudentsPage() {
   const totalDues = filteredStudents.reduce((s, st) => s + st.total_dues, 0);
   const hasActiveFilters = planFilter !== "all" || frequencyFilter !== "all" || classFilter !== "all" || batchFilter !== "all" || search.trim() !== "";
 
+  function exportToPDF() {
+    // Dynamic import to avoid SSR issues
+    import("jspdf").then(({ default: jsPDF }) =>
+      import("jspdf-autotable").then(({ default: autoTable }) => {
+        const doc = new jsPDF({ orientation: "landscape" });
+        const title = `${shortBranch} — Overdue Students`;
+        const dateStr = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+
+        doc.setFontSize(14);
+        doc.text(title, 14, 16);
+        doc.setFontSize(9);
+        doc.text(
+          `Generated: ${dateStr} | Total Overdue: ₹${totalDues.toLocaleString("en-IN")} | Students: ${filteredStudents.length}`,
+          14,
+          24
+        );
+
+        const rows = filteredStudents.map((s, i) => [
+          `${i + 1}`,
+          s.student_name,
+          s.student_id,
+          (s.class_name ?? "").replace(" Tuition Fee", ""),
+          s.batch_name ?? "",
+          s.plan ?? "",
+          PAYMENT_OPTION_LABELS[s.no_of_instalments] ?? s.no_of_instalments ?? "",
+          s.guardian_name ?? "",
+          s.guardian_phone ?? "",
+          `₹${s.total_dues.toLocaleString("en-IN")}`,
+        ]);
+
+        autoTable(doc, {
+          head: [["#", "Name", "Student ID", "Class", "Batch", "Plan", "Frequency", "Guardian", "Phone", "Overdue"]],
+          body: rows,
+          startY: 30,
+          styles: { fontSize: 7, cellPadding: 2 },
+          headStyles: { fillColor: [234, 88, 12], textColor: 255, fontStyle: "bold" },
+          alternateRowStyles: { fillColor: [255, 247, 237] },
+          columnStyles: { 9: { halign: "right", fontStyle: "bold" } },
+        });
+
+        doc.save(`${shortBranch.replace(/ /g, "-")}-overdue-${new Date().toISOString().slice(0, 10)}.pdf`);
+      })
+    );
+  }
+
+  async function exportToExcel() {
+    const ExcelJS = (await import("exceljs")).default;
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = "SmartUp ERP";
+    workbook.created = new Date();
+
+    const sheet = workbook.addWorksheet("Overdue Students");
+
+    sheet.columns = [
+      { header: "#", key: "idx", width: 5 },
+      { header: "Name", key: "name", width: 26 },
+      { header: "Class", key: "cls", width: 16 },
+      { header: "Batch", key: "batch", width: 16 },
+      { header: "Plan", key: "plan", width: 14 },
+      { header: "Frequency", key: "freq", width: 16 },
+      { header: "Guardian", key: "guardian", width: 22 },
+      { header: "Phone", key: "phone", width: 14 },
+      { header: "Instalment", key: "instalment", width: 16 },
+      { header: "Total (₹)", key: "total", width: 14 },
+      { header: "Paid (₹)", key: "paid", width: 14 },
+      { header: "Balance (₹)", key: "balance", width: 14 },
+    ];
+
+    // Style header row
+    const headerRow = sheet.getRow(1);
+    headerRow.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 10 };
+    headerRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFEA580C" } };
+    headerRow.alignment = { vertical: "middle", horizontal: "center" };
+    headerRow.height = 18;
+
+    let rowColorToggle = false;
+    filteredStudents.forEach((s, i) => {
+      s.overdue_invoices.forEach((inv, invIdx) => {
+        const row = sheet.addRow({
+          idx: invIdx === 0 ? i + 1 : "",
+          name: invIdx === 0 ? s.student_name : "",
+          cls: invIdx === 0 ? (s.class_name ?? "").replace(" Tuition Fee", "") : "",
+          batch: invIdx === 0 ? (s.batch_name ?? "") : "",
+          plan: invIdx === 0 ? (s.plan ?? "") : "",
+          freq: invIdx === 0 ? (PAYMENT_OPTION_LABELS[s.no_of_instalments] ?? s.no_of_instalments ?? "") : "",
+          guardian: invIdx === 0 ? (s.guardian_name ?? "") : "",
+          phone: invIdx === 0 ? (s.guardian_phone ?? "") : "",
+          instalment: inv.instalment_label ?? `Instalment ${invIdx + 1}`,
+          total: inv.grand_total ?? 0,
+          paid: inv.paid ?? 0,
+          balance: inv.amount ?? 0,
+        });
+
+        if (rowColorToggle) {
+          row.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF7ED" } };
+        }
+
+        const numFmt = '₹#,##0.00';
+        row.getCell("total").numFmt = numFmt;
+        row.getCell("paid").numFmt = numFmt;
+        if ((inv.paid ?? 0) > 0) {
+          row.getCell("paid").font = { color: { argb: "FF16A34A" } };
+        }
+        row.getCell("balance").numFmt = numFmt;
+        row.getCell("balance").font = { bold: true, color: { argb: "FFEA580C" } };
+      });
+      // Toggle stripe color per student group
+      rowColorToggle = !rowColorToggle;
+    });
+
+    // Blank row then summary
+    sheet.addRow({});
+    const sumRow = sheet.addRow({
+      guardian: "TOTAL",
+      total: filteredStudents.reduce((s, st) => s + st.overdue_invoices.reduce((a, i) => a + (i.grand_total ?? 0), 0), 0),
+      paid: filteredStudents.reduce((s, st) => s + st.overdue_invoices.reduce((a, i) => a + (i.paid ?? 0), 0), 0),
+      balance: totalDues,
+    });
+    sumRow.getCell("guardian").font = { bold: true };
+    const numFmt = '₹#,##0.00';
+    sumRow.getCell("total").numFmt = numFmt;
+    sumRow.getCell("total").font = { bold: true };
+    sumRow.getCell("paid").numFmt = numFmt;
+    sumRow.getCell("paid").font = { bold: true, color: { argb: "FF16A34A" } };
+    sumRow.getCell("balance").numFmt = numFmt;
+    sumRow.getCell("balance").font = { bold: true, color: { argb: "FFEA580C" } };
+
+    const buf = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${shortBranch.replace(/ /g, "-")}-overdue-${new Date().toISOString().slice(0, 10)}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <motion.div
       variants={containerVariants}
@@ -152,6 +293,26 @@ export default function BranchAllStudentsPage() {
             Complete list · all classes &amp; batches
           </p>
         </div>
+        {!isLoading && filteredStudents.length > 0 && (
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              onClick={exportToExcel}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors"
+              title="Export to Excel"
+            >
+              <Sheet className="h-3.5 w-3.5" />
+              Excel
+            </button>
+            <button
+              onClick={exportToPDF}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-orange-300 bg-orange-50 text-orange-700 hover:bg-orange-100 transition-colors"
+              title="Export to PDF"
+            >
+              <FileDown className="h-3.5 w-3.5" />
+              PDF
+            </button>
+          </div>
+        )}
       </motion.div>
 
       {/* Summary card */}

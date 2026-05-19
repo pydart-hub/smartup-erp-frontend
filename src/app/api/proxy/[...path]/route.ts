@@ -407,11 +407,39 @@ async function proxyRequest(request: NextRequest, method: string) {
       (proxyPath.startsWith("resource/Work%20Assignment") ||
         proxyPath.startsWith("resource/Work Assignment"));
 
+    // Student Attendance reads — Director/personal tokens may lack read access
+    // on the Education module's Student Attendance doctype in Frappe.
+    // Use admin token for all GET requests; branch scoping is enforced above
+    // via the COMPANY_SCOPED_DOCTYPES custom_branch filter injection.
+    const isStudentAttendanceRead =
+      method === "GET" &&
+      (proxyPath.startsWith("resource/Student%20Attendance") ||
+        proxyPath.startsWith("resource/Student Attendance"));
+
+    // Assessment Plan / Result reads — Education module doctypes that may not
+    // be accessible via a Director's personal Frappe token. Admin token ensures
+    // data loads; branch scoping is still enforced via COMPANY_SCOPED_DOCTYPES.
+    const isAssessmentRead =
+      method === "GET" &&
+      (proxyPath.startsWith("resource/Assessment%20Plan") ||
+        proxyPath.startsWith("resource/Assessment Plan") ||
+        proxyPath.startsWith("resource/Assessment%20Result") ||
+        proxyPath.startsWith("resource/Assessment Result"));
+
+    // Course Schedule reads — Education module doctype, same permission issue.
+    const isCourseScheduleRead =
+      method === "GET" &&
+      (proxyPath.startsWith("resource/Course%20Schedule") ||
+        proxyPath.startsWith("resource/Course Schedule"));
+
     const useAdminToken =
       ((isBranchManager || isHRManager) && !isAdmin) ||
       allowInstructorTopicCoverageWrite ||
       isOwnInstructorDocRead ||
-      isWorkAssignmentRead;
+      isWorkAssignmentRead ||
+      isStudentAttendanceRead ||
+      isAssessmentRead ||
+      isCourseScheduleRead;
     if (!useAdminToken && hasUserToken) {
       headers["Authorization"] = `token ${sessionData.api_key}:${sessionData.api_secret}`;
     } else {

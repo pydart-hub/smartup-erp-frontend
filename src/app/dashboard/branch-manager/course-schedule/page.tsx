@@ -287,6 +287,12 @@ export default function BranchManagerCourseSchedulePage() {
               Bulk Schedule
             </Button>
           </Link>
+          <Link href="/dashboard/branch-manager/course-schedule/subject">
+            <Button variant="outline" className="flex items-center gap-2">
+              <BookOpen className="h-4 w-4" />
+              Subject Wise
+            </Button>
+          </Link>
           <Link href="/dashboard/branch-manager/course-schedule/one-to-one">
             <Button variant="outline" className="flex items-center gap-2">
               <BookUser className="h-4 w-4" />

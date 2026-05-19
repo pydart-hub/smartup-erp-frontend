@@ -6,7 +6,7 @@ import { MAX_BATCH_CAPACITY, BATCH_NAMES } from "@/lib/utils/constants";
 // Default fields for a Student Group list
 const SG_LIST_FIELDS = JSON.stringify([
   "name", "student_group_name", "academic_year", "group_based_on",
-  "program", "batch", "max_strength", "disabled", "custom_branch",
+  "program", "batch", "max_strength", "disabled", "custom_branch", "custom_subject",
 ]);
 
 // ── List Classes (Programs) ──

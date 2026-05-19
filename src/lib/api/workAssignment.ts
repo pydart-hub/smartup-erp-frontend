@@ -264,6 +264,12 @@ export async function getInstructorAssignments(instructorId: string): Promise<In
     }
     return result;
   } catch (error) {
+    // Suppress 404/500 silently — expected when no Work Assignments exist yet
+    // or when the doctype is still being set up.
+    const status = (error as { response?: { status?: number } })?.response?.status;
+    if (!status || status === 404 || status === 500) {
+      return [];
+    }
     console.error("Error fetching instructor assignments:", error);
     return [];
   }

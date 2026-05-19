@@ -54,6 +54,7 @@ export interface StudentGroupOption {
   program: string;
   custom_branch?: string;
   custom_is_one_to_one?: 0 | 1;
+  custom_subject?: string;
 }
 
 // ── Field lists ────────────────────────────────────────────────────────────────
@@ -380,9 +381,10 @@ export async function getRooms(): Promise<FrappeListResponse<RoomOption>> {
 export async function getStudentGroups(params?: {
   branch?: string;
   oneToOneOnly?: boolean;
+  subjectWiseOnly?: boolean;
   includeName?: string;
 }): Promise<FrappeListResponse<StudentGroupOption>> {
-  const baseFields = ["name", "student_group_name", "program", "custom_branch"];
+  const baseFields = ["name", "student_group_name", "program", "custom_branch", "custom_subject"];
   const richFields = [...baseFields, "custom_is_one_to_one"];
 
   // When oneToOneOnly is requested, use the dedicated server script which
@@ -449,6 +451,9 @@ export async function getStudentGroups(params?: {
     const { data } = await apiClient.get<FrappeListResponse<StudentGroupOption>>(
       `/resource/Student Group?${query}`,
     );
+    if (params?.subjectWiseOnly) {
+      return ensureIncluded({ ...data, data: (data.data ?? []).filter((g) => !!g.custom_subject) });
+    }
     return ensureIncluded(data);
   } catch (error: unknown) {
     // Backend may reject custom_is_one_to_one in filters — retry with field in

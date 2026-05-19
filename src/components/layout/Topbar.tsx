@@ -44,31 +44,52 @@ export function Topbar() {
   const canSwitch = switchableRoles.length > 1;
 
   return (
-    <header className="h-16 bg-white/70 dark:bg-slate-900/75 backdrop-blur-xl border-b border-white/40 dark:border-white/[0.08] flex items-center justify-between px-4 lg:px-6 shrink-0 sticky top-0 z-30 shadow-[0_1px_20px_rgba(0,0,0,0.06)]">
+    /* ── 3D Raised-Plate Navbar ── */
+    <header
+      className="h-16 flex items-center justify-between px-4 lg:px-6 shrink-0 sticky top-0 z-30
+        bg-gradient-to-b from-white to-slate-50/90
+        dark:from-slate-800 dark:to-slate-900
+        border-b border-slate-200/70 dark:border-white/[0.07]
+        shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_4px_24px_rgba(0,0,0,0.09),0_1px_0_rgba(0,0,0,0.05)]
+        dark:shadow-[0_4px_24px_rgba(0,0,0,0.35),0_1px_0_rgba(0,0,0,0.25)]"
+    >
+      {/* Top-edge specular highlight — light mode only */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/90 to-transparent dark:hidden" />
 
       {/* Left: Mobile menu + Search */}
       <div className="flex items-center gap-3">
+        {/* Mobile hamburger — 3D raised button */}
         <motion.button
-          whileTap={{ scale: 0.92 }}
+          whileTap={{ scale: 0.90, y: 1 }}
           onClick={toggleSidebar}
-          className="lg:hidden w-9 h-9 rounded-xl flex items-center justify-center text-text-secondary hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+          className="lg:hidden w-9 h-9 rounded-xl flex items-center justify-center text-slate-500 dark:text-slate-400 transition-colors"
+          style={{
+            background: "linear-gradient(to bottom, #ffffff, #f1f5f9)",
+            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.9), 0 2px 6px rgba(0,0,0,0.10), 0 1px 2px rgba(0,0,0,0.06)",
+          }}
         >
-          <Menu className="h-5 w-5" />
+          <Menu className="h-4.5 w-4.5" />
         </motion.button>
 
-        {/* Search Bar */}
+        {/* Search Bar — inset 3D pressed look */}
         <motion.div
           animate={{
-            width: searchFocused ? 340 : 280,
-            boxShadow: searchFocused
-              ? "0 0 0 2px rgba(26,158,143,0.3), 0 4px 16px rgba(0,0,0,0.08)"
-              : "0 0 0 0px transparent, 0 1px 4px rgba(0,0,0,0.04)",
+            width: searchFocused ? 340 : 260,
           }}
-          transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-          className="hidden md:flex items-center bg-black/[0.04] dark:bg-white/[0.06] rounded-xl px-3 py-2 border border-transparent focus-within:border-primary/30 transition-colors"
+          transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+          className="hidden md:flex items-center rounded-xl px-3 py-2 border transition-colors"
+          style={{
+            background: searchFocused
+              ? "linear-gradient(to bottom, #f0fdf9, #f8fffe)"
+              : "linear-gradient(to bottom, #f1f5f9, #f8fafc)",
+            boxShadow: searchFocused
+              ? "inset 0 2px 4px rgba(0,0,0,0.08), 0 0 0 2px rgba(26,158,143,0.25)"
+              : "inset 0 2px 4px rgba(0,0,0,0.07), inset 0 0 0 1px rgba(0,0,0,0.05)",
+            borderColor: searchFocused ? "rgba(26,158,143,0.3)" : "rgba(203,213,225,0.8)",
+          }}
         >
           <motion.div
-            animate={{ color: searchFocused ? "var(--color-primary)" : "var(--color-text-tertiary)" }}
+            animate={{ color: searchFocused ? "var(--color-primary)" : "#94a3b8" }}
             transition={{ duration: 0.2 }}
           >
             <Search className="h-3.5 w-3.5 mr-2 shrink-0" />
@@ -76,7 +97,7 @@ export function Topbar() {
           <input
             type="text"
             placeholder="Search students, batches, fees..."
-            className="bg-transparent text-sm text-text-primary placeholder:text-text-tertiary outline-none w-full"
+            className="bg-transparent text-sm text-text-primary placeholder:text-slate-400 outline-none w-full"
             onFocus={() => setSearchFocused(true)}
             onBlur={() => setSearchFocused(false)}
           />
@@ -84,25 +105,33 @@ export function Topbar() {
       </div>
 
       {/* Right: Role Switcher + Notifications + User */}
-      <div className="flex items-center gap-1.5">
-        {/* Role Switcher */}
+      <div className="flex items-center gap-2">
+        {/* Role Switcher — 3D inset pill */}
         {canSwitch && (
-          <div className="flex items-center bg-black/[0.04] dark:bg-white/[0.05] rounded-xl p-0.5 border border-white/30 dark:border-white/10">
+          <div
+            className="flex items-center rounded-xl p-0.5"
+            style={{
+              background: "linear-gradient(to bottom, #e2e8f0, #f1f5f9)",
+              boxShadow: "inset 0 2px 4px rgba(0,0,0,0.1), inset 0 0 0 1px rgba(0,0,0,0.06)",
+            }}
+          >
             {switchableRoles.map((r) => (
               <motion.button
                 key={r}
-                whileTap={{ scale: 0.96 }}
+                whileTap={{ scale: 0.95, y: 1 }}
                 onClick={() => switchRole(r)}
                 className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] text-xs font-semibold transition-all ${
-                  displayRole === r
-                    ? "text-white"
-                    : "text-text-secondary hover:text-text-primary"
+                  displayRole === r ? "text-white" : "text-slate-500 hover:text-slate-700"
                 }`}
               >
                 {displayRole === r && (
                   <motion.span
                     layoutId="activeRole"
-                    className="absolute inset-0 bg-primary rounded-[10px] shadow-[0_2px_8px_rgba(26,158,143,0.4)]"
+                    className="absolute inset-0 rounded-[10px]"
+                    style={{
+                      background: "linear-gradient(to bottom, #1fa88e, #169679)",
+                      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.25), 0 3px 8px rgba(26,158,143,0.45)",
+                    }}
                     transition={{ type: "spring", stiffness: 380, damping: 30 }}
                   />
                 )}
@@ -127,23 +156,34 @@ export function Topbar() {
         {/* User Menu */}
         <div className="relative" ref={menuRef}>
           <motion.button
-            whileTap={{ scale: 0.97 }}
+            whileTap={{ scale: 0.97, y: 1 }}
             onClick={() => setShowUserMenu(!showUserMenu)}
-            className="flex items-center gap-2.5 px-2 py-1.5 rounded-xl hover:bg-black/[0.04] dark:hover:bg-white/[0.05] transition-colors"
+            className="flex items-center gap-2.5 pl-1.5 pr-3 py-1.5 rounded-xl transition-all"
+            style={{
+              background: showUserMenu
+                ? "linear-gradient(to bottom, #e2e8f0, #f1f5f9)"
+                : "linear-gradient(to bottom, #ffffff, #f8fafc)",
+              boxShadow: showUserMenu
+                ? "inset 0 2px 4px rgba(0,0,0,0.10), 0 0 0 1px rgba(0,0,0,0.07)"
+                : "inset 0 1px 0 rgba(255,255,255,0.9), 0 2px 6px rgba(0,0,0,0.09), 0 1px 2px rgba(0,0,0,0.05), 0 0 0 1px rgba(0,0,0,0.05)",
+            }}
           >
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-teal-600 flex items-center justify-center text-white text-xs font-black shadow-md shadow-primary/25 ring-2 ring-white/40 dark:ring-white/10">
+            <div
+              className="w-7 h-7 rounded-full bg-gradient-to-br from-primary to-teal-600 flex items-center justify-center text-white text-[11px] font-black"
+              style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.2), 0 2px 6px rgba(26,158,143,0.4)" }}
+            >
               {user?.full_name ? getInitials(user.full_name) : "U"}
             </div>
             <div className="hidden sm:block text-left">
-              <p className="text-sm font-semibold text-text-primary leading-tight">{user?.full_name || "User"}</p>
-              <p className="text-[11px] text-text-tertiary leading-tight">{displayRole || "—"}</p>
+              <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 leading-tight">{user?.full_name || "User"}</p>
+              <p className="text-[10px] text-slate-400 leading-tight">{displayRole || "—"}</p>
             </div>
             <motion.div
               animate={{ rotate: showUserMenu ? 180 : 0 }}
               transition={{ duration: 0.22 }}
-              className="hidden sm:block"
+              className="hidden sm:block ml-0.5"
             >
-              <ChevronDown className="h-3.5 w-3.5 text-text-tertiary" />
+              <ChevronDown className="h-3 w-3 text-slate-400" />
             </motion.div>
           </motion.button>
 
@@ -151,56 +191,76 @@ export function Topbar() {
           <AnimatePresence>
             {showUserMenu && (
               <motion.div
-                initial={{ opacity: 0, y: 6, scale: 0.97 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 4, scale: 0.97 }}
-                transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-                className="absolute right-0 top-full mt-2 w-56 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-2xl shadow-[0_16px_40px_rgba(0,0,0,0.14)] border border-white/50 dark:border-white/10 overflow-hidden z-50"
+                initial={{ opacity: 0, y: -8, rotateX: -12, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, rotateX: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -6, rotateX: -8, scale: 0.96 }}
+                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                style={{ transformOrigin: "top right", perspective: 800 }}
+                className="absolute right-0 top-full mt-2 w-60 z-[200]"
               >
-                <div className="px-4 py-3 border-b border-black/[0.06] dark:border-white/[0.06]">
-                  <p className="text-sm font-semibold text-text-primary">{user?.full_name}</p>
-                  <p className="text-xs text-text-tertiary truncate">{user?.email}</p>
-                </div>
+                {/* 3D card wrapper */}
+                <div className="relative rounded-2xl overflow-hidden bg-white dark:bg-[#0f172a] border border-slate-200/80 dark:border-white/[0.08] shadow-[0_0_0_1px_rgba(255,255,255,0.6)_inset,0_20px_50px_rgba(0,0,0,0.22),0_6px_16px_rgba(0,0,0,0.12)] dark:shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset,0_20px_50px_rgba(0,0,0,0.5),0_6px_16px_rgba(0,0,0,0.3)]">
+                  {/* Top edge highlight — creates 3D "lifted" feel */}
+                  <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/80 dark:via-white/20 to-transparent pointer-events-none z-10" />
 
-                {canSwitch && (
-                  <div className="p-1 border-b border-black/[0.06] dark:border-white/[0.06]">
-                    <p className="px-3 py-1 text-[10px] text-text-tertiary font-black uppercase tracking-widest">Switch Role</p>
-                    {switchableRoles.map((r) => (
-                      <motion.button
-                        key={r}
-                        whileHover={{ x: 2 }}
-                        onClick={() => {
-                          setShowUserMenu(false);
-                          switchRole(r);
-                        }}
-                        className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-xl transition-colors ${
-                          displayRole === r
-                            ? "text-primary bg-primary/8 font-semibold"
-                            : "text-text-secondary hover:bg-black/[0.04] dark:hover:bg-white/[0.04]"
-                        }`}
-                      >
-                        {ROLE_ICONS[r]}
-                        {ROLE_LABELS[r] || r}
-                        {displayRole === r && (
-                          <span className="ml-auto text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">Active</span>
-                        )}
-                      </motion.button>
-                    ))}
+                  {/* Avatar + info header */}
+                  <div className="px-4 py-3.5 bg-gradient-to-b from-slate-50 to-white dark:from-slate-800/60 dark:to-[#0f172a] border-b border-slate-100 dark:border-white/[0.06]">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-teal-600 flex items-center justify-center text-white text-xs font-black shadow-lg shadow-primary/30 ring-2 ring-white dark:ring-white/10 shrink-0">
+                        {user?.full_name ? getInitials(user.full_name) : "U"}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-slate-800 dark:text-white leading-tight truncate">{user?.full_name}</p>
+                        <p className="text-[11px] text-slate-400 dark:text-slate-500 truncate">{user?.email}</p>
+                      </div>
+                    </div>
                   </div>
-                )}
 
-                <div className="p-1">
-                  <motion.button
-                    whileHover={{ x: 2 }}
-                    onClick={() => {
-                      setShowUserMenu(false);
-                      logout();
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-error hover:bg-error/8 rounded-xl transition-colors"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    Sign Out
-                  </motion.button>
+                  {canSwitch && (
+                    <div className="p-1.5 border-b border-slate-100 dark:border-white/[0.06]">
+                      <p className="px-3 py-1 text-[10px] text-slate-400 dark:text-slate-500 font-black uppercase tracking-widest">Switch Role</p>
+                      {switchableRoles.map((r) => (
+                        <motion.button
+                          key={r}
+                          whileHover={{ x: 3, backgroundColor: displayRole === r ? undefined : "rgba(0,0,0,0.03)" }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => {
+                            setShowUserMenu(false);
+                            switchRole(r);
+                          }}
+                          className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-xl transition-colors ${
+                            displayRole === r
+                              ? "text-primary bg-primary/8 font-semibold"
+                              : "text-slate-600 dark:text-slate-300"
+                          }`}
+                        >
+                          {ROLE_ICONS[r]}
+                          {ROLE_LABELS[r] || r}
+                          {displayRole === r && (
+                            <span className="ml-auto text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">Active</span>
+                          )}
+                        </motion.button>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="p-1.5">
+                    <motion.button
+                      whileHover={{ x: 3 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        logout();
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-colors font-medium"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Sign Out
+                    </motion.button>
+                  </div>
+
+                  {/* Bottom edge shadow line — adds 3D depth */}
+                  <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-black/10 dark:via-black/30 to-transparent pointer-events-none" />
                 </div>
               </motion.div>
             )}

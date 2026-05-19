@@ -296,6 +296,15 @@ function SubjectAdmitPageContent() {
     }
   }, [selectedProgram, setValue]);
 
+  // Reset batch when subject changes
+  const prevSubjectRef = useRef(selectedSubject);
+  useEffect(() => {
+    if (prevSubjectRef.current !== selectedSubject) {
+      prevSubjectRef.current = selectedSubject;
+      setValue("student_batch_name", "");
+    }
+  }, [selectedSubject, setValue]);
+
   // ── Levels available at selected branch ───────────────────────
   const availableLevels = useMemo(() => {
     if (!selectedBranch) return [];
@@ -380,16 +389,17 @@ function SubjectAdmitPageContent() {
     }
   }, [levelPrograms, selectedProgram, setValue]);
 
-  // ── Student groups for selected branch+program ────────────────
+  // ── Student groups for selected branch+program+subject (subject-wise only) ──
   const { data: studentGroupsRes } = useQuery({
-    queryKey: ["student-groups", selectedBranch, selectedProgram],
+    queryKey: ["student-groups", selectedBranch, selectedProgram, selectedSubject],
     queryFn: () =>
       getStudentGroups({
         custom_branch: selectedBranch,
         program: selectedProgram,
+        custom_subject: selectedSubject,
         limit_page_length: 20,
       }),
-    enabled: !!(selectedBranch && selectedProgram),
+    enabled: !!(selectedBranch && selectedProgram && selectedSubject),
     staleTime: 30_000,
   });
 

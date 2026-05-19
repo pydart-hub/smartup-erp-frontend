@@ -271,13 +271,7 @@ export default function DemoStudentsPage() {
             </span>
             <span className="text-xs opacity-80">Demo</span>
           </div>
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            <span className="text-sm font-semibold tabular-nums">
-              {loadingConverted ? "..." : <AnimatedNumber value={convertedCount ?? 0} />}
-            </span>
-            <span className="text-xs opacity-80">Converted</span>
-          </div>
+
         </div>
       </motion.div>
 
@@ -388,13 +382,7 @@ function BranchCountCard({
                   <span className="font-normal opacity-80">demo</span>
                 </span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  <span className="w-1 h-1 rounded-full bg-emerald-500" />
-                  {loadingConverted ? "..." : <AnimatedNumber value={convertedCount ?? 0} />}
-                  <span className="font-normal opacity-80">converted</span>
-                </span>
-              </div>
+
               <ChevronRight className="h-4 w-4 text-text-tertiary group-hover:text-primary transition-colors self-end" />
             </div>
           </div>
