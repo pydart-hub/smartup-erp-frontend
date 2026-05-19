@@ -228,13 +228,13 @@ export default function LoginPage() {
               {/* Greeting with icon */}
               <div className="flex items-center gap-3 mb-6">
                 <div className="hidden lg:flex w-11 h-11 rounded-2xl overflow-hidden">
-                  <Image
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
                     src="/welcome.gif"
                     alt=""
                     width={44}
                     height={44}
                     className="object-cover w-full h-full"
-                    unoptimized
                   />
                 </div>
                 <div>
