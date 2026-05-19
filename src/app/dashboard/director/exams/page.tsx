@@ -17,7 +17,7 @@ const container = {
 
 const item = {
   hidden: { opacity: 0, y: 24, rotateX: -10 },
-  show: { opacity: 1, y: 0, rotateX: 0, transition: { type: "spring", stiffness: 260, damping: 22 } },
+  show: { opacity: 1, y: 0, rotateX: 0, transition: { type: "spring" as const, stiffness: 260, damping: 22 } },
 };
 
 export default function DirectorExamsPage() {
