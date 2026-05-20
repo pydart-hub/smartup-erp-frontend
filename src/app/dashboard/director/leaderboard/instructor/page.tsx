@@ -690,7 +690,7 @@ export default function GMLeaderboardPage() {
   const podiumRanks = [2, 1, 3];
 
   // -- Loading --
-  // Only show full-page skeleton on true first load (no data — not even placeholder).
+  // Only show full-page skeleton on true first load (no data â€” not even placeholder).
   // On branch/period switches, keepPreviousData keeps old data so we skip this
   // and let the shimmer+GIF overlay handle it instead.
   if (isLoading && !data) {
@@ -774,7 +774,7 @@ export default function GMLeaderboardPage() {
 
         {/* Controls: branch + period */}
         <div className="flex flex-col gap-2 self-start sm:self-auto">
-          {/* Branch selector — dropdown */}
+          {/* Branch selector â€” dropdown */}
           {branches.length > 0 && (
             <div ref={branchRef} className="relative">
               <button
@@ -868,7 +868,7 @@ export default function GMLeaderboardPage() {
               animate={{ x: ["-50%", "220%"] }}
               transition={{ duration: 1.3, repeat: Infinity, ease: "easeInOut", repeatDelay: 0.4 }}
             />
-            {/* GIF + label — centered on viewport */}
+            {/* GIF + label â€” centered on viewport */}
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="flex flex-col items-center gap-2">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -955,7 +955,7 @@ export default function GMLeaderboardPage() {
         </motion.div>
       )}
 
-      {/* -- Podium — 2-1-3 layout -- */}
+      {/* -- Podium â€” 2-1-3 layout -- */}
       {sorted.length > 0 && (
         <div>
           <motion.p
@@ -991,7 +991,7 @@ export default function GMLeaderboardPage() {
             className="text-[10px] font-black uppercase tracking-widest text-text-tertiary mb-3 flex items-center gap-2"
           >
             <span className="w-1 h-1 rounded-full bg-primary"></span>
-            Full Rankings — {TABS.find((t) => t.value === activeTab)?.label}
+            Full Rankings â€” {TABS.find((t) => t.value === activeTab)?.label}
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 8 }}
