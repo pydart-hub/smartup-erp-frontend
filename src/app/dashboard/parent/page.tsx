@@ -282,10 +282,10 @@ export default function ParentDashboardPage() {
     <motion.div variants={container} initial="hidden" animate="show" className="space-y-6">
       {/* Header */}
       <motion.div variants={item}>
-        <h1 className="text-2xl font-bold text-text-primary">
+        <h1 className="text-2xl font-bold text-text-primary flex items-center gap-2">
           <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>Welcome, </motion.span>
           <AnimatedName name={user?.full_name?.split(" ")[0] || "Parent"} />
-          <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}> 👋</motion.span>
+          <img src="/welcome.gif" alt="" className="h-20 w-20 object-contain" />
         </h1>
         <p className="text-sm text-text-secondary mt-1">
           Here&apos;s an overview of your child&apos;s academic progress and fees

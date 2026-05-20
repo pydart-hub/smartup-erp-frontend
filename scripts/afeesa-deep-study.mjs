@@ -29,7 +29,7 @@ async function main() {
   const pe9 = await get('/api/resource/Program Enrollment?filters=' + encodeURIComponent(JSON.stringify([['name','like','%9th%Eraveli%']])) +
     '&fields=' + encodeURIComponent(JSON.stringify(['name','student_name','academic_year','academic_term','status','docstatus'])) + '&limit=5');
   console.log(JSON.stringify(pe9, null, 2));
-
+  
   // 5. One example 9th Eraveli PE to see structure
   if (pe9.data && pe9.data.length > 0) {
     const ex = await get('/api/resource/Program Enrollment/' + encodeURIComponent(pe9.data[0].name));

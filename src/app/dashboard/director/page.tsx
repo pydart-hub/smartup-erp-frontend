@@ -316,7 +316,7 @@ export default function DirectorDashboard() {
       <motion.div variants={itemVariants}>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div>
-            <h1 className="text-2xl font-bold text-text-primary">
+            <h1 className="text-2xl font-bold text-text-primary flex items-center gap-2">
               <motion.span
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -325,6 +325,7 @@ export default function DirectorDashboard() {
                 Welcome,{" "}
               </motion.span>
               <AnimatedName name={user?.full_name?.split(" ")[0] || "Director"} />
+              <img src="/welcome.gif" alt="" className="h-20 w-20 object-contain" />
             </h1>
             <motion.p
               className="text-text-secondary text-sm mt-0.5"

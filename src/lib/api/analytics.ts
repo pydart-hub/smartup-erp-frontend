@@ -8,6 +8,7 @@ import type {
   AttendanceAnalyticsResponse,
   ExamAnalyticsResponse,
   StudentAcademicProfile,
+  TopicCoverageDetailResponse,
   InstructorAnalyticsResponse,
   BranchAcademicsResponse,
   BranchActionsNeededResponse,
@@ -137,5 +138,16 @@ export async function getInstructorLeaderboard(params: {
     credentials: "include",
   });
   if (!res.ok) throw new Error("Failed to fetch instructor leaderboard");
+  return res.json();
+}
+
+// ── Topic Coverage Drill-Down ──
+
+export async function getTopicCoverageDetail(branch: string): Promise<TopicCoverageDetailResponse> {
+  const query = new URLSearchParams({ branch });
+  const res = await fetch(`/api/analytics/topic-coverage?${query}`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Failed to fetch topic coverage detail");
   return res.json();
 }

@@ -409,3 +409,41 @@ export interface InstructorLeaderboardResponse {
     period: string;
   };
 }
+
+// ── Topic Coverage Drill-Down ──
+
+export interface TopicDrillItem {
+  schedule: string;
+  topic: string;
+  covered: boolean;
+  date: string;
+}
+
+export interface TopicDrillSubject {
+  course: string;
+  total_with_topic: number;
+  covered: number;
+  coverage_pct: number;
+  topics: TopicDrillItem[];
+}
+
+export interface TopicDrillBatch {
+  student_group: string;
+  total_with_topic: number;
+  covered: number;
+  coverage_pct: number;
+  subjects: TopicDrillSubject[];
+}
+
+export interface TopicDrillClass {
+  program: string;
+  total_with_topic: number;
+  covered: number;
+  coverage_pct: number;
+  batches: TopicDrillBatch[];
+}
+
+export interface TopicCoverageDetailResponse {
+  branch: string;
+  classes: TopicDrillClass[];
+}

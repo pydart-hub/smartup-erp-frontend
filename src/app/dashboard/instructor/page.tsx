@@ -72,11 +72,12 @@ export default function InstructorDashboard() {
 
       {/* Welcome Header */}
       <motion.div variants={itemVariants}>
-        <h1 className="text-2xl font-bold text-text-primary">
+        <h1 className="text-2xl font-bold text-text-primary flex items-center gap-2">
           <motion.span initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }}>
             Welcome,{" "}
           </motion.span>
           <AnimatedName name={instructorDisplayName || user?.full_name || "Instructor"} />
+          <img src="/welcome.gif" alt="" className="h-20 w-20 object-contain" />
         </h1>
         <motion.p className="text-sm text-text-secondary mt-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8, duration: 0.5 }}>
           {defaultCompany && (
