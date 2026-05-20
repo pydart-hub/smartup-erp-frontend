@@ -726,7 +726,7 @@ export default function GMLeaderboardPage() {
                   LIVE
                 </motion.span>
               </div>
-              <p className="text-xs text-text-tertiary mt-0.5">7-metric performance ranking · {displayLabel}</p>
+              <p className="text-xs text-text-tertiary mt-0.5">7-metric performance ranking Â· {displayLabel}</p>
             </div>
           </div>
         </div>
@@ -845,7 +845,7 @@ export default function GMLeaderboardPage() {
                     border border-white/70 dark:border-white/10
                     shadow-[0_4px_16px_rgba(0,0,0,0.12)]"
                 >
-                  <p className="text-[10px] font-black text-primary uppercase tracking-widest">Loading…</p>
+                  <p className="text-[10px] font-black text-primary uppercase tracking-widest">Loadingâ€¦</p>
                 </motion.div>
               </div>
             </div>
