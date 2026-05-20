@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -28,7 +28,7 @@ import { getInstructorLeaderboard } from "@/lib/api/analytics";
 import { useAuthStore } from "@/lib/stores/authStore";
 import type { InstructorLeaderboardEntry } from "@/lib/types/analytics";
 
-// ── Types ──────────────────────────────────────────────────────────────────
+// -- Types ------------------------------------------------------------------
 
 type Period = "month" | "quarter" | "year" | "all";
 type Tab = "overall" | "hr" | "classes" | "topics" | "work" | "exams" | "students";
@@ -40,7 +40,7 @@ const PERIODS: { value: Period; label: string }[] = [
   { value: "all", label: "All Time" },
 ];
 
-const TABS: { value: Tab; label: string; icon: React.ElementType }[] = [
+const TABS: { value: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { value: "overall",  label: "Overall",       icon: Trophy       },
   { value: "hr",       label: "HR Att.",        icon: UserCheck    },
   { value: "classes",  label: "Classes",        icon: ClipboardCheck },
@@ -70,7 +70,7 @@ const TAB_PRIMARY: Record<Tab, (typeof SCORE_COMPONENTS)[number]["pctKey"] | "to
   students: "student_attendance_pct",
 };
 
-const BADGE_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType }> = {
+const BADGE_CONFIG: Record<string, { label: string; color: string; icon: React.ComponentType<{ className?: string }> }> = {
   always_on_time:  { label: "Always On Time",  color: "text-emerald-600 bg-emerald-500/10 border-emerald-500/20", icon: Clock     },
   zero_rejections: { label: "Zero Rejections", color: "text-blue-600 bg-blue-500/10 border-blue-500/20",          icon: Zap       },
   punctual:        { label: "Punctual",         color: "text-violet-600 bg-violet-500/10 border-violet-500/20",    icon: UserCheck },
@@ -79,7 +79,7 @@ const BADGE_CONFIG: Record<string, { label: string; color: string; icon: React.E
   late_submissions:{ label: "Late Submissions", color: "text-red-600 bg-red-500/10 border-red-500/20",             icon: Clock     },
 };
 
-// ── Helpers ────────────────────────────────────────────────────────────────
+// -- Helpers ----------------------------------------------------------------
 
 function gradeColor(grade: string) {
   if (grade === "A+") return "text-emerald-500 bg-emerald-500/10 border-emerald-500/20";
@@ -117,7 +117,7 @@ function avatarGradient(name: string) {
 
 
 
-// ── Score breakdown ────────────────────────────────────────────────────────
+// -- Score breakdown --------------------------------------------------------
 
 function ScoreBreakdown({ entry }: { entry: InstructorLeaderboardEntry }) {
   return (
@@ -150,7 +150,7 @@ function ScoreBreakdown({ entry }: { entry: InstructorLeaderboardEntry }) {
   );
 }
 
-// ── Badge chips ────────────────────────────────────────────────────────────
+// -- Badge chips ------------------------------------------------------------
 
 function BadgeChips({ badges }: { badges: string[] }) {
   return (
@@ -174,7 +174,7 @@ function BadgeChips({ badges }: { badges: string[] }) {
   );
 }
 
-// ── Avatar ────────────────────────────────────────────────────────────────
+// -- Avatar ----------------------------------------------------------------
 
 function Avatar({ name, size = "md" }: { name: string; size?: "sm" | "md" | "lg" }) {
   const sz =
@@ -192,7 +192,7 @@ function Avatar({ name, size = "md" }: { name: string; size?: "sm" | "md" | "lg"
   );
 }
 
-// ── Podium card ────────────────────────────────────────────────────────────
+// -- Podium card ------------------------------------------------------------
 
 const PODIUM = [
   {
@@ -341,7 +341,7 @@ function PodiumCard({
   );
 }
 
-// ── Rank row ───────────────────────────────────────────────────────────────
+// -- Rank row ---------------------------------------------------------------
 
 function RankRow({
   entry,
@@ -539,7 +539,7 @@ function RankRow({
   );
 }
 
-// ── Stat card ─────────────────────────────────────────────────────────────
+// -- Stat card -------------------------------------------------------------
 
 function StatCard({
   icon: Icon,
@@ -548,7 +548,7 @@ function StatCard({
   sub,
   gradient,
 }: {
-  icon: React.ElementType;
+  icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: string;
   sub?: string;
@@ -582,7 +582,7 @@ function StatCard({
   );
 }
 
-// ═══ MAIN PAGE ═══════════════════════════════════════════════════════════════
+// --- MAIN PAGE ---------------------------------------------------------------
 
 export default function GMLeaderboardPage() {
   const [period, setPeriod] = useState<Period>("all");
@@ -616,7 +616,7 @@ export default function GMLeaderboardPage() {
   const { allowedCompanies } = useAuthStore();
   const branches = allowedCompanies ?? [];
 
-  // "all" → pass "all" to API (no filter); otherwise pass specific branch
+  // "all" ? pass "all" to API (no filter); otherwise pass specific branch
   const branchParam = selectedBranch;
 
   const { data, isLoading, isFetching, error } = useQuery({
@@ -651,8 +651,8 @@ export default function GMLeaderboardPage() {
   const podiumOrder = [sorted[1], sorted[0], sorted[2]].filter(Boolean) as InstructorLeaderboardEntry[];
   const podiumRanks = [2, 1, 3];
 
-  // ── Loading ──
-  // Only show full-page skeleton on true first load (no data — not even placeholder).
+  // -- Loading --
+  // Only show full-page skeleton on true first load (no data � not even placeholder).
   // On branch/period switches, keepPreviousData keeps old data so we skip this
   // and let the shimmer+GIF overlay handle it instead.
   if (isLoading && !data) {
@@ -689,14 +689,14 @@ export default function GMLeaderboardPage() {
   return (
     <div className="relative p-4 sm:p-6 max-w-5xl mx-auto pb-16 space-y-6">
 
-      {/* ── Ambient background orbs ── */}
+      {/* -- Ambient background orbs -- */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden -z-10">
         <div className="absolute top-1/4 -left-20 w-72 h-72 rounded-full bg-gradient-to-br from-violet-400/20 to-indigo-500/10 blur-3xl" />
         <div className="absolute top-3/4 right-0 w-96 h-96 rounded-full bg-gradient-to-br from-emerald-400/15 to-teal-500/10 blur-3xl" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full bg-gradient-to-br from-amber-400/10 to-orange-300/5 blur-3xl" />
       </div>
 
-      {/* ── Header ── */}
+      {/* -- Header -- */}
       <motion.div
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -726,14 +726,14 @@ export default function GMLeaderboardPage() {
                   LIVE
                 </motion.span>
               </div>
-              <p className="text-xs text-text-tertiary mt-0.5">7-metric performance ranking · {displayLabel}</p>
+              <p className="text-xs text-text-tertiary mt-0.5">7-metric performance ranking � {displayLabel}</p>
             </div>
           </div>
         </div>
 
         {/* Controls: branch + period */}
         <div className="flex flex-col gap-2 self-start sm:self-auto">
-          {/* Branch selector — dropdown */}
+          {/* Branch selector � dropdown */}
           {branches.length > 0 && (
             <div ref={branchRef} className="relative">
               <button
@@ -808,7 +808,7 @@ export default function GMLeaderboardPage() {
         </div>
       </motion.div>
 
-      {/* ── Full-screen loading overlay ── */}
+      {/* -- Full-screen loading overlay -- */}
       <AnimatePresence>
         {isTransitioning && (
           <motion.div
@@ -827,7 +827,7 @@ export default function GMLeaderboardPage() {
               animate={{ x: ["-50%", "220%"] }}
               transition={{ duration: 1.3, repeat: Infinity, ease: "easeInOut", repeatDelay: 0.4 }}
             />
-            {/* GIF + label — centered on viewport */}
+            {/* GIF + label � centered on viewport */}
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="flex flex-col items-center gap-2">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -845,7 +845,7 @@ export default function GMLeaderboardPage() {
                     border border-white/70 dark:border-white/10
                     shadow-[0_4px_16px_rgba(0,0,0,0.12)]"
                 >
-                  <p className="text-[10px] font-black text-primary uppercase tracking-widest">Loading…</p>
+                  <p className="text-[10px] font-black text-primary uppercase tracking-widest">Loading�</p>
                 </motion.div>
               </div>
             </div>
@@ -853,10 +853,10 @@ export default function GMLeaderboardPage() {
         )}
       </AnimatePresence>
 
-      {/* ── Data content ── */}
+      {/* -- Data content -- */}
       <div className="relative space-y-6">
 
-        {/* ── Stat cards ── */}
+        {/* -- Stat cards -- */}
         {overall && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <StatCard icon={Users} label="Instructors" value={String(overall.total_instructors)} sub="ranked" gradient="from-violet-500 to-purple-600" />
@@ -866,7 +866,7 @@ export default function GMLeaderboardPage() {
           </div>
         )}
 
-      {/* ── Tab bar ── */}
+      {/* -- Tab bar -- */}
       <div className="overflow-x-auto -mx-4 px-4">
         <div className="relative flex gap-1 bg-white/50 dark:bg-white/[0.04] backdrop-blur-md border border-white/60 dark:border-white/10 rounded-2xl p-1 min-w-max shadow-sm">
           {TABS.map((t) => {
@@ -899,7 +899,7 @@ export default function GMLeaderboardPage() {
         </div>
       </div>
 
-      {/* ── Empty state ── */}
+      {/* -- Empty state -- */}
       {instructors.length === 0 && (
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
@@ -914,7 +914,7 @@ export default function GMLeaderboardPage() {
         </motion.div>
       )}
 
-      {/* ── Podium — 2-1-3 layout ── */}
+      {/* -- Podium � 2-1-3 layout -- */}
       {sorted.length > 0 && (
         <div>
           <p className="text-[10px] font-black uppercase tracking-widest text-text-tertiary mb-4">Top Performers</p>
@@ -932,11 +932,11 @@ export default function GMLeaderboardPage() {
         </div>
       )}
 
-      {/* ── Full rankings ── */}
+      {/* -- Full rankings -- */}
       {sorted.length > 0 && (
         <div>
           <p className="text-[10px] font-black uppercase tracking-widest text-text-tertiary mb-3">
-            Full Rankings — {TABS.find((t) => t.value === activeTab)?.label}
+            Full Rankings � {TABS.find((t) => t.value === activeTab)?.label}
           </p>
           <div className="bg-surface rounded-2xl border border-border-light overflow-hidden shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
             {sorted.map((entry, i) => (
@@ -955,7 +955,7 @@ export default function GMLeaderboardPage() {
         </div>
       )}
 
-      {/* ── Score weights legend ── */}
+      {/* -- Score weights legend -- */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}

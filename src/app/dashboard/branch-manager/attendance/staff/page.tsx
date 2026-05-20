@@ -30,7 +30,7 @@ type StaffStatus = "Present" | "Absent" | "Half Day" | "On Leave" | "Work From H
 
 const STATUS_OPTIONS: StaffStatus[] = ["Present", "Absent", "Half Day", "On Leave", "Work From Home"];
 
-const statusConfig: Record<string, { color: string; bg: string; icon: React.ElementType; variant: "success" | "error" | "warning" | "default" }> = {
+const statusConfig: Record<string, { color: string; bg: string; icon: React.ComponentType<{ className?: string }>; variant: "success" | "error" | "warning" | "default" }> = {
   Present: { color: "text-success", bg: "bg-success-light", icon: CheckCircle, variant: "success" },
   Absent: { color: "text-error", bg: "bg-error-light", icon: XCircle, variant: "error" },
   "Half Day": { color: "text-warning", bg: "bg-warning-light", icon: Clock, variant: "warning" },

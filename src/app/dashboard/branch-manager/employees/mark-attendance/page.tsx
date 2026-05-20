@@ -31,7 +31,7 @@ import {
 
 type AttStatus = "Present" | "Absent" | "Half Day" | "On Leave" | "Work From Home";
 
-const STATUS_OPTIONS: { value: AttStatus; label: string; icon: React.ElementType; variant: "success" | "error" | "warning" | "default" }[] = [
+const STATUS_OPTIONS: { value: AttStatus; label: string; icon: React.ComponentType<{ className?: string }>; variant: "success" | "error" | "warning" | "default" }[] = [
   { value: "Present",          label: "Present",  icon: CheckCircle, variant: "success" },
   { value: "Absent",           label: "Absent",   icon: XCircle,     variant: "error"   },
   { value: "Half Day",         label: "Half Day", icon: Clock,       variant: "warning" },

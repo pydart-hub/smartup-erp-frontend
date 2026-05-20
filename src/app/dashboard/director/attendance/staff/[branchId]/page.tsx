@@ -28,7 +28,7 @@ import {
 
 const statusConfig: Record<
   string,
-  { color: string; bg: string; icon: React.ElementType; variant: "success" | "error" | "warning" | "default" }
+  { color: string; bg: string; icon: React.ComponentType<{ className?: string }>; variant: "success" | "error" | "warning" | "default" }
 > = {
   Present: { color: "text-success", bg: "bg-success/5", icon: CheckCircle, variant: "success" },
   Absent: { color: "text-error", bg: "bg-error/5", icon: XCircle, variant: "error" },

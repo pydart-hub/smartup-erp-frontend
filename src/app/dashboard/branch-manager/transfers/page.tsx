@@ -20,7 +20,7 @@ import type { StudentBranchTransfer } from "@/lib/types/transfer";
 type Direction = "all" | "incoming" | "outgoing";
 type StatusFilter = "all" | "Pending" | "Completed" | "Rejected" | "Failed";
 
-const DIRECTION_TABS: { value: Direction; label: string; icon: React.ElementType }[] = [
+const DIRECTION_TABS: { value: Direction; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { value: "all", label: "All", icon: ArrowRightLeft },
   { value: "incoming", label: "Incoming", icon: ArrowDownLeft },
   { value: "outgoing", label: "Outgoing", icon: ArrowUpRight },

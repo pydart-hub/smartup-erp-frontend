@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils/cn";
 import { Card, CardContent } from "@/components/ui/Card";
 import type { ReportDefinition } from "@/lib/reports/definitions";
 
-const iconMap: Record<string, React.ElementType> = {
+const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   GraduationCap,
   UserCheck,
   IndianRupee,

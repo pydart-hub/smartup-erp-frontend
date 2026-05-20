@@ -32,7 +32,7 @@ import { getBranchInvoiceStats, getBranchProgramFeeStats, getBranchForfeitedFees
 import type { CollectedByMode } from "@/lib/api/director";
 import { formatCurrency } from "@/lib/utils/formatters";
 
-const OFFLINE_MODES: { key: keyof CollectedByMode; label: string; icon: React.ElementType; color: string; bg: string; bar: string }[] = [
+const OFFLINE_MODES: { key: keyof CollectedByMode; label: string; icon: React.ComponentType<{ className?: string }>; color: string; bg: string; bar: string }[] = [
   { key: "cash", label: "Cash", icon: Banknote, color: "text-emerald-600", bg: "bg-emerald-50", bar: "bg-emerald-500" },
   { key: "upi", label: "UPI", icon: Smartphone, color: "text-violet-600", bg: "bg-violet-50", bar: "bg-violet-500" },
   { key: "bank_transfer", label: "Bank Transfer", icon: Building2, color: "text-sky-600", bg: "bg-sky-50", bar: "bg-sky-500" },

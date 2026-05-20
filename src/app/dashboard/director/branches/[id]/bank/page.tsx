@@ -423,7 +423,7 @@ export default function BranchBankPage() {
   const cat = useMemo(() => categoriseAccounts(accounts), [accounts]);
   const entityName = useMemo(() => getBankEntityName(accounts), [accounts]);
 
-  const tabs: { key: TabKey; label: string; icon: React.ElementType }[] = [
+  const tabs: { key: TabKey; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { key: "ledger", label: "GL Ledger", icon: FileText },
     { key: "payments", label: "Payment Entries", icon: CreditCard },
     { key: "journals", label: "Journal Entries", icon: ArrowUpRight },

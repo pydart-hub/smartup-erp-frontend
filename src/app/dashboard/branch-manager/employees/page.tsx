@@ -42,7 +42,7 @@ type AttStatus = "Present" | "Absent" | "Half Day" | "On Leave" | "Work From Hom
 const ATT_OPTIONS: {
   value: AttStatus;
   label: string;
-  icon: React.ElementType;
+  icon: React.ComponentType<{ className?: string }>;
   active: string;
 }[] = [
   { value: "Present",        label: "Present",  icon: CheckCircle, active: "bg-success text-white border-success" },
@@ -54,7 +54,7 @@ const ATT_OPTIONS: {
 
 const ATT_VIEW_CONFIG: Record<
   string,
-  { variant: "success" | "error" | "warning" | "default"; icon: React.ElementType; color: string }
+  { variant: "success" | "error" | "warning" | "default"; icon: React.ComponentType<{ className?: string }>; color: string }
 > = {
   Present:          { variant: "success", icon: CheckCircle, color: "text-success" },
   Absent:           { variant: "error",   icon: XCircle,     color: "text-error" },

@@ -41,7 +41,7 @@ const PERIODS: { value: Period; label: string; emoji: string }[] = [
   { value: "all", label: "All Time", emoji: "🏛️" },
 ];
 
-const PERF_TYPES: { value: PerfType; label: string; icon: React.ElementType; gradient: string }[] = [
+const PERF_TYPES: { value: PerfType; label: string; icon: React.ComponentType<{ className?: string }>; gradient: string }[] = [
   { value: "overall", label: "Overall", icon: Crown, gradient: "from-violet-500 to-purple-600" },
   { value: "collection", label: "Collection", icon: TrendingUp, gradient: "from-emerald-500 to-teal-600" },
   { value: "admissions", label: "Admissions", icon: UserPlus, gradient: "from-blue-500 to-indigo-600" },
@@ -271,7 +271,7 @@ function SortHeader({
 }
 
 /* ── Stat pill ── */
-function StatPill({ icon: Icon, label, value, color }: { icon: React.ElementType; label: string; value: string; color: string }) {
+function StatPill({ icon: Icon, label, value, color }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string; color: string }) {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.9 }}

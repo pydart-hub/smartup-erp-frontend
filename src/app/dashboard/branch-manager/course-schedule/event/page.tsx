@@ -52,7 +52,7 @@ function Field({
   error,
 }: {
   label: string;
-  icon: React.ElementType;
+  icon: React.ComponentType<{ className?: string }>;
   required?: boolean;
   children: React.ReactNode;
   error?: string;

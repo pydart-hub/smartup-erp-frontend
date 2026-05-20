@@ -40,7 +40,7 @@ import { useUIStore } from "@/lib/stores/uiStore";
 import { BRANCH_MANAGER_NAV, type NavItem } from "@/lib/utils/constants";
 import { useTransferNotifications } from "@/lib/hooks/useTransferNotifications";
 
-const iconMap: Record<string, React.ElementType> = {
+const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutDashboard,
   GraduationCap,
   School,

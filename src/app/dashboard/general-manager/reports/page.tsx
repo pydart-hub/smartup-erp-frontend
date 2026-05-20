@@ -37,7 +37,7 @@ import { AttendanceClassDetail } from "@/components/reports/AttendanceClassDetai
 type Category = "students" | "attendance" | "academics" | "shedules";
 type Mode = "branch" | "class";
 
-const CATEGORIES: { key: Category; label: string; icon: React.ElementType }[] = [
+const CATEGORIES: { key: Category; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { key: "students", label: "Students", icon: Users },
   { key: "attendance", label: "Attendance", icon: CalendarCheck },
   { key: "academics", label: "Academics", icon: BookOpen },

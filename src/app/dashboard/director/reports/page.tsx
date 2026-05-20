@@ -45,7 +45,7 @@ import { OverdueBranchDetail } from "@/components/reports/OverdueBranchDetail";
 type Category = "overview" | "students" | "fees" | "attendance" | "overdue";
 type Mode = "branch" | "class";
 
-const CATEGORIES: { key: Category; label: string; icon: React.ElementType }[] = [
+const CATEGORIES: { key: Category; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { key: "overview", label: "Overview", icon: FileBarChart },
   { key: "students", label: "Students", icon: Users },
   { key: "fees", label: "Fees", icon: IndianRupee },

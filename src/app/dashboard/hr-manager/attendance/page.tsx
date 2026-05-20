@@ -28,7 +28,7 @@ import { toast } from "sonner";
 
 type AttendanceStatus = "Present" | "Absent" | "Half Day" | "On Leave" | "Work From Home";
 
-const STATUSES: { value: AttendanceStatus; icon: React.ElementType; color: string; bg: string }[] = [
+const STATUSES: { value: AttendanceStatus; icon: React.ComponentType<{ className?: string }>; color: string; bg: string }[] = [
   { value: "Present", icon: Check, color: "text-success", bg: "bg-success" },
   { value: "Absent", icon: X, color: "text-error", bg: "bg-error" },
   { value: "Half Day", icon: Clock, color: "text-warning", bg: "bg-warning" },
