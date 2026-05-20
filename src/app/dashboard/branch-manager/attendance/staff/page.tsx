@@ -516,7 +516,7 @@ export default function StaffAttendancePage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {merged.map((emp, index) => {
                 const cfg = statusConfig[emp.attendance_status] ?? statusConfig["Not Marked"];
-                const Icon = cfg.icon;
+                const Icon = cfg.icon as React.ComponentType<{ className?: string }>;
 
                 return (
                   <motion.button
@@ -601,7 +601,7 @@ export default function StaffAttendancePage() {
                   const currentStatus = (pendingStatus ?? existingAtt?.status ?? "Not Marked") as string;
                   const hasChange = pendingStatus !== undefined && pendingStatus !== (existingAtt?.status ?? "Not Marked");
                   const cfg = statusConfig[currentStatus] ?? statusConfig["Not Marked"];
-                  const Icon = cfg.icon;
+                  const Icon = cfg.icon as React.ComponentType<{ className?: string }>;
 
                   return (
                     <motion.button
