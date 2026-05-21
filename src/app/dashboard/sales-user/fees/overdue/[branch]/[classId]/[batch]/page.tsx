@@ -16,6 +16,7 @@ import {
   User,
   ChevronDown,
   ChevronUp,
+  CalendarDays,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -269,6 +270,14 @@ export default function SalesOverdueStudentPage() {
                           <span className="text-text-tertiary/40 text-xs">·</span>
                           <p className="text-xs text-text-tertiary">{displayClass}</p>
                         </div>
+
+                        {/* Admission date */}
+                        {student.joining_date && (
+                          <div className="flex items-center gap-1.5 mt-1.5 text-xs text-text-secondary">
+                            <CalendarDays className="h-3 w-3 text-text-tertiary shrink-0" />
+                            <span>Admitted: {formatDate(student.joining_date)}</span>
+                          </div>
+                        )}
 
                         {/* Parent info */}
                         {(student.guardian_name || student.guardian_phone) && (

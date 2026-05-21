@@ -43,6 +43,35 @@ export async function getStudents(params?: {
   return data;
 }
 
+// ── List Students via POST (frappe.client.get_list) ──
+// Use this instead of getStudents when the filters contain a large "name in [ids]" array
+// that would exceed GET URL length limits.
+export async function getStudentsPost(params?: {
+  search?: string;
+  enabled?: 0 | 1;
+  custom_branch?: string;
+  fields?: string;
+  extraFilters?: (string | string[])[][];
+} & PaginationParams): Promise<FrappeListResponse<Student>> {
+  const filters: (string | string[])[][] = [];
+  if (params?.enabled !== undefined) filters.push(["enabled", "=", String(params.enabled)]);
+  if (params?.custom_branch) filters.push(["custom_branch", "=", params.custom_branch]);
+  if (params?.search) filters.push(["student_name", "like", `%${params.search}%`]);
+  if (params?.extraFilters) filters.push(...params.extraFilters);
+
+  const payload = {
+    doctype: "Student",
+    fields: params?.fields ?? STUDENT_LIST_FIELDS,
+    filters,
+    limit_start: params?.limit_start ?? 0,
+    limit_page_length: params?.limit_page_length ?? 25,
+    ...(params?.order_by ? { order_by: params.order_by } : {}),
+  };
+  const { data } = await apiClient.post("/method/frappe.client.get_list", payload);
+  // frappe.client.get_list returns { message: [...records] }
+  return { data: data.message };
+}
+
 // ── Get Single Student ──
 export async function getStudent(id: string): Promise<FrappeSingleResponse<Student>> {
   const { data } = await apiClient.get(`/resource/Student/${id}`);

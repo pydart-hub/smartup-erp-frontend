@@ -8,7 +8,7 @@ import {
   UserPlus, Search, Eye, Pencil, Trash2, ArrowRightLeft,
   ChevronLeft, ChevronRight, Loader2, AlertCircle,
   X, AlertTriangle, UserX, CircleCheck, Star,
-  ArrowUpDown, Filter, ChevronDown,
+  ArrowUpDown, Filter, ChevronDown, Download, FileSpreadsheet, FileText,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Button } from "@/components/ui/Button";
@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { getStudents } from "@/lib/api/students";
+import { getStudents, getStudentsPost } from "@/lib/api/students";
 import apiClient from "@/lib/api/client";
 import type { Student } from "@/lib/types/student";
 import { useAuth } from "@/lib/hooks/useAuth";
@@ -165,6 +165,51 @@ async function fetchParentMobileMap(
   return map;
 }
 
+// Fetch parent guardian details (name + mobile) for export.
+// Same two-step lookup as fetchParentMobileMap but also returns guardian_name.
+async function fetchParentDetails(
+  studentIds: string[]
+): Promise<Record<string, { name: string; mobile: string }>> {
+  if (!studentIds.length) return {};
+
+  const step1 = await apiClient.get("/resource/Student", {
+    params: {
+      filters: JSON.stringify([["name", "in", studentIds]]),
+      fields: JSON.stringify(["name", "guardians.guardian"]),
+      limit_page_length: studentIds.length * 3,
+    },
+  });
+  const rows: { name: string; guardian?: string }[] = step1.data.data ?? [];
+
+  const studentToGuardian: Record<string, string> = {};
+  const guardianIds: string[] = [];
+  for (const row of rows) {
+    if (row.name && row.guardian && !studentToGuardian[row.name]) {
+      studentToGuardian[row.name] = row.guardian;
+      if (!guardianIds.includes(row.guardian)) guardianIds.push(row.guardian);
+    }
+  }
+  if (!guardianIds.length) return {};
+
+  const step2 = await apiClient.get("/resource/Guardian", {
+    params: {
+      filters: JSON.stringify([["name", "in", guardianIds]]),
+      fields: JSON.stringify(["name", "guardian_name", "mobile_number"]),
+      limit_page_length: guardianIds.length,
+    },
+  });
+  const guardianData: Record<string, { name: string; mobile: string }> = {};
+  for (const g of step2.data.data ?? []) {
+    if (g.name) guardianData[g.name] = { name: g.guardian_name || "", mobile: g.mobile_number || "" };
+  }
+
+  const map: Record<string, { name: string; mobile: string }> = {};
+  for (const [studentId, guardianId] of Object.entries(studentToGuardian)) {
+    if (guardianData[guardianId]) map[studentId] = guardianData[guardianId];
+  }
+  return map;
+}
+
 // Fetch outstanding totals per customer (to detect "fully paid")
 async function fetchOutstandingMap(
   customers: string[]
@@ -239,12 +284,17 @@ export default function StudentsPage() {
   const [showBatchMenu, setShowBatchMenu] = useState(false);
   const [page, setPage] = useState(0);
 
+  // Export
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
+
   // Close dropdowns on outside click
   const sortRef = useRef<HTMLDivElement>(null);
   const planRef = useRef<HTMLDivElement>(null);
   const typeRef = useRef<HTMLDivElement>(null);
   const classRef = useRef<HTMLDivElement>(null);
   const batchRef = useRef<HTMLDivElement>(null);
+  const exportRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (sortRef.current && !sortRef.current.contains(e.target as Node)) setShowSortMenu(false);
@@ -252,6 +302,7 @@ export default function StudentsPage() {
       if (typeRef.current && !typeRef.current.contains(e.target as Node)) setShowTypeMenu(false);
       if (classRef.current && !classRef.current.contains(e.target as Node)) setShowClassMenu(false);
       if (batchRef.current && !batchRef.current.contains(e.target as Node)) setShowBatchMenu(false);
+      if (exportRef.current && !exportRef.current.contains(e.target as Node)) setShowExportMenu(false);
     }
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
@@ -364,22 +415,57 @@ export default function StudentsPage() {
     staleTime: 60_000,
   });
 
-  // ── Query 1: students (server-side filtered) ─────────────────
-  // When batchFilter is active, wait for batchStudentIds then pass them as a
-  // server-side "name in [...]" filter so ALL matching students are returned.
+  // ── Query 1b: plan/class enrollment IDs (server-side pre-fetch, like batchFilter) ──────────
+  // Fetch Program Enrollment to get student IDs matching the active plan/class filter.
+  // These are then passed as a server-side "name in [...]" filter on the students query,
+  // so sort + pagination work correctly across ALL students, not just the current page.
+  const { data: planClassStudentIds = null, isLoading: planClassLoading } = useQuery({
+    queryKey: ["plan-class-students", planFilter, classFilter],
+    queryFn: async () => {
+      const filters: (string | string[])[][] = [["docstatus", "=", "1"]];
+      if (planFilter !== "all") filters.push(["custom_plan", "=", planFilter]);
+      if (classFilter !== "all") filters.push(["program", "=", classFilter]);
+      const { data } = await apiClient.get("/resource/Program Enrollment", {
+        params: {
+          filters: JSON.stringify(filters),
+          fields: JSON.stringify(["student"]),
+          limit_page_length: 1000,
+        },
+      });
+      return (data.data ?? []).map((r: { student: string }) => r.student) as string[];
+    },
+    enabled: planFilter !== "all" || classFilter !== "all",
+    staleTime: 60_000,
+  });
+
+  // ── Query 1: students (fully server-side filtered + paginated) ───────────────────────────
+  // Combine batch and plan/class student ID lists into a single "name in" server filter.
   const batchReady = batchFilter === "all" || batchStudentIds !== null;
+  const planClassReady = (planFilter === "all" && classFilter === "all") || planClassStudentIds !== null;
+
+  // Compute the intersection of batch IDs and plan/class IDs if both are active
+  const nameFilterIds: string[] | null = (() => {
+    if (batchStudentIds !== null && planClassStudentIds !== null) {
+      const pcSet = new Set(planClassStudentIds);
+      return batchStudentIds.filter((id) => pcSet.has(id));
+    }
+    if (batchStudentIds !== null) return batchStudentIds;
+    if (planClassStudentIds !== null) return planClassStudentIds;
+    return null;
+  })();
+
   const { data: studentsRes, isLoading: studentsLoading, isError, error } = useQuery({
-    queryKey: ["students", search, statusFilter, typeFilter, page, defaultCompany, sortOption, batchFilter, batchStudentIds],
+    queryKey: ["students", search, statusFilter, typeFilter, page, defaultCompany, sortOption, batchFilter, planFilter, classFilter, nameFilterIds],
     queryFn: () => {
       const extraFilters = getExtraFilters(statusFilter);
       if (typeFilter !== "all") extraFilters.push(["custom_student_type", "=", typeFilter]);
-      if (batchStudentIds && batchStudentIds.length > 0) {
-        extraFilters.push(["name", "in", batchStudentIds]);
-      } else if (batchStudentIds && batchStudentIds.length === 0) {
-        // Empty batch — force no results
+      if (nameFilterIds !== null && nameFilterIds.length > 0) {
+        extraFilters.push(["name", "in", nameFilterIds]);
+      } else if (nameFilterIds !== null && nameFilterIds.length === 0) {
+        // No students match the combined filter — force empty result
         extraFilters.push(["name", "=", "__none__"]);
       }
-      return getStudents({
+      const queryParams = {
         search: search || undefined,
         enabled: getEnabledParam(statusFilter),
         extraFilters,
@@ -387,16 +473,21 @@ export default function StudentsPage() {
         limit_page_length: PAGE_SIZE,
         order_by: getSortOrderBy(sortOption),
         ...(defaultCompany ? { custom_branch: defaultCompany } : {}),
-      });
+      };
+      // Use POST when a name list filter is active to avoid GET URL length limits
+      if (nameFilterIds !== null) {
+        return getStudentsPost(queryParams);
+      }
+      return getStudents(queryParams);
     },
-    enabled: batchReady,
+    enabled: batchReady && planClassReady,
     staleTime: 30_000,
   });
 
-  const isLoading = studentsLoading || batchLoading;
-
   const allStudents: Student[] = studentsRes?.data ?? [];
+  const students = allStudents;
   const hasMore = allStudents.length === PAGE_SIZE;
+  const isLoading = studentsLoading || batchLoading || planClassLoading;
 
   // ── Query 2: program enrollments for current page ──────────
   const studentIds = allStudents.map((s) => s.name);
@@ -406,11 +497,6 @@ export default function StudentsPage() {
     enabled: studentIds.length > 0,
     staleTime: 60_000,
   });
-
-  // Client-side plan filter only (class uses server-side enrollment, batch is server-side "name in")
-  const students = allStudents
-    .filter((s) => planFilter === "all" || enrollmentMap[s.name]?.custom_plan === planFilter)
-    .filter((s) => classFilter === "all" || enrollmentMap[s.name]?.program === classFilter);
 
   // ── Query 3: outstanding amounts per student ────────────────
   const customerIds = allStudents.map((s) => s.customer).filter(Boolean) as string[];
@@ -436,6 +522,142 @@ export default function StudentsPage() {
     enabled: studentIds.length > 0,
     staleTime: 60_000,
   });
+
+  // ── Export handler ──────────────────────────────────────────
+  async function handleExport(format: "excel" | "pdf") {
+    setExportLoading(true);
+    setShowExportMenu(false);
+    try {
+      // Build the same filters as the main query
+      const extraFilters = getExtraFilters(statusFilter);
+      if (typeFilter !== "all") extraFilters.push(["custom_student_type", "=", typeFilter]);
+      if (nameFilterIds !== null && nameFilterIds.length === 0) return; // no matches
+      if (nameFilterIds !== null && nameFilterIds.length > 0) {
+        extraFilters.push(["name", "in", nameFilterIds]);
+      }
+
+      const qp = {
+        search: search || undefined,
+        enabled: getEnabledParam(statusFilter),
+        extraFilters,
+        limit_start: 0,
+        limit_page_length: 1000,
+        order_by: getSortOrderBy(sortOption),
+        ...(defaultCompany ? { custom_branch: defaultCompany } : {}),
+      };
+
+      const res = nameFilterIds !== null ? await getStudentsPost(qp) : await getStudents(qp);
+      const exportData: Student[] = res.data ?? [];
+
+      // Fetch enrollments in chunks of 100 to stay within Frappe limits
+      const exportIds = exportData.map((s) => s.name);
+      const CHUNK = 100;
+      const enrollMap: Record<string, { program?: string; student_batch_name?: string; custom_plan?: string }> = {};
+      for (let i = 0; i < exportIds.length; i += CHUNK) {
+        const partial = await fetchEnrollmentMap(exportIds.slice(i, i + CHUNK));
+        Object.assign(enrollMap, partial);
+      }
+
+      // Fetch parent details (guardian name + mobile) in chunks
+      const parentDetailsExport: Record<string, { name: string; mobile: string }> = {};
+      for (let i = 0; i < exportIds.length; i += CHUNK) {
+        const partial = await fetchParentDetails(exportIds.slice(i, i + CHUNK));
+        Object.assign(parentDetailsExport, partial);
+      }
+
+      const rows = exportData.map((s) => {
+        const enr = enrollMap[s.name] || {};
+        const statusLabel = s.custom_discontinuation_date
+          ? "Discontinued"
+          : s.enabled
+          ? "Active"
+          : "Inactive";
+        return [
+          s.student_name || `${s.first_name ?? ""} ${s.last_name ?? ""}`.trim(),
+          s.custom_srr_id || "—",
+          enr.program || "—",
+          enr.student_batch_name || "—",
+          enr.custom_plan || "—",
+          s.student_mobile_number || "—",
+          parentDetailsExport[s.name]?.name || "—",
+          parentDetailsExport[s.name]?.mobile || "—",
+          s.custom_branch || "—",
+          s.custom_student_type || "—",
+          statusLabel,
+          s.joining_date || "—",
+        ];
+      });
+
+      const branchLabel = defaultCompany || "Branch";
+      const dateStr = new Date().toISOString().slice(0, 10);
+      const fileName = `${branchLabel.replace(/\s+/g, "_")}_Students_${dateStr}`;
+      const headers = ["Student Name", "Student No.", "Class", "Batch", "Plan", "Student Mobile", "Parent Name", "Parent Mobile", "Branch", "Type", "Status", "Joined"];
+
+      if (format === "excel") {
+        const ExcelJS = (await import("exceljs")).default;
+        const wb = new ExcelJS.Workbook();
+        wb.creator = "SmartUp ERP";
+        const ws = wb.addWorksheet("Students");
+        ws.columns = headers.map((h, i) => ({
+          header: h,
+          key: String(i),
+          width: [30, 16, 22, 26, 14, 16, 24, 16, 28, 14, 14, 14][i],
+        }));
+        const headerRow = ws.getRow(1);
+        headerRow.font = { bold: true, color: { argb: "FFFFFFFF" } };
+        headerRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1A9E8F" } };
+        rows.forEach((r, i) => {
+          const row = ws.addRow(r);
+          if (i % 2 === 1) {
+            row.eachCell((cell) => {
+              cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF0FAFA" } };
+            });
+          }
+        });
+        const buf = await wb.xlsx.writeBuffer();
+        const blob = new Blob([buf], {
+          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${fileName}.xlsx`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } else {
+        const { default: jsPDF } = await import("jspdf");
+        const { default: autoTable } = await import("jspdf-autotable");
+        const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(14);
+        doc.text(`${branchLabel} — Students`, 14, 14);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(120, 120, 120);
+        doc.text(
+          `Exported ${new Date().toLocaleDateString("en-IN")} · ${exportData.length} students`,
+          14,
+          21
+        );
+        doc.setTextColor(0, 0, 0);
+        autoTable(doc, {
+          startY: 26,
+          head: [headers],
+          body: rows,
+          styles: { fontSize: 7.5, cellPadding: 2 },
+          headStyles: { fillColor: [26, 158, 143], textColor: 255, fontStyle: "bold" },
+          alternateRowStyles: { fillColor: [240, 250, 250] },
+          margin: { left: 14, right: 14 },
+        });
+        doc.save(`${fileName}.pdf`);
+      }
+    } catch (err) {
+      console.error("[Export] Failed:", err);
+    } finally {
+      setExportLoading(false);
+    }
+  }
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
       <BreadcrumbNav />
@@ -449,12 +671,6 @@ export default function StudentsPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Link href="/dashboard/branch-manager/admit?demo=true">
-            <Button variant="outline" size="md">
-              <Star className="h-4 w-4" />
-              Demo Admit
-            </Button>
-          </Link>
           <Link href="/dashboard/branch-manager/new-admission">
             <Button variant="primary" size="md">
               <UserPlus className="h-4 w-4" />
@@ -692,6 +908,41 @@ export default function StudentsPage() {
             Reset
           </button>
         )}
+
+        {/* Export dropdown — right-aligned in filter row */}
+        <div className="relative ml-auto" ref={exportRef}>
+          <button
+            onClick={() => setShowExportMenu((v) => !v)}
+            disabled={exportLoading || isLoading}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-border-medium bg-surface-primary text-text-secondary hover:bg-app-bg transition-all disabled:opacity-50"
+          >
+            {exportLoading ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Download className="h-3.5 w-3.5" />
+            )}
+            Export
+            <ChevronDown className="h-3 w-3" />
+          </button>
+          {showExportMenu && (
+            <div className="absolute right-0 top-full mt-1.5 w-44 bg-white border border-border-light rounded-xl shadow-lg z-50 overflow-hidden">
+              <button
+                onClick={() => handleExport("excel")}
+                className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-text-primary hover:bg-app-bg transition-colors"
+              >
+                <FileSpreadsheet className="h-4 w-4 text-green-600" />
+                Export as Excel
+              </button>
+              <button
+                onClick={() => handleExport("pdf")}
+                className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-text-primary hover:bg-app-bg transition-colors"
+              >
+                <FileText className="h-4 w-4 text-red-500" />
+                Export as PDF
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Students Table */}
@@ -710,6 +961,7 @@ export default function StudentsPage() {
               <thead>
                 <tr className="border-b border-border-light">
                   <th className="text-left px-5 py-3 font-semibold text-text-secondary">Student</th>
+                  <th className="text-left px-5 py-3 font-semibold text-text-secondary">Student Mobile</th>
                   <th className="text-left px-5 py-3 font-semibold text-text-secondary">Class</th>
                   <th className="text-left px-5 py-3 font-semibold text-text-secondary">Batch</th>
                   <th className="text-left px-5 py-3 font-semibold text-text-secondary">Branch</th>
@@ -724,7 +976,7 @@ export default function StudentsPage() {
                 {isLoading
                   ? Array.from({ length: 8 }).map((_, i) => (
                       <tr key={i} className="border-b border-border-light">
-                        {Array.from({ length: 9 }).map((_, j) => (
+                        {Array.from({ length: 10 }).map((_, j) => (
                           <td key={j} className="px-5 py-3">
                             <Skeleton className="h-4 w-full rounded" />
                           </td>
@@ -797,6 +1049,13 @@ export default function StudentsPage() {
                                 <p className="text-xs text-text-tertiary truncate">{student.name}</p>
                               </div>
                             </div>
+                          </td>
+
+                          {/* Student Mobile */}
+                          <td className="px-5 py-3 text-xs">
+                            {student.student_mobile_number
+                              ? <span className="text-text-secondary">{student.student_mobile_number}</span>
+                              : <span className="text-amber-500 italic">Not entered</span>}
                           </td>
 
                           {/* Class from enrollment */}

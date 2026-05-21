@@ -469,6 +469,7 @@ export async function GET(request: NextRequest) {
       const studentGuardianMap = new Map<string, string>(); // student → guardian doc ID
       const guardianNameMap = new Map<string, string>();    // guardian ID → name
       const guardianPhoneMap = new Map<string, string>();   // guardian ID → phone
+      const joiningDateMap = new Map<string, string>();     // student → joining_date
 
       const studentDocResults = await Promise.allSettled(
         studentIds.map((id) =>
@@ -479,12 +480,16 @@ export async function GET(request: NextRequest) {
       for (let i = 0; i < studentIds.length; i++) {
         const result = studentDocResults[i];
         if (result.status === "fulfilled") {
+          const doc = result.value?.data;
           const guardians: { guardian?: string; guardian_name?: string }[] =
-            result.value?.data?.guardians ?? [];
+            doc?.guardians ?? [];
           const first = guardians[0];
           if (first?.guardian) {
             studentGuardianMap.set(studentIds[i], first.guardian);
             if (first.guardian_name) guardianNameMap.set(first.guardian, first.guardian_name);
+          }
+          if (doc?.joining_date) {
+            joiningDateMap.set(studentIds[i], doc.joining_date);
           }
         }
       }
@@ -519,6 +524,7 @@ export async function GET(request: NextRequest) {
             no_of_instalments: planInfo?.no_of_instalments || "",
             guardian_name: guardianNameMap.get(guardianId) ?? "",
             guardian_phone: guardianPhoneMap.get(guardianId) ?? "",
+            joining_date: joiningDateMap.get(studentId) ?? "",
             overdue_invoices: overdue_invoices
               .map((inv) => ({
                 ...inv,
@@ -603,16 +609,18 @@ export async function GET(request: NextRequest) {
 
       // Step 2: Fetch student names in chunks of 50 (avoids URL-too-long for large branches)
       const nameMap = new Map<string, string>();
+      const joiningDateMap = new Map<string, string>();
       await Promise.all(
         idChunks.map(async (ids) => {
           try {
             const res = await frappeGet("resource/Student", {
               filters: JSON.stringify([["name", "in", ids]]),
-              fields: JSON.stringify(["name", "student_name"]),
+              fields: JSON.stringify(["name", "student_name", "joining_date"]),
               limit_page_length: "100",
             });
-            for (const s of (res.data ?? []) as { name: string; student_name?: string }[]) {
+            for (const s of (res.data ?? []) as { name: string; student_name?: string; joining_date?: string }[]) {
               nameMap.set(s.name, s.student_name || s.name);
+              if (s.joining_date) joiningDateMap.set(s.name, s.joining_date);
             }
           } catch { /* skip bad chunk */ }
         })
@@ -774,6 +782,7 @@ export async function GET(request: NextRequest) {
             no_of_instalments: planInfo?.no_of_instalments || "",
             guardian_name: guardianNameMap.get(guardianId) ?? "",
             guardian_phone: guardianPhoneMap.get(guardianId) ?? "",
+            joining_date: joiningDateMap.get(studentId) ?? "",
             overdue_invoices: overdue_invoices.sort((a, b) => a.due_date.localeCompare(b.due_date)),
           };
         })

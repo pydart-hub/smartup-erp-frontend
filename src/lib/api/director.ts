@@ -1229,6 +1229,7 @@ export interface DuesTodayStudentRow {
   no_of_instalments: string;
   guardian_name: string;
   guardian_phone: string;
+  joining_date?: string;
   overdue_invoices: { name: string; amount: number; grand_total: number; paid: number; due_date: string; instalment_label: string }[];
 }
 

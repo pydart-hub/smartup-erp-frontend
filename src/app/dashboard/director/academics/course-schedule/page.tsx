@@ -1,17 +1,74 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getBranchAcademics } from "@/lib/api/analytics";
 import { BranchDrillDown, safeNum, pctColor, pctBadgeColor } from "@/components/academics/BranchDrillDown";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { toast } from "sonner";
 import {
-  CalendarDays, ChevronRight, UserCheck, Download, FileText, FileSpreadsheet, Loader2,
+  CalendarDays, ChevronRight, UserCheck, Download, FileText, FileSpreadsheet, Loader2, BarChart3,
 } from "lucide-react";
 
-const container = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.06 } } };
-const item = { hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } };
+/* ─── 3-D tilt stat card ─────────────────────────────────────────── */
+function StatCard3D({
+  icon: Icon,
+  iconClass,
+  label,
+  value,
+  sub,
+  delay = 0,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  iconClass: string;
+  label: string;
+  value: React.ReactNode;
+  sub?: React.ReactNode;
+  delay?: number;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const mx = useMotionValue(0);
+  const my = useMotionValue(0);
+  const rotateX = useSpring(useTransform(my, [-0.5, 0.5], [5, -5]), { stiffness: 320, damping: 32 });
+  const rotateY = useSpring(useTransform(mx, [-0.5, 0.5], [-5, 5]), { stiffness: 320, damping: 32 });
+  const glowX   = useSpring(useTransform(mx, [-0.5, 0.5], [5, 95]), { stiffness: 180, damping: 22 });
+  const glowY   = useSpring(useTransform(my, [-0.5, 0.5], [5, 95]), { stiffness: 180, damping: 22 });
+  const onMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const r = ref.current?.getBoundingClientRect();
+    if (!r) return;
+    mx.set((e.clientX - r.left) / r.width - 0.5);
+    my.set((e.clientY - r.top) / r.height - 0.5);
+  };
+  const onLeave = () => { mx.set(0); my.set(0); };
+  return (
+    <motion.div initial={{ opacity: 0, y: 18, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.5, delay, ease: [0.22, 1, 0.36, 1] }} style={{ perspective: 800 }}>
+      <motion.div ref={ref} onMouseMove={onMove} onMouseLeave={onLeave}
+        style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
+        whileHover={{ scale: 1.02, y: -2 }} transition={{ duration: 0.18 }}
+        className="relative overflow-hidden rounded-xl bg-surface border border-border-light shadow-card hover:shadow-card-hover transition-shadow duration-200 group p-4"
+      >
+        <motion.div className="pointer-events-none absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+          style={{ background: useTransform([glowX, glowY], ([gx, gy]) =>
+            `radial-gradient(220px circle at ${gx}% ${gy}%, rgba(26,158,143,0.07), transparent 65%)`) }} />
+        <div className="absolute top-0 left-4 right-4 h-[2px] rounded-b-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+          style={{ background: "linear-gradient(90deg, #1A9E8F, #82C35B)" }} />
+        <div className="relative flex items-start gap-3">
+          <motion.div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${iconClass}`}
+            style={{ transformStyle: "preserve-3d" }} whileHover={{ rotateY: 16, rotateX: -10, scale: 1.08 }}
+            transition={{ duration: 0.28 }}>
+            <Icon className="h-4 w-4" />
+          </motion.div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-text-tertiary mb-1">{label}</p>
+            <p className="text-2xl font-black leading-none">{value}</p>
+            {sub && <div className="mt-1.5">{sub}</div>}
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
 
 function getAdjustedBranchMetrics(branch: {
   total_working_days?: number;
@@ -71,8 +128,11 @@ export default function DirectorAcademicsSchedulePage() {
   if (isLoading) {
     return (
       <div className="p-4 sm:p-6 space-y-4">
-        <div className="h-8 w-64 bg-surface rounded animate-pulse" />
-        <div className="space-y-2">{[...Array(6)].map((_, i) => <div key={i} className="h-20 bg-surface rounded-[12px] animate-pulse" />)}</div>
+        <div className="h-8 w-64 bg-surface rounded-xl animate-pulse" />
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {[...Array(5)].map((_, i) => <div key={i} className="h-24 bg-surface rounded-xl animate-pulse" />)}
+        </div>
+        <div className="space-y-2">{[...Array(6)].map((_, i) => <div key={i} className="h-16 bg-surface rounded-xl animate-pulse" />)}</div>
       </div>
     );
   }
@@ -254,123 +314,77 @@ export default function DirectorAcademicsSchedulePage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="p-4 sm:p-6 space-y-5 max-w-7xl mx-auto">
       <AnimatePresence mode="wait">
         {selectedBranch ? (
           <BranchDrillDown key={selectedBranch} branch={selectedBranch} onBack={() => setSelectedBranch(null)} defaultTab="schedule" />
         ) : (
-          <motion.div key="overview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
-            <div>
-              <h1 className="text-2xl font-bold text-primary">Course Schedule Overview</h1>
-              <p className="text-sm text-text-tertiary mt-0.5">Class schedules and completion across branches</p>
-            </div>
-            <div>
-              <div className="mt-1 flex items-center gap-2 text-xs text-text-tertiary">
-                <span>
-                  Public Holidays: <span className="font-semibold text-primary">{publicHolidayDays}</span>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setHolidayAdjustment((v) => Math.max(v - 1, -basePublicHolidayDays))}
-                  className="w-5 h-5 rounded border border-border-light text-text-secondary hover:text-primary hover:border-primary/40 transition-colors"
-                  aria-label="Decrease public holidays"
+          <motion.div key="overview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, x: -20 }} className="space-y-5">
+
+            {/* ── Header ── */}
+            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }} className="flex flex-col gap-3">
+              <div className="flex items-center gap-3">
+                <motion.div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                  style={{ background: "linear-gradient(135deg, #1A9E8F 0%, #82C35B 100%)", boxShadow: "0 4px 12px rgba(26,158,143,0.28)" }}
+                  animate={{ rotateY: [0, 14, 0, -14, 0] }}
+                  transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
                 >
-                  -
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setHolidayAdjustment((v) => v + 1)}
-                  className="w-5 h-5 rounded border border-border-light text-text-secondary hover:text-primary hover:border-primary/40 transition-colors"
-                  aria-label="Increase public holidays"
-                >
-                  +
-                </button>
-                {holidayAdjustment !== 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setHolidayAdjustment(0)}
-                    className="px-2 py-0.5 rounded border border-border-light text-text-secondary hover:text-primary hover:border-primary/40 transition-colors"
-                  >
-                    Reset
-                  </button>
-                )}
+                  <CalendarDays className="h-4 w-4 text-white" />
+                </motion.div>
+                <div>
+                  <h1 className="text-lg font-bold text-text-primary tracking-tight">Course Schedule Overview</h1>
+                  <p className="text-xs text-text-secondary">Class schedules and completion across branches</p>
+                </div>
               </div>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setOnlyProblems(false)}
-                  className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
-                    !onlyProblems
-                      ? "bg-primary text-white border-primary"
-                      : "bg-surface text-text-secondary border-border-light hover:border-primary/40"
-                  }`}
-                >
-                  All Branches ({branches.length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setOnlyProblems(true)}
-                  className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
-                    onlyProblems
-                      ? "bg-error text-white border-error"
-                      : "bg-surface text-text-secondary border-border-light hover:border-error/40"
-                  }`}
-                >
-                  Only Problem Branches ({problemBranchViews.length})
-                </button>
+
+              {/* Controls row */}
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Holiday pill */}
+                <div className="flex items-center gap-1.5 bg-surface border border-border-light rounded-xl px-3 py-1.5 shadow-sm">
+                  <CalendarDays className="h-3.5 w-3.5 text-primary" />
+                  <span className="text-[11px] text-text-tertiary">Public Holidays:</span>
+                  <span className="text-[11px] font-bold text-primary">{publicHolidayDays}</span>
+                  <button type="button" onClick={() => setHolidayAdjustment((v) => Math.max(v - 1, -basePublicHolidayDays))}
+                    className="w-5 h-5 rounded-md border border-border-light text-text-secondary hover:text-primary hover:border-primary/40 transition-colors text-xs flex items-center justify-center" aria-label="Decrease">−</button>
+                  <button type="button" onClick={() => setHolidayAdjustment((v) => v + 1)}
+                    className="w-5 h-5 rounded-md border border-border-light text-text-secondary hover:text-primary hover:border-primary/40 transition-colors text-xs flex items-center justify-center" aria-label="Increase">+</button>
+                  {holidayAdjustment !== 0 && (
+                    <button type="button" onClick={() => setHolidayAdjustment(0)}
+                      className="text-[10px] px-1.5 py-0.5 rounded border border-border-light text-text-secondary hover:text-primary transition-colors">Reset</button>
+                  )}
+                </div>
+
+                {/* Filter toggle */}
+                <div className="flex items-center gap-1 bg-surface border border-border-light rounded-xl p-1 shadow-sm">
+                  <button type="button" onClick={() => setOnlyProblems(false)}
+                    className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-all ${!onlyProblems ? "bg-primary text-white shadow-sm" : "text-text-secondary hover:text-primary"}`}>
+                    All Branches ({branches.length})
+                  </button>
+                  <button type="button" onClick={() => setOnlyProblems(true)}
+                    className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-all ${onlyProblems ? "bg-error text-white shadow-sm" : "text-text-secondary hover:text-error"}`}>
+                    Problem Branches ({problemBranchViews.length})
+                  </button>
+                </div>
               </div>
               {onlyProblems && (
-                <p className="text-xs text-error mt-1">
-                  Showing branches with non-scheduled working days or attendance not marked days.
-                </p>
+                <p className="text-[11px] text-error">Showing branches with non-scheduled or attendance-pending days.</p>
               )}
-            </div>
-
-            <motion.div variants={container} initial="hidden" animate="show" className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-              <motion.div variants={item} className="bg-surface rounded-[12px] p-4 border border-border-light">
-                <div className="flex items-center gap-2 mb-2">
-                  <CalendarDays className="w-4 h-4 text-text-tertiary" />
-                  <span className="text-xs text-text-tertiary font-medium">Working Days</span>
-                </div>
-                <p className="text-2xl font-bold text-primary">{totalWorkingDays}</p>
-                {workingDaysFrom && workingDaysTo && (
-                  <p className="text-[11px] text-text-tertiary mt-1">
-                    May onward: {workingDaysFrom} to {workingDaysTo} (Sunday excluded, public holidays: {publicHolidayDays})
-                  </p>
-                )}
-              </motion.div>
-              <motion.div variants={item} className="bg-surface rounded-[12px] p-4 border border-border-light">
-                <div className="flex items-center gap-2 mb-2">
-                  <CalendarDays className="w-4 h-4 text-info" />
-                  <span className="text-xs text-text-tertiary font-medium">Scheduled Days</span>
-                </div>
-                <p className="text-2xl font-bold text-primary">{totalScheduledDays}</p>
-              </motion.div>
-              <motion.div variants={item} className="bg-surface rounded-[12px] p-4 border border-border-light">
-                <div className="flex items-center gap-2 mb-2">
-                  <UserCheck className="w-4 h-4 text-success" />
-                  <span className="text-xs text-text-tertiary font-medium">Attendance Marked</span>
-                </div>
-                <p className="text-2xl font-bold text-success">{totalAttendanceMarked}</p>
-              </motion.div>
-              <motion.div variants={item} className="bg-surface rounded-[12px] p-4 border border-border-light">
-                <div className="flex items-center gap-2 mb-2">
-                  <UserCheck className="w-4 h-4 text-error" />
-                  <span className="text-xs text-text-tertiary font-medium">Attendance Not Marked</span>
-                </div>
-                <p className="text-2xl font-bold text-error">{totalAttendancePending}</p>
-              </motion.div>
-              <motion.div variants={item} className="bg-surface rounded-[12px] p-4 border border-border-light">
-                <div className="flex items-center gap-2 mb-2">
-                  <UserCheck className="w-4 h-4 text-success" />
-                  <span className="text-xs text-text-tertiary font-medium">Operational %</span>
-                </div>
-                <p className={`text-2xl font-bold ${pctColor(overallOperationalPct, 80, 60)}`}>{overallOperationalPct}%</p>
-              </motion.div>
             </motion.div>
 
-            <motion.div variants={container} initial="hidden" animate="show" className="space-y-2">
-              {sorted.map(({ branch: b, metrics }) => {
+            {/* ── Stat cards ── */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+              <StatCard3D icon={CalendarDays} iconClass="bg-primary-light text-primary"  label="Working Days"       value={<span className="text-primary">{totalWorkingDays}</span>}
+                sub={workingDaysFrom && workingDaysTo ? <p className="text-[9px] text-text-tertiary leading-tight">{workingDaysFrom} → {workingDaysTo} (excl. Sun, {publicHolidayDays} holidays)</p> : undefined} delay={0} />
+              <StatCard3D icon={CalendarDays} iconClass="bg-info/10 text-info"           label="Scheduled Days"     value={<span className="text-primary">{totalScheduledDays}</span>}     delay={0.05} />
+              <StatCard3D icon={UserCheck}    iconClass="bg-success/15 text-success"     label="Attendance Marked"  value={<span className="text-success">{totalAttendanceMarked}</span>}  delay={0.10} />
+              <StatCard3D icon={UserCheck}    iconClass="bg-error/10 text-error"         label="Att. Not Marked"   value={<span className="text-error">{totalAttendancePending}</span>}   delay={0.15} />
+              <StatCard3D icon={BarChart3}    iconClass="bg-primary-light text-primary"  label="Operational %"     value={<span className={pctColor(overallOperationalPct, 80, 60)}>{overallOperationalPct}%</span>} delay={0.20} />
+            </div>
+
+            {/* ── Branch list ── */}
+            <div className="space-y-1.5">
+              {sorted.map(({ branch: b, metrics }, i) => {
                 const branchPct = metrics.operationalPct;
                 const isExpanded = expandedBranch === b.branch;
                 const nonScheduledDates = b.non_scheduled_dates ?? [];
@@ -378,168 +392,155 @@ export default function DirectorAcademicsSchedulePage() {
                 return (
                   <motion.div
                     key={b.branch}
-                    variants={item}
-                    onClick={() => setExpandedBranch((prev) => (prev === b.branch ? null : b.branch))}
-                    className="w-full text-left bg-surface rounded-[12px] border border-border-light p-4 hover:border-primary/30 hover:shadow-md transition-all group"
+                    initial={{ opacity: 0, y: 14 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.45, delay: i * 0.04, ease: [0.22, 1, 0.36, 1] }}
+                    className="relative overflow-hidden rounded-xl bg-surface border border-border-light shadow-card hover:shadow-card-hover transition-shadow duration-200 group"
                   >
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-4 min-w-0">
-                        <div className={`w-12 h-12 rounded-[10px] flex items-center justify-center text-sm font-bold shrink-0 ${pctBadgeColor(branchPct, 80, 60)}`}>
-                          {branchPct}%
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-primary truncate">{b.branch.replace("Smart Up ", "")}</p>
-                          <p className="text-xs text-text-tertiary">{b.total_batches} batches · {b.total_instructors ?? 0} teachers</p>
-                          <p className="text-xs text-text-tertiary mt-1">
-                            Working: <span className="font-medium text-primary">{metrics.workingDays}</span> · Scheduled: <span className="font-medium text-primary">{metrics.scheduledDays}</span> · Non-scheduled: <span className="font-medium text-primary">{metrics.nonScheduledDays}</span> · Attendance marked: <span className="font-medium text-success">{metrics.attendanceMarkedDays}</span> · Not marked: <span className="font-medium text-error">{metrics.attendanceNotMarkedDays}</span>
-                          </p>
+                    {/* left accent stripe */}
+                    <div className="absolute left-0 top-2.5 bottom-2.5 w-[3px] rounded-r-full"
+                      style={{ background: "linear-gradient(180deg, #1A9E8F, #82C35B)" }} />
+
+                    <div
+                      onClick={() => setExpandedBranch((prev) => (prev === b.branch ? null : b.branch))}
+                      className="flex items-center gap-4 px-4 py-3 pl-5 cursor-pointer"
+                    >
+                      {/* pct badge */}
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 text-[15px] font-black ${pctBadgeColor(branchPct, 80, 60)}`}>
+                        {branchPct}%
+                      </div>
+
+                      {/* info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-semibold text-text-primary truncate">{b.branch.replace("Smart Up ", "")}</p>
+                        <p className="text-[11px] text-text-tertiary">{b.total_batches} batches · {b.total_instructors ?? 0} teachers</p>
+                        <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-[10px]">
+                          <span className="text-text-tertiary">Working: <span className="font-semibold text-text-secondary">{metrics.workingDays}</span></span>
+                          <span className="text-text-tertiary">Scheduled: <span className="font-semibold text-primary">{metrics.scheduledDays}</span></span>
+                          <span className="text-text-tertiary">Non-scheduled: <span className="font-semibold text-warning">{metrics.nonScheduledDays}</span></span>
+                          <span className="text-text-tertiary">Marked: <span className="font-semibold text-success">{metrics.attendanceMarkedDays}</span></span>
+                          <span className="text-text-tertiary">Not marked: <span className="font-semibold text-error">{metrics.attendanceNotMarkedDays}</span></span>
                         </div>
                       </div>
+
+                      {/* actions */}
                       <div className="flex items-center gap-2 shrink-0">
                         <button
                           type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedBranch(b.branch);
-                          }}
-                          className="px-2.5 py-1 rounded-md border border-border-light text-xs text-text-secondary hover:text-primary hover:border-primary/40 transition-colors"
+                          onClick={(e) => { e.stopPropagation(); setSelectedBranch(b.branch); }}
+                          className="px-2.5 py-1 rounded-lg border border-border-light text-[11px] font-semibold text-text-secondary hover:text-primary hover:border-primary/40 hover:bg-brand-wash transition-all"
                         >
                           Open
                         </button>
-                        <ChevronRight
-                          className={`w-4 h-4 text-text-tertiary group-hover:text-primary transition-all ${isExpanded ? "rotate-90" : ""}`}
-                        />
+                        <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-primary-light border border-primary/20">
+                          <ChevronRight className={`w-3.5 h-3.5 text-primary transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`} />
+                        </div>
                       </div>
                     </div>
 
-                    {isExpanded && (
-                      <div className="mt-3 pt-3 border-t border-border-light grid grid-cols-1 lg:grid-cols-2 gap-3">
-                        <div className="rounded-[10px] border border-warning/25 bg-warning/5 p-3">
-                          <p className="text-xs font-semibold text-warning mb-2">
-                            Not Scheduled Dates ({nonScheduledDates.length})
-                          </p>
-                          {nonScheduledDates.length > 0 ? (
-                            <div className="flex flex-wrap gap-1.5">
-                              {nonScheduledDates.map((d) => (
-                                <span
-                                  key={`${b.branch}-ns-${d}`}
-                                  className="text-[11px] px-2 py-0.5 rounded-full bg-warning/10 text-warning border border-warning/20"
-                                >
-                                  {fmtDate(d)}
-                                </span>
-                              ))}
+                    {/* expanded date panels */}
+                    <AnimatePresence initial={false}>
+                      {isExpanded && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                          className="overflow-hidden"
+                        >
+                          <div className="mx-4 mb-3 pt-3 border-t border-border-light grid grid-cols-1 lg:grid-cols-2 gap-3">
+                            <div className="rounded-xl border border-warning/25 bg-warning/5 p-3">
+                              <p className="text-[11px] font-bold text-warning mb-2">Not Scheduled Dates ({nonScheduledDates.length})</p>
+                              {nonScheduledDates.length > 0 ? (
+                                <div className="flex flex-wrap gap-1.5">
+                                  {nonScheduledDates.map((d) => (
+                                    <span key={`${b.branch}-ns-${d}`} className="text-[10px] px-2 py-0.5 rounded-full bg-warning/10 text-warning border border-warning/20">{fmtDate(d)}</span>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-[11px] text-text-tertiary">No missing schedule dates in this range.</p>
+                              )}
                             </div>
-                          ) : (
-                            <p className="text-xs text-text-tertiary">No missing schedule dates in this range.</p>
-                          )}
-                        </div>
-
-                        <div className="rounded-[10px] border border-error/25 bg-error/5 p-3">
-                          <p className="text-xs font-semibold text-error mb-2">
-                            Attendance Not Marked Dates ({attendanceNotMarkedDates.length})
-                          </p>
-                          {attendanceNotMarkedDates.length > 0 ? (
-                            <div className="flex flex-wrap gap-1.5">
-                              {attendanceNotMarkedDates.map((d) => (
-                                <span
-                                  key={`${b.branch}-anm-${d}`}
-                                  className="text-[11px] px-2 py-0.5 rounded-full bg-error/10 text-error border border-error/20"
-                                >
-                                  {fmtDate(d)}
-                                </span>
-                              ))}
+                            <div className="rounded-xl border border-error/25 bg-error/5 p-3">
+                              <p className="text-[11px] font-bold text-error mb-2">Attendance Not Marked Dates ({attendanceNotMarkedDates.length})</p>
+                              {attendanceNotMarkedDates.length > 0 ? (
+                                <div className="flex flex-wrap gap-1.5">
+                                  {attendanceNotMarkedDates.map((d) => (
+                                    <span key={`${b.branch}-anm-${d}`} className="text-[10px] px-2 py-0.5 rounded-full bg-error/10 text-error border border-error/20">{fmtDate(d)}</span>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-[11px] text-text-tertiary">No attendance-pending dates on scheduled days.</p>
+                              )}
                             </div>
-                          ) : (
-                            <p className="text-xs text-text-tertiary">No attendance-pending dates on scheduled days.</p>
-                          )}
-                        </div>
-                      </div>
-                    )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </motion.div>
                 );
               })}
               {sorted.length === 0 && (
-                <div className="bg-surface rounded-[12px] border border-border-light p-6 text-center text-sm text-text-tertiary">
+                <div className="bg-surface rounded-xl border border-border-light p-6 text-center text-sm text-text-tertiary">
                   No branches matched the selected filter.
                 </div>
               )}
-            </motion.div>
+            </div>
 
+            {/* ── Comparison table ── */}
             {sorted.length > 0 && (
               <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
                 <div className="mb-3 flex items-center justify-between gap-3">
-                  <h2 className="text-lg font-semibold text-primary">Branch Comparison</h2>
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="h-4 w-4 text-primary" />
+                    <h2 className="text-sm font-bold text-text-primary">Branch Comparison</h2>
+                  </div>
                   <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setExportOpen((v) => !v)}
-                      disabled={exporting !== null}
-                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-border-light text-sm text-text-secondary hover:text-primary hover:border-primary/40 transition-colors disabled:opacity-60"
-                    >
-                      {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                    <button type="button" onClick={() => setExportOpen((v) => !v)} disabled={exporting !== null}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border-light text-[11px] font-semibold text-text-secondary hover:text-primary hover:border-primary/40 hover:bg-brand-wash transition-all disabled:opacity-60">
+                      {exporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
                       Export
                     </button>
                     {exportOpen && (
-                      <div className="absolute right-0 mt-2 w-44 rounded-lg border border-border-light bg-surface shadow-md z-20 overflow-hidden">
-                        <button
-                          type="button"
-                          onClick={handleExportPdf}
-                          disabled={exporting !== null}
-                          className="w-full px-3 py-2 text-left text-sm text-text-secondary hover:bg-app-bg hover:text-primary transition-colors flex items-center gap-2 disabled:opacity-60"
-                        >
-                          <FileText className="w-4 h-4" />
-                          Export PDF
+                      <div className="absolute right-0 mt-2 w-44 rounded-xl border border-border-light bg-surface shadow-card z-20 overflow-hidden">
+                        <button type="button" onClick={handleExportPdf} disabled={exporting !== null}
+                          className="w-full px-3 py-2.5 text-left text-[12px] text-text-secondary hover:bg-brand-wash hover:text-primary transition-colors flex items-center gap-2 disabled:opacity-60">
+                          <FileText className="w-3.5 h-3.5" />Export PDF
                         </button>
-                        <button
-                          type="button"
-                          onClick={handleExportExcel}
-                          disabled={exporting !== null}
-                          className="w-full px-3 py-2 text-left text-sm text-text-secondary hover:bg-app-bg hover:text-primary transition-colors flex items-center gap-2 disabled:opacity-60 border-t border-border-light"
-                        >
-                          <FileSpreadsheet className="w-4 h-4" />
-                          Export Excel
+                        <button type="button" onClick={handleExportExcel} disabled={exporting !== null}
+                          className="w-full px-3 py-2.5 text-left text-[12px] text-text-secondary hover:bg-brand-wash hover:text-primary transition-colors flex items-center gap-2 disabled:opacity-60 border-t border-border-light">
+                          <FileSpreadsheet className="w-3.5 h-3.5" />Export Excel
                         </button>
                       </div>
                     )}
                   </div>
                 </div>
-                <div className="bg-surface rounded-[12px] border border-border-light overflow-hidden">
+                <div className="bg-surface rounded-xl border border-border-light overflow-hidden shadow-card">
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="bg-app-bg border-b border-border-light">
-                          <th className="text-left p-3 font-medium text-text-secondary">Branch</th>
-                          <th className="text-center p-3 font-medium text-text-secondary">Working</th>
-                          <th className="text-center p-3 font-medium text-text-secondary">Scheduled</th>
-                          <th className="text-center p-3 font-medium text-text-secondary">Non-Scheduled</th>
-                          <th className="text-center p-3 font-medium text-text-secondary">Attendance Marked</th>
-                          <th className="text-center p-3 font-medium text-text-secondary">Attendance Not Marked</th>
-                          <th className="text-center p-3 font-medium text-text-secondary">Batches</th>
-                          <th className="text-center p-3 font-medium text-text-secondary">Teachers</th>
-                          <th className="text-center p-3 font-medium text-text-secondary">Operational %</th>
+                        <tr className="border-b border-border-light">
+                          {["Branch","Working","Scheduled","Non-Scheduled","Att. Marked","Att. Not Marked","Batches","Teachers","Operational %"].map((h) => (
+                            <th key={h} className={`py-2.5 px-3 text-[10px] font-bold uppercase tracking-widest text-text-tertiary ${h === "Branch" ? "text-left" : "text-center"}`}>{h}</th>
+                          ))}
                         </tr>
                       </thead>
                       <tbody>
                         {sorted.map(({ branch: b, metrics }) => {
                           const branchPct = metrics.operationalPct;
                           return (
-                            <tr
-                              key={b.branch}
-                              onClick={() => setSelectedBranch(b.branch)}
-                              className="border-b border-border-light last:border-0 hover:bg-app-bg transition-colors cursor-pointer"
-                            >
-                              <td className="p-3 font-medium text-primary">{b.branch.replace("Smart Up ", "")}</td>
-                              <td className="p-3 text-center text-text-secondary">{metrics.workingDays}</td>
-                              <td className="p-3 text-center text-text-secondary">{metrics.scheduledDays}</td>
-                              <td className="p-3 text-center text-text-secondary">{metrics.nonScheduledDays}</td>
-                              <td className="p-3 text-center text-success font-medium">{metrics.attendanceMarkedDays}</td>
-                              <td className="p-3 text-center text-error font-medium">{metrics.attendanceNotMarkedDays}</td>
-                              <td className="p-3 text-center text-text-secondary">{b.total_batches}</td>
-                              <td className="p-3 text-center text-text-secondary">{b.total_instructors ?? 0}</td>
-                              <td className="p-3 text-center">
-                                <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-bold ${pctBadgeColor(branchPct, 80, 60)}`}>
-                                  {branchPct}%
-                                </span>
+                            <tr key={b.branch} onClick={() => setSelectedBranch(b.branch)}
+                              className="border-b border-border-light last:border-0 hover:bg-brand-wash transition-colors cursor-pointer group">
+                              <td className="px-3 py-2.5 font-semibold text-[13px] text-text-primary group-hover:text-primary transition-colors">{b.branch.replace("Smart Up ", "")}</td>
+                              <td className="px-3 py-2.5 text-center text-[13px] text-text-secondary">{metrics.workingDays}</td>
+                              <td className="px-3 py-2.5 text-center text-[13px] text-text-secondary">{metrics.scheduledDays}</td>
+                              <td className="px-3 py-2.5 text-center text-[13px] text-warning font-medium">{metrics.nonScheduledDays}</td>
+                              <td className="px-3 py-2.5 text-center text-[13px] text-success font-medium">{metrics.attendanceMarkedDays}</td>
+                              <td className="px-3 py-2.5 text-center text-[13px] text-error font-medium">{metrics.attendanceNotMarkedDays}</td>
+                              <td className="px-3 py-2.5 text-center text-[13px] text-text-secondary">{b.total_batches}</td>
+                              <td className="px-3 py-2.5 text-center text-[13px] text-text-secondary">{b.total_instructors ?? 0}</td>
+                              <td className="px-3 py-2.5 text-center">
+                                <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${pctBadgeColor(branchPct, 80, 60)}`}>{branchPct}%</span>
                               </td>
                             </tr>
                           );
