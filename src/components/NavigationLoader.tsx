@@ -40,6 +40,7 @@ export function NavigationLoader() {
   const pathname = usePathname();
   const [isLoading, setIsLoading] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const maxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startedRef = useRef(false);
 
   // Listen for any internal link clicks — show loader immediately
@@ -52,8 +53,16 @@ export function NavigationLoader() {
       if (!href || href.startsWith("http") || href.startsWith("#") || href === pathname) return;
 
       if (timerRef.current) clearTimeout(timerRef.current);
+      if (maxTimerRef.current) clearTimeout(maxTimerRef.current);
       setIsLoading(true);
       startedRef.current = true;
+
+      // Safety net: always hide after 3s in case of redirects that don't change
+      // usePathname() (e.g. layout-level redirects that abort the transition before commit)
+      maxTimerRef.current = setTimeout(() => {
+        startedRef.current = false;
+        setIsLoading(false);
+      }, 3000);
     }
 
     document.addEventListener("click", handleClick);
@@ -65,6 +74,7 @@ export function NavigationLoader() {
     if (!startedRef.current) return;
     startedRef.current = false;
     if (timerRef.current) clearTimeout(timerRef.current);
+    if (maxTimerRef.current) clearTimeout(maxTimerRef.current);
     timerRef.current = setTimeout(() => setIsLoading(false), 600);
   }, [pathname]);
 
@@ -72,6 +82,7 @@ export function NavigationLoader() {
   useEffect(() => {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
+      if (maxTimerRef.current) clearTimeout(maxTimerRef.current);
     };
   }, []);
 

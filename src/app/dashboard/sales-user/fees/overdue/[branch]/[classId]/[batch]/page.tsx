@@ -17,12 +17,17 @@ import {
   ChevronDown,
   ChevronUp,
   CalendarDays,
+  PhoneCall,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { getDuesTodayByStudent } from "@/lib/api/director";
 import { formatCurrency } from "@/lib/utils/formatters";
+import { FollowUpDrawer } from "@/components/fees/FollowUpDrawer";
+import { FollowUpBadge } from "@/components/fees/FollowUpBadge";
+import { getBranchFollowUps } from "@/lib/api/followup";
+import type { FollowUpLog } from "@/lib/api/followup";
 
 const PAYMENT_OPTION_LABELS: Record<string, string> = {
   "1": "One-Time",
@@ -73,6 +78,7 @@ export default function SalesOverdueStudentPage() {
   const [planFilter, setPlanFilter] = useState("all");
   const [frequencyFilter, setFrequencyFilter] = useState("all");
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [drawerStudent, setDrawerStudent] = useState<{ student_id: string; student_name: string; branch: string } | null>(null);
 
   function toggleExpand(id: string) {
     setExpandedIds((prev) => {
@@ -88,6 +94,14 @@ export default function SalesOverdueStudentPage() {
     queryFn: () => getDuesTodayByStudent(branch, batch, asOf),
     staleTime: 30_000,
     refetchInterval: 60_000,
+  });
+
+  // Follow-up logs keyed by student_id — single branch request
+  const { data: allLogs } = useQuery({
+    queryKey: ["followup-batch", branch],
+    queryFn: () => getBranchFollowUps(branch),
+    enabled: !!branch,
+    staleTime: 60_000,
   });
 
   const { planOptions, frequencyOptions } = useMemo(() => {
@@ -232,6 +246,7 @@ export default function SalesOverdueStudentPage() {
             const planColor = PLAN_COLORS[student.plan] ?? { bg: "bg-gray-50", text: "text-gray-600", border: "border-gray-200" };
             const frequencyLabel = PAYMENT_OPTION_LABELS[student.no_of_instalments] ?? (student.no_of_instalments ? `${student.no_of_instalments} Inst.` : "");
             const isExpanded = expandedIds.has(student.student_id);
+            const lastLog = allLogs?.[student.student_id];
 
             return (
               <motion.div key={student.student_id} variants={itemVariants}>
@@ -299,6 +314,29 @@ export default function SalesOverdueStudentPage() {
                             )}
                           </div>
                         )}
+
+                        {/* Follow-up badge or Mark Called button */}
+                        <div className="mt-2.5 flex items-center gap-2 flex-wrap">
+                          {lastLog ? (
+                            <>
+                              <FollowUpBadge log={lastLog} />
+                              <button
+                                onClick={() => setDrawerStudent({ student_id: student.student_id, student_name: student.student_name, branch })}
+                                className="inline-flex items-center gap-1 text-[10px] text-primary hover:text-primary/80 underline underline-offset-2"
+                              >
+                                Log Again
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              onClick={() => setDrawerStudent({ student_id: student.student_id, student_name: student.student_name, branch })}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-primary/30 bg-primary/5 text-[10px] font-medium text-primary hover:bg-primary/10 transition-colors"
+                            >
+                              <PhoneCall className="h-2.5 w-2.5" />
+                              Mark Called
+                            </button>
+                          )}
+                        </div>
                       </div>
 
                       {/* Overdue total + expand toggle */}
@@ -390,6 +428,14 @@ export default function SalesOverdueStudentPage() {
           })}
         </motion.div>
       )}
+
+      {/* Follow-Up Drawer */}
+      <FollowUpDrawer
+        open={drawerStudent !== null}
+        onClose={() => setDrawerStudent(null)}
+        student={drawerStudent ?? { student_id: "", student_name: "", branch: "" }}
+        invalidateKeys={[["followup-batch", branch]]}
+      />
     </motion.div>
   );
 }

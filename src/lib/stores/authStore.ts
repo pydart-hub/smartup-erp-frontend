@@ -14,6 +14,7 @@ const APP_ROLE_PRIORITY = [
   "Branch Manager",
   "HR Manager",
   "Administrator",
+  "Class Incharge",
   "Instructor",
   "Batch Coordinator",
   "Teacher",
@@ -23,7 +24,7 @@ const APP_ROLE_PRIORITY = [
 ];
 
 /** Roles the user can actively switch between in the UI. */
-const SWITCHABLE_ROLES = ["General Manager", "Branch Manager", "Instructor"] as const;
+const SWITCHABLE_ROLES = ["General Manager", "Branch Manager", "Class Incharge", "Instructor"] as const;
 
 /** Pick the best application role from the user's full role list. */
 function determinePrimaryRole(

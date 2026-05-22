@@ -7,6 +7,7 @@ const ROLE_DASHBOARD_MAP: Record<string, string> = {
   "General Manager": "/dashboard/general-manager",
   "Branch Manager": "/dashboard/branch-manager",
   "HR Manager": "/dashboard/hr-manager",
+  "Class Incharge": "/dashboard/class-incharge",
   Instructor: "/dashboard/instructor",
   "Sales User": "/dashboard/sales-user",
   "Batch Coordinator": "/dashboard/batch-coordinator",
@@ -59,7 +60,8 @@ export function proxy(request: NextRequest) {
     }
 
     // Instructors can only access /dashboard/instructor/*
-    if (roles.includes("Instructor") && !roles.includes("Branch Manager") && !roles.includes("Administrator")) {
+    // Exception: users who also have Class Incharge role may access /dashboard/class-incharge/*
+    if (roles.includes("Instructor") && !roles.includes("Branch Manager") && !roles.includes("Administrator") && !roles.includes("Class Incharge")) {
       if (pathname.startsWith("/dashboard/") && !pathname.startsWith("/dashboard/instructor")) {
         return NextResponse.redirect(new URL("/dashboard/instructor", request.url));
       }

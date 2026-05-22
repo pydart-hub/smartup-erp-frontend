@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Menu, Search, LogOut, ChevronDown, GraduationCap, Building2, Globe } from "lucide-react";
+import { Menu, Search, LogOut, ChevronDown, GraduationCap, Building2, Globe, School } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useUIStore } from "@/lib/stores/uiStore";
@@ -13,12 +13,14 @@ import { ThemeToggle } from "@/components/layout/ThemeToggle";
 const ROLE_ICONS: Record<string, React.ReactNode> = {
   "General Manager": <Globe className="h-3.5 w-3.5" />,
   "Branch Manager": <Building2 className="h-3.5 w-3.5" />,
+  "Class Incharge": <School className="h-3.5 w-3.5" />,
   "Instructor": <GraduationCap className="h-3.5 w-3.5" />,
 };
 
 const ROLE_LABELS: Record<string, string> = {
   "General Manager": "General Manager",
   "Branch Manager": "Branch Manager",
+  "Class Incharge": "Class Incharge",
   "Instructor": "Instructor",
 };
 

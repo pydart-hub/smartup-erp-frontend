@@ -88,6 +88,7 @@ export const ROLE_DASHBOARD_MAP: Record<string, string> = {
   "Teacher": "/dashboard/teacher",
   "Administrator": "/dashboard/admin",
   "HR Manager": "/dashboard/hr-manager",
+  "Class Incharge": "/dashboard/class-incharge",
   "Instructor": "/dashboard/instructor",
   "Sales User": "/dashboard/sales-user",
   "Parent": "/dashboard/parent",
@@ -153,6 +154,7 @@ export const DIRECTOR_NAV: NavItem[] = [
   { label: "Actions Needed", href: "/dashboard/director/actions-needed", icon: "MessageSquareWarning", emoji: "⚠️" },
   { label: "Course Schedule", href: "/dashboard/director/course-schedule", icon: "CalendarDays", emoji: "📅" },
   { label: "Fees", href: "/dashboard/director/fees", icon: "IndianRupee", emoji: "💰" },
+  { label: "Fee Follow-Up", href: "/dashboard/director/fee-followup", icon: "Phone", emoji: "📞" },
   { label: "Accounts", href: "/dashboard/director/accounts", icon: "Coins", emoji: "🪙",
     children: [
       { label: "Collection", href: "/dashboard/director/accounts/collection", icon: "Landmark", emoji: "🏦" },
@@ -176,6 +178,13 @@ export const DIRECTOR_NAV: NavItem[] = [
   { label: "Reports", href: "/dashboard/director/reports", icon: "FileBarChart", emoji: "📈" },
   { label: "Complaints", href: "/dashboard/director/complaints", icon: "MessageSquareWarning", emoji: "⚠️" },
   { label: "Transfers", href: "/dashboard/branch-manager/transfers", icon: "ArrowRightLeft", emoji: "🔄" },
+];
+
+export const CLASS_INCHARGE_NAV: NavItem[] = [
+  { label: "Dashboard", href: "/dashboard/class-incharge", icon: "LayoutDashboard", emoji: "📊" },
+  { label: "Attendance", href: "/dashboard/class-incharge/attendance", icon: "ClipboardCheck", emoji: "✅" },
+  { label: "Absent Details", href: "/dashboard/class-incharge/absent", icon: "UserX", emoji: "🚫" },
+  { label: "Students", href: "/dashboard/class-incharge/students", icon: "GraduationCap", emoji: "👨‍🎓" },
 ];
 
 export const INSTRUCTOR_NAV: NavItem[] = [

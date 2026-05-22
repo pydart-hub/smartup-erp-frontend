@@ -72,6 +72,14 @@ export async function getStudentsPost(params?: {
   return { data: data.message };
 }
 
+// ── Get students belonging to a Student Group (batch) ──
+// NOTE: querying Student Group Student child table directly is blocked by check_parent_permission.
+// Fetch the parent Student Group document instead — it includes the full `students` child array.
+export async function getStudentGroupMembers(groupName: string): Promise<string[]> {
+  const { data } = await apiClient.get(`/resource/Student Group/${encodeURIComponent(groupName)}`);
+  return ((data.data?.students ?? []) as { student: string }[]).map((m) => m.student);
+}
+
 // ── Get Single Student ──
 export async function getStudent(id: string): Promise<FrappeSingleResponse<Student>> {
   const { data } = await apiClient.get(`/resource/Student/${id}`);
