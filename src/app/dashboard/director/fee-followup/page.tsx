@@ -93,12 +93,9 @@ function isoNow(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function isoWeekStart(): string {
-  const now = new Date();
-  const day = now.getDay();
-  const daysBack = day === 0 ? 6 : day - 1;
-  const d = new Date(now);
-  d.setDate(d.getDate() - daysBack);
+function isoDaysAgo(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
   return d.toISOString().slice(0, 10);
 }
 
@@ -444,10 +441,10 @@ function StatCard({
 // ── Main Page ────────────────────────────────────────────────────────────────
 export default function FeeFollowUpDashboard() {
   const today = isoNow();
-  const weekStart = isoWeekStart();
+  const recentStart = isoDaysAgo(7);
 
   const [branch, setBranch] = useState("");
-  const [from, setFrom] = useState(weekStart);
+  const [from, setFrom] = useState(recentStart);
   const [to, setTo] = useState(today);
   const [calledBy, setCalledBy] = useState("");
   const [statusFilter, setStatusFilter] = useState("");

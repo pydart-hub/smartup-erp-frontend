@@ -33,6 +33,19 @@ function toLocalDate(isoDatetime: string): string {
   return isoDatetime.slice(0, 10);
 }
 
+function normalizeDateParam(value: string): string {
+  if (!value) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+
+  const ddMmYyyy = value.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if (ddMmYyyy) {
+    const [, dd, mm, yyyy] = ddMmYyyy;
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  return "";
+}
+
 export async function GET(request: NextRequest) {
   try {
     const session = parseSession(request);
@@ -45,8 +58,8 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const branch = searchParams.get("branch") || "";
-    const from = searchParams.get("from") || "";
-    const to = searchParams.get("to") || "";
+    const from = normalizeDateParam(searchParams.get("from") || "");
+    const to = normalizeDateParam(searchParams.get("to") || "");
     const calledBy = searchParams.get("called_by") || "";
     const statusFilter = searchParams.get("status") || "";
 
