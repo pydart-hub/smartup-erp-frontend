@@ -83,7 +83,9 @@ function BranchCard({ branch }: { branch: { name: string; abbr: string } }) {
     (planCounts?.basic ?? 0) +
     (planCounts?.freeAccess ?? 0) +
     (planCounts?.demo ?? 0);
-  const branchNaPlanCount = Math.max(0, (activeCount ?? 0) - branchKnownPlanTotal);
+  const branchNaPlanCount = planCounts
+    ? Math.max(0, (activeCount ?? 0) - branchKnownPlanTotal)
+    : 0;
   const hasPlan = !loadingPlans && planCounts && (branchKnownPlanTotal + branchNaPlanCount > 0);
   const hasType = !loadingTypes && typeCounts && (typeCounts.fresher + typeCounts.existing + typeCounts.rejoining > 0);
 
@@ -178,12 +180,6 @@ function BranchCard({ branch }: { branch: { name: string; abbr: string } }) {
                       <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-fuchsia-700 dark:text-fuchsia-200 bg-fuchsia-50 dark:bg-fuchsia-400/12 rounded-full px-2 py-0.5">
                         <span className="w-1 h-1 rounded-full bg-fuchsia-500" />
                         {planCounts.demo} Demo
-                      </span>
-                    )}
-                    {(convertedCount ?? 0) > 0 && (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-200 bg-emerald-50 dark:bg-emerald-400/12 rounded-full px-2 py-0.5">
-                        <span className="w-1 h-1 rounded-full bg-emerald-500" />
-                        {convertedCount} Converted
                       </span>
                     )}
                     {branchNaPlanCount > 0 && (
@@ -287,13 +283,7 @@ export default function DirectorStudentsPage() {
     : activeBranches;
 
   const totalAll = (totalActive ?? 0) + (totalDiscontinued ?? 0);
-  const globalKnownPlanTotal =
-    (globalPlanCounts?.advanced ?? 0) +
-    (globalPlanCounts?.intermediate ?? 0) +
-    (globalPlanCounts?.basic ?? 0) +
-    (globalPlanCounts?.freeAccess ?? 0) +
-    (globalPlanCounts?.demo ?? 0);
-  const globalNaPlanCount = Math.max(0, (totalActive ?? 0) - globalKnownPlanTotal);
+  const globalNaPlanCount = globalPlanCounts?.na ?? 0;
 
   return (
     <motion.div
@@ -431,12 +421,6 @@ export default function DirectorStudentsPage() {
                           <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-fuchsia-700 dark:text-fuchsia-200 bg-fuchsia-50 dark:bg-fuchsia-400/12 rounded-full px-2 py-0.5">
                             <span className="w-1 h-1 rounded-full bg-fuchsia-500" />
                             <AnimatedNumber value={globalPlanCounts.demo} /> Demo
-                          </span>
-                        )}
-                        {(globalConvertedCount ?? 0) > 0 && (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-200 bg-emerald-50 dark:bg-emerald-400/12 rounded-full px-2 py-0.5">
-                            <span className="w-1 h-1 rounded-full bg-emerald-500" />
-                            <AnimatedNumber value={globalConvertedCount ?? 0} /> Converted
                           </span>
                         )}
                         {globalNaPlanCount > 0 && (

@@ -178,14 +178,15 @@ export async function getStudentCountByPlan(): Promise<{
   basic: number;
   freeAccess: number;
   demo: number;
+  na: number;
 }> {
   // Uses a server-side route with admin credentials to ensure cross-branch
   // Program Enrollment data is accessible regardless of the logged-in user's
   // Frappe role permissions.
   const res = await fetch("/api/director/student-plan-counts", { credentials: "include" });
-  if (!res.ok) return { advanced: 0, intermediate: 0, basic: 0, freeAccess: 0, demo: 0 };
+  if (!res.ok) return { advanced: 0, intermediate: 0, basic: 0, freeAccess: 0, demo: 0, na: 0 };
   const data = await res.json();
-  return data ?? { advanced: 0, intermediate: 0, basic: 0, freeAccess: 0, demo: 0 };
+  return data ?? { advanced: 0, intermediate: 0, basic: 0, freeAccess: 0, demo: 0, na: 0 };
 }
 
 /** Get student count grouped by plan for a specific branch */
@@ -217,8 +218,9 @@ export async function getStudentCountByPlanForBranch(branch: string): Promise<{
   basic: number;
   freeAccess: number;
   demo: number;
+  na: number;
 }> {
-  const result = { advanced: 0, intermediate: 0, basic: 0, freeAccess: 0, demo: 0 };
+  const result = { advanced: 0, intermediate: 0, basic: 0, freeAccess: 0, demo: 0, na: 0 };
 
   if (noProgramEnrollmentReadPermission) {
     const batches = await getBranchBatches(branch);
@@ -250,7 +252,7 @@ export async function getStudentCountByPlanForBranch(branch: string): Promise<{
           fields: JSON.stringify(["student", "custom_plan", "student_category"]),
           filters: JSON.stringify([["docstatus", "=", 1], ["student", "in", batch]]),
           order_by: "enrollment_date desc",
-          limit_page_length: batch.length * 3,
+          limit_page_length: 500,
         },
       });
       allEnrollments.push(...(batchRes.data?.data ?? []));
@@ -278,11 +280,14 @@ export async function getStudentCountByPlanForBranch(branch: string): Promise<{
       result.demo++;
     } else {
       const plan = (row.custom_plan || "").toLowerCase();
-      if (plan === "advanced") result.advanced++;
+      if      (plan === "advanced")     result.advanced++;
       else if (plan === "intermediate") result.intermediate++;
-      else if (plan === "basic") result.basic++;
+      else if (plan === "basic")        result.basic++;
+      else                              result.na++;  // has PE but plan unrecognised/blank
     }
   }
+  // Students with no submitted PE at all
+  result.na += studentIds.length - seen.size;
   return result;
 }
 
@@ -906,23 +911,25 @@ export async function getProgramBatchesStudentStats(
 export async function getPlanCountsForBatches(
   batchNames: string[],
   branch: string
-): Promise<{ advanced: number; intermediate: number; basic: number; freeAccess: number; demo: number }> {
-  const result = { advanced: 0, intermediate: 0, basic: 0, freeAccess: 0, demo: 0 };
+): Promise<{ advanced: number; intermediate: number; basic: number; freeAccess: number; demo: number; na: number }> {
+  const result = { advanced: 0, intermediate: 0, basic: 0, freeAccess: 0, demo: 0, na: 0 };
   if (!batchNames.length) return result;
 
   if (noProgramEnrollmentReadPermission) {
     try {
-      return await fetchDirectorBranchAcademics<{
+      const r = await fetchDirectorBranchAcademics<{
         advanced: number;
         intermediate: number;
         basic: number;
         freeAccess: number;
         demo: number;
+        na?: number;
       }>({
         action: "plan-counts",
         branch,
         batchNames: JSON.stringify(batchNames),
       });
+      return { ...r, na: r.na ?? 0 };
     } catch {
       return result;
     }
@@ -979,25 +986,27 @@ export async function getPlanCountsForBatches(
     if (isPermissionDenied(error)) {
       noProgramEnrollmentReadPermission = true;
       try {
-        return await fetchDirectorBranchAcademics<{
+        const r = await fetchDirectorBranchAcademics<{
           advanced: number;
           intermediate: number;
           basic: number;
           freeAccess: number;
           demo: number;
+          na?: number;
         }>({
           action: "plan-counts",
           branch,
           batchNames: JSON.stringify(batchNames),
         });
+        return { ...r, na: r.na ?? 0 };
       } catch {
         return result;
       }
     }
     throw error;
   }
-  
-  return allPlans;
+
+  return { ...allPlans, na: 0 };
 }
 
 export interface BranchInstructor {

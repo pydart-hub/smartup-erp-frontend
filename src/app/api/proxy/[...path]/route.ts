@@ -432,6 +432,17 @@ async function proxyRequest(request: NextRequest, method: string) {
       (proxyPath.startsWith("resource/Course%20Schedule") ||
         proxyPath.startsWith("resource/Course Schedule"));
 
+    // Program Enrollment reads — Director/personal tokens may have User Permissions
+    // in Frappe that restrict access to a subset of PE records (e.g. by branch or
+    // academic year), causing incorrect plan counts on the students dashboard.
+    // Admin token ensures all submitted PEs are visible; branch-level scoping is
+    // already enforced by the caller (student IDs are pre-filtered by branch before
+    // the PE fetch, so no cross-branch data leakage occurs).
+    const isProgramEnrollmentRead =
+      method === "GET" &&
+      (proxyPath.startsWith("resource/Program%20Enrollment") ||
+        proxyPath.startsWith("resource/Program Enrollment"));
+
     const useAdminToken =
       ((isBranchManager || isHRManager) && !isAdmin) ||
       allowInstructorTopicCoverageWrite ||
@@ -439,7 +450,8 @@ async function proxyRequest(request: NextRequest, method: string) {
       isWorkAssignmentRead ||
       isStudentAttendanceRead ||
       isAssessmentRead ||
-      isCourseScheduleRead;
+      isCourseScheduleRead ||
+      isProgramEnrollmentRead;
     if (!useAdminToken && hasUserToken) {
       headers["Authorization"] = `token ${sessionData.api_key}:${sessionData.api_secret}`;
     } else {

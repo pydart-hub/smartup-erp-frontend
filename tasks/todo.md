@@ -1,5 +1,18 @@
 # SmartUp ERP — Task Tracker
 
+## Current: Director Fee Follow-Up Shows No Data (2026-05-25)
+
+- [x] Reproduce and trace director fee-followup request params from UI state to API route
+- [x] Identify and fix filter/parsing mismatch causing empty logs and zero summary cards
+- [x] Validate with TypeScript diagnostics and targeted runtime request checks
+- [x] Add review notes with root cause and behavior impact
+
+### Review
+- Root cause confirmed from live Frappe data: records exist, but the dashboard defaulted to a narrow date window that can become a same-day filter with no rows, resulting in empty cards/logs.
+- Updated [src/app/dashboard/director/fee-followup/page.tsx](src/app/dashboard/director/fee-followup/page.tsx) to default `from` to the last 7 days instead of week-start, so recent follow-ups are visible on initial load.
+- Hardened [src/app/api/director/fee-followup/route.ts](src/app/api/director/fee-followup/route.ts) with `normalizeDateParam()` to accept both `YYYY-MM-DD` and `DD-MM-YYYY` query params and avoid silent empty results from format mismatch.
+- Verification completed: touched-file diagnostics show no errors and `npx tsc --noEmit` completed cleanly.
+
 ## Current: Director Leaderboard Route Split (2026-05-14)
 
 - [x] Create a Director leaderboard selector page with two cards (Branch, Instructor)

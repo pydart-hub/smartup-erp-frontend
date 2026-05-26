@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform, animate as animateValue } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import {
   Phone,
   PhoneCall,
@@ -17,6 +18,7 @@ import {
   CalendarDays,
   ChevronDown,
   ChevronUp,
+  ChevronRight,
   Trophy,
   Crown,
   Medal,
@@ -119,12 +121,33 @@ const SCORE_COMPONENTS = [
   { key: "scoreRevenue" as const, label: "Revenue Coll.",  weight: 25, bar: "" },
 ];
 
+/** Merge per-branch rows into one row per user (sum all counts; pick highest-calls branch label) */
+function aggregateByUser(users: ByUser[]): ByUser[] {
+  const map = new Map<string, ByUser>();
+  for (const u of users) {
+    const existing = map.get(u.called_by);
+    if (!existing) {
+      map.set(u.called_by, { ...u });
+    } else {
+      // Keep branch label of whichever row has more calls
+      if (u.calls > existing.calls) existing.branch = u.branch;
+      existing.calls      += u.calls;
+      existing.answered   += u.answered;
+      existing.promised   += u.promised;
+      existing.paid_count += u.paid_count;
+      existing.paid_amount += u.paid_amount;
+    }
+  }
+  return Array.from(map.values());
+}
+
 function scoreUsers(users: ByUser[]): ScoredUser[] {
   if (!users.length) return [];
-  const maxCalls  = Math.max(...users.map((u) => u.calls), 1);
-  const maxAmount = Math.max(...users.map((u) => u.paid_amount), 1);
+  const aggregated = aggregateByUser(users);
+  const maxCalls  = Math.max(...aggregated.map((u) => u.calls), 1);
+  const maxAmount = Math.max(...aggregated.map((u) => u.paid_amount), 1);
 
-  return users
+  return aggregated
     .map((u) => {
       const answerRate  = u.calls  > 0 ? Math.round((u.answered / u.calls) * 100)   : 0;
       const promiseRate = u.answered > 0 ? Math.round((u.promised / u.answered) * 100) : 0;
@@ -308,7 +331,7 @@ function PodiumCard({ user, rank, expanded, onToggle }: {
 
         {/* Card body */}
         <div
-          className={`w-full rounded-t-2xl bg-gradient-to-b ${cfg.card} border border-b-0 cursor-pointer select-none ${cfg.shadow} relative`}
+          className={`w-full rounded-t-2xl bg-gradient-to-b ${cfg.card} border border-b-0 cursor-pointer select-none ${cfg.shadow} relative min-h-[210px] flex flex-col justify-center`}
           onClick={onToggle}
         >
 
@@ -399,9 +422,9 @@ const item = {
 
 // ── Stat Card (clean brand palette) ─────────────────────────────────────────
 function StatCard({
-  label, value, sub, icon, color,
+  label, value, sub, icon, color, onClick,
 }: {
-  label: string; value: string | number; sub?: string; icon: React.ReactNode; color: string;
+  label: string; value: string | number; sub?: string; icon: React.ReactNode; color: string; onClick?: () => void;
 }) {
   // Icon + accent strip color — all within brand/semantic palette
   const configs: Record<string, { iconBg: string; iconColor: string; accent: string }> = {
@@ -418,7 +441,10 @@ function StatCard({
 
   return (
     <TiltCard>
-      <div className="relative rounded-xl bg-surface border border-border-light shadow-card overflow-hidden">
+      <div
+        className={`relative rounded-xl bg-surface border border-border-light shadow-card overflow-hidden${onClick ? " cursor-pointer hover:ring-2 hover:ring-primary/30 transition-shadow" : ""}`}
+        onClick={onClick}
+      >
         {/* Accent strip on top */}
         <div className="h-[3px] rounded-t-xl" style={{ background: c.accent }} />
         <div className="p-4">
@@ -440,6 +466,7 @@ function StatCard({
 
 // ── Main Page ────────────────────────────────────────────────────────────────
 export default function FeeFollowUpDashboard() {
+  const router = useRouter();
   const today = isoNow();
   const recentStart = isoDaysAgo(7);
 
@@ -452,6 +479,15 @@ export default function FeeFollowUpDashboard() {
   const [logSearch, setLogSearch] = useState("");
   const [leaderboardOpen, setLeaderboardOpen] = useState(true);
   const [expandedPodium, setExpandedPodium] = useState<Record<number, boolean>>({});
+  const [expandedUserRows, setExpandedUserRows] = useState<Set<string>>(new Set());
+
+  function toggleUserRow(user: string) {
+    setExpandedUserRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(user)) next.delete(user); else next.add(user);
+      return next;
+    });
+  }
 
   // Branches
   const { data: branches } = useQuery({
@@ -480,6 +516,9 @@ export default function FeeFollowUpDashboard() {
   const summary = data?.summary;
   const byUser = data?.by_user ?? [];
   const rawLogs = data?.logs ?? [];
+
+  // Aggregate per-branch rows into one row per user
+  const aggregatedUsers = useMemo(() => aggregateByUser(byUser), [byUser]);
 
   // Scored + ranked users for leaderboard
   const scoredUsers = useMemo(() => scoreUsers(byUser), [byUser]);
@@ -631,6 +670,7 @@ export default function FeeFollowUpDashboard() {
                   value={summary?.total_today ?? 0}
                   icon={<Phone className="h-5 w-5" />}
                   color="blue"
+                  onClick={() => router.push(`/dashboard/director/fee-followup/today${branch ? `?branch=${encodeURIComponent(branch)}` : ""}`)}
                 />
               </motion.div>
               <motion.div variants={item}>
@@ -712,15 +752,17 @@ export default function FeeFollowUpDashboard() {
 
                         {/* Podium row: 2nd | 1st | 3rd */}
                         {podium.length > 0 && (
-                          <div className="grid grid-cols-3 gap-2 items-end mb-5">
+                          <div className="grid grid-cols-3 gap-3 items-end mb-5">
                             {/* 2nd place */}
                             {podium[1] ? (
-                              <PodiumCard
-                                user={podium[1]}
-                                rank={2}
-                                expanded={!!expandedPodium[1]}
-                                onToggle={() => setExpandedPodium((p) => ({ ...p, 1: !p[1] }))}
-                              />
+                              <div className="mt-6">
+                                <PodiumCard
+                                  user={podium[1]}
+                                  rank={2}
+                                  expanded={!!expandedPodium[1]}
+                                  onToggle={() => setExpandedPodium((p) => ({ ...p, 1: !p[1] }))}
+                                />
+                              </div>
                             ) : <div />}
                             {/* 1st place */}
                             <PodiumCard
@@ -731,12 +773,14 @@ export default function FeeFollowUpDashboard() {
                             />
                             {/* 3rd place */}
                             {podium[2] ? (
-                              <PodiumCard
-                                user={podium[2]}
-                                rank={3}
-                                expanded={!!expandedPodium[2]}
-                                onToggle={() => setExpandedPodium((p) => ({ ...p, 2: !p[2] }))}
-                              />
+                              <div className="mt-12">
+                                <PodiumCard
+                                  user={podium[2]}
+                                  rank={3}
+                                  expanded={!!expandedPodium[2]}
+                                  onToggle={() => setExpandedPodium((p) => ({ ...p, 2: !p[2] }))}
+                                />
+                              </div>
                             ) : <div />}
                           </div>
                         )}
@@ -826,7 +870,7 @@ export default function FeeFollowUpDashboard() {
                     <Users className="h-4 w-4 text-primary" />
                     <span className="text-sm font-semibold text-text-primary">Sales User Breakdown</span>
                     <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium bg-primary/10 text-primary">
-                      {byUser.length} user{byUser.length !== 1 ? "s" : ""}
+                      {aggregatedUsers.length} user{aggregatedUsers.length !== 1 ? "s" : ""}
                     </span>
                   </div>
                   {expandedUsers ? (
@@ -843,7 +887,6 @@ export default function FeeFollowUpDashboard() {
                         <thead>
                           <tr className="border-b border-border-light">
                             <th className="text-left py-2 px-2 text-text-tertiary font-semibold uppercase tracking-wide text-[10px]">User</th>
-                            <th className="text-left py-2 px-2 text-text-tertiary font-semibold uppercase tracking-wide text-[10px]">Branch</th>
                             <th className="text-right py-2 px-2 text-text-tertiary font-semibold uppercase tracking-wide text-[10px]">Calls</th>
                             <th className="text-right py-2 px-2 text-text-tertiary font-semibold uppercase tracking-wide text-[10px]">Answered</th>
                             <th className="text-right py-2 px-2 text-text-tertiary font-semibold uppercase tracking-wide text-[10px]">Promised</th>
@@ -852,20 +895,53 @@ export default function FeeFollowUpDashboard() {
                           </tr>
                         </thead>
                         <tbody>
-                          {byUser.map((u, i) => (
-                            <tr
-                              key={`${u.called_by}-${u.branch}`}
-                              className={`border-b border-border-light/50 ${i % 2 === 0 ? "" : "bg-surface-alt/30"}`}
-                            >
-                              <td className="py-2.5 px-2 font-medium text-text-primary">{u.called_by.split("@")[0]}</td>
-                              <td className="py-2.5 px-2 text-text-secondary">{u.branch}</td>
-                              <td className="py-2.5 px-2 text-right font-semibold text-text-primary">{u.calls}</td>
-                              <td className="py-2.5 px-2 text-right text-teal-700 font-medium">{u.answered}</td>
-                              <td className="py-2.5 px-2 text-right text-amber-700 font-medium">{u.promised}</td>
-                              <td className="py-2.5 px-2 text-right text-emerald-700 font-medium">{u.paid_count}</td>
-                              <td className="py-2.5 px-2 text-right text-emerald-700 font-medium">{formatCurrency(u.paid_amount)}</td>
-                            </tr>
-                          ))}
+                          {aggregatedUsers.sort((a, b) => b.calls - a.calls).map((u, i) => {
+                            const branchRows = byUser.filter((b) => b.called_by === u.called_by).sort((a, b) => b.calls - a.calls);
+                            const isExpanded = expandedUserRows.has(u.called_by);
+                            const hasMultiBranch = branchRows.length > 1;
+                            return (
+                              <React.Fragment key={u.called_by}>
+                                <tr
+                                  className={`border-b border-border-light/50 ${i % 2 === 0 ? "" : "bg-surface-alt/30"} ${hasMultiBranch ? "cursor-pointer hover:bg-primary/5" : ""}`}
+                                  onClick={() => hasMultiBranch && toggleUserRow(u.called_by)}
+                                >
+                                  <td className="py-2.5 px-2 font-medium text-text-primary">
+                                    <div className="flex items-center gap-1.5">
+                                      {hasMultiBranch && (
+                                        isExpanded
+                                          ? <ChevronDown className="h-3 w-3 text-primary flex-shrink-0" />
+                                          : <ChevronRight className="h-3 w-3 text-text-tertiary flex-shrink-0" />
+                                      )}
+                                      <span>{u.called_by.split("@")[0]}</span>
+                                      {hasMultiBranch && (
+                                        <span className="text-[9px] text-text-tertiary font-normal">{branchRows.length} branches</span>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="py-2.5 px-2 text-right font-semibold text-text-primary">{u.calls}</td>
+                                  <td className="py-2.5 px-2 text-right text-teal-700 font-medium">{u.answered}</td>
+                                  <td className="py-2.5 px-2 text-right text-amber-700 font-medium">{u.promised}</td>
+                                  <td className="py-2.5 px-2 text-right text-emerald-700 font-medium">{u.paid_count}</td>
+                                  <td className="py-2.5 px-2 text-right text-emerald-700 font-medium">{formatCurrency(u.paid_amount)}</td>
+                                </tr>
+                                {isExpanded && branchRows.map((b) => (
+                                  <tr key={`${b.called_by}-${b.branch}`} className="bg-primary/5 border-b border-border-light/30">
+                                    <td className="py-2 pl-7 pr-2 text-text-secondary italic">
+                                      <div className="flex items-center gap-1">
+                                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary/40 flex-shrink-0" />
+                                        {b.branch}
+                                      </div>
+                                    </td>
+                                    <td className="py-2 px-2 text-right text-text-secondary">{b.calls}</td>
+                                    <td className="py-2 px-2 text-right text-teal-600">{b.answered}</td>
+                                    <td className="py-2 px-2 text-right text-amber-600">{b.promised}</td>
+                                    <td className="py-2 px-2 text-right text-emerald-600">{b.paid_count}</td>
+                                    <td className="py-2 px-2 text-right text-emerald-600">{formatCurrency(b.paid_amount)}</td>
+                                  </tr>
+                                ))}
+                              </React.Fragment>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>

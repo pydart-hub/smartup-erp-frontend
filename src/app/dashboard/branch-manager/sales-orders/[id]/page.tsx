@@ -318,6 +318,9 @@ export default function SalesOrderDetailPage() {
     const paid = inv.grand_total - (inv.outstanding_amount ?? 0);
     return sum + Math.max(0, Math.floor(paid));
   }, 0);
+  // When invoices exist, use their actual sum as the effective total.
+  // This handles plan-conversion cases where SO grand_total is stale (e.g. Advanced→Basic).
+  const effectiveTotal = linkedInvoices.length > 0 ? totalPaid + totalOutstanding : so.grand_total;
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 max-w-5xl mx-auto">
@@ -356,7 +359,7 @@ export default function SalesOrderDetailPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
             <div>
               <p className="text-xs text-text-tertiary mb-1">Grand Total</p>
-              <p className="text-2xl font-bold text-primary">{formatCurrency(so.grand_total)}</p>
+              <p className="text-2xl font-bold text-primary">{formatCurrency(effectiveTotal)}</p>
             </div>
             <div>
               <p className="text-xs text-text-tertiary mb-1">Paid</p>
@@ -377,7 +380,7 @@ export default function SalesOrderDetailPage() {
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-medium text-text-secondary">Payment Progress</span>
               <span className="text-xs font-bold text-text-primary">
-                {so.grand_total > 0 ? Math.round((totalPaid / so.grand_total) * 100) : 0}%
+                {effectiveTotal > 0 ? Math.round((totalPaid / effectiveTotal) * 100) : 0}%
               </span>
             </div>
             <div className="w-full h-2.5 bg-app-bg rounded-full overflow-hidden">
@@ -385,7 +388,7 @@ export default function SalesOrderDetailPage() {
                 className={`h-full rounded-full transition-all duration-500 ${
                   totalOutstanding === 0 && linkedInvoices.length > 0 ? "bg-success" : totalPaid > 0 ? "bg-primary" : "bg-border-light"
                 }`}
-                style={{ width: `${so.grand_total > 0 ? Math.min((totalPaid / so.grand_total) * 100, 100) : 0}%` }}
+                style={{ width: `${effectiveTotal > 0 ? Math.min((totalPaid / effectiveTotal) * 100, 100) : 0}%` }}
               />
             </div>
           </div>

@@ -29,49 +29,69 @@ export async function GET(request: NextRequest) {
   const adminAuth = `token ${FRAPPE_API_KEY}:${FRAPPE_API_SECRET}`;
 
   try {
-    const params = new URLSearchParams({
-      fields: JSON.stringify(["custom_plan as plan", "student_category", "count(name) as count"]),
-      filters: JSON.stringify([["docstatus", "=", 1]]),
-      group_by: "custom_plan,student_category",
-      limit_page_length: "0",
+    // ── Step 1: fetch ALL active student IDs ─────────────────────────────
+    const studentParams = new URLSearchParams({
+      fields: JSON.stringify(["name"]),
+      filters: JSON.stringify([["enabled", "=", 1]]),
+      limit_page_length: "10000",
     });
-
-    const res = await fetch(
-      `${FRAPPE_URL}/api/resource/Program%20Enrollment?${params}`,
-      {
-        headers: { Authorization: adminAuth, Accept: "application/json" },
-        cache: "no-store",
-      }
+    const studentRes = await fetch(
+      `${FRAPPE_URL}/api/resource/Student?${studentParams}`,
+      { headers: { Authorization: adminAuth, Accept: "application/json" }, cache: "no-store" }
     );
+    if (!studentRes.ok) throw new Error(`Frappe students ${studentRes.status}`);
+    const studentJson = await studentRes.json();
+    const allStudentIds: string[] = (studentJson?.data ?? []).map((s: { name: string }) => s.name);
+    const totalActive = allStudentIds.length;
 
-    if (!res.ok) {
-      throw new Error(`Frappe ${res.status}`);
+    // ── Step 2: fetch PEs in batches of 100 ──────────────────────────────
+    const BATCH = 100;
+    type PERow = { student: string; custom_plan: string; student_category: string };
+    const allEnrollments: PERow[] = [];
+
+    for (let i = 0; i < allStudentIds.length; i += BATCH) {
+      const batch = allStudentIds.slice(i, i + BATCH);
+      const peParams = new URLSearchParams({
+        fields: JSON.stringify(["student", "custom_plan", "student_category"]),
+        filters: JSON.stringify([["docstatus", "=", 1], ["student", "in", batch]]),
+        order_by: "enrollment_date desc",
+        limit_page_length: String(batch.length * 3),
+      });
+      const peRes = await fetch(
+        `${FRAPPE_URL}/api/resource/Program%20Enrollment?${peParams}`,
+        { headers: { Authorization: adminAuth, Accept: "application/json" }, cache: "no-store" }
+      );
+      if (peRes.ok) {
+        const peJson = await peRes.json();
+        allEnrollments.push(...(peJson?.data ?? []));
+      }
     }
 
-    const json = await res.json();
-    const rows: Array<{ plan?: string; student_category?: string; count?: number }> = json?.data ?? [];
+    // ── Step 3: deduplicate — only latest PE per student ─────────────────
+    const result = { advanced: 0, intermediate: 0, basic: 0, freeAccess: 0, demo: 0, na: 0 };
+    const seen = new Set<string>();
 
-    const result = { advanced: 0, intermediate: 0, basic: 0, freeAccess: 0, demo: 0 };
-    for (const row of rows) {
-      if ((row.student_category || "").toLowerCase().trim() === "free access") {
-        result.freeAccess += Number(row.count ?? 0);
-        continue;
-      }
-      if ((row.student_category || "").toLowerCase().trim() === "demo") {
-        result.demo += Number(row.count ?? 0);
-        continue;
-      }
+    for (const row of allEnrollments) {
+      if (seen.has(row.student)) continue;
+      seen.add(row.student);
 
-      const plan = (row.plan || "").toLowerCase().trim();
-      const count = Number(row.count ?? 0);
-      if (plan === "advanced") result.advanced += count;
-      else if (plan === "intermediate") result.intermediate += count;
-      else if (plan === "basic") result.basic += count;
+      const cat = (row.student_category || "").toLowerCase().trim();
+      if (cat === "free access") { result.freeAccess++; continue; }
+      if (cat === "demo")        { result.demo++;        continue; }
+
+      const plan = (row.custom_plan || "").toLowerCase().trim();
+      if      (plan === "advanced")     result.advanced++;
+      else if (plan === "intermediate") result.intermediate++;
+      else if (plan === "basic")        result.basic++;
+      else                              result.na++;  // has PE but plan unrecognised/blank
     }
+
+    // Students with no submitted PE at all
+    result.na += totalActive - seen.size;
 
     return NextResponse.json(result);
   } catch (err) {
     console.error("[student-plan-counts] Error:", err);
-    return NextResponse.json({ advanced: 0, intermediate: 0, basic: 0, freeAccess: 0, demo: 0 });
+    return NextResponse.json({ advanced: 0, intermediate: 0, basic: 0, freeAccess: 0, demo: 0, na: 0 });
   }
 }
