@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
@@ -330,7 +330,7 @@ function UserCard({ stat, index }: { stat: UserStat; index: number }) {
 }
 
 // -- Page ----------------------------------------------------------------------
-export default function TodayCallsPage() {
+function TodayCallsInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const branchParam = searchParams.get("branch") ?? "";
@@ -455,5 +455,17 @@ export default function TodayCallsPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function TodayCallsPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex flex-col items-center justify-center min-h-screen gap-3">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <TodayCallsInner />
+    </Suspense>
   );
 }
