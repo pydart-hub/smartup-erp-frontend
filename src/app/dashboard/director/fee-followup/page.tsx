@@ -679,6 +679,7 @@ export default function FeeFollowUpDashboard() {
                   value={summary?.total_this_week ?? 0}
                   icon={<TrendingUp className="h-5 w-5" />}
                   color="violet"
+                  onClick={() => router.push(`/dashboard/director/fee-followup/week${branch ? `?branch=${encodeURIComponent(branch)}` : ""}`)}
                 />
               </motion.div>
               <motion.div variants={item}>

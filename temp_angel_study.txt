@@ -1,0 +1,40 @@
+﻿
+=== SALES ORDER ===
+  Name:          SAL-ORD-2026-00194
+  Customer:      ANGEL MARY MARTIN
+  Grand Total:   22900
+  Plan:          Advanced
+  Instalments:   1
+  Fee Structure: undefined
+  Status:        To Deliver
+  SO item: 10th State Tuition Fee | qty=1 | rate=22900 | amount=22900 | row=aba677cfuq
+
+=== ALL INVOICES ===
+
+=== PROGRAM ENROLLMENT ===
+  Name:          PEN-10th-Fortkochi 26-27-009
+  Plan:          Advanced
+  Fee Structure: SU FKO-10th State-Advanced-1
+  Instalments:   1
+  docstatus:     1
+
+=== PAYMENT ENTRIES ===
+  ACC-PAY-2026-04000 | 2000 | Cash | ref=CASH-1775309150927 | date=2026-04-04
+  ACC-PAY-2026-04179 | 14300 | Cash | ref=CASH-1775873891461 | date=2026-04-11
+
+=== TARGET: SU FKO-10th State-Basic-1 ===
+  Total: 16300
+    10th State Tuition Fee: 15300
+    Admission Fee: 1000
+
+=== CURRENT: SU FKO-10th State-Advanced-1 ===
+  Total: 22900
+    10th State Tuition Fee: 21900
+    Admission Fee: 1000
+
+=== SUMMARY ===
+  SO Grand Total:    22900
+  Active invoices:   0
+  Total billed:      0
+  Total paid:        0
+  Total outstanding: 0

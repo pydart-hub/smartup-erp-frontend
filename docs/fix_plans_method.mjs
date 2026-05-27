@@ -8,22 +8,17 @@
  * Task: Find all Kadavanthra enrollments with Intermediate/Advanced plans
  *       and update them to "Basic" (the only available plan now).
  */
-
 import axios from "axios";
 import "dotenv/config";
-
 const API_URL = process.env.NEXT_PUBLIC_FRAPPE_URL;
 const API_KEY = process.env.FRAPPE_API_KEY;
 const API_SECRET = process.env.FRAPPE_API_SECRET;
-
 const client = axios.create({
   baseURL: API_URL,
   auth: { username: API_KEY, password: API_SECRET },
   headers: { "Content-Type": "application/json" },
 });
-
 // ── Helper functions ──────────────────────────────────────────
-
 async function fetchEnrollments(company, plans = []) {
   /**
    * Fetch Program Enrollment records for a company with specific plans.
@@ -34,7 +29,6 @@ async function fetchEnrollments(company, plans = []) {
     if (plans.length > 0) {
       filters.push(["custom_plan", "in", plans]);
     }
-
     const response = await client.post(
       `/api/method/frappe.client.get_list`,
       null,
@@ -87,18 +81,14 @@ async function updateEnrollmentPlan(enrollmentName, newPlan, newInstalments) {
     const msg = err.response?.data?.message || err.message;
     throw new Error(`Failed to update enrollment: ${msg}`);
   }
-}
-
-// ── Main migration function ──────────────────────────────────
-
+} 
+// ── Main migration function ────────────────────────────────── 
 async function migrateKadavantraPlans() {
   console.log("🔧 MIGRATING KADAVANTHRA PLANS TO NEW FEE STRUCTURE\n");
   console.log("=".repeat(70));
-
   const KADAVANTHRA_COMPANY = "Smart Up Kadavanthra";
   const OLD_PLANS = ["Intermediate", "Advanced"];
   const NEW_PLAN = "Basic";
-
   try {
     // 1. Fetch all Kadavanthra enrollments with old plans
     console.log(`\n📋 Fetching Kadavanthra enrollments with plans: ${OLD_PLANS.join(", ")}...\n`);
@@ -164,7 +154,6 @@ async function migrateKadavantraPlans() {
         console.log(`  - ${r.name}: ${r.error}`);
       });
     }
-
     console.log("\n" + "=".repeat(70));
     console.log("✅ MIGRATION COMPLETE\n");
   } catch (err) {

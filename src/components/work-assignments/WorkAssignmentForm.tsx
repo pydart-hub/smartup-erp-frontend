@@ -263,7 +263,7 @@ export const WorkAssignmentForm: React.FC<WorkAssignmentFormProps> = ({ assignme
         toast.success("Draft saved");
       }
 
-      router.push(`/dashboard/general-manager/work-assignments/${doc.name}`);
+      router.push(`${basePath}/${doc.name}`);
     } catch (error: unknown) {
       toast.error(extractApiErrorMessage(error));
     } finally {
@@ -414,7 +414,7 @@ export const WorkAssignmentForm: React.FC<WorkAssignmentFormProps> = ({ assignme
       </Card>
 
       <div className="flex flex-wrap items-center justify-end gap-2">
-        <Button type="button" variant="outline" onClick={() => router.push("/dashboard/general-manager/work-assignments")}>Cancel</Button>
+        <Button type="button" variant="outline" onClick={() => router.push(basePath)}>Cancel</Button>
         {isEdit && originalDocstatus === 1 ? (
           <Button type="button" onClick={() => save(true)} loading={isSaving}>Update Assignment</Button>
         ) : (

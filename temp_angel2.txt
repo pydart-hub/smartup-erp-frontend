@@ -1,0 +1,25 @@
+﻿Invoice ACC-SINV-2026-02484:
+  grand_total: 22900
+  outstanding: 6600
+  status: Overdue
+  docstatus: 1 (0=draft,1=submitted,2=cancelled)
+  customer: ANGEL MARY MARTIN
+  sales_order: undefined
+  Items:
+    10th State Tuition Fee | rate=22900 | so_detail=aba677cfuq
+
+Invoices by SO SAL-ORD-2026-00194:
+  none found
+
+Invoices by Student STU-SU FKO-26-009:
+  none found
+
+Payment Entry ACC-PAY-2026-04000:
+  paid_amount: 2000
+  References:
+    Sales Invoice | ACC-SINV-2026-02484 | allocated=2000
+
+Payment Entry ACC-PAY-2026-04179:
+  paid_amount: 14300
+  References:
+    Sales Invoice | ACC-SINV-2026-02484 | allocated=14300

@@ -15,9 +15,10 @@ import { StatusBadge } from "./StatusBadge";
 
 export interface WorkAssignmentDetailProps {
   assignmentId: string;
+  basePath?: string;
 }
 
-export const WorkAssignmentDetail: React.FC<WorkAssignmentDetailProps> = ({ assignmentId }) => {
+export const WorkAssignmentDetail: React.FC<WorkAssignmentDetailProps> = ({ assignmentId, basePath = "/dashboard/general-manager/work-assignments" }) => {
   const router = useRouter();
   const [assignment, setAssignment] = useState<WorkAssignment | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -70,7 +71,7 @@ export const WorkAssignmentDetail: React.FC<WorkAssignmentDetailProps> = ({ assi
       setIsDeleting(true);
       await deleteWorkAssignment(assignmentId);
       toast.success("Work assignment deleted");
-      router.push("/dashboard/general-manager/work-assignments");
+      router.push(basePath);
     } catch (error: any) {
       toast.error(error?.message || "Failed to delete assignment");
     } finally {
@@ -237,10 +238,10 @@ export const WorkAssignmentDetail: React.FC<WorkAssignmentDetailProps> = ({ assi
       </Card>
 
       <div className="flex items-center gap-2">
-        <Link href="/dashboard/general-manager/work-assignments">
+        <Link href={basePath}>
           <Button variant="outline">Back to list</Button>
         </Link>
-        <Link href={`/dashboard/general-manager/work-assignments/${assignmentId}/edit`}>
+        <Link href={`${basePath}/${assignmentId}/edit`}>
           <Button variant="secondary">
             <Pencil className="h-4 w-4" /> Edit Assignment
           </Button>

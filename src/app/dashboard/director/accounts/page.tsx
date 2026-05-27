@@ -315,7 +315,7 @@ export default function AccountsDashboardPage() {
       </div>
 
       {/* Quick links */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Link href="/dashboard/director/accounts/collection">
           <motion.div
             initial={{ opacity: 0, y: 8 }}
@@ -374,6 +374,26 @@ export default function AccountsDashboardPage() {
               </div>
             </div>
             <ChevronRight className="h-4 w-4 text-text-tertiary group-hover:text-amber-600 transition-colors" />
+          </motion.div>
+        </Link>
+        <Link href="/dashboard/director/accounts/budget">
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 }}
+            whileHover={{ y: -2 }}
+            className="rounded-xl border border-border-light bg-surface p-4 hover:border-teal-400/30 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-teal-500/10 flex items-center justify-center">
+                <FileText className="h-4.5 w-4.5 text-teal-600" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-text-primary">Budget</p>
+                <p className="text-[11px] text-text-tertiary">Budget vs actuals</p>
+              </div>
+            </div>
+            <ChevronRight className="h-4 w-4 text-text-tertiary group-hover:text-teal-600 transition-colors" />
           </motion.div>
         </Link>
       </div>

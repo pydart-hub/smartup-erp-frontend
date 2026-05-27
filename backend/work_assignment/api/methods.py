@@ -108,8 +108,8 @@ def approve_submission(work_assignment_id, assignment_row_idx, approval_remarks=
         current_user = frappe.session.user
         user_roles = frappe.get_roles(current_user)
         
-        if "General Manager" not in user_roles and "Administrator" not in user_roles:
-            frappe.throw(_("Only General Manager or Admin can approve submissions"))
+        if "General Manager" not in user_roles and "Administrator" not in user_roles and "Director" not in user_roles:
+            frappe.throw(_("Only General Manager, Director, or Admin can approve submissions"))
         
         # Get work assignment
         work_assignment = frappe.get_doc("Work Assignment", work_assignment_id)
@@ -190,8 +190,8 @@ def reject_submission(work_assignment_id, assignment_row_idx, rejection_reason, 
         current_user = frappe.session.user
         user_roles = frappe.get_roles(current_user)
         
-        if "General Manager" not in user_roles and "Administrator" not in user_roles:
-            frappe.throw(_("Only General Manager or Admin can reject submissions"))
+        if "General Manager" not in user_roles and "Administrator" not in user_roles and "Director" not in user_roles:
+            frappe.throw(_("Only General Manager, Director, or Admin can reject submissions"))
         
         # Get work assignment
         work_assignment = frappe.get_doc("Work Assignment", work_assignment_id)

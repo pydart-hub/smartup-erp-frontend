@@ -159,6 +159,7 @@ export const DIRECTOR_NAV: NavItem[] = [
     children: [
       { label: "Collection", href: "/dashboard/director/accounts/collection", icon: "Landmark", emoji: "🏦" },
       { label: "Expense", href: "/dashboard/director/accounts/expense", icon: "Receipt", emoji: "🧾" },
+      { label: "Budget", href: "/dashboard/director/accounts/budget", icon: "Target", emoji: "🎯" },
     ],
   },
   { label: "Exams", href: "/dashboard/director/exams", icon: "ClipboardList", emoji: "📝" },
@@ -175,6 +176,7 @@ export const DIRECTOR_NAV: NavItem[] = [
     ],
   },
   { label: "Leaderboard", href: "/dashboard/director/leaderboard", icon: "Trophy", emoji: "🏆" },
+  { label: "Work Assignments", href: "/dashboard/director/work-assignments", icon: "ClipboardList", emoji: "🗂️" },
   { label: "Reports", href: "/dashboard/director/reports", icon: "FileBarChart", emoji: "📈" },
   { label: "Complaints", href: "/dashboard/director/complaints", icon: "MessageSquareWarning", emoji: "⚠️" },
   { label: "Transfers", href: "/dashboard/branch-manager/transfers", icon: "ArrowRightLeft", emoji: "🔄" },

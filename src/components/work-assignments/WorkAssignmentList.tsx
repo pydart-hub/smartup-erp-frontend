@@ -28,11 +28,13 @@ export interface WorkAssignmentListProps {
   branch?: string;
   onRefresh?: () => void;
   onStatsChange?: (active: number, pendingReview: number, completed: number, overdue: number) => void;
+  basePath?: string;
 }
 
 export const WorkAssignmentList: React.FC<WorkAssignmentListProps> = ({
   branch,
   onStatsChange,
+  basePath = "/dashboard/general-manager/work-assignments",
 }) => {
   const [assignments, setAssignments] = useState<GMAssignmentView[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -206,7 +208,7 @@ export const WorkAssignmentList: React.FC<WorkAssignmentListProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-semibold text-text-primary">All Work Assignments</h2>
-        <Link href="/dashboard/general-manager/work-assignments/create">
+        <Link href={`${basePath}/create`}>
           <Button size="sm">
             <Plus className="w-4 h-4 mr-1.5" />
             Create New
@@ -286,7 +288,7 @@ export const WorkAssignmentList: React.FC<WorkAssignmentListProps> = ({
           {assignments.length === 0 ? (
             <>
               <p className="text-gray-500 text-sm">No work assignments yet.</p>
-              <Link href="/dashboard/general-manager/work-assignments/create">
+              <Link href={`${basePath}/create`}>
                 <Button className="mt-4" size="sm">Create First Assignment</Button>
               </Link>
             </>
@@ -438,7 +440,7 @@ export const WorkAssignmentList: React.FC<WorkAssignmentListProps> = ({
                               {assignment.workflow_state}
                             </span>
                           )}
-                          <Link href={`/dashboard/general-manager/work-assignments/${assignment.name}`}>
+                          <Link href={`${basePath}/${assignment.name}`}>
                             <button className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-full transition-colors">
                               <ArrowRight className="h-4 w-4" />
                             </button>
