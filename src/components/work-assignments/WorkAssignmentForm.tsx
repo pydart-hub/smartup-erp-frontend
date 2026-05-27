@@ -33,6 +33,7 @@ interface InstructorOption {
 
 export interface WorkAssignmentFormProps {
   assignmentId?: string;
+  basePath?: string;
 }
 
 const ASSIGNMENT_TYPES = [
@@ -85,7 +86,7 @@ const extractApiErrorMessage = (error: unknown): string => {
   return "Failed to save assignment";
 };
 
-export const WorkAssignmentForm: React.FC<WorkAssignmentFormProps> = ({ assignmentId }) => {
+export const WorkAssignmentForm: React.FC<WorkAssignmentFormProps> = ({ assignmentId, basePath = "/dashboard/director/work-assignments" }) => {
   const router = useRouter();
   const isEdit = Boolean(assignmentId);
 
