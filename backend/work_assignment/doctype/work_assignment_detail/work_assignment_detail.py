@@ -4,6 +4,8 @@
 from frappe.model.document import Document
 from frappe import _
 import frappe
+import re
+from urllib.parse import urlparse, parse_qs
 
 
 class WorkAssignmentDetail(Document):
@@ -26,15 +28,39 @@ class WorkAssignmentDetail(Document):
         """Validate Google Drive URL format if provided"""
         if self.google_drive_link:
             link = self.google_drive_link.strip()
-            
-            # Valid Google Drive URL patterns
-            valid_patterns = [
-                "https://drive.google.com/file/d/",
-                "https://drive.google.com/open?id="
-            ]
-            
-            if not any(link.startswith(pattern) for pattern in valid_patterns):
-                frappe.throw(_("Invalid Google Drive URL. Must be a valid https://drive.google.com/... link"))
-            
+
             if not link.startswith("https://"):
-                frappe.throw(_("Google Drive links must use HTTPS"))
+                frappe.throw(_("Google submission links must use HTTPS"))
+
+            parsed = urlparse(link)
+            hostname = (parsed.hostname or "").lower()
+            path = parsed.path or ""
+            query = parse_qs(parsed.query or "")
+            has_id = bool(query.get("id", [None])[0])
+
+            drive_patterns = [
+                r"^/file/d/[A-Za-z0-9_-]+",
+                r"^/drive/folders/[A-Za-z0-9_-]+",
+            ]
+            docs_patterns = [
+                r"^/file/d/[A-Za-z0-9_-]+",
+                r"^/presentation/d/[A-Za-z0-9_-]+",
+                r"^/document/d/[A-Za-z0-9_-]+",
+                r"^/spreadsheets/d/[A-Za-z0-9_-]+",
+            ]
+
+            is_valid = False
+
+            if hostname == "drive.google.com":
+                is_valid = any(re.match(pattern, path) for pattern in drive_patterns) or (
+                    path in ("/open", "/uc") and has_id
+                )
+            elif hostname == "docs.google.com":
+                is_valid = any(re.match(pattern, path) for pattern in docs_patterns)
+
+            if not is_valid:
+                frappe.throw(
+                    _(
+                        "Invalid Google submission URL. Use a shared https://drive.google.com/... or https://docs.google.com/... link"
+                    )
+                )

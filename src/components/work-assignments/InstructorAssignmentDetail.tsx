@@ -101,7 +101,7 @@ export const InstructorAssignmentDetail: React.FC<InstructorAssignmentDetailProp
               target="_blank"
               rel="noreferrer"
             >
-              Open submitted Google Drive link
+              Open submitted link
             </a>
           ) : (
             <p className="text-sm text-text-tertiary">No link submitted yet.</p>
@@ -128,7 +128,7 @@ export const InstructorAssignmentDetail: React.FC<InstructorAssignmentDetailProp
 
         {canOpenUpload ? (
           <Button onClick={() => setShowUpload(true)}>
-            {assignment.my_assignment.submission_status === "Submitted" ? "Update Submission" : "Upload Google Drive Link"}
+            {assignment.my_assignment.submission_status === "Submitted" ? "Update Submission" : "Upload Submission Link"}
           </Button>
         ) : null}
       </div>

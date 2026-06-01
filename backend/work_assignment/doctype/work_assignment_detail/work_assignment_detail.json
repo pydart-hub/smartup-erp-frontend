@@ -78,8 +78,8 @@
     {
       "fieldname": "google_drive_link",
       "fieldtype": "Small Text",
-      "label": "Google Drive Link",
-      "help": "https://drive.google.com/file/d/..."
+      "label": "Submission Link",
+      "help": "Use a shared https://drive.google.com/... or https://docs.google.com/... link"
     },
     {
       "fieldname": "submitted_on",

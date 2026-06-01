@@ -35,13 +35,14 @@ export const UploadGoogleDriveModal: React.FC<UploadGoogleDriveModalProps> = ({
   const handleLinkChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setLink(value);
-    
-    // Real-time validation
+
     if (value.trim().length > 0) {
       if (validateGoogleDriveUrl(value.trim())) {
         setValidationError(null);
       } else {
-        setValidationError("Invalid Google Drive URL. Must be https://drive.google.com/...");
+        setValidationError(
+          "Invalid Google submission link. Use a shared https://drive.google.com/... or https://docs.google.com/... URL."
+        );
       }
     } else {
       setValidationError(null);
@@ -50,7 +51,7 @@ export const UploadGoogleDriveModal: React.FC<UploadGoogleDriveModalProps> = ({
 
   const handleSubmit = async () => {
     if (!isValidLink) {
-      setValidationError("Please enter a valid Google Drive link");
+      setValidationError("Please enter a valid Google submission link");
       return;
     }
 
@@ -63,7 +64,7 @@ export const UploadGoogleDriveModal: React.FC<UploadGoogleDriveModalProps> = ({
       });
 
       if (result.status === "success") {
-        toast.success("Work submitted successfully! ✅");
+        toast.success("Work submitted successfully!");
         setLink("");
         setDescription("");
         onClose();
@@ -86,26 +87,24 @@ export const UploadGoogleDriveModal: React.FC<UploadGoogleDriveModalProps> = ({
         <div className="mb-4">
           <h2 className="text-xl font-semibold text-text-primary">Submit Your Work</h2>
           <p className="mt-1 text-sm text-text-secondary">
-            Paste your Google Drive link below to submit your work.
+            Paste your shared Google Drive or Google Docs link below to submit your work.
           </p>
         </div>
 
         <div className="space-y-4">
-          {/* Deadline Display */}
-          <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+          <div className="rounded-md border border-blue-200 bg-blue-50 p-3">
             <p className="text-sm text-blue-700">
               <span className="font-medium">Deadline:</span> {new Date(deadline).toLocaleDateString()}
             </p>
           </div>
 
-          {/* Google Drive Link Input */}
           <div>
             <label htmlFor="drive-link" className="text-sm font-medium text-text-secondary">
-              Google Drive Link *
+              Submission Link *
             </label>
             <Input
               id="drive-link"
-              placeholder="https://drive.google.com/file/d/..."
+              placeholder="https://drive.google.com/file/d/... or https://docs.google.com/..."
               value={link}
               onChange={handleLinkChange}
               className="mt-2"
@@ -115,12 +114,12 @@ export const UploadGoogleDriveModal: React.FC<UploadGoogleDriveModalProps> = ({
               <div className={`mt-2 flex items-center gap-2 text-sm ${isValidLink ? "text-green-600" : "text-red-600"}`}>
                 {isValidLink ? (
                   <>
-                    <CheckCircle2 className="w-4 h-4" />
-                    Valid Google Drive link
+                    <CheckCircle2 className="h-4 w-4" />
+                    Valid Google submission link
                   </>
                 ) : (
                   <>
-                    <AlertCircle className="w-4 h-4" />
+                    <AlertCircle className="h-4 w-4" />
                     Invalid link format
                   </>
                 )}
@@ -131,7 +130,6 @@ export const UploadGoogleDriveModal: React.FC<UploadGoogleDriveModalProps> = ({
             )}
           </div>
 
-          {/* Description Input */}
           <div>
             <label htmlFor="description" className="text-sm font-medium text-text-secondary">
               Description (Optional)
@@ -149,18 +147,16 @@ export const UploadGoogleDriveModal: React.FC<UploadGoogleDriveModalProps> = ({
             </p>
           </div>
 
-          {/* Instructions */}
-          <div className="p-3 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-600">
-            <p className="font-medium mb-1">💡 Tips:</p>
-            <ul className="list-disc list-inside space-y-1 text-xs">
+          <div className="rounded-md border border-gray-200 bg-gray-50 p-3 text-sm text-gray-600">
+            <p className="mb-1 font-medium">Tips:</p>
+            <ul className="list-inside list-disc space-y-1 text-xs">
               <li>Make sure the file is shared with view access</li>
-              <li>Use the publicly shared link from Google Drive</li>
-              <li>Check that the deadline hasn't passed</li>
+              <li>Use the shared link from Google Drive, Docs, Slides, or Sheets</li>
+              <li>Check that the deadline has not passed</li>
             </ul>
           </div>
 
-          {/* Actions */}
-          <div className="flex gap-2 justify-end">
+          <div className="flex justify-end gap-2">
             <Button
               variant="outline"
               onClick={onClose}
@@ -171,7 +167,7 @@ export const UploadGoogleDriveModal: React.FC<UploadGoogleDriveModalProps> = ({
             <Button
               onClick={handleSubmit}
               disabled={!isValidLink || isSubmitting}
-              className="bg-green-600 hover:bg-green-700 text-white"
+              className="bg-green-600 text-white hover:bg-green-700"
             >
               {isSubmitting ? "Submitting..." : "Submit Work"}
             </Button>

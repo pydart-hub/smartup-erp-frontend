@@ -436,21 +436,59 @@ export async function listWorkAssignments(filters?: {
  */
 export function validateGoogleDriveUrl(url: string): boolean {
   if (!url) return false;
-  
-  const patterns = [
-    /^https:\/\/drive\.google\.com\/file\/d\/[a-zA-Z0-9_-]+/,
-    /^https:\/\/drive\.google\.com\/open\?id=[a-zA-Z0-9_-]+/,
-  ];
-  
-  return patterns.some(pattern => pattern.test(url));
+
+  try {
+    const parsed = new URL(url.trim());
+
+    if (parsed.protocol !== "https:") {
+      return false;
+    }
+
+    const host = parsed.hostname.toLowerCase();
+    const path = parsed.pathname;
+    const id = parsed.searchParams.get("id");
+
+    if (host === "drive.google.com") {
+      return (
+        /^\/file\/d\/[a-zA-Z0-9_-]+/.test(path) ||
+        /^\/drive\/folders\/[a-zA-Z0-9_-]+/.test(path) ||
+        ((path === "/open" || path === "/uc") && Boolean(id))
+      );
+    }
+
+    if (host === "docs.google.com") {
+      return [
+        /^\/file\/d\/[a-zA-Z0-9_-]+/,
+        /^\/presentation\/d\/[a-zA-Z0-9_-]+/,
+        /^\/document\/d\/[a-zA-Z0-9_-]+/,
+        /^\/spreadsheets\/d\/[a-zA-Z0-9_-]+/,
+      ].some((pattern) => pattern.test(path));
+    }
+
+    return false;
+  } catch {
+    return false;
+  }
 }
 
 /**
  * Extract file ID from Google Drive URL
  */
 export function extractGoogleDriveFileId(url: string): string | null {
+  try {
+    const parsed = new URL(url.trim());
+    const id = parsed.searchParams.get("id");
+    if (id) return id;
+  } catch {
+    return null;
+  }
+
   const patterns = [
     /\/file\/d\/([a-zA-Z0-9_-]+)/,
+    /\/presentation\/d\/([a-zA-Z0-9_-]+)/,
+    /\/document\/d\/([a-zA-Z0-9_-]+)/,
+    /\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/,
+    /\/drive\/folders\/([a-zA-Z0-9_-]+)/,
     /id=([a-zA-Z0-9_-]+)/,
   ];
   

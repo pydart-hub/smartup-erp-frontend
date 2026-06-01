@@ -177,7 +177,7 @@ export const WorkAssignmentDetail: React.FC<WorkAssignmentDetailProps> = ({ assi
                       target="_blank"
                       rel="noreferrer"
                     >
-                      Open Google Drive Link <ExternalLink className="h-3.5 w-3.5" />
+                      Open Submission Link <ExternalLink className="h-3.5 w-3.5" />
                     </a>
                   ) : (
                     <p className="text-text-tertiary">No submission link yet</p>
