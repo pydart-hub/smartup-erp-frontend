@@ -17,7 +17,7 @@ import {
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { getBranchBatches, getBatchStudents, getPlanCountsForBatches } from "@/lib/api/director";
+import { getBranchBatches, getBatchStudents, getPlanCountsForBatches, getTypeCountsForBatches } from "@/lib/api/director";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -50,10 +50,16 @@ function BatchCard({
     queryFn: () => getPlanCountsForBatches([batch.name], branchName),
     staleTime: 120_000,
   });
+  const { data: typeCounts, isLoading: loadingTypes } = useQuery({
+    queryKey: ["director-batch-type-counts", branchName, batch.name],
+    queryFn: () => getTypeCountsForBatches([batch.name], branchName),
+    staleTime: 120_000,
+  });
 
   const students = batchRes?.students ?? [];
   const activeStudents = students.filter((s) => s.active);
   const hasPlan = !loadingPlans && planCounts && (planCounts.advanced + planCounts.intermediate + planCounts.basic + planCounts.freeAccess > 0);
+  const hasTypes = !loadingTypes && typeCounts && (typeCounts.fresher + typeCounts.existing + typeCounts.rejoining > 0);
 
   return (
     <Link
@@ -125,6 +131,22 @@ function BatchCard({
                 </span>
               </div>
             )}
+
+            {hasTypes && (
+              <div className="flex items-center justify-center gap-1.5 mt-2 flex-wrap">
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-green-50 text-[10px] font-semibold text-green-700">
+                  <span className="w-1 h-1 rounded-full bg-green-500" />{typeCounts.fresher} Fresher
+                </span>
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-50 text-[10px] font-semibold text-blue-700">
+                  <span className="w-1 h-1 rounded-full bg-blue-500" />{typeCounts.existing} Existing
+                </span>
+                {typeCounts.rejoining > 0 && (
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 text-[10px] font-semibold text-amber-700">
+                    <span className="w-1 h-1 rounded-full bg-amber-500" />{typeCounts.rejoining} Rejoin
+                  </span>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       </motion.div>
@@ -154,6 +176,16 @@ export default function ProgramStudentsPage() {
   const programBatches = allBatches.filter(
     (b) => !b.disabled && (b.program || "Uncategorised") === programName
   );
+  const batchNames = programBatches.map((b) => b.name);
+
+  const { data: classTypeCounts, isLoading: loadingClassTypes } = useQuery({
+    queryKey: ["director-program-type-counts-summary", branchName, programName, ...batchNames.slice().sort()],
+    queryFn: () => getTypeCountsForBatches(batchNames, branchName),
+    enabled: batchNames.length > 0,
+    staleTime: 120_000,
+  });
+
+  const hasClassTypes = !loadingClassTypes && classTypeCounts && (classTypeCounts.fresher + classTypeCounts.existing + classTypeCounts.rejoining > 0);
 
   return (
     <motion.div
@@ -194,7 +226,7 @@ export default function ProgramStudentsPage() {
       </motion.div>
 
       {/* Summary */}
-      <motion.div variants={itemVariants} className="grid grid-cols-2 gap-4">
+      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="border-border-light">
           <CardContent className="p-4 text-center">
             <School className="h-5 w-5 text-primary mx-auto mb-2" />
@@ -209,6 +241,31 @@ export default function ProgramStudentsPage() {
               {isLoading ? "..." : programBatches.length}
             </p>
             <p className="text-xs text-text-tertiary">Batches</p>
+          </CardContent>
+        </Card>
+        <Card className="border-border-light">
+          <CardContent className="p-4 text-center">
+            <GraduationCap className="h-5 w-5 text-success mx-auto mb-2" />
+            {hasClassTypes ? (
+              <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-50 text-green-700 border border-green-200">
+                  <span className="w-1 h-1 rounded-full bg-green-500" />{classTypeCounts.fresher} Fresher
+                </span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                  <span className="w-1 h-1 rounded-full bg-blue-500" />{classTypeCounts.existing} Existing
+                </span>
+                {classTypeCounts.rejoining > 0 && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                    <span className="w-1 h-1 rounded-full bg-amber-500" />{classTypeCounts.rejoining} Rejoin
+                  </span>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-text-tertiary">
+                {loadingClassTypes ? "Loading..." : "No type counts"}
+              </p>
+            )}
+            <p className="text-xs text-text-tertiary mt-2">Student Types</p>
           </CardContent>
         </Card>
       </motion.div>

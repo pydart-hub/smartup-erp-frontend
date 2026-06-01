@@ -18,7 +18,7 @@ import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { getBranchBatches, getStudentCountForBranch, getActiveStudentCountForBranch, getDiscontinuedStudentCountForBranch, getProgramBatchesStudentStats, getStudentCountByPlanForBranch, getPlanCountsForBatches } from "@/lib/api/director";
+import { getBranchBatches, getStudentCountForBranch, getActiveStudentCountForBranch, getDiscontinuedStudentCountForBranch, getProgramBatchesStudentStats, getStudentCountByPlanForBranch, getPlanCountsForBatches, getTypeCountsForBatches } from "@/lib/api/director";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -41,8 +41,14 @@ function ProgramStudentCount({ batchNames, branchName }: { batchNames: string[];
     queryFn: () => getPlanCountsForBatches(batchNames, branchName),
     staleTime: 120_000,
   });
+  const { data: typeCounts, isLoading: loadingTypes } = useQuery({
+    queryKey: ["director-program-type-counts", branchName, ...batchNames.slice().sort()],
+    queryFn: () => getTypeCountsForBatches(batchNames, branchName),
+    staleTime: 120_000,
+  });
   const total = (data?.active ?? 0) + (data?.inactive ?? 0);
   const hasPlan = !loadingPlans && planCounts && (planCounts.advanced + planCounts.intermediate + planCounts.basic + planCounts.freeAccess > 0);
+  const hasTypes = !loadingTypes && typeCounts && (typeCounts.fresher + typeCounts.existing + typeCounts.rejoining > 0);
   return (
     <div className="mt-2 space-y-1.5">
       <p className="text-xs text-text-tertiary">
@@ -67,6 +73,21 @@ function ProgramStudentCount({ batchNames, branchName }: { batchNames: string[];
           {planCounts.demo > 0 && (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-fuchsia-50 text-fuchsia-700 border border-fuchsia-200 dark:bg-fuchsia-500/15 dark:text-fuchsia-300 dark:border-fuchsia-400/25">
               <span className="w-1 h-1 rounded-full bg-fuchsia-500" />{planCounts.demo} Demo
+            </span>
+          )}
+        </div>
+      )}
+      {hasTypes && (
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-50 text-green-700 border border-green-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-400/25">
+            <span className="w-1 h-1 rounded-full bg-green-500" />{typeCounts.fresher} Fresher
+          </span>
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 dark:bg-sky-500/15 dark:text-sky-300 dark:border-sky-400/25">
+            <span className="w-1 h-1 rounded-full bg-blue-500" />{typeCounts.existing} Existing
+          </span>
+          {typeCounts.rejoining > 0 && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-400/25">
+              <span className="w-1 h-1 rounded-full bg-amber-500" />{typeCounts.rejoining} Rejoin
             </span>
           )}
         </div>

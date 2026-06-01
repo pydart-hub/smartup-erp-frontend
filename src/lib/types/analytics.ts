@@ -447,3 +447,102 @@ export interface TopicCoverageDetailResponse {
   branch: string;
   classes: TopicDrillClass[];
 }
+
+// ── Class-First Hierarchy (new overview) ──────────────────────────────────────
+
+export interface ClassOverviewHealth {
+  program: string;
+  total_students: number;
+  total_branches: number;
+  total_batches: number;
+  avg_attendance_pct: number;
+  avg_exam_score_pct: number;
+  pass_rate: number;
+  chronic_absentees: number;
+}
+
+export interface ClassOverviewResponse {
+  classes: ClassOverviewHealth[];
+  overall: {
+    total_students: number;
+    avg_attendance_pct: number;
+    avg_exam_score_pct: number;
+    pass_rate: number;
+    chronic_absentees: number;
+  };
+}
+
+export interface ClassBranchHealth {
+  branch: string;
+  branch_name: string;
+  total_students: number;
+  total_batches: number;
+  avg_attendance_pct: number;
+  avg_exam_score_pct: number;
+  pass_rate: number;
+  chronic_absentees: number;
+}
+
+export interface ClassSubjectSummary {
+  subject: string;
+  total_students: number;
+  avg_score_pct: number;
+  pass_rate: number;
+  branches_count: number;
+}
+
+export interface ClassBranchesResponse {
+  program: string;
+  branches: ClassBranchHealth[];
+  subjects: ClassSubjectSummary[];
+  overall: {
+    total_students: number;
+    avg_attendance_pct: number;
+    avg_exam_score_pct: number;
+    pass_rate: number;
+  };
+}
+
+export interface ClassBranchSubjectDetail {
+  subject: string;
+  total_students: number;
+  avg_score: number;
+  avg_score_pct: number;
+  pass_rate: number;
+  max_score: number;
+  min_score: number;
+  maximum_possible: number;
+}
+
+export interface ClassBranchSubjectsResponse {
+  program: string;
+  branch: string;
+  subjects: ClassBranchSubjectDetail[];
+  batches: { name: string; total_students: number; avg_pct: number; pass_rate: number }[];
+  total_students: number;
+  avg_attendance_pct: number;
+  chronic_absentees: number;
+  avg_exam_score_pct: number;
+  pass_rate: number;
+}
+
+export interface SubjectBranchResult {
+  branch: string;
+  branch_name: string;
+  total_students: number;
+  avg_score_pct: number;
+  pass_rate: number;
+  avg_score: number;
+  maximum_possible: number;
+}
+
+export interface SubjectBranchesResponse {
+  program: string;
+  subject: string;
+  branches: SubjectBranchResult[];
+  overall: {
+    total_students: number;
+    avg_score_pct: number;
+    pass_rate: number;
+  };
+}

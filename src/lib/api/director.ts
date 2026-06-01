@@ -1009,6 +1009,48 @@ export async function getPlanCountsForBatches(
   return { ...allPlans, na: 0 };
 }
 
+/** Get active-student type counts (Fresher/Existing/Rejoining) for students in given batches */
+export async function getTypeCountsForBatches(
+  batchNames: string[],
+  branch?: string
+): Promise<{ fresher: number; existing: number; rejoining: number; na: number }> {
+  const result = { fresher: 0, existing: 0, rejoining: 0, na: 0 };
+  if (!batchNames.length) return result;
+
+  const batchResults = await Promise.all(batchNames.map((name) => getBatchStudents(name, branch)));
+  const activeStudentIds: string[] = [];
+  for (const res of batchResults) {
+    for (const student of res.students) {
+      if (student.active && student.student && !activeStudentIds.includes(student.student)) {
+        activeStudentIds.push(student.student);
+      }
+    }
+  }
+  if (!activeStudentIds.length) return result;
+
+  const batchSize = 50;
+  for (let i = 0; i < activeStudentIds.length; i += batchSize) {
+    const batch = activeStudentIds.slice(i, i + batchSize);
+    const { data } = await apiClient.get("/resource/Student", {
+      params: {
+        fields: JSON.stringify(["custom_student_type"]),
+        filters: JSON.stringify([["name", "in", batch], ["enabled", "=", 1]]),
+        limit_page_length: batch.length + 5,
+      },
+    });
+
+    for (const row of data?.data ?? []) {
+      const type = (row.custom_student_type || "").toLowerCase().trim();
+      if (type === "fresher") result.fresher++;
+      else if (type === "existing") result.existing++;
+      else if (type === "rejoining") result.rejoining++;
+      else result.na++;
+    }
+  }
+
+  return result;
+}
+
 export interface BranchInstructor {
   name: string;
   instructor_name: string;

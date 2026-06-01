@@ -481,6 +481,16 @@ export default function FeeFollowUpDashboard() {
   const [expandedPodium, setExpandedPodium] = useState<Record<number, boolean>>({});
   const [expandedUserRows, setExpandedUserRows] = useState<Set<string>>(new Set());
 
+  function buildDetailHref(kind: "promised" | "collected") {
+    const params = new URLSearchParams({ kind });
+    if (branch) params.set("branch", branch);
+    if (from) params.set("from", from);
+    if (to) params.set("to", to);
+    if (calledBy) params.set("called_by", calledBy);
+    if (statusFilter) params.set("status", statusFilter);
+    return `/dashboard/director/fee-followup/detail?${params.toString()}`;
+  }
+
   function toggleUserRow(user: string) {
     setExpandedUserRows((prev) => {
       const next = new Set(prev);
@@ -689,6 +699,7 @@ export default function FeeFollowUpDashboard() {
                   sub="students committed"
                   icon={<Clock className="h-5 w-5" />}
                   color="amber"
+                  onClick={() => router.push(buildDetailHref("promised"))}
                 />
               </motion.div>
               <motion.div variants={item}>
@@ -698,6 +709,7 @@ export default function FeeFollowUpDashboard() {
                   sub={summary?.paid_amount ? formatCurrency(summary.paid_amount) : undefined}
                   icon={<IndianRupee className="h-5 w-5" />}
                   color="emerald"
+                  onClick={() => router.push(buildDetailHref("collected"))}
                 />
               </motion.div>
               <motion.div variants={item}>

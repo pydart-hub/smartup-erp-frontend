@@ -25,6 +25,7 @@ import {
   Trophy,
   Calendar,
   BookOpen,
+  Target,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -47,10 +48,11 @@ import {
   getTodaysAdmissions,
   getTodaysBilled,
   getTodaysCollected,
-  getDemoStudentCount,
 } from "@/lib/api/director";
-import { formatCurrency } from "@/lib/utils/formatters";
+import { getBudgetData } from "@/lib/api/budget";
 import { AnimatedNumber, AnimatedCurrency, AnimatedName } from "@/components/dashboard/AnimatedValue";
+
+const DIRECTOR_BUDGET_FISCAL_YEAR = "2026-2027";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -69,6 +71,13 @@ const itemVariants = {
     transition: { duration: 0.5, ease: "easeOut" as const },
   },
 };
+
+function formatBudgetSummaryAmount(n: number): string {
+  if (n >= 10_000_000) return `₹${(n / 10_000_000).toFixed(2)}Cr`;
+  if (n >= 100_000) return `₹${(n / 100_000).toFixed(2)}L`;
+  if (n >= 1_000) return `₹${(n / 1_000).toFixed(1)}K`;
+  return `₹${n.toFixed(0)}`;
+}
 
 // ── 3D hover wrapper ──
 function ThreeDCard({ children, className }: { children: React.ReactNode; className?: string }) {
@@ -295,9 +304,9 @@ export default function DirectorDashboard() {
     refetchInterval: 30_000,
   });
 
-  const { data: demoStudentCount, isLoading: loadDemoCount } = useQuery({
-    queryKey: ["director-demo-students"],
-    queryFn: getDemoStudentCount,
+  const { data: budgetData, isLoading: loadBudgetData, isError: errBudgetData } = useQuery({
+    queryKey: ["director-budget-summary", DIRECTOR_BUDGET_FISCAL_YEAR],
+    queryFn: () => getBudgetData(DIRECTOR_BUDGET_FISCAL_YEAR),
     staleTime: 60_000,
     refetchInterval: 60_000,
   });
@@ -574,14 +583,26 @@ export default function DirectorDashboard() {
           </Link>
         </ThreeDCard>
         <ThreeDCard className="min-w-0">
-          <Link href="/dashboard/director/demo-students" className="block h-full">
+          <Link href="/dashboard/director/accounts/budget" className="block h-full">
             <Card className="h-full hover:shadow-card-hover transition-all duration-200 cursor-pointer border-teal-200/60 hover:border-teal-400/40 overflow-hidden">
               <CardContent className="p-3 text-center">
-                <GraduationCap className="h-4 w-4 text-teal-500 mx-auto mb-1.5" />
-                <p className="text-xl font-bold text-teal-600 leading-tight truncate">
-                  {loadDemoCount ? "..." : <AnimatedNumber value={demoStudentCount ?? 0} />}
-                </p>
-                <p className="text-[10px] text-text-tertiary mt-0.5">Demo Students</p>
+                <Target className="h-4 w-4 text-teal-500 mx-auto mb-1.5" />
+                {errBudgetData ? (
+                  <p className="text-xs text-error flex items-center justify-center gap-1"><AlertCircle className="h-3 w-3" /> Error</p>
+                ) : (
+                  <>
+                    <p className="text-lg font-bold text-teal-600 leading-tight truncate">
+                      {loadBudgetData ? "..." : formatBudgetSummaryAmount(budgetData?.totals.actual ?? 0)}
+                    </p>
+                    <p className="text-[10px] text-text-tertiary mt-0.5">Budget Actual</p>
+                    <div className="mt-1.5 pt-1.5 border-t border-border-light">
+                      <p className="text-[10px] font-semibold text-text-primary truncate">
+                        {loadBudgetData ? "..." : formatBudgetSummaryAmount(budgetData?.totals.budget ?? 0)}
+                      </p>
+                      <p className="text-[8px] text-text-tertiary uppercase">Budget</p>
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
           </Link>

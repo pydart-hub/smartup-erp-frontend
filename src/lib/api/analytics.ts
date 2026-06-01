@@ -15,6 +15,10 @@ import type {
   BranchActionsNeededDetailResponse,
   ScheduleSummaryResponse,
   InstructorLeaderboardResponse,
+  ClassOverviewResponse,
+  ClassBranchesResponse,
+  ClassBranchSubjectsResponse,
+  SubjectBranchesResponse,
 } from "@/lib/types/analytics";
 
 // ── Attendance Analytics ──
@@ -149,5 +153,44 @@ export async function getTopicCoverageDetail(branch: string): Promise<TopicCover
     credentials: "include",
   });
   if (!res.ok) throw new Error("Failed to fetch topic coverage detail");
+  return res.json();
+}
+
+// ── Class-First Hierarchy ──
+
+export async function getClassOverview(): Promise<ClassOverviewResponse> {
+  const res = await fetch("/api/analytics/class-overview", { credentials: "include" });
+  if (!res.ok) throw new Error("Failed to fetch class overview");
+  return res.json();
+}
+
+export async function getClassBranches(program: string): Promise<ClassBranchesResponse> {
+  const query = new URLSearchParams({ program });
+  const res = await fetch(`/api/analytics/class-branches?${query}`, { credentials: "include" });
+  if (!res.ok) throw new Error("Failed to fetch class branches");
+  return res.json();
+}
+
+export async function getClassBranchSubjects(
+  program: string,
+  branch: string,
+): Promise<ClassBranchSubjectsResponse> {
+  const query = new URLSearchParams({ program, branch });
+  const res = await fetch(`/api/analytics/class-branch-subjects?${query}`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Failed to fetch class branch subjects");
+  return res.json();
+}
+
+export async function getSubjectBranches(
+  program: string,
+  subject: string,
+): Promise<SubjectBranchesResponse> {
+  const query = new URLSearchParams({ program, subject });
+  const res = await fetch(`/api/analytics/subject-branches?${query}`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Failed to fetch subject branches");
   return res.json();
 }
