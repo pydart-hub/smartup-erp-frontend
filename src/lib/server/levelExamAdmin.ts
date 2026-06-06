@@ -1,4 +1,3 @@
-import type { NextRequest } from "next/server";
 import type { LevelCode } from "@/lib/types/levelExam";
 
 const FRAPPE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL;
@@ -43,7 +42,7 @@ function calculateBoard(program?: string | null) {
   return null;
 }
 
-export async function requireSession(_request: NextRequest) {
+export async function requireSession() {
   return {
     headers: {
       Authorization: `token ${FRAPPE_API_KEY}:${FRAPPE_API_SECRET}`,
@@ -52,8 +51,8 @@ export async function requireSession(_request: NextRequest) {
   };
 }
 
-export async function listLevelExamEligibleStudents(request: NextRequest, search?: string, levelCode?: string) {
-  const { headers } = await requireSession(request);
+export async function listLevelExamEligibleStudents(_request?: unknown, search?: string, levelCode?: string) {
+  const { headers } = await requireSession();
   const studentFilters: unknown[][] = [["enabled", "=", 1]];
   if (search?.trim()) {
     studentFilters.push(["student_name", "like", `%${search.trim()}%`]);

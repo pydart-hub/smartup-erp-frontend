@@ -1,1 +1,1 @@
-export { default } from "../../exams/assign/page";
+export { default, dynamic, revalidate } from "../../exams/assign/page";
