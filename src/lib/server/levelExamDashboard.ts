@@ -170,6 +170,41 @@ function getHeaders() {
   };
 }
 
+function isRetryableFrappeError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error || "");
+  return (
+    message.includes("fetch failed") ||
+    message.includes("Connect Timeout Error") ||
+    message.includes("UND_ERR_CONNECT_TIMEOUT") ||
+    message.includes("ECONNRESET") ||
+    message.includes("ETIMEDOUT")
+  );
+}
+
+async function withRetry<T>(label: string, run: () => Promise<T>, retries = 2): Promise<T> {
+  let lastError: unknown = null;
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    try {
+      return await run();
+    } catch (error) {
+      lastError = error;
+      if (attempt === retries || !isRetryableFrappeError(error)) {
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 400 * (attempt + 1)));
+    }
+  }
+
+  console.warn(`[level-exams] ${label} failed:`, lastError instanceof Error ? lastError.message : lastError);
+  throw lastError instanceof Error ? lastError : new Error(`Failed to load ${label}`);
+}
+
+function unwrapSettled<T>(result: PromiseSettledResult<T>, fallback: T, label: string) {
+  if (result.status === "fulfilled") return result.value;
+  console.warn(`[level-exams] ${label} degraded:`, result.reason instanceof Error ? result.reason.message : result.reason);
+  return fallback;
+}
+
 async function fetchResourceList(
   doctype: string,
   fields: string[],
@@ -181,27 +216,31 @@ async function fetchResourceList(
     filters: JSON.stringify(filters),
     limit_page_length: String(limit),
   });
-  const res = await fetch(`${FRAPPE_URL}/api/resource/${encodeURIComponent(doctype)}?${params.toString()}`, {
-    headers: getHeaders(),
-    cache: "no-store",
+  return withRetry(`resource list ${doctype}`, async () => {
+    const res = await fetch(`${FRAPPE_URL}/api/resource/${encodeURIComponent(doctype)}?${params.toString()}`, {
+      headers: getHeaders(),
+      cache: "no-store",
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(String(json.exception || json.message || `Failed to fetch ${doctype}`));
+    }
+    return Array.isArray(json.data) ? json.data as Array<Record<string, unknown>> : [];
   });
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(String(json.exception || json.message || `Failed to fetch ${doctype}`));
-  }
-  return Array.isArray(json.data) ? json.data as Array<Record<string, unknown>> : [];
 }
 
 async function fetchResourceDoc(doctype: string, name: string) {
-  const res = await fetch(`${FRAPPE_URL}/api/resource/${encodeURIComponent(doctype)}/${encodeURIComponent(name)}`, {
-    headers: getHeaders(),
-    cache: "no-store",
+  return withRetry(`resource doc ${doctype}/${name}`, async () => {
+    const res = await fetch(`${FRAPPE_URL}/api/resource/${encodeURIComponent(doctype)}/${encodeURIComponent(name)}`, {
+      headers: getHeaders(),
+      cache: "no-store",
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(String(json.exception || json.message || `Failed to fetch ${doctype}/${name}`));
+    }
+    return (json.data || {}) as Record<string, unknown>;
   });
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(String(json.exception || json.message || `Failed to fetch ${doctype}/${name}`));
-  }
-  return (json.data || {}) as Record<string, unknown>;
 }
 
 async function fetchResourceListWithFallbacks(
@@ -375,13 +414,20 @@ export async function getLevelExamDashboardData() {
   };
 
   try {
-    const [activeStudents, assignmentRows, attemptRows, questionBankExams, paperRows] = await Promise.all([
-      fetchEligibleStudentsFromCore(),
-      fetchFullDocsFromNames(LEVEL_EXAM_DOCTYPES.assignment),
-      fetchFullDocsFromNames(LEVEL_EXAM_DOCTYPES.attempt),
-      fetchQuestionBankExams(),
-      fetchFullDocsFromNames(process.env.FRAPPE_LEVEL_EXAM_PAPER_DOCTYPE || "Level Exam Paper"),
-    ]);
+    const [activeStudentsResult, assignmentRowsResult, attemptRowsResult, questionBankExamsResult, paperRowsResult] =
+      await Promise.allSettled([
+        fetchEligibleStudentsFromCore(),
+        fetchFullDocsFromNames(LEVEL_EXAM_DOCTYPES.assignment),
+        fetchFullDocsFromNames(LEVEL_EXAM_DOCTYPES.attempt),
+        fetchQuestionBankExams(),
+        fetchFullDocsFromNames(process.env.FRAPPE_LEVEL_EXAM_PAPER_DOCTYPE || "Level Exam Paper"),
+      ]);
+
+    const activeStudents = unwrapSettled(activeStudentsResult, [] as StudentSnapshot[], "active students");
+    const assignmentRows = unwrapSettled(assignmentRowsResult, [] as Array<Record<string, unknown>>, "assignments");
+    const attemptRows = unwrapSettled(attemptRowsResult, [] as Array<Record<string, unknown>>, "attempts");
+    const questionBankExams = unwrapSettled(questionBankExamsResult, [] as QuestionBankExam[], "question bank exams");
+    const paperRows = unwrapSettled(paperRowsResult, [] as Array<Record<string, unknown>>, "papers");
 
   const studentMap = new Map(activeStudents.map((student) => [student.student_id, student]));
   const paperMap = new Map(paperRows.map((row) => [String(row.name || ""), row]));
