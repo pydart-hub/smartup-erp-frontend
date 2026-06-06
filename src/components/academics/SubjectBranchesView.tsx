@@ -18,9 +18,10 @@ interface Props {
   program: string;
   subject: string;
   onBack: () => void;
+  onSelectBranch: (branch: string) => void;
 }
 
-export function SubjectBranchesView({ program, subject, onBack }: Props) {
+export function SubjectBranchesView({ program, subject, onBack, onSelectBranch }: Props) {
   const { data, isLoading } = useQuery({
     queryKey: ["subject-branches", program, subject],
     queryFn: () => getSubjectBranches(program, subject),
@@ -43,7 +44,7 @@ export function SubjectBranchesView({ program, subject, onBack }: Props) {
 
   const branches = data?.branches ?? [];
   const overall = data?.overall;
-  const maxPct = branches.length > 0 ? Math.max(...branches.map((b) => b.avg_score_pct)) : 100;
+  const maxHealth = branches.length > 0 ? Math.max(...branches.map((b) => b.health_score)) : 100;
 
   return (
     <AnimatePresence mode="wait">
@@ -83,7 +84,7 @@ export function SubjectBranchesView({ program, subject, onBack }: Props) {
             variants={container}
             initial="hidden"
             animate="show"
-            className="grid grid-cols-3 gap-3"
+            className="grid grid-cols-2 lg:grid-cols-4 gap-3"
           >
             <motion.div variants={item} className="bg-surface rounded-[12px] p-4 border border-border-light">
               <div className="flex items-center gap-2 mb-2">
@@ -91,6 +92,15 @@ export function SubjectBranchesView({ program, subject, onBack }: Props) {
                 <span className="text-xs text-text-tertiary font-medium">Total Students</span>
               </div>
               <p className="text-2xl font-bold text-primary">{overall.total_students}</p>
+            </motion.div>
+            <motion.div variants={item} className="bg-surface rounded-[12px] p-4 border border-border-light">
+              <div className="flex items-center gap-2 mb-2">
+                <Users className="w-4 h-4 text-text-tertiary" />
+                <span className="text-xs text-text-tertiary font-medium">Attendance</span>
+              </div>
+              <p className={`text-2xl font-bold ${pctColor(overall.avg_attendance_pct)}`}>
+                {overall.avg_attendance_pct}%
+              </p>
             </motion.div>
             <motion.div variants={item} className="bg-surface rounded-[12px] p-4 border border-border-light">
               <div className="flex items-center gap-2 mb-2">
@@ -137,14 +147,19 @@ export function SubjectBranchesView({ program, subject, onBack }: Props) {
                       <th className="text-center p-3 font-medium text-text-secondary w-10">#</th>
                       <th className="text-left p-3 font-medium text-text-secondary">Branch</th>
                       <th className="text-center p-3 font-medium text-text-secondary">Students</th>
+                      <th className="text-center p-3 font-medium text-text-secondary">Attendance</th>
                       <th className="text-center p-3 font-medium text-text-secondary">Avg Score</th>
                       <th className="text-center p-3 font-medium text-text-secondary">Pass Rate</th>
-                      <th className="p-3 font-medium text-text-secondary min-w-[120px]">Performance</th>
+                      <th className="p-3 font-medium text-text-secondary min-w-[160px]">Academic Health</th>
                     </tr>
                   </thead>
                   <tbody>
                     {branches.map((b, i) => (
-                      <tr key={b.branch} className="border-b border-border-light last:border-0">
+                      <tr
+                        key={b.branch}
+                        onClick={() => onSelectBranch(b.branch)}
+                        className="border-b border-border-light last:border-0 hover:bg-app-bg/50 transition-colors cursor-pointer"
+                      >
                         <td className="p-3 text-center">
                           <span
                             className={`text-xs font-bold px-2 py-0.5 rounded-full ${
@@ -170,6 +185,11 @@ export function SubjectBranchesView({ program, subject, onBack }: Props) {
                         </td>
                         <td className="p-3 text-center text-text-secondary">{b.total_students}</td>
                         <td className="p-3 text-center">
+                          <span className={`font-bold ${pctColor(safeNum(b.avg_attendance_pct))}`}>
+                            {safeNum(b.avg_attendance_pct)}%
+                          </span>
+                        </td>
+                        <td className="p-3 text-center">
                           <span className={`font-bold ${pctColor(safeNum(b.avg_score_pct), 60, 40)}`}>
                             {safeNum(b.avg_score_pct)}%
                           </span>
@@ -184,19 +204,22 @@ export function SubjectBranchesView({ program, subject, onBack }: Props) {
                             <div className="flex-1 h-2 bg-app-bg rounded-full overflow-hidden">
                               <div
                                 className={`h-full rounded-full ${
-                                  safeNum(b.avg_score_pct) >= 60
+                                  safeNum(b.health_score) >= 70
                                     ? "bg-success"
-                                    : safeNum(b.avg_score_pct) >= 40
+                                    : safeNum(b.health_score) >= 50
                                     ? "bg-warning"
                                     : "bg-error"
                                 }`}
                                 style={{
-                                  width: maxPct > 0
-                                    ? `${(safeNum(b.avg_score_pct) / maxPct) * 100}%`
+                                  width: maxHealth > 0
+                                    ? `${(safeNum(b.health_score) / 100) * 100}%`
                                     : "0%",
                                 }}
                               />
                             </div>
+                            <span className={`text-xs font-semibold ${pctColor(safeNum(b.health_score))}`}>
+                              {safeNum(b.health_score)}%
+                            </span>
                           </div>
                         </td>
                       </tr>

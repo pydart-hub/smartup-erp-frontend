@@ -1,0 +1,486 @@
+{
+  "generated_at": "2026-06-05T11:07:03.112Z",
+  "source_directory": "docs/Level Test",
+  "output_directory": "docs/Level Test/JSON",
+  "excluded_subjects": [],
+  "target_rules": {
+    "8": [
+      "5",
+      "6",
+      "7"
+    ],
+    "9": [
+      "5",
+      "6",
+      "7",
+      "8"
+    ],
+    "10": [
+      "5",
+      "6",
+      "7",
+      "8",
+      "9"
+    ]
+  },
+  "subjects": [
+    {
+      "subject": "Biology",
+      "source_file": "Biology LEVEL TEST.docx",
+      "output_file": "docs/Level Test/JSON/biology.json",
+      "conversion_status": "ready",
+      "levels": {
+        "5": {
+          "total_questions": 5,
+          "usable_questions": 5
+        },
+        "6": {
+          "total_questions": 6,
+          "usable_questions": 6
+        },
+        "7": {
+          "total_questions": 5,
+          "usable_questions": 5
+        },
+        "8": {
+          "total_questions": 5,
+          "usable_questions": 5
+        },
+        "9": {
+          "total_questions": 5,
+          "usable_questions": 5
+        }
+      },
+      "generated_targets": {
+        "8": {
+          "total_questions": 16,
+          "source_levels": [
+            "5",
+            "6",
+            "7"
+          ]
+        },
+        "9": {
+          "total_questions": 21,
+          "source_levels": [
+            "5",
+            "6",
+            "7",
+            "8"
+          ]
+        },
+        "10": {
+          "total_questions": 26,
+          "source_levels": [
+            "5",
+            "6",
+            "7",
+            "8",
+            "9"
+          ]
+        }
+      },
+      "warnings": []
+    },
+    {
+      "subject": "Chemistry",
+      "source_file": "Chemistry LEVEL TEST.docx",
+      "output_file": "docs/Level Test/JSON/chemistry.json",
+      "conversion_status": "needs_manual_review",
+      "levels": {
+        "5": {
+          "total_questions": 1,
+          "usable_questions": 0
+        },
+        "6": {
+          "total_questions": 1,
+          "usable_questions": 0
+        },
+        "7": {
+          "total_questions": 1,
+          "usable_questions": 0
+        },
+        "8": {
+          "total_questions": 1,
+          "usable_questions": 0
+        },
+        "9": {
+          "total_questions": 0,
+          "usable_questions": 0
+        }
+      },
+      "generated_targets": {
+        "8": {
+          "total_questions": 0,
+          "source_levels": [
+            "5",
+            "6",
+            "7"
+          ]
+        },
+        "9": {
+          "total_questions": 0,
+          "source_levels": [
+            "5",
+            "6",
+            "7",
+            "8"
+          ]
+        },
+        "10": {
+          "total_questions": 0,
+          "source_levels": [
+            "5",
+            "6",
+            "7",
+            "8",
+            "9"
+          ]
+        }
+      },
+      "warnings": [
+        "5th: 1 questions do not have a correct answer in the source doc",
+        "5th: 1 questions do not have valid MCQ options in the source doc",
+        "6th: 1 questions do not have a correct answer in the source doc",
+        "6th: 1 questions do not have valid MCQ options in the source doc",
+        "7th: 1 questions do not have a correct answer in the source doc",
+        "7th: 1 questions do not have valid MCQ options in the source doc",
+        "8th: 1 questions do not have a correct answer in the source doc",
+        "8th: 1 questions do not have valid MCQ options in the source doc",
+        "No fully usable MCQ question bank could be generated from this source without manual review"
+      ]
+    },
+    {
+      "subject": "English",
+      "source_file": "English LEVEL TEST.docx",
+      "output_file": "docs/Level Test/JSON/english.json",
+      "conversion_status": "needs_manual_review",
+      "levels": {
+        "5": {
+          "total_questions": 0,
+          "usable_questions": 0
+        },
+        "6": {
+          "total_questions": 0,
+          "usable_questions": 0
+        },
+        "7": {
+          "total_questions": 0,
+          "usable_questions": 0
+        },
+        "8": {
+          "total_questions": 0,
+          "usable_questions": 0
+        },
+        "9": {
+          "total_questions": 0,
+          "usable_questions": 0
+        }
+      },
+      "generated_targets": {
+        "8": {
+          "total_questions": 0,
+          "source_levels": [
+            "5",
+            "6",
+            "7"
+          ]
+        },
+        "9": {
+          "total_questions": 0,
+          "source_levels": [
+            "5",
+            "6",
+            "7",
+            "8"
+          ]
+        },
+        "10": {
+          "total_questions": 0,
+          "source_levels": [
+            "5",
+            "6",
+            "7",
+            "8",
+            "9"
+          ]
+        }
+      },
+      "warnings": [
+        "5th: 5 questions do not have a correct answer in the source doc",
+        "6th: 5 questions do not have a correct answer in the source doc",
+        "7th: 5 questions do not have a correct answer in the source doc",
+        "8th: 5 questions do not have a correct answer in the source doc",
+        "No fully usable MCQ question bank could be generated from this source without manual review"
+      ]
+    },
+    {
+      "subject": "Hindi",
+      "source_file": "Hindi LEVEL TEST.docx",
+      "output_file": "docs/Level Test/JSON/hindi.json",
+      "conversion_status": "needs_manual_review",
+      "levels": {
+        "5": {
+          "total_questions": 0,
+          "usable_questions": 0
+        },
+        "6": {
+          "total_questions": 0,
+          "usable_questions": 0
+        },
+        "7": {
+          "total_questions": 0,
+          "usable_questions": 0
+        },
+        "8": {
+          "total_questions": 0,
+          "usable_questions": 0
+        },
+        "9": {
+          "total_questions": 0,
+          "usable_questions": 0
+        }
+      },
+      "generated_targets": {
+        "8": {
+          "total_questions": 0,
+          "source_levels": [
+            "5",
+            "6",
+            "7"
+          ]
+        },
+        "9": {
+          "total_questions": 0,
+          "source_levels": [
+            "5",
+            "6",
+            "7",
+            "8"
+          ]
+        },
+        "10": {
+          "total_questions": 0,
+          "source_levels": [
+            "5",
+            "6",
+            "7",
+            "8",
+            "9"
+          ]
+        }
+      },
+      "warnings": [
+        "5th: 4 questions do not have a correct answer in the source doc",
+        "5th: 4 questions do not have valid MCQ options in the source doc",
+        "6th: 2 questions do not have a correct answer in the source doc",
+        "6th: 2 questions do not have valid MCQ options in the source doc",
+        "7th: 1 questions do not have a correct answer in the source doc",
+        "7th: 1 questions do not have valid MCQ options in the source doc",
+        "8th: 3 questions do not have a correct answer in the source doc",
+        "8th: 3 questions do not have valid MCQ options in the source doc",
+        "9th: 4 questions do not have a correct answer in the source doc",
+        "9th: 4 questions do not have valid MCQ options in the source doc",
+        "No fully usable MCQ question bank could be generated from this source without manual review"
+      ]
+    },
+    {
+      "subject": "Malayalam",
+      "source_file": "Malayalam LEVEL TEST.docx",
+      "output_file": "docs/Level Test/JSON/malayalam.json",
+      "conversion_status": "needs_manual_review",
+      "levels": {
+        "5": {
+          "total_questions": 5,
+          "usable_questions": 0
+        },
+        "6": {
+          "total_questions": 5,
+          "usable_questions": 0
+        },
+        "7": {
+          "total_questions": 5,
+          "usable_questions": 0
+        },
+        "8": {
+          "total_questions": 6,
+          "usable_questions": 0
+        },
+        "9": {
+          "total_questions": 5,
+          "usable_questions": 0
+        }
+      },
+      "generated_targets": {
+        "8": {
+          "total_questions": 0,
+          "source_levels": [
+            "5",
+            "6",
+            "7"
+          ]
+        },
+        "9": {
+          "total_questions": 0,
+          "source_levels": [
+            "5",
+            "6",
+            "7",
+            "8"
+          ]
+        },
+        "10": {
+          "total_questions": 0,
+          "source_levels": [
+            "5",
+            "6",
+            "7",
+            "8",
+            "9"
+          ]
+        }
+      },
+      "warnings": [
+        "5th: 5 questions do not have a correct answer in the source doc",
+        "5th: 5 questions do not have valid MCQ options in the source doc",
+        "6th: 5 questions do not have a correct answer in the source doc",
+        "6th: 5 questions do not have valid MCQ options in the source doc",
+        "7th: 5 questions do not have a correct answer in the source doc",
+        "7th: 5 questions do not have valid MCQ options in the source doc",
+        "8th: 6 questions do not have a correct answer in the source doc",
+        "8th: 6 questions do not have valid MCQ options in the source doc",
+        "9th: 5 questions do not have a correct answer in the source doc",
+        "9th: 5 questions do not have valid MCQ options in the source doc",
+        "No fully usable MCQ question bank could be generated from this source without manual review"
+      ]
+    },
+    {
+      "subject": "Maths",
+      "source_file": "Maths LEVEL TEST.docx",
+      "output_file": "docs/Level Test/JSON/maths.json",
+      "conversion_status": "needs_manual_review",
+      "levels": {
+        "5": {
+          "total_questions": 5,
+          "usable_questions": 0
+        },
+        "6": {
+          "total_questions": 1,
+          "usable_questions": 0
+        },
+        "7": {
+          "total_questions": 2,
+          "usable_questions": 0
+        },
+        "8": {
+          "total_questions": 2,
+          "usable_questions": 0
+        },
+        "9": {
+          "total_questions": 4,
+          "usable_questions": 0
+        }
+      },
+      "generated_targets": {
+        "8": {
+          "total_questions": 0,
+          "source_levels": [
+            "5",
+            "6",
+            "7"
+          ]
+        },
+        "9": {
+          "total_questions": 0,
+          "source_levels": [
+            "5",
+            "6",
+            "7",
+            "8"
+          ]
+        },
+        "10": {
+          "total_questions": 0,
+          "source_levels": [
+            "5",
+            "6",
+            "7",
+            "8",
+            "9"
+          ]
+        }
+      },
+      "warnings": [
+        "5th: 5 questions do not have a correct answer in the source doc",
+        "5th: 5 questions do not have valid MCQ options in the source doc",
+        "6th: 1 questions do not have a correct answer in the source doc",
+        "6th: 1 questions do not have valid MCQ options in the source doc",
+        "7th: 2 questions do not have a correct answer in the source doc",
+        "7th: 2 questions do not have valid MCQ options in the source doc",
+        "8th: 2 questions do not have a correct answer in the source doc",
+        "8th: 2 questions do not have valid MCQ options in the source doc",
+        "9th: 4 questions do not have a correct answer in the source doc",
+        "9th: 4 questions do not have valid MCQ options in the source doc",
+        "No fully usable MCQ question bank could be generated from this source without manual review"
+      ]
+    },
+    {
+      "subject": "Physics",
+      "source_file": "Physics LEVEL TEST.docx",
+      "output_file": "docs/Level Test/JSON/physics.json",
+      "conversion_status": "ready",
+      "levels": {
+        "5": {
+          "total_questions": 6,
+          "usable_questions": 6
+        },
+        "6": {
+          "total_questions": 17,
+          "usable_questions": 17
+        },
+        "7": {
+          "total_questions": 3,
+          "usable_questions": 3
+        },
+        "8": {
+          "total_questions": 26,
+          "usable_questions": 26
+        },
+        "9": {
+          "total_questions": 21,
+          "usable_questions": 21
+        }
+      },
+      "generated_targets": {
+        "8": {
+          "total_questions": 26,
+          "source_levels": [
+            "5",
+            "6",
+            "7"
+          ]
+        },
+        "9": {
+          "total_questions": 52,
+          "source_levels": [
+            "5",
+            "6",
+            "7",
+            "8"
+          ]
+        },
+        "10": {
+          "total_questions": 73,
+          "source_levels": [
+            "5",
+            "6",
+            "7",
+            "8",
+            "9"
+          ]
+        }
+      },
+      "warnings": []
+    }
+  ]
+}

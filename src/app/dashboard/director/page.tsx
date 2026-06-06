@@ -269,7 +269,7 @@ export default function DirectorDashboard() {
     refetchInterval: 60_000,
   });
 
-  const { data: collectedByMode, isLoading: loadCollectedByMode } = useQuery({
+  const { data: collectedByMode, isLoading: loadCollectedByMode, isError: errCollectedByMode } = useQuery({
     queryKey: ["director-collected-by-mode"],
     queryFn: getCollectedByMode,
     staleTime: 60_000,
@@ -496,15 +496,17 @@ export default function DirectorDashboard() {
             <Card className="h-full hover:shadow-card-hover transition-all duration-200 cursor-pointer border-success/20 hover:border-success/30 overflow-hidden">
               <CardContent className="p-3 text-center">
                 <CircleCheck className="h-4 w-4 text-success mx-auto mb-1.5" />
-                {errInvoiceStats ? (
+                {errCollectedByMode ? (
                   <p className="text-xs text-error flex items-center justify-center gap-1"><AlertCircle className="h-3 w-3" /> Error</p>
+                ) : loadCollectedByMode ? (
+                  <p className="text-xl font-bold text-success leading-tight truncate">...</p>
                 ) : (
                   <p className="text-xl font-bold text-success leading-tight truncate">
-                    {loadInvoiceStats ? "..." : <AnimatedCurrency value={invoiceStats?.totalCollected ?? 0} />}
+                    <AnimatedCurrency value={collectedByMode?.total ?? 0} />
                   </p>
                 )}
                 <p className="text-[10px] text-text-tertiary mt-0.5">Collected</p>
-                {!errInvoiceStats && (
+                {!errCollectedByMode && (
                   <div className="flex justify-center gap-2 mt-1.5">
                     <div className="text-center">
                       <div className="flex items-center justify-center gap-0.5">

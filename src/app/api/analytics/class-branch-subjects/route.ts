@@ -17,6 +17,8 @@ function getAcademicWindowUTC(today: Date) {
   return { start: `${startYear}-05-01`, end: formatDateUTC(today) };
 }
 
+type ProgramCourse = { course: string; course_name?: string; required?: number };
+
 /**
  * GET /api/analytics/class-branch-subjects?program=X&branch=X
  *
@@ -42,20 +44,31 @@ export async function GET(request: NextRequest) {
     const auth = `token ${FRAPPE_API_KEY}:${FRAPPE_API_SECRET}`;
     const { start: fromDate, end: toDate } = getAcademicWindowUTC(new Date());
 
-    // 1. Get batches for this program + branch
-    const sgRes = await fetch(
-      `${FRAPPE_URL}/api/resource/Student%20Group?${new URLSearchParams({
-        filters: JSON.stringify([
-          ["program", "=", program],
-          ["custom_branch", "=", branch],
-          ["group_based_on", "=", "Batch"],
-          ["disabled", "=", 0],
-        ]),
-        fields: JSON.stringify(["name"]),
-        limit_page_length: "100",
-      })}`,
-      { headers: { Authorization: auth }, cache: "no-store" },
-    );
+    // 1. Get full program subject list + batches for this program + branch
+    const [programRes, sgRes] = await Promise.all([
+      fetch(
+        `${FRAPPE_URL}/api/resource/Program/${encodeURIComponent(program)}`,
+        { headers: { Authorization: auth }, cache: "no-store" },
+      ),
+      fetch(
+        `${FRAPPE_URL}/api/resource/Student%20Group?${new URLSearchParams({
+          filters: JSON.stringify([
+            ["program", "=", program],
+            ["custom_branch", "=", branch],
+            ["group_based_on", "=", "Batch"],
+            ["disabled", "=", 0],
+          ]),
+          fields: JSON.stringify(["name"]),
+          limit_page_length: "100",
+        })}`,
+        { headers: { Authorization: auth }, cache: "no-store" },
+      ),
+    ]);
+    const programDoc: { courses?: ProgramCourse[] } =
+      programRes.ok ? (await programRes.json()).data ?? {} : {};
+    const programCourses = (programDoc.courses ?? [])
+      .map((item) => item.course?.trim())
+      .filter((course): course is string => Boolean(course));
     const batchDocs: { name: string }[] = sgRes.ok ? (await sgRes.json()).data ?? [] : [];
     const batchNames = batchDocs.map((b) => b.name);
 
@@ -123,6 +136,9 @@ export async function GET(request: NextRequest) {
       plansRes.ok ? (await plansRes.json()).data ?? [] : [];
 
     const subjectMap: Record<string, { scores: number[]; maxs: number[] }> = {};
+    for (const course of programCourses) {
+      subjectMap[course] = { scores: [], maxs: [] };
+    }
     const batchStats: Record<
       string,
       { students: Set<string>; totalScore: number; totalMax: number; passed: number }

@@ -6,7 +6,7 @@ import { safeNum, pctColor, pctBadgeColor } from "@/components/academics/BranchD
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronLeft, ChevronRight, ClipboardCheck, Trophy,
-  BarChart3, AlertTriangle, Users, Building2, BookOpen,
+  BarChart3, Users, Building2, BookOpen,
 } from "lucide-react";
 
 const container = {
@@ -18,11 +18,10 @@ const item = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } };
 interface Props {
   program: string;
   onBack: () => void;
-  onSelectBranch: (branch: string) => void;
   onSelectSubject: (subject: string) => void;
 }
 
-export function ClassBranchesView({ program, onBack, onSelectBranch, onSelectSubject }: Props) {
+export function ClassBranchesView({ program, onBack, onSelectSubject }: Props) {
   const { data, isLoading } = useQuery({
     queryKey: ["class-branches", program],
     queryFn: () => getClassBranches(program),
@@ -54,14 +53,13 @@ export function ClassBranchesView({ program, onBack, onSelectBranch, onSelectSub
   return (
     <AnimatePresence mode="wait">
       <motion.div
-        key="class-branches"
+        key="class-subjects"
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: -20 }}
         transition={{ duration: 0.2 }}
         className="space-y-6"
       >
-        {/* Header */}
         <div className="flex items-center gap-3">
           <button
             onClick={onBack}
@@ -76,12 +74,11 @@ export function ClassBranchesView({ program, onBack, onSelectBranch, onSelectSub
               <span className="text-primary font-semibold">{program}</span>
             </div>
             <p className="text-xs text-text-tertiary">
-              Branch-wise performance for {program}
+              Subject-wise performance for {program}
             </p>
           </div>
         </div>
 
-        {/* Summary Bar */}
         {overall && (
           <motion.div
             variants={container}
@@ -91,10 +88,10 @@ export function ClassBranchesView({ program, onBack, onSelectBranch, onSelectSub
           >
             <motion.div variants={item} className="bg-surface rounded-[12px] p-4 border border-border-light">
               <div className="flex items-center gap-2 mb-2">
-                <Building2 className="w-4 h-4 text-text-tertiary" />
-                <span className="text-xs text-text-tertiary font-medium">Branches</span>
+                <BookOpen className="w-4 h-4 text-text-tertiary" />
+                <span className="text-xs text-text-tertiary font-medium">Subjects</span>
               </div>
-              <p className="text-2xl font-bold text-primary">{branches.length}</p>
+              <p className="text-2xl font-bold text-primary">{subjects.length}</p>
             </motion.div>
             <motion.div variants={item} className="bg-surface rounded-[12px] p-4 border border-border-light">
               <div className="flex items-center gap-2 mb-2">
@@ -124,16 +121,15 @@ export function ClassBranchesView({ program, onBack, onSelectBranch, onSelectSub
           </motion.div>
         )}
 
-        {/* Branch Cards */}
         <div>
           <h2 className="text-sm font-semibold text-text-secondary mb-3 flex items-center gap-2">
-            <Building2 className="w-4 h-4" />
-            Branches ({branches.length})
+            <BookOpen className="w-4 h-4" />
+            Subjects ({subjects.length})
           </h2>
-          {branches.length === 0 ? (
+          {subjects.length === 0 ? (
             <div className="bg-surface rounded-[12px] p-8 text-center border border-border-light">
-              <Building2 className="w-10 h-10 text-text-tertiary mx-auto mb-3" />
-              <p className="text-text-secondary font-medium">No branches found for this class</p>
+              <BookOpen className="w-10 h-10 text-text-tertiary mx-auto mb-3" />
+              <p className="text-text-secondary font-medium">No subjects found for this class</p>
             </div>
           ) : (
             <motion.div
@@ -142,12 +138,8 @@ export function ClassBranchesView({ program, onBack, onSelectBranch, onSelectSub
               animate="show"
               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
             >
-              {branches.map((branch, i) => {
-                const health = Math.round(
-                  safeNum(branch.avg_attendance_pct) * 0.4 +
-                  safeNum(branch.avg_exam_score_pct) * 0.35 +
-                  safeNum(branch.pass_rate) * 0.25,
-                );
+              {subjects.map((subject, i) => {
+                const health = safeNum(subject.health_score);
                 const healthColor =
                   health >= 70 ? "text-success" : health >= 50 ? "text-warning" : "text-error";
                 const healthBg =
@@ -155,12 +147,11 @@ export function ClassBranchesView({ program, onBack, onSelectBranch, onSelectSub
 
                 return (
                   <motion.button
-                    key={branch.branch}
+                    key={subject.subject}
                     variants={item}
-                    onClick={() => onSelectBranch(branch.branch)}
+                    onClick={() => onSelectSubject(subject.subject)}
                     className="text-left bg-surface rounded-[12px] border border-border-light overflow-hidden hover:border-primary/30 hover:shadow-md transition-all group"
                   >
-                    {/* Card Header */}
                     <div className="p-4 border-b border-border-light flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div
@@ -170,10 +161,10 @@ export function ClassBranchesView({ program, onBack, onSelectBranch, onSelectSub
                         </div>
                         <div>
                           <p className="text-sm font-semibold text-primary group-hover:text-primary/80 transition-colors">
-                            {branch.branch.replace("Smart Up ", "")}
+                            {subject.subject}
                           </p>
                           <p className="text-xs text-text-tertiary">
-                            {branch.total_students} students · {branch.total_batches} batches
+                            {subject.total_students} students · {subject.branches_count} {subject.branches_count === 1 ? "branch" : "branches"}
                           </p>
                         </div>
                       </div>
@@ -195,15 +186,14 @@ export function ClassBranchesView({ program, onBack, onSelectBranch, onSelectSub
                       </div>
                     </div>
 
-                    {/* Metrics */}
                     <div className="p-4 grid grid-cols-3 gap-3">
                       <div>
                         <div className="flex items-center gap-1.5 mb-1">
                           <ClipboardCheck className="w-3 h-3 text-text-tertiary" />
                           <span className="text-xs text-text-tertiary">Attendance</span>
                         </div>
-                        <p className={`text-lg font-bold ${pctColor(safeNum(branch.avg_attendance_pct))}`}>
-                          {safeNum(branch.avg_attendance_pct)}%
+                        <p className={`text-lg font-bold ${pctColor(safeNum(subject.avg_attendance_pct))}`}>
+                          {safeNum(subject.avg_attendance_pct)}%
                         </p>
                       </div>
                       <div>
@@ -211,8 +201,8 @@ export function ClassBranchesView({ program, onBack, onSelectBranch, onSelectSub
                           <BarChart3 className="w-3 h-3 text-text-tertiary" />
                           <span className="text-xs text-text-tertiary">Avg Score</span>
                         </div>
-                        <p className={`text-lg font-bold ${pctColor(safeNum(branch.avg_exam_score_pct), 60, 40)}`}>
-                          {safeNum(branch.avg_exam_score_pct)}%
+                        <p className={`text-lg font-bold ${pctColor(safeNum(subject.avg_score_pct), 60, 40)}`}>
+                          {safeNum(subject.avg_score_pct)}%
                         </p>
                       </div>
                       <div>
@@ -220,28 +210,12 @@ export function ClassBranchesView({ program, onBack, onSelectBranch, onSelectSub
                           <Trophy className="w-3 h-3 text-text-tertiary" />
                           <span className="text-xs text-text-tertiary">Pass Rate</span>
                         </div>
-                        <p className={`text-lg font-bold ${pctColor(safeNum(branch.pass_rate))}`}>
-                          {safeNum(branch.pass_rate)}%
+                        <p className={`text-lg font-bold ${pctColor(safeNum(subject.pass_rate))}`}>
+                          {safeNum(subject.pass_rate)}%
                         </p>
                       </div>
                     </div>
 
-                    {/* At Risk */}
-                    {branch.chronic_absentees > 0 && (
-                      <div className="px-4 pb-3">
-                        <div className="bg-error/5 rounded-[8px] px-3 py-2 flex items-center justify-between">
-                          <div className="flex items-center gap-1.5">
-                            <AlertTriangle className="w-3.5 h-3.5 text-error" />
-                            <span className="text-xs text-error font-medium">
-                              {branch.chronic_absentees} at risk
-                            </span>
-                          </div>
-                          <span className="text-xs text-error">&lt;75% attendance</span>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Health Bar */}
                     <div className="px-4 pb-4">
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-xs text-text-tertiary">Academic Health</span>
@@ -263,50 +237,43 @@ export function ClassBranchesView({ program, onBack, onSelectBranch, onSelectSub
           )}
         </div>
 
-        {/* Subject Comparison Table */}
-        {subjects.length > 0 && (
+        {branches.length > 0 && (
           <div>
             <h2 className="text-sm font-semibold text-text-secondary mb-3 flex items-center gap-2">
-              <BookOpen className="w-4 h-4" />
-              Subject Summary — {program} (All Branches)
+              <Building2 className="w-4 h-4" />
+              Branch Summary - {program}
             </h2>
             <div className="bg-surface rounded-[12px] border border-border-light overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-app-bg border-b border-border-light">
-                      <th className="text-left p-3 font-medium text-text-secondary">Subject</th>
+                      <th className="text-left p-3 font-medium text-text-secondary">Branch</th>
                       <th className="text-center p-3 font-medium text-text-secondary">Students</th>
+                      <th className="text-center p-3 font-medium text-text-secondary">Attendance</th>
                       <th className="text-center p-3 font-medium text-text-secondary">Avg Score</th>
                       <th className="text-center p-3 font-medium text-text-secondary">Pass Rate</th>
-                      <th className="text-center p-3 font-medium text-text-secondary">Branches</th>
-                      <th className="text-center p-3 font-medium text-text-secondary"></th>
                     </tr>
                   </thead>
                   <tbody>
-                    {subjects.map((s) => (
-                      <tr
-                        key={s.subject}
-                        className="border-b border-border-light last:border-0 hover:bg-app-bg/50 transition-colors cursor-pointer"
-                        onClick={() => onSelectSubject(s.subject)}
-                      >
-                        <td className="p-3 font-semibold text-primary">{s.subject}</td>
-                        <td className="p-3 text-center text-text-secondary">{s.total_students}</td>
+                    {branches.map((branch) => (
+                      <tr key={branch.branch} className="border-b border-border-light last:border-0">
+                        <td className="p-3 font-semibold text-primary">{branch.branch.replace("Smart Up ", "")}</td>
+                        <td className="p-3 text-center text-text-secondary">{branch.total_students}</td>
                         <td className="p-3 text-center">
-                          <span className={`font-bold ${pctColor(safeNum(s.avg_score_pct), 60, 40)}`}>
-                            {safeNum(s.avg_score_pct)}%
+                          <span className={`font-bold ${pctColor(safeNum(branch.avg_attendance_pct))}`}>
+                            {safeNum(branch.avg_attendance_pct)}%
                           </span>
                         </td>
                         <td className="p-3 text-center">
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${pctBadgeColor(safeNum(s.pass_rate))}`}>
-                            {safeNum(s.pass_rate)}%
+                          <span className={`font-bold ${pctColor(safeNum(branch.avg_exam_score_pct), 60, 40)}`}>
+                            {safeNum(branch.avg_exam_score_pct)}%
                           </span>
                         </td>
-                        <td className="p-3 text-center text-text-tertiary text-xs">
-                          {s.branches_count} {s.branches_count === 1 ? "branch" : "branches"}
-                        </td>
                         <td className="p-3 text-center">
-                          <ChevronRight className="w-4 h-4 text-text-tertiary inline" />
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${pctBadgeColor(safeNum(branch.pass_rate))}`}>
+                            {safeNum(branch.pass_rate)}%
+                          </span>
                         </td>
                       </tr>
                     ))}

@@ -1,0 +1,19 @@
+{
+  "doctype": "DocType",
+  "name": "Level Exam Assignment Student",
+  "module": "Custom",
+  "custom": 1,
+  "istable": 1,
+  "editable_grid": 1,
+  "document_type": "Document",
+  "engine": "InnoDB",
+  "field_order": ["student", "student_name", "program", "student_group", "assignment_status"],
+  "fields": [
+    { "fieldname": "student", "fieldtype": "Link", "label": "Student", "options": "Student", "reqd": 1, "in_list_view": 1 },
+    { "fieldname": "student_name", "fieldtype": "Data", "label": "Student Name", "read_only": 1, "in_list_view": 1 },
+    { "fieldname": "program", "fieldtype": "Data", "label": "Program", "read_only": 1 },
+    { "fieldname": "student_group", "fieldtype": "Data", "label": "Student Group", "read_only": 1 },
+    { "fieldname": "assignment_status", "fieldtype": "Select", "label": "Assignment Status", "options": "Assigned\nStarted\nSubmitted\nAbsent", "default": "Assigned", "reqd": 1, "in_list_view": 1 }
+  ],
+  "permissions": []
+}

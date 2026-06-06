@@ -168,17 +168,34 @@ export default function InstructorAttendancePage() {
     return map;
   }, [schedules, selectedDate, attendanceBySchedule]);
 
+  function canAccessSchedule(schedule: CourseSchedule): boolean {
+    return isBatchAllowed(schedule.student_group) || schedule.instructor === instructorName;
+  }
+
   // ── Load students when a session is expanded ──
   const loadSessionStudents = useCallback(
     async (schedule: CourseSchedule) => {
-      if (!isBatchAllowed(schedule.student_group)) {
+      if (!canAccessSchedule(schedule)) {
         toast.error("Access denied: this batch is not assigned to you.");
         return;
       }
       setSessionLoading(true);
       try {
+        const batchPromise =
+          schedule.instructor === instructorName && !isBatchAllowed(schedule.student_group)
+            ? fetch(`/api/instructor/schedule-batch?schedule=${encodeURIComponent(schedule.name)}`, {
+                credentials: "include",
+              }).then(async (res) => {
+                const payload = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                  throw new Error(payload?.error || "Failed to load visiting batch");
+                }
+                return { data: payload.data as { students?: BatchStudent[] } };
+              })
+            : getBatch(schedule.student_group);
+
         const [batchRes, attendanceRes] = await Promise.all([
-          getBatch(schedule.student_group),
+          batchPromise,
           getAttendance(selectedDate, {
             student_group: schedule.student_group,
             course_schedule: schedule.name,
@@ -206,7 +223,7 @@ export default function InstructorAttendancePage() {
         setSessionLoading(false);
       }
     },
-    [selectedDate, isBatchAllowed]
+    [selectedDate, isBatchAllowed, instructorName]
   );
 
   // Fetch disabilities when students change
@@ -269,7 +286,7 @@ export default function InstructorAttendancePage() {
 
   async function saveSessionAttendance(schedule: CourseSchedule) {
     if (students.length === 0) return;
-    if (!isBatchAllowed(schedule.student_group)) {
+    if (!canAccessSchedule(schedule)) {
       toast.error("Access denied: you cannot mark attendance for this batch.");
       return;
     }
@@ -281,13 +298,33 @@ export default function InstructorAttendancePage() {
         status: attendance[s.student] ?? ("Present" as const),
       }));
 
-      await bulkMarkAttendance({
-        student_group: schedule.student_group,
-        date: selectedDate,
-        course_schedule: schedule.name,
-        students: entries,
-        custom_branch: schedule.custom_branch || undefined,
-      });
+      if (schedule.instructor === instructorName) {
+        const res = await fetch("/api/instructor/attendance-save", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            student_group: schedule.student_group,
+            date: selectedDate,
+            course_schedule: schedule.name,
+            students: entries,
+            custom_branch: schedule.custom_branch || undefined,
+          }),
+        });
+
+        if (!res.ok) {
+          const payload = await res.json().catch(() => ({}));
+          throw new Error(payload?.error || "Failed to save attendance");
+        }
+      } else {
+        await bulkMarkAttendance({
+          student_group: schedule.student_group,
+          date: selectedDate,
+          course_schedule: schedule.name,
+          students: entries,
+          custom_branch: schedule.custom_branch || undefined,
+        });
+      }
 
       toast.success(
         `Attendance saved for ${schedule.custom_topic || schedule.course}`
@@ -306,6 +343,9 @@ export default function InstructorAttendancePage() {
       setAttendance({});
       } catch (err) {
         let message = "Failed to save attendance. Please try again.";
+        if (err instanceof Error && err.message) {
+          message = err.message;
+        }
         try {
           const raw = (err as { response?: { data?: { _server_messages?: string } } })
             ?.response?.data?._server_messages;

@@ -382,6 +382,7 @@ export async function getStudentGroups(params?: {
   branch?: string;
   oneToOneOnly?: boolean;
   subjectWiseOnly?: boolean;
+  regularOnly?: boolean;
   includeName?: string;
 }): Promise<FrappeListResponse<StudentGroupOption>> {
   const baseFields = ["name", "student_group_name", "program", "custom_branch", "custom_subject"];
@@ -454,6 +455,9 @@ export async function getStudentGroups(params?: {
     if (params?.subjectWiseOnly) {
       return ensureIncluded({ ...data, data: (data.data ?? []).filter((g) => !!g.custom_subject) });
     }
+    if (params?.regularOnly) {
+      return ensureIncluded({ ...data, data: (data.data ?? []).filter((g) => !g.custom_subject) });
+    }
     return ensureIncluded(data);
   } catch (error: unknown) {
     // Backend may reject custom_is_one_to_one in filters — retry with field in
@@ -487,6 +491,12 @@ export async function getStudentGroups(params?: {
       if (params?.oneToOneOnly) {
         filtered = filtered.filter((g) => g.custom_is_one_to_one === 1);
       }
+      if (params?.subjectWiseOnly) {
+        filtered = filtered.filter((g) => !!g.custom_subject);
+      }
+      if (params?.regularOnly) {
+        filtered = filtered.filter((g) => !g.custom_subject);
+      }
       return ensureIncluded({ ...midData, data: filtered });
     } catch {
       // Last resort: base fields only — cannot distinguish O2O groups.
@@ -499,6 +509,12 @@ export async function getStudentGroups(params?: {
       const { data } = await apiClient.get<FrappeListResponse<StudentGroupOption>>(
         `/resource/Student Group?${fallbackQuery}`,
       );
+      if (params?.subjectWiseOnly) {
+        return ensureIncluded({ ...data, data: (data.data ?? []).filter((g) => !!g.custom_subject) });
+      }
+      if (params?.regularOnly) {
+        return ensureIncluded({ ...data, data: (data.data ?? []).filter((g) => !g.custom_subject) });
+      }
       return ensureIncluded(data);
     }
   }

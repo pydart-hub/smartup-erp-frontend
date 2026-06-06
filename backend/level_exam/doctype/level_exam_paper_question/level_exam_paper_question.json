@@ -1,0 +1,17 @@
+{
+  "doctype": "DocType",
+  "name": "Level Exam Paper Question",
+  "module": "Custom",
+  "custom": 1,
+  "istable": 1,
+  "editable_grid": 1,
+  "document_type": "Document",
+  "engine": "InnoDB",
+  "field_order": ["question", "marks", "display_order"],
+  "fields": [
+    { "fieldname": "question", "fieldtype": "Link", "label": "Question", "options": "Level Exam Question", "reqd": 1, "in_list_view": 1 },
+    { "fieldname": "marks", "fieldtype": "Int", "label": "Marks", "default": "1", "reqd": 1, "in_list_view": 1 },
+    { "fieldname": "display_order", "fieldtype": "Int", "label": "Display Order", "default": "1", "reqd": 1, "in_list_view": 1 }
+  ],
+  "permissions": []
+}

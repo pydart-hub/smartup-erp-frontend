@@ -40,11 +40,16 @@ import {
   getStudentGroups,
   type CourseSchedule,
 } from "@/lib/api/courseSchedule";
+import {
+  deleteAttendanceRecordsForCourseSchedule,
+  getAttendanceRecordsByCourseSchedule,
+} from "@/lib/api/attendance";
 import { getInstructors } from "@/lib/api/employees";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 type ViewMode = "week" | "calendar";
+type DeleteTarget = Pick<CourseSchedule, "name" | "course" | "custom_event_title" | "custom_event_type">;
 
 function getWeekDates(anchor: Date): Date[] {
   const day = anchor.getDay(); // 0=Sun
@@ -139,7 +144,7 @@ export default function BranchManagerCourseSchedulePage() {
   const [search, setSearch] = useState("");
   const [groupFilter, setGroupFilter] = useState("");
   const [instructorFilter, setInstructorFilter] = useState("");
-  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const [selectedCalDate, setSelectedCalDate] = useState<string | null>(null);
   const [addPopupDate, setAddPopupDate] = useState<string | null>(null);
 
@@ -186,17 +191,34 @@ export default function BranchManagerCourseSchedulePage() {
     staleTime: 60_000,
   });
 
+  const { data: linkedAttendanceRes, isLoading: attendanceCheckLoading } = useQuery({
+    queryKey: ["schedule-linked-attendance", deleteTarget?.name],
+    queryFn: () => getAttendanceRecordsByCourseSchedule(deleteTarget!.name),
+    enabled: !!deleteTarget?.name,
+    staleTime: 10_000,
+  });
+
   // ── Delete mutation ────────────────────────────────────────────────────────
   const { mutate: doDelete, isPending: deleting } = useMutation({
-    mutationFn: (name: string) => deleteCourseSchedule(name),
+    mutationFn: async (target: DeleteTarget) => {
+      const attendanceCount = linkedAttendanceRes?.data?.length ?? 0;
+      if (attendanceCount > 0) {
+        await deleteAttendanceRecordsForCourseSchedule(target.name);
+      }
+      await deleteCourseSchedule(target.name);
+    },
     onSuccess: () => {
       setDeleteTarget(null);
       queryClient.invalidateQueries({ queryKey: ["bm-schedules"] });
+      queryClient.invalidateQueries({ queryKey: ["schedule-linked-attendance"] });
     },
   });
 
   // ── Derived data ───────────────────────────────────────────────────────────
-  const allSchedules = schedRes?.data ?? [];
+  const allSchedules = useMemo(() => schedRes?.data ?? [], [schedRes?.data]);
+  const linkedAttendanceCount = linkedAttendanceRes?.data?.length ?? 0;
+  const deleteLabel =
+    deleteTarget?.custom_event_title || deleteTarget?.course || deleteTarget?.custom_event_type || "this schedule";
 
   const filtered = useMemo(() => {
     let list = allSchedules;
@@ -418,7 +440,10 @@ export default function BranchManagerCourseSchedulePage() {
           byDate={byDate}
           today={today}
           isLoading={isLoading}
-          onDelete={setDeleteTarget}
+          onDelete={(name) => {
+            const schedule = allSchedules.find((item) => item.name === name);
+            if (schedule) setDeleteTarget(schedule);
+          }}
           onAddClick={setAddPopupDate}
           onEditClick={(name) => router.push(`/dashboard/branch-manager/course-schedule/edit/${name}`)}
         />
@@ -431,7 +456,10 @@ export default function BranchManagerCourseSchedulePage() {
           isLoading={isLoading}
           selectedDate={selectedCalDate}
           onSelectDate={setSelectedCalDate}
-          onDelete={setDeleteTarget}
+          onDelete={(name) => {
+            const schedule = allSchedules.find((item) => item.name === name);
+            if (schedule) setDeleteTarget(schedule);
+          }}
           onAddClick={setAddPopupDate}
           onEditClick={(name) => router.push(`/dashboard/branch-manager/course-schedule/edit/${name}`)}
         />
@@ -512,7 +540,11 @@ export default function BranchManagerCourseSchedulePage() {
             >
               <h3 className="font-bold text-text-primary">Delete Schedule?</h3>
               <p className="text-sm text-text-secondary">
-                This will permanently remove the course schedule. This cannot be undone.
+                {attendanceCheckLoading
+                  ? "Checking whether attendance is linked to this schedule..."
+                  : linkedAttendanceCount > 0
+                    ? `Attendance is already marked for ${deleteLabel}. If you proceed, ${linkedAttendanceCount} attendance record${linkedAttendanceCount > 1 ? "s" : ""} will be deleted first, then the course schedule will be removed.`
+                    : "This will permanently remove the course schedule. This cannot be undone."}
               </p>
               <div className="flex gap-2 justify-end">
                 <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleting}>
@@ -521,10 +553,10 @@ export default function BranchManagerCourseSchedulePage() {
                 <Button
                   variant="danger"
                   onClick={() => doDelete(deleteTarget)}
-                  disabled={deleting}
+                  disabled={deleting || attendanceCheckLoading}
                   loading={deleting}
                 >
-                  Delete
+                  {linkedAttendanceCount > 0 ? "Delete Attendance & Schedule" : "Delete"}
                 </Button>
               </div>
             </motion.div>

@@ -163,7 +163,7 @@ function BulkScheduleContent() {
   // ── Lookups ────────────────────────────────────────────────────────────────
   const { data: groupRes } = useQuery({
     queryKey: ["student-groups", branch],
-    queryFn: () => getStudentGroups({ branch: branch || undefined }),
+    queryFn: () => getStudentGroups({ branch: branch || undefined, regularOnly: true }),
     staleTime: 5 * 60_000,
   });
   const groups = groupRes?.data ?? [];

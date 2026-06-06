@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
     }
 
     const auth = `token ${FRAPPE_API_KEY}:${FRAPPE_API_SECRET}`;
+    const normalizedTopic = typeof custom_topic === "string" ? custom_topic.trim() : "";
 
     // Fetch Student Group to get program, academic_year, custom_branch
     const sgRes = await fetch(
@@ -105,9 +106,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Determine unique assessment criteria name
-    // Each topic gets its own criteria so Frappe allows multiple exams per course+type
-    const criteriaName = custom_topic || "Theory";
+    // Frappe rejects repeated "Theory" criteria on multiple plans for the same course.
+    // Use a stable but exam-specific criteria label so each exam can be created safely.
+    const criteriaParts = [
+      "Theory",
+      course,
+      assessment_group,
+      normalizedTopic || schedule_date,
+      normalizedTopic ? undefined : from_time,
+    ].filter(Boolean);
+    const criteriaName = criteriaParts.join(" - ").slice(0, 140);
 
     // Ensure the Assessment Criteria record exists in Frappe
     const criteriaCheckRes = await fetch(
@@ -127,7 +135,7 @@ export async function POST(request: NextRequest) {
       student_group,
       course,
       assessment_group,
-      assessment_name: `${course} - ${assessment_group}${custom_topic ? ` (${custom_topic})` : ""}`,
+      assessment_name: `${course} - ${assessment_group}${normalizedTopic ? ` (${normalizedTopic})` : ""}`,
       grading_scale: "SmartUp Grading Scale",
       program: sg.program || "",
       academic_year: sg.academic_year || "",
@@ -137,6 +145,7 @@ export async function POST(request: NextRequest) {
       to_time,
       maximum_assessment_score: Number(maximum_assessment_score),
       examiner: examiner || "",
+      ...(normalizedTopic ? { custom_topic: normalizedTopic } : {}),
       ...(room ? { room } : {}),
       assessment_criteria: [
         {

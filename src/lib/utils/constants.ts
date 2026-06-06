@@ -1,11 +1,8 @@
-// ── Batch Configuration ──
 export const MAX_BATCH_CAPACITY = 60;
 
-// ── Student Statuses ──
 export const STUDENT_STATUSES = ["Active", "Completed", "Drop-out", "Discontinued"] as const;
 export type StudentStatus = (typeof STUDENT_STATUSES)[number];
 
-// ── Discontinuation Reasons ──
 export const DISCONTINUATION_REASONS = [
   "Fee Default",
   "Relocation",
@@ -16,50 +13,41 @@ export const DISCONTINUATION_REASONS = [
 ] as const;
 export type DiscontinuationReason = (typeof DISCONTINUATION_REASONS)[number];
 
-// ── Class Levels ──
 export const CLASS_LEVELS = ["8", "9", "10", "11", "12"] as const;
 
-// ── Batch Names ──
 export const BATCH_NAMES = ["A", "B", "C", "D", "E", "F", "G", "H"] as const;
 
-// ── Attendance Statuses ──
 export const ATTENDANCE_STATUSES = ["Present", "Absent", "Late"] as const;
 
-// ── Fee Payment Modes ──
 export const PAYMENT_MODES = ["Cash", "Bank Transfer", "UPI", "Cheque", "Razorpay"] as const;
 
-// ── Instalment Due Date Schedule ──
-// Month (0-indexed) and day for each instalment option.
-// Academic year starts April, ends March.
 export const INSTALMENT_DUE_DATES = {
-  // OTP: due on enrollment date (handled dynamically)
   quarterly: [
-    { month: 3, day: 15 },   // Q1: April 15
-    { month: 6, day: 15 },   // Q2: July 15
-    { month: 9, day: 15 },   // Q3: October 15
-    { month: 0, day: 15 },   // Q4: January 15 (next calendar year)
+    { month: 3, day: 15 },
+    { month: 6, day: 15 },
+    { month: 9, day: 15 },
+    { month: 0, day: 15 },
   ],
   inst6: [
-    { month: 3, day: 15 },   // April 15
-    { month: 5, day: 15 },   // June 15
-    { month: 7, day: 15 },   // August 15
-    { month: 9, day: 15 },   // October 15
-    { month: 11, day: 15 },  // December 15
-    { month: 1, day: 15 },   // February 15 (next calendar year)
+    { month: 3, day: 15 },
+    { month: 5, day: 15 },
+    { month: 7, day: 15 },
+    { month: 9, day: 15 },
+    { month: 11, day: 15 },
+    { month: 1, day: 15 },
   ],
   inst8: [
-    { month: 3, day: 15 },   // April 15
-    { month: 4, day: 15 },   // May 15
-    { month: 5, day: 15 },   // June 15
-    { month: 6, day: 15 },   // July 15
-    { month: 7, day: 15 },   // August 15
-    { month: 8, day: 15 },   // September 15
-    { month: 9, day: 15 },   // October 15
-    { month: 10, day: 15 },  // November 15
+    { month: 3, day: 15 },
+    { month: 4, day: 15 },
+    { month: 5, day: 15 },
+    { month: 6, day: 15 },
+    { month: 7, day: 15 },
+    { month: 8, day: 15 },
+    { month: 9, day: 15 },
+    { month: 10, day: 15 },
   ],
 } as const;
 
-// ── Payment Option Labels ──
 export const PAYMENT_OPTION_LABELS: Record<string, string> = {
   "1": "One-Time Payment",
   "4": "Quarterly",
@@ -67,7 +55,6 @@ export const PAYMENT_OPTION_LABELS: Record<string, string> = {
   "8": "Monthly (8 Instalments)",
 };
 
-// ── Roles ──
 export const ROLES = {
   GENERAL_MANAGER: "General Manager",
   BRANCH_MANAGER: "Branch Manager",
@@ -78,28 +65,26 @@ export const ROLES = {
   SALES_USER: "Sales User",
 } as const;
 
-// ── Role to Dashboard Route Mapping ──
 export const ROLE_DASHBOARD_MAP: Record<string, string> = {
-  "Director": "/dashboard/director",
-  "Management": "/dashboard/director",
+  Director: "/dashboard/director",
+  Management: "/dashboard/director",
   "General Manager": "/dashboard/general-manager",
   "Branch Manager": "/dashboard/branch-manager",
   "Batch Coordinator": "/dashboard/batch-coordinator",
-  "Teacher": "/dashboard/teacher",
-  "Administrator": "/dashboard/admin",
+  Teacher: "/dashboard/teacher",
+  Administrator: "/dashboard/admin",
   "HR Manager": "/dashboard/hr-manager",
   "Class Incharge": "/dashboard/class-incharge",
-  "Instructor": "/dashboard/instructor",
+  Instructor: "/dashboard/instructor",
   "Sales User": "/dashboard/sales-user",
-  "Parent": "/dashboard/parent",
+  Parent: "/dashboard/parent",
 };
 
-// ── Sidebar Navigation per Role ──
 export interface NavItem {
   label: string;
   href: string;
-  icon: string;    // Lucide icon name (inactive state)
-  emoji: string;   // Colored emoji (active state)
+  icon: string;
+  emoji: string;
   badge?: string;
   children?: NavItem[];
 }
@@ -108,13 +93,20 @@ export const BRANCH_MANAGER_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard/branch-manager", icon: "LayoutDashboard", emoji: "📊" },
   { label: "New Admission", href: "/dashboard/branch-manager/new-admission", icon: "UserPlus", emoji: "🎓" },
   {
-    label: "Students", href: "/dashboard/branch-manager/students", icon: "GraduationCap", emoji: "👨‍🎓",
+    label: "Students",
+    href: "/dashboard/branch-manager/students",
+    icon: "GraduationCap",
+    emoji: "👨‍🎓",
     children: [
       { label: "Classes", href: "/dashboard/branch-manager/classes", icon: "School", emoji: "🏫" },
       { label: "Batches", href: "/dashboard/branch-manager/batches", icon: "Users", emoji: "👥" },
     ],
   },
-  { label: "Attendance", href: "/dashboard/branch-manager/attendance", icon: "ClipboardCheck", emoji: "✅",
+  {
+    label: "Attendance",
+    href: "/dashboard/branch-manager/attendance",
+    icon: "ClipboardCheck",
+    emoji: "✅",
     children: [
       { label: "Students", href: "/dashboard/branch-manager/attendance/students", icon: "GraduationCap", emoji: "👨‍🎓" },
       { label: "Staff", href: "/dashboard/branch-manager/attendance/staff", icon: "Briefcase", emoji: "💼" },
@@ -124,7 +116,11 @@ export const BRANCH_MANAGER_NAV: NavItem[] = [
   { label: "Teachers", href: "/dashboard/branch-manager/teachers", icon: "UserCheck", emoji: "👨‍🏫" },
   { label: "Fees", href: "/dashboard/branch-manager/fees", icon: "IndianRupee", emoji: "💰" },
   { label: "Exams", href: "/dashboard/branch-manager/exams", icon: "ClipboardList", emoji: "📝" },
-  { label: "Academics", href: "/dashboard/branch-manager/academics", icon: "BarChart3", emoji: "📈",
+  {
+    label: "Academics",
+    href: "/dashboard/branch-manager/academics",
+    icon: "BarChart3",
+    emoji: "📈",
     children: [
       { label: "Attendance Report", href: "/dashboard/branch-manager/attendance/report", icon: "ClipboardCheck", emoji: "✅" },
       { label: "Exam Analytics", href: "/dashboard/branch-manager/exams/analytics", icon: "Trophy", emoji: "🏆" },
@@ -139,13 +135,20 @@ export const BRANCH_MANAGER_NAV: NavItem[] = [
 export const DIRECTOR_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard/director", icon: "LayoutDashboard", emoji: "📊" },
   {
-    label: "Students", href: "/dashboard/director/students", icon: "GraduationCap", emoji: "👨‍🎓",
+    label: "Students",
+    href: "/dashboard/director/students",
+    icon: "GraduationCap",
+    emoji: "👨‍🎓",
     children: [
       { label: "Batches", href: "/dashboard/director/batches", icon: "Users", emoji: "👥" },
     ],
   },
   { label: "Teachers", href: "/dashboard/director/teachers", icon: "UserCheck", emoji: "👨‍🏫" },
-  { label: "Attendance", href: "/dashboard/director/attendance", icon: "ClipboardCheck", emoji: "✅",
+  {
+    label: "Attendance",
+    href: "/dashboard/director/attendance",
+    icon: "ClipboardCheck",
+    emoji: "✅",
     children: [
       { label: "Students", href: "/dashboard/director/attendance/students", icon: "GraduationCap", emoji: "👨‍🎓" },
       { label: "Staff", href: "/dashboard/director/attendance/staff", icon: "Briefcase", emoji: "💼" },
@@ -155,7 +158,11 @@ export const DIRECTOR_NAV: NavItem[] = [
   { label: "Course Schedule", href: "/dashboard/director/course-schedule", icon: "CalendarDays", emoji: "📅" },
   { label: "Fees", href: "/dashboard/director/fees", icon: "IndianRupee", emoji: "💰" },
   { label: "Fee Follow-Up", href: "/dashboard/director/fee-followup", icon: "Phone", emoji: "📞" },
-  { label: "Accounts", href: "/dashboard/director/accounts", icon: "Coins", emoji: "🪙",
+  {
+    label: "Accounts",
+    href: "/dashboard/director/accounts",
+    icon: "Coins",
+    emoji: "🪙",
     children: [
       { label: "Collection", href: "/dashboard/director/accounts/collection", icon: "Landmark", emoji: "🏦" },
       { label: "Expense", href: "/dashboard/director/accounts/expense", icon: "Receipt", emoji: "🧾" },
@@ -163,7 +170,11 @@ export const DIRECTOR_NAV: NavItem[] = [
     ],
   },
   { label: "Exams", href: "/dashboard/director/exams", icon: "ClipboardList", emoji: "📝" },
-  { label: "Academics", href: "/dashboard/director/academics", icon: "BarChart3", emoji: "📈",
+  {
+    label: "Academics",
+    href: "/dashboard/director/academics",
+    icon: "BarChart3",
+    emoji: "📈",
     children: [
       { label: "Overview", href: "/dashboard/director/academics/overview", icon: "BarChart3", emoji: "📈" },
       { label: "Attendance", href: "/dashboard/director/academics/attendance", icon: "ClipboardCheck", emoji: "✅" },
@@ -204,6 +215,7 @@ export const INSTRUCTOR_NAV: NavItem[] = [
 export const PARENT_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard/parent", icon: "LayoutDashboard", emoji: "📊" },
   { label: "Children", href: "/dashboard/parent/children", icon: "Baby", emoji: "👶" },
+  { label: "Level Exams", href: "/dashboard/parent/level-exams", icon: "ClipboardList", emoji: "📝" },
   { label: "Attendance", href: "/dashboard/parent/attendance", icon: "ClipboardCheck", emoji: "✅" },
   { label: "Schedule", href: "/dashboard/parent/schedule", icon: "CalendarDays", emoji: "📅" },
   { label: "Performance", href: "/dashboard/parent/performance", icon: "Trophy", emoji: "🏆" },
@@ -231,7 +243,10 @@ export const GENERAL_MANAGER_NAV: NavItem[] = [
   { label: "Leaderboard", href: "/dashboard/general-manager/leaderboard", icon: "Trophy", emoji: "🏆" },
   { label: "Work Assignments", href: "/dashboard/general-manager/work-assignments", icon: "ClipboardList", emoji: "🗂️" },
   {
-    label: "Students", href: "/dashboard/general-manager/students", icon: "GraduationCap", emoji: "👨‍🎓",
+    label: "Students",
+    href: "/dashboard/general-manager/students",
+    icon: "GraduationCap",
+    emoji: "👨‍🎓",
     children: [
       { label: "Batches", href: "/dashboard/general-manager/batches", icon: "Users", emoji: "👥" },
     ],
@@ -240,10 +255,18 @@ export const GENERAL_MANAGER_NAV: NavItem[] = [
   { label: "Attendance", href: "/dashboard/general-manager/attendance", icon: "ClipboardCheck", emoji: "✅" },
   { label: "Actions Needed", href: "/dashboard/general-manager/actions-needed", icon: "MessageSquareWarning", emoji: "⚠️" },
   { label: "Exams", href: "/dashboard/general-manager/exams", icon: "ClipboardList", emoji: "📝" },
+  {
+    label: "Level Exams",
+    href: "/dashboard/general-manager/level-exams",
+    icon: "BookOpen",
+    emoji: "📘",
+    children: [
+      { label: "Overview", href: "/dashboard/general-manager/level-exams", icon: "LayoutDashboard", emoji: "📊" },
+      { label: "Publish Exams", href: "/dashboard/general-manager/level-exams/assign", icon: "UserPlus", emoji: "📤" },
+    ],
+  },
   { label: "Course Schedule", href: "/dashboard/general-manager/course-schedule", icon: "CalendarDays", emoji: "📅" },
   { label: "Instructors", href: "/dashboard/general-manager/instructors", icon: "UserCheck", emoji: "👨‍🏫" },
   { label: "Topic Coverage", href: "/dashboard/general-manager/topic-coverage", icon: "BookOpen", emoji: "📖" },
   { label: "Reports", href: "/dashboard/general-manager/reports", icon: "FileBarChart", emoji: "📈" },
 ];
-
-

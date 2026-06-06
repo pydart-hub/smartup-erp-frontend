@@ -15,6 +15,7 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { getStudent } from "@/lib/api/students";
 import apiClient from "@/lib/api/client";
+import { selectPrimarySalesOrder, sortSalesOrdersForDisplay } from "@/lib/utils/salesOrderSelection";
 
 function initials(name: string) {
   return name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
@@ -109,12 +110,12 @@ export default function SalesUserStudentDetailPage() {
       const { data } = await apiClient.get("/resource/Sales Order", {
         params: {
           filters: JSON.stringify([["customer", "=", customerName], ["docstatus", "=", 1]]),
-          fields: JSON.stringify(["name", "grand_total", "status", "transaction_date", "per_billed", "advance_paid", "custom_plan", "custom_no_of_instalments"]),
-          order_by: "transaction_date desc",
+          fields: JSON.stringify(["name", "grand_total", "status", "transaction_date", "creation", "modified", "per_billed", "advance_paid", "custom_plan", "custom_no_of_instalments"]),
+          order_by: "transaction_date desc, creation desc",
           limit_page_length: 5,
         },
       });
-      return data.data ?? [];
+      return sortSalesOrdersForDisplay(data.data ?? []);
     },
     enabled: !!customerName,
     staleTime: 60_000,
@@ -178,6 +179,7 @@ export default function SalesUserStudentDetailPage() {
   );
   const isConvertedStudent = student.custom_student_type !== "Demo" && hasRegularOrder && hasDemoLikeOrder;
   const isDiscontinued = student.enabled === 0 && !!student.custom_discontinuation_date;
+  const primarySalesOrder = selectPrimarySalesOrder(salesOrdersRes);
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 max-w-4xl mx-auto">
@@ -318,7 +320,7 @@ export default function SalesUserStudentDetailPage() {
       </div>
 
       {/* Fee & Payments Section */}
-      {(salesOrdersRes?.length > 0 || salesInvoicesRes?.length > 0) && (
+      {((salesOrdersRes?.length ?? 0) > 0 || (salesInvoicesRes?.length ?? 0) > 0) && (
         <Card>
           <CardContent className="p-5">
             <div className="flex items-center gap-2 mb-4">
@@ -327,21 +329,23 @@ export default function SalesUserStudentDetailPage() {
             </div>
 
             {/* SO summary */}
-            {salesOrdersRes?.length > 0 && (() => {
-              const so = salesOrdersRes[0];
-              const soTotalGrand = (salesOrdersRes as { grand_total: number }[]).reduce((s, o) => s + (o.grand_total ?? 0), 0);
+            {(salesOrdersRes?.length ?? 0) > 0 && (() => {
+              const salesOrders = salesOrdersRes ?? [];
+              const so = primarySalesOrder ?? salesOrders[0];
+              const soTotalGrand = (salesOrders as { grand_total: number }[]).reduce((s, o) => s + (o.grand_total ?? 0), 0);
               const invTotal = salesInvoicesRes?.reduce((s: number, i: { grand_total: number }) => s + i.grand_total, 0) ?? 0;
               const invOutstanding = salesInvoicesRes?.reduce((s: number, i: { outstanding_amount: number; grand_total: number }) => s + Math.min(i.outstanding_amount, i.grand_total), 0) ?? 0;
               const displayedTotal = invTotal > 0 ? invTotal : soTotalGrand;
               const paid = invTotal - invOutstanding;
               const pct = displayedTotal > 0 ? Math.min(100, Math.round((paid / displayedTotal) * 100)) : 0;
-              const multipleOrders = salesOrdersRes.length > 1;
+              const salesOrderCount = salesOrders.length;
+              const multipleOrders = salesOrderCount > 1;
               return (
                 <div className="rounded-[12px] border border-border-light bg-app-bg p-4 mb-4">
                   <div className="flex items-center justify-between mb-2">
                     <div>
                       <span className="text-xs font-mono text-primary">{so.name}</span>
-                      {multipleOrders && <span className="text-[10px] text-text-tertiary ml-2">+{salesOrdersRes.length - 1} more order{salesOrdersRes.length > 2 ? "s" : ""}</span>}
+                      {multipleOrders && <span className="text-[10px] text-text-tertiary ml-2">+{salesOrderCount - 1} more order{salesOrderCount > 2 ? "s" : ""}</span>}
                       {so.custom_plan && <Badge variant="info" className="ml-2">{so.custom_plan}</Badge>}
                       {so.custom_no_of_instalments && <Badge variant="default" className="ml-1">{so.custom_no_of_instalments}x</Badge>}
                     </div>
@@ -360,7 +364,7 @@ export default function SalesUserStudentDetailPage() {
             })()}
 
             {/* Invoice list */}
-            {salesInvoicesRes?.length > 0 && (
+            {(salesInvoicesRes?.length ?? 0) > 0 && (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -409,7 +413,7 @@ export default function SalesUserStudentDetailPage() {
               </div>
             )}
 
-            {!salesInvoicesRes?.length && salesOrdersRes?.length > 0 && (
+            {(salesInvoicesRes?.length ?? 0) === 0 && (salesOrdersRes?.length ?? 0) > 0 && (
               <p className="text-xs text-text-tertiary text-center py-3">Invoices will appear here once generated.</p>
             )}
           </CardContent>

@@ -1,0 +1,2917 @@
+{
+  "subject": "Hindi",
+  "source_file": "Hindi LEVEL TEST.docx",
+  "conversion_status": "ready",
+  "levels": {
+    "5": [
+      {
+        "id": "hindi-5-001",
+        "source_level": "5",
+        "question_number": 1,
+        "question_text": "हिंदी वर्णमाला में स्वर कितने होते हैं?",
+        "options": [
+          {
+            "id": "hindi-5-001-A",
+            "option_key": "A",
+            "option_text": "10"
+          },
+          {
+            "id": "hindi-5-001-B",
+            "option_key": "B",
+            "option_text": "11"
+          },
+          {
+            "id": "hindi-5-001-C",
+            "option_key": "C",
+            "option_text": "13"
+          },
+          {
+            "id": "hindi-5-001-D",
+            "option_key": "D",
+            "option_text": "15"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "hindi-5-002",
+        "source_level": "5",
+        "question_number": 2,
+        "question_text": "'लड़के' शब्द का एकवचन क्या है?",
+        "options": [
+          {
+            "id": "hindi-5-002-A",
+            "option_key": "A",
+            "option_text": "लड़का"
+          },
+          {
+            "id": "hindi-5-002-B",
+            "option_key": "B",
+            "option_text": "लड़कियाँ"
+          },
+          {
+            "id": "hindi-5-002-C",
+            "option_key": "C",
+            "option_text": "लड़कों"
+          },
+          {
+            "id": "hindi-5-002-D",
+            "option_key": "D",
+            "option_text": "लड़के"
+          }
+        ],
+        "correct_option_key": "A",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "hindi-5-003",
+        "source_level": "5",
+        "question_number": 3,
+        "question_text": "'बड़ा' शब्द का विलोम शब्द क्या है?",
+        "options": [
+          {
+            "id": "hindi-5-003-A",
+            "option_key": "A",
+            "option_text": "ऊँचा"
+          },
+          {
+            "id": "hindi-5-003-B",
+            "option_key": "B",
+            "option_text": "छोटा"
+          },
+          {
+            "id": "hindi-5-003-C",
+            "option_key": "C",
+            "option_text": "मोटा"
+          },
+          {
+            "id": "hindi-5-003-D",
+            "option_key": "D",
+            "option_text": "लंबा"
+          }
+        ],
+        "correct_option_key": "B",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "hindi-5-004",
+        "source_level": "5",
+        "question_number": 4,
+        "question_text": "रिक्त स्थान भरिए: राम _____ विद्यालय जाता है।",
+        "options": [
+          {
+            "id": "hindi-5-004-A",
+            "option_key": "A",
+            "option_text": "को"
+          },
+          {
+            "id": "hindi-5-004-B",
+            "option_key": "B",
+            "option_text": "से"
+          },
+          {
+            "id": "hindi-5-004-C",
+            "option_key": "C",
+            "option_text": "में"
+          },
+          {
+            "id": "hindi-5-004-D",
+            "option_key": "D",
+            "option_text": "रोज़"
+          }
+        ],
+        "correct_option_key": "D",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "hindi-5-005",
+        "source_level": "5",
+        "question_number": 5,
+        "question_text": "'सीमा प्रतिदिन दूध पीती है।' सीमा क्या पीती है?",
+        "options": [
+          {
+            "id": "hindi-5-005-A",
+            "option_key": "A",
+            "option_text": "पानी"
+          },
+          {
+            "id": "hindi-5-005-B",
+            "option_key": "B",
+            "option_text": "चाय"
+          },
+          {
+            "id": "hindi-5-005-C",
+            "option_key": "C",
+            "option_text": "दूध"
+          },
+          {
+            "id": "hindi-5-005-D",
+            "option_key": "D",
+            "option_text": "जूस"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      }
+    ],
+    "6": [
+      {
+        "id": "hindi-6-001",
+        "source_level": "6",
+        "question_number": 1,
+        "question_text": "निम्न में से संज्ञा शब्द कौन सा है?",
+        "options": [
+          {
+            "id": "hindi-6-001-A",
+            "option_key": "A",
+            "option_text": "सुंदर"
+          },
+          {
+            "id": "hindi-6-001-B",
+            "option_key": "B",
+            "option_text": "दौड़ना"
+          },
+          {
+            "id": "hindi-6-001-C",
+            "option_key": "C",
+            "option_text": "पुस्तक"
+          },
+          {
+            "id": "hindi-6-001-D",
+            "option_key": "D",
+            "option_text": "जल्दी"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "hindi-6-002",
+        "source_level": "6",
+        "question_number": 2,
+        "question_text": "'साहसी' का समानार्थी शब्द चुनिए।",
+        "options": [
+          {
+            "id": "hindi-6-002-A",
+            "option_key": "A",
+            "option_text": "डरपोक"
+          },
+          {
+            "id": "hindi-6-002-B",
+            "option_key": "B",
+            "option_text": "बहादुर"
+          },
+          {
+            "id": "hindi-6-002-C",
+            "option_key": "C",
+            "option_text": "कमजोर"
+          },
+          {
+            "id": "hindi-6-002-D",
+            "option_key": "D",
+            "option_text": "आलसी"
+          }
+        ],
+        "correct_option_key": "B",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "hindi-6-003",
+        "source_level": "6",
+        "question_number": 3,
+        "question_text": "'दिन' का विलोम शब्द क्या है?",
+        "options": [
+          {
+            "id": "hindi-6-003-A",
+            "option_key": "A",
+            "option_text": "सुबह"
+          },
+          {
+            "id": "hindi-6-003-B",
+            "option_key": "B",
+            "option_text": "शाम"
+          },
+          {
+            "id": "hindi-6-003-C",
+            "option_key": "C",
+            "option_text": "रात"
+          },
+          {
+            "id": "hindi-6-003-D",
+            "option_key": "D",
+            "option_text": "दोपहर"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "hindi-6-004",
+        "source_level": "6",
+        "question_number": 4,
+        "question_text": "निम्न वाक्य में सर्वनाम पहचानिए। 'वह बाज़ार गया।'",
+        "options": [
+          {
+            "id": "hindi-6-004-A",
+            "option_key": "A",
+            "option_text": "बाज़ार"
+          },
+          {
+            "id": "hindi-6-004-B",
+            "option_key": "B",
+            "option_text": "गया"
+          },
+          {
+            "id": "hindi-6-004-C",
+            "option_key": "C",
+            "option_text": "वह"
+          },
+          {
+            "id": "hindi-6-004-D",
+            "option_key": "D",
+            "option_text": "में"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "hindi-6-005",
+        "source_level": "6",
+        "question_number": 5,
+        "question_text": "सही वाक्य चुनिए।",
+        "options": [
+          {
+            "id": "hindi-6-005-A",
+            "option_key": "A",
+            "option_text": "वह खेलता हैं।"
+          },
+          {
+            "id": "hindi-6-005-B",
+            "option_key": "B",
+            "option_text": "वह खेलता है।"
+          },
+          {
+            "id": "hindi-6-005-C",
+            "option_key": "C",
+            "option_text": "वह खेलते है।"
+          },
+          {
+            "id": "hindi-6-005-D",
+            "option_key": "D",
+            "option_text": "वह खेलता हूँ।"
+          }
+        ],
+        "correct_option_key": "B",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      }
+    ],
+    "7": [
+      {
+        "id": "hindi-7-001",
+        "source_level": "7",
+        "question_number": 1,
+        "question_text": "निम्न वाक्य में विशेषण पहचानिए। 'सुंदर फूल बगीचे में खिला है।'",
+        "options": [
+          {
+            "id": "hindi-7-001-A",
+            "option_key": "A",
+            "option_text": "फूल"
+          },
+          {
+            "id": "hindi-7-001-B",
+            "option_key": "B",
+            "option_text": "सुंदर"
+          },
+          {
+            "id": "hindi-7-001-C",
+            "option_key": "C",
+            "option_text": "बगीचे"
+          },
+          {
+            "id": "hindi-7-001-D",
+            "option_key": "D",
+            "option_text": "खिला"
+          }
+        ],
+        "correct_option_key": "B",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "hindi-7-002",
+        "source_level": "7",
+        "question_number": 2,
+        "question_text": "रिक्त स्थान भरिए। _____ आम बहुत मीठा है।",
+        "options": [
+          {
+            "id": "hindi-7-002-A",
+            "option_key": "A",
+            "option_text": "एक"
+          },
+          {
+            "id": "hindi-7-002-B",
+            "option_key": "B",
+            "option_text": "एकता"
+          },
+          {
+            "id": "hindi-7-002-C",
+            "option_key": "C",
+            "option_text": "एकों"
+          },
+          {
+            "id": "hindi-7-002-D",
+            "option_key": "D",
+            "option_text": "एकों का"
+          }
+        ],
+        "correct_option_key": "A",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "hindi-7-003",
+        "source_level": "7",
+        "question_number": 3,
+        "question_text": "मुहावरे का सही अर्थ चुनिए। 'नाक कटना'",
+        "options": [
+          {
+            "id": "hindi-7-003-A",
+            "option_key": "A",
+            "option_text": "घायल होना"
+          },
+          {
+            "id": "hindi-7-003-B",
+            "option_key": "B",
+            "option_text": "सम्मान खोना"
+          },
+          {
+            "id": "hindi-7-003-C",
+            "option_key": "C",
+            "option_text": "रोना"
+          },
+          {
+            "id": "hindi-7-003-D",
+            "option_key": "D",
+            "option_text": "झगड़ना"
+          }
+        ],
+        "correct_option_key": "B",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "hindi-7-004",
+        "source_level": "7",
+        "question_number": 4,
+        "question_text": "निम्न में से शुद्ध वाक्य कौन सा है?",
+        "options": [
+          {
+            "id": "hindi-7-004-A",
+            "option_key": "A",
+            "option_text": "मैं स्कूल जाता हूँ।"
+          },
+          {
+            "id": "hindi-7-004-B",
+            "option_key": "B",
+            "option_text": "मैं स्कूल जाता है।"
+          },
+          {
+            "id": "hindi-7-004-C",
+            "option_key": "C",
+            "option_text": "मैं स्कूल जाते हैं।"
+          },
+          {
+            "id": "hindi-7-004-D",
+            "option_key": "D",
+            "option_text": "मैं स्कूल गई हूँ।"
+          }
+        ],
+        "correct_option_key": "A",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "hindi-7-005",
+        "source_level": "7",
+        "question_number": 5,
+        "question_text": "निम्न शब्दों को सही क्रम में लगाकर वाक्य बनाइए।",
+        "options": [
+          {
+            "id": "hindi-7-005-A",
+            "option_key": "A",
+            "option_text": "पढ़ता वह प्रतिदिन है।"
+          },
+          {
+            "id": "hindi-7-005-B",
+            "option_key": "B",
+            "option_text": "वह प्रतिदिन पढ़ता है।"
+          },
+          {
+            "id": "hindi-7-005-C",
+            "option_key": "C",
+            "option_text": "है वह प्रतिदिन पढ़ता।"
+          },
+          {
+            "id": "hindi-7-005-D",
+            "option_key": "D",
+            "option_text": "प्रतिदिन पढ़ता है वह।"
+          }
+        ],
+        "correct_option_key": "B",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      }
+    ],
+    "8": [
+      {
+        "id": "hindi-8-001",
+        "source_level": "8",
+        "question_number": 1,
+        "question_text": "पेड़ों का एक लाभ क्या है?",
+        "options": [
+          {
+            "id": "hindi-8-001-A",
+            "option_key": "A",
+            "option_text": "वे सड़क बनाते हैं।"
+          },
+          {
+            "id": "hindi-8-001-B",
+            "option_key": "B",
+            "option_text": "वे ऑक्सीजन देते हैं।"
+          },
+          {
+            "id": "hindi-8-001-C",
+            "option_key": "C",
+            "option_text": "वे घर बनाते हैं।"
+          },
+          {
+            "id": "hindi-8-001-D",
+            "option_key": "D",
+            "option_text": "वे वाहन चलाते हैं।"
+          }
+        ],
+        "correct_option_key": "B",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "hindi-8-002",
+        "source_level": "8",
+        "question_number": 2,
+        "question_text": "निम्न वाक्य का सही अप्रत्यक्ष कथन चुनिए।",
+        "options": [
+          {
+            "id": "hindi-8-002-A",
+            "option_key": "A",
+            "option_text": "रवि ने कहा कि मैं थक गया हूँ।"
+          },
+          {
+            "id": "hindi-8-002-B",
+            "option_key": "B",
+            "option_text": "रवि ने कहा कि वह थक गया था।"
+          },
+          {
+            "id": "hindi-8-002-C",
+            "option_key": "C",
+            "option_text": "रवि कहता है कि वह थक गया।"
+          },
+          {
+            "id": "hindi-8-002-D",
+            "option_key": "D",
+            "option_text": "रवि ने कहा मैं थक गया था।"
+          }
+        ],
+        "correct_option_key": "B",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "hindi-8-003",
+        "source_level": "8",
+        "question_number": 3,
+        "question_text": "निम्न में से कर्मवाच्य वाक्य कौन सा है?",
+        "options": [
+          {
+            "id": "hindi-8-003-A",
+            "option_key": "A",
+            "option_text": "शिक्षक पाठ पढ़ाते हैं।"
+          },
+          {
+            "id": "hindi-8-003-B",
+            "option_key": "B",
+            "option_text": "पाठ शिक्षक द्वारा पढ़ाया जाता है।"
+          },
+          {
+            "id": "hindi-8-003-C",
+            "option_key": "C",
+            "option_text": "शिक्षक पढ़ा रहे हैं।"
+          },
+          {
+            "id": "hindi-8-003-D",
+            "option_key": "D",
+            "option_text": "शिक्षक ने पाठ पढ़ाया।"
+          }
+        ],
+        "correct_option_key": "B",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "hindi-8-004",
+        "source_level": "8",
+        "question_number": 4,
+        "question_text": "सही विराम चिह्न वाला वाक्य चुनिए।",
+        "options": [
+          {
+            "id": "hindi-8-004-A",
+            "option_key": "A",
+            "option_text": "तुम कहाँ जा रहे हो।"
+          },
+          {
+            "id": "hindi-8-004-B",
+            "option_key": "B",
+            "option_text": "तुम कहाँ जा रहे हो?"
+          },
+          {
+            "id": "hindi-8-004-C",
+            "option_key": "C",
+            "option_text": "तुम कहाँ जा रहे हो!"
+          },
+          {
+            "id": "hindi-8-004-D",
+            "option_key": "D",
+            "option_text": "तुम कहाँ जा रहे हो,"
+          }
+        ],
+        "correct_option_key": "B",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "hindi-8-005",
+        "source_level": "8",
+        "question_number": 5,
+        "question_text": "निम्न अनुच्छेद के लिए उपयुक्त शीर्षक चुनिए।",
+        "options": [
+          {
+            "id": "hindi-8-005-A",
+            "option_key": "A",
+            "option_text": "पेड़"
+          },
+          {
+            "id": "hindi-8-005-B",
+            "option_key": "B",
+            "option_text": "पर्यावरण"
+          },
+          {
+            "id": "hindi-8-005-C",
+            "option_key": "C",
+            "option_text": "जल का महत्व"
+          },
+          {
+            "id": "hindi-8-005-D",
+            "option_key": "D",
+            "option_text": "विद्यालय"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      }
+    ],
+    "9": [
+      {
+        "id": "hindi-9-001",
+        "source_level": "9",
+        "question_number": 1,
+        "question_text": "निम्न वाक्य में उपवाक्य पहचानिए।",
+        "options": [
+          {
+            "id": "hindi-9-001-A",
+            "option_key": "A",
+            "option_text": "बच्चे घर में रहे"
+          },
+          {
+            "id": "hindi-9-001-B",
+            "option_key": "B",
+            "option_text": "जब वर्षा हुई"
+          },
+          {
+            "id": "hindi-9-001-C",
+            "option_key": "C",
+            "option_text": "घर में रहे"
+          },
+          {
+            "id": "hindi-9-001-D",
+            "option_key": "D",
+            "option_text": "बच्चे"
+          }
+        ],
+        "correct_option_key": "B",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "hindi-9-002",
+        "source_level": "9",
+        "question_number": 2,
+        "question_text": "'ईमानदार' का भाववाचक संज्ञा रूप क्या है?",
+        "options": [
+          {
+            "id": "hindi-9-002-A",
+            "option_key": "A",
+            "option_text": "ईमान"
+          },
+          {
+            "id": "hindi-9-002-B",
+            "option_key": "B",
+            "option_text": "ईमानदारी"
+          },
+          {
+            "id": "hindi-9-002-C",
+            "option_key": "C",
+            "option_text": "ईमानदारी"
+          },
+          {
+            "id": "hindi-9-002-D",
+            "option_key": "D",
+            "option_text": "ईमानी"
+          }
+        ],
+        "correct_option_key": "B",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "hindi-9-003",
+        "source_level": "9",
+        "question_number": 3,
+        "question_text": "औपचारिक पत्र का सही प्रारंभ क्या है?",
+        "options": [
+          {
+            "id": "hindi-9-003-A",
+            "option_key": "A",
+            "option_text": "प्रिय मित्र,"
+          },
+          {
+            "id": "hindi-9-003-B",
+            "option_key": "B",
+            "option_text": "नमस्ते दोस्त,"
+          },
+          {
+            "id": "hindi-9-003-C",
+            "option_key": "C",
+            "option_text": "महोदय/महोदया,"
+          },
+          {
+            "id": "hindi-9-003-D",
+            "option_key": "D",
+            "option_text": "हेलो"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "hindi-9-004",
+        "source_level": "9",
+        "question_number": 4,
+        "question_text": "निम्न में से कौन सा वाक्य शुद्ध है?",
+        "options": [
+          {
+            "id": "hindi-9-004-A",
+            "option_key": "A",
+            "option_text": "प्रत्येक विद्यार्थी अपने कार्य करें।"
+          },
+          {
+            "id": "hindi-9-004-B",
+            "option_key": "B",
+            "option_text": "प्रत्येक विद्यार्थी अपना कार्य करे।"
+          },
+          {
+            "id": "hindi-9-004-C",
+            "option_key": "C",
+            "option_text": "प्रत्येक विद्यार्थी अपने कार्य करता हैं।"
+          },
+          {
+            "id": "hindi-9-004-D",
+            "option_key": "D",
+            "option_text": "प्रत्येक विद्यार्थी अपना कार्य करते हैं।"
+          }
+        ],
+        "correct_option_key": "B",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "hindi-9-005",
+        "source_level": "9",
+        "question_number": 5,
+        "question_text": "अनुच्छेद का मुख्य विचार किसमें व्यक्त होता है?",
+        "options": [
+          {
+            "id": "hindi-9-005-A",
+            "option_key": "A",
+            "option_text": "उदाहरण में"
+          },
+          {
+            "id": "hindi-9-005-B",
+            "option_key": "B",
+            "option_text": "निष्कर्ष में"
+          },
+          {
+            "id": "hindi-9-005-C",
+            "option_key": "C",
+            "option_text": "विषय-वाक्य में"
+          },
+          {
+            "id": "hindi-9-005-D",
+            "option_key": "D",
+            "option_text": "शीर्षक में"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      }
+    ]
+  },
+  "generated_targets": {
+    "8": {
+      "source_levels": [
+        "5",
+        "6",
+        "7"
+      ],
+      "total_questions": 15,
+      "questions": [
+        {
+          "id": "hindi-5-001",
+          "source_level": "5",
+          "question_number": 1,
+          "question_text": "हिंदी वर्णमाला में स्वर कितने होते हैं?",
+          "options": [
+            {
+              "id": "hindi-5-001-A",
+              "option_key": "A",
+              "option_text": "10"
+            },
+            {
+              "id": "hindi-5-001-B",
+              "option_key": "B",
+              "option_text": "11"
+            },
+            {
+              "id": "hindi-5-001-C",
+              "option_key": "C",
+              "option_text": "13"
+            },
+            {
+              "id": "hindi-5-001-D",
+              "option_key": "D",
+              "option_text": "15"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "hindi-5-002",
+          "source_level": "5",
+          "question_number": 2,
+          "question_text": "'लड़के' शब्द का एकवचन क्या है?",
+          "options": [
+            {
+              "id": "hindi-5-002-A",
+              "option_key": "A",
+              "option_text": "लड़का"
+            },
+            {
+              "id": "hindi-5-002-B",
+              "option_key": "B",
+              "option_text": "लड़कियाँ"
+            },
+            {
+              "id": "hindi-5-002-C",
+              "option_key": "C",
+              "option_text": "लड़कों"
+            },
+            {
+              "id": "hindi-5-002-D",
+              "option_key": "D",
+              "option_text": "लड़के"
+            }
+          ],
+          "correct_option_key": "A",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "hindi-5-003",
+          "source_level": "5",
+          "question_number": 3,
+          "question_text": "'बड़ा' शब्द का विलोम शब्द क्या है?",
+          "options": [
+            {
+              "id": "hindi-5-003-A",
+              "option_key": "A",
+              "option_text": "ऊँचा"
+            },
+            {
+              "id": "hindi-5-003-B",
+              "option_key": "B",
+              "option_text": "छोटा"
+            },
+            {
+              "id": "hindi-5-003-C",
+              "option_key": "C",
+              "option_text": "मोटा"
+            },
+            {
+              "id": "hindi-5-003-D",
+              "option_key": "D",
+              "option_text": "लंबा"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "hindi-5-004",
+          "source_level": "5",
+          "question_number": 4,
+          "question_text": "रिक्त स्थान भरिए: राम _____ विद्यालय जाता है।",
+          "options": [
+            {
+              "id": "hindi-5-004-A",
+              "option_key": "A",
+              "option_text": "को"
+            },
+            {
+              "id": "hindi-5-004-B",
+              "option_key": "B",
+              "option_text": "से"
+            },
+            {
+              "id": "hindi-5-004-C",
+              "option_key": "C",
+              "option_text": "में"
+            },
+            {
+              "id": "hindi-5-004-D",
+              "option_key": "D",
+              "option_text": "रोज़"
+            }
+          ],
+          "correct_option_key": "D",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "hindi-5-005",
+          "source_level": "5",
+          "question_number": 5,
+          "question_text": "'सीमा प्रतिदिन दूध पीती है।' सीमा क्या पीती है?",
+          "options": [
+            {
+              "id": "hindi-5-005-A",
+              "option_key": "A",
+              "option_text": "पानी"
+            },
+            {
+              "id": "hindi-5-005-B",
+              "option_key": "B",
+              "option_text": "चाय"
+            },
+            {
+              "id": "hindi-5-005-C",
+              "option_key": "C",
+              "option_text": "दूध"
+            },
+            {
+              "id": "hindi-5-005-D",
+              "option_key": "D",
+              "option_text": "जूस"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "hindi-6-001",
+          "source_level": "6",
+          "question_number": 1,
+          "question_text": "निम्न में से संज्ञा शब्द कौन सा है?",
+          "options": [
+            {
+              "id": "hindi-6-001-A",
+              "option_key": "A",
+              "option_text": "सुंदर"
+            },
+            {
+              "id": "hindi-6-001-B",
+              "option_key": "B",
+              "option_text": "दौड़ना"
+            },
+            {
+              "id": "hindi-6-001-C",
+              "option_key": "C",
+              "option_text": "पुस्तक"
+            },
+            {
+              "id": "hindi-6-001-D",
+              "option_key": "D",
+              "option_text": "जल्दी"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "hindi-6-002",
+          "source_level": "6",
+          "question_number": 2,
+          "question_text": "'साहसी' का समानार्थी शब्द चुनिए।",
+          "options": [
+            {
+              "id": "hindi-6-002-A",
+              "option_key": "A",
+              "option_text": "डरपोक"
+            },
+            {
+              "id": "hindi-6-002-B",
+              "option_key": "B",
+              "option_text": "बहादुर"
+            },
+            {
+              "id": "hindi-6-002-C",
+              "option_key": "C",
+              "option_text": "कमजोर"
+            },
+            {
+              "id": "hindi-6-002-D",
+              "option_key": "D",
+              "option_text": "आलसी"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "hindi-6-003",
+          "source_level": "6",
+          "question_number": 3,
+          "question_text": "'दिन' का विलोम शब्द क्या है?",
+          "options": [
+            {
+              "id": "hindi-6-003-A",
+              "option_key": "A",
+              "option_text": "सुबह"
+            },
+            {
+              "id": "hindi-6-003-B",
+              "option_key": "B",
+              "option_text": "शाम"
+            },
+            {
+              "id": "hindi-6-003-C",
+              "option_key": "C",
+              "option_text": "रात"
+            },
+            {
+              "id": "hindi-6-003-D",
+              "option_key": "D",
+              "option_text": "दोपहर"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "hindi-6-004",
+          "source_level": "6",
+          "question_number": 4,
+          "question_text": "निम्न वाक्य में सर्वनाम पहचानिए। 'वह बाज़ार गया।'",
+          "options": [
+            {
+              "id": "hindi-6-004-A",
+              "option_key": "A",
+              "option_text": "बाज़ार"
+            },
+            {
+              "id": "hindi-6-004-B",
+              "option_key": "B",
+              "option_text": "गया"
+            },
+            {
+              "id": "hindi-6-004-C",
+              "option_key": "C",
+              "option_text": "वह"
+            },
+            {
+              "id": "hindi-6-004-D",
+              "option_key": "D",
+              "option_text": "में"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "hindi-6-005",
+          "source_level": "6",
+          "question_number": 5,
+          "question_text": "सही वाक्य चुनिए।",
+          "options": [
+            {
+              "id": "hindi-6-005-A",
+              "option_key": "A",
+              "option_text": "वह खेलता हैं।"
+            },
+            {
+              "id": "hindi-6-005-B",
+              "option_key": "B",
+              "option_text": "वह खेलता है।"
+            },
+            {
+              "id": "hindi-6-005-C",
+              "option_key": "C",
+              "option_text": "वह खेलते है।"
+            },
+            {
+              "id": "hindi-6-005-D",
+              "option_key": "D",
+              "option_text": "वह खेलता हूँ।"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "hindi-7-001",
+          "source_level": "7",
+          "question_number": 1,
+          "question_text": "निम्न वाक्य में विशेषण पहचानिए। 'सुंदर फूल बगीचे में खिला है।'",
+          "options": [
+            {
+              "id": "hindi-7-001-A",
+              "option_key": "A",
+              "option_text": "फूल"
+            },
+            {
+              "id": "hindi-7-001-B",
+              "option_key": "B",
+              "option_text": "सुंदर"
+            },
+            {
+              "id": "hindi-7-001-C",
+              "option_key": "C",
+              "option_text": "बगीचे"
+            },
+            {
+              "id": "hindi-7-001-D",
+              "option_key": "D",
+              "option_text": "खिला"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "hindi-7-002",
+          "source_level": "7",
+          "question_number": 2,
+          "question_text": "रिक्त स्थान भरिए। _____ आम बहुत मीठा है।",
+          "options": [
+            {
+              "id": "hindi-7-002-A",
+              "option_key": "A",
+              "option_text": "एक"
+            },
+            {
+              "id": "hindi-7-002-B",
+              "option_key": "B",
+              "option_text": "एकता"
+            },
+            {
+              "id": "hindi-7-002-C",
+              "option_key": "C",
+              "option_text": "एकों"
+            },
+            {
+              "id": "hindi-7-002-D",
+              "option_key": "D",
+              "option_text": "एकों का"
+            }
+          ],
+          "correct_option_key": "A",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "hindi-7-003",
+          "source_level": "7",
+          "question_number": 3,
+          "question_text": "मुहावरे का सही अर्थ चुनिए। 'नाक कटना'",
+          "options": [
+            {
+              "id": "hindi-7-003-A",
+              "option_key": "A",
+              "option_text": "घायल होना"
+            },
+            {
+              "id": "hindi-7-003-B",
+              "option_key": "B",
+              "option_text": "सम्मान खोना"
+            },
+            {
+              "id": "hindi-7-003-C",
+              "option_key": "C",
+              "option_text": "रोना"
+            },
+            {
+              "id": "hindi-7-003-D",
+              "option_key": "D",
+              "option_text": "झगड़ना"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "hindi-7-004",
+          "source_level": "7",
+          "question_number": 4,
+          "question_text": "निम्न में से शुद्ध वाक्य कौन सा है?",
+          "options": [
+            {
+              "id": "hindi-7-004-A",
+              "option_key": "A",
+              "option_text": "मैं स्कूल जाता हूँ।"
+            },
+            {
+              "id": "hindi-7-004-B",
+              "option_key": "B",
+              "option_text": "मैं स्कूल जाता है।"
+            },
+            {
+              "id": "hindi-7-004-C",
+              "option_key": "C",
+              "option_text": "मैं स्कूल जाते हैं।"
+            },
+            {
+              "id": "hindi-7-004-D",
+              "option_key": "D",
+              "option_text": "मैं स्कूल गई हूँ।"
+            }
+          ],
+          "correct_option_key": "A",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "hindi-7-005",
+          "source_level": "7",
+          "question_number": 5,
+          "question_text": "निम्न शब्दों को सही क्रम में लगाकर वाक्य बनाइए।",
+          "options": [
+            {
+              "id": "hindi-7-005-A",
+              "option_key": "A",
+              "option_text": "पढ़ता वह प्रतिदिन है।"
+            },
+            {
+              "id": "hindi-7-005-B",
+              "option_key": "B",
+              "option_text": "वह प्रतिदिन पढ़ता है।"
+            },
+            {
+              "id": "hindi-7-005-C",
+              "option_key": "C",
+              "option_text": "है वह प्रतिदिन पढ़ता।"
+            },
+            {
+              "id": "hindi-7-005-D",
+              "option_key": "D",
+              "option_text": "प्रतिदिन पढ़ता है वह।"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        }
+      ]
+    },
+    "9": {
+      "source_levels": [
+        "5",
+        "6",
+        "7",
+        "8"
+      ],
+      "total_questions": 20,
+      "questions": [
+        {
+          "id": "hindi-5-001",
+          "source_level": "5",
+          "question_number": 1,
+          "question_text": "हिंदी वर्णमाला में स्वर कितने होते हैं?",
+          "options": [
+            {
+              "id": "hindi-5-001-A",
+              "option_key": "A",
+              "option_text": "10"
+            },
+            {
+              "id": "hindi-5-001-B",
+              "option_key": "B",
+              "option_text": "11"
+            },
+            {
+              "id": "hindi-5-001-C",
+              "option_key": "C",
+              "option_text": "13"
+            },
+            {
+              "id": "hindi-5-001-D",
+              "option_key": "D",
+              "option_text": "15"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "hindi-5-002",
+          "source_level": "5",
+          "question_number": 2,
+          "question_text": "'लड़के' शब्द का एकवचन क्या है?",
+          "options": [
+            {
+              "id": "hindi-5-002-A",
+              "option_key": "A",
+              "option_text": "लड़का"
+            },
+            {
+              "id": "hindi-5-002-B",
+              "option_key": "B",
+              "option_text": "लड़कियाँ"
+            },
+            {
+              "id": "hindi-5-002-C",
+              "option_key": "C",
+              "option_text": "लड़कों"
+            },
+            {
+              "id": "hindi-5-002-D",
+              "option_key": "D",
+              "option_text": "लड़के"
+            }
+          ],
+          "correct_option_key": "A",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "hindi-5-003",
+          "source_level": "5",
+          "question_number": 3,
+          "question_text": "'बड़ा' शब्द का विलोम शब्द क्या है?",
+          "options": [
+            {
+              "id": "hindi-5-003-A",
+              "option_key": "A",
+              "option_text": "ऊँचा"
+            },
+            {
+              "id": "hindi-5-003-B",
+              "option_key": "B",
+              "option_text": "छोटा"
+            },
+            {
+              "id": "hindi-5-003-C",
+              "option_key": "C",
+              "option_text": "मोटा"
+            },
+            {
+              "id": "hindi-5-003-D",
+              "option_key": "D",
+              "option_text": "लंबा"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "hindi-5-004",
+          "source_level": "5",
+          "question_number": 4,
+          "question_text": "रिक्त स्थान भरिए: राम _____ विद्यालय जाता है।",
+          "options": [
+            {
+              "id": "hindi-5-004-A",
+              "option_key": "A",
+              "option_text": "को"
+            },
+            {
+              "id": "hindi-5-004-B",
+              "option_key": "B",
+              "option_text": "से"
+            },
+            {
+              "id": "hindi-5-004-C",
+              "option_key": "C",
+              "option_text": "में"
+            },
+            {
+              "id": "hindi-5-004-D",
+              "option_key": "D",
+              "option_text": "रोज़"
+            }
+          ],
+          "correct_option_key": "D",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "hindi-5-005",
+          "source_level": "5",
+          "question_number": 5,
+          "question_text": "'सीमा प्रतिदिन दूध पीती है।' सीमा क्या पीती है?",
+          "options": [
+            {
+              "id": "hindi-5-005-A",
+              "option_key": "A",
+              "option_text": "पानी"
+            },
+            {
+              "id": "hindi-5-005-B",
+              "option_key": "B",
+              "option_text": "चाय"
+            },
+            {
+              "id": "hindi-5-005-C",
+              "option_key": "C",
+              "option_text": "दूध"
+            },
+            {
+              "id": "hindi-5-005-D",
+              "option_key": "D",
+              "option_text": "जूस"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "hindi-6-001",
+          "source_level": "6",
+          "question_number": 1,
+          "question_text": "निम्न में से संज्ञा शब्द कौन सा है?",
+          "options": [
+            {
+              "id": "hindi-6-001-A",
+              "option_key": "A",
+              "option_text": "सुंदर"
+            },
+            {
+              "id": "hindi-6-001-B",
+              "option_key": "B",
+              "option_text": "दौड़ना"
+            },
+            {
+              "id": "hindi-6-001-C",
+              "option_key": "C",
+              "option_text": "पुस्तक"
+            },
+            {
+              "id": "hindi-6-001-D",
+              "option_key": "D",
+              "option_text": "जल्दी"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "hindi-6-002",
+          "source_level": "6",
+          "question_number": 2,
+          "question_text": "'साहसी' का समानार्थी शब्द चुनिए।",
+          "options": [
+            {
+              "id": "hindi-6-002-A",
+              "option_key": "A",
+              "option_text": "डरपोक"
+            },
+            {
+              "id": "hindi-6-002-B",
+              "option_key": "B",
+              "option_text": "बहादुर"
+            },
+            {
+              "id": "hindi-6-002-C",
+              "option_key": "C",
+              "option_text": "कमजोर"
+            },
+            {
+              "id": "hindi-6-002-D",
+              "option_key": "D",
+              "option_text": "आलसी"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "hindi-6-003",
+          "source_level": "6",
+          "question_number": 3,
+          "question_text": "'दिन' का विलोम शब्द क्या है?",
+          "options": [
+            {
+              "id": "hindi-6-003-A",
+              "option_key": "A",
+              "option_text": "सुबह"
+            },
+            {
+              "id": "hindi-6-003-B",
+              "option_key": "B",
+              "option_text": "शाम"
+            },
+            {
+              "id": "hindi-6-003-C",
+              "option_key": "C",
+              "option_text": "रात"
+            },
+            {
+              "id": "hindi-6-003-D",
+              "option_key": "D",
+              "option_text": "दोपहर"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "hindi-6-004",
+          "source_level": "6",
+          "question_number": 4,
+          "question_text": "निम्न वाक्य में सर्वनाम पहचानिए। 'वह बाज़ार गया।'",
+          "options": [
+            {
+              "id": "hindi-6-004-A",
+              "option_key": "A",
+              "option_text": "बाज़ार"
+            },
+            {
+              "id": "hindi-6-004-B",
+              "option_key": "B",
+              "option_text": "गया"
+            },
+            {
+              "id": "hindi-6-004-C",
+              "option_key": "C",
+              "option_text": "वह"
+            },
+            {
+              "id": "hindi-6-004-D",
+              "option_key": "D",
+              "option_text": "में"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "hindi-6-005",
+          "source_level": "6",
+          "question_number": 5,
+          "question_text": "सही वाक्य चुनिए।",
+          "options": [
+            {
+              "id": "hindi-6-005-A",
+              "option_key": "A",
+              "option_text": "वह खेलता हैं।"
+            },
+            {
+              "id": "hindi-6-005-B",
+              "option_key": "B",
+              "option_text": "वह खेलता है।"
+            },
+            {
+              "id": "hindi-6-005-C",
+              "option_key": "C",
+              "option_text": "वह खेलते है।"
+            },
+            {
+              "id": "hindi-6-005-D",
+              "option_key": "D",
+              "option_text": "वह खेलता हूँ।"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "hindi-7-001",
+          "source_level": "7",
+          "question_number": 1,
+          "question_text": "निम्न वाक्य में विशेषण पहचानिए। 'सुंदर फूल बगीचे में खिला है।'",
+          "options": [
+            {
+              "id": "hindi-7-001-A",
+              "option_key": "A",
+              "option_text": "फूल"
+            },
+            {
+              "id": "hindi-7-001-B",
+              "option_key": "B",
+              "option_text": "सुंदर"
+            },
+            {
+              "id": "hindi-7-001-C",
+              "option_key": "C",
+              "option_text": "बगीचे"
+            },
+            {
+              "id": "hindi-7-001-D",
+              "option_key": "D",
+              "option_text": "खिला"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "hindi-7-002",
+          "source_level": "7",
+          "question_number": 2,
+          "question_text": "रिक्त स्थान भरिए। _____ आम बहुत मीठा है।",
+          "options": [
+            {
+              "id": "hindi-7-002-A",
+              "option_key": "A",
+              "option_text": "एक"
+            },
+            {
+              "id": "hindi-7-002-B",
+              "option_key": "B",
+              "option_text": "एकता"
+            },
+            {
+              "id": "hindi-7-002-C",
+              "option_key": "C",
+              "option_text": "एकों"
+            },
+            {
+              "id": "hindi-7-002-D",
+              "option_key": "D",
+              "option_text": "एकों का"
+            }
+          ],
+          "correct_option_key": "A",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "hindi-7-003",
+          "source_level": "7",
+          "question_number": 3,
+          "question_text": "मुहावरे का सही अर्थ चुनिए। 'नाक कटना'",
+          "options": [
+            {
+              "id": "hindi-7-003-A",
+              "option_key": "A",
+              "option_text": "घायल होना"
+            },
+            {
+              "id": "hindi-7-003-B",
+              "option_key": "B",
+              "option_text": "सम्मान खोना"
+            },
+            {
+              "id": "hindi-7-003-C",
+              "option_key": "C",
+              "option_text": "रोना"
+            },
+            {
+              "id": "hindi-7-003-D",
+              "option_key": "D",
+              "option_text": "झगड़ना"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "hindi-7-004",
+          "source_level": "7",
+          "question_number": 4,
+          "question_text": "निम्न में से शुद्ध वाक्य कौन सा है?",
+          "options": [
+            {
+              "id": "hindi-7-004-A",
+              "option_key": "A",
+              "option_text": "मैं स्कूल जाता हूँ।"
+            },
+            {
+              "id": "hindi-7-004-B",
+              "option_key": "B",
+              "option_text": "मैं स्कूल जाता है।"
+            },
+            {
+              "id": "hindi-7-004-C",
+              "option_key": "C",
+              "option_text": "मैं स्कूल जाते हैं।"
+            },
+            {
+              "id": "hindi-7-004-D",
+              "option_key": "D",
+              "option_text": "मैं स्कूल गई हूँ।"
+            }
+          ],
+          "correct_option_key": "A",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "hindi-7-005",
+          "source_level": "7",
+          "question_number": 5,
+          "question_text": "निम्न शब्दों को सही क्रम में लगाकर वाक्य बनाइए।",
+          "options": [
+            {
+              "id": "hindi-7-005-A",
+              "option_key": "A",
+              "option_text": "पढ़ता वह प्रतिदिन है।"
+            },
+            {
+              "id": "hindi-7-005-B",
+              "option_key": "B",
+              "option_text": "वह प्रतिदिन पढ़ता है।"
+            },
+            {
+              "id": "hindi-7-005-C",
+              "option_key": "C",
+              "option_text": "है वह प्रतिदिन पढ़ता।"
+            },
+            {
+              "id": "hindi-7-005-D",
+              "option_key": "D",
+              "option_text": "प्रतिदिन पढ़ता है वह।"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "hindi-8-001",
+          "source_level": "8",
+          "question_number": 1,
+          "question_text": "पेड़ों का एक लाभ क्या है?",
+          "options": [
+            {
+              "id": "hindi-8-001-A",
+              "option_key": "A",
+              "option_text": "वे सड़क बनाते हैं।"
+            },
+            {
+              "id": "hindi-8-001-B",
+              "option_key": "B",
+              "option_text": "वे ऑक्सीजन देते हैं।"
+            },
+            {
+              "id": "hindi-8-001-C",
+              "option_key": "C",
+              "option_text": "वे घर बनाते हैं।"
+            },
+            {
+              "id": "hindi-8-001-D",
+              "option_key": "D",
+              "option_text": "वे वाहन चलाते हैं।"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "hindi-8-002",
+          "source_level": "8",
+          "question_number": 2,
+          "question_text": "निम्न वाक्य का सही अप्रत्यक्ष कथन चुनिए।",
+          "options": [
+            {
+              "id": "hindi-8-002-A",
+              "option_key": "A",
+              "option_text": "रवि ने कहा कि मैं थक गया हूँ।"
+            },
+            {
+              "id": "hindi-8-002-B",
+              "option_key": "B",
+              "option_text": "रवि ने कहा कि वह थक गया था।"
+            },
+            {
+              "id": "hindi-8-002-C",
+              "option_key": "C",
+              "option_text": "रवि कहता है कि वह थक गया।"
+            },
+            {
+              "id": "hindi-8-002-D",
+              "option_key": "D",
+              "option_text": "रवि ने कहा मैं थक गया था।"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "hindi-8-003",
+          "source_level": "8",
+          "question_number": 3,
+          "question_text": "निम्न में से कर्मवाच्य वाक्य कौन सा है?",
+          "options": [
+            {
+              "id": "hindi-8-003-A",
+              "option_key": "A",
+              "option_text": "शिक्षक पाठ पढ़ाते हैं।"
+            },
+            {
+              "id": "hindi-8-003-B",
+              "option_key": "B",
+              "option_text": "पाठ शिक्षक द्वारा पढ़ाया जाता है।"
+            },
+            {
+              "id": "hindi-8-003-C",
+              "option_key": "C",
+              "option_text": "शिक्षक पढ़ा रहे हैं।"
+            },
+            {
+              "id": "hindi-8-003-D",
+              "option_key": "D",
+              "option_text": "शिक्षक ने पाठ पढ़ाया।"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "hindi-8-004",
+          "source_level": "8",
+          "question_number": 4,
+          "question_text": "सही विराम चिह्न वाला वाक्य चुनिए।",
+          "options": [
+            {
+              "id": "hindi-8-004-A",
+              "option_key": "A",
+              "option_text": "तुम कहाँ जा रहे हो।"
+            },
+            {
+              "id": "hindi-8-004-B",
+              "option_key": "B",
+              "option_text": "तुम कहाँ जा रहे हो?"
+            },
+            {
+              "id": "hindi-8-004-C",
+              "option_key": "C",
+              "option_text": "तुम कहाँ जा रहे हो!"
+            },
+            {
+              "id": "hindi-8-004-D",
+              "option_key": "D",
+              "option_text": "तुम कहाँ जा रहे हो,"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "hindi-8-005",
+          "source_level": "8",
+          "question_number": 5,
+          "question_text": "निम्न अनुच्छेद के लिए उपयुक्त शीर्षक चुनिए।",
+          "options": [
+            {
+              "id": "hindi-8-005-A",
+              "option_key": "A",
+              "option_text": "पेड़"
+            },
+            {
+              "id": "hindi-8-005-B",
+              "option_key": "B",
+              "option_text": "पर्यावरण"
+            },
+            {
+              "id": "hindi-8-005-C",
+              "option_key": "C",
+              "option_text": "जल का महत्व"
+            },
+            {
+              "id": "hindi-8-005-D",
+              "option_key": "D",
+              "option_text": "विद्यालय"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        }
+      ]
+    },
+    "10": {
+      "source_levels": [
+        "5",
+        "6",
+        "7",
+        "8",
+        "9"
+      ],
+      "total_questions": 25,
+      "questions": [
+        {
+          "id": "hindi-5-001",
+          "source_level": "5",
+          "question_number": 1,
+          "question_text": "हिंदी वर्णमाला में स्वर कितने होते हैं?",
+          "options": [
+            {
+              "id": "hindi-5-001-A",
+              "option_key": "A",
+              "option_text": "10"
+            },
+            {
+              "id": "hindi-5-001-B",
+              "option_key": "B",
+              "option_text": "11"
+            },
+            {
+              "id": "hindi-5-001-C",
+              "option_key": "C",
+              "option_text": "13"
+            },
+            {
+              "id": "hindi-5-001-D",
+              "option_key": "D",
+              "option_text": "15"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "hindi-5-002",
+          "source_level": "5",
+          "question_number": 2,
+          "question_text": "'लड़के' शब्द का एकवचन क्या है?",
+          "options": [
+            {
+              "id": "hindi-5-002-A",
+              "option_key": "A",
+              "option_text": "लड़का"
+            },
+            {
+              "id": "hindi-5-002-B",
+              "option_key": "B",
+              "option_text": "लड़कियाँ"
+            },
+            {
+              "id": "hindi-5-002-C",
+              "option_key": "C",
+              "option_text": "लड़कों"
+            },
+            {
+              "id": "hindi-5-002-D",
+              "option_key": "D",
+              "option_text": "लड़के"
+            }
+          ],
+          "correct_option_key": "A",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "hindi-5-003",
+          "source_level": "5",
+          "question_number": 3,
+          "question_text": "'बड़ा' शब्द का विलोम शब्द क्या है?",
+          "options": [
+            {
+              "id": "hindi-5-003-A",
+              "option_key": "A",
+              "option_text": "ऊँचा"
+            },
+            {
+              "id": "hindi-5-003-B",
+              "option_key": "B",
+              "option_text": "छोटा"
+            },
+            {
+              "id": "hindi-5-003-C",
+              "option_key": "C",
+              "option_text": "मोटा"
+            },
+            {
+              "id": "hindi-5-003-D",
+              "option_key": "D",
+              "option_text": "लंबा"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "hindi-5-004",
+          "source_level": "5",
+          "question_number": 4,
+          "question_text": "रिक्त स्थान भरिए: राम _____ विद्यालय जाता है।",
+          "options": [
+            {
+              "id": "hindi-5-004-A",
+              "option_key": "A",
+              "option_text": "को"
+            },
+            {
+              "id": "hindi-5-004-B",
+              "option_key": "B",
+              "option_text": "से"
+            },
+            {
+              "id": "hindi-5-004-C",
+              "option_key": "C",
+              "option_text": "में"
+            },
+            {
+              "id": "hindi-5-004-D",
+              "option_key": "D",
+              "option_text": "रोज़"
+            }
+          ],
+          "correct_option_key": "D",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "hindi-5-005",
+          "source_level": "5",
+          "question_number": 5,
+          "question_text": "'सीमा प्रतिदिन दूध पीती है।' सीमा क्या पीती है?",
+          "options": [
+            {
+              "id": "hindi-5-005-A",
+              "option_key": "A",
+              "option_text": "पानी"
+            },
+            {
+              "id": "hindi-5-005-B",
+              "option_key": "B",
+              "option_text": "चाय"
+            },
+            {
+              "id": "hindi-5-005-C",
+              "option_key": "C",
+              "option_text": "दूध"
+            },
+            {
+              "id": "hindi-5-005-D",
+              "option_key": "D",
+              "option_text": "जूस"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "hindi-6-001",
+          "source_level": "6",
+          "question_number": 1,
+          "question_text": "निम्न में से संज्ञा शब्द कौन सा है?",
+          "options": [
+            {
+              "id": "hindi-6-001-A",
+              "option_key": "A",
+              "option_text": "सुंदर"
+            },
+            {
+              "id": "hindi-6-001-B",
+              "option_key": "B",
+              "option_text": "दौड़ना"
+            },
+            {
+              "id": "hindi-6-001-C",
+              "option_key": "C",
+              "option_text": "पुस्तक"
+            },
+            {
+              "id": "hindi-6-001-D",
+              "option_key": "D",
+              "option_text": "जल्दी"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "hindi-6-002",
+          "source_level": "6",
+          "question_number": 2,
+          "question_text": "'साहसी' का समानार्थी शब्द चुनिए।",
+          "options": [
+            {
+              "id": "hindi-6-002-A",
+              "option_key": "A",
+              "option_text": "डरपोक"
+            },
+            {
+              "id": "hindi-6-002-B",
+              "option_key": "B",
+              "option_text": "बहादुर"
+            },
+            {
+              "id": "hindi-6-002-C",
+              "option_key": "C",
+              "option_text": "कमजोर"
+            },
+            {
+              "id": "hindi-6-002-D",
+              "option_key": "D",
+              "option_text": "आलसी"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "hindi-6-003",
+          "source_level": "6",
+          "question_number": 3,
+          "question_text": "'दिन' का विलोम शब्द क्या है?",
+          "options": [
+            {
+              "id": "hindi-6-003-A",
+              "option_key": "A",
+              "option_text": "सुबह"
+            },
+            {
+              "id": "hindi-6-003-B",
+              "option_key": "B",
+              "option_text": "शाम"
+            },
+            {
+              "id": "hindi-6-003-C",
+              "option_key": "C",
+              "option_text": "रात"
+            },
+            {
+              "id": "hindi-6-003-D",
+              "option_key": "D",
+              "option_text": "दोपहर"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "hindi-6-004",
+          "source_level": "6",
+          "question_number": 4,
+          "question_text": "निम्न वाक्य में सर्वनाम पहचानिए। 'वह बाज़ार गया।'",
+          "options": [
+            {
+              "id": "hindi-6-004-A",
+              "option_key": "A",
+              "option_text": "बाज़ार"
+            },
+            {
+              "id": "hindi-6-004-B",
+              "option_key": "B",
+              "option_text": "गया"
+            },
+            {
+              "id": "hindi-6-004-C",
+              "option_key": "C",
+              "option_text": "वह"
+            },
+            {
+              "id": "hindi-6-004-D",
+              "option_key": "D",
+              "option_text": "में"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "hindi-6-005",
+          "source_level": "6",
+          "question_number": 5,
+          "question_text": "सही वाक्य चुनिए।",
+          "options": [
+            {
+              "id": "hindi-6-005-A",
+              "option_key": "A",
+              "option_text": "वह खेलता हैं।"
+            },
+            {
+              "id": "hindi-6-005-B",
+              "option_key": "B",
+              "option_text": "वह खेलता है।"
+            },
+            {
+              "id": "hindi-6-005-C",
+              "option_key": "C",
+              "option_text": "वह खेलते है।"
+            },
+            {
+              "id": "hindi-6-005-D",
+              "option_key": "D",
+              "option_text": "वह खेलता हूँ।"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "hindi-7-001",
+          "source_level": "7",
+          "question_number": 1,
+          "question_text": "निम्न वाक्य में विशेषण पहचानिए। 'सुंदर फूल बगीचे में खिला है।'",
+          "options": [
+            {
+              "id": "hindi-7-001-A",
+              "option_key": "A",
+              "option_text": "फूल"
+            },
+            {
+              "id": "hindi-7-001-B",
+              "option_key": "B",
+              "option_text": "सुंदर"
+            },
+            {
+              "id": "hindi-7-001-C",
+              "option_key": "C",
+              "option_text": "बगीचे"
+            },
+            {
+              "id": "hindi-7-001-D",
+              "option_key": "D",
+              "option_text": "खिला"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "hindi-7-002",
+          "source_level": "7",
+          "question_number": 2,
+          "question_text": "रिक्त स्थान भरिए। _____ आम बहुत मीठा है।",
+          "options": [
+            {
+              "id": "hindi-7-002-A",
+              "option_key": "A",
+              "option_text": "एक"
+            },
+            {
+              "id": "hindi-7-002-B",
+              "option_key": "B",
+              "option_text": "एकता"
+            },
+            {
+              "id": "hindi-7-002-C",
+              "option_key": "C",
+              "option_text": "एकों"
+            },
+            {
+              "id": "hindi-7-002-D",
+              "option_key": "D",
+              "option_text": "एकों का"
+            }
+          ],
+          "correct_option_key": "A",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "hindi-7-003",
+          "source_level": "7",
+          "question_number": 3,
+          "question_text": "मुहावरे का सही अर्थ चुनिए। 'नाक कटना'",
+          "options": [
+            {
+              "id": "hindi-7-003-A",
+              "option_key": "A",
+              "option_text": "घायल होना"
+            },
+            {
+              "id": "hindi-7-003-B",
+              "option_key": "B",
+              "option_text": "सम्मान खोना"
+            },
+            {
+              "id": "hindi-7-003-C",
+              "option_key": "C",
+              "option_text": "रोना"
+            },
+            {
+              "id": "hindi-7-003-D",
+              "option_key": "D",
+              "option_text": "झगड़ना"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "hindi-7-004",
+          "source_level": "7",
+          "question_number": 4,
+          "question_text": "निम्न में से शुद्ध वाक्य कौन सा है?",
+          "options": [
+            {
+              "id": "hindi-7-004-A",
+              "option_key": "A",
+              "option_text": "मैं स्कूल जाता हूँ।"
+            },
+            {
+              "id": "hindi-7-004-B",
+              "option_key": "B",
+              "option_text": "मैं स्कूल जाता है।"
+            },
+            {
+              "id": "hindi-7-004-C",
+              "option_key": "C",
+              "option_text": "मैं स्कूल जाते हैं।"
+            },
+            {
+              "id": "hindi-7-004-D",
+              "option_key": "D",
+              "option_text": "मैं स्कूल गई हूँ।"
+            }
+          ],
+          "correct_option_key": "A",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "hindi-7-005",
+          "source_level": "7",
+          "question_number": 5,
+          "question_text": "निम्न शब्दों को सही क्रम में लगाकर वाक्य बनाइए।",
+          "options": [
+            {
+              "id": "hindi-7-005-A",
+              "option_key": "A",
+              "option_text": "पढ़ता वह प्रतिदिन है।"
+            },
+            {
+              "id": "hindi-7-005-B",
+              "option_key": "B",
+              "option_text": "वह प्रतिदिन पढ़ता है।"
+            },
+            {
+              "id": "hindi-7-005-C",
+              "option_key": "C",
+              "option_text": "है वह प्रतिदिन पढ़ता।"
+            },
+            {
+              "id": "hindi-7-005-D",
+              "option_key": "D",
+              "option_text": "प्रतिदिन पढ़ता है वह।"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "hindi-8-001",
+          "source_level": "8",
+          "question_number": 1,
+          "question_text": "पेड़ों का एक लाभ क्या है?",
+          "options": [
+            {
+              "id": "hindi-8-001-A",
+              "option_key": "A",
+              "option_text": "वे सड़क बनाते हैं।"
+            },
+            {
+              "id": "hindi-8-001-B",
+              "option_key": "B",
+              "option_text": "वे ऑक्सीजन देते हैं।"
+            },
+            {
+              "id": "hindi-8-001-C",
+              "option_key": "C",
+              "option_text": "वे घर बनाते हैं।"
+            },
+            {
+              "id": "hindi-8-001-D",
+              "option_key": "D",
+              "option_text": "वे वाहन चलाते हैं।"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "hindi-8-002",
+          "source_level": "8",
+          "question_number": 2,
+          "question_text": "निम्न वाक्य का सही अप्रत्यक्ष कथन चुनिए।",
+          "options": [
+            {
+              "id": "hindi-8-002-A",
+              "option_key": "A",
+              "option_text": "रवि ने कहा कि मैं थक गया हूँ।"
+            },
+            {
+              "id": "hindi-8-002-B",
+              "option_key": "B",
+              "option_text": "रवि ने कहा कि वह थक गया था।"
+            },
+            {
+              "id": "hindi-8-002-C",
+              "option_key": "C",
+              "option_text": "रवि कहता है कि वह थक गया।"
+            },
+            {
+              "id": "hindi-8-002-D",
+              "option_key": "D",
+              "option_text": "रवि ने कहा मैं थक गया था।"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "hindi-8-003",
+          "source_level": "8",
+          "question_number": 3,
+          "question_text": "निम्न में से कर्मवाच्य वाक्य कौन सा है?",
+          "options": [
+            {
+              "id": "hindi-8-003-A",
+              "option_key": "A",
+              "option_text": "शिक्षक पाठ पढ़ाते हैं।"
+            },
+            {
+              "id": "hindi-8-003-B",
+              "option_key": "B",
+              "option_text": "पाठ शिक्षक द्वारा पढ़ाया जाता है।"
+            },
+            {
+              "id": "hindi-8-003-C",
+              "option_key": "C",
+              "option_text": "शिक्षक पढ़ा रहे हैं।"
+            },
+            {
+              "id": "hindi-8-003-D",
+              "option_key": "D",
+              "option_text": "शिक्षक ने पाठ पढ़ाया।"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "hindi-8-004",
+          "source_level": "8",
+          "question_number": 4,
+          "question_text": "सही विराम चिह्न वाला वाक्य चुनिए।",
+          "options": [
+            {
+              "id": "hindi-8-004-A",
+              "option_key": "A",
+              "option_text": "तुम कहाँ जा रहे हो।"
+            },
+            {
+              "id": "hindi-8-004-B",
+              "option_key": "B",
+              "option_text": "तुम कहाँ जा रहे हो?"
+            },
+            {
+              "id": "hindi-8-004-C",
+              "option_key": "C",
+              "option_text": "तुम कहाँ जा रहे हो!"
+            },
+            {
+              "id": "hindi-8-004-D",
+              "option_key": "D",
+              "option_text": "तुम कहाँ जा रहे हो,"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "hindi-8-005",
+          "source_level": "8",
+          "question_number": 5,
+          "question_text": "निम्न अनुच्छेद के लिए उपयुक्त शीर्षक चुनिए।",
+          "options": [
+            {
+              "id": "hindi-8-005-A",
+              "option_key": "A",
+              "option_text": "पेड़"
+            },
+            {
+              "id": "hindi-8-005-B",
+              "option_key": "B",
+              "option_text": "पर्यावरण"
+            },
+            {
+              "id": "hindi-8-005-C",
+              "option_key": "C",
+              "option_text": "जल का महत्व"
+            },
+            {
+              "id": "hindi-8-005-D",
+              "option_key": "D",
+              "option_text": "विद्यालय"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "hindi-9-001",
+          "source_level": "9",
+          "question_number": 1,
+          "question_text": "निम्न वाक्य में उपवाक्य पहचानिए।",
+          "options": [
+            {
+              "id": "hindi-9-001-A",
+              "option_key": "A",
+              "option_text": "बच्चे घर में रहे"
+            },
+            {
+              "id": "hindi-9-001-B",
+              "option_key": "B",
+              "option_text": "जब वर्षा हुई"
+            },
+            {
+              "id": "hindi-9-001-C",
+              "option_key": "C",
+              "option_text": "घर में रहे"
+            },
+            {
+              "id": "hindi-9-001-D",
+              "option_key": "D",
+              "option_text": "बच्चे"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "hindi-9-002",
+          "source_level": "9",
+          "question_number": 2,
+          "question_text": "'ईमानदार' का भाववाचक संज्ञा रूप क्या है?",
+          "options": [
+            {
+              "id": "hindi-9-002-A",
+              "option_key": "A",
+              "option_text": "ईमान"
+            },
+            {
+              "id": "hindi-9-002-B",
+              "option_key": "B",
+              "option_text": "ईमानदारी"
+            },
+            {
+              "id": "hindi-9-002-C",
+              "option_key": "C",
+              "option_text": "ईमानदारी"
+            },
+            {
+              "id": "hindi-9-002-D",
+              "option_key": "D",
+              "option_text": "ईमानी"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "hindi-9-003",
+          "source_level": "9",
+          "question_number": 3,
+          "question_text": "औपचारिक पत्र का सही प्रारंभ क्या है?",
+          "options": [
+            {
+              "id": "hindi-9-003-A",
+              "option_key": "A",
+              "option_text": "प्रिय मित्र,"
+            },
+            {
+              "id": "hindi-9-003-B",
+              "option_key": "B",
+              "option_text": "नमस्ते दोस्त,"
+            },
+            {
+              "id": "hindi-9-003-C",
+              "option_key": "C",
+              "option_text": "महोदय/महोदया,"
+            },
+            {
+              "id": "hindi-9-003-D",
+              "option_key": "D",
+              "option_text": "हेलो"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "hindi-9-004",
+          "source_level": "9",
+          "question_number": 4,
+          "question_text": "निम्न में से कौन सा वाक्य शुद्ध है?",
+          "options": [
+            {
+              "id": "hindi-9-004-A",
+              "option_key": "A",
+              "option_text": "प्रत्येक विद्यार्थी अपने कार्य करें।"
+            },
+            {
+              "id": "hindi-9-004-B",
+              "option_key": "B",
+              "option_text": "प्रत्येक विद्यार्थी अपना कार्य करे।"
+            },
+            {
+              "id": "hindi-9-004-C",
+              "option_key": "C",
+              "option_text": "प्रत्येक विद्यार्थी अपने कार्य करता हैं।"
+            },
+            {
+              "id": "hindi-9-004-D",
+              "option_key": "D",
+              "option_text": "प्रत्येक विद्यार्थी अपना कार्य करते हैं।"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "hindi-9-005",
+          "source_level": "9",
+          "question_number": 5,
+          "question_text": "अनुच्छेद का मुख्य विचार किसमें व्यक्त होता है?",
+          "options": [
+            {
+              "id": "hindi-9-005-A",
+              "option_key": "A",
+              "option_text": "उदाहरण में"
+            },
+            {
+              "id": "hindi-9-005-B",
+              "option_key": "B",
+              "option_text": "निष्कर्ष में"
+            },
+            {
+              "id": "hindi-9-005-C",
+              "option_key": "C",
+              "option_text": "विषय-वाक्य में"
+            },
+            {
+              "id": "hindi-9-005-D",
+              "option_key": "D",
+              "option_text": "शीर्षक में"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        }
+      ]
+    }
+  }
+}

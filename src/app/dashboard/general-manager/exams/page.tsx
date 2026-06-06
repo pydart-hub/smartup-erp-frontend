@@ -7,7 +7,7 @@ import { BranchDrillDown, safeNum, pctColor, pctBadgeColor } from "@/components/
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Building2, Trophy, BarChart3,
-  ChevronRight, Users, ClipboardList,
+  ChevronRight, ClipboardList,
 } from "lucide-react";
 
 const container = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.06 } } };
@@ -63,7 +63,6 @@ export default function GMExamsPage() {
               <p className="text-sm text-text-tertiary mt-0.5">Cross-branch exam performance</p>
             </div>
 
-            {/* Summary */}
             <motion.div variants={container} initial="hidden" animate="show" className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <motion.div variants={item} className="bg-surface rounded-[12px] p-4 border border-border-light">
                 <div className="flex items-center gap-2 mb-2">
@@ -95,7 +94,6 @@ export default function GMExamsPage() {
               </motion.div>
             </motion.div>
 
-            {/* Branch Rows */}
             <motion.div variants={container} initial="hidden" animate="show" className="space-y-2">
               {sorted.map((b) => (
                 <motion.button
@@ -127,7 +125,6 @@ export default function GMExamsPage() {
               ))}
             </motion.div>
 
-            {/* Comparison Table */}
             {branches.length > 1 && (
               <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
                 <h2 className="text-lg font-semibold text-primary mb-3">Branch Comparison</h2>

@@ -2,6 +2,45 @@ import apiClient from "./client";
 import type { AttendanceRecord, BulkAttendancePayload, AttendanceReportParams, AttendanceSummary } from "@/lib/types/attendance";
 import type { FrappeListResponse, FrappeSingleResponse } from "@/lib/types/api";
 
+export async function getAttendanceRecordsByCourseSchedule(
+  courseSchedule: string,
+): Promise<FrappeListResponse<AttendanceRecord>> {
+  const query = new URLSearchParams({
+    filters: JSON.stringify([["course_schedule", "=", courseSchedule]]),
+    fields: JSON.stringify([
+      "name",
+      "docstatus",
+      "student",
+      "student_name",
+      "date",
+      "status",
+      "student_group",
+      "course_schedule",
+      "custom_branch",
+    ]),
+    limit_page_length: "0",
+  });
+  const { data } = await apiClient.get(`/resource/Student Attendance?${query.toString()}`);
+  return data;
+}
+
+export async function deleteAttendanceRecordsForCourseSchedule(courseSchedule: string): Promise<number> {
+  const { data: records = [] } = await getAttendanceRecordsByCourseSchedule(courseSchedule);
+
+  for (const record of records) {
+    if (record.docstatus === 1) {
+      await apiClient.post("/method/frappe.client.cancel", {
+        doctype: "Student Attendance",
+        name: record.name,
+      });
+    }
+
+    await apiClient.delete(`/resource/Student Attendance/${encodeURIComponent(record.name)}`);
+  }
+
+  return records.length;
+}
+
 // Fetch all attendance records for a date, optionally by student_group and/or branch
 export async function getAttendance(date: string, params?: {
   student_group?: string;

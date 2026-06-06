@@ -1,0 +1,53 @@
+{
+  "subject": "English",
+  "source_file": "English LEVEL TEST.docx",
+  "parsed_at": "2026-06-03T16:02:20.582Z",
+  "conversion_status": "needs_manual_review",
+  "levels": {
+    "5": [],
+    "6": [],
+    "7": [],
+    "8": [],
+    "9": []
+  },
+  "generated_targets": {
+    "8": {
+      "source_levels": [
+        "5",
+        "6",
+        "7"
+      ],
+      "total_questions": 0,
+      "questions": []
+    },
+    "9": {
+      "source_levels": [
+        "5",
+        "6",
+        "7",
+        "8"
+      ],
+      "total_questions": 0,
+      "questions": []
+    },
+    "10": {
+      "source_levels": [
+        "5",
+        "6",
+        "7",
+        "8",
+        "9"
+      ],
+      "total_questions": 0,
+      "questions": []
+    }
+  },
+  "warnings": [
+    "5th: 5 questions do not have a correct answer in the source doc",
+    "5th: 1 questions do not have valid MCQ options in the source doc",
+    "6th: 5 questions do not have a correct answer in the source doc",
+    "7th: 5 questions do not have a correct answer in the source doc",
+    "8th: 5 questions do not have a correct answer in the source doc",
+    "No fully usable MCQ question bank could be generated from this source without manual review"
+  ]
+}

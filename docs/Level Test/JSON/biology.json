@@ -1,0 +1,3054 @@
+{
+  "subject": "Biology",
+  "source_file": "Biology LEVEL TEST.docx",
+  "parsed_at": "2026-06-05T11:06:53.466Z",
+  "conversion_status": "ready",
+  "levels": {
+    "5": [
+      {
+        "id": "biology-5-001",
+        "source_level": "5",
+        "question_number": 1,
+        "question_text": "Which gas is essential for human breathing?",
+        "options": [
+          {
+            "id": "biology-5-001-A",
+            "option_key": "A",
+            "option_text": "Nitrogen (N₂)"
+          },
+          {
+            "id": "biology-5-001-B",
+            "option_key": "B",
+            "option_text": "Carbon dioxide (CO₂)"
+          },
+          {
+            "id": "biology-5-001-C",
+            "option_key": "C",
+            "option_text": "Oxygen (O₂)"
+          },
+          {
+            "id": "biology-5-001-D",
+            "option_key": "D",
+            "option_text": "None of these"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "biology-5-002",
+        "source_level": "5",
+        "question_number": 2,
+        "question_text": "The green pigment present in leaves is ________.",
+        "options": [
+          {
+            "id": "biology-5-002-A",
+            "option_key": "A",
+            "option_text": "Hemoglobin"
+          },
+          {
+            "id": "biology-5-002-B",
+            "option_key": "B",
+            "option_text": "Chlorophyll"
+          },
+          {
+            "id": "biology-5-002-C",
+            "option_key": "C",
+            "option_text": "Melanin"
+          },
+          {
+            "id": "biology-5-002-D",
+            "option_key": "D",
+            "option_text": "Carotene"
+          }
+        ],
+        "correct_option_key": "B",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "biology-5-003",
+        "source_level": "5",
+        "question_number": 3,
+        "question_text": "Identify the communicable disease from the following.",
+        "options": [
+          {
+            "id": "biology-5-003-A",
+            "option_key": "A",
+            "option_text": "Diabetes"
+          },
+          {
+            "id": "biology-5-003-B",
+            "option_key": "B",
+            "option_text": "Hypertension"
+          },
+          {
+            "id": "biology-5-003-C",
+            "option_key": "C",
+            "option_text": "Hepatitis B"
+          },
+          {
+            "id": "biology-5-003-D",
+            "option_key": "D",
+            "option_text": "Cancer"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "biology-5-004",
+        "source_level": "5",
+        "question_number": 4,
+        "question_text": "What is seed dispersal?",
+        "options": [
+          {
+            "id": "biology-5-004-A",
+            "option_key": "A",
+            "option_text": "The process of making food in plants"
+          },
+          {
+            "id": "biology-5-004-B",
+            "option_key": "B",
+            "option_text": "The transfer of pollen grains from one flower to another"
+          },
+          {
+            "id": "biology-5-004-C",
+            "option_key": "C",
+            "option_text": "The process by which seeds from the mother plant reach different locations"
+          },
+          {
+            "id": "biology-5-004-D",
+            "option_key": "D",
+            "option_text": "The growth of a seed into a new plant"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "biology-5-005",
+        "source_level": "5",
+        "question_number": 5,
+        "question_text": "Pneumatophores found in mangrove plants are specially adapted for _______.",
+        "options": [
+          {
+            "id": "biology-5-005-A",
+            "option_key": "A",
+            "option_text": "Storing food"
+          },
+          {
+            "id": "biology-5-005-B",
+            "option_key": "B",
+            "option_text": "Climbing support"
+          },
+          {
+            "id": "biology-5-005-C",
+            "option_key": "C",
+            "option_text": "Respiration in waterlogged soil"
+          },
+          {
+            "id": "biology-5-005-D",
+            "option_key": "D",
+            "option_text": "Absorbing sunlight"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      }
+    ],
+    "6": [
+      {
+        "id": "biology-6-001",
+        "source_level": "6",
+        "question_number": 1,
+        "question_text": "A balanced diet contains",
+        "options": [
+          {
+            "id": "biology-6-001-A",
+            "option_key": "A",
+            "option_text": "Only carbohydrates"
+          },
+          {
+            "id": "biology-6-001-B",
+            "option_key": "B",
+            "option_text": "Only proteins"
+          },
+          {
+            "id": "biology-6-001-C",
+            "option_key": "C",
+            "option_text": "All nutrients in correct proportion"
+          },
+          {
+            "id": "biology-6-001-D",
+            "option_key": "D",
+            "option_text": "Only vitamins"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "biology-6-002",
+        "source_level": "6",
+        "question_number": 2,
+        "question_text": "A point where two or more bones meet is called a:",
+        "options": [
+          {
+            "id": "biology-6-002-A",
+            "option_key": "A",
+            "option_text": "Muscle"
+          },
+          {
+            "id": "biology-6-002-B",
+            "option_key": "B",
+            "option_text": "Tendon"
+          },
+          {
+            "id": "biology-6-002-C",
+            "option_key": "C",
+            "option_text": "Joint"
+          },
+          {
+            "id": "biology-6-002-D",
+            "option_key": "D",
+            "option_text": "Ligament"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "biology-6-003",
+        "source_level": "6",
+        "question_number": 3,
+        "question_text": "Green leafy vegetables are rich in",
+        "options": [
+          {
+            "id": "biology-6-003-A",
+            "option_key": "A",
+            "option_text": "Vitamins and minerals"
+          },
+          {
+            "id": "biology-6-003-B",
+            "option_key": "B",
+            "option_text": "Fats"
+          },
+          {
+            "id": "biology-6-003-C",
+            "option_key": "C",
+            "option_text": "Sugar"
+          },
+          {
+            "id": "biology-6-003-D",
+            "option_key": "D",
+            "option_text": "Starch"
+          }
+        ],
+        "correct_option_key": "A",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "biology-6-004",
+        "source_level": "6",
+        "question_number": 4,
+        "question_text": "Self-pollination occurs when pollen grains are transferred from",
+        "options": [
+          {
+            "id": "biology-6-004-A",
+            "option_key": "A",
+            "option_text": "One plant to another plant"
+          },
+          {
+            "id": "biology-6-004-B",
+            "option_key": "B",
+            "option_text": "Anther to stigma of the same flower"
+          },
+          {
+            "id": "biology-6-004-C",
+            "option_key": "C",
+            "option_text": "Root to stem"
+          },
+          {
+            "id": "biology-6-004-D",
+            "option_key": "D",
+            "option_text": "Leaf to flower"
+          }
+        ],
+        "correct_option_key": "B",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "biology-6-005",
+        "source_level": "6",
+        "question_number": 5,
+        "question_text": "Stomata help mainly in",
+        "options": [
+          {
+            "id": "biology-6-005-A",
+            "option_key": "A",
+            "option_text": "Reproduction"
+          },
+          {
+            "id": "biology-6-005-B",
+            "option_key": "B",
+            "option_text": "Photosynthesis only"
+          },
+          {
+            "id": "biology-6-005-C",
+            "option_key": "C",
+            "option_text": "Gas exchange and transpiration"
+          },
+          {
+            "id": "biology-6-005-D",
+            "option_key": "D",
+            "option_text": "Water absorption"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "biology-6-006",
+        "source_level": "6",
+        "question_number": 6,
+        "question_text": "Which pigment is essential for photosynthesis?",
+        "options": [
+          {
+            "id": "biology-6-006-A",
+            "option_key": "A",
+            "option_text": "Haemoglobin"
+          },
+          {
+            "id": "biology-6-006-B",
+            "option_key": "B",
+            "option_text": "Chlorophyll"
+          },
+          {
+            "id": "biology-6-006-C",
+            "option_key": "C",
+            "option_text": "Melanin"
+          },
+          {
+            "id": "biology-6-006-D",
+            "option_key": "D",
+            "option_text": "Keratin"
+          }
+        ],
+        "correct_option_key": "B",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      }
+    ],
+    "7": [
+      {
+        "id": "biology-7-001",
+        "source_level": "7",
+        "question_number": 1,
+        "question_text": "Which method of vegetative propagation uses a piece of stem to grow a new plant?",
+        "options": [
+          {
+            "id": "biology-7-001-A",
+            "option_key": "A",
+            "option_text": "Layering"
+          },
+          {
+            "id": "biology-7-001-B",
+            "option_key": "B",
+            "option_text": "Cutting"
+          },
+          {
+            "id": "biology-7-001-C",
+            "option_key": "C",
+            "option_text": "Grafting"
+          },
+          {
+            "id": "biology-7-001-D",
+            "option_key": "D",
+            "option_text": "Pollination"
+          }
+        ],
+        "correct_option_key": "B",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "biology-7-002",
+        "source_level": "7",
+        "question_number": 2,
+        "question_text": "Which of the following best explains the term “nutrition”?",
+        "options": [
+          {
+            "id": "biology-7-002-A",
+            "option_key": "A",
+            "option_text": "Removal of waste materials from the body"
+          },
+          {
+            "id": "biology-7-002-B",
+            "option_key": "B",
+            "option_text": "Process of obtaining and utilizing food by organisms"
+          },
+          {
+            "id": "biology-7-002-C",
+            "option_key": "C",
+            "option_text": "Exchange of gases in living organisms"
+          },
+          {
+            "id": "biology-7-002-D",
+            "option_key": "D",
+            "option_text": "Production of energy without food"
+          }
+        ],
+        "correct_option_key": "B",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "biology-7-003",
+        "source_level": "7",
+        "question_number": 3,
+        "question_text": "The first set of teeth in humans are called",
+        "options": [
+          {
+            "id": "biology-7-003-A",
+            "option_key": "A",
+            "option_text": "Permanent teeth"
+          },
+          {
+            "id": "biology-7-003-B",
+            "option_key": "B",
+            "option_text": "Canines"
+          },
+          {
+            "id": "biology-7-003-C",
+            "option_key": "C",
+            "option_text": "Milk teeth"
+          },
+          {
+            "id": "biology-7-003-D",
+            "option_key": "D",
+            "option_text": "Wisdom teeth"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "biology-7-004",
+        "source_level": "7",
+        "question_number": 4,
+        "question_text": "Identify unicellular organisms from the following.",
+        "options": [
+          {
+            "id": "biology-7-004-A",
+            "option_key": "A",
+            "option_text": "Animals"
+          },
+          {
+            "id": "biology-7-004-B",
+            "option_key": "B",
+            "option_text": "Plants"
+          },
+          {
+            "id": "biology-7-004-C",
+            "option_key": "C",
+            "option_text": "Paramecium"
+          },
+          {
+            "id": "biology-7-004-D",
+            "option_key": "D",
+            "option_text": "None of these"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "biology-7-005",
+        "source_level": "7",
+        "question_number": 5,
+        "question_text": "The red colour of blood is due to the presence of",
+        "options": [
+          {
+            "id": "biology-7-005-A",
+            "option_key": "A",
+            "option_text": "Plasma"
+          },
+          {
+            "id": "biology-7-005-B",
+            "option_key": "B",
+            "option_text": "Platelets"
+          },
+          {
+            "id": "biology-7-005-C",
+            "option_key": "C",
+            "option_text": "Haemoglobin"
+          },
+          {
+            "id": "biology-7-005-D",
+            "option_key": "D",
+            "option_text": "White blood cells"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      }
+    ],
+    "8": [
+      {
+        "id": "biology-8-001",
+        "source_level": "8",
+        "question_number": 1,
+        "question_text": "Tissue culture is a method used to",
+        "options": [
+          {
+            "id": "biology-8-001-A",
+            "option_key": "A",
+            "option_text": "Grow plants from small pieces of tissue"
+          },
+          {
+            "id": "biology-8-001-B",
+            "option_key": "B",
+            "option_text": "Increase soil fertility"
+          },
+          {
+            "id": "biology-8-001-C",
+            "option_key": "C",
+            "option_text": "Study animal behaviour"
+          },
+          {
+            "id": "biology-8-001-D",
+            "option_key": "D",
+            "option_text": "Prevent photosynthesis"
+          }
+        ],
+        "correct_option_key": "A",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "biology-8-002",
+        "source_level": "8",
+        "question_number": 2,
+        "question_text": "Hydroponics is a method of growing plants",
+        "options": [
+          {
+            "id": "biology-8-002-A",
+            "option_key": "A",
+            "option_text": "In dry sand only"
+          },
+          {
+            "id": "biology-8-002-B",
+            "option_key": "B",
+            "option_text": "Without soil using nutrient solution"
+          },
+          {
+            "id": "biology-8-002-C",
+            "option_key": "C",
+            "option_text": "Only in sunlight"
+          },
+          {
+            "id": "biology-8-002-D",
+            "option_key": "D",
+            "option_text": "Inside rocks"
+          }
+        ],
+        "correct_option_key": "B",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "biology-8-003",
+        "source_level": "8",
+        "question_number": 3,
+        "question_text": "Which of the following is a characteristic feature of a prokaryotic cell?",
+        "options": [
+          {
+            "id": "biology-8-003-A",
+            "option_key": "A",
+            "option_text": "Presence of a true nucleus"
+          },
+          {
+            "id": "biology-8-003-B",
+            "option_key": "B",
+            "option_text": "Membrane-bound organelles present"
+          },
+          {
+            "id": "biology-8-003-C",
+            "option_key": "C",
+            "option_text": "Absence of a true nucleus"
+          },
+          {
+            "id": "biology-8-003-D",
+            "option_key": "D",
+            "option_text": "Large vacuole present"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "biology-8-004",
+        "source_level": "8",
+        "question_number": 4,
+        "question_text": "Chloroplast is the cell organelle responsible for",
+        "options": [
+          {
+            "id": "biology-8-004-A",
+            "option_key": "A",
+            "option_text": "Respiration"
+          },
+          {
+            "id": "biology-8-004-B",
+            "option_key": "B",
+            "option_text": "Digestion"
+          },
+          {
+            "id": "biology-8-004-C",
+            "option_key": "C",
+            "option_text": "Photosynthesis"
+          },
+          {
+            "id": "biology-8-004-D",
+            "option_key": "D",
+            "option_text": "Reproduction"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "biology-8-005",
+        "source_level": "8",
+        "question_number": 5,
+        "question_text": "Which feature distinguishes meristematic tissue from permanent tissue?",
+        "options": [
+          {
+            "id": "biology-8-005-A",
+            "option_key": "A",
+            "option_text": "Cells are dead and thick-walled"
+          },
+          {
+            "id": "biology-8-005-B",
+            "option_key": "B",
+            "option_text": "Cells actively divide and lack vacuoles"
+          },
+          {
+            "id": "biology-8-005-C",
+            "option_key": "C",
+            "option_text": "Cells contain large intercellular spaces"
+          },
+          {
+            "id": "biology-8-005-D",
+            "option_key": "D",
+            "option_text": "Cells perform storage only"
+          }
+        ],
+        "correct_option_key": "B",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      }
+    ],
+    "9": [
+      {
+        "id": "biology-9-002",
+        "source_level": "9",
+        "question_number": 2,
+        "question_text": "The movement of water molecules from a region of high concentration to low concentration through a semipermeable membrane is called",
+        "options": [
+          {
+            "id": "biology-9-002-A",
+            "option_key": "A",
+            "option_text": "Diffusion"
+          },
+          {
+            "id": "biology-9-002-B",
+            "option_key": "B",
+            "option_text": "Osmosis"
+          },
+          {
+            "id": "biology-9-002-C",
+            "option_key": "C",
+            "option_text": "Respiration"
+          },
+          {
+            "id": "biology-9-002-D",
+            "option_key": "D",
+            "option_text": "Transpiration"
+          }
+        ],
+        "correct_option_key": "B",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "biology-9-003",
+        "source_level": "9",
+        "question_number": 3,
+        "question_text": "Which tissue transports water in plants?",
+        "options": [
+          {
+            "id": "biology-9-003-A",
+            "option_key": "A",
+            "option_text": "Phloem"
+          },
+          {
+            "id": "biology-9-003-B",
+            "option_key": "B",
+            "option_text": "Xylem"
+          },
+          {
+            "id": "biology-9-003-C",
+            "option_key": "C",
+            "option_text": "Epidermis"
+          },
+          {
+            "id": "biology-9-003-D",
+            "option_key": "D",
+            "option_text": "Meristem"
+          }
+        ],
+        "correct_option_key": "B",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "biology-9-004",
+        "source_level": "9",
+        "question_number": 4,
+        "question_text": "In a hypertonic solution, a plant cell will",
+        "options": [
+          {
+            "id": "biology-9-004-A",
+            "option_key": "A",
+            "option_text": "Become turgid"
+          },
+          {
+            "id": "biology-9-004-B",
+            "option_key": "B",
+            "option_text": "Burst"
+          },
+          {
+            "id": "biology-9-004-C",
+            "option_key": "C",
+            "option_text": "Undergo plasmolysis"
+          },
+          {
+            "id": "biology-9-004-D",
+            "option_key": "D",
+            "option_text": "Remain unchanged"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "biology-9-005",
+        "source_level": "9",
+        "question_number": 5,
+        "question_text": "Which tissue provides flexibility and mechanical support to plants?",
+        "options": [
+          {
+            "id": "biology-9-005-A",
+            "option_key": "A",
+            "option_text": "Sclerenchyma"
+          },
+          {
+            "id": "biology-9-005-B",
+            "option_key": "B",
+            "option_text": "Parenchyma"
+          },
+          {
+            "id": "biology-9-005-C",
+            "option_key": "C",
+            "option_text": "Collenchyma"
+          },
+          {
+            "id": "biology-9-005-D",
+            "option_key": "D",
+            "option_text": "Xylem"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "biology-9-006",
+        "source_level": "9",
+        "question_number": 6,
+        "question_text": "The plasma membrane is called selectively permeable because it",
+        "options": [
+          {
+            "id": "biology-9-006-A",
+            "option_key": "A",
+            "option_text": "Allows all substances to pass"
+          },
+          {
+            "id": "biology-9-006-B",
+            "option_key": "B",
+            "option_text": "Prevents movement of water"
+          },
+          {
+            "id": "biology-9-006-C",
+            "option_key": "C",
+            "option_text": "Allows only certain substances to pass through"
+          },
+          {
+            "id": "biology-9-006-D",
+            "option_key": "D",
+            "option_text": "Is made up of cellulose"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      }
+    ]
+  },
+  "generated_targets": {
+    "8": {
+      "source_levels": [
+        "5",
+        "6",
+        "7"
+      ],
+      "total_questions": 16,
+      "questions": [
+        {
+          "id": "biology-5-001",
+          "source_level": "5",
+          "question_number": 1,
+          "question_text": "Which gas is essential for human breathing?",
+          "options": [
+            {
+              "id": "biology-5-001-A",
+              "option_key": "A",
+              "option_text": "Nitrogen (N₂)"
+            },
+            {
+              "id": "biology-5-001-B",
+              "option_key": "B",
+              "option_text": "Carbon dioxide (CO₂)"
+            },
+            {
+              "id": "biology-5-001-C",
+              "option_key": "C",
+              "option_text": "Oxygen (O₂)"
+            },
+            {
+              "id": "biology-5-001-D",
+              "option_key": "D",
+              "option_text": "None of these"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "biology-5-002",
+          "source_level": "5",
+          "question_number": 2,
+          "question_text": "The green pigment present in leaves is ________.",
+          "options": [
+            {
+              "id": "biology-5-002-A",
+              "option_key": "A",
+              "option_text": "Hemoglobin"
+            },
+            {
+              "id": "biology-5-002-B",
+              "option_key": "B",
+              "option_text": "Chlorophyll"
+            },
+            {
+              "id": "biology-5-002-C",
+              "option_key": "C",
+              "option_text": "Melanin"
+            },
+            {
+              "id": "biology-5-002-D",
+              "option_key": "D",
+              "option_text": "Carotene"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "biology-5-003",
+          "source_level": "5",
+          "question_number": 3,
+          "question_text": "Identify the communicable disease from the following.",
+          "options": [
+            {
+              "id": "biology-5-003-A",
+              "option_key": "A",
+              "option_text": "Diabetes"
+            },
+            {
+              "id": "biology-5-003-B",
+              "option_key": "B",
+              "option_text": "Hypertension"
+            },
+            {
+              "id": "biology-5-003-C",
+              "option_key": "C",
+              "option_text": "Hepatitis B"
+            },
+            {
+              "id": "biology-5-003-D",
+              "option_key": "D",
+              "option_text": "Cancer"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "biology-5-004",
+          "source_level": "5",
+          "question_number": 4,
+          "question_text": "What is seed dispersal?",
+          "options": [
+            {
+              "id": "biology-5-004-A",
+              "option_key": "A",
+              "option_text": "The process of making food in plants"
+            },
+            {
+              "id": "biology-5-004-B",
+              "option_key": "B",
+              "option_text": "The transfer of pollen grains from one flower to another"
+            },
+            {
+              "id": "biology-5-004-C",
+              "option_key": "C",
+              "option_text": "The process by which seeds from the mother plant reach different locations"
+            },
+            {
+              "id": "biology-5-004-D",
+              "option_key": "D",
+              "option_text": "The growth of a seed into a new plant"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "biology-5-005",
+          "source_level": "5",
+          "question_number": 5,
+          "question_text": "Pneumatophores found in mangrove plants are specially adapted for _______.",
+          "options": [
+            {
+              "id": "biology-5-005-A",
+              "option_key": "A",
+              "option_text": "Storing food"
+            },
+            {
+              "id": "biology-5-005-B",
+              "option_key": "B",
+              "option_text": "Climbing support"
+            },
+            {
+              "id": "biology-5-005-C",
+              "option_key": "C",
+              "option_text": "Respiration in waterlogged soil"
+            },
+            {
+              "id": "biology-5-005-D",
+              "option_key": "D",
+              "option_text": "Absorbing sunlight"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "biology-6-001",
+          "source_level": "6",
+          "question_number": 1,
+          "question_text": "A balanced diet contains",
+          "options": [
+            {
+              "id": "biology-6-001-A",
+              "option_key": "A",
+              "option_text": "Only carbohydrates"
+            },
+            {
+              "id": "biology-6-001-B",
+              "option_key": "B",
+              "option_text": "Only proteins"
+            },
+            {
+              "id": "biology-6-001-C",
+              "option_key": "C",
+              "option_text": "All nutrients in correct proportion"
+            },
+            {
+              "id": "biology-6-001-D",
+              "option_key": "D",
+              "option_text": "Only vitamins"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "biology-6-002",
+          "source_level": "6",
+          "question_number": 2,
+          "question_text": "A point where two or more bones meet is called a:",
+          "options": [
+            {
+              "id": "biology-6-002-A",
+              "option_key": "A",
+              "option_text": "Muscle"
+            },
+            {
+              "id": "biology-6-002-B",
+              "option_key": "B",
+              "option_text": "Tendon"
+            },
+            {
+              "id": "biology-6-002-C",
+              "option_key": "C",
+              "option_text": "Joint"
+            },
+            {
+              "id": "biology-6-002-D",
+              "option_key": "D",
+              "option_text": "Ligament"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "biology-6-003",
+          "source_level": "6",
+          "question_number": 3,
+          "question_text": "Green leafy vegetables are rich in",
+          "options": [
+            {
+              "id": "biology-6-003-A",
+              "option_key": "A",
+              "option_text": "Vitamins and minerals"
+            },
+            {
+              "id": "biology-6-003-B",
+              "option_key": "B",
+              "option_text": "Fats"
+            },
+            {
+              "id": "biology-6-003-C",
+              "option_key": "C",
+              "option_text": "Sugar"
+            },
+            {
+              "id": "biology-6-003-D",
+              "option_key": "D",
+              "option_text": "Starch"
+            }
+          ],
+          "correct_option_key": "A",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "biology-6-004",
+          "source_level": "6",
+          "question_number": 4,
+          "question_text": "Self-pollination occurs when pollen grains are transferred from",
+          "options": [
+            {
+              "id": "biology-6-004-A",
+              "option_key": "A",
+              "option_text": "One plant to another plant"
+            },
+            {
+              "id": "biology-6-004-B",
+              "option_key": "B",
+              "option_text": "Anther to stigma of the same flower"
+            },
+            {
+              "id": "biology-6-004-C",
+              "option_key": "C",
+              "option_text": "Root to stem"
+            },
+            {
+              "id": "biology-6-004-D",
+              "option_key": "D",
+              "option_text": "Leaf to flower"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "biology-6-005",
+          "source_level": "6",
+          "question_number": 5,
+          "question_text": "Stomata help mainly in",
+          "options": [
+            {
+              "id": "biology-6-005-A",
+              "option_key": "A",
+              "option_text": "Reproduction"
+            },
+            {
+              "id": "biology-6-005-B",
+              "option_key": "B",
+              "option_text": "Photosynthesis only"
+            },
+            {
+              "id": "biology-6-005-C",
+              "option_key": "C",
+              "option_text": "Gas exchange and transpiration"
+            },
+            {
+              "id": "biology-6-005-D",
+              "option_key": "D",
+              "option_text": "Water absorption"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "biology-6-006",
+          "source_level": "6",
+          "question_number": 6,
+          "question_text": "Which pigment is essential for photosynthesis?",
+          "options": [
+            {
+              "id": "biology-6-006-A",
+              "option_key": "A",
+              "option_text": "Haemoglobin"
+            },
+            {
+              "id": "biology-6-006-B",
+              "option_key": "B",
+              "option_text": "Chlorophyll"
+            },
+            {
+              "id": "biology-6-006-C",
+              "option_key": "C",
+              "option_text": "Melanin"
+            },
+            {
+              "id": "biology-6-006-D",
+              "option_key": "D",
+              "option_text": "Keratin"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "biology-7-001",
+          "source_level": "7",
+          "question_number": 1,
+          "question_text": "Which method of vegetative propagation uses a piece of stem to grow a new plant?",
+          "options": [
+            {
+              "id": "biology-7-001-A",
+              "option_key": "A",
+              "option_text": "Layering"
+            },
+            {
+              "id": "biology-7-001-B",
+              "option_key": "B",
+              "option_text": "Cutting"
+            },
+            {
+              "id": "biology-7-001-C",
+              "option_key": "C",
+              "option_text": "Grafting"
+            },
+            {
+              "id": "biology-7-001-D",
+              "option_key": "D",
+              "option_text": "Pollination"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "biology-7-002",
+          "source_level": "7",
+          "question_number": 2,
+          "question_text": "Which of the following best explains the term “nutrition”?",
+          "options": [
+            {
+              "id": "biology-7-002-A",
+              "option_key": "A",
+              "option_text": "Removal of waste materials from the body"
+            },
+            {
+              "id": "biology-7-002-B",
+              "option_key": "B",
+              "option_text": "Process of obtaining and utilizing food by organisms"
+            },
+            {
+              "id": "biology-7-002-C",
+              "option_key": "C",
+              "option_text": "Exchange of gases in living organisms"
+            },
+            {
+              "id": "biology-7-002-D",
+              "option_key": "D",
+              "option_text": "Production of energy without food"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "biology-7-003",
+          "source_level": "7",
+          "question_number": 3,
+          "question_text": "The first set of teeth in humans are called",
+          "options": [
+            {
+              "id": "biology-7-003-A",
+              "option_key": "A",
+              "option_text": "Permanent teeth"
+            },
+            {
+              "id": "biology-7-003-B",
+              "option_key": "B",
+              "option_text": "Canines"
+            },
+            {
+              "id": "biology-7-003-C",
+              "option_key": "C",
+              "option_text": "Milk teeth"
+            },
+            {
+              "id": "biology-7-003-D",
+              "option_key": "D",
+              "option_text": "Wisdom teeth"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "biology-7-004",
+          "source_level": "7",
+          "question_number": 4,
+          "question_text": "Identify unicellular organisms from the following.",
+          "options": [
+            {
+              "id": "biology-7-004-A",
+              "option_key": "A",
+              "option_text": "Animals"
+            },
+            {
+              "id": "biology-7-004-B",
+              "option_key": "B",
+              "option_text": "Plants"
+            },
+            {
+              "id": "biology-7-004-C",
+              "option_key": "C",
+              "option_text": "Paramecium"
+            },
+            {
+              "id": "biology-7-004-D",
+              "option_key": "D",
+              "option_text": "None of these"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "biology-7-005",
+          "source_level": "7",
+          "question_number": 5,
+          "question_text": "The red colour of blood is due to the presence of",
+          "options": [
+            {
+              "id": "biology-7-005-A",
+              "option_key": "A",
+              "option_text": "Plasma"
+            },
+            {
+              "id": "biology-7-005-B",
+              "option_key": "B",
+              "option_text": "Platelets"
+            },
+            {
+              "id": "biology-7-005-C",
+              "option_key": "C",
+              "option_text": "Haemoglobin"
+            },
+            {
+              "id": "biology-7-005-D",
+              "option_key": "D",
+              "option_text": "White blood cells"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        }
+      ]
+    },
+    "9": {
+      "source_levels": [
+        "5",
+        "6",
+        "7",
+        "8"
+      ],
+      "total_questions": 21,
+      "questions": [
+        {
+          "id": "biology-5-001",
+          "source_level": "5",
+          "question_number": 1,
+          "question_text": "Which gas is essential for human breathing?",
+          "options": [
+            {
+              "id": "biology-5-001-A",
+              "option_key": "A",
+              "option_text": "Nitrogen (N₂)"
+            },
+            {
+              "id": "biology-5-001-B",
+              "option_key": "B",
+              "option_text": "Carbon dioxide (CO₂)"
+            },
+            {
+              "id": "biology-5-001-C",
+              "option_key": "C",
+              "option_text": "Oxygen (O₂)"
+            },
+            {
+              "id": "biology-5-001-D",
+              "option_key": "D",
+              "option_text": "None of these"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "biology-5-002",
+          "source_level": "5",
+          "question_number": 2,
+          "question_text": "The green pigment present in leaves is ________.",
+          "options": [
+            {
+              "id": "biology-5-002-A",
+              "option_key": "A",
+              "option_text": "Hemoglobin"
+            },
+            {
+              "id": "biology-5-002-B",
+              "option_key": "B",
+              "option_text": "Chlorophyll"
+            },
+            {
+              "id": "biology-5-002-C",
+              "option_key": "C",
+              "option_text": "Melanin"
+            },
+            {
+              "id": "biology-5-002-D",
+              "option_key": "D",
+              "option_text": "Carotene"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "biology-5-003",
+          "source_level": "5",
+          "question_number": 3,
+          "question_text": "Identify the communicable disease from the following.",
+          "options": [
+            {
+              "id": "biology-5-003-A",
+              "option_key": "A",
+              "option_text": "Diabetes"
+            },
+            {
+              "id": "biology-5-003-B",
+              "option_key": "B",
+              "option_text": "Hypertension"
+            },
+            {
+              "id": "biology-5-003-C",
+              "option_key": "C",
+              "option_text": "Hepatitis B"
+            },
+            {
+              "id": "biology-5-003-D",
+              "option_key": "D",
+              "option_text": "Cancer"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "biology-5-004",
+          "source_level": "5",
+          "question_number": 4,
+          "question_text": "What is seed dispersal?",
+          "options": [
+            {
+              "id": "biology-5-004-A",
+              "option_key": "A",
+              "option_text": "The process of making food in plants"
+            },
+            {
+              "id": "biology-5-004-B",
+              "option_key": "B",
+              "option_text": "The transfer of pollen grains from one flower to another"
+            },
+            {
+              "id": "biology-5-004-C",
+              "option_key": "C",
+              "option_text": "The process by which seeds from the mother plant reach different locations"
+            },
+            {
+              "id": "biology-5-004-D",
+              "option_key": "D",
+              "option_text": "The growth of a seed into a new plant"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "biology-5-005",
+          "source_level": "5",
+          "question_number": 5,
+          "question_text": "Pneumatophores found in mangrove plants are specially adapted for _______.",
+          "options": [
+            {
+              "id": "biology-5-005-A",
+              "option_key": "A",
+              "option_text": "Storing food"
+            },
+            {
+              "id": "biology-5-005-B",
+              "option_key": "B",
+              "option_text": "Climbing support"
+            },
+            {
+              "id": "biology-5-005-C",
+              "option_key": "C",
+              "option_text": "Respiration in waterlogged soil"
+            },
+            {
+              "id": "biology-5-005-D",
+              "option_key": "D",
+              "option_text": "Absorbing sunlight"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "biology-6-001",
+          "source_level": "6",
+          "question_number": 1,
+          "question_text": "A balanced diet contains",
+          "options": [
+            {
+              "id": "biology-6-001-A",
+              "option_key": "A",
+              "option_text": "Only carbohydrates"
+            },
+            {
+              "id": "biology-6-001-B",
+              "option_key": "B",
+              "option_text": "Only proteins"
+            },
+            {
+              "id": "biology-6-001-C",
+              "option_key": "C",
+              "option_text": "All nutrients in correct proportion"
+            },
+            {
+              "id": "biology-6-001-D",
+              "option_key": "D",
+              "option_text": "Only vitamins"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "biology-6-002",
+          "source_level": "6",
+          "question_number": 2,
+          "question_text": "A point where two or more bones meet is called a:",
+          "options": [
+            {
+              "id": "biology-6-002-A",
+              "option_key": "A",
+              "option_text": "Muscle"
+            },
+            {
+              "id": "biology-6-002-B",
+              "option_key": "B",
+              "option_text": "Tendon"
+            },
+            {
+              "id": "biology-6-002-C",
+              "option_key": "C",
+              "option_text": "Joint"
+            },
+            {
+              "id": "biology-6-002-D",
+              "option_key": "D",
+              "option_text": "Ligament"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "biology-6-003",
+          "source_level": "6",
+          "question_number": 3,
+          "question_text": "Green leafy vegetables are rich in",
+          "options": [
+            {
+              "id": "biology-6-003-A",
+              "option_key": "A",
+              "option_text": "Vitamins and minerals"
+            },
+            {
+              "id": "biology-6-003-B",
+              "option_key": "B",
+              "option_text": "Fats"
+            },
+            {
+              "id": "biology-6-003-C",
+              "option_key": "C",
+              "option_text": "Sugar"
+            },
+            {
+              "id": "biology-6-003-D",
+              "option_key": "D",
+              "option_text": "Starch"
+            }
+          ],
+          "correct_option_key": "A",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "biology-6-004",
+          "source_level": "6",
+          "question_number": 4,
+          "question_text": "Self-pollination occurs when pollen grains are transferred from",
+          "options": [
+            {
+              "id": "biology-6-004-A",
+              "option_key": "A",
+              "option_text": "One plant to another plant"
+            },
+            {
+              "id": "biology-6-004-B",
+              "option_key": "B",
+              "option_text": "Anther to stigma of the same flower"
+            },
+            {
+              "id": "biology-6-004-C",
+              "option_key": "C",
+              "option_text": "Root to stem"
+            },
+            {
+              "id": "biology-6-004-D",
+              "option_key": "D",
+              "option_text": "Leaf to flower"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "biology-6-005",
+          "source_level": "6",
+          "question_number": 5,
+          "question_text": "Stomata help mainly in",
+          "options": [
+            {
+              "id": "biology-6-005-A",
+              "option_key": "A",
+              "option_text": "Reproduction"
+            },
+            {
+              "id": "biology-6-005-B",
+              "option_key": "B",
+              "option_text": "Photosynthesis only"
+            },
+            {
+              "id": "biology-6-005-C",
+              "option_key": "C",
+              "option_text": "Gas exchange and transpiration"
+            },
+            {
+              "id": "biology-6-005-D",
+              "option_key": "D",
+              "option_text": "Water absorption"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "biology-6-006",
+          "source_level": "6",
+          "question_number": 6,
+          "question_text": "Which pigment is essential for photosynthesis?",
+          "options": [
+            {
+              "id": "biology-6-006-A",
+              "option_key": "A",
+              "option_text": "Haemoglobin"
+            },
+            {
+              "id": "biology-6-006-B",
+              "option_key": "B",
+              "option_text": "Chlorophyll"
+            },
+            {
+              "id": "biology-6-006-C",
+              "option_key": "C",
+              "option_text": "Melanin"
+            },
+            {
+              "id": "biology-6-006-D",
+              "option_key": "D",
+              "option_text": "Keratin"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "biology-7-001",
+          "source_level": "7",
+          "question_number": 1,
+          "question_text": "Which method of vegetative propagation uses a piece of stem to grow a new plant?",
+          "options": [
+            {
+              "id": "biology-7-001-A",
+              "option_key": "A",
+              "option_text": "Layering"
+            },
+            {
+              "id": "biology-7-001-B",
+              "option_key": "B",
+              "option_text": "Cutting"
+            },
+            {
+              "id": "biology-7-001-C",
+              "option_key": "C",
+              "option_text": "Grafting"
+            },
+            {
+              "id": "biology-7-001-D",
+              "option_key": "D",
+              "option_text": "Pollination"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "biology-7-002",
+          "source_level": "7",
+          "question_number": 2,
+          "question_text": "Which of the following best explains the term “nutrition”?",
+          "options": [
+            {
+              "id": "biology-7-002-A",
+              "option_key": "A",
+              "option_text": "Removal of waste materials from the body"
+            },
+            {
+              "id": "biology-7-002-B",
+              "option_key": "B",
+              "option_text": "Process of obtaining and utilizing food by organisms"
+            },
+            {
+              "id": "biology-7-002-C",
+              "option_key": "C",
+              "option_text": "Exchange of gases in living organisms"
+            },
+            {
+              "id": "biology-7-002-D",
+              "option_key": "D",
+              "option_text": "Production of energy without food"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "biology-7-003",
+          "source_level": "7",
+          "question_number": 3,
+          "question_text": "The first set of teeth in humans are called",
+          "options": [
+            {
+              "id": "biology-7-003-A",
+              "option_key": "A",
+              "option_text": "Permanent teeth"
+            },
+            {
+              "id": "biology-7-003-B",
+              "option_key": "B",
+              "option_text": "Canines"
+            },
+            {
+              "id": "biology-7-003-C",
+              "option_key": "C",
+              "option_text": "Milk teeth"
+            },
+            {
+              "id": "biology-7-003-D",
+              "option_key": "D",
+              "option_text": "Wisdom teeth"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "biology-7-004",
+          "source_level": "7",
+          "question_number": 4,
+          "question_text": "Identify unicellular organisms from the following.",
+          "options": [
+            {
+              "id": "biology-7-004-A",
+              "option_key": "A",
+              "option_text": "Animals"
+            },
+            {
+              "id": "biology-7-004-B",
+              "option_key": "B",
+              "option_text": "Plants"
+            },
+            {
+              "id": "biology-7-004-C",
+              "option_key": "C",
+              "option_text": "Paramecium"
+            },
+            {
+              "id": "biology-7-004-D",
+              "option_key": "D",
+              "option_text": "None of these"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "biology-7-005",
+          "source_level": "7",
+          "question_number": 5,
+          "question_text": "The red colour of blood is due to the presence of",
+          "options": [
+            {
+              "id": "biology-7-005-A",
+              "option_key": "A",
+              "option_text": "Plasma"
+            },
+            {
+              "id": "biology-7-005-B",
+              "option_key": "B",
+              "option_text": "Platelets"
+            },
+            {
+              "id": "biology-7-005-C",
+              "option_key": "C",
+              "option_text": "Haemoglobin"
+            },
+            {
+              "id": "biology-7-005-D",
+              "option_key": "D",
+              "option_text": "White blood cells"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "biology-8-001",
+          "source_level": "8",
+          "question_number": 1,
+          "question_text": "Tissue culture is a method used to",
+          "options": [
+            {
+              "id": "biology-8-001-A",
+              "option_key": "A",
+              "option_text": "Grow plants from small pieces of tissue"
+            },
+            {
+              "id": "biology-8-001-B",
+              "option_key": "B",
+              "option_text": "Increase soil fertility"
+            },
+            {
+              "id": "biology-8-001-C",
+              "option_key": "C",
+              "option_text": "Study animal behaviour"
+            },
+            {
+              "id": "biology-8-001-D",
+              "option_key": "D",
+              "option_text": "Prevent photosynthesis"
+            }
+          ],
+          "correct_option_key": "A",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "biology-8-002",
+          "source_level": "8",
+          "question_number": 2,
+          "question_text": "Hydroponics is a method of growing plants",
+          "options": [
+            {
+              "id": "biology-8-002-A",
+              "option_key": "A",
+              "option_text": "In dry sand only"
+            },
+            {
+              "id": "biology-8-002-B",
+              "option_key": "B",
+              "option_text": "Without soil using nutrient solution"
+            },
+            {
+              "id": "biology-8-002-C",
+              "option_key": "C",
+              "option_text": "Only in sunlight"
+            },
+            {
+              "id": "biology-8-002-D",
+              "option_key": "D",
+              "option_text": "Inside rocks"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "biology-8-003",
+          "source_level": "8",
+          "question_number": 3,
+          "question_text": "Which of the following is a characteristic feature of a prokaryotic cell?",
+          "options": [
+            {
+              "id": "biology-8-003-A",
+              "option_key": "A",
+              "option_text": "Presence of a true nucleus"
+            },
+            {
+              "id": "biology-8-003-B",
+              "option_key": "B",
+              "option_text": "Membrane-bound organelles present"
+            },
+            {
+              "id": "biology-8-003-C",
+              "option_key": "C",
+              "option_text": "Absence of a true nucleus"
+            },
+            {
+              "id": "biology-8-003-D",
+              "option_key": "D",
+              "option_text": "Large vacuole present"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "biology-8-004",
+          "source_level": "8",
+          "question_number": 4,
+          "question_text": "Chloroplast is the cell organelle responsible for",
+          "options": [
+            {
+              "id": "biology-8-004-A",
+              "option_key": "A",
+              "option_text": "Respiration"
+            },
+            {
+              "id": "biology-8-004-B",
+              "option_key": "B",
+              "option_text": "Digestion"
+            },
+            {
+              "id": "biology-8-004-C",
+              "option_key": "C",
+              "option_text": "Photosynthesis"
+            },
+            {
+              "id": "biology-8-004-D",
+              "option_key": "D",
+              "option_text": "Reproduction"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "biology-8-005",
+          "source_level": "8",
+          "question_number": 5,
+          "question_text": "Which feature distinguishes meristematic tissue from permanent tissue?",
+          "options": [
+            {
+              "id": "biology-8-005-A",
+              "option_key": "A",
+              "option_text": "Cells are dead and thick-walled"
+            },
+            {
+              "id": "biology-8-005-B",
+              "option_key": "B",
+              "option_text": "Cells actively divide and lack vacuoles"
+            },
+            {
+              "id": "biology-8-005-C",
+              "option_key": "C",
+              "option_text": "Cells contain large intercellular spaces"
+            },
+            {
+              "id": "biology-8-005-D",
+              "option_key": "D",
+              "option_text": "Cells perform storage only"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        }
+      ]
+    },
+    "10": {
+      "source_levels": [
+        "5",
+        "6",
+        "7",
+        "8",
+        "9"
+      ],
+      "total_questions": 26,
+      "questions": [
+        {
+          "id": "biology-5-001",
+          "source_level": "5",
+          "question_number": 1,
+          "question_text": "Which gas is essential for human breathing?",
+          "options": [
+            {
+              "id": "biology-5-001-A",
+              "option_key": "A",
+              "option_text": "Nitrogen (N₂)"
+            },
+            {
+              "id": "biology-5-001-B",
+              "option_key": "B",
+              "option_text": "Carbon dioxide (CO₂)"
+            },
+            {
+              "id": "biology-5-001-C",
+              "option_key": "C",
+              "option_text": "Oxygen (O₂)"
+            },
+            {
+              "id": "biology-5-001-D",
+              "option_key": "D",
+              "option_text": "None of these"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "biology-5-002",
+          "source_level": "5",
+          "question_number": 2,
+          "question_text": "The green pigment present in leaves is ________.",
+          "options": [
+            {
+              "id": "biology-5-002-A",
+              "option_key": "A",
+              "option_text": "Hemoglobin"
+            },
+            {
+              "id": "biology-5-002-B",
+              "option_key": "B",
+              "option_text": "Chlorophyll"
+            },
+            {
+              "id": "biology-5-002-C",
+              "option_key": "C",
+              "option_text": "Melanin"
+            },
+            {
+              "id": "biology-5-002-D",
+              "option_key": "D",
+              "option_text": "Carotene"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "biology-5-003",
+          "source_level": "5",
+          "question_number": 3,
+          "question_text": "Identify the communicable disease from the following.",
+          "options": [
+            {
+              "id": "biology-5-003-A",
+              "option_key": "A",
+              "option_text": "Diabetes"
+            },
+            {
+              "id": "biology-5-003-B",
+              "option_key": "B",
+              "option_text": "Hypertension"
+            },
+            {
+              "id": "biology-5-003-C",
+              "option_key": "C",
+              "option_text": "Hepatitis B"
+            },
+            {
+              "id": "biology-5-003-D",
+              "option_key": "D",
+              "option_text": "Cancer"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "biology-5-004",
+          "source_level": "5",
+          "question_number": 4,
+          "question_text": "What is seed dispersal?",
+          "options": [
+            {
+              "id": "biology-5-004-A",
+              "option_key": "A",
+              "option_text": "The process of making food in plants"
+            },
+            {
+              "id": "biology-5-004-B",
+              "option_key": "B",
+              "option_text": "The transfer of pollen grains from one flower to another"
+            },
+            {
+              "id": "biology-5-004-C",
+              "option_key": "C",
+              "option_text": "The process by which seeds from the mother plant reach different locations"
+            },
+            {
+              "id": "biology-5-004-D",
+              "option_key": "D",
+              "option_text": "The growth of a seed into a new plant"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "biology-5-005",
+          "source_level": "5",
+          "question_number": 5,
+          "question_text": "Pneumatophores found in mangrove plants are specially adapted for _______.",
+          "options": [
+            {
+              "id": "biology-5-005-A",
+              "option_key": "A",
+              "option_text": "Storing food"
+            },
+            {
+              "id": "biology-5-005-B",
+              "option_key": "B",
+              "option_text": "Climbing support"
+            },
+            {
+              "id": "biology-5-005-C",
+              "option_key": "C",
+              "option_text": "Respiration in waterlogged soil"
+            },
+            {
+              "id": "biology-5-005-D",
+              "option_key": "D",
+              "option_text": "Absorbing sunlight"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "biology-6-001",
+          "source_level": "6",
+          "question_number": 1,
+          "question_text": "A balanced diet contains",
+          "options": [
+            {
+              "id": "biology-6-001-A",
+              "option_key": "A",
+              "option_text": "Only carbohydrates"
+            },
+            {
+              "id": "biology-6-001-B",
+              "option_key": "B",
+              "option_text": "Only proteins"
+            },
+            {
+              "id": "biology-6-001-C",
+              "option_key": "C",
+              "option_text": "All nutrients in correct proportion"
+            },
+            {
+              "id": "biology-6-001-D",
+              "option_key": "D",
+              "option_text": "Only vitamins"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "biology-6-002",
+          "source_level": "6",
+          "question_number": 2,
+          "question_text": "A point where two or more bones meet is called a:",
+          "options": [
+            {
+              "id": "biology-6-002-A",
+              "option_key": "A",
+              "option_text": "Muscle"
+            },
+            {
+              "id": "biology-6-002-B",
+              "option_key": "B",
+              "option_text": "Tendon"
+            },
+            {
+              "id": "biology-6-002-C",
+              "option_key": "C",
+              "option_text": "Joint"
+            },
+            {
+              "id": "biology-6-002-D",
+              "option_key": "D",
+              "option_text": "Ligament"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "biology-6-003",
+          "source_level": "6",
+          "question_number": 3,
+          "question_text": "Green leafy vegetables are rich in",
+          "options": [
+            {
+              "id": "biology-6-003-A",
+              "option_key": "A",
+              "option_text": "Vitamins and minerals"
+            },
+            {
+              "id": "biology-6-003-B",
+              "option_key": "B",
+              "option_text": "Fats"
+            },
+            {
+              "id": "biology-6-003-C",
+              "option_key": "C",
+              "option_text": "Sugar"
+            },
+            {
+              "id": "biology-6-003-D",
+              "option_key": "D",
+              "option_text": "Starch"
+            }
+          ],
+          "correct_option_key": "A",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "biology-6-004",
+          "source_level": "6",
+          "question_number": 4,
+          "question_text": "Self-pollination occurs when pollen grains are transferred from",
+          "options": [
+            {
+              "id": "biology-6-004-A",
+              "option_key": "A",
+              "option_text": "One plant to another plant"
+            },
+            {
+              "id": "biology-6-004-B",
+              "option_key": "B",
+              "option_text": "Anther to stigma of the same flower"
+            },
+            {
+              "id": "biology-6-004-C",
+              "option_key": "C",
+              "option_text": "Root to stem"
+            },
+            {
+              "id": "biology-6-004-D",
+              "option_key": "D",
+              "option_text": "Leaf to flower"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "biology-6-005",
+          "source_level": "6",
+          "question_number": 5,
+          "question_text": "Stomata help mainly in",
+          "options": [
+            {
+              "id": "biology-6-005-A",
+              "option_key": "A",
+              "option_text": "Reproduction"
+            },
+            {
+              "id": "biology-6-005-B",
+              "option_key": "B",
+              "option_text": "Photosynthesis only"
+            },
+            {
+              "id": "biology-6-005-C",
+              "option_key": "C",
+              "option_text": "Gas exchange and transpiration"
+            },
+            {
+              "id": "biology-6-005-D",
+              "option_key": "D",
+              "option_text": "Water absorption"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "biology-6-006",
+          "source_level": "6",
+          "question_number": 6,
+          "question_text": "Which pigment is essential for photosynthesis?",
+          "options": [
+            {
+              "id": "biology-6-006-A",
+              "option_key": "A",
+              "option_text": "Haemoglobin"
+            },
+            {
+              "id": "biology-6-006-B",
+              "option_key": "B",
+              "option_text": "Chlorophyll"
+            },
+            {
+              "id": "biology-6-006-C",
+              "option_key": "C",
+              "option_text": "Melanin"
+            },
+            {
+              "id": "biology-6-006-D",
+              "option_key": "D",
+              "option_text": "Keratin"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "biology-7-001",
+          "source_level": "7",
+          "question_number": 1,
+          "question_text": "Which method of vegetative propagation uses a piece of stem to grow a new plant?",
+          "options": [
+            {
+              "id": "biology-7-001-A",
+              "option_key": "A",
+              "option_text": "Layering"
+            },
+            {
+              "id": "biology-7-001-B",
+              "option_key": "B",
+              "option_text": "Cutting"
+            },
+            {
+              "id": "biology-7-001-C",
+              "option_key": "C",
+              "option_text": "Grafting"
+            },
+            {
+              "id": "biology-7-001-D",
+              "option_key": "D",
+              "option_text": "Pollination"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "biology-7-002",
+          "source_level": "7",
+          "question_number": 2,
+          "question_text": "Which of the following best explains the term “nutrition”?",
+          "options": [
+            {
+              "id": "biology-7-002-A",
+              "option_key": "A",
+              "option_text": "Removal of waste materials from the body"
+            },
+            {
+              "id": "biology-7-002-B",
+              "option_key": "B",
+              "option_text": "Process of obtaining and utilizing food by organisms"
+            },
+            {
+              "id": "biology-7-002-C",
+              "option_key": "C",
+              "option_text": "Exchange of gases in living organisms"
+            },
+            {
+              "id": "biology-7-002-D",
+              "option_key": "D",
+              "option_text": "Production of energy without food"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "biology-7-003",
+          "source_level": "7",
+          "question_number": 3,
+          "question_text": "The first set of teeth in humans are called",
+          "options": [
+            {
+              "id": "biology-7-003-A",
+              "option_key": "A",
+              "option_text": "Permanent teeth"
+            },
+            {
+              "id": "biology-7-003-B",
+              "option_key": "B",
+              "option_text": "Canines"
+            },
+            {
+              "id": "biology-7-003-C",
+              "option_key": "C",
+              "option_text": "Milk teeth"
+            },
+            {
+              "id": "biology-7-003-D",
+              "option_key": "D",
+              "option_text": "Wisdom teeth"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "biology-7-004",
+          "source_level": "7",
+          "question_number": 4,
+          "question_text": "Identify unicellular organisms from the following.",
+          "options": [
+            {
+              "id": "biology-7-004-A",
+              "option_key": "A",
+              "option_text": "Animals"
+            },
+            {
+              "id": "biology-7-004-B",
+              "option_key": "B",
+              "option_text": "Plants"
+            },
+            {
+              "id": "biology-7-004-C",
+              "option_key": "C",
+              "option_text": "Paramecium"
+            },
+            {
+              "id": "biology-7-004-D",
+              "option_key": "D",
+              "option_text": "None of these"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "biology-7-005",
+          "source_level": "7",
+          "question_number": 5,
+          "question_text": "The red colour of blood is due to the presence of",
+          "options": [
+            {
+              "id": "biology-7-005-A",
+              "option_key": "A",
+              "option_text": "Plasma"
+            },
+            {
+              "id": "biology-7-005-B",
+              "option_key": "B",
+              "option_text": "Platelets"
+            },
+            {
+              "id": "biology-7-005-C",
+              "option_key": "C",
+              "option_text": "Haemoglobin"
+            },
+            {
+              "id": "biology-7-005-D",
+              "option_key": "D",
+              "option_text": "White blood cells"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "biology-8-001",
+          "source_level": "8",
+          "question_number": 1,
+          "question_text": "Tissue culture is a method used to",
+          "options": [
+            {
+              "id": "biology-8-001-A",
+              "option_key": "A",
+              "option_text": "Grow plants from small pieces of tissue"
+            },
+            {
+              "id": "biology-8-001-B",
+              "option_key": "B",
+              "option_text": "Increase soil fertility"
+            },
+            {
+              "id": "biology-8-001-C",
+              "option_key": "C",
+              "option_text": "Study animal behaviour"
+            },
+            {
+              "id": "biology-8-001-D",
+              "option_key": "D",
+              "option_text": "Prevent photosynthesis"
+            }
+          ],
+          "correct_option_key": "A",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "biology-8-002",
+          "source_level": "8",
+          "question_number": 2,
+          "question_text": "Hydroponics is a method of growing plants",
+          "options": [
+            {
+              "id": "biology-8-002-A",
+              "option_key": "A",
+              "option_text": "In dry sand only"
+            },
+            {
+              "id": "biology-8-002-B",
+              "option_key": "B",
+              "option_text": "Without soil using nutrient solution"
+            },
+            {
+              "id": "biology-8-002-C",
+              "option_key": "C",
+              "option_text": "Only in sunlight"
+            },
+            {
+              "id": "biology-8-002-D",
+              "option_key": "D",
+              "option_text": "Inside rocks"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "biology-8-003",
+          "source_level": "8",
+          "question_number": 3,
+          "question_text": "Which of the following is a characteristic feature of a prokaryotic cell?",
+          "options": [
+            {
+              "id": "biology-8-003-A",
+              "option_key": "A",
+              "option_text": "Presence of a true nucleus"
+            },
+            {
+              "id": "biology-8-003-B",
+              "option_key": "B",
+              "option_text": "Membrane-bound organelles present"
+            },
+            {
+              "id": "biology-8-003-C",
+              "option_key": "C",
+              "option_text": "Absence of a true nucleus"
+            },
+            {
+              "id": "biology-8-003-D",
+              "option_key": "D",
+              "option_text": "Large vacuole present"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "biology-8-004",
+          "source_level": "8",
+          "question_number": 4,
+          "question_text": "Chloroplast is the cell organelle responsible for",
+          "options": [
+            {
+              "id": "biology-8-004-A",
+              "option_key": "A",
+              "option_text": "Respiration"
+            },
+            {
+              "id": "biology-8-004-B",
+              "option_key": "B",
+              "option_text": "Digestion"
+            },
+            {
+              "id": "biology-8-004-C",
+              "option_key": "C",
+              "option_text": "Photosynthesis"
+            },
+            {
+              "id": "biology-8-004-D",
+              "option_key": "D",
+              "option_text": "Reproduction"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "biology-8-005",
+          "source_level": "8",
+          "question_number": 5,
+          "question_text": "Which feature distinguishes meristematic tissue from permanent tissue?",
+          "options": [
+            {
+              "id": "biology-8-005-A",
+              "option_key": "A",
+              "option_text": "Cells are dead and thick-walled"
+            },
+            {
+              "id": "biology-8-005-B",
+              "option_key": "B",
+              "option_text": "Cells actively divide and lack vacuoles"
+            },
+            {
+              "id": "biology-8-005-C",
+              "option_key": "C",
+              "option_text": "Cells contain large intercellular spaces"
+            },
+            {
+              "id": "biology-8-005-D",
+              "option_key": "D",
+              "option_text": "Cells perform storage only"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "biology-9-002",
+          "source_level": "9",
+          "question_number": 2,
+          "question_text": "The movement of water molecules from a region of high concentration to low concentration through a semipermeable membrane is called",
+          "options": [
+            {
+              "id": "biology-9-002-A",
+              "option_key": "A",
+              "option_text": "Diffusion"
+            },
+            {
+              "id": "biology-9-002-B",
+              "option_key": "B",
+              "option_text": "Osmosis"
+            },
+            {
+              "id": "biology-9-002-C",
+              "option_key": "C",
+              "option_text": "Respiration"
+            },
+            {
+              "id": "biology-9-002-D",
+              "option_key": "D",
+              "option_text": "Transpiration"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "biology-9-003",
+          "source_level": "9",
+          "question_number": 3,
+          "question_text": "Which tissue transports water in plants?",
+          "options": [
+            {
+              "id": "biology-9-003-A",
+              "option_key": "A",
+              "option_text": "Phloem"
+            },
+            {
+              "id": "biology-9-003-B",
+              "option_key": "B",
+              "option_text": "Xylem"
+            },
+            {
+              "id": "biology-9-003-C",
+              "option_key": "C",
+              "option_text": "Epidermis"
+            },
+            {
+              "id": "biology-9-003-D",
+              "option_key": "D",
+              "option_text": "Meristem"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "biology-9-004",
+          "source_level": "9",
+          "question_number": 4,
+          "question_text": "In a hypertonic solution, a plant cell will",
+          "options": [
+            {
+              "id": "biology-9-004-A",
+              "option_key": "A",
+              "option_text": "Become turgid"
+            },
+            {
+              "id": "biology-9-004-B",
+              "option_key": "B",
+              "option_text": "Burst"
+            },
+            {
+              "id": "biology-9-004-C",
+              "option_key": "C",
+              "option_text": "Undergo plasmolysis"
+            },
+            {
+              "id": "biology-9-004-D",
+              "option_key": "D",
+              "option_text": "Remain unchanged"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "biology-9-005",
+          "source_level": "9",
+          "question_number": 5,
+          "question_text": "Which tissue provides flexibility and mechanical support to plants?",
+          "options": [
+            {
+              "id": "biology-9-005-A",
+              "option_key": "A",
+              "option_text": "Sclerenchyma"
+            },
+            {
+              "id": "biology-9-005-B",
+              "option_key": "B",
+              "option_text": "Parenchyma"
+            },
+            {
+              "id": "biology-9-005-C",
+              "option_key": "C",
+              "option_text": "Collenchyma"
+            },
+            {
+              "id": "biology-9-005-D",
+              "option_key": "D",
+              "option_text": "Xylem"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "biology-9-006",
+          "source_level": "9",
+          "question_number": 6,
+          "question_text": "The plasma membrane is called selectively permeable because it",
+          "options": [
+            {
+              "id": "biology-9-006-A",
+              "option_key": "A",
+              "option_text": "Allows all substances to pass"
+            },
+            {
+              "id": "biology-9-006-B",
+              "option_key": "B",
+              "option_text": "Prevents movement of water"
+            },
+            {
+              "id": "biology-9-006-C",
+              "option_key": "C",
+              "option_text": "Allows only certain substances to pass through"
+            },
+            {
+              "id": "biology-9-006-D",
+              "option_key": "D",
+              "option_text": "Is made up of cellulose"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        }
+      ]
+    }
+  },
+  "warnings": []
+}

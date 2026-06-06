@@ -5,8 +5,8 @@ import { useQuery } from "@tanstack/react-query";
 import { getClassOverview } from "@/lib/api/analytics";
 import { safeNum, pctColor, pctBadgeColor } from "@/components/academics/BranchDrillDown";
 import { ClassBranchesView } from "@/components/academics/ClassBranchesView";
-import { BranchSubjectsView } from "@/components/academics/BranchSubjectsView";
 import { SubjectBranchesView } from "@/components/academics/SubjectBranchesView";
+import { SubjectBranchStudentsView } from "@/components/academics/SubjectBranchStudentsView";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   GraduationCap, Users, ClipboardCheck, Trophy,
@@ -16,9 +16,9 @@ import {
 // ── Navigation State Machine ──────────────────────────────────────────────────
 type ViewState =
   | { view: "classes" }
-  | { view: "class-branches"; program: string }
-  | { view: "branch-subjects"; program: string; branch: string }
-  | { view: "subject-branches"; program: string; subject: string };
+  | { view: "class-subjects"; program: string }
+  | { view: "subject-branches"; program: string; subject: string }
+  | { view: "subject-branch-students"; program: string; subject: string; branch: string };
 
 const container = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.06 } } };
 const item = { hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } };
@@ -42,29 +42,11 @@ export default function DirectorAcademicsOverviewPage() {
   });
 
   // ── Render sub-views ──────────────────────────────────────────────────────
-  if (current.view === "class-branches") {
+  if (current.view === "class-subjects") {
     return (
       <div className="p-4 sm:p-6 max-w-7xl mx-auto">
         <ClassBranchesView
           program={current.program}
-          onBack={goBack}
-          onSelectBranch={(branch) =>
-            navigate({ view: "branch-subjects", program: current.program, branch })
-          }
-          onSelectSubject={(subject) =>
-            navigate({ view: "subject-branches", program: current.program, subject })
-          }
-        />
-      </div>
-    );
-  }
-
-  if (current.view === "branch-subjects") {
-    return (
-      <div className="p-4 sm:p-6 max-w-7xl mx-auto">
-        <BranchSubjectsView
-          program={current.program}
-          branch={current.branch}
           onBack={goBack}
           onSelectSubject={(subject) =>
             navigate({ view: "subject-branches", program: current.program, subject })
@@ -80,6 +62,27 @@ export default function DirectorAcademicsOverviewPage() {
         <SubjectBranchesView
           program={current.program}
           subject={current.subject}
+          onBack={goBack}
+          onSelectBranch={(branch) =>
+            navigate({
+              view: "subject-branch-students",
+              program: current.program,
+              subject: current.subject,
+              branch,
+            })
+          }
+        />
+      </div>
+    );
+  }
+
+  if (current.view === "subject-branch-students") {
+    return (
+      <div className="p-4 sm:p-6 max-w-7xl mx-auto">
+        <SubjectBranchStudentsView
+          program={current.program}
+          subject={current.subject}
+          branch={current.branch}
           onBack={goBack}
         />
       </div>
@@ -123,7 +126,7 @@ export default function DirectorAcademicsOverviewPage() {
             <div>
               <h1 className="text-2xl font-bold text-primary">Academics Overview</h1>
               <p className="text-sm text-text-tertiary mt-0.5">
-                Click any class to drill down → branches → subjects → cross-branch comparison
+                Click any class to drill down → subjects → branch-wise comparison
               </p>
             </div>
             <div className="flex items-start gap-2 bg-surface border border-border-light rounded-[10px] px-3 py-2.5 max-w-xs">
@@ -221,7 +224,7 @@ export default function DirectorAcademicsOverviewPage() {
                   <motion.button
                     key={cls.program}
                     variants={item}
-                    onClick={() => navigate({ view: "class-branches", program: cls.program })}
+                    onClick={() => navigate({ view: "class-subjects", program: cls.program })}
                     className="text-left bg-surface rounded-[12px] border border-border-light overflow-hidden hover:border-primary/30 hover:shadow-md transition-all group"
                   >
                     {/* Card Header */}
@@ -332,7 +335,7 @@ export default function DirectorAcademicsOverviewPage() {
                       {classes.map((cls) => (
                         <tr
                           key={cls.program}
-                          onClick={() => navigate({ view: "class-branches", program: cls.program })}
+                          onClick={() => navigate({ view: "class-subjects", program: cls.program })}
                           className="border-b border-border-light last:border-0 hover:bg-app-bg transition-colors cursor-pointer"
                         >
                           <td className="p-3 font-semibold text-primary">{cls.program}</td>

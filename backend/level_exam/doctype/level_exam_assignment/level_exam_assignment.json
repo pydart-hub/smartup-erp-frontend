@@ -1,0 +1,40 @@
+{
+  "doctype": "DocType",
+  "name": "Level Exam Assignment",
+  "module": "Custom",
+  "custom": 1,
+  "autoname": "format:LEA-{#####}",
+  "document_type": "Document",
+  "engine": "InnoDB",
+  "field_order": [
+    "assignment_title",
+    "exam_paper",
+    "subject",
+    "class_level",
+    "assignment_mode",
+    "program",
+    "student_group",
+    "schedule_date",
+    "start_time",
+    "end_time",
+    "status",
+    "students"
+  ],
+  "fields": [
+    { "fieldname": "assignment_title", "fieldtype": "Data", "label": "Assignment Title", "reqd": 1 },
+    { "fieldname": "exam_paper", "fieldtype": "Link", "label": "Exam Paper", "options": "Level Exam Paper", "reqd": 1 },
+    { "fieldname": "subject", "fieldtype": "Data", "label": "Subject", "reqd": 1 },
+    { "fieldname": "class_level", "fieldtype": "Select", "label": "Class Level", "options": "8\n9\n10", "reqd": 1 },
+    { "fieldname": "assignment_mode", "fieldtype": "Select", "label": "Assignment Mode", "options": "By Class\nBy Student Group", "reqd": 1 },
+    { "fieldname": "program", "fieldtype": "Data", "label": "Program", "reqd": 1 },
+    { "fieldname": "student_group", "fieldtype": "Data", "label": "Student Group" },
+    { "fieldname": "schedule_date", "fieldtype": "Date", "label": "Schedule Date", "reqd": 1 },
+    { "fieldname": "start_time", "fieldtype": "Time", "label": "Start Time", "reqd": 1 },
+    { "fieldname": "end_time", "fieldtype": "Time", "label": "End Time", "reqd": 1 },
+    { "fieldname": "status", "fieldtype": "Select", "label": "Status", "options": "Draft\nPublished\nClosed", "default": "Draft", "reqd": 1 },
+    { "fieldname": "students", "fieldtype": "Table", "label": "Students", "options": "Level Exam Assignment Student", "reqd": 1 }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1 }
+  ]
+}

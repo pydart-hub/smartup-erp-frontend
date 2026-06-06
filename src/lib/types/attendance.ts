@@ -4,6 +4,7 @@
  */
 export interface AttendanceRecord {
   name: string;
+  docstatus?: number;
   student: string;             // link → Student (required)
   student_name?: string;
   student_mobile_number?: string;

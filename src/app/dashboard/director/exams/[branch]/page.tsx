@@ -6,7 +6,6 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import {
-  BarChart3,
   FileText,
   Calendar,
   Clock,

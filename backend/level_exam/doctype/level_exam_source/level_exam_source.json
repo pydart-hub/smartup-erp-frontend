@@ -1,0 +1,29 @@
+{
+  "doctype": "DocType",
+  "name": "Level Exam Source",
+  "module": "Custom",
+  "custom": 1,
+  "autoname": "format:LES-{#####}",
+  "document_type": "Document",
+  "engine": "InnoDB",
+  "is_submittable": 0,
+  "field_order": [
+    "source_title",
+    "subject",
+    "class_scope",
+    "attachment",
+    "status",
+    "notes"
+  ],
+  "fields": [
+    { "fieldname": "source_title", "fieldtype": "Data", "label": "Source Title", "reqd": 1 },
+    { "fieldname": "subject", "fieldtype": "Data", "label": "Subject", "reqd": 1 },
+    { "fieldname": "class_scope", "fieldtype": "Data", "label": "Class Scope" },
+    { "fieldname": "attachment", "fieldtype": "Attach", "label": "Attachment" },
+    { "fieldname": "status", "fieldtype": "Select", "label": "Status", "options": "Draft\nActive\nArchived", "default": "Draft", "reqd": 1 },
+    { "fieldname": "notes", "fieldtype": "Small Text", "label": "Notes" }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1 }
+  ]
+}

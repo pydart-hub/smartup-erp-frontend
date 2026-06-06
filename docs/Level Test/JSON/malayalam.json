@@ -1,0 +1,2917 @@
+{
+  "subject": "Malayalam",
+  "source_file": "Malayalam LEVEL TEST.docx",
+  "conversion_status": "ready",
+  "levels": {
+    "5": [
+      {
+        "id": "malayalam-5-001",
+        "source_level": "5",
+        "question_number": 1,
+        "question_text": "മലയാള അക്ഷരമാലയിൽ എത്ര സ്വരാക്ഷരങ്ങളുണ്ട്?",
+        "options": [
+          {
+            "id": "malayalam-5-001-A",
+            "option_key": "A",
+            "option_text": "10"
+          },
+          {
+            "id": "malayalam-5-001-B",
+            "option_key": "B",
+            "option_text": "12"
+          },
+          {
+            "id": "malayalam-5-001-C",
+            "option_key": "C",
+            "option_text": "15"
+          },
+          {
+            "id": "malayalam-5-001-D",
+            "option_key": "D",
+            "option_text": "18"
+          }
+        ],
+        "correct_option_key": "B",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "malayalam-5-002",
+        "source_level": "5",
+        "question_number": 2,
+        "question_text": "താഴെ കൊടുത്തിരിക്കുന്ന വാക്കിൽ ചില്ലക്ഷരം ഏതാണ്? വീട്",
+        "options": [
+          {
+            "id": "malayalam-5-002-A",
+            "option_key": "A",
+            "option_text": "വ"
+          },
+          {
+            "id": "malayalam-5-002-B",
+            "option_key": "B",
+            "option_text": "ീ"
+          },
+          {
+            "id": "malayalam-5-002-C",
+            "option_key": "C",
+            "option_text": "ട്"
+          },
+          {
+            "id": "malayalam-5-002-D",
+            "option_key": "D",
+            "option_text": "ട"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "malayalam-5-003",
+        "source_level": "5",
+        "question_number": 3,
+        "question_text": "\"കുട്ടികൾ\" എന്ന പദത്തിന്റെ ഏകവചനം ഏത്?",
+        "options": [
+          {
+            "id": "malayalam-5-003-A",
+            "option_key": "A",
+            "option_text": "കുട്ടി"
+          },
+          {
+            "id": "malayalam-5-003-B",
+            "option_key": "B",
+            "option_text": "കുട്ടികൾ"
+          },
+          {
+            "id": "malayalam-5-003-C",
+            "option_key": "C",
+            "option_text": "കുട്ടൻ"
+          },
+          {
+            "id": "malayalam-5-003-D",
+            "option_key": "D",
+            "option_text": "കുട്ടിക്കൾ"
+          }
+        ],
+        "correct_option_key": "A",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "malayalam-5-004",
+        "source_level": "5",
+        "question_number": 4,
+        "question_text": "\"വലിയ\" എന്ന പദത്തിന്റെ വിപരീതപദം ഏത്?",
+        "options": [
+          {
+            "id": "malayalam-5-004-A",
+            "option_key": "A",
+            "option_text": "ഉയരം"
+          },
+          {
+            "id": "malayalam-5-004-B",
+            "option_key": "B",
+            "option_text": "ചെറുത്"
+          },
+          {
+            "id": "malayalam-5-004-C",
+            "option_key": "C",
+            "option_text": "നീളം"
+          },
+          {
+            "id": "malayalam-5-004-D",
+            "option_key": "D",
+            "option_text": "ഭാരം"
+          }
+        ],
+        "correct_option_key": "B",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "malayalam-5-005",
+        "source_level": "5",
+        "question_number": 5,
+        "question_text": "\"രാമു ദിവസവും സ്കൂളിൽ പോകുന്നു.\" രാമു എവിടെയാണ് പോകുന്നത്?",
+        "options": [
+          {
+            "id": "malayalam-5-005-A",
+            "option_key": "A",
+            "option_text": "വീട്"
+          },
+          {
+            "id": "malayalam-5-005-B",
+            "option_key": "B",
+            "option_text": "മാർക്കറ്റ്"
+          },
+          {
+            "id": "malayalam-5-005-C",
+            "option_key": "C",
+            "option_text": "സ്കൂൾ"
+          },
+          {
+            "id": "malayalam-5-005-D",
+            "option_key": "D",
+            "option_text": "പാർക്ക്"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      }
+    ],
+    "6": [
+      {
+        "id": "malayalam-6-001",
+        "source_level": "6",
+        "question_number": 1,
+        "question_text": "\"അനു പുസ്തകം വായിക്കുന്നു.\" ഈ വാക്യത്തിലെ നാമപദം ഏത്?",
+        "options": [
+          {
+            "id": "malayalam-6-001-A",
+            "option_key": "A",
+            "option_text": "അനു"
+          },
+          {
+            "id": "malayalam-6-001-B",
+            "option_key": "B",
+            "option_text": "വായിക്കുന്നു"
+          },
+          {
+            "id": "malayalam-6-001-C",
+            "option_key": "C",
+            "option_text": "പുസ്തകം"
+          },
+          {
+            "id": "malayalam-6-001-D",
+            "option_key": "D",
+            "option_text": "A & C"
+          }
+        ],
+        "correct_option_key": "D",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "malayalam-6-002",
+        "source_level": "6",
+        "question_number": 2,
+        "question_text": "\"അവൻ നല്ല കുട്ടിയാണ്.\" സർവനാമം ഏത്?",
+        "options": [
+          {
+            "id": "malayalam-6-002-A",
+            "option_key": "A",
+            "option_text": "നല്ല"
+          },
+          {
+            "id": "malayalam-6-002-B",
+            "option_key": "B",
+            "option_text": "കുട്ടി"
+          },
+          {
+            "id": "malayalam-6-002-C",
+            "option_key": "C",
+            "option_text": "അവൻ"
+          },
+          {
+            "id": "malayalam-6-002-D",
+            "option_key": "D",
+            "option_text": "ആണ്"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "malayalam-6-003",
+        "source_level": "6",
+        "question_number": 3,
+        "question_text": "\"ഭൂമി\"യുടെ സമാനാർത്ഥപദം ഏത്?",
+        "options": [
+          {
+            "id": "malayalam-6-003-A",
+            "option_key": "A",
+            "option_text": "ആകാശം"
+          },
+          {
+            "id": "malayalam-6-003-B",
+            "option_key": "B",
+            "option_text": "ധരിത്രി"
+          },
+          {
+            "id": "malayalam-6-003-C",
+            "option_key": "C",
+            "option_text": "സൂര്യൻ"
+          },
+          {
+            "id": "malayalam-6-003-D",
+            "option_key": "D",
+            "option_text": "ചന്ദ്രൻ"
+          }
+        ],
+        "correct_option_key": "B",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "malayalam-6-004",
+        "source_level": "6",
+        "question_number": 4,
+        "question_text": "\"വീട്ടുമുറ്റം\" എന്ന പദത്തിന്റെ ശരിയായ പിരിച്ചെഴുത്ത് ഏത്?",
+        "options": [
+          {
+            "id": "malayalam-6-004-A",
+            "option_key": "A",
+            "option_text": "വീട്+ മുറ്റം"
+          },
+          {
+            "id": "malayalam-6-004-B",
+            "option_key": "B",
+            "option_text": "വീട്ട്+ മുറ്റം"
+          },
+          {
+            "id": "malayalam-6-004-C",
+            "option_key": "C",
+            "option_text": "വീട്+ മുറ്റം"
+          },
+          {
+            "id": "malayalam-6-004-D",
+            "option_key": "D",
+            "option_text": "വീട്+ മുറ്റ"
+          }
+        ],
+        "correct_option_key": "A",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "malayalam-6-005",
+        "source_level": "6",
+        "question_number": 5,
+        "question_text": "\"ഐക്യമത്യേ മഹാബലം\" എന്ന പഴഞ്ചൊല്ലിന്റെ അർത്ഥം എന്ത്?",
+        "options": [
+          {
+            "id": "malayalam-6-005-A",
+            "option_key": "A",
+            "option_text": "പഠനമാണ് ശക്തി"
+          },
+          {
+            "id": "malayalam-6-005-B",
+            "option_key": "B",
+            "option_text": "ഐക്യത്തിലാണ് ശക്തി"
+          },
+          {
+            "id": "malayalam-6-005-C",
+            "option_key": "C",
+            "option_text": "ധനമാണ് ശക്തി"
+          },
+          {
+            "id": "malayalam-6-005-D",
+            "option_key": "D",
+            "option_text": "സമയമാണ് ശക്തി"
+          }
+        ],
+        "correct_option_key": "B",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      }
+    ],
+    "7": [
+      {
+        "id": "malayalam-7-001",
+        "source_level": "7",
+        "question_number": 1,
+        "question_text": "\"സുന്ദരമായ പൂവ് വിരിഞ്ഞു.\" വിശേഷണം ഏത്?",
+        "options": [
+          {
+            "id": "malayalam-7-001-A",
+            "option_key": "A",
+            "option_text": "പൂവ്"
+          },
+          {
+            "id": "malayalam-7-001-B",
+            "option_key": "B",
+            "option_text": "വിരിഞ്ഞു"
+          },
+          {
+            "id": "malayalam-7-001-C",
+            "option_key": "C",
+            "option_text": "സുന്ദരമായ"
+          },
+          {
+            "id": "malayalam-7-001-D",
+            "option_key": "D",
+            "option_text": "ആണ്"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "malayalam-7-002",
+        "source_level": "7",
+        "question_number": 2,
+        "question_text": "\"അധ്യാപകൻ പാഠം പഠിപ്പിക്കുന്നു.\" ക്രിയാപദം ഏത്?",
+        "options": [
+          {
+            "id": "malayalam-7-002-A",
+            "option_key": "A",
+            "option_text": "അധ്യാപകൻ"
+          },
+          {
+            "id": "malayalam-7-002-B",
+            "option_key": "B",
+            "option_text": "പാഠം"
+          },
+          {
+            "id": "malayalam-7-002-C",
+            "option_key": "C",
+            "option_text": "പഠിപ്പിക്കുന്നു"
+          },
+          {
+            "id": "malayalam-7-002-D",
+            "option_key": "D",
+            "option_text": "ക്ലാസ്"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "malayalam-7-003",
+        "source_level": "7",
+        "question_number": 3,
+        "question_text": "\"കൈ + പുസ്തകം\" ചേർത്തെഴുതുമ്പോൾ ലഭിക്കുന്നത്?",
+        "options": [
+          {
+            "id": "malayalam-7-003-A",
+            "option_key": "A",
+            "option_text": "കൈപുസ്തകം"
+          },
+          {
+            "id": "malayalam-7-003-B",
+            "option_key": "B",
+            "option_text": "കൈയുടെ പുസ്തകം"
+          },
+          {
+            "id": "malayalam-7-003-C",
+            "option_key": "C",
+            "option_text": "കൈ പുസ്തകം"
+          },
+          {
+            "id": "malayalam-7-003-D",
+            "option_key": "D",
+            "option_text": "കൈപ്പുസ്തകം"
+          }
+        ],
+        "correct_option_key": "D",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "malayalam-7-004",
+        "source_level": "7",
+        "question_number": 4,
+        "question_text": "\"കൈ മലർത്തുക\" എന്ന പ്രയോഗത്തിന്റെ അർത്ഥം എന്ത്?",
+        "options": [
+          {
+            "id": "malayalam-7-004-A",
+            "option_key": "A",
+            "option_text": "കൈ കഴുകുക"
+          },
+          {
+            "id": "malayalam-7-004-B",
+            "option_key": "B",
+            "option_text": "സന്തോഷിക്കുക"
+          },
+          {
+            "id": "malayalam-7-004-C",
+            "option_key": "C",
+            "option_text": "നിസ്സഹായനാകുക"
+          },
+          {
+            "id": "malayalam-7-004-D",
+            "option_key": "D",
+            "option_text": "ഓടുക"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "malayalam-7-005",
+        "source_level": "7",
+        "question_number": 5,
+        "question_text": "\"എന്റെ വിദ്യാലയം\" എന്ന വിഷയത്തിൽ എഴുതേണ്ട വാക്യങ്ങളുടെ ഏറ്റവും അനുയോജ്യമായ എണ്ണം ഏത്?",
+        "options": [
+          {
+            "id": "malayalam-7-005-A",
+            "option_key": "A",
+            "option_text": "1 വാക്യം"
+          },
+          {
+            "id": "malayalam-7-005-B",
+            "option_key": "B",
+            "option_text": "2 വാക്യം"
+          },
+          {
+            "id": "malayalam-7-005-C",
+            "option_key": "C",
+            "option_text": "4–5 വാക്യങ്ങൾ"
+          },
+          {
+            "id": "malayalam-7-005-D",
+            "option_key": "D",
+            "option_text": "10 വാക്യങ്ങൾ"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      }
+    ],
+    "8": [
+      {
+        "id": "malayalam-8-001",
+        "source_level": "8",
+        "question_number": 1,
+        "question_text": "\"കുട്ടികൾ സന്തോഷത്തോടെ കളിക്കുന്നു.\" ക്രിയാപദം ഏത്?",
+        "options": [
+          {
+            "id": "malayalam-8-001-A",
+            "option_key": "A",
+            "option_text": "കുട്ടികൾ"
+          },
+          {
+            "id": "malayalam-8-001-B",
+            "option_key": "B",
+            "option_text": "സന്തോഷത്തോടെ"
+          },
+          {
+            "id": "malayalam-8-001-C",
+            "option_key": "C",
+            "option_text": "കളിക്കുന്നു"
+          },
+          {
+            "id": "malayalam-8-001-D",
+            "option_key": "D",
+            "option_text": "കുട്ടികൾ സന്തോഷത്തോടെ"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "malayalam-8-002",
+        "source_level": "8",
+        "question_number": 2,
+        "question_text": "\"വിജയം\" എന്ന പദത്തിന്റെ വിപരീതപദം ഏത്?",
+        "options": [
+          {
+            "id": "malayalam-8-002-A",
+            "option_key": "A",
+            "option_text": "പരാജയം"
+          },
+          {
+            "id": "malayalam-8-002-B",
+            "option_key": "B",
+            "option_text": "നേട്ടം"
+          },
+          {
+            "id": "malayalam-8-002-C",
+            "option_key": "C",
+            "option_text": "പുരോഗതി"
+          },
+          {
+            "id": "malayalam-8-002-D",
+            "option_key": "D",
+            "option_text": "ഉന്നതി"
+          }
+        ],
+        "correct_option_key": "A",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "malayalam-8-003",
+        "source_level": "8",
+        "question_number": 3,
+        "question_text": "മരങ്ങളെക്കുറിച്ചുള്ള ഖണ്ഡികയ്ക്ക് ഏറ്റവും അനുയോജ്യമായ തലക്കെട്ട് ഏത്?",
+        "options": [
+          {
+            "id": "malayalam-8-003-A",
+            "option_key": "A",
+            "option_text": "വിദ്യാലയം"
+          },
+          {
+            "id": "malayalam-8-003-B",
+            "option_key": "B",
+            "option_text": "മഴ"
+          },
+          {
+            "id": "malayalam-8-003-C",
+            "option_key": "C",
+            "option_text": "മരങ്ങളുടെ പ്രാധാന്യം"
+          },
+          {
+            "id": "malayalam-8-003-D",
+            "option_key": "D",
+            "option_text": "കളിസ്ഥലം"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "malayalam-8-004",
+        "source_level": "8",
+        "question_number": 4,
+        "question_text": "അധ്യാപകൻ: 'നിന്റെ പേര് എന്താണ്?' വിദ്യാർത്ഥിയുടെ ശരിയായ മറുപടി ഏത്?",
+        "options": [
+          {
+            "id": "malayalam-8-004-A",
+            "option_key": "A",
+            "option_text": "സുഖമാണ്"
+          },
+          {
+            "id": "malayalam-8-004-B",
+            "option_key": "B",
+            "option_text": "ആറാം ക്ലാസ്"
+          },
+          {
+            "id": "malayalam-8-004-C",
+            "option_key": "C",
+            "option_text": "എന്റെ പേര് അരുണ് എന്നാണ്"
+          },
+          {
+            "id": "malayalam-8-004-D",
+            "option_key": "D",
+            "option_text": "നാളെ വരാം"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "malayalam-8-005",
+        "source_level": "8",
+        "question_number": 5,
+        "question_text": "പരിസ്ഥിതി സംരക്ഷണവുമായി ബന്ധപ്പെട്ടത് ഏത്?",
+        "options": [
+          {
+            "id": "malayalam-8-005-A",
+            "option_key": "A",
+            "option_text": "മാലിന്യം വലിച്ചെറിയുക"
+          },
+          {
+            "id": "malayalam-8-005-B",
+            "option_key": "B",
+            "option_text": "മരങ്ങൾ വെട്ടുക"
+          },
+          {
+            "id": "malayalam-8-005-C",
+            "option_key": "C",
+            "option_text": "മരങ്ങൾ നട്ടുപിടിപ്പിക്കുക"
+          },
+          {
+            "id": "malayalam-8-005-D",
+            "option_key": "D",
+            "option_text": "ജലം പാഴാക്കുക"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      }
+    ],
+    "9": [
+      {
+        "id": "malayalam-9-001",
+        "source_level": "9",
+        "question_number": 1,
+        "question_text": "\"മഴ പെയ്തതിനാൽ കുട്ടികൾ പുറത്തുപോയില്ല.\" കാരണത്തെ സൂചിപ്പിക്കുന്ന ഭാഗം ഏത്?",
+        "options": [
+          {
+            "id": "malayalam-9-001-A",
+            "option_key": "A",
+            "option_text": "കുട്ടികൾ"
+          },
+          {
+            "id": "malayalam-9-001-B",
+            "option_key": "B",
+            "option_text": "പുറത്തുപോയില്ല"
+          },
+          {
+            "id": "malayalam-9-001-C",
+            "option_key": "C",
+            "option_text": "മഴ പെയ്തതിനാൽ"
+          },
+          {
+            "id": "malayalam-9-001-D",
+            "option_key": "D",
+            "option_text": "കുട്ടികൾ പുറത്തുപോയില്ല"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "malayalam-9-002",
+        "source_level": "9",
+        "question_number": 2,
+        "question_text": "\"ദേവാലയം\" എന്ന പദവുമായി ബന്ധപ്പെട്ടത് ഏത്?",
+        "options": [
+          {
+            "id": "malayalam-9-002-A",
+            "option_key": "A",
+            "option_text": "സന്ധി"
+          },
+          {
+            "id": "malayalam-9-002-B",
+            "option_key": "B",
+            "option_text": "ലിംഗം"
+          },
+          {
+            "id": "malayalam-9-002-C",
+            "option_key": "C",
+            "option_text": "വചനം"
+          },
+          {
+            "id": "malayalam-9-002-D",
+            "option_key": "D",
+            "option_text": "കാലം"
+          }
+        ],
+        "correct_option_key": "A",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "malayalam-9-003",
+        "source_level": "9",
+        "question_number": 3,
+        "question_text": "അവധി അപേക്ഷ എഴുതുമ്പോൾ ആദ്യം ചേർക്കേണ്ടത് എന്ത്?",
+        "options": [
+          {
+            "id": "malayalam-9-003-A",
+            "option_key": "A",
+            "option_text": "ഒപ്പ്"
+          },
+          {
+            "id": "malayalam-9-003-B",
+            "option_key": "B",
+            "option_text": "അഭിവാദ്യം/സ്വീകർത്താവിന്റെ വിലാസം"
+          },
+          {
+            "id": "malayalam-9-003-C",
+            "option_key": "C",
+            "option_text": "തീയതി മാത്രം"
+          },
+          {
+            "id": "malayalam-9-003-D",
+            "option_key": "D",
+            "option_text": "നന്ദി"
+          }
+        ],
+        "correct_option_key": "B",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "malayalam-9-004",
+        "source_level": "9",
+        "question_number": 4,
+        "question_text": "\"വായനയുടെ പ്രാധാന്യം\" എന്ന വിഷയത്തിൽ എഴുതുമ്പോൾ ഉൾപ്പെടുത്തേണ്ടത് ഏത്?",
+        "options": [
+          {
+            "id": "malayalam-9-004-A",
+            "option_key": "A",
+            "option_text": "വായനയുടെ ഗുണങ്ങൾ"
+          },
+          {
+            "id": "malayalam-9-004-B",
+            "option_key": "B",
+            "option_text": "കളിയുടെ നിയമങ്ങൾ"
+          },
+          {
+            "id": "malayalam-9-004-C",
+            "option_key": "C",
+            "option_text": "ഭക്ഷണ പാചകം"
+          },
+          {
+            "id": "malayalam-9-004-D",
+            "option_key": "D",
+            "option_text": "യാത്രാവിവരണം"
+          }
+        ],
+        "correct_option_key": "A",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "malayalam-9-005",
+        "source_level": "9",
+        "question_number": 5,
+        "question_text": "\"വിദ്യ ധനം സർവധനാൽ പ്രധാനം\" എന്ന വരിയുടെ ആശയം എന്ത്?",
+        "options": [
+          {
+            "id": "malayalam-9-005-A",
+            "option_key": "A",
+            "option_text": "ധനമാണ് ഏറ്റവും വലിയത്"
+          },
+          {
+            "id": "malayalam-9-005-B",
+            "option_key": "B",
+            "option_text": "വിദ്യയാണ് ഏറ്റവും വിലപ്പെട്ട സമ്പത്ത്"
+          },
+          {
+            "id": "malayalam-9-005-C",
+            "option_key": "C",
+            "option_text": "കായികമാണ് പ്രധാനം"
+          },
+          {
+            "id": "malayalam-9-005-D",
+            "option_key": "D",
+            "option_text": "ശക്തിയാണ് പ്രധാനം"
+          }
+        ],
+        "correct_option_key": "B",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      }
+    ]
+  },
+  "generated_targets": {
+    "8": {
+      "source_levels": [
+        "5",
+        "6",
+        "7"
+      ],
+      "total_questions": 15,
+      "questions": [
+        {
+          "id": "malayalam-5-001",
+          "source_level": "5",
+          "question_number": 1,
+          "question_text": "മലയാള അക്ഷരമാലയിൽ എത്ര സ്വരാക്ഷരങ്ങളുണ്ട്?",
+          "options": [
+            {
+              "id": "malayalam-5-001-A",
+              "option_key": "A",
+              "option_text": "10"
+            },
+            {
+              "id": "malayalam-5-001-B",
+              "option_key": "B",
+              "option_text": "12"
+            },
+            {
+              "id": "malayalam-5-001-C",
+              "option_key": "C",
+              "option_text": "15"
+            },
+            {
+              "id": "malayalam-5-001-D",
+              "option_key": "D",
+              "option_text": "18"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "malayalam-5-002",
+          "source_level": "5",
+          "question_number": 2,
+          "question_text": "താഴെ കൊടുത്തിരിക്കുന്ന വാക്കിൽ ചില്ലക്ഷരം ഏതാണ്? വീട്",
+          "options": [
+            {
+              "id": "malayalam-5-002-A",
+              "option_key": "A",
+              "option_text": "വ"
+            },
+            {
+              "id": "malayalam-5-002-B",
+              "option_key": "B",
+              "option_text": "ീ"
+            },
+            {
+              "id": "malayalam-5-002-C",
+              "option_key": "C",
+              "option_text": "ട്"
+            },
+            {
+              "id": "malayalam-5-002-D",
+              "option_key": "D",
+              "option_text": "ട"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "malayalam-5-003",
+          "source_level": "5",
+          "question_number": 3,
+          "question_text": "\"കുട്ടികൾ\" എന്ന പദത്തിന്റെ ഏകവചനം ഏത്?",
+          "options": [
+            {
+              "id": "malayalam-5-003-A",
+              "option_key": "A",
+              "option_text": "കുട്ടി"
+            },
+            {
+              "id": "malayalam-5-003-B",
+              "option_key": "B",
+              "option_text": "കുട്ടികൾ"
+            },
+            {
+              "id": "malayalam-5-003-C",
+              "option_key": "C",
+              "option_text": "കുട്ടൻ"
+            },
+            {
+              "id": "malayalam-5-003-D",
+              "option_key": "D",
+              "option_text": "കുട്ടിക്കൾ"
+            }
+          ],
+          "correct_option_key": "A",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "malayalam-5-004",
+          "source_level": "5",
+          "question_number": 4,
+          "question_text": "\"വലിയ\" എന്ന പദത്തിന്റെ വിപരീതപദം ഏത്?",
+          "options": [
+            {
+              "id": "malayalam-5-004-A",
+              "option_key": "A",
+              "option_text": "ഉയരം"
+            },
+            {
+              "id": "malayalam-5-004-B",
+              "option_key": "B",
+              "option_text": "ചെറുത്"
+            },
+            {
+              "id": "malayalam-5-004-C",
+              "option_key": "C",
+              "option_text": "നീളം"
+            },
+            {
+              "id": "malayalam-5-004-D",
+              "option_key": "D",
+              "option_text": "ഭാരം"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "malayalam-5-005",
+          "source_level": "5",
+          "question_number": 5,
+          "question_text": "\"രാമു ദിവസവും സ്കൂളിൽ പോകുന്നു.\" രാമു എവിടെയാണ് പോകുന്നത്?",
+          "options": [
+            {
+              "id": "malayalam-5-005-A",
+              "option_key": "A",
+              "option_text": "വീട്"
+            },
+            {
+              "id": "malayalam-5-005-B",
+              "option_key": "B",
+              "option_text": "മാർക്കറ്റ്"
+            },
+            {
+              "id": "malayalam-5-005-C",
+              "option_key": "C",
+              "option_text": "സ്കൂൾ"
+            },
+            {
+              "id": "malayalam-5-005-D",
+              "option_key": "D",
+              "option_text": "പാർക്ക്"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "malayalam-6-001",
+          "source_level": "6",
+          "question_number": 1,
+          "question_text": "\"അനു പുസ്തകം വായിക്കുന്നു.\" ഈ വാക്യത്തിലെ നാമപദം ഏത്?",
+          "options": [
+            {
+              "id": "malayalam-6-001-A",
+              "option_key": "A",
+              "option_text": "അനു"
+            },
+            {
+              "id": "malayalam-6-001-B",
+              "option_key": "B",
+              "option_text": "വായിക്കുന്നു"
+            },
+            {
+              "id": "malayalam-6-001-C",
+              "option_key": "C",
+              "option_text": "പുസ്തകം"
+            },
+            {
+              "id": "malayalam-6-001-D",
+              "option_key": "D",
+              "option_text": "A & C"
+            }
+          ],
+          "correct_option_key": "D",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "malayalam-6-002",
+          "source_level": "6",
+          "question_number": 2,
+          "question_text": "\"അവൻ നല്ല കുട്ടിയാണ്.\" സർവനാമം ഏത്?",
+          "options": [
+            {
+              "id": "malayalam-6-002-A",
+              "option_key": "A",
+              "option_text": "നല്ല"
+            },
+            {
+              "id": "malayalam-6-002-B",
+              "option_key": "B",
+              "option_text": "കുട്ടി"
+            },
+            {
+              "id": "malayalam-6-002-C",
+              "option_key": "C",
+              "option_text": "അവൻ"
+            },
+            {
+              "id": "malayalam-6-002-D",
+              "option_key": "D",
+              "option_text": "ആണ്"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "malayalam-6-003",
+          "source_level": "6",
+          "question_number": 3,
+          "question_text": "\"ഭൂമി\"യുടെ സമാനാർത്ഥപദം ഏത്?",
+          "options": [
+            {
+              "id": "malayalam-6-003-A",
+              "option_key": "A",
+              "option_text": "ആകാശം"
+            },
+            {
+              "id": "malayalam-6-003-B",
+              "option_key": "B",
+              "option_text": "ധരിത്രി"
+            },
+            {
+              "id": "malayalam-6-003-C",
+              "option_key": "C",
+              "option_text": "സൂര്യൻ"
+            },
+            {
+              "id": "malayalam-6-003-D",
+              "option_key": "D",
+              "option_text": "ചന്ദ്രൻ"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "malayalam-6-004",
+          "source_level": "6",
+          "question_number": 4,
+          "question_text": "\"വീട്ടുമുറ്റം\" എന്ന പദത്തിന്റെ ശരിയായ പിരിച്ചെഴുത്ത് ഏത്?",
+          "options": [
+            {
+              "id": "malayalam-6-004-A",
+              "option_key": "A",
+              "option_text": "വീട്+ മുറ്റം"
+            },
+            {
+              "id": "malayalam-6-004-B",
+              "option_key": "B",
+              "option_text": "വീട്ട്+ മുറ്റം"
+            },
+            {
+              "id": "malayalam-6-004-C",
+              "option_key": "C",
+              "option_text": "വീട്+ മുറ്റം"
+            },
+            {
+              "id": "malayalam-6-004-D",
+              "option_key": "D",
+              "option_text": "വീട്+ മുറ്റ"
+            }
+          ],
+          "correct_option_key": "A",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "malayalam-6-005",
+          "source_level": "6",
+          "question_number": 5,
+          "question_text": "\"ഐക്യമത്യേ മഹാബലം\" എന്ന പഴഞ്ചൊല്ലിന്റെ അർത്ഥം എന്ത്?",
+          "options": [
+            {
+              "id": "malayalam-6-005-A",
+              "option_key": "A",
+              "option_text": "പഠനമാണ് ശക്തി"
+            },
+            {
+              "id": "malayalam-6-005-B",
+              "option_key": "B",
+              "option_text": "ഐക്യത്തിലാണ് ശക്തി"
+            },
+            {
+              "id": "malayalam-6-005-C",
+              "option_key": "C",
+              "option_text": "ധനമാണ് ശക്തി"
+            },
+            {
+              "id": "malayalam-6-005-D",
+              "option_key": "D",
+              "option_text": "സമയമാണ് ശക്തി"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "malayalam-7-001",
+          "source_level": "7",
+          "question_number": 1,
+          "question_text": "\"സുന്ദരമായ പൂവ് വിരിഞ്ഞു.\" വിശേഷണം ഏത്?",
+          "options": [
+            {
+              "id": "malayalam-7-001-A",
+              "option_key": "A",
+              "option_text": "പൂവ്"
+            },
+            {
+              "id": "malayalam-7-001-B",
+              "option_key": "B",
+              "option_text": "വിരിഞ്ഞു"
+            },
+            {
+              "id": "malayalam-7-001-C",
+              "option_key": "C",
+              "option_text": "സുന്ദരമായ"
+            },
+            {
+              "id": "malayalam-7-001-D",
+              "option_key": "D",
+              "option_text": "ആണ്"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "malayalam-7-002",
+          "source_level": "7",
+          "question_number": 2,
+          "question_text": "\"അധ്യാപകൻ പാഠം പഠിപ്പിക്കുന്നു.\" ക്രിയാപദം ഏത്?",
+          "options": [
+            {
+              "id": "malayalam-7-002-A",
+              "option_key": "A",
+              "option_text": "അധ്യാപകൻ"
+            },
+            {
+              "id": "malayalam-7-002-B",
+              "option_key": "B",
+              "option_text": "പാഠം"
+            },
+            {
+              "id": "malayalam-7-002-C",
+              "option_key": "C",
+              "option_text": "പഠിപ്പിക്കുന്നു"
+            },
+            {
+              "id": "malayalam-7-002-D",
+              "option_key": "D",
+              "option_text": "ക്ലാസ്"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "malayalam-7-003",
+          "source_level": "7",
+          "question_number": 3,
+          "question_text": "\"കൈ + പുസ്തകം\" ചേർത്തെഴുതുമ്പോൾ ലഭിക്കുന്നത്?",
+          "options": [
+            {
+              "id": "malayalam-7-003-A",
+              "option_key": "A",
+              "option_text": "കൈപുസ്തകം"
+            },
+            {
+              "id": "malayalam-7-003-B",
+              "option_key": "B",
+              "option_text": "കൈയുടെ പുസ്തകം"
+            },
+            {
+              "id": "malayalam-7-003-C",
+              "option_key": "C",
+              "option_text": "കൈ പുസ്തകം"
+            },
+            {
+              "id": "malayalam-7-003-D",
+              "option_key": "D",
+              "option_text": "കൈപ്പുസ്തകം"
+            }
+          ],
+          "correct_option_key": "D",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "malayalam-7-004",
+          "source_level": "7",
+          "question_number": 4,
+          "question_text": "\"കൈ മലർത്തുക\" എന്ന പ്രയോഗത്തിന്റെ അർത്ഥം എന്ത്?",
+          "options": [
+            {
+              "id": "malayalam-7-004-A",
+              "option_key": "A",
+              "option_text": "കൈ കഴുകുക"
+            },
+            {
+              "id": "malayalam-7-004-B",
+              "option_key": "B",
+              "option_text": "സന്തോഷിക്കുക"
+            },
+            {
+              "id": "malayalam-7-004-C",
+              "option_key": "C",
+              "option_text": "നിസ്സഹായനാകുക"
+            },
+            {
+              "id": "malayalam-7-004-D",
+              "option_key": "D",
+              "option_text": "ഓടുക"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        },
+        {
+          "id": "malayalam-7-005",
+          "source_level": "7",
+          "question_number": 5,
+          "question_text": "\"എന്റെ വിദ്യാലയം\" എന്ന വിഷയത്തിൽ എഴുതേണ്ട വാക്യങ്ങളുടെ ഏറ്റവും അനുയോജ്യമായ എണ്ണം ഏത്?",
+          "options": [
+            {
+              "id": "malayalam-7-005-A",
+              "option_key": "A",
+              "option_text": "1 വാക്യം"
+            },
+            {
+              "id": "malayalam-7-005-B",
+              "option_key": "B",
+              "option_text": "2 വാക്യം"
+            },
+            {
+              "id": "malayalam-7-005-C",
+              "option_key": "C",
+              "option_text": "4–5 വാക്യങ്ങൾ"
+            },
+            {
+              "id": "malayalam-7-005-D",
+              "option_key": "D",
+              "option_text": "10 വാക്യങ്ങൾ"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "8"
+        }
+      ]
+    },
+    "9": {
+      "source_levels": [
+        "5",
+        "6",
+        "7",
+        "8"
+      ],
+      "total_questions": 20,
+      "questions": [
+        {
+          "id": "malayalam-5-001",
+          "source_level": "5",
+          "question_number": 1,
+          "question_text": "മലയാള അക്ഷരമാലയിൽ എത്ര സ്വരാക്ഷരങ്ങളുണ്ട്?",
+          "options": [
+            {
+              "id": "malayalam-5-001-A",
+              "option_key": "A",
+              "option_text": "10"
+            },
+            {
+              "id": "malayalam-5-001-B",
+              "option_key": "B",
+              "option_text": "12"
+            },
+            {
+              "id": "malayalam-5-001-C",
+              "option_key": "C",
+              "option_text": "15"
+            },
+            {
+              "id": "malayalam-5-001-D",
+              "option_key": "D",
+              "option_text": "18"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "malayalam-5-002",
+          "source_level": "5",
+          "question_number": 2,
+          "question_text": "താഴെ കൊടുത്തിരിക്കുന്ന വാക്കിൽ ചില്ലക്ഷരം ഏതാണ്? വീട്",
+          "options": [
+            {
+              "id": "malayalam-5-002-A",
+              "option_key": "A",
+              "option_text": "വ"
+            },
+            {
+              "id": "malayalam-5-002-B",
+              "option_key": "B",
+              "option_text": "ീ"
+            },
+            {
+              "id": "malayalam-5-002-C",
+              "option_key": "C",
+              "option_text": "ട്"
+            },
+            {
+              "id": "malayalam-5-002-D",
+              "option_key": "D",
+              "option_text": "ട"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "malayalam-5-003",
+          "source_level": "5",
+          "question_number": 3,
+          "question_text": "\"കുട്ടികൾ\" എന്ന പദത്തിന്റെ ഏകവചനം ഏത്?",
+          "options": [
+            {
+              "id": "malayalam-5-003-A",
+              "option_key": "A",
+              "option_text": "കുട്ടി"
+            },
+            {
+              "id": "malayalam-5-003-B",
+              "option_key": "B",
+              "option_text": "കുട്ടികൾ"
+            },
+            {
+              "id": "malayalam-5-003-C",
+              "option_key": "C",
+              "option_text": "കുട്ടൻ"
+            },
+            {
+              "id": "malayalam-5-003-D",
+              "option_key": "D",
+              "option_text": "കുട്ടിക്കൾ"
+            }
+          ],
+          "correct_option_key": "A",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "malayalam-5-004",
+          "source_level": "5",
+          "question_number": 4,
+          "question_text": "\"വലിയ\" എന്ന പദത്തിന്റെ വിപരീതപദം ഏത്?",
+          "options": [
+            {
+              "id": "malayalam-5-004-A",
+              "option_key": "A",
+              "option_text": "ഉയരം"
+            },
+            {
+              "id": "malayalam-5-004-B",
+              "option_key": "B",
+              "option_text": "ചെറുത്"
+            },
+            {
+              "id": "malayalam-5-004-C",
+              "option_key": "C",
+              "option_text": "നീളം"
+            },
+            {
+              "id": "malayalam-5-004-D",
+              "option_key": "D",
+              "option_text": "ഭാരം"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "malayalam-5-005",
+          "source_level": "5",
+          "question_number": 5,
+          "question_text": "\"രാമു ദിവസവും സ്കൂളിൽ പോകുന്നു.\" രാമു എവിടെയാണ് പോകുന്നത്?",
+          "options": [
+            {
+              "id": "malayalam-5-005-A",
+              "option_key": "A",
+              "option_text": "വീട്"
+            },
+            {
+              "id": "malayalam-5-005-B",
+              "option_key": "B",
+              "option_text": "മാർക്കറ്റ്"
+            },
+            {
+              "id": "malayalam-5-005-C",
+              "option_key": "C",
+              "option_text": "സ്കൂൾ"
+            },
+            {
+              "id": "malayalam-5-005-D",
+              "option_key": "D",
+              "option_text": "പാർക്ക്"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "malayalam-6-001",
+          "source_level": "6",
+          "question_number": 1,
+          "question_text": "\"അനു പുസ്തകം വായിക്കുന്നു.\" ഈ വാക്യത്തിലെ നാമപദം ഏത്?",
+          "options": [
+            {
+              "id": "malayalam-6-001-A",
+              "option_key": "A",
+              "option_text": "അനു"
+            },
+            {
+              "id": "malayalam-6-001-B",
+              "option_key": "B",
+              "option_text": "വായിക്കുന്നു"
+            },
+            {
+              "id": "malayalam-6-001-C",
+              "option_key": "C",
+              "option_text": "പുസ്തകം"
+            },
+            {
+              "id": "malayalam-6-001-D",
+              "option_key": "D",
+              "option_text": "A & C"
+            }
+          ],
+          "correct_option_key": "D",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "malayalam-6-002",
+          "source_level": "6",
+          "question_number": 2,
+          "question_text": "\"അവൻ നല്ല കുട്ടിയാണ്.\" സർവനാമം ഏത്?",
+          "options": [
+            {
+              "id": "malayalam-6-002-A",
+              "option_key": "A",
+              "option_text": "നല്ല"
+            },
+            {
+              "id": "malayalam-6-002-B",
+              "option_key": "B",
+              "option_text": "കുട്ടി"
+            },
+            {
+              "id": "malayalam-6-002-C",
+              "option_key": "C",
+              "option_text": "അവൻ"
+            },
+            {
+              "id": "malayalam-6-002-D",
+              "option_key": "D",
+              "option_text": "ആണ്"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "malayalam-6-003",
+          "source_level": "6",
+          "question_number": 3,
+          "question_text": "\"ഭൂമി\"യുടെ സമാനാർത്ഥപദം ഏത്?",
+          "options": [
+            {
+              "id": "malayalam-6-003-A",
+              "option_key": "A",
+              "option_text": "ആകാശം"
+            },
+            {
+              "id": "malayalam-6-003-B",
+              "option_key": "B",
+              "option_text": "ധരിത്രി"
+            },
+            {
+              "id": "malayalam-6-003-C",
+              "option_key": "C",
+              "option_text": "സൂര്യൻ"
+            },
+            {
+              "id": "malayalam-6-003-D",
+              "option_key": "D",
+              "option_text": "ചന്ദ്രൻ"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "malayalam-6-004",
+          "source_level": "6",
+          "question_number": 4,
+          "question_text": "\"വീട്ടുമുറ്റം\" എന്ന പദത്തിന്റെ ശരിയായ പിരിച്ചെഴുത്ത് ഏത്?",
+          "options": [
+            {
+              "id": "malayalam-6-004-A",
+              "option_key": "A",
+              "option_text": "വീട്+ മുറ്റം"
+            },
+            {
+              "id": "malayalam-6-004-B",
+              "option_key": "B",
+              "option_text": "വീട്ട്+ മുറ്റം"
+            },
+            {
+              "id": "malayalam-6-004-C",
+              "option_key": "C",
+              "option_text": "വീട്+ മുറ്റം"
+            },
+            {
+              "id": "malayalam-6-004-D",
+              "option_key": "D",
+              "option_text": "വീട്+ മുറ്റ"
+            }
+          ],
+          "correct_option_key": "A",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "malayalam-6-005",
+          "source_level": "6",
+          "question_number": 5,
+          "question_text": "\"ഐക്യമത്യേ മഹാബലം\" എന്ന പഴഞ്ചൊല്ലിന്റെ അർത്ഥം എന്ത്?",
+          "options": [
+            {
+              "id": "malayalam-6-005-A",
+              "option_key": "A",
+              "option_text": "പഠനമാണ് ശക്തി"
+            },
+            {
+              "id": "malayalam-6-005-B",
+              "option_key": "B",
+              "option_text": "ഐക്യത്തിലാണ് ശക്തി"
+            },
+            {
+              "id": "malayalam-6-005-C",
+              "option_key": "C",
+              "option_text": "ധനമാണ് ശക്തി"
+            },
+            {
+              "id": "malayalam-6-005-D",
+              "option_key": "D",
+              "option_text": "സമയമാണ് ശക്തി"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "malayalam-7-001",
+          "source_level": "7",
+          "question_number": 1,
+          "question_text": "\"സുന്ദരമായ പൂവ് വിരിഞ്ഞു.\" വിശേഷണം ഏത്?",
+          "options": [
+            {
+              "id": "malayalam-7-001-A",
+              "option_key": "A",
+              "option_text": "പൂവ്"
+            },
+            {
+              "id": "malayalam-7-001-B",
+              "option_key": "B",
+              "option_text": "വിരിഞ്ഞു"
+            },
+            {
+              "id": "malayalam-7-001-C",
+              "option_key": "C",
+              "option_text": "സുന്ദരമായ"
+            },
+            {
+              "id": "malayalam-7-001-D",
+              "option_key": "D",
+              "option_text": "ആണ്"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "malayalam-7-002",
+          "source_level": "7",
+          "question_number": 2,
+          "question_text": "\"അധ്യാപകൻ പാഠം പഠിപ്പിക്കുന്നു.\" ക്രിയാപദം ഏത്?",
+          "options": [
+            {
+              "id": "malayalam-7-002-A",
+              "option_key": "A",
+              "option_text": "അധ്യാപകൻ"
+            },
+            {
+              "id": "malayalam-7-002-B",
+              "option_key": "B",
+              "option_text": "പാഠം"
+            },
+            {
+              "id": "malayalam-7-002-C",
+              "option_key": "C",
+              "option_text": "പഠിപ്പിക്കുന്നു"
+            },
+            {
+              "id": "malayalam-7-002-D",
+              "option_key": "D",
+              "option_text": "ക്ലാസ്"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "malayalam-7-003",
+          "source_level": "7",
+          "question_number": 3,
+          "question_text": "\"കൈ + പുസ്തകം\" ചേർത്തെഴുതുമ്പോൾ ലഭിക്കുന്നത്?",
+          "options": [
+            {
+              "id": "malayalam-7-003-A",
+              "option_key": "A",
+              "option_text": "കൈപുസ്തകം"
+            },
+            {
+              "id": "malayalam-7-003-B",
+              "option_key": "B",
+              "option_text": "കൈയുടെ പുസ്തകം"
+            },
+            {
+              "id": "malayalam-7-003-C",
+              "option_key": "C",
+              "option_text": "കൈ പുസ്തകം"
+            },
+            {
+              "id": "malayalam-7-003-D",
+              "option_key": "D",
+              "option_text": "കൈപ്പുസ്തകം"
+            }
+          ],
+          "correct_option_key": "D",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "malayalam-7-004",
+          "source_level": "7",
+          "question_number": 4,
+          "question_text": "\"കൈ മലർത്തുക\" എന്ന പ്രയോഗത്തിന്റെ അർത്ഥം എന്ത്?",
+          "options": [
+            {
+              "id": "malayalam-7-004-A",
+              "option_key": "A",
+              "option_text": "കൈ കഴുകുക"
+            },
+            {
+              "id": "malayalam-7-004-B",
+              "option_key": "B",
+              "option_text": "സന്തോഷിക്കുക"
+            },
+            {
+              "id": "malayalam-7-004-C",
+              "option_key": "C",
+              "option_text": "നിസ്സഹായനാകുക"
+            },
+            {
+              "id": "malayalam-7-004-D",
+              "option_key": "D",
+              "option_text": "ഓടുക"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "malayalam-7-005",
+          "source_level": "7",
+          "question_number": 5,
+          "question_text": "\"എന്റെ വിദ്യാലയം\" എന്ന വിഷയത്തിൽ എഴുതേണ്ട വാക്യങ്ങളുടെ ഏറ്റവും അനുയോജ്യമായ എണ്ണം ഏത്?",
+          "options": [
+            {
+              "id": "malayalam-7-005-A",
+              "option_key": "A",
+              "option_text": "1 വാക്യം"
+            },
+            {
+              "id": "malayalam-7-005-B",
+              "option_key": "B",
+              "option_text": "2 വാക്യം"
+            },
+            {
+              "id": "malayalam-7-005-C",
+              "option_key": "C",
+              "option_text": "4–5 വാക്യങ്ങൾ"
+            },
+            {
+              "id": "malayalam-7-005-D",
+              "option_key": "D",
+              "option_text": "10 വാക്യങ്ങൾ"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "malayalam-8-001",
+          "source_level": "8",
+          "question_number": 1,
+          "question_text": "\"കുട്ടികൾ സന്തോഷത്തോടെ കളിക്കുന്നു.\" ക്രിയാപദം ഏത്?",
+          "options": [
+            {
+              "id": "malayalam-8-001-A",
+              "option_key": "A",
+              "option_text": "കുട്ടികൾ"
+            },
+            {
+              "id": "malayalam-8-001-B",
+              "option_key": "B",
+              "option_text": "സന്തോഷത്തോടെ"
+            },
+            {
+              "id": "malayalam-8-001-C",
+              "option_key": "C",
+              "option_text": "കളിക്കുന്നു"
+            },
+            {
+              "id": "malayalam-8-001-D",
+              "option_key": "D",
+              "option_text": "കുട്ടികൾ സന്തോഷത്തോടെ"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "malayalam-8-002",
+          "source_level": "8",
+          "question_number": 2,
+          "question_text": "\"വിജയം\" എന്ന പദത്തിന്റെ വിപരീതപദം ഏത്?",
+          "options": [
+            {
+              "id": "malayalam-8-002-A",
+              "option_key": "A",
+              "option_text": "പരാജയം"
+            },
+            {
+              "id": "malayalam-8-002-B",
+              "option_key": "B",
+              "option_text": "നേട്ടം"
+            },
+            {
+              "id": "malayalam-8-002-C",
+              "option_key": "C",
+              "option_text": "പുരോഗതി"
+            },
+            {
+              "id": "malayalam-8-002-D",
+              "option_key": "D",
+              "option_text": "ഉന്നതി"
+            }
+          ],
+          "correct_option_key": "A",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "malayalam-8-003",
+          "source_level": "8",
+          "question_number": 3,
+          "question_text": "മരങ്ങളെക്കുറിച്ചുള്ള ഖണ്ഡികയ്ക്ക് ഏറ്റവും അനുയോജ്യമായ തലക്കെട്ട് ഏത്?",
+          "options": [
+            {
+              "id": "malayalam-8-003-A",
+              "option_key": "A",
+              "option_text": "വിദ്യാലയം"
+            },
+            {
+              "id": "malayalam-8-003-B",
+              "option_key": "B",
+              "option_text": "മഴ"
+            },
+            {
+              "id": "malayalam-8-003-C",
+              "option_key": "C",
+              "option_text": "മരങ്ങളുടെ പ്രാധാന്യം"
+            },
+            {
+              "id": "malayalam-8-003-D",
+              "option_key": "D",
+              "option_text": "കളിസ്ഥലം"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "malayalam-8-004",
+          "source_level": "8",
+          "question_number": 4,
+          "question_text": "അധ്യാപകൻ: 'നിന്റെ പേര് എന്താണ്?' വിദ്യാർത്ഥിയുടെ ശരിയായ മറുപടി ഏത്?",
+          "options": [
+            {
+              "id": "malayalam-8-004-A",
+              "option_key": "A",
+              "option_text": "സുഖമാണ്"
+            },
+            {
+              "id": "malayalam-8-004-B",
+              "option_key": "B",
+              "option_text": "ആറാം ക്ലാസ്"
+            },
+            {
+              "id": "malayalam-8-004-C",
+              "option_key": "C",
+              "option_text": "എന്റെ പേര് അരുണ് എന്നാണ്"
+            },
+            {
+              "id": "malayalam-8-004-D",
+              "option_key": "D",
+              "option_text": "നാളെ വരാം"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        },
+        {
+          "id": "malayalam-8-005",
+          "source_level": "8",
+          "question_number": 5,
+          "question_text": "പരിസ്ഥിതി സംരക്ഷണവുമായി ബന്ധപ്പെട്ടത് ഏത്?",
+          "options": [
+            {
+              "id": "malayalam-8-005-A",
+              "option_key": "A",
+              "option_text": "മാലിന്യം വലിച്ചെറിയുക"
+            },
+            {
+              "id": "malayalam-8-005-B",
+              "option_key": "B",
+              "option_text": "മരങ്ങൾ വെട്ടുക"
+            },
+            {
+              "id": "malayalam-8-005-C",
+              "option_key": "C",
+              "option_text": "മരങ്ങൾ നട്ടുപിടിപ്പിക്കുക"
+            },
+            {
+              "id": "malayalam-8-005-D",
+              "option_key": "D",
+              "option_text": "ജലം പാഴാക്കുക"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "9"
+        }
+      ]
+    },
+    "10": {
+      "source_levels": [
+        "5",
+        "6",
+        "7",
+        "8",
+        "9"
+      ],
+      "total_questions": 25,
+      "questions": [
+        {
+          "id": "malayalam-5-001",
+          "source_level": "5",
+          "question_number": 1,
+          "question_text": "മലയാള അക്ഷരമാലയിൽ എത്ര സ്വരാക്ഷരങ്ങളുണ്ട്?",
+          "options": [
+            {
+              "id": "malayalam-5-001-A",
+              "option_key": "A",
+              "option_text": "10"
+            },
+            {
+              "id": "malayalam-5-001-B",
+              "option_key": "B",
+              "option_text": "12"
+            },
+            {
+              "id": "malayalam-5-001-C",
+              "option_key": "C",
+              "option_text": "15"
+            },
+            {
+              "id": "malayalam-5-001-D",
+              "option_key": "D",
+              "option_text": "18"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "malayalam-5-002",
+          "source_level": "5",
+          "question_number": 2,
+          "question_text": "താഴെ കൊടുത്തിരിക്കുന്ന വാക്കിൽ ചില്ലക്ഷരം ഏതാണ്? വീട്",
+          "options": [
+            {
+              "id": "malayalam-5-002-A",
+              "option_key": "A",
+              "option_text": "വ"
+            },
+            {
+              "id": "malayalam-5-002-B",
+              "option_key": "B",
+              "option_text": "ീ"
+            },
+            {
+              "id": "malayalam-5-002-C",
+              "option_key": "C",
+              "option_text": "ട്"
+            },
+            {
+              "id": "malayalam-5-002-D",
+              "option_key": "D",
+              "option_text": "ട"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "malayalam-5-003",
+          "source_level": "5",
+          "question_number": 3,
+          "question_text": "\"കുട്ടികൾ\" എന്ന പദത്തിന്റെ ഏകവചനം ഏത്?",
+          "options": [
+            {
+              "id": "malayalam-5-003-A",
+              "option_key": "A",
+              "option_text": "കുട്ടി"
+            },
+            {
+              "id": "malayalam-5-003-B",
+              "option_key": "B",
+              "option_text": "കുട്ടികൾ"
+            },
+            {
+              "id": "malayalam-5-003-C",
+              "option_key": "C",
+              "option_text": "കുട്ടൻ"
+            },
+            {
+              "id": "malayalam-5-003-D",
+              "option_key": "D",
+              "option_text": "കുട്ടിക്കൾ"
+            }
+          ],
+          "correct_option_key": "A",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "malayalam-5-004",
+          "source_level": "5",
+          "question_number": 4,
+          "question_text": "\"വലിയ\" എന്ന പദത്തിന്റെ വിപരീതപദം ഏത്?",
+          "options": [
+            {
+              "id": "malayalam-5-004-A",
+              "option_key": "A",
+              "option_text": "ഉയരം"
+            },
+            {
+              "id": "malayalam-5-004-B",
+              "option_key": "B",
+              "option_text": "ചെറുത്"
+            },
+            {
+              "id": "malayalam-5-004-C",
+              "option_key": "C",
+              "option_text": "നീളം"
+            },
+            {
+              "id": "malayalam-5-004-D",
+              "option_key": "D",
+              "option_text": "ഭാരം"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "malayalam-5-005",
+          "source_level": "5",
+          "question_number": 5,
+          "question_text": "\"രാമു ദിവസവും സ്കൂളിൽ പോകുന്നു.\" രാമു എവിടെയാണ് പോകുന്നത്?",
+          "options": [
+            {
+              "id": "malayalam-5-005-A",
+              "option_key": "A",
+              "option_text": "വീട്"
+            },
+            {
+              "id": "malayalam-5-005-B",
+              "option_key": "B",
+              "option_text": "മാർക്കറ്റ്"
+            },
+            {
+              "id": "malayalam-5-005-C",
+              "option_key": "C",
+              "option_text": "സ്കൂൾ"
+            },
+            {
+              "id": "malayalam-5-005-D",
+              "option_key": "D",
+              "option_text": "പാർക്ക്"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "malayalam-6-001",
+          "source_level": "6",
+          "question_number": 1,
+          "question_text": "\"അനു പുസ്തകം വായിക്കുന്നു.\" ഈ വാക്യത്തിലെ നാമപദം ഏത്?",
+          "options": [
+            {
+              "id": "malayalam-6-001-A",
+              "option_key": "A",
+              "option_text": "അനു"
+            },
+            {
+              "id": "malayalam-6-001-B",
+              "option_key": "B",
+              "option_text": "വായിക്കുന്നു"
+            },
+            {
+              "id": "malayalam-6-001-C",
+              "option_key": "C",
+              "option_text": "പുസ്തകം"
+            },
+            {
+              "id": "malayalam-6-001-D",
+              "option_key": "D",
+              "option_text": "A & C"
+            }
+          ],
+          "correct_option_key": "D",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "malayalam-6-002",
+          "source_level": "6",
+          "question_number": 2,
+          "question_text": "\"അവൻ നല്ല കുട്ടിയാണ്.\" സർവനാമം ഏത്?",
+          "options": [
+            {
+              "id": "malayalam-6-002-A",
+              "option_key": "A",
+              "option_text": "നല്ല"
+            },
+            {
+              "id": "malayalam-6-002-B",
+              "option_key": "B",
+              "option_text": "കുട്ടി"
+            },
+            {
+              "id": "malayalam-6-002-C",
+              "option_key": "C",
+              "option_text": "അവൻ"
+            },
+            {
+              "id": "malayalam-6-002-D",
+              "option_key": "D",
+              "option_text": "ആണ്"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "malayalam-6-003",
+          "source_level": "6",
+          "question_number": 3,
+          "question_text": "\"ഭൂമി\"യുടെ സമാനാർത്ഥപദം ഏത്?",
+          "options": [
+            {
+              "id": "malayalam-6-003-A",
+              "option_key": "A",
+              "option_text": "ആകാശം"
+            },
+            {
+              "id": "malayalam-6-003-B",
+              "option_key": "B",
+              "option_text": "ധരിത്രി"
+            },
+            {
+              "id": "malayalam-6-003-C",
+              "option_key": "C",
+              "option_text": "സൂര്യൻ"
+            },
+            {
+              "id": "malayalam-6-003-D",
+              "option_key": "D",
+              "option_text": "ചന്ദ്രൻ"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "malayalam-6-004",
+          "source_level": "6",
+          "question_number": 4,
+          "question_text": "\"വീട്ടുമുറ്റം\" എന്ന പദത്തിന്റെ ശരിയായ പിരിച്ചെഴുത്ത് ഏത്?",
+          "options": [
+            {
+              "id": "malayalam-6-004-A",
+              "option_key": "A",
+              "option_text": "വീട്+ മുറ്റം"
+            },
+            {
+              "id": "malayalam-6-004-B",
+              "option_key": "B",
+              "option_text": "വീട്ട്+ മുറ്റം"
+            },
+            {
+              "id": "malayalam-6-004-C",
+              "option_key": "C",
+              "option_text": "വീട്+ മുറ്റം"
+            },
+            {
+              "id": "malayalam-6-004-D",
+              "option_key": "D",
+              "option_text": "വീട്+ മുറ്റ"
+            }
+          ],
+          "correct_option_key": "A",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "malayalam-6-005",
+          "source_level": "6",
+          "question_number": 5,
+          "question_text": "\"ഐക്യമത്യേ മഹാബലം\" എന്ന പഴഞ്ചൊല്ലിന്റെ അർത്ഥം എന്ത്?",
+          "options": [
+            {
+              "id": "malayalam-6-005-A",
+              "option_key": "A",
+              "option_text": "പഠനമാണ് ശക്തി"
+            },
+            {
+              "id": "malayalam-6-005-B",
+              "option_key": "B",
+              "option_text": "ഐക്യത്തിലാണ് ശക്തി"
+            },
+            {
+              "id": "malayalam-6-005-C",
+              "option_key": "C",
+              "option_text": "ധനമാണ് ശക്തി"
+            },
+            {
+              "id": "malayalam-6-005-D",
+              "option_key": "D",
+              "option_text": "സമയമാണ് ശക്തി"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "malayalam-7-001",
+          "source_level": "7",
+          "question_number": 1,
+          "question_text": "\"സുന്ദരമായ പൂവ് വിരിഞ്ഞു.\" വിശേഷണം ഏത്?",
+          "options": [
+            {
+              "id": "malayalam-7-001-A",
+              "option_key": "A",
+              "option_text": "പൂവ്"
+            },
+            {
+              "id": "malayalam-7-001-B",
+              "option_key": "B",
+              "option_text": "വിരിഞ്ഞു"
+            },
+            {
+              "id": "malayalam-7-001-C",
+              "option_key": "C",
+              "option_text": "സുന്ദരമായ"
+            },
+            {
+              "id": "malayalam-7-001-D",
+              "option_key": "D",
+              "option_text": "ആണ്"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "malayalam-7-002",
+          "source_level": "7",
+          "question_number": 2,
+          "question_text": "\"അധ്യാപകൻ പാഠം പഠിപ്പിക്കുന്നു.\" ക്രിയാപദം ഏത്?",
+          "options": [
+            {
+              "id": "malayalam-7-002-A",
+              "option_key": "A",
+              "option_text": "അധ്യാപകൻ"
+            },
+            {
+              "id": "malayalam-7-002-B",
+              "option_key": "B",
+              "option_text": "പാഠം"
+            },
+            {
+              "id": "malayalam-7-002-C",
+              "option_key": "C",
+              "option_text": "പഠിപ്പിക്കുന്നു"
+            },
+            {
+              "id": "malayalam-7-002-D",
+              "option_key": "D",
+              "option_text": "ക്ലാസ്"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "malayalam-7-003",
+          "source_level": "7",
+          "question_number": 3,
+          "question_text": "\"കൈ + പുസ്തകം\" ചേർത്തെഴുതുമ്പോൾ ലഭിക്കുന്നത്?",
+          "options": [
+            {
+              "id": "malayalam-7-003-A",
+              "option_key": "A",
+              "option_text": "കൈപുസ്തകം"
+            },
+            {
+              "id": "malayalam-7-003-B",
+              "option_key": "B",
+              "option_text": "കൈയുടെ പുസ്തകം"
+            },
+            {
+              "id": "malayalam-7-003-C",
+              "option_key": "C",
+              "option_text": "കൈ പുസ്തകം"
+            },
+            {
+              "id": "malayalam-7-003-D",
+              "option_key": "D",
+              "option_text": "കൈപ്പുസ്തകം"
+            }
+          ],
+          "correct_option_key": "D",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "malayalam-7-004",
+          "source_level": "7",
+          "question_number": 4,
+          "question_text": "\"കൈ മലർത്തുക\" എന്ന പ്രയോഗത്തിന്റെ അർത്ഥം എന്ത്?",
+          "options": [
+            {
+              "id": "malayalam-7-004-A",
+              "option_key": "A",
+              "option_text": "കൈ കഴുകുക"
+            },
+            {
+              "id": "malayalam-7-004-B",
+              "option_key": "B",
+              "option_text": "സന്തോഷിക്കുക"
+            },
+            {
+              "id": "malayalam-7-004-C",
+              "option_key": "C",
+              "option_text": "നിസ്സഹായനാകുക"
+            },
+            {
+              "id": "malayalam-7-004-D",
+              "option_key": "D",
+              "option_text": "ഓടുക"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "malayalam-7-005",
+          "source_level": "7",
+          "question_number": 5,
+          "question_text": "\"എന്റെ വിദ്യാലയം\" എന്ന വിഷയത്തിൽ എഴുതേണ്ട വാക്യങ്ങളുടെ ഏറ്റവും അനുയോജ്യമായ എണ്ണം ഏത്?",
+          "options": [
+            {
+              "id": "malayalam-7-005-A",
+              "option_key": "A",
+              "option_text": "1 വാക്യം"
+            },
+            {
+              "id": "malayalam-7-005-B",
+              "option_key": "B",
+              "option_text": "2 വാക്യം"
+            },
+            {
+              "id": "malayalam-7-005-C",
+              "option_key": "C",
+              "option_text": "4–5 വാക്യങ്ങൾ"
+            },
+            {
+              "id": "malayalam-7-005-D",
+              "option_key": "D",
+              "option_text": "10 വാക്യങ്ങൾ"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "malayalam-8-001",
+          "source_level": "8",
+          "question_number": 1,
+          "question_text": "\"കുട്ടികൾ സന്തോഷത്തോടെ കളിക്കുന്നു.\" ക്രിയാപദം ഏത്?",
+          "options": [
+            {
+              "id": "malayalam-8-001-A",
+              "option_key": "A",
+              "option_text": "കുട്ടികൾ"
+            },
+            {
+              "id": "malayalam-8-001-B",
+              "option_key": "B",
+              "option_text": "സന്തോഷത്തോടെ"
+            },
+            {
+              "id": "malayalam-8-001-C",
+              "option_key": "C",
+              "option_text": "കളിക്കുന്നു"
+            },
+            {
+              "id": "malayalam-8-001-D",
+              "option_key": "D",
+              "option_text": "കുട്ടികൾ സന്തോഷത്തോടെ"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "malayalam-8-002",
+          "source_level": "8",
+          "question_number": 2,
+          "question_text": "\"വിജയം\" എന്ന പദത്തിന്റെ വിപരീതപദം ഏത്?",
+          "options": [
+            {
+              "id": "malayalam-8-002-A",
+              "option_key": "A",
+              "option_text": "പരാജയം"
+            },
+            {
+              "id": "malayalam-8-002-B",
+              "option_key": "B",
+              "option_text": "നേട്ടം"
+            },
+            {
+              "id": "malayalam-8-002-C",
+              "option_key": "C",
+              "option_text": "പുരോഗതി"
+            },
+            {
+              "id": "malayalam-8-002-D",
+              "option_key": "D",
+              "option_text": "ഉന്നതി"
+            }
+          ],
+          "correct_option_key": "A",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "malayalam-8-003",
+          "source_level": "8",
+          "question_number": 3,
+          "question_text": "മരങ്ങളെക്കുറിച്ചുള്ള ഖണ്ഡികയ്ക്ക് ഏറ്റവും അനുയോജ്യമായ തലക്കെട്ട് ഏത്?",
+          "options": [
+            {
+              "id": "malayalam-8-003-A",
+              "option_key": "A",
+              "option_text": "വിദ്യാലയം"
+            },
+            {
+              "id": "malayalam-8-003-B",
+              "option_key": "B",
+              "option_text": "മഴ"
+            },
+            {
+              "id": "malayalam-8-003-C",
+              "option_key": "C",
+              "option_text": "മരങ്ങളുടെ പ്രാധാന്യം"
+            },
+            {
+              "id": "malayalam-8-003-D",
+              "option_key": "D",
+              "option_text": "കളിസ്ഥലം"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "malayalam-8-004",
+          "source_level": "8",
+          "question_number": 4,
+          "question_text": "അധ്യാപകൻ: 'നിന്റെ പേര് എന്താണ്?' വിദ്യാർത്ഥിയുടെ ശരിയായ മറുപടി ഏത്?",
+          "options": [
+            {
+              "id": "malayalam-8-004-A",
+              "option_key": "A",
+              "option_text": "സുഖമാണ്"
+            },
+            {
+              "id": "malayalam-8-004-B",
+              "option_key": "B",
+              "option_text": "ആറാം ക്ലാസ്"
+            },
+            {
+              "id": "malayalam-8-004-C",
+              "option_key": "C",
+              "option_text": "എന്റെ പേര് അരുണ് എന്നാണ്"
+            },
+            {
+              "id": "malayalam-8-004-D",
+              "option_key": "D",
+              "option_text": "നാളെ വരാം"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "malayalam-8-005",
+          "source_level": "8",
+          "question_number": 5,
+          "question_text": "പരിസ്ഥിതി സംരക്ഷണവുമായി ബന്ധപ്പെട്ടത് ഏത്?",
+          "options": [
+            {
+              "id": "malayalam-8-005-A",
+              "option_key": "A",
+              "option_text": "മാലിന്യം വലിച്ചെറിയുക"
+            },
+            {
+              "id": "malayalam-8-005-B",
+              "option_key": "B",
+              "option_text": "മരങ്ങൾ വെട്ടുക"
+            },
+            {
+              "id": "malayalam-8-005-C",
+              "option_key": "C",
+              "option_text": "മരങ്ങൾ നട്ടുപിടിപ്പിക്കുക"
+            },
+            {
+              "id": "malayalam-8-005-D",
+              "option_key": "D",
+              "option_text": "ജലം പാഴാക്കുക"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "malayalam-9-001",
+          "source_level": "9",
+          "question_number": 1,
+          "question_text": "\"മഴ പെയ്തതിനാൽ കുട്ടികൾ പുറത്തുപോയില്ല.\" കാരണത്തെ സൂചിപ്പിക്കുന്ന ഭാഗം ഏത്?",
+          "options": [
+            {
+              "id": "malayalam-9-001-A",
+              "option_key": "A",
+              "option_text": "കുട്ടികൾ"
+            },
+            {
+              "id": "malayalam-9-001-B",
+              "option_key": "B",
+              "option_text": "പുറത്തുപോയില്ല"
+            },
+            {
+              "id": "malayalam-9-001-C",
+              "option_key": "C",
+              "option_text": "മഴ പെയ്തതിനാൽ"
+            },
+            {
+              "id": "malayalam-9-001-D",
+              "option_key": "D",
+              "option_text": "കുട്ടികൾ പുറത്തുപോയില്ല"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "malayalam-9-002",
+          "source_level": "9",
+          "question_number": 2,
+          "question_text": "\"ദേവാലയം\" എന്ന പദവുമായി ബന്ധപ്പെട്ടത് ഏത്?",
+          "options": [
+            {
+              "id": "malayalam-9-002-A",
+              "option_key": "A",
+              "option_text": "സന്ധി"
+            },
+            {
+              "id": "malayalam-9-002-B",
+              "option_key": "B",
+              "option_text": "ലിംഗം"
+            },
+            {
+              "id": "malayalam-9-002-C",
+              "option_key": "C",
+              "option_text": "വചനം"
+            },
+            {
+              "id": "malayalam-9-002-D",
+              "option_key": "D",
+              "option_text": "കാലം"
+            }
+          ],
+          "correct_option_key": "A",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "malayalam-9-003",
+          "source_level": "9",
+          "question_number": 3,
+          "question_text": "അവധി അപേക്ഷ എഴുതുമ്പോൾ ആദ്യം ചേർക്കേണ്ടത് എന്ത്?",
+          "options": [
+            {
+              "id": "malayalam-9-003-A",
+              "option_key": "A",
+              "option_text": "ഒപ്പ്"
+            },
+            {
+              "id": "malayalam-9-003-B",
+              "option_key": "B",
+              "option_text": "അഭിവാദ്യം/സ്വീകർത്താവിന്റെ വിലാസം"
+            },
+            {
+              "id": "malayalam-9-003-C",
+              "option_key": "C",
+              "option_text": "തീയതി മാത്രം"
+            },
+            {
+              "id": "malayalam-9-003-D",
+              "option_key": "D",
+              "option_text": "നന്ദി"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "malayalam-9-004",
+          "source_level": "9",
+          "question_number": 4,
+          "question_text": "\"വായനയുടെ പ്രാധാന്യം\" എന്ന വിഷയത്തിൽ എഴുതുമ്പോൾ ഉൾപ്പെടുത്തേണ്ടത് ഏത്?",
+          "options": [
+            {
+              "id": "malayalam-9-004-A",
+              "option_key": "A",
+              "option_text": "വായനയുടെ ഗുണങ്ങൾ"
+            },
+            {
+              "id": "malayalam-9-004-B",
+              "option_key": "B",
+              "option_text": "കളിയുടെ നിയമങ്ങൾ"
+            },
+            {
+              "id": "malayalam-9-004-C",
+              "option_key": "C",
+              "option_text": "ഭക്ഷണ പാചകം"
+            },
+            {
+              "id": "malayalam-9-004-D",
+              "option_key": "D",
+              "option_text": "യാത്രാവിവരണം"
+            }
+          ],
+          "correct_option_key": "A",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        },
+        {
+          "id": "malayalam-9-005",
+          "source_level": "9",
+          "question_number": 5,
+          "question_text": "\"വിദ്യ ധനം സർവധനാൽ പ്രധാനം\" എന്ന വരിയുടെ ആശയം എന്ത്?",
+          "options": [
+            {
+              "id": "malayalam-9-005-A",
+              "option_key": "A",
+              "option_text": "ധനമാണ് ഏറ്റവും വലിയത്"
+            },
+            {
+              "id": "malayalam-9-005-B",
+              "option_key": "B",
+              "option_text": "വിദ്യയാണ് ഏറ്റവും വിലപ്പെട്ട സമ്പത്ത്"
+            },
+            {
+              "id": "malayalam-9-005-C",
+              "option_key": "C",
+              "option_text": "കായികമാണ് പ്രധാനം"
+            },
+            {
+              "id": "malayalam-9-005-D",
+              "option_key": "D",
+              "option_text": "ശക്തിയാണ് പ്രധാനം"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": "",
+          "target_level": "10"
+        }
+      ]
+    }
+  }
+}

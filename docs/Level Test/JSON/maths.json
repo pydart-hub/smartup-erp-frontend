@@ -1,0 +1,2857 @@
+{
+  "subject": "Maths",
+  "source_file": "Maths LEVEL TEST.docx",
+  "conversion_status": "ready",
+  "levels": {
+    "5": [
+      {
+        "id": "maths-5-001",
+        "source_level": "5",
+        "question_number": 1,
+        "question_text": "What is the sum of the place values of the two 5s in the number 5,32,150?",
+        "options": [
+          {
+            "id": "maths-5-001-A",
+            "option_key": "A",
+            "option_text": "1,00,000"
+          },
+          {
+            "id": "maths-5-001-B",
+            "option_key": "B",
+            "option_text": "1,00,010"
+          },
+          {
+            "id": "maths-5-001-C",
+            "option_key": "C",
+            "option_text": "10"
+          },
+          {
+            "id": "maths-5-001-D",
+            "option_key": "D",
+            "option_text": "1,00,100"
+          }
+        ],
+        "correct_option_key": "B",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "maths-5-002",
+        "source_level": "5",
+        "question_number": 2,
+        "question_text": "What is the value of 15×40×3×0?",
+        "options": [
+          {
+            "id": "maths-5-002-A",
+            "option_key": "A",
+            "option_text": "600"
+          },
+          {
+            "id": "maths-5-002-B",
+            "option_key": "B",
+            "option_text": "1800"
+          },
+          {
+            "id": "maths-5-002-C",
+            "option_key": "C",
+            "option_text": "0"
+          },
+          {
+            "id": "maths-5-002-D",
+            "option_key": "D",
+            "option_text": "120"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "maths-5-003",
+        "source_level": "5",
+        "question_number": 3,
+        "question_text": "How many hours and minutes are in 200 minutes?",
+        "options": [
+          {
+            "id": "maths-5-003-A",
+            "option_key": "A",
+            "option_text": "4 hours"
+          },
+          {
+            "id": "maths-5-003-B",
+            "option_key": "B",
+            "option_text": "3 hours 20 minutes"
+          },
+          {
+            "id": "maths-5-003-C",
+            "option_key": "C",
+            "option_text": "3 hours 15 minutes"
+          },
+          {
+            "id": "maths-5-003-D",
+            "option_key": "D",
+            "option_text": "3 hours 30 minutes"
+          }
+        ],
+        "correct_option_key": "B",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "maths-5-004",
+        "source_level": "5",
+        "question_number": 4,
+        "question_text": "You bake 24 cookies. You keep 6 for yourself and share the rest equally among 3 friends. How many cookies does each friend get?",
+        "options": [
+          {
+            "id": "maths-5-004-A",
+            "option_key": "A",
+            "option_text": "6"
+          },
+          {
+            "id": "maths-5-004-B",
+            "option_key": "B",
+            "option_text": "8"
+          },
+          {
+            "id": "maths-5-004-C",
+            "option_key": "C",
+            "option_text": "4"
+          },
+          {
+            "id": "maths-5-004-D",
+            "option_key": "D",
+            "option_text": "5"
+          }
+        ],
+        "correct_option_key": "A",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "maths-5-005",
+        "source_level": "5",
+        "question_number": 5,
+        "question_text": "Which pair of lines will never intersect, no matter how far they are extended?",
+        "options": [
+          {
+            "id": "maths-5-005-A",
+            "option_key": "A",
+            "option_text": "Perpendicular lines"
+          },
+          {
+            "id": "maths-5-005-B",
+            "option_key": "B",
+            "option_text": "Parallel lines"
+          },
+          {
+            "id": "maths-5-005-C",
+            "option_key": "C",
+            "option_text": "Coincident lines"
+          },
+          {
+            "id": "maths-5-005-D",
+            "option_key": "D",
+            "option_text": "None of the above"
+          }
+        ],
+        "correct_option_key": "B",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      }
+    ],
+    "6": [
+      {
+        "id": "maths-6-001",
+        "source_level": "6",
+        "question_number": 1,
+        "question_text": "What is the value of the expression: 15-(3×2)+4?",
+        "options": [
+          {
+            "id": "maths-6-001-A",
+            "option_key": "A",
+            "option_text": "12"
+          },
+          {
+            "id": "maths-6-001-B",
+            "option_key": "B",
+            "option_text": "28"
+          },
+          {
+            "id": "maths-6-001-C",
+            "option_key": "C",
+            "option_text": "13"
+          },
+          {
+            "id": "maths-6-001-D",
+            "option_key": "D",
+            "option_text": "18"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "maths-6-002",
+        "source_level": "6",
+        "question_number": 2,
+        "question_text": "Which of the following fraction is equivalent to 2/3?",
+        "options": [
+          {
+            "id": "maths-6-002-A",
+            "option_key": "A",
+            "option_text": "3/6"
+          },
+          {
+            "id": "maths-6-002-B",
+            "option_key": "B",
+            "option_text": "4/9"
+          },
+          {
+            "id": "maths-6-002-C",
+            "option_key": "C",
+            "option_text": "6/9"
+          },
+          {
+            "id": "maths-6-002-D",
+            "option_key": "D",
+            "option_text": "5/12"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "maths-6-003",
+        "source_level": "6",
+        "question_number": 3,
+        "question_text": "If the length of a rectangular garden is 12 meters and its width is 5 meters, what is the perimeter of the garden?",
+        "options": [
+          {
+            "id": "maths-6-003-A",
+            "option_key": "A",
+            "option_text": "17 m"
+          },
+          {
+            "id": "maths-6-003-B",
+            "option_key": "B",
+            "option_text": "34 m"
+          },
+          {
+            "id": "maths-6-003-C",
+            "option_key": "C",
+            "option_text": "32 m"
+          },
+          {
+            "id": "maths-6-003-D",
+            "option_key": "D",
+            "option_text": "36 m"
+          }
+        ],
+        "correct_option_key": "B",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "maths-6-004",
+        "source_level": "6",
+        "question_number": 4,
+        "question_text": "Write down the prime numbers between 10 and 20.",
+        "options": [
+          {
+            "id": "maths-6-004-A",
+            "option_key": "A",
+            "option_text": "11,13,15,17"
+          },
+          {
+            "id": "maths-6-004-B",
+            "option_key": "B",
+            "option_text": "11,13,17,19"
+          },
+          {
+            "id": "maths-6-004-C",
+            "option_key": "C",
+            "option_text": "11,13,17,18"
+          },
+          {
+            "id": "maths-6-004-D",
+            "option_key": "D",
+            "option_text": "11,12,13,19"
+          }
+        ],
+        "correct_option_key": "B",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "maths-6-005",
+        "source_level": "6",
+        "question_number": 5,
+        "question_text": "A baker makes 144 cupcakes in one hour. How many cupcakes will the baker make in 6 hours?",
+        "options": [
+          {
+            "id": "maths-6-005-A",
+            "option_key": "A",
+            "option_text": "500"
+          },
+          {
+            "id": "maths-6-005-B",
+            "option_key": "B",
+            "option_text": "566"
+          },
+          {
+            "id": "maths-6-005-C",
+            "option_key": "C",
+            "option_text": "865"
+          },
+          {
+            "id": "maths-6-005-D",
+            "option_key": "D",
+            "option_text": "864"
+          }
+        ],
+        "correct_option_key": "D",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      }
+    ],
+    "7": [
+      {
+        "id": "maths-7-001",
+        "source_level": "7",
+        "question_number": 1,
+        "question_text": "What is the value of the expression 8x – 10, when x = 5?",
+        "options": [
+          {
+            "id": "maths-7-001-A",
+            "option_key": "A",
+            "option_text": "30"
+          },
+          {
+            "id": "maths-7-001-B",
+            "option_key": "B",
+            "option_text": "40"
+          },
+          {
+            "id": "maths-7-001-C",
+            "option_key": "C",
+            "option_text": "20"
+          },
+          {
+            "id": "maths-7-001-D",
+            "option_key": "D",
+            "option_text": "50"
+          }
+        ],
+        "correct_option_key": "A",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "maths-7-002",
+        "source_level": "7",
+        "question_number": 2,
+        "question_text": "Two angles are complementary. If one angle measures 50°, what is the measure of the other angle?",
+        "options": [
+          {
+            "id": "maths-7-002-A",
+            "option_key": "A",
+            "option_text": "130"
+          },
+          {
+            "id": "maths-7-002-B",
+            "option_key": "B",
+            "option_text": "40"
+          },
+          {
+            "id": "maths-7-002-C",
+            "option_key": "C",
+            "option_text": "120"
+          },
+          {
+            "id": "maths-7-002-D",
+            "option_key": "D",
+            "option_text": "30"
+          }
+        ],
+        "correct_option_key": "B",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "maths-7-003",
+        "source_level": "7",
+        "question_number": 3,
+        "question_text": "Convert into a decimal and a percentage.",
+        "options": [
+          {
+            "id": "maths-7-003-A",
+            "option_key": "A",
+            "option_text": "0.3, 30%"
+          },
+          {
+            "id": "maths-7-003-B",
+            "option_key": "B",
+            "option_text": "0.6, 60%"
+          },
+          {
+            "id": "maths-7-003-C",
+            "option_key": "C",
+            "option_text": "0.5, 50%"
+          },
+          {
+            "id": "maths-7-003-D",
+            "option_key": "D",
+            "option_text": "0.15, 15%"
+          }
+        ],
+        "correct_option_key": "B",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "maths-7-004",
+        "source_level": "7",
+        "question_number": 4,
+        "question_text": "Evaluate (-8)+6-(-3).",
+        "options": [
+          {
+            "id": "maths-7-004-A",
+            "option_key": "A",
+            "option_text": "-1"
+          },
+          {
+            "id": "maths-7-004-B",
+            "option_key": "B",
+            "option_text": "-5"
+          },
+          {
+            "id": "maths-7-004-C",
+            "option_key": "C",
+            "option_text": "1"
+          },
+          {
+            "id": "maths-7-004-D",
+            "option_key": "D",
+            "option_text": "5"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "maths-7-005",
+        "source_level": "7",
+        "question_number": 5,
+        "question_text": "Find: a) 2.7÷100 b) 3.96÷10",
+        "options": [
+          {
+            "id": "maths-7-005-A",
+            "option_key": "A",
+            "option_text": "27,396"
+          },
+          {
+            "id": "maths-7-005-B",
+            "option_key": "B",
+            "option_text": "2.70,39"
+          },
+          {
+            "id": "maths-7-005-C",
+            "option_key": "C",
+            "option_text": "0.27,39.6"
+          },
+          {
+            "id": "maths-7-005-D",
+            "option_key": "D",
+            "option_text": "0.027,0.396"
+          }
+        ],
+        "correct_option_key": "D",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      }
+    ],
+    "8": [
+      {
+        "id": "maths-8-001",
+        "source_level": "8",
+        "question_number": 1,
+        "question_text": "264 added to a number makes it 452. Set up an algebraic equation to find the number.",
+        "options": [
+          {
+            "id": "maths-8-001-A",
+            "option_key": "A",
+            "option_text": "x+264=452"
+          },
+          {
+            "id": "maths-8-001-B",
+            "option_key": "B",
+            "option_text": "264+452=x"
+          },
+          {
+            "id": "maths-8-001-C",
+            "option_key": "C",
+            "option_text": "x+452=264"
+          },
+          {
+            "id": "maths-8-001-D",
+            "option_key": "D",
+            "option_text": "None of these"
+          }
+        ],
+        "correct_option_key": "A",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "maths-8-002",
+        "source_level": "8",
+        "question_number": 2,
+        "question_text": "If 3kg of rice costs 120, how much will 7kg of the same rice cost?",
+        "options": [
+          {
+            "id": "maths-8-002-A",
+            "option_key": "A",
+            "option_text": "300"
+          },
+          {
+            "id": "maths-8-002-B",
+            "option_key": "B",
+            "option_text": "240"
+          },
+          {
+            "id": "maths-8-002-C",
+            "option_key": "C",
+            "option_text": "280"
+          },
+          {
+            "id": "maths-8-002-D",
+            "option_key": "D",
+            "option_text": "260"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "maths-8-003",
+        "source_level": "8",
+        "question_number": 3,
+        "question_text": "In an isosceles triangle, if the unequal angle is 70°, what are the measures of the other two angles?",
+        "options": [
+          {
+            "id": "maths-8-003-A",
+            "option_key": "A",
+            "option_text": "110"
+          },
+          {
+            "id": "maths-8-003-B",
+            "option_key": "B",
+            "option_text": "55"
+          },
+          {
+            "id": "maths-8-003-C",
+            "option_key": "C",
+            "option_text": "60"
+          },
+          {
+            "id": "maths-8-003-D",
+            "option_key": "D",
+            "option_text": "70"
+          }
+        ],
+        "correct_option_key": "B",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "maths-8-004",
+        "source_level": "8",
+        "question_number": 4,
+        "question_text": "Write 1/25 as fraction with denominator a power of 10.",
+        "options": [
+          {
+            "id": "maths-8-004-A",
+            "option_key": "A",
+            "option_text": "1/10"
+          },
+          {
+            "id": "maths-8-004-B",
+            "option_key": "B",
+            "option_text": "2/100"
+          },
+          {
+            "id": "maths-8-004-C",
+            "option_key": "C",
+            "option_text": "4/100"
+          },
+          {
+            "id": "maths-8-004-D",
+            "option_key": "D",
+            "option_text": "5/10"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "maths-8-005",
+        "source_level": "8",
+        "question_number": 5,
+        "question_text": "Solve 4x-8 = 2x+2",
+        "options": [
+          {
+            "id": "maths-8-005-A",
+            "option_key": "A",
+            "option_text": "x=2"
+          },
+          {
+            "id": "maths-8-005-B",
+            "option_key": "B",
+            "option_text": "x=-3"
+          },
+          {
+            "id": "maths-8-005-C",
+            "option_key": "C",
+            "option_text": "x=5"
+          },
+          {
+            "id": "maths-8-005-D",
+            "option_key": "D",
+            "option_text": "x=10"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      }
+    ],
+    "9": [
+      {
+        "id": "maths-9-001",
+        "source_level": "9",
+        "question_number": 1,
+        "question_text": "Evaluate √3 × √12",
+        "options": [
+          {
+            "id": "maths-9-001-A",
+            "option_key": "A",
+            "option_text": "6"
+          },
+          {
+            "id": "maths-9-001-B",
+            "option_key": "B",
+            "option_text": "8"
+          },
+          {
+            "id": "maths-9-001-C",
+            "option_key": "C",
+            "option_text": "9"
+          },
+          {
+            "id": "maths-9-001-D",
+            "option_key": "D",
+            "option_text": "3√12"
+          }
+        ],
+        "correct_option_key": "A",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "maths-9-002",
+        "source_level": "9",
+        "question_number": 2,
+        "question_text": "What is the area of a square whose diagonal length is 8 cm?",
+        "options": [
+          {
+            "id": "maths-9-002-A",
+            "option_key": "A",
+            "option_text": "36 sq.cm"
+          },
+          {
+            "id": "maths-9-002-B",
+            "option_key": "B",
+            "option_text": "32 sq.cm"
+          },
+          {
+            "id": "maths-9-002-C",
+            "option_key": "C",
+            "option_text": "16 sq.cm"
+          },
+          {
+            "id": "maths-9-002-D",
+            "option_key": "D",
+            "option_text": "64 sq.cm"
+          }
+        ],
+        "correct_option_key": "B",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "maths-9-003",
+        "source_level": "9",
+        "question_number": 3,
+        "question_text": "6 workers can do a job in 6 days, how many days will 3 workers take?",
+        "options": [
+          {
+            "id": "maths-9-003-A",
+            "option_key": "A",
+            "option_text": "6 days"
+          },
+          {
+            "id": "maths-9-003-B",
+            "option_key": "B",
+            "option_text": "8 days"
+          },
+          {
+            "id": "maths-9-003-C",
+            "option_key": "C",
+            "option_text": "3 days"
+          },
+          {
+            "id": "maths-9-003-D",
+            "option_key": "D",
+            "option_text": "12 days"
+          }
+        ],
+        "correct_option_key": "D",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "maths-9-004",
+        "source_level": "9",
+        "question_number": 4,
+        "question_text": "What will be the value of 5 times the square of 4?",
+        "options": [
+          {
+            "id": "maths-9-004-A",
+            "option_key": "A",
+            "option_text": "20"
+          },
+          {
+            "id": "maths-9-004-B",
+            "option_key": "B",
+            "option_text": "40"
+          },
+          {
+            "id": "maths-9-004-C",
+            "option_key": "C",
+            "option_text": "80"
+          },
+          {
+            "id": "maths-9-004-D",
+            "option_key": "D",
+            "option_text": "100"
+          }
+        ],
+        "correct_option_key": "C",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      },
+      {
+        "id": "maths-9-005",
+        "source_level": "9",
+        "question_number": 5,
+        "question_text": "Find the circumference of circle whose diameter is 4.2?",
+        "options": [
+          {
+            "id": "maths-9-005-A",
+            "option_key": "A",
+            "option_text": "8.4π"
+          },
+          {
+            "id": "maths-9-005-B",
+            "option_key": "B",
+            "option_text": "42π"
+          },
+          {
+            "id": "maths-9-005-C",
+            "option_key": "C",
+            "option_text": "4.2π"
+          },
+          {
+            "id": "maths-9-005-D",
+            "option_key": "D",
+            "option_text": "84π"
+          }
+        ],
+        "correct_option_key": "B",
+        "source_type": "numbered",
+        "usable_for_exam": true,
+        "needs_review": false,
+        "review_note": ""
+      }
+    ]
+  },
+  "generated_targets": {
+    "8": {
+      "source_levels": [
+        "5",
+        "6",
+        "7"
+      ],
+      "total_questions": 15,
+      "questions": [
+        {
+          "id": "maths-5-001",
+          "source_level": "5",
+          "question_number": 1,
+          "question_text": "What is the sum of the place values of the two 5s in the number 5,32,150?",
+          "options": [
+            {
+              "id": "maths-5-001-A",
+              "option_key": "A",
+              "option_text": "1,00,000"
+            },
+            {
+              "id": "maths-5-001-B",
+              "option_key": "B",
+              "option_text": "1,00,010"
+            },
+            {
+              "id": "maths-5-001-C",
+              "option_key": "C",
+              "option_text": "10"
+            },
+            {
+              "id": "maths-5-001-D",
+              "option_key": "D",
+              "option_text": "1,00,100"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-5-002",
+          "source_level": "5",
+          "question_number": 2,
+          "question_text": "What is the value of 15×40×3×0?",
+          "options": [
+            {
+              "id": "maths-5-002-A",
+              "option_key": "A",
+              "option_text": "600"
+            },
+            {
+              "id": "maths-5-002-B",
+              "option_key": "B",
+              "option_text": "1800"
+            },
+            {
+              "id": "maths-5-002-C",
+              "option_key": "C",
+              "option_text": "0"
+            },
+            {
+              "id": "maths-5-002-D",
+              "option_key": "D",
+              "option_text": "120"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-5-003",
+          "source_level": "5",
+          "question_number": 3,
+          "question_text": "How many hours and minutes are in 200 minutes?",
+          "options": [
+            {
+              "id": "maths-5-003-A",
+              "option_key": "A",
+              "option_text": "4 hours"
+            },
+            {
+              "id": "maths-5-003-B",
+              "option_key": "B",
+              "option_text": "3 hours 20 minutes"
+            },
+            {
+              "id": "maths-5-003-C",
+              "option_key": "C",
+              "option_text": "3 hours 15 minutes"
+            },
+            {
+              "id": "maths-5-003-D",
+              "option_key": "D",
+              "option_text": "3 hours 30 minutes"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-5-004",
+          "source_level": "5",
+          "question_number": 4,
+          "question_text": "You bake 24 cookies. You keep 6 for yourself and share the rest equally among 3 friends. How many cookies does each friend get?",
+          "options": [
+            {
+              "id": "maths-5-004-A",
+              "option_key": "A",
+              "option_text": "6"
+            },
+            {
+              "id": "maths-5-004-B",
+              "option_key": "B",
+              "option_text": "8"
+            },
+            {
+              "id": "maths-5-004-C",
+              "option_key": "C",
+              "option_text": "4"
+            },
+            {
+              "id": "maths-5-004-D",
+              "option_key": "D",
+              "option_text": "5"
+            }
+          ],
+          "correct_option_key": "A",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-5-005",
+          "source_level": "5",
+          "question_number": 5,
+          "question_text": "Which pair of lines will never intersect, no matter how far they are extended?",
+          "options": [
+            {
+              "id": "maths-5-005-A",
+              "option_key": "A",
+              "option_text": "Perpendicular lines"
+            },
+            {
+              "id": "maths-5-005-B",
+              "option_key": "B",
+              "option_text": "Parallel lines"
+            },
+            {
+              "id": "maths-5-005-C",
+              "option_key": "C",
+              "option_text": "Coincident lines"
+            },
+            {
+              "id": "maths-5-005-D",
+              "option_key": "D",
+              "option_text": "None of the above"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-6-001",
+          "source_level": "6",
+          "question_number": 1,
+          "question_text": "What is the value of the expression: 15-(3×2)+4?",
+          "options": [
+            {
+              "id": "maths-6-001-A",
+              "option_key": "A",
+              "option_text": "12"
+            },
+            {
+              "id": "maths-6-001-B",
+              "option_key": "B",
+              "option_text": "28"
+            },
+            {
+              "id": "maths-6-001-C",
+              "option_key": "C",
+              "option_text": "13"
+            },
+            {
+              "id": "maths-6-001-D",
+              "option_key": "D",
+              "option_text": "18"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-6-002",
+          "source_level": "6",
+          "question_number": 2,
+          "question_text": "Which of the following fraction is equivalent to 2/3?",
+          "options": [
+            {
+              "id": "maths-6-002-A",
+              "option_key": "A",
+              "option_text": "3/6"
+            },
+            {
+              "id": "maths-6-002-B",
+              "option_key": "B",
+              "option_text": "4/9"
+            },
+            {
+              "id": "maths-6-002-C",
+              "option_key": "C",
+              "option_text": "6/9"
+            },
+            {
+              "id": "maths-6-002-D",
+              "option_key": "D",
+              "option_text": "5/12"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-6-003",
+          "source_level": "6",
+          "question_number": 3,
+          "question_text": "If the length of a rectangular garden is 12 meters and its width is 5 meters, what is the perimeter of the garden?",
+          "options": [
+            {
+              "id": "maths-6-003-A",
+              "option_key": "A",
+              "option_text": "17 m"
+            },
+            {
+              "id": "maths-6-003-B",
+              "option_key": "B",
+              "option_text": "34 m"
+            },
+            {
+              "id": "maths-6-003-C",
+              "option_key": "C",
+              "option_text": "32 m"
+            },
+            {
+              "id": "maths-6-003-D",
+              "option_key": "D",
+              "option_text": "36 m"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-6-004",
+          "source_level": "6",
+          "question_number": 4,
+          "question_text": "Write down the prime numbers between 10 and 20.",
+          "options": [
+            {
+              "id": "maths-6-004-A",
+              "option_key": "A",
+              "option_text": "11,13,15,17"
+            },
+            {
+              "id": "maths-6-004-B",
+              "option_key": "B",
+              "option_text": "11,13,17,19"
+            },
+            {
+              "id": "maths-6-004-C",
+              "option_key": "C",
+              "option_text": "11,13,17,18"
+            },
+            {
+              "id": "maths-6-004-D",
+              "option_key": "D",
+              "option_text": "11,12,13,19"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-6-005",
+          "source_level": "6",
+          "question_number": 5,
+          "question_text": "A baker makes 144 cupcakes in one hour. How many cupcakes will the baker make in 6 hours?",
+          "options": [
+            {
+              "id": "maths-6-005-A",
+              "option_key": "A",
+              "option_text": "500"
+            },
+            {
+              "id": "maths-6-005-B",
+              "option_key": "B",
+              "option_text": "566"
+            },
+            {
+              "id": "maths-6-005-C",
+              "option_key": "C",
+              "option_text": "865"
+            },
+            {
+              "id": "maths-6-005-D",
+              "option_key": "D",
+              "option_text": "864"
+            }
+          ],
+          "correct_option_key": "D",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-7-001",
+          "source_level": "7",
+          "question_number": 1,
+          "question_text": "What is the value of the expression 8x – 10, when x = 5?",
+          "options": [
+            {
+              "id": "maths-7-001-A",
+              "option_key": "A",
+              "option_text": "30"
+            },
+            {
+              "id": "maths-7-001-B",
+              "option_key": "B",
+              "option_text": "40"
+            },
+            {
+              "id": "maths-7-001-C",
+              "option_key": "C",
+              "option_text": "20"
+            },
+            {
+              "id": "maths-7-001-D",
+              "option_key": "D",
+              "option_text": "50"
+            }
+          ],
+          "correct_option_key": "A",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-7-002",
+          "source_level": "7",
+          "question_number": 2,
+          "question_text": "Two angles are complementary. If one angle measures 50°, what is the measure of the other angle?",
+          "options": [
+            {
+              "id": "maths-7-002-A",
+              "option_key": "A",
+              "option_text": "130"
+            },
+            {
+              "id": "maths-7-002-B",
+              "option_key": "B",
+              "option_text": "40"
+            },
+            {
+              "id": "maths-7-002-C",
+              "option_key": "C",
+              "option_text": "120"
+            },
+            {
+              "id": "maths-7-002-D",
+              "option_key": "D",
+              "option_text": "30"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-7-003",
+          "source_level": "7",
+          "question_number": 3,
+          "question_text": "Convert into a decimal and a percentage.",
+          "options": [
+            {
+              "id": "maths-7-003-A",
+              "option_key": "A",
+              "option_text": "0.3, 30%"
+            },
+            {
+              "id": "maths-7-003-B",
+              "option_key": "B",
+              "option_text": "0.6, 60%"
+            },
+            {
+              "id": "maths-7-003-C",
+              "option_key": "C",
+              "option_text": "0.5, 50%"
+            },
+            {
+              "id": "maths-7-003-D",
+              "option_key": "D",
+              "option_text": "0.15, 15%"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-7-004",
+          "source_level": "7",
+          "question_number": 4,
+          "question_text": "Evaluate (-8)+6-(-3).",
+          "options": [
+            {
+              "id": "maths-7-004-A",
+              "option_key": "A",
+              "option_text": "-1"
+            },
+            {
+              "id": "maths-7-004-B",
+              "option_key": "B",
+              "option_text": "-5"
+            },
+            {
+              "id": "maths-7-004-C",
+              "option_key": "C",
+              "option_text": "1"
+            },
+            {
+              "id": "maths-7-004-D",
+              "option_key": "D",
+              "option_text": "5"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-7-005",
+          "source_level": "7",
+          "question_number": 5,
+          "question_text": "Find: a) 2.7÷100 b) 3.96÷10",
+          "options": [
+            {
+              "id": "maths-7-005-A",
+              "option_key": "A",
+              "option_text": "27,396"
+            },
+            {
+              "id": "maths-7-005-B",
+              "option_key": "B",
+              "option_text": "2.70,39"
+            },
+            {
+              "id": "maths-7-005-C",
+              "option_key": "C",
+              "option_text": "0.27,39.6"
+            },
+            {
+              "id": "maths-7-005-D",
+              "option_key": "D",
+              "option_text": "0.027,0.396"
+            }
+          ],
+          "correct_option_key": "D",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        }
+      ]
+    },
+    "9": {
+      "source_levels": [
+        "5",
+        "6",
+        "7",
+        "8"
+      ],
+      "total_questions": 20,
+      "questions": [
+        {
+          "id": "maths-5-001",
+          "source_level": "5",
+          "question_number": 1,
+          "question_text": "What is the sum of the place values of the two 5s in the number 5,32,150?",
+          "options": [
+            {
+              "id": "maths-5-001-A",
+              "option_key": "A",
+              "option_text": "1,00,000"
+            },
+            {
+              "id": "maths-5-001-B",
+              "option_key": "B",
+              "option_text": "1,00,010"
+            },
+            {
+              "id": "maths-5-001-C",
+              "option_key": "C",
+              "option_text": "10"
+            },
+            {
+              "id": "maths-5-001-D",
+              "option_key": "D",
+              "option_text": "1,00,100"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-5-002",
+          "source_level": "5",
+          "question_number": 2,
+          "question_text": "What is the value of 15×40×3×0?",
+          "options": [
+            {
+              "id": "maths-5-002-A",
+              "option_key": "A",
+              "option_text": "600"
+            },
+            {
+              "id": "maths-5-002-B",
+              "option_key": "B",
+              "option_text": "1800"
+            },
+            {
+              "id": "maths-5-002-C",
+              "option_key": "C",
+              "option_text": "0"
+            },
+            {
+              "id": "maths-5-002-D",
+              "option_key": "D",
+              "option_text": "120"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-5-003",
+          "source_level": "5",
+          "question_number": 3,
+          "question_text": "How many hours and minutes are in 200 minutes?",
+          "options": [
+            {
+              "id": "maths-5-003-A",
+              "option_key": "A",
+              "option_text": "4 hours"
+            },
+            {
+              "id": "maths-5-003-B",
+              "option_key": "B",
+              "option_text": "3 hours 20 minutes"
+            },
+            {
+              "id": "maths-5-003-C",
+              "option_key": "C",
+              "option_text": "3 hours 15 minutes"
+            },
+            {
+              "id": "maths-5-003-D",
+              "option_key": "D",
+              "option_text": "3 hours 30 minutes"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-5-004",
+          "source_level": "5",
+          "question_number": 4,
+          "question_text": "You bake 24 cookies. You keep 6 for yourself and share the rest equally among 3 friends. How many cookies does each friend get?",
+          "options": [
+            {
+              "id": "maths-5-004-A",
+              "option_key": "A",
+              "option_text": "6"
+            },
+            {
+              "id": "maths-5-004-B",
+              "option_key": "B",
+              "option_text": "8"
+            },
+            {
+              "id": "maths-5-004-C",
+              "option_key": "C",
+              "option_text": "4"
+            },
+            {
+              "id": "maths-5-004-D",
+              "option_key": "D",
+              "option_text": "5"
+            }
+          ],
+          "correct_option_key": "A",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-5-005",
+          "source_level": "5",
+          "question_number": 5,
+          "question_text": "Which pair of lines will never intersect, no matter how far they are extended?",
+          "options": [
+            {
+              "id": "maths-5-005-A",
+              "option_key": "A",
+              "option_text": "Perpendicular lines"
+            },
+            {
+              "id": "maths-5-005-B",
+              "option_key": "B",
+              "option_text": "Parallel lines"
+            },
+            {
+              "id": "maths-5-005-C",
+              "option_key": "C",
+              "option_text": "Coincident lines"
+            },
+            {
+              "id": "maths-5-005-D",
+              "option_key": "D",
+              "option_text": "None of the above"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-6-001",
+          "source_level": "6",
+          "question_number": 1,
+          "question_text": "What is the value of the expression: 15-(3×2)+4?",
+          "options": [
+            {
+              "id": "maths-6-001-A",
+              "option_key": "A",
+              "option_text": "12"
+            },
+            {
+              "id": "maths-6-001-B",
+              "option_key": "B",
+              "option_text": "28"
+            },
+            {
+              "id": "maths-6-001-C",
+              "option_key": "C",
+              "option_text": "13"
+            },
+            {
+              "id": "maths-6-001-D",
+              "option_key": "D",
+              "option_text": "18"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-6-002",
+          "source_level": "6",
+          "question_number": 2,
+          "question_text": "Which of the following fraction is equivalent to 2/3?",
+          "options": [
+            {
+              "id": "maths-6-002-A",
+              "option_key": "A",
+              "option_text": "3/6"
+            },
+            {
+              "id": "maths-6-002-B",
+              "option_key": "B",
+              "option_text": "4/9"
+            },
+            {
+              "id": "maths-6-002-C",
+              "option_key": "C",
+              "option_text": "6/9"
+            },
+            {
+              "id": "maths-6-002-D",
+              "option_key": "D",
+              "option_text": "5/12"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-6-003",
+          "source_level": "6",
+          "question_number": 3,
+          "question_text": "If the length of a rectangular garden is 12 meters and its width is 5 meters, what is the perimeter of the garden?",
+          "options": [
+            {
+              "id": "maths-6-003-A",
+              "option_key": "A",
+              "option_text": "17 m"
+            },
+            {
+              "id": "maths-6-003-B",
+              "option_key": "B",
+              "option_text": "34 m"
+            },
+            {
+              "id": "maths-6-003-C",
+              "option_key": "C",
+              "option_text": "32 m"
+            },
+            {
+              "id": "maths-6-003-D",
+              "option_key": "D",
+              "option_text": "36 m"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-6-004",
+          "source_level": "6",
+          "question_number": 4,
+          "question_text": "Write down the prime numbers between 10 and 20.",
+          "options": [
+            {
+              "id": "maths-6-004-A",
+              "option_key": "A",
+              "option_text": "11,13,15,17"
+            },
+            {
+              "id": "maths-6-004-B",
+              "option_key": "B",
+              "option_text": "11,13,17,19"
+            },
+            {
+              "id": "maths-6-004-C",
+              "option_key": "C",
+              "option_text": "11,13,17,18"
+            },
+            {
+              "id": "maths-6-004-D",
+              "option_key": "D",
+              "option_text": "11,12,13,19"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-6-005",
+          "source_level": "6",
+          "question_number": 5,
+          "question_text": "A baker makes 144 cupcakes in one hour. How many cupcakes will the baker make in 6 hours?",
+          "options": [
+            {
+              "id": "maths-6-005-A",
+              "option_key": "A",
+              "option_text": "500"
+            },
+            {
+              "id": "maths-6-005-B",
+              "option_key": "B",
+              "option_text": "566"
+            },
+            {
+              "id": "maths-6-005-C",
+              "option_key": "C",
+              "option_text": "865"
+            },
+            {
+              "id": "maths-6-005-D",
+              "option_key": "D",
+              "option_text": "864"
+            }
+          ],
+          "correct_option_key": "D",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-7-001",
+          "source_level": "7",
+          "question_number": 1,
+          "question_text": "What is the value of the expression 8x – 10, when x = 5?",
+          "options": [
+            {
+              "id": "maths-7-001-A",
+              "option_key": "A",
+              "option_text": "30"
+            },
+            {
+              "id": "maths-7-001-B",
+              "option_key": "B",
+              "option_text": "40"
+            },
+            {
+              "id": "maths-7-001-C",
+              "option_key": "C",
+              "option_text": "20"
+            },
+            {
+              "id": "maths-7-001-D",
+              "option_key": "D",
+              "option_text": "50"
+            }
+          ],
+          "correct_option_key": "A",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-7-002",
+          "source_level": "7",
+          "question_number": 2,
+          "question_text": "Two angles are complementary. If one angle measures 50°, what is the measure of the other angle?",
+          "options": [
+            {
+              "id": "maths-7-002-A",
+              "option_key": "A",
+              "option_text": "130"
+            },
+            {
+              "id": "maths-7-002-B",
+              "option_key": "B",
+              "option_text": "40"
+            },
+            {
+              "id": "maths-7-002-C",
+              "option_key": "C",
+              "option_text": "120"
+            },
+            {
+              "id": "maths-7-002-D",
+              "option_key": "D",
+              "option_text": "30"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-7-003",
+          "source_level": "7",
+          "question_number": 3,
+          "question_text": "Convert into a decimal and a percentage.",
+          "options": [
+            {
+              "id": "maths-7-003-A",
+              "option_key": "A",
+              "option_text": "0.3, 30%"
+            },
+            {
+              "id": "maths-7-003-B",
+              "option_key": "B",
+              "option_text": "0.6, 60%"
+            },
+            {
+              "id": "maths-7-003-C",
+              "option_key": "C",
+              "option_text": "0.5, 50%"
+            },
+            {
+              "id": "maths-7-003-D",
+              "option_key": "D",
+              "option_text": "0.15, 15%"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-7-004",
+          "source_level": "7",
+          "question_number": 4,
+          "question_text": "Evaluate (-8)+6-(-3).",
+          "options": [
+            {
+              "id": "maths-7-004-A",
+              "option_key": "A",
+              "option_text": "-1"
+            },
+            {
+              "id": "maths-7-004-B",
+              "option_key": "B",
+              "option_text": "-5"
+            },
+            {
+              "id": "maths-7-004-C",
+              "option_key": "C",
+              "option_text": "1"
+            },
+            {
+              "id": "maths-7-004-D",
+              "option_key": "D",
+              "option_text": "5"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-7-005",
+          "source_level": "7",
+          "question_number": 5,
+          "question_text": "Find: a) 2.7÷100 b) 3.96÷10",
+          "options": [
+            {
+              "id": "maths-7-005-A",
+              "option_key": "A",
+              "option_text": "27,396"
+            },
+            {
+              "id": "maths-7-005-B",
+              "option_key": "B",
+              "option_text": "2.70,39"
+            },
+            {
+              "id": "maths-7-005-C",
+              "option_key": "C",
+              "option_text": "0.27,39.6"
+            },
+            {
+              "id": "maths-7-005-D",
+              "option_key": "D",
+              "option_text": "0.027,0.396"
+            }
+          ],
+          "correct_option_key": "D",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-8-001",
+          "source_level": "8",
+          "question_number": 1,
+          "question_text": "264 added to a number makes it 452. Set up an algebraic equation to find the number.",
+          "options": [
+            {
+              "id": "maths-8-001-A",
+              "option_key": "A",
+              "option_text": "x+264=452"
+            },
+            {
+              "id": "maths-8-001-B",
+              "option_key": "B",
+              "option_text": "264+452=x"
+            },
+            {
+              "id": "maths-8-001-C",
+              "option_key": "C",
+              "option_text": "x+452=264"
+            },
+            {
+              "id": "maths-8-001-D",
+              "option_key": "D",
+              "option_text": "None of these"
+            }
+          ],
+          "correct_option_key": "A",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-8-002",
+          "source_level": "8",
+          "question_number": 2,
+          "question_text": "If 3kg of rice costs 120, how much will 7kg of the same rice cost?",
+          "options": [
+            {
+              "id": "maths-8-002-A",
+              "option_key": "A",
+              "option_text": "300"
+            },
+            {
+              "id": "maths-8-002-B",
+              "option_key": "B",
+              "option_text": "240"
+            },
+            {
+              "id": "maths-8-002-C",
+              "option_key": "C",
+              "option_text": "280"
+            },
+            {
+              "id": "maths-8-002-D",
+              "option_key": "D",
+              "option_text": "260"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-8-003",
+          "source_level": "8",
+          "question_number": 3,
+          "question_text": "In an isosceles triangle, if the unequal angle is 70°, what are the measures of the other two angles?",
+          "options": [
+            {
+              "id": "maths-8-003-A",
+              "option_key": "A",
+              "option_text": "110"
+            },
+            {
+              "id": "maths-8-003-B",
+              "option_key": "B",
+              "option_text": "55"
+            },
+            {
+              "id": "maths-8-003-C",
+              "option_key": "C",
+              "option_text": "60"
+            },
+            {
+              "id": "maths-8-003-D",
+              "option_key": "D",
+              "option_text": "70"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-8-004",
+          "source_level": "8",
+          "question_number": 4,
+          "question_text": "Write 1/25 as fraction with denominator a power of 10.",
+          "options": [
+            {
+              "id": "maths-8-004-A",
+              "option_key": "A",
+              "option_text": "1/10"
+            },
+            {
+              "id": "maths-8-004-B",
+              "option_key": "B",
+              "option_text": "2/100"
+            },
+            {
+              "id": "maths-8-004-C",
+              "option_key": "C",
+              "option_text": "4/100"
+            },
+            {
+              "id": "maths-8-004-D",
+              "option_key": "D",
+              "option_text": "5/10"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-8-005",
+          "source_level": "8",
+          "question_number": 5,
+          "question_text": "Solve 4x-8 = 2x+2",
+          "options": [
+            {
+              "id": "maths-8-005-A",
+              "option_key": "A",
+              "option_text": "x=2"
+            },
+            {
+              "id": "maths-8-005-B",
+              "option_key": "B",
+              "option_text": "x=-3"
+            },
+            {
+              "id": "maths-8-005-C",
+              "option_key": "C",
+              "option_text": "x=5"
+            },
+            {
+              "id": "maths-8-005-D",
+              "option_key": "D",
+              "option_text": "x=10"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        }
+      ]
+    },
+    "10": {
+      "source_levels": [
+        "5",
+        "6",
+        "7",
+        "8",
+        "9"
+      ],
+      "total_questions": 25,
+      "questions": [
+        {
+          "id": "maths-5-001",
+          "source_level": "5",
+          "question_number": 1,
+          "question_text": "What is the sum of the place values of the two 5s in the number 5,32,150?",
+          "options": [
+            {
+              "id": "maths-5-001-A",
+              "option_key": "A",
+              "option_text": "1,00,000"
+            },
+            {
+              "id": "maths-5-001-B",
+              "option_key": "B",
+              "option_text": "1,00,010"
+            },
+            {
+              "id": "maths-5-001-C",
+              "option_key": "C",
+              "option_text": "10"
+            },
+            {
+              "id": "maths-5-001-D",
+              "option_key": "D",
+              "option_text": "1,00,100"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-5-002",
+          "source_level": "5",
+          "question_number": 2,
+          "question_text": "What is the value of 15×40×3×0?",
+          "options": [
+            {
+              "id": "maths-5-002-A",
+              "option_key": "A",
+              "option_text": "600"
+            },
+            {
+              "id": "maths-5-002-B",
+              "option_key": "B",
+              "option_text": "1800"
+            },
+            {
+              "id": "maths-5-002-C",
+              "option_key": "C",
+              "option_text": "0"
+            },
+            {
+              "id": "maths-5-002-D",
+              "option_key": "D",
+              "option_text": "120"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-5-003",
+          "source_level": "5",
+          "question_number": 3,
+          "question_text": "How many hours and minutes are in 200 minutes?",
+          "options": [
+            {
+              "id": "maths-5-003-A",
+              "option_key": "A",
+              "option_text": "4 hours"
+            },
+            {
+              "id": "maths-5-003-B",
+              "option_key": "B",
+              "option_text": "3 hours 20 minutes"
+            },
+            {
+              "id": "maths-5-003-C",
+              "option_key": "C",
+              "option_text": "3 hours 15 minutes"
+            },
+            {
+              "id": "maths-5-003-D",
+              "option_key": "D",
+              "option_text": "3 hours 30 minutes"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-5-004",
+          "source_level": "5",
+          "question_number": 4,
+          "question_text": "You bake 24 cookies. You keep 6 for yourself and share the rest equally among 3 friends. How many cookies does each friend get?",
+          "options": [
+            {
+              "id": "maths-5-004-A",
+              "option_key": "A",
+              "option_text": "6"
+            },
+            {
+              "id": "maths-5-004-B",
+              "option_key": "B",
+              "option_text": "8"
+            },
+            {
+              "id": "maths-5-004-C",
+              "option_key": "C",
+              "option_text": "4"
+            },
+            {
+              "id": "maths-5-004-D",
+              "option_key": "D",
+              "option_text": "5"
+            }
+          ],
+          "correct_option_key": "A",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-5-005",
+          "source_level": "5",
+          "question_number": 5,
+          "question_text": "Which pair of lines will never intersect, no matter how far they are extended?",
+          "options": [
+            {
+              "id": "maths-5-005-A",
+              "option_key": "A",
+              "option_text": "Perpendicular lines"
+            },
+            {
+              "id": "maths-5-005-B",
+              "option_key": "B",
+              "option_text": "Parallel lines"
+            },
+            {
+              "id": "maths-5-005-C",
+              "option_key": "C",
+              "option_text": "Coincident lines"
+            },
+            {
+              "id": "maths-5-005-D",
+              "option_key": "D",
+              "option_text": "None of the above"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-6-001",
+          "source_level": "6",
+          "question_number": 1,
+          "question_text": "What is the value of the expression: 15-(3×2)+4?",
+          "options": [
+            {
+              "id": "maths-6-001-A",
+              "option_key": "A",
+              "option_text": "12"
+            },
+            {
+              "id": "maths-6-001-B",
+              "option_key": "B",
+              "option_text": "28"
+            },
+            {
+              "id": "maths-6-001-C",
+              "option_key": "C",
+              "option_text": "13"
+            },
+            {
+              "id": "maths-6-001-D",
+              "option_key": "D",
+              "option_text": "18"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-6-002",
+          "source_level": "6",
+          "question_number": 2,
+          "question_text": "Which of the following fraction is equivalent to 2/3?",
+          "options": [
+            {
+              "id": "maths-6-002-A",
+              "option_key": "A",
+              "option_text": "3/6"
+            },
+            {
+              "id": "maths-6-002-B",
+              "option_key": "B",
+              "option_text": "4/9"
+            },
+            {
+              "id": "maths-6-002-C",
+              "option_key": "C",
+              "option_text": "6/9"
+            },
+            {
+              "id": "maths-6-002-D",
+              "option_key": "D",
+              "option_text": "5/12"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-6-003",
+          "source_level": "6",
+          "question_number": 3,
+          "question_text": "If the length of a rectangular garden is 12 meters and its width is 5 meters, what is the perimeter of the garden?",
+          "options": [
+            {
+              "id": "maths-6-003-A",
+              "option_key": "A",
+              "option_text": "17 m"
+            },
+            {
+              "id": "maths-6-003-B",
+              "option_key": "B",
+              "option_text": "34 m"
+            },
+            {
+              "id": "maths-6-003-C",
+              "option_key": "C",
+              "option_text": "32 m"
+            },
+            {
+              "id": "maths-6-003-D",
+              "option_key": "D",
+              "option_text": "36 m"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-6-004",
+          "source_level": "6",
+          "question_number": 4,
+          "question_text": "Write down the prime numbers between 10 and 20.",
+          "options": [
+            {
+              "id": "maths-6-004-A",
+              "option_key": "A",
+              "option_text": "11,13,15,17"
+            },
+            {
+              "id": "maths-6-004-B",
+              "option_key": "B",
+              "option_text": "11,13,17,19"
+            },
+            {
+              "id": "maths-6-004-C",
+              "option_key": "C",
+              "option_text": "11,13,17,18"
+            },
+            {
+              "id": "maths-6-004-D",
+              "option_key": "D",
+              "option_text": "11,12,13,19"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-6-005",
+          "source_level": "6",
+          "question_number": 5,
+          "question_text": "A baker makes 144 cupcakes in one hour. How many cupcakes will the baker make in 6 hours?",
+          "options": [
+            {
+              "id": "maths-6-005-A",
+              "option_key": "A",
+              "option_text": "500"
+            },
+            {
+              "id": "maths-6-005-B",
+              "option_key": "B",
+              "option_text": "566"
+            },
+            {
+              "id": "maths-6-005-C",
+              "option_key": "C",
+              "option_text": "865"
+            },
+            {
+              "id": "maths-6-005-D",
+              "option_key": "D",
+              "option_text": "864"
+            }
+          ],
+          "correct_option_key": "D",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-7-001",
+          "source_level": "7",
+          "question_number": 1,
+          "question_text": "What is the value of the expression 8x – 10, when x = 5?",
+          "options": [
+            {
+              "id": "maths-7-001-A",
+              "option_key": "A",
+              "option_text": "30"
+            },
+            {
+              "id": "maths-7-001-B",
+              "option_key": "B",
+              "option_text": "40"
+            },
+            {
+              "id": "maths-7-001-C",
+              "option_key": "C",
+              "option_text": "20"
+            },
+            {
+              "id": "maths-7-001-D",
+              "option_key": "D",
+              "option_text": "50"
+            }
+          ],
+          "correct_option_key": "A",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-7-002",
+          "source_level": "7",
+          "question_number": 2,
+          "question_text": "Two angles are complementary. If one angle measures 50°, what is the measure of the other angle?",
+          "options": [
+            {
+              "id": "maths-7-002-A",
+              "option_key": "A",
+              "option_text": "130"
+            },
+            {
+              "id": "maths-7-002-B",
+              "option_key": "B",
+              "option_text": "40"
+            },
+            {
+              "id": "maths-7-002-C",
+              "option_key": "C",
+              "option_text": "120"
+            },
+            {
+              "id": "maths-7-002-D",
+              "option_key": "D",
+              "option_text": "30"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-7-003",
+          "source_level": "7",
+          "question_number": 3,
+          "question_text": "Convert into a decimal and a percentage.",
+          "options": [
+            {
+              "id": "maths-7-003-A",
+              "option_key": "A",
+              "option_text": "0.3, 30%"
+            },
+            {
+              "id": "maths-7-003-B",
+              "option_key": "B",
+              "option_text": "0.6, 60%"
+            },
+            {
+              "id": "maths-7-003-C",
+              "option_key": "C",
+              "option_text": "0.5, 50%"
+            },
+            {
+              "id": "maths-7-003-D",
+              "option_key": "D",
+              "option_text": "0.15, 15%"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-7-004",
+          "source_level": "7",
+          "question_number": 4,
+          "question_text": "Evaluate (-8)+6-(-3).",
+          "options": [
+            {
+              "id": "maths-7-004-A",
+              "option_key": "A",
+              "option_text": "-1"
+            },
+            {
+              "id": "maths-7-004-B",
+              "option_key": "B",
+              "option_text": "-5"
+            },
+            {
+              "id": "maths-7-004-C",
+              "option_key": "C",
+              "option_text": "1"
+            },
+            {
+              "id": "maths-7-004-D",
+              "option_key": "D",
+              "option_text": "5"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-7-005",
+          "source_level": "7",
+          "question_number": 5,
+          "question_text": "Find: a) 2.7÷100 b) 3.96÷10",
+          "options": [
+            {
+              "id": "maths-7-005-A",
+              "option_key": "A",
+              "option_text": "27,396"
+            },
+            {
+              "id": "maths-7-005-B",
+              "option_key": "B",
+              "option_text": "2.70,39"
+            },
+            {
+              "id": "maths-7-005-C",
+              "option_key": "C",
+              "option_text": "0.27,39.6"
+            },
+            {
+              "id": "maths-7-005-D",
+              "option_key": "D",
+              "option_text": "0.027,0.396"
+            }
+          ],
+          "correct_option_key": "D",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-8-001",
+          "source_level": "8",
+          "question_number": 1,
+          "question_text": "264 added to a number makes it 452. Set up an algebraic equation to find the number.",
+          "options": [
+            {
+              "id": "maths-8-001-A",
+              "option_key": "A",
+              "option_text": "x+264=452"
+            },
+            {
+              "id": "maths-8-001-B",
+              "option_key": "B",
+              "option_text": "264+452=x"
+            },
+            {
+              "id": "maths-8-001-C",
+              "option_key": "C",
+              "option_text": "x+452=264"
+            },
+            {
+              "id": "maths-8-001-D",
+              "option_key": "D",
+              "option_text": "None of these"
+            }
+          ],
+          "correct_option_key": "A",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-8-002",
+          "source_level": "8",
+          "question_number": 2,
+          "question_text": "If 3kg of rice costs 120, how much will 7kg of the same rice cost?",
+          "options": [
+            {
+              "id": "maths-8-002-A",
+              "option_key": "A",
+              "option_text": "300"
+            },
+            {
+              "id": "maths-8-002-B",
+              "option_key": "B",
+              "option_text": "240"
+            },
+            {
+              "id": "maths-8-002-C",
+              "option_key": "C",
+              "option_text": "280"
+            },
+            {
+              "id": "maths-8-002-D",
+              "option_key": "D",
+              "option_text": "260"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-8-003",
+          "source_level": "8",
+          "question_number": 3,
+          "question_text": "In an isosceles triangle, if the unequal angle is 70°, what are the measures of the other two angles?",
+          "options": [
+            {
+              "id": "maths-8-003-A",
+              "option_key": "A",
+              "option_text": "110"
+            },
+            {
+              "id": "maths-8-003-B",
+              "option_key": "B",
+              "option_text": "55"
+            },
+            {
+              "id": "maths-8-003-C",
+              "option_key": "C",
+              "option_text": "60"
+            },
+            {
+              "id": "maths-8-003-D",
+              "option_key": "D",
+              "option_text": "70"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-8-004",
+          "source_level": "8",
+          "question_number": 4,
+          "question_text": "Write 1/25 as fraction with denominator a power of 10.",
+          "options": [
+            {
+              "id": "maths-8-004-A",
+              "option_key": "A",
+              "option_text": "1/10"
+            },
+            {
+              "id": "maths-8-004-B",
+              "option_key": "B",
+              "option_text": "2/100"
+            },
+            {
+              "id": "maths-8-004-C",
+              "option_key": "C",
+              "option_text": "4/100"
+            },
+            {
+              "id": "maths-8-004-D",
+              "option_key": "D",
+              "option_text": "5/10"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-8-005",
+          "source_level": "8",
+          "question_number": 5,
+          "question_text": "Solve 4x-8 = 2x+2",
+          "options": [
+            {
+              "id": "maths-8-005-A",
+              "option_key": "A",
+              "option_text": "x=2"
+            },
+            {
+              "id": "maths-8-005-B",
+              "option_key": "B",
+              "option_text": "x=-3"
+            },
+            {
+              "id": "maths-8-005-C",
+              "option_key": "C",
+              "option_text": "x=5"
+            },
+            {
+              "id": "maths-8-005-D",
+              "option_key": "D",
+              "option_text": "x=10"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-9-001",
+          "source_level": "9",
+          "question_number": 1,
+          "question_text": "Evaluate √3 × √12",
+          "options": [
+            {
+              "id": "maths-9-001-A",
+              "option_key": "A",
+              "option_text": "6"
+            },
+            {
+              "id": "maths-9-001-B",
+              "option_key": "B",
+              "option_text": "8"
+            },
+            {
+              "id": "maths-9-001-C",
+              "option_key": "C",
+              "option_text": "9"
+            },
+            {
+              "id": "maths-9-001-D",
+              "option_key": "D",
+              "option_text": "3√12"
+            }
+          ],
+          "correct_option_key": "A",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-9-002",
+          "source_level": "9",
+          "question_number": 2,
+          "question_text": "What is the area of a square whose diagonal length is 8 cm?",
+          "options": [
+            {
+              "id": "maths-9-002-A",
+              "option_key": "A",
+              "option_text": "36 sq.cm"
+            },
+            {
+              "id": "maths-9-002-B",
+              "option_key": "B",
+              "option_text": "32 sq.cm"
+            },
+            {
+              "id": "maths-9-002-C",
+              "option_key": "C",
+              "option_text": "16 sq.cm"
+            },
+            {
+              "id": "maths-9-002-D",
+              "option_key": "D",
+              "option_text": "64 sq.cm"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-9-003",
+          "source_level": "9",
+          "question_number": 3,
+          "question_text": "6 workers can do a job in 6 days, how many days will 3 workers take?",
+          "options": [
+            {
+              "id": "maths-9-003-A",
+              "option_key": "A",
+              "option_text": "6 days"
+            },
+            {
+              "id": "maths-9-003-B",
+              "option_key": "B",
+              "option_text": "8 days"
+            },
+            {
+              "id": "maths-9-003-C",
+              "option_key": "C",
+              "option_text": "3 days"
+            },
+            {
+              "id": "maths-9-003-D",
+              "option_key": "D",
+              "option_text": "12 days"
+            }
+          ],
+          "correct_option_key": "D",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-9-004",
+          "source_level": "9",
+          "question_number": 4,
+          "question_text": "What will be the value of 5 times the square of 4?",
+          "options": [
+            {
+              "id": "maths-9-004-A",
+              "option_key": "A",
+              "option_text": "20"
+            },
+            {
+              "id": "maths-9-004-B",
+              "option_key": "B",
+              "option_text": "40"
+            },
+            {
+              "id": "maths-9-004-C",
+              "option_key": "C",
+              "option_text": "80"
+            },
+            {
+              "id": "maths-9-004-D",
+              "option_key": "D",
+              "option_text": "100"
+            }
+          ],
+          "correct_option_key": "C",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        },
+        {
+          "id": "maths-9-005",
+          "source_level": "9",
+          "question_number": 5,
+          "question_text": "Find the circumference of circle whose diameter is 4.2?",
+          "options": [
+            {
+              "id": "maths-9-005-A",
+              "option_key": "A",
+              "option_text": "8.4π"
+            },
+            {
+              "id": "maths-9-005-B",
+              "option_key": "B",
+              "option_text": "42π"
+            },
+            {
+              "id": "maths-9-005-C",
+              "option_key": "C",
+              "option_text": "4.2π"
+            },
+            {
+              "id": "maths-9-005-D",
+              "option_key": "D",
+              "option_text": "84π"
+            }
+          ],
+          "correct_option_key": "B",
+          "source_type": "numbered",
+          "usable_for_exam": true,
+          "needs_review": false,
+          "review_note": ""
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "doctype": "DocType",
+  "name": "Level Exam Attempt Answer",
+  "module": "Custom",
+  "custom": 1,
+  "istable": 1,
+  "editable_grid": 1,
+  "document_type": "Document",
+  "engine": "InnoDB",
+  "field_order": ["question", "selected_option_key", "correct_option_key", "is_correct", "marks_awarded"],
+  "fields": [
+    { "fieldname": "question", "fieldtype": "Link", "label": "Question", "options": "Level Exam Question", "reqd": 1, "in_list_view": 1 },
+    { "fieldname": "selected_option_key", "fieldtype": "Data", "label": "Selected Option Key", "in_list_view": 1 },
+    { "fieldname": "correct_option_key", "fieldtype": "Data", "label": "Correct Option Key", "read_only": 1 },
+    { "fieldname": "is_correct", "fieldtype": "Check", "label": "Is Correct", "read_only": 1 },
+    { "fieldname": "marks_awarded", "fieldtype": "Int", "label": "Marks Awarded", "read_only": 1 }
+  ],
+  "permissions": []
+}

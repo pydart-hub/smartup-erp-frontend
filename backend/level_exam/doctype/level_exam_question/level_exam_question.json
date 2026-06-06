@@ -1,0 +1,36 @@
+{
+  "doctype": "DocType",
+  "name": "Level Exam Question",
+  "module": "Custom",
+  "custom": 1,
+  "autoname": "format:LEQ-{#####}",
+  "document_type": "Document",
+  "engine": "InnoDB",
+  "field_order": [
+    "subject",
+    "class_level",
+    "source",
+    "question_text",
+    "difficulty",
+    "correct_option_key",
+    "explanation",
+    "is_active",
+    "review_status",
+    "options"
+  ],
+  "fields": [
+    { "fieldname": "subject", "fieldtype": "Data", "label": "Subject", "reqd": 1 },
+    { "fieldname": "class_level", "fieldtype": "Select", "label": "Class Level", "options": "8\n9\n10", "reqd": 1 },
+    { "fieldname": "source", "fieldtype": "Link", "label": "Source", "options": "Level Exam Source" },
+    { "fieldname": "question_text", "fieldtype": "Text Editor", "label": "Question Text", "reqd": 1 },
+    { "fieldname": "difficulty", "fieldtype": "Select", "label": "Difficulty", "options": "Easy\nMedium\nHard", "default": "Medium", "reqd": 1 },
+    { "fieldname": "correct_option_key", "fieldtype": "Data", "label": "Correct Option Key", "reqd": 1 },
+    { "fieldname": "explanation", "fieldtype": "Small Text", "label": "Explanation" },
+    { "fieldname": "is_active", "fieldtype": "Check", "label": "Is Active", "default": "1" },
+    { "fieldname": "review_status", "fieldtype": "Select", "label": "Review Status", "options": "Draft\nApproved\nRejected", "default": "Draft", "reqd": 1 },
+    { "fieldname": "options", "fieldtype": "Table", "label": "Options", "options": "Level Exam Question Option", "reqd": 1 }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1 }
+  ]
+}

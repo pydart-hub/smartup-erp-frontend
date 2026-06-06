@@ -134,7 +134,22 @@ export default function SalesOrderDetailPage() {
     enabled: !!so,
     staleTime: 30_000,
   });
-  const linkedInvoices = (invoicesRes?.data ?? []).filter((inv) => inv.docstatus !== 2);
+  const salesOrderLinkedInvoices = (invoicesRes?.data ?? []).filter((inv) => inv.docstatus !== 2);
+
+  // Fallback query: some manually corrected invoices may no longer keep the sales_order child link
+  // even though they belong to this same student/order schedule.
+  const { data: studentInvoicesRes } = useQuery({
+    queryKey: ["so-student-invoices", so?.student, so?.customer, so?.company],
+    queryFn: () =>
+      getSalesInvoices({
+        customer: so?.customer,
+        company: so?.company,
+        docstatus: 1,
+        limit_page_length: 50,
+      }),
+    enabled: !!so?.customer && !!so?.company,
+    staleTime: 30_000,
+  });
 
   // ── Check if this SO was created by a branch transfer ──
   const { data: transferRes } = useQuery({
@@ -162,6 +177,59 @@ export default function SalesOrderDetailPage() {
   });
   const isDiscontinued = studentRes?.data?.enabled === 0 && !!studentRes?.data?.custom_discontinuation_date;
 
+  const expectedSchedule = useMemo(() => {
+    if (!so) return [];
+    const instalments = Number(so.custom_no_of_instalments) || 1;
+    const total = so.grand_total;
+    const academicYear = so.custom_academic_year || "2026-2027";
+    const enrollmentDate = so.transaction_date || undefined;
+
+    if (instalments === 1) {
+      const [singleDueDate] = generateInstalmentDueDates(1, academicYear, enrollmentDate);
+      return [{ amount: total, dueDate: singleDueDate, label: "Full Payment" }];
+    }
+
+    const dueDates = generateInstalmentDueDates(instalments, academicYear, enrollmentDate);
+    const perInst = Math.floor(total / instalments);
+    const remainder = total - perInst * (instalments - 1);
+    const labels = instalments === 4 ? ["Q1", "Q2", "Q3", "Q4"] : null;
+
+    return dueDates.slice(0, instalments).map((dueDate, i) => ({
+      amount: i === instalments - 1 ? remainder : perInst,
+      dueDate,
+      label: labels?.[i] || `Instalment ${i + 1}`,
+    }));
+  }, [so]);
+
+  const linkedInvoices = useMemo(() => {
+    const base = [...salesOrderLinkedInvoices];
+    const extraInvoices = (studentInvoicesRes?.data ?? []).filter((inv) => inv.docstatus !== 2);
+    const byName = new Set(base.map((inv) => inv.name));
+
+    for (const expected of expectedSchedule) {
+      const alreadyMatched = base.some(
+        (inv) =>
+          (inv.due_date || inv.posting_date || "") === expected.dueDate &&
+          Math.round(inv.grand_total) === Math.round(expected.amount),
+      );
+      if (alreadyMatched) continue;
+
+      const candidate = extraInvoices.find(
+        (inv) =>
+          !byName.has(inv.name) &&
+          (inv.due_date || inv.posting_date || "") === expected.dueDate &&
+          Math.round(inv.grand_total) === Math.round(expected.amount),
+      );
+
+      if (candidate) {
+        base.push(candidate);
+        byName.add(candidate.name);
+      }
+    }
+
+    return base;
+  }, [expectedSchedule, salesOrderLinkedInvoices, studentInvoicesRes?.data]);
+
   // Sort invoices by due date ascending
   const sortedInvoices = useMemo(
     () =>
@@ -177,32 +245,11 @@ export default function SalesOrderDetailPage() {
   const generateInvoicesMutation = useMutation({
     mutationFn: async () => {
       if (!so) throw new Error("No Sales Order");
-      const numInst = Number(so.custom_no_of_instalments) || 1;
-      const total = so.grand_total;
-      const academicYear = so.custom_academic_year || "2026-2027";
-      const enrollmentDate = so.transaction_date || undefined;
-
-      let schedule: { amount: number; dueDate: string; label: string }[];
-      if (numInst === 1) {
-        const [singleDueDate] = generateInstalmentDueDates(1, academicYear, enrollmentDate);
-        schedule = [{ amount: total, dueDate: singleDueDate, label: "Full Payment" }];
-      } else {
-        const dueDates = generateInstalmentDueDates(numInst, academicYear, enrollmentDate);
-        const perInst = Math.floor(total / numInst);
-        const remainder = total - perInst * (numInst - 1);
-        const labels = numInst === 4 ? ["Q1", "Q2", "Q3", "Q4"] : null;
-        schedule = dueDates.slice(0, numInst).map((dueDate, i) => ({
-          amount: i === numInst - 1 ? remainder : perInst,
-          dueDate,
-          label: labels?.[i] || `Instalment ${i + 1}`,
-        }));
-      }
-
       const res = await fetch("/api/admission/create-invoices", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ salesOrderName: so.name, schedule }),
+        body: JSON.stringify({ salesOrderName: so.name, schedule: expectedSchedule }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));

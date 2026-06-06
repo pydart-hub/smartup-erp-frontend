@@ -23,6 +23,7 @@ import apiClient from "@/lib/api/client";
 import { DiscontinueStudentModal } from "@/components/students/DiscontinueStudentModal";
 import { ConvertDemoModal } from "@/components/students/ConvertDemoModal";
 import { getO2OHourlyRate } from "@/lib/utils/o2oFeeRates";
+import { selectPrimarySalesOrder, sortSalesOrdersForDisplay } from "@/lib/utils/salesOrderSelection";
 import { toast } from "sonner";
 
 type O2OBillingAction = "sales-order" | "sales-invoice";
@@ -169,20 +170,18 @@ export default function StudentViewPage() {
       const { data } = await apiClient.get("/resource/Sales Order", {
         params: {
           filters: JSON.stringify([["customer", "=", customerName], ["docstatus", "=", 1]]),
-          fields: JSON.stringify(["name", "grand_total", "status", "transaction_date", "per_billed", "advance_paid", "custom_plan", "custom_no_of_instalments"]),
-          order_by: "transaction_date desc",
+          fields: JSON.stringify(["name", "grand_total", "status", "transaction_date", "creation", "modified", "per_billed", "advance_paid", "custom_plan", "custom_no_of_instalments"]),
+          order_by: "transaction_date desc, creation desc",
           limit_page_length: 5,
         },
       });
-      return data.data ?? [];
+      return sortSalesOrdersForDisplay(data.data ?? []);
     },
     enabled: !!customerName,
     staleTime: 60_000,
   });
 
-  const primarySalesOrder =
-    salesOrdersRes?.find((row: { per_billed?: number }) => (row.per_billed ?? 0) > 0) ??
-    salesOrdersRes?.[0];
+  const primarySalesOrder = selectPrimarySalesOrder(salesOrdersRes);
   const primarySalesOrderName = primarySalesOrder?.name;
 
   // ── Sales Invoices linked to the latest displayed Sales Order ────────────
@@ -461,6 +460,7 @@ export default function StudentViewPage() {
           )}
           <InfoRow label="Email" value={student.student_email_id} icon={<Mail className="h-3.5 w-3.5" />} />
           <InfoRow label="Mobile" value={student.student_mobile_number} icon={<Phone className="h-3.5 w-3.5" />} />
+          <InfoRow label="School Name" value={student.custom_school_name} icon={<GraduationCap className="h-3.5 w-3.5" />} />
           {student.custom_disabilities && (
             <InfoRow label="Disabilities / Special Needs" value={student.custom_disabilities} icon={<AlertCircle className="h-3.5 w-3.5" />} />
           )}
@@ -703,7 +703,7 @@ export default function StudentViewPage() {
       )}
 
       {/* Fee & Payments Section */}
-      {(salesOrdersRes?.length > 0 || salesInvoices.length > 0) && (
+      {((salesOrdersRes?.length ?? 0) > 0 || salesInvoices.length > 0) && (
         <Card>
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-4">
@@ -733,13 +733,14 @@ export default function StudentViewPage() {
               const totalDiscount = salesOrderDiscountMeta?.totalDiscount ?? 0;
               const discountRemark = salesOrderDiscountMeta?.remark;
               const originalTotalFees = displayedTotal + totalDiscount;
-              const multipleOrders = salesOrdersRes.length > 1;
+              const salesOrderCount = salesOrdersRes?.length ?? 0;
+              const multipleOrders = salesOrderCount > 1;
               return (
                 <div className="rounded-[12px] border border-border-light bg-app-bg p-4 mb-4">
                   <div className="flex items-center justify-between mb-2">
                     <div>
                       <span className="text-xs font-mono text-primary">{so.name}</span>
-                      {multipleOrders && <span className="text-[10px] text-text-tertiary ml-2">+{salesOrdersRes.length - 1} more order{salesOrdersRes.length > 2 ? "s" : ""}</span>}
+                      {multipleOrders && <span className="text-[10px] text-text-tertiary ml-2">+{salesOrderCount - 1} more order{salesOrderCount > 2 ? "s" : ""}</span>}
                       {so.custom_plan && <Badge variant="info" className="ml-2">{so.custom_plan}</Badge>}
                       {so.custom_no_of_instalments && <Badge variant="default" className="ml-1">{so.custom_no_of_instalments}x</Badge>}
                     </div>
@@ -821,7 +822,7 @@ export default function StudentViewPage() {
               </div>
             )}
 
-            {salesInvoices.length === 0 && salesOrdersRes?.length > 0 && (
+            {salesInvoices.length === 0 && (salesOrdersRes?.length ?? 0) > 0 && (
               <p className="text-xs text-text-tertiary text-center py-3">Invoices will appear here once generated.</p>
             )}
           </CardContent>

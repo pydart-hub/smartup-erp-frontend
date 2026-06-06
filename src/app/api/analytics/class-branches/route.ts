@@ -17,6 +17,8 @@ function getAcademicWindowUTC(today: Date) {
   return { start: `${startYear}-05-01`, end: formatDateUTC(today) };
 }
 
+type ProgramCourse = { course: string; course_name?: string; required?: number };
+
 /**
  * GET /api/analytics/class-branches?program=X
  *
@@ -51,19 +53,30 @@ export async function GET(request: NextRequest) {
       companiesRes.ok ? (await companiesRes.json()).data ?? [] : [];
     const companyNameMap = new Map(companies.map((c) => [c.name, c.company_name]));
 
-    // 2. Fetch all batches for this program
-    const sgRes = await fetch(
-      `${FRAPPE_URL}/api/resource/Student%20Group?${new URLSearchParams({
-        filters: JSON.stringify([
-          ["program", "=", program],
-          ["group_based_on", "=", "Batch"],
-          ["disabled", "=", 0],
-        ]),
-        fields: JSON.stringify(["name", "custom_branch"]),
-        limit_page_length: "200",
-      })}`,
-      { headers: { Authorization: auth }, cache: "no-store" },
-    );
+    // 2. Fetch program courses + all batches for this program
+    const [programRes, sgRes] = await Promise.all([
+      fetch(
+        `${FRAPPE_URL}/api/resource/Program/${encodeURIComponent(program)}`,
+        { headers: { Authorization: auth }, cache: "no-store" },
+      ),
+      fetch(
+        `${FRAPPE_URL}/api/resource/Student%20Group?${new URLSearchParams({
+          filters: JSON.stringify([
+            ["program", "=", program],
+            ["group_based_on", "=", "Batch"],
+            ["disabled", "=", 0],
+          ]),
+          fields: JSON.stringify(["name", "custom_branch"]),
+          limit_page_length: "200",
+        })}`,
+        { headers: { Authorization: auth }, cache: "no-store" },
+      ),
+    ]);
+    const programDoc: { courses?: ProgramCourse[] } =
+      programRes.ok ? (await programRes.json()).data ?? {} : {};
+    const programCourses = (programDoc.courses ?? [])
+      .map((item) => item.course?.trim())
+      .filter((course): course is string => Boolean(course));
     const batches: { name: string; custom_branch: string }[] =
       sgRes.ok ? (await sgRes.json()).data ?? [] : [];
 
@@ -99,7 +112,7 @@ export async function GET(request: NextRequest) {
             ["date", ">=", fromDate],
             ["date", "<=", toDate],
           ]),
-          fields: JSON.stringify(["student", "status", "student_group"]),
+          fields: JSON.stringify(["student", "status", "student_group", "course_schedule"]),
           limit_page_length: "0",
         })}`,
         { headers: { Authorization: auth }, cache: "no-store" },
@@ -117,10 +130,25 @@ export async function GET(request: NextRequest) {
       ),
     ]);
 
-    const attRecords: { student: string; status: string; student_group: string }[] =
+    const schedulesRes = await fetch(
+      `${FRAPPE_URL}/api/resource/Course%20Schedule?${new URLSearchParams({
+        filters: JSON.stringify([
+          ["student_group", "in", allBatchNames],
+          ["schedule_date", ">=", fromDate],
+          ["schedule_date", "<=", toDate],
+        ]),
+        fields: JSON.stringify(["name", "course", "student_group"]),
+        limit_page_length: "5000",
+      })}`,
+      { headers: { Authorization: auth }, cache: "no-store" },
+    );
+
+    const attRecords: { student: string; status: string; student_group: string; course_schedule?: string }[] =
       attRes.ok ? (await attRes.json()).data ?? [] : [];
     const plans: { name: string; student_group: string; course: string }[] =
       plansRes.ok ? (await plansRes.json()).data ?? [] : [];
+    const schedules: { name: string; course: string; student_group: string }[] =
+      schedulesRes.ok ? (await schedulesRes.json()).data ?? [] : [];
 
     // 4. Fetch exam results
     let examResults: {
@@ -181,10 +209,45 @@ export async function GET(request: NextRequest) {
     >();
     const subjectGlobal = new Map<
       string,
-      { scores: number[]; maxs: number[]; branches: Set<string> }
+      {
+        scores: number[];
+        maxs: number[];
+        branches: Set<string>;
+        attendanceByStudent: Map<string, { p: number; t: number }>;
+      }
     >();
     for (const [branch] of branchBatches.entries()) {
       branchExamMap.set(branch, { byStudent: new Map() });
+    }
+    for (const course of programCourses) {
+      if (!subjectGlobal.has(course)) {
+        subjectGlobal.set(course, {
+          scores: [],
+          maxs: [],
+          branches: new Set(),
+          attendanceByStudent: new Map(),
+        });
+      }
+    }
+    const scheduleToCourse = new Map(schedules.map((schedule) => [schedule.name, schedule.course]));
+    for (const record of attRecords) {
+      const course = record.course_schedule ? scheduleToCourse.get(record.course_schedule) : undefined;
+      if (!course) continue;
+      if (!subjectGlobal.has(course)) {
+        subjectGlobal.set(course, {
+          scores: [],
+          maxs: [],
+          branches: new Set(),
+          attendanceByStudent: new Map(),
+        });
+      }
+      const subjectEntry = subjectGlobal.get(course)!;
+      if (!subjectEntry.attendanceByStudent.has(record.student)) {
+        subjectEntry.attendanceByStudent.set(record.student, { p: 0, t: 0 });
+      }
+      const stats = subjectEntry.attendanceByStudent.get(record.student)!;
+      stats.t++;
+      if (record.status === "Present" || record.status === "Late") stats.p++;
     }
     for (const r of examResults) {
       const branch = planToBranch.get(r.assessment_plan);
@@ -193,7 +256,14 @@ export async function GET(request: NextRequest) {
       if (!em.byStudent.has(r.student)) em.byStudent.set(r.student, { score: 0, max: 0 });
       em.byStudent.get(r.student)!.score += r.total_score;
       em.byStudent.get(r.student)!.max += r.maximum_score;
-      if (!subjectGlobal.has(r.course)) subjectGlobal.set(r.course, { scores: [], maxs: [], branches: new Set() });
+      if (!subjectGlobal.has(r.course)) {
+        subjectGlobal.set(r.course, {
+          scores: [],
+          maxs: [],
+          branches: new Set(),
+          attendanceByStudent: new Map(),
+        });
+      }
       const sg = subjectGlobal.get(r.course)!;
       sg.scores.push(r.total_score);
       sg.maxs.push(r.maximum_score);
@@ -247,18 +317,31 @@ export async function GET(request: NextRequest) {
         const maxPossible = d.maxs.length > 0 ? Math.max(...d.maxs) : 0;
         const avgScore = total > 0 ? d.scores.reduce((a, b) => a + b, 0) / total : 0;
         const avgPct = maxPossible > 0 ? Math.round((avgScore / maxPossible) * 1000) / 10 : 0;
+        const attendanceValues = Array.from(d.attendanceByStudent.values());
+        const attendancePct =
+          attendanceValues.length > 0
+            ? Math.round(
+                (attendanceValues.reduce((sum, value) => sum + (value.t > 0 ? (value.p / value.t) * 100 : 0), 0) /
+                  attendanceValues.length) *
+                  10,
+              ) / 10
+            : 0;
         const passed = d.scores.filter(
           (s, i) => d.maxs[i] > 0 && (s / d.maxs[i]) * 100 >= 33,
         ).length;
+        const passRate = total > 0 ? Math.round((passed / total) * 1000) / 10 : 0;
+        const healthScore = Math.round(attendancePct * 0.4 + avgPct * 0.35 + passRate * 0.25);
         return {
           subject,
-          total_students: total,
+          total_students: Math.max(total, attendanceValues.length),
+          avg_attendance_pct: attendancePct,
           avg_score_pct: avgPct,
-          pass_rate: total > 0 ? Math.round((passed / total) * 1000) / 10 : 0,
+          pass_rate: passRate,
           branches_count: d.branches.size,
+          health_score: healthScore,
         };
       })
-      .sort((a, b) => b.avg_score_pct - a.avg_score_pct);
+      .sort((a, b) => b.health_score - a.health_score || b.avg_score_pct - a.avg_score_pct);
 
     const overall =
       branchResults.length > 0

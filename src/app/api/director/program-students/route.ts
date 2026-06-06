@@ -83,17 +83,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ data: [] });
     }
 
-    const allStudentNames = students.map((s) => s.name);
+    const branchStudentSet = new Set(students.map((s) => s.name));
 
-    // Step 2: fetch program enrollments for these students
-    // Include draft (0) and submitted (1) enrollments; exclude only cancelled (2)
+    // Step 2: fetch all program enrollments once, then filter in-memory for this branch.
     const enrollJson = await frappeGet("resource/Program Enrollment", {
       fields: JSON.stringify(["student", "program", "enrollment_date"]),
-      filters: JSON.stringify([
-        ["student", "in", allStudentNames],
-        ["docstatus", "!=", "2"],
-      ]),
-      limit_page_length: "1000",
+      filters: JSON.stringify([["docstatus", "!=", "2"]]),
+      limit_page_length: "5000",
       order_by: "enrollment_date desc",
     });
     const enrollments: { student: string; program: string }[] =
@@ -102,7 +98,9 @@ export async function GET(request: NextRequest) {
     // Keep only the latest program (order_by desc already handled by Frappe)
     const studentProgram = new Map<string, string>();
     for (const e of enrollments) {
-      if (!studentProgram.has(e.student)) studentProgram.set(e.student, e.program);
+      if (branchStudentSet.has(e.student) && !studentProgram.has(e.student)) {
+        studentProgram.set(e.student, e.program);
+      }
     }
 
     const programStudents = students.filter(
@@ -114,19 +112,19 @@ export async function GET(request: NextRequest) {
     }
 
     const studentIdList = programStudents.map((s) => s.name);
+    const programStudentSet = new Set(studentIdList);
 
-    // Step 3: fetch invoices for these students (include due_date for overdue calc + name for instalment details)
+    // Step 3: fetch invoices branch-wide, then keep only this program's students.
     const invJson = await frappeGet("resource/Sales Invoice", {
       fields: JSON.stringify(["name", "student", "customer", "grand_total", "outstanding_amount", "due_date"]),
       filters: JSON.stringify([
         ["docstatus", "=", "1"],
-        ["student", "in", studentIdList],
         ["company", "=", branch],
       ]),
-      limit_page_length: "1000",
+      limit_page_length: "5000",
       order_by: "due_date asc",
     });
-    const invoices: {
+    const allInvoices: {
       name: string;
       student: string;
       customer: string;
@@ -134,6 +132,7 @@ export async function GET(request: NextRequest) {
       outstanding_amount: number;
       due_date: string;
     }[] = invJson?.data ?? [];
+    const invoices = allInvoices.filter((inv) => programStudentSet.has(inv.student));
 
     // Compute per-student overdue dues (due_date <= today AND outstanding > 0)
     const todayDate = new Date().toISOString().split("T")[0];
@@ -158,14 +157,14 @@ export async function GET(request: NextRequest) {
     const paymentModeMap = new Map<string, string>(); // customer → "Cash" | "Online"
     try {
       if (customerList.length > 0) {
+        const customerSet = new Set(customerList);
         const peJson = await frappeGet("resource/Payment Entry", {
           fields: JSON.stringify(["party", "mode_of_payment", "reference_no"]),
           filters: JSON.stringify([
             ["docstatus", "=", "1"],
-            ["party", "in", customerList],
             ["company", "=", branch],
           ]),
-          limit_page_length: "1000",
+          limit_page_length: "5000",
           order_by: "creation desc",
         });
         const entries: {
@@ -175,7 +174,7 @@ export async function GET(request: NextRequest) {
         }[] = peJson?.data ?? [];
 
         for (const pe of entries) {
-          if (!pe.party || paymentModeMap.has(pe.party)) continue;
+          if (!pe.party || !customerSet.has(pe.party) || paymentModeMap.has(pe.party)) continue;
           if (pe.mode_of_payment && pe.mode_of_payment !== "Online" && pe.mode_of_payment !== "Razorpay" && pe.mode_of_payment !== "Razorpay") {
             paymentModeMap.set(pe.party, pe.mode_of_payment); // e.g. "Cash", "UPI", "Bank Transfer"
           } else if (pe.reference_no?.startsWith("pay_")) {
@@ -197,10 +196,9 @@ export async function GET(request: NextRequest) {
         fields: JSON.stringify(["student", "custom_plan", "custom_no_of_instalments"]),
         filters: JSON.stringify([
           ["docstatus", "=", "1"],
-          ["student", "in", studentIdList],
           ["company", "=", branch],
         ]),
-        limit_page_length: "1000",
+        limit_page_length: "5000",
         order_by: "creation desc",
       });
       const salesOrders: {
@@ -209,7 +207,7 @@ export async function GET(request: NextRequest) {
         custom_no_of_instalments?: string;
       }[] = soJson?.data ?? [];
       for (const so of salesOrders) {
-        if (so.student && !feePlanMap.has(so.student)) {
+        if (so.student && programStudentSet.has(so.student) && !feePlanMap.has(so.student)) {
           if (so.custom_plan) feePlanMap.set(so.student, so.custom_plan);
           if (so.custom_no_of_instalments) feeInstalmentMap.set(so.student, so.custom_no_of_instalments);
         }

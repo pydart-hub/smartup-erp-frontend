@@ -14,6 +14,10 @@ interface InstructorLogEntry {
   academic_year?: string;
 }
 
+interface ScheduleGroupRow {
+  student_group?: string;
+}
+
 /** Fetch the Instructor doc (contains instructor_log child table) */
 async function getInstructorDoc(name: string) {
   const { data } = await apiClient.get(
@@ -94,36 +98,36 @@ export function useInstructorBatches() {
         }
       }
 
-      // Fallback B: infer batches from schedules owned by this instructor.
-      if (matchedGroupNames.size === 0) {
-        try {
-          const filters = encodeURIComponent(
-            JSON.stringify([["instructor", "=", instructorName]])
-          );
-          const fields = encodeURIComponent(JSON.stringify(["student_group"]));
-          const { data } = await apiClient.get(
-            `/resource/Course Schedule?filters=${filters}&fields=${fields}&limit_page_length=500&order_by=schedule_date desc, from_time desc`
-          );
+      // Always union batches from schedules owned by this instructor.
+      // Visiting instructors may have a valid course schedule for a batch that
+      // is not part of their long-term instructor_log / session batch scope.
+      try {
+        const filters = encodeURIComponent(
+          JSON.stringify([["instructor", "=", instructorName]])
+        );
+        const fields = encodeURIComponent(JSON.stringify(["student_group"]));
+        const { data } = await apiClient.get(
+          `/resource/Course Schedule?filters=${filters}&fields=${fields}&limit_page_length=500&order_by=schedule_date desc, from_time desc`
+        );
 
-          const scheduleRows = (data?.data ?? []) as { student_group?: string }[];
-          const scheduledGroups = new Set(
-            scheduleRows
-              .map((row) => row.student_group)
-              .filter(
-                (name): name is string =>
-                  typeof name === "string" && name.trim().length > 0,
-              )
-          );
+        const scheduleRows = (data?.data ?? []) as ScheduleGroupRow[];
+        const scheduledGroups = new Set(
+          scheduleRows
+            .map((row) => row.student_group)
+            .filter(
+              (name): name is string =>
+                typeof name === "string" && name.trim().length > 0,
+            )
+        );
 
-          for (const sg of allGroups) {
-            if (scheduledGroups.has(sg.name)) matchedGroupNames.add(sg.name);
-          }
-        } catch (error) {
-          console.warn(
-            "[useInstructorBatches] Failed to infer batches from Course Schedule fallback.",
-            error,
-          );
+        for (const sg of allGroups) {
+          if (scheduledGroups.has(sg.name)) matchedGroupNames.add(sg.name);
         }
+      } catch (error) {
+        console.warn(
+          "[useInstructorBatches] Failed to infer batches from Course Schedule ownership.",
+          error,
+        );
       }
 
       if (matchedGroupNames.size === 0) return [];
@@ -149,7 +153,9 @@ export function useInstructorBatches() {
   const batches = query.data ?? [];
   const activeBatches = batches.filter((b) => !b.disabled);
 
-  // Set of Student Group names this instructor can access
+  // Set of Student Group names this instructor can access.
+  // Use activeBatches/full docs here; schedule-owned visiting batches are now
+  // included because they are unioned into the matched-group fetch above.
   const allowedGroupNames = new Set(batches.map((b) => b.name));
 
   /**

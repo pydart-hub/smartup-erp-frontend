@@ -41,6 +41,25 @@ const WEEKDAYS = [
 
 type Phase = "setup" | "running" | "done";
 type SessionRow = { date: string; label: string };
+type SetupState = {
+  student_group: string;
+  course: string;
+  instructor: string;
+  room: string;
+  custom_topic: string;
+  from_time: string;
+  to_time: string;
+};
+
+const INITIAL_SETUP: SetupState = {
+  student_group: "",
+  course: "",
+  instructor: "",
+  room: "",
+  custom_topic: "",
+  from_time: "09:00",
+  to_time: "10:30",
+};
 
 function getMatchingDates(from: string, to: string, days: Set<number>): string[] {
   if (!from || !to || days.size === 0) return [];
@@ -75,15 +94,7 @@ export default function SubjectSchedulePage() {
   });
   const [singleDate, setSingleDate] = useState(() => new Date().toISOString().split("T")[0]);
 
-  const [setup, setSetup] = useState({
-    student_group: "",
-    course: "",
-    instructor: "",
-    room: "Offline",
-    custom_topic: "",
-    from_time: "09:00",
-    to_time: "10:30",
-  });
+  const [setup, setSetup] = useState(INITIAL_SETUP);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [progress, setProgress] = useState({ done: 0, total: 0 });
@@ -99,7 +110,7 @@ export default function SubjectSchedulePage() {
     queryFn: () => getStudentGroups({ branch: branch || undefined, subjectWiseOnly: true }),
     staleTime: 5 * 60_000,
   });
-  const groups = groupRes?.data ?? [];
+  const groups = useMemo(() => groupRes?.data ?? [], [groupRes?.data]);
 
   const selectedGroup = useMemo(
     () => groups.find((g) => g.name === setup.student_group),
@@ -112,7 +123,7 @@ export default function SubjectSchedulePage() {
     enabled: !!selectedGroup?.program,
     staleTime: 10 * 60_000,
   });
-  const allCourses = programCourses ?? [];
+  const allCourses = useMemo(() => programCourses ?? [], [programCourses]);
 
   const { data: allInstructors } = useQuery({
     queryKey: ["instructors-with-courses", branch],
@@ -126,7 +137,17 @@ export default function SubjectSchedulePage() {
     queryFn: () => getRooms(),
     staleTime: 10 * 60_000,
   });
-  const rooms = roomsRes?.data ?? [];
+  const rooms = useMemo(() => roomsRes?.data ?? [], [roomsRes?.data]);
+
+  React.useEffect(() => {
+    if (rooms.length === 0 || setup.room) return;
+    const offlineRoom = rooms.find(
+      (room) => room.room_name?.trim().toLowerCase() === "offline",
+    );
+    if (offlineRoom) {
+      setSetup((prev) => ({ ...prev, room: offlineRoom.name }));
+    }
+  }, [rooms, setup.room]);
 
   // ── Computed ──────────────────────────────────────────────────
   const matchingDates = useMemo(
@@ -292,7 +313,7 @@ export default function SubjectSchedulePage() {
   function reset() {
     setPhase("setup");
     setResult(null);
-    setSetup({ student_group: "", course: "", instructor: "", room: "Offline", custom_topic: "", from_time: "09:00", to_time: "10:30" });
+    setSetup(INITIAL_SETUP);
     setSelectedDays(new Set());
     setErrors({});
   }

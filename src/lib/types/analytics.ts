@@ -486,9 +486,11 @@ export interface ClassBranchHealth {
 export interface ClassSubjectSummary {
   subject: string;
   total_students: number;
+  avg_attendance_pct: number;
   avg_score_pct: number;
   pass_rate: number;
   branches_count: number;
+  health_score: number;
 }
 
 export interface ClassBranchesResponse {
@@ -530,10 +532,12 @@ export interface SubjectBranchResult {
   branch: string;
   branch_name: string;
   total_students: number;
+  avg_attendance_pct: number;
   avg_score_pct: number;
   pass_rate: number;
   avg_score: number;
   maximum_possible: number;
+  health_score: number;
 }
 
 export interface SubjectBranchesResponse {
@@ -542,7 +546,38 @@ export interface SubjectBranchesResponse {
   branches: SubjectBranchResult[];
   overall: {
     total_students: number;
+    avg_attendance_pct: number;
     avg_score_pct: number;
     pass_rate: number;
+    health_score: number;
+  };
+}
+
+export interface SubjectBranchStudentResult {
+  student: string;
+  student_name: string;
+  student_group: string;
+  rank: number;
+  attendance_pct: number;
+  score: number;
+  maximum_score: number;
+  percentage: number;
+  grade: string;
+  passed: boolean;
+  health_score: number;
+}
+
+export interface SubjectBranchStudentsResponse {
+  program: string;
+  subject: string;
+  branch: string;
+  students: SubjectBranchStudentResult[];
+  overall: {
+    total_students: number;
+    avg_attendance_pct: number;
+    avg_score_pct: number;
+    pass_rate: number;
+    highest_score_pct: number;
+    health_score: number;
   };
 }

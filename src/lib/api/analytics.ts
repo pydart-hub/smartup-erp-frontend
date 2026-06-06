@@ -19,6 +19,7 @@ import type {
   ClassBranchesResponse,
   ClassBranchSubjectsResponse,
   SubjectBranchesResponse,
+  SubjectBranchStudentsResponse,
 } from "@/lib/types/analytics";
 
 // ── Attendance Analytics ──
@@ -192,5 +193,18 @@ export async function getSubjectBranches(
     credentials: "include",
   });
   if (!res.ok) throw new Error("Failed to fetch subject branches");
+  return res.json();
+}
+
+export async function getSubjectBranchStudents(
+  program: string,
+  subject: string,
+  branch: string,
+): Promise<SubjectBranchStudentsResponse> {
+  const query = new URLSearchParams({ program, subject, branch });
+  const res = await fetch(`/api/analytics/subject-branch-students?${query}`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Failed to fetch subject branch students");
   return res.json();
 }

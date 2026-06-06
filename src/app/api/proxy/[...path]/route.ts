@@ -180,13 +180,102 @@ async function proxyRequest(request: NextRequest, method: string) {
         (parsedBody as Record<string, unknown>).value === 1) &&
       typeof (parsedBody as Record<string, unknown>).name === "string";
 
+    const isStudentAttendanceCreate =
+      method === "POST" &&
+      (proxyPath === "resource/Student%20Attendance" ||
+        proxyPath === "resource/Student Attendance");
+
+    const isStudentAttendanceUpdate =
+      method === "PUT" &&
+      (proxyPath.startsWith("resource/Student%20Attendance/") ||
+        proxyPath.startsWith("resource/Student Attendance/"));
+
+    const isStudentAttendanceCancel =
+      method === "POST" &&
+      proxyPath === "method/frappe.client.cancel" &&
+      !!parsedBody &&
+      typeof parsedBody === "object" &&
+      !Array.isArray(parsedBody) &&
+      (parsedBody as Record<string, unknown>).doctype === "Student Attendance" &&
+      typeof (parsedBody as Record<string, unknown>).name === "string";
+
     // ── Instructor write-guard ──
     // Block PURE instructors from modifying Student Group docs directly (only
     // Branch Managers / Admins can do that). BM+Instructors are allowed.
     // Note: instructors are auto-granted "Academics User" role at login,
     // which gives broad write/delete access — so we must also block DELETE.
     let allowInstructorTopicCoverageWrite = false;
+    let allowInstructorAttendanceWrite = false;
     if (isPureInstructor && (method === "PUT" || method === "POST" || method === "DELETE")) {
+      const adminKey = process.env.FRAPPE_API_KEY;
+      const adminSecret = process.env.FRAPPE_API_SECRET;
+
+      const fetchScheduleOwnership = async (scheduleName: string) => {
+        if (!adminKey || !adminSecret) return { ok: false };
+
+        const guardQuery = new URLSearchParams({
+          fields: JSON.stringify(["name", "instructor", "custom_branch", "custom_event_type"]),
+        });
+        const guardUrl =
+          `${FRAPPE_URL}/api/resource/Course%20Schedule/${encodeURIComponent(scheduleName)}?${guardQuery.toString()}`;
+
+        const guardRes = await fetch(guardUrl, {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+            Authorization: `token ${adminKey}:${adminSecret}`,
+          },
+          cache: "no-store",
+        });
+
+        if (!guardRes.ok) return { ok: false };
+
+        const guardJson = (await guardRes.json()) as {
+          data?: {
+            instructor?: string;
+            custom_branch?: string;
+            custom_event_type?: string;
+          };
+        };
+
+        const schedule = guardJson.data;
+        if (!schedule || schedule.custom_event_type) return { ok: false };
+
+        const scheduleBranch = schedule.custom_branch || "";
+        const inAllowedBranch =
+          !scheduleBranch ||
+          effectiveCompanies.length === 0 ||
+          effectiveCompanies.includes(scheduleBranch);
+
+        const instructorOwnsSchedule =
+          !!sessionData.instructor_name && schedule.instructor === sessionData.instructor_name;
+
+        return { ok: instructorOwnsSchedule && inAllowedBranch };
+      };
+
+      const fetchAttendanceScheduleName = async (attendanceName: string) => {
+        if (!adminKey || !adminSecret) return "";
+
+        const attQuery = new URLSearchParams({
+          fields: JSON.stringify(["name", "course_schedule"]),
+        });
+        const attUrl =
+          `${FRAPPE_URL}/api/resource/Student%20Attendance/${encodeURIComponent(attendanceName)}?${attQuery.toString()}`;
+
+        const attRes = await fetch(attUrl, {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+            Authorization: `token ${adminKey}:${adminSecret}`,
+          },
+          cache: "no-store",
+        });
+
+        if (!attRes.ok) return "";
+        const attJson = (await attRes.json()) as { data?: { course_schedule?: string } };
+        return String(attJson.data?.course_schedule || "").trim();
+      };
+
       const resourceSingleMatch = proxyPath.match(/^resource\/([^/]+)\/(.+)$/);
       if (resourceSingleMatch) {
         const doctype = decodeURIComponent(resourceSingleMatch[1]);
@@ -368,6 +457,72 @@ async function proxyRequest(request: NextRequest, method: string) {
 
         allowInstructorTopicCoverageWrite = true;
       }
+
+      if (isStudentAttendanceCreate) {
+        const payload =
+          parsedBody && typeof parsedBody === "object" && !Array.isArray(parsedBody)
+            ? (parsedBody as Record<string, unknown>)
+            : null;
+        const scheduleName = String(payload?.course_schedule || "").trim();
+        if (!scheduleName) {
+          return NextResponse.json(
+            { error: "Attendance write requires course_schedule." },
+            { status: 400 }
+          );
+        }
+
+        const ownership = await fetchScheduleOwnership(scheduleName);
+        if (!ownership.ok) {
+          return NextResponse.json(
+            { error: "Access denied for this attendance write." },
+            { status: 403 }
+          );
+        }
+
+        allowInstructorAttendanceWrite = true;
+      }
+
+      if (isStudentAttendanceUpdate && resourceSingleMatch) {
+        const attendanceName = decodeURIComponent(resourceSingleMatch[2]);
+        const scheduleName = await fetchAttendanceScheduleName(attendanceName);
+        if (!scheduleName) {
+          return NextResponse.json(
+            { error: "Attendance record is missing course_schedule." },
+            { status: 400 }
+          );
+        }
+
+        const ownership = await fetchScheduleOwnership(scheduleName);
+        if (!ownership.ok) {
+          return NextResponse.json(
+            { error: "Access denied for this attendance update." },
+            { status: 403 }
+          );
+        }
+
+        allowInstructorAttendanceWrite = true;
+      }
+
+      if (isStudentAttendanceCancel) {
+        const attendanceName = String((parsedBody as Record<string, unknown>).name || "").trim();
+        const scheduleName = await fetchAttendanceScheduleName(attendanceName);
+        if (!scheduleName) {
+          return NextResponse.json(
+            { error: "Attendance record is missing course_schedule." },
+            { status: 400 }
+          );
+        }
+
+        const ownership = await fetchScheduleOwnership(scheduleName);
+        if (!ownership.ok) {
+          return NextResponse.json(
+            { error: "Access denied for this attendance cancel." },
+            { status: 403 }
+          );
+        }
+
+        allowInstructorAttendanceWrite = true;
+      }
     }
 
     const queryString = url.search;
@@ -446,6 +601,7 @@ async function proxyRequest(request: NextRequest, method: string) {
     const useAdminToken =
       ((isBranchManager || isHRManager) && !isAdmin) ||
       allowInstructorTopicCoverageWrite ||
+      allowInstructorAttendanceWrite ||
       isOwnInstructorDocRead ||
       isWorkAssignmentRead ||
       isStudentAttendanceRead ||

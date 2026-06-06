@@ -1,0 +1,48 @@
+{
+  "doctype": "DocType",
+  "name": "Level Exam Attempt",
+  "module": "Custom",
+  "custom": 1,
+  "autoname": "format:LET-{#####}",
+  "document_type": "Document",
+  "engine": "InnoDB",
+  "field_order": [
+    "assignment",
+    "exam_paper",
+    "student",
+    "student_name",
+    "subject",
+    "class_level",
+    "started_on",
+    "submitted_on",
+    "status",
+    "score_obtained",
+    "total_marks",
+    "percentage",
+    "correct_count",
+    "wrong_count",
+    "unanswered_count",
+    "answers"
+  ],
+  "fields": [
+    { "fieldname": "assignment", "fieldtype": "Link", "label": "Assignment", "options": "Level Exam Assignment", "reqd": 1 },
+    { "fieldname": "exam_paper", "fieldtype": "Link", "label": "Exam Paper", "options": "Level Exam Paper", "reqd": 1 },
+    { "fieldname": "student", "fieldtype": "Link", "label": "Student", "options": "Student", "reqd": 1 },
+    { "fieldname": "student_name", "fieldtype": "Data", "label": "Student Name", "read_only": 1, "reqd": 1 },
+    { "fieldname": "subject", "fieldtype": "Data", "label": "Subject", "read_only": 1, "reqd": 1 },
+    { "fieldname": "class_level", "fieldtype": "Select", "label": "Class Level", "options": "8\n9\n10", "reqd": 1 },
+    { "fieldname": "started_on", "fieldtype": "Datetime", "label": "Started On", "reqd": 1 },
+    { "fieldname": "submitted_on", "fieldtype": "Datetime", "label": "Submitted On" },
+    { "fieldname": "status", "fieldtype": "Select", "label": "Status", "options": "Not Started\nIn Progress\nSubmitted\nAuto Submitted", "default": "Not Started", "reqd": 1 },
+    { "fieldname": "score_obtained", "fieldtype": "Int", "label": "Score Obtained", "read_only": 1 },
+    { "fieldname": "total_marks", "fieldtype": "Int", "label": "Total Marks", "read_only": 1 },
+    { "fieldname": "percentage", "fieldtype": "Percent", "label": "Percentage", "read_only": 1 },
+    { "fieldname": "correct_count", "fieldtype": "Int", "label": "Correct Count", "read_only": 1 },
+    { "fieldname": "wrong_count", "fieldtype": "Int", "label": "Wrong Count", "read_only": 1 },
+    { "fieldname": "unanswered_count", "fieldtype": "Int", "label": "Unanswered Count", "read_only": 1 },
+    { "fieldname": "answers", "fieldtype": "Table", "label": "Answers", "options": "Level Exam Attempt Answer" }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1 }
+  ]
+}

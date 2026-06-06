@@ -395,15 +395,29 @@ export async function getTotalInvoiceStats(): Promise<{
 export async function getCollectedByMode(): Promise<{
   razorpay: number;
   offline: number;
+  total: number;
 }> {
-  const params = new URLSearchParams({
-    fields: JSON.stringify(["mode_of_payment", "reference_no", "paid_amount"]),
-    filters: JSON.stringify([["docstatus", "=", "1"], ["payment_type", "=", "Receive"]]),
-    limit_page_length: "1000",
-  });
-  const { data } = await apiClient.get(`/resource/Payment Entry?${params}`);
-  const entries: { mode_of_payment: string | null; reference_no: string | null; paid_amount: number }[] =
-    data?.data ?? [];
+  const fields = JSON.stringify(["mode_of_payment", "reference_no", "paid_amount"]);
+  const filters = JSON.stringify([["docstatus", "=", "1"], ["payment_type", "=", "Receive"]]);
+  const entries: { mode_of_payment: string | null; reference_no: string | null; paid_amount: number }[] = [];
+  const pageSize = 5000;
+  let start = 0;
+
+  while (true) {
+    const params = new URLSearchParams({
+      fields,
+      filters,
+      limit_page_length: String(pageSize),
+      limit_start: String(start),
+    });
+    const { data } = await apiClient.get(`/resource/Payment Entry?${params}`);
+    const batch: { mode_of_payment: string | null; reference_no: string | null; paid_amount: number }[] =
+      data?.data ?? [];
+    entries.push(...batch);
+    if (batch.length < pageSize) break;
+    start += pageSize;
+  }
+
   let razorpay = 0;
   let offline = 0;
   for (const pe of entries) {
@@ -414,7 +428,7 @@ export async function getCollectedByMode(): Promise<{
       offline += pe.paid_amount ?? 0;
     }
   }
-  return { razorpay, offline };
+  return { razorpay, offline, total: razorpay + offline };
 }
 
 export interface CollectedByMode {
