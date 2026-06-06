@@ -127,6 +127,69 @@ type PublishedAssignment = {
   students: AssignmentStudentRow[];
 };
 
+type DashboardData = {
+  hero: {
+    publishedExams: number;
+    assignedRecords: number;
+    attendedStudents: number;
+    activeStudents: number;
+    overallAvgPercentage: number;
+    overallAvgScore: number;
+    passRate: number;
+    generatedExams: number;
+    activeSubjects: number;
+    assignedExamIds: number;
+  };
+  classSummaries: Array<{
+    levelCode: string;
+    studentCount: number;
+    assignedCount: number;
+    attendedCount: number;
+    avgScore: number;
+    avgPercentage: number;
+    topGrade: string;
+    passRate: number;
+  }>;
+  branchSummaries: Array<{
+    branch: string;
+    studentCount: number;
+    attendedCount: number;
+    avgMarks: number;
+    avgPercentage: number;
+    topGrade: string;
+    passRate: number;
+  }>;
+  subjectSummaries: Array<{
+    subjectName: string;
+    attempts: number;
+    avgScore: number;
+    avgPercentage: number;
+    topGrade: string;
+  }>;
+  recentExamSummaries: Array<{
+    examId: string;
+    title: string;
+    subjectName: string;
+    levelCode: "8" | "9" | "10";
+    boardCode: BoardCode;
+    assignedCount: number;
+    attendedCount: number;
+    avgPercentage: number;
+    publishedAt: string;
+  }>;
+  attempts: AttemptMetric[];
+  activeStudents: StudentSnapshot[];
+};
+
+const DASHBOARD_CACHE_TTL_MS = 30_000;
+let dashboardCache:
+  | {
+      expiresAt: number;
+      data: DashboardData;
+    }
+  | null = null;
+let dashboardInflight: Promise<DashboardData> | null = null;
+
 export function gradeFromPercentage(percentage: number) {
   if (percentage >= 90) return "A+";
   if (percentage >= 80) return "A";
@@ -270,6 +333,36 @@ async function fetchFullDocsFromNames(doctype: string) {
   );
 }
 
+async function fetchAttemptRows() {
+  return fetchResourceList(
+    LEVEL_EXAM_DOCTYPES.attempt,
+    [
+      "name",
+      "status",
+      "assignment",
+      "student",
+      "student_name",
+      "exam_paper",
+      "class_level",
+      "percentage",
+      "score_obtained",
+      "total_marks",
+      "subject",
+    ],
+    [],
+    5000,
+  );
+}
+
+async function fetchPaperRows() {
+  return fetchResourceList(
+    process.env.FRAPPE_LEVEL_EXAM_PAPER_DOCTYPE || "Level Exam Paper",
+    ["name", "paper_title", "subject", "total_marks"],
+    [],
+    5000,
+  );
+}
+
 async function fetchEligibleStudentsFromCore(): Promise<StudentSnapshot[]> {
   const students = await fetchResourceList(
     "Student",
@@ -334,7 +427,12 @@ function makeQuestionBankExamId(levelCode: string, subjectName: string) {
 }
 
 async function fetchQuestionBankExams(): Promise<QuestionBankExam[]> {
-  const questionDocs = await fetchFullDocsFromNames(process.env.FRAPPE_LEVEL_EXAM_QUESTION_DOCTYPE || "Level Exam Question");
+  const questionDocs = await fetchResourceList(
+    process.env.FRAPPE_LEVEL_EXAM_QUESTION_DOCTYPE || "Level Exam Question",
+    ["subject", "class_level", "is_active"],
+    [],
+    5000,
+  );
   const grouped = new Map<string, { subjectName: string; levelCode: "8" | "9" | "10"; count: number }>();
 
   for (const row of questionDocs) {
@@ -358,7 +456,39 @@ async function fetchQuestionBankExams(): Promise<QuestionBankExam[]> {
   }));
 }
 
-export async function getLevelExamDashboardData() {
+function getEmptyDashboard(): DashboardData {
+  return {
+    hero: {
+      publishedExams: 0,
+      assignedRecords: 0,
+      attendedStudents: 0,
+      activeStudents: 0,
+      overallAvgPercentage: 0,
+      overallAvgScore: 0,
+      passRate: 0,
+      generatedExams: 0,
+      activeSubjects: 0,
+      assignedExamIds: 0,
+    },
+    classSummaries: ["8", "9", "10"].map((levelCode) => ({
+      levelCode,
+      studentCount: 0,
+      assignedCount: 0,
+      attendedCount: 0,
+      avgScore: 0,
+      avgPercentage: 0,
+      topGrade: "NA",
+      passRate: 0,
+    })),
+    branchSummaries: [],
+    subjectSummaries: [],
+    recentExamSummaries: [],
+    attempts: [],
+    activeStudents: [],
+  };
+}
+
+async function buildLevelExamDashboardData(): Promise<DashboardData> {
   const emptyDashboard = {
     hero: {
       publishedExams: 0,
@@ -418,9 +548,9 @@ export async function getLevelExamDashboardData() {
       await Promise.allSettled([
         fetchEligibleStudentsFromCore(),
         fetchFullDocsFromNames(LEVEL_EXAM_DOCTYPES.assignment),
-        fetchFullDocsFromNames(LEVEL_EXAM_DOCTYPES.attempt),
+        fetchAttemptRows(),
         fetchQuestionBankExams(),
-        fetchFullDocsFromNames(process.env.FRAPPE_LEVEL_EXAM_PAPER_DOCTYPE || "Level Exam Paper"),
+        fetchPaperRows(),
       ]);
 
     const activeStudents = unwrapSettled(activeStudentsResult, [] as StudentSnapshot[], "active students");
@@ -635,6 +765,31 @@ export async function getLevelExamDashboardData() {
     console.warn("[level-exams] Dashboard fallback used:", error instanceof Error ? error.message : error);
     return emptyDashboard;
   }
+}
+
+export async function getLevelExamDashboardData() {
+  const now = Date.now();
+  if (dashboardCache && dashboardCache.expiresAt > now) {
+    return dashboardCache.data;
+  }
+
+  if (dashboardInflight) {
+    return dashboardInflight;
+  }
+
+  dashboardInflight = buildLevelExamDashboardData()
+    .then((data) => {
+      dashboardCache = {
+        data,
+        expiresAt: Date.now() + DASHBOARD_CACHE_TTL_MS,
+      };
+      return data;
+    })
+    .finally(() => {
+      dashboardInflight = null;
+    });
+
+  return dashboardInflight;
 }
 
 export async function getLevelExamClassDetail(levelCode: "8" | "9" | "10") {
