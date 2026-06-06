@@ -17,6 +17,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/Button";
 import { getGradeTone, getLevelExamDashboardData } from "@/lib/server/levelExamDashboard";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function GMLevelExamsPage() {
   const data = await getLevelExamDashboardData();
 

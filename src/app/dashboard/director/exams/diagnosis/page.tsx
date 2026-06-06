@@ -5,6 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/Badge";
 import { getGradeTone, getLevelExamDashboardData } from "@/lib/server/levelExamDashboard";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function DirectorDiagnosisExamsPage() {
   const data = await getLevelExamDashboardData();
 

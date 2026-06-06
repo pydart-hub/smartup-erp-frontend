@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { getGradeTone, getLevelExamClassDetail } from "@/lib/server/levelExamDashboard";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 type PageProps = {
   params: Promise<{ levelCode: string }>;
   searchParams: Promise<{ branch?: string }>;
