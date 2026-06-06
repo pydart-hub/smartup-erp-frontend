@@ -320,13 +320,68 @@ async function fetchQuestionBankExams(): Promise<QuestionBankExam[]> {
 }
 
 export async function getLevelExamDashboardData() {
-  const [activeStudents, assignmentRows, attemptRows, questionBankExams, paperRows] = await Promise.all([
-    fetchEligibleStudentsFromCore(),
-    fetchFullDocsFromNames(LEVEL_EXAM_DOCTYPES.assignment),
-    fetchFullDocsFromNames(LEVEL_EXAM_DOCTYPES.attempt),
-    fetchQuestionBankExams(),
-    fetchFullDocsFromNames(process.env.FRAPPE_LEVEL_EXAM_PAPER_DOCTYPE || "Level Exam Paper"),
-  ]);
+  const emptyDashboard = {
+    hero: {
+      publishedExams: 0,
+      assignedRecords: 0,
+      attendedStudents: 0,
+      activeStudents: 0,
+      overallAvgPercentage: 0,
+      overallAvgScore: 0,
+      passRate: 0,
+      generatedExams: 0,
+      activeSubjects: 0,
+      assignedExamIds: 0,
+    },
+    classSummaries: ["8", "9", "10"].map((levelCode) => ({
+      levelCode,
+      studentCount: 0,
+      assignedCount: 0,
+      attendedCount: 0,
+      avgScore: 0,
+      avgPercentage: 0,
+      topGrade: "NA",
+      passRate: 0,
+    })),
+    branchSummaries: [] as Array<{
+      branch: string;
+      studentCount: number;
+      attendedCount: number;
+      avgMarks: number;
+      avgPercentage: number;
+      topGrade: string;
+      passRate: number;
+    }>,
+    subjectSummaries: [] as Array<{
+      subjectName: string;
+      attempts: number;
+      avgScore: number;
+      avgPercentage: number;
+      topGrade: string;
+    }>,
+    recentExamSummaries: [] as Array<{
+      examId: string;
+      title: string;
+      subjectName: string;
+      levelCode: "8" | "9" | "10";
+      boardCode: BoardCode;
+      assignedCount: number;
+      attendedCount: number;
+      avgPercentage: number;
+      publishedAt: string;
+    }>,
+    attempts: [] as AttemptMetric[],
+    activeStudents: [] as StudentSnapshot[],
+  };
+
+  try {
+    const [activeStudents, assignmentRows, attemptRows, questionBankExams, paperRows] = await Promise.all([
+      fetchEligibleStudentsFromCore(),
+      fetchFullDocsFromNames(LEVEL_EXAM_DOCTYPES.assignment),
+      fetchFullDocsFromNames(LEVEL_EXAM_DOCTYPES.attempt),
+      fetchQuestionBankExams(),
+      fetchFullDocsFromNames(process.env.FRAPPE_LEVEL_EXAM_PAPER_DOCTYPE || "Level Exam Paper"),
+    ]);
 
   const studentMap = new Map(activeStudents.map((student) => [student.student_id, student]));
   const paperMap = new Map(paperRows.map((row) => [String(row.name || ""), row]));
@@ -508,28 +563,32 @@ export async function getLevelExamDashboardData() {
     .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))
     .slice(0, 4);
 
-  return {
-    hero: {
-      publishedExams: publishedAssignments.length,
-      assignedRecords: flattenedAssignments.length,
-      attendedStudents: uniqueAttendedStudents.size,
-      activeStudents: activeStudents.length,
-      overallAvgPercentage,
-      overallAvgScore,
-      passRate,
-      generatedExams: questionBankExams.length,
-      activeSubjects: new Set(
-        publishedAssignments.map((assignment) => assignment.subjectName).filter(Boolean),
-      ).size,
-      assignedExamIds: assignedExamIds.size,
-    },
-    classSummaries,
-    branchSummaries: branchSummaries.slice(0, 8),
-    subjectSummaries: subjectSummaries.slice(0, 6),
-    recentExamSummaries,
-    attempts,
-    activeStudents,
-  };
+    return {
+      hero: {
+        publishedExams: publishedAssignments.length,
+        assignedRecords: flattenedAssignments.length,
+        attendedStudents: uniqueAttendedStudents.size,
+        activeStudents: activeStudents.length,
+        overallAvgPercentage,
+        overallAvgScore,
+        passRate,
+        generatedExams: questionBankExams.length,
+        activeSubjects: new Set(
+          publishedAssignments.map((assignment) => assignment.subjectName).filter(Boolean),
+        ).size,
+        assignedExamIds: assignedExamIds.size,
+      },
+      classSummaries,
+      branchSummaries: branchSummaries.slice(0, 8),
+      subjectSummaries: subjectSummaries.slice(0, 6),
+      recentExamSummaries,
+      attempts,
+      activeStudents,
+    };
+  } catch (error) {
+    console.warn("[level-exams] Dashboard fallback used:", error instanceof Error ? error.message : error);
+    return emptyDashboard;
+  }
 }
 
 export async function getLevelExamClassDetail(levelCode: "8" | "9" | "10") {
