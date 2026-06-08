@@ -85,15 +85,15 @@ NEXT_PUBLIC_FRAPPE_URL=https://smartup.m.frappe.cloud
 NEXT_PUBLIC_APP_NAME=Smartup ERP
 
 # Server-side only
-FRAPPE_API_KEY=03330270e330d49
-FRAPPE_API_SECRET=9c2261ae11ac2d2
+FRAPPE_API_KEY=<frappe_admin_api_key>
+FRAPPE_API_SECRET=<frappe_admin_api_secret>
 
 # Cookie signing secret (generated with: openssl rand -base64 32)
-NEXTAUTH_SECRET=cWPg8jeRE9cxWcwH4auZEE0FY9NKrvMcZEULRoRf7Bw=
+NEXTAUTH_SECRET=<openssl_generated_secret>
 
 # Razorpay (test mode — switch to live keys for production)
-NEXT_PUBLIC_RAZORPAY_KEY_ID=rzp_test_SMdtcwacJ9SCvm
-RAZORPAY_KEY_SECRET=adYgB3GoIhqQ86GrCky1Ab5s
+NEXT_PUBLIC_RAZORPAY_KEY_ID=<razorpay_publishable_key>
+RAZORPAY_KEY_SECRET=<razorpay_secret_key>
 
 # Production
 NODE_ENV=production
@@ -106,11 +106,11 @@ NEXT_PUBLIC_APP_URL=https://smartuplearning.net
 |----------|-------|-------|---------|
 | `NEXT_PUBLIC_FRAPPE_URL` | Public | `https://smartup.m.frappe.cloud` | Frappe/ERPNext backend instance |
 | `NEXT_PUBLIC_APP_NAME` | Public | `Smartup ERP` | Display name |
-| `FRAPPE_API_KEY` | Server | `03330270e330d49` | Admin API key for Frappe |
-| `FRAPPE_API_SECRET` | Server | `9c2261ae11ac2d2` | Admin API secret for Frappe |
+| `FRAPPE_API_KEY` | Server | `<frappe_admin_api_key>` | Admin API key for Frappe |
+| `FRAPPE_API_SECRET` | Server | `<frappe_admin_api_secret>` | Admin API secret for Frappe |
 | `NEXTAUTH_SECRET` | Server | (generated) | Cookie signing secret |
-| `NEXT_PUBLIC_RAZORPAY_KEY_ID` | Public | `rzp_test_SMdtcwacJ9SCvm` | Razorpay test publishable key |
-| `RAZORPAY_KEY_SECRET` | Server | `adYgB3GoIhqQ86GrCky1Ab5s` | Razorpay secret key |
+| `NEXT_PUBLIC_RAZORPAY_KEY_ID` | Public | `<razorpay_publishable_key>` | Razorpay test or live publishable key |
+| `RAZORPAY_KEY_SECRET` | Server | `<razorpay_secret_key>` | Razorpay secret key |
 | `NODE_ENV` | Server | `production` | Production mode |
 | `NEXT_PUBLIC_APP_URL` | Public | `https://smartuplearning.net` | Public app URL |
 

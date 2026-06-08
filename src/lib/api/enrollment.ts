@@ -316,9 +316,26 @@ export async function getPrograms(): Promise<{ name: string; program_abbreviatio
 export async function getAcademicYears(): Promise<
   { name: string; year_start_date: string; year_end_date: string }[]
 > {
+  const buildFallbackAcademicYears = () => {
+    const now = new Date();
+    const startYear = now.getMonth() >= 5 ? now.getFullYear() : now.getFullYear() - 1;
+    const years: { name: string; year_start_date: string; year_end_date: string }[] = [];
+
+    for (let offset = -1; offset <= 2; offset += 1) {
+      const year = startYear + offset;
+      years.push({
+        name: `${year}-${year + 1}`,
+        year_start_date: `${year}-06-01`,
+        year_end_date: `${year + 1}-03-31`,
+      });
+    }
+
+    return years;
+  };
+
   const [ayRes, sgRes] = await Promise.allSettled([
     apiClient.get(
-      `/resource/Academic Year?fields=["name","year_start_date","year_end_date"]&limit=20&order_by=year_start_date desc`
+      `/resource/Academic Year?fields=["name","year_start_date","year_end_date"]&limit_page_length=100&order_by=year_start_date desc`
     ),
     apiClient.get(
       `/resource/Student Group?fields=["academic_year"]&filters=[["group_based_on","=","Batch"]]&limit_page_length=0`
@@ -343,6 +360,18 @@ export async function getAcademicYears(): Promise<
   for (const yr of batchYears) {
     if (!existing.has(yr)) {
       fromDoctype.push({ name: yr, year_start_date: "", year_end_date: "" });
+    }
+  }
+
+  if (fromDoctype.length === 0) {
+    return buildFallbackAcademicYears();
+  }
+
+  // Guarantee nearby year options even when the doctype is sparse or access is partial.
+  for (const fallbackYear of buildFallbackAcademicYears()) {
+    if (!existing.has(fallbackYear.name)) {
+      fromDoctype.push(fallbackYear);
+      existing.add(fallbackYear.name);
     }
   }
 

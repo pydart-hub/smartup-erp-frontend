@@ -235,9 +235,7 @@ function examStatus(record: { available_from?: string | null; available_until?: 
   if (!record.available_from || !record.available_until) return "draft";
   const now = Date.now();
   const start = new Date(record.available_from).getTime();
-  const end = new Date(record.available_until).getTime();
   if (now < start) return "upcoming";
-  if (now > end) return "expired";
   return "available";
 }
 

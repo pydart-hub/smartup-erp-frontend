@@ -60,14 +60,10 @@ export default async function GMLevelExamsPage() {
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
             <div className="rounded-[20px] border border-white/80 bg-white/85 p-4 shadow-sm backdrop-blur">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-tertiary">Exam Reach</p>
-              <div className="mt-3 grid grid-cols-2 gap-3">
+              <div className="mt-3">
                 <div>
                   <p className="text-3xl font-bold text-primary">{data.hero.publishedExams}</p>
                   <p className="text-xs text-text-secondary">Published exams</p>
-                </div>
-                <div>
-                  <p className="text-3xl font-bold text-text-primary">{data.hero.assignedRecords}</p>
-                  <p className="text-xs text-text-secondary">Assignments pushed</p>
                 </div>
               </div>
             </div>

@@ -71,11 +71,8 @@ def _assignment_status(assignment, assignment_status, attempt=None):
 
     if schedule_date:
         start_dt = get_datetime(f"{schedule_date} {start_time or time(0, 0, 0)}")
-        end_dt = get_datetime(f"{schedule_date} {end_time or time(23, 59, 59)}")
         if now_dt < start_dt:
             return "upcoming"
-        if now_dt > end_dt:
-            return "expired"
     return "available"
 
 
