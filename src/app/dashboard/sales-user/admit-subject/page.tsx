@@ -451,6 +451,8 @@ function SubjectAdmitPageContent() {
     return Array.from(plans);
   }, [feeStructures]);
 
+  const RESTRICTED_BRANCHES = new Set(["Smart Up Kadavanthara", "Smart Up Edappally"]);
+
   // Fee config lookup — uses SUBJECT key instead of program key
   const { data: feeConfigRes, isFetching: loadingFeeConfig } = useQuery({
     queryKey: ["fee-config-subject", selectedBranch, selectedSubject, selectedPlan],
@@ -1303,7 +1305,7 @@ function SubjectAdmitPageContent() {
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-text-secondary">Fee Plan *</label>
                       <div className={`grid gap-3 ${availablePlans.length >= 3 ? "grid-cols-3" : "grid-cols-2"}`}>
-                        {PLAN_OPTIONS.filter((p) => availablePlans.includes(p.value)).map((plan) => {
+                        {PLAN_OPTIONS.filter((p) => availablePlans.includes(p.value) && (!RESTRICTED_BRANCHES.has(selectedBranch) || p.value === "Advanced")).map((plan) => {
                           const isSelected = selectedPlan === plan.value;
                           return (
                             <label

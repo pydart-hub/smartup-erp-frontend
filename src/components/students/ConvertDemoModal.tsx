@@ -276,22 +276,23 @@ export function ConvertDemoModal({ student, onClose, onSuccess }: Props) {
   const totalAfterCredit = schedulePreview.reduce((s, r) => s + r.amount, 0);
   const totalOriginal = schedulePreview.reduce((s, r) => s + r.originalAmount, 0);
   const enrollment = conversionInfo?.enrollment;
-  const isKadavantharaBranch = conversionInfo?.branch === "Smart Up Kadavanthara";
+  const RESTRICTED_BRANCHES = new Set(["Smart Up Kadavanthara", "Smart Up Edappally"]);
+  const isRestrictedBranch = conversionInfo ? RESTRICTED_BRANCHES.has(conversionInfo.branch) : false;
   const siblingDiscountRate = useSiblingOffer ? (plan === "Advanced" ? 0.10 : 0.05) : 0;
   const siblingDiscountAmount = feeConfig && siblingDiscountRate > 0
     ? Math.round(getBaseOptionTotal(feeConfig, instalments) * siblingDiscountRate)
     : 0;
 
   function isPlanDisabled(planValue: string): boolean {
-    return isKadavantharaBranch && planValue !== "Basic";
+    return isRestrictedBranch && planValue !== "Advanced";
   }
 
-  // Kadavanthara branch supports only Basic plan in this conversion screen.
+  // Kadavanthara & Edappally: show only Advanced plan in this conversion screen.
   useEffect(() => {
-    if (isKadavantharaBranch && plan !== "Basic") {
-      setPlan("Basic");
+    if (isRestrictedBranch && plan !== "Advanced") {
+      setPlan("Advanced");
     }
-  }, [isKadavantharaBranch, plan]);
+  }, [isRestrictedBranch, plan]);
 
   return (
     <AnimatePresence>
@@ -459,9 +460,9 @@ export function ConvertDemoModal({ student, onClose, onSuccess }: Props) {
                 {/* Plan selection */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-text-secondary">Select Plan</label>
-                  {isKadavantharaBranch && (
+                  {isRestrictedBranch && (
                     <p className="text-xs text-text-tertiary">
-                      Kadavanthara branch supports only Basic plan.
+                      Kadavanthara and Edappally branches support only Advanced plan.
                     </p>
                   )}
                   <div className="grid grid-cols-3 gap-2">

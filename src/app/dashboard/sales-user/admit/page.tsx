@@ -93,6 +93,8 @@ const PLAN_OPTIONS = [
   { value: "Advanced", label: "Advanced", description: "Premium programme" },
 ];
 
+const RESTRICTED_BRANCHES = new Set(["Smart Up Kadavanthara", "Smart Up Edappally"]);
+
 // ── Sibling search types ──────────────────────────────────────
 interface SiblingSearchResult {
   name: string;
@@ -1302,7 +1304,7 @@ function AdmitPageContent() {
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-text-secondary">Fee Plan *</label>
                       <div className="grid grid-cols-3 gap-3">
-                        {PLAN_OPTIONS.filter((p) => availablePlans.includes(p.value)).map((plan) => {
+                        {PLAN_OPTIONS.filter((p) => availablePlans.includes(p.value) && (!RESTRICTED_BRANCHES.has(selectedBranch) || p.value === "Advanced")).map((plan) => {
                           const isSelected = selectedPlan === plan.value;
                           return (
                             <label
