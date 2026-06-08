@@ -24,4 +24,4 @@ jobs:
       - name: Deploy on server
         run: |
           ssh -o StrictHostKeyChecking=yes root@76.13.244.60 \
-            "cd /var/www/smartup-erp && git fetch --all && git reset --hard origin/main && npm install --production && npm run build && PORT=3001 pm2 restart smartup-erp || PORT=3001 pm2 start npm --name smartup-erp -- start && pm2 save && nginx -t && systemctl reload nginx"
+            "cd /var/www/smartup-erp && git fetch --all && git reset --hard origin/main && npm install && npm run build && (PORT=3001 pm2 restart smartup-erp || PORT=3001 pm2 start npm --name smartup-erp -- start) && pm2 save && nginx -t && systemctl reload nginx"
