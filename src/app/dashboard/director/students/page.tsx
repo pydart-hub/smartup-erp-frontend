@@ -18,6 +18,7 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { DiscontinuedStudentsModal } from "@/components/dashboard/DiscontinuedStudentsModal";
 import {
   getAllBranches,
   getActiveStudentCountForBranch,
@@ -239,6 +240,8 @@ function BranchCard({ branch }: { branch: { name: string; abbr: string } }) {
 
 // ── Main Page ──
 export default function DirectorStudentsPage() {
+  const [isDiscontinuedModalOpen, setIsDiscontinuedModalOpen] = useState(false);
+
   const { data: branches, isLoading, isError } = useQuery({
     queryKey: ["director-branches"],
     queryFn: getAllBranches,
@@ -286,16 +289,17 @@ export default function DirectorStudentsPage() {
   const globalNaPlanCount = globalPlanCounts?.na ?? 0;
 
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      className="relative isolate space-y-6"
-    >
-      <div className="pointer-events-none absolute -top-20 -right-16 h-72 w-72 rounded-full bg-primary/10 blur-3xl dark:bg-cyan-400/10" />
-      <div className="pointer-events-none absolute top-44 -left-20 h-80 w-80 rounded-full bg-secondary/10 blur-3xl dark:bg-sky-400/10" />
+    <>
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="relative isolate space-y-6"
+      >
+        <div className="pointer-events-none absolute -top-20 -right-16 h-72 w-72 rounded-full bg-primary/10 blur-3xl dark:bg-cyan-400/10" />
+        <div className="pointer-events-none absolute top-44 -left-20 h-80 w-80 rounded-full bg-secondary/10 blur-3xl dark:bg-sky-400/10" />
 
-      <BreadcrumbNav />
+        <BreadcrumbNav />
 
       {/* Page header */}
       <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -346,12 +350,15 @@ export default function DirectorStudentsPage() {
                   {(totalDiscontinued ?? 0) > 0 && (
                     <>
                       <div className="w-px bg-border-light self-stretch" />
-                      <div>
-                        <p className="text-2xl font-black text-error/80 tabular-nums leading-none">
+                      <button
+                        onClick={() => setIsDiscontinuedModalOpen(true)}
+                        className="flex flex-col items-center hover:opacity-80 transition-opacity cursor-pointer group"
+                      >
+                        <p className="text-2xl font-black text-error/80 tabular-nums leading-none group-hover:text-error transition-colors">
                           <AnimatedNumber value={totalDiscontinued ?? 0} />
                         </p>
-                        <p className="text-[10px] text-text-tertiary mt-1 font-medium">Discontinued</p>
-                      </div>
+                        <p className="text-[10px] text-text-tertiary mt-1 font-medium group-hover:text-error/70 transition-colors">Discontinued</p>
+                      </button>
                     </>
                   )}
                 </div>
@@ -475,6 +482,13 @@ export default function DirectorStudentsPage() {
           ))}
         </div>
       )}
-    </motion.div>
+      </motion.div>
+
+      <DiscontinuedStudentsModal
+        isOpen={isDiscontinuedModalOpen}
+        onClose={() => setIsDiscontinuedModalOpen(false)}
+        totalCount={totalDiscontinued ?? 0}
+      />
+    </>
   );
 }

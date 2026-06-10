@@ -145,6 +145,102 @@ export async function getTotalStaffCount(): Promise<number> {
   return getCount("Employee", { status: "Active" });
 }
 
+export interface DiscontinuedStudent {
+  name: string;
+  student_name: string;
+  custom_branch: string;
+  custom_branch_abbr: string;
+  custom_student_type?: string;
+  custom_discontinuation_date?: string;
+  custom_discontinuation_reason?: string;
+  joining_date?: string;
+  creation?: string;
+  student_email_id?: string;
+  student_mobile_number?: string;
+  program?: string;
+  student_batch_name?: string;
+}
+
+/** Fetch all discontinued students with their branch and enrollment class info */
+export async function getDiscontinuedStudents(params?: {
+  limit_start?: number;
+  limit_page_length?: number;
+  search?: string;
+}): Promise<{ data: DiscontinuedStudent[]; count: number }> {
+  // Step 1: Fetch discontinued students
+  const searchParams = new URLSearchParams({
+    fields: JSON.stringify([
+      "name",
+      "student_name",
+      "custom_branch",
+      "custom_branch_abbr",
+      "custom_student_type",
+      "custom_discontinuation_date",
+      "custom_discontinuation_reason",
+      "joining_date",
+      "creation",
+      "student_email_id",
+      "student_mobile_number",
+    ]),
+    limit_start: String(params?.limit_start ?? 0),
+    limit_page_length: String(params?.limit_page_length ?? 50),
+    order_by: "creation desc",
+  });
+
+  const filters: string[][] = [["enabled", "=", "0"]];
+  if (params?.search) {
+    filters.push(["student_name", "like", `%${params.search}%`]);
+  }
+  searchParams.set("filters", JSON.stringify(filters));
+
+  const { data: studentData } = await apiClient.get(`/resource/Student?${searchParams}`);
+  const students: DiscontinuedStudent[] = studentData?.data ?? [];
+  const count = studentData?.message ?? 0; // get_list returns total in message
+
+  // Step 2: Fetch latest Program Enrollment for each student to get class/program info
+  if (students.length > 0) {
+    const studentIds = students.map((s) => s.name);
+    const enrollmentParams = new URLSearchParams({
+      fields: JSON.stringify(["student", "program", "student_batch_name"]),
+      filters: JSON.stringify([
+        ["docstatus", "=", 1],
+        ["student", "in", studentIds],
+      ]),
+      order_by: "enrollment_date desc",
+      limit_page_length: String(studentIds.length * 2), // in case multiple enrollments per student
+    });
+
+    try {
+      const { data: enrollmentData } = await apiClient.get(`/resource/Program Enrollment?${enrollmentParams}`);
+      const enrollments: Record<string, { program: string; student_batch_name: string }> = {};
+
+      // Map latest enrollment per student
+      const seen = new Set<string>();
+      for (const enrollment of enrollmentData?.data ?? []) {
+        if (!seen.has(enrollment.student)) {
+          enrollments[enrollment.student] = {
+            program: enrollment.program,
+            student_batch_name: enrollment.student_batch_name,
+          };
+          seen.add(enrollment.student);
+        }
+      }
+
+      // Enrich students with enrollment data
+      for (const student of students) {
+        if (enrollments[student.name]) {
+          student.program = enrollments[student.name].program;
+          student.student_batch_name = enrollments[student.name].student_batch_name;
+        }
+      }
+    } catch {
+      // If enrollment fetch fails, continue with student data only
+    }
+  }
+
+  return { data: students, count };
+}
+
 /** Get student count grouped by type (Fresher / Existing / Rejoining) — all branches */
 export async function getStudentCountByType(): Promise<{
   fresher: number;
