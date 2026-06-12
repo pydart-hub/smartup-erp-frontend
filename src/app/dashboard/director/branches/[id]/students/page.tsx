@@ -108,6 +108,20 @@ export default function BranchStudentsPage() {
     staleTime: 120_000,
   });
 
+  const { data: batchMembershipStats } = useQuery({
+    queryKey: ["director-branch-batch-membership-count", branchName],
+    queryFn: async () => {
+      const batchesRes = await getBranchBatches(branchName);
+      const batchNames = (batchesRes?.data ?? []).filter((b) => !b.disabled).map((b) => b.name);
+      return getProgramBatchesStudentStats(batchNames, branchName);
+    },
+    staleTime: 120_000,
+  });
+
+  const classLinkedActiveCount = batchMembershipStats?.active ?? 0;
+  const classLinkedInactiveCount = batchMembershipStats?.inactive ?? 0;
+  const classLinkedStudentCount = classLinkedActiveCount + classLinkedInactiveCount;
+
   const { data: activeCount } = useQuery({
     queryKey: ["director-branch-active-students", branchName],
     queryFn: () => getActiveStudentCountForBranch(branchName),
@@ -151,6 +165,7 @@ export default function BranchStudentsPage() {
   const batches = batchesRes?.data ?? [];
   const hasBatchPermissionError = Boolean(batchesRes?.permissionDenied);
   const activeBatches = batches.filter((b) => !b.disabled);
+  const unassignedStudentCount = Math.max(0, (totalCount ?? 0) - classLinkedStudentCount);
 
   // Group by program to get class-wise breakdown
   const programMap = activeBatches.reduce(
@@ -199,6 +214,11 @@ export default function BranchStudentsPage() {
                 ? `${totalCount} total students across ${programs.length} programs`
                 : "Loading..."}
             </p>
+            {classLinkedStudentCount > 0 && (
+              <p className="text-xs text-text-tertiary mt-1">
+                {classLinkedStudentCount} are linked to class batches; {unassignedStudentCount} are not yet attached to any batch.
+              </p>
+            )}
           </div>
           <Link href={`/dashboard/director/branches/${encodedBranch}/students/all`}>
             <Button variant="outline" size="sm" className="gap-1.5">

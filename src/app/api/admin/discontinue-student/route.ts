@@ -1,13 +1,12 @@
 /**
  * POST /api/admin/discontinue-student
  *
- * Marks a student as discontinued and creates credit notes for all
- * outstanding (unpaid/partially-paid) Sales Invoices.
+ * Marks a student as discontinued while keeping existing invoices intact.
  *
- * This is a NON-DESTRUCTIVE operation:
+ * This is a non-destructive operation:
  *   - No records are deleted
  *   - Original invoices remain intact
- *   - Credit notes (return invoices) zero out the outstanding amounts
+ *   - No credit notes are created
  *   - Student.enabled = 0 with discontinuation metadata
  *   - Student is removed from all Student Group (batch) records
  *
@@ -32,7 +31,52 @@ const ADMIN_HEADERS = {
   Authorization: `token ${API_KEY}:${API_SECRET}`,
 };
 
-/* ── Frappe helpers (server-side only) ───────────────────────── */
+const FRAPPE_FETCH_TIMEOUT_MS = 20000;
+const FRAPPE_FETCH_RETRIES = 2;
+
+function summarizeFrappeError(raw: string | undefined): string {
+  const text = (raw ?? "").trim();
+  if (!text) return "Unknown error";
+
+  const validationMatch = text.match(/ValidationError:\s*([^,\n]+(?:cannot be [^,\n]+)?)/i);
+  if (validationMatch?.[1]) {
+    return validationMatch[1].replace(/\\"/g, "\"").trim();
+  }
+
+  const messageMatch = text.match(/"message"\s*:\s*"([^"]+)"/i);
+  if (messageMatch?.[1]) {
+    return messageMatch[1].replace(/\\"/g, "\"").trim();
+  }
+
+  const serverMessageMatch = text.match(/"_server_messages"\s*:\s*"([^"]+)"/i);
+  if (serverMessageMatch?.[1]) {
+    return serverMessageMatch[1].replace(/\\"/g, "\"").trim();
+  }
+
+  return text.slice(0, 220);
+}
+
+async function frappeFetch(
+  url: string,
+  init: RequestInit,
+): Promise<Response> {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= FRAPPE_FETCH_RETRIES; attempt += 1) {
+    try {
+      return await fetch(url, {
+        ...init,
+        cache: "no-store",
+        signal: AbortSignal.timeout(FRAPPE_FETCH_TIMEOUT_MS),
+      });
+    } catch (error) {
+      lastError = error;
+      if (attempt === FRAPPE_FETCH_RETRIES) break;
+    }
+  }
+
+  throw lastError;
+}
 
 async function frappeGetList(
   doctype: string,
@@ -45,7 +89,7 @@ async function frappeGetList(
     fields: JSON.stringify(fields),
     limit_page_length: String(limit),
   });
-  const res = await fetch(
+  const res = await frappeFetch(
     `${FRAPPE_URL}/api/resource/${encodeURIComponent(doctype)}?${params}`,
     { headers: ADMIN_HEADERS, cache: "no-store" },
   );
@@ -57,7 +101,7 @@ async function frappeGetDoc(
   doctype: string,
   name: string,
 ): Promise<Record<string, unknown> | null> {
-  const res = await fetch(
+  const res = await frappeFetch(
     `${FRAPPE_URL}/api/resource/${encodeURIComponent(doctype)}/${encodeURIComponent(name)}`,
     { headers: ADMIN_HEADERS, cache: "no-store" },
   );
@@ -70,7 +114,7 @@ async function frappePut(
   name: string,
   data: Record<string, unknown>,
 ): Promise<{ ok: boolean; data?: Record<string, unknown>; error?: string }> {
-  const res = await fetch(
+  const res = await frappeFetch(
     `${FRAPPE_URL}/api/resource/${encodeURIComponent(doctype)}/${encodeURIComponent(name)}`,
     { method: "PUT", headers: ADMIN_HEADERS, body: JSON.stringify(data) },
   );
@@ -79,26 +123,40 @@ async function frappePut(
     return { ok: true, data: json.data };
   }
   const errText = await res.text().catch(() => "Unknown error");
-  return { ok: false, error: errText };
+  return { ok: false, error: summarizeFrappeError(errText) };
 }
 
-async function frappePost(
+async function frappeSetValue(
   doctype: string,
-  data: Record<string, unknown>,
-): Promise<{ ok: boolean; data?: Record<string, unknown>; error?: string }> {
-  const res = await fetch(
-    `${FRAPPE_URL}/api/resource/${encodeURIComponent(doctype)}`,
-    { method: "POST", headers: ADMIN_HEADERS, body: JSON.stringify(data) },
+  name: string,
+  fieldname: Record<string, unknown>,
+): Promise<{ ok: boolean; error?: string }> {
+  const res = await frappeFetch(
+    `${FRAPPE_URL}/api/method/frappe.client.set_value`,
+    {
+      method: "POST",
+      headers: ADMIN_HEADERS,
+      body: JSON.stringify({
+        doctype,
+        name,
+        fieldname,
+      }),
+    },
   );
-  if (res.ok) {
-    const json = await res.json();
-    return { ok: true, data: json.data };
-  }
+  if (res.ok) return { ok: true };
   const errText = await res.text().catch(() => "Unknown error");
-  return { ok: false, error: errText };
+  return { ok: false, error: summarizeFrappeError(errText) };
 }
 
-/* ── Main handler ──────────────────────────────────────────── */
+async function frappeCancelByDocstatus(
+  doctype: string,
+  name: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const result = await frappePut(doctype, name, { docstatus: 2 });
+  return result.ok
+    ? { ok: true }
+    : { ok: false, error: result.error };
+}
 
 interface StepLog {
   step: string;
@@ -106,9 +164,10 @@ interface StepLog {
   ok: boolean;
 }
 
+const NON_CRITICAL_STEPS = new Set(["remove_from_batch", "cancel_enrollment"]);
+
 export async function POST(request: NextRequest) {
   try {
-    // Auth
     const authResult = requireRole(request, STAFF_ROLES);
     if (authResult instanceof NextResponse) return authResult;
 
@@ -127,10 +186,7 @@ export async function POST(request: NextRequest) {
     }
 
     const log: StepLog[] = [];
-    const creditNotes: string[] = [];
-    let totalWrittenOff = 0;
 
-    // ── Step 1: Fetch student ──
     const student = await frappeGetDoc("Student", student_id);
     if (!student) {
       return NextResponse.json(
@@ -146,16 +202,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const customerName = student.customer as string | undefined;
-    log.push({ step: "fetch_student", detail: `Found ${student.student_name}`, ok: true });
+    const studentName = String(student.student_name ?? student_id);
+    log.push({ step: "fetch_student", detail: `Found ${studentName}`, ok: true });
 
-    // ── Step 2: Find outstanding Sales Invoices ──
     let outstandingInvoices: Record<string, unknown>[] = [];
-    if (customerName) {
+    if (student.customer) {
       outstandingInvoices = await frappeGetList(
         "Sales Invoice",
         [
-          ["customer", "=", customerName],
+          ["customer", "=", String(student.customer)],
           ["docstatus", "=", 1],
           ["outstanding_amount", ">", 0],
           ["is_return", "=", 0],
@@ -164,96 +219,33 @@ export async function POST(request: NextRequest) {
         100,
       );
     }
+
     log.push({
       step: "find_outstanding",
       detail: `Found ${outstandingInvoices.length} outstanding invoice(s)`,
       ok: true,
     });
 
-    // ── Step 3: Create Credit Notes for each outstanding invoice ──
-    for (const inv of outstandingInvoices) {
-      const invName = inv.name as string;
-      const outstanding = inv.outstanding_amount as number;
-
-      if (outstanding <= 0) continue;
-
-      // Fetch full invoice to get items
-      const fullInv = await frappeGetDoc("Sales Invoice", invName);
-      if (!fullInv) {
-        log.push({ step: "credit_note", detail: `Could not fetch ${invName}`, ok: false });
-        continue;
-      }
-
-      const items = (fullInv.items as Record<string, unknown>[]) ?? [];
-      const firstItem = items[0] ?? {};
-
-      // Create credit note (return invoice)
-      // The credit note amount = outstanding_amount (not grand_total)
-      // This way, already-paid amounts are preserved as revenue
-      const creditNotePayload = {
-        doctype: "Sales Invoice",
-        customer: customerName,
-        company: fullInv.company,
-        posting_date: new Date().toISOString().split("T")[0],
-        due_date: new Date().toISOString().split("T")[0],
-        is_return: 1,
-        return_against: invName,
-        update_outstanding_for_self: 1,
-        update_billed_amount_in_sales_order: 0,
-        items: [
-          {
-            item_code: firstItem.item_code,
-            item_name: firstItem.item_name,
-            description: `Discontinued — ${reason}${remarks ? ` (${remarks})` : ""}`,
-            qty: -1,
-            rate: outstanding,
-            amount: -outstanding,
-            sales_order: firstItem.sales_order || undefined,
-            so_detail: firstItem.so_detail || undefined,
-          },
-        ],
-      };
-
-      const createResult = await frappePost("Sales Invoice", creditNotePayload);
-      if (!createResult.ok) {
-        log.push({
-          step: "credit_note",
-          detail: `Failed to create credit note for ${invName}: ${createResult.error}`,
-          ok: false,
-        });
-        continue;
-      }
-
-      const cnName = createResult.data?.name as string;
-
-      // Submit the credit note
-      const submitResult = await frappePut("Sales Invoice", cnName, { docstatus: 1 });
-      if (!submitResult.ok) {
-        log.push({
-          step: "credit_note_submit",
-          detail: `Created ${cnName} but submission failed: ${submitResult.error}`,
-          ok: false,
-        });
-        continue;
-      }
-
-      creditNotes.push(cnName);
-      totalWrittenOff += outstanding;
-      log.push({
-        step: "credit_note",
-        detail: `Created & submitted ${cnName} for ₹${outstanding.toLocaleString("en-IN")} against ${invName}`,
-        ok: true,
-      });
-    }
-
-    // ── Step 4: Update Student — mark as discontinued ──
     const today = new Date().toISOString().split("T")[0];
-    const studentUpdateResult = await frappePut("Student", student_id, {
+    const studentEnabledResult = await frappePut("Student", student_id, {
       enabled: 0,
-      custom_discontinuation_date: today,
-      custom_discontinuation_reason: reason,
-      custom_discontinuation_remarks: remarks || "",
     });
+    const studentMetaResult = studentEnabledResult.ok
+      ? await frappeSetValue("Student", student_id, {
+          custom_discontinuation_date: today,
+          custom_discontinuation_reason: reason,
+          custom_discontinuation_remarks: remarks || "",
+        })
+      : { ok: false, error: studentEnabledResult.error };
+    const studentUpdateResult = studentEnabledResult.ok && studentMetaResult.ok
+      ? { ok: true as const }
+      : {
+          ok: false as const,
+          error: [
+            !studentEnabledResult.ok ? `enabled update failed: ${studentEnabledResult.error}` : null,
+            !studentMetaResult.ok ? `metadata update failed: ${studentMetaResult.error}` : null,
+          ].filter(Boolean).join(" | "),
+        };
 
     log.push({
       step: "update_student",
@@ -263,22 +255,18 @@ export async function POST(request: NextRequest) {
       ok: studentUpdateResult.ok,
     });
 
-    // ── Step 5: Remove from all Student Group (batch) records ──
-    const studentBranch = (student.custom_branch as string) || "";
+    const studentBranch = String(student.custom_branch ?? "");
     const batchFilters: (string | number | string[])[][] = [
       ["group_based_on", "=", "Batch"],
     ];
     if (studentBranch) batchFilters.push(["custom_branch", "=", studentBranch]);
 
-    const batches = await frappeGetList(
-      "Student Group",
-      batchFilters,
-      ["name"],
-      500,
-    );
+    const batches = await frappeGetList("Student Group", batchFilters, ["name"], 500);
 
     for (const batch of batches) {
-      const batchName = batch.name as string;
+      const batchName = String(batch.name ?? "");
+      if (!batchName) continue;
+
       const batchDoc = await frappeGetDoc("Student Group", batchName);
       if (!batchDoc) continue;
 
@@ -299,7 +287,6 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // ── Step 6: Cancel Program Enrollment (set to Cancelled) ──
     const enrollments = await frappeGetList(
       "Program Enrollment",
       [
@@ -311,41 +298,47 @@ export async function POST(request: NextRequest) {
     );
 
     for (const enr of enrollments) {
-      const enrName = enr.name as string;
-      // Cancel the enrollment via frappe.client.cancel
-      const cancelRes = await fetch(`${FRAPPE_URL}/api/method/frappe.client.cancel`, {
-        method: "POST",
-        headers: ADMIN_HEADERS,
-        body: JSON.stringify({ doctype: "Program Enrollment", name: enrName }),
-      });
+      const enrName = String(enr.name ?? "");
+      if (!enrName) continue;
+
+      const cancelRes = await frappeCancelByDocstatus("Program Enrollment", enrName);
       log.push({
         step: "cancel_enrollment",
         detail: cancelRes.ok
           ? `Cancelled ${enrName}`
-          : `Failed to cancel ${enrName}`,
+          : `Failed to cancel ${enrName}: ${cancelRes.error ?? "Unknown error"}`,
         ok: cancelRes.ok,
       });
     }
 
-    // ── Summary ──
     const failed = log.filter((l) => !l.ok);
-    const status = failed.length === 0 ? 200 : 207;
+    const criticalFailed = failed.filter((l) => !NON_CRITICAL_STEPS.has(l.step));
+    const cleanupFailed = failed.filter((l) => NON_CRITICAL_STEPS.has(l.step));
+    const success = criticalFailed.length === 0;
+    const status = success ? 200 : 207;
+    const message = success
+      ? cleanupFailed.length === 0
+        ? `Student ${studentName} discontinued. ${outstandingInvoices.length} invoice(s) remain unchanged.`
+        : `Student ${studentName} discontinued. ${outstandingInvoices.length} invoice(s) remain unchanged. ${cleanupFailed.length} cleanup step(s) need attention.`
+      : `Student ${studentName} discontinuation partially completed. ${criticalFailed.length} critical step(s) failed.`;
 
     return NextResponse.json(
       {
-        success: failed.length === 0,
-        message: `Student ${student.student_name} discontinued. ${creditNotes.length} credit note(s) created. ₹${totalWrittenOff.toLocaleString("en-IN")} written off.`,
-        credit_notes: creditNotes,
-        total_written_off: totalWrittenOff,
+        success,
+        message,
+        credit_notes: [],
+        total_written_off: 0,
         log,
-        ...(failed.length > 0 && { failed }),
+        ...(criticalFailed.length > 0 && { failed: criticalFailed }),
+        ...(cleanupFailed.length > 0 && { cleanup_failed: cleanupFailed }),
       },
       { status },
     );
   } catch (err) {
     console.error("[discontinue-student] Error:", err);
+    const message = err instanceof Error ? err.message : "Internal server error";
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: message },
       { status: 500 },
     );
   }

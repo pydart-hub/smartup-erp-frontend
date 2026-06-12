@@ -14,7 +14,6 @@ import {
   ChevronDown,
   Loader2,
 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { getDiscontinuedStudents, type DiscontinuedStudent } from "@/lib/api/director";
@@ -216,6 +215,21 @@ function StudentRow({ student, isExpanded, onToggle }: StudentRowProps) {
       })
     : "N/A";
 
+  const joiningDate = student.joining_date
+    ? new Date(student.joining_date).toLocaleDateString("en-IN", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      })
+    : "N/A";
+
+  const detailItems = [
+    { label: "Parent Number", value: student.parent_mobile || "N/A" },
+    { label: "Mobile", value: student.student_mobile_number || "N/A" },
+    { label: "Branch", value: student.custom_branch || "N/A" },
+    { label: "Joining Date", value: joiningDate },
+  ];
+
   return (
     <div className="bg-white dark:bg-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
       {/* Summary row */}
@@ -282,105 +296,91 @@ function StudentRow({ student, isExpanded, onToggle }: StudentRowProps) {
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
-            className="border-t border-border-light dark:border-cyan-900/20 bg-slate-50/50 dark:bg-slate-800/30 px-6 py-4"
+            className="border-t border-border-light dark:border-cyan-900/20 bg-slate-50/70 dark:bg-slate-800/30 px-6 py-5"
           >
-            <div className="grid grid-cols-2 gap-4">
-              {/* Student ID & Email */}
-              <div>
-                <p className="text-xs text-text-tertiary font-semibold uppercase tracking-wide mb-1">
-                  Student ID
-                </p>
-                <p className="text-sm text-text-primary font-mono">{student.name}</p>
-              </div>
-              <div>
-                <p className="text-xs text-text-tertiary font-semibold uppercase tracking-wide mb-1">
-                  Email
-                </p>
-                <p className="text-sm text-text-primary truncate">
-                  {student.student_email_id || "N/A"}
-                </p>
-              </div>
+            <div className="rounded-xl border border-border-light/80 dark:border-cyan-900/30 bg-white/90 dark:bg-slate-900/40 shadow-[0_10px_30px_-18px_rgba(15,23,42,0.35)] overflow-hidden">
+              <div className="grid gap-0 md:grid-cols-[1.2fr_0.8fr]">
+                <div className="p-5 border-b md:border-b-0 md:border-r border-border-light/80 dark:border-cyan-900/30">
+                  <div className="grid grid-cols-2 gap-4">
+                    {detailItems.map((item) => (
+                      <div
+                        key={item.label}
+                        className="rounded-lg border border-border-light/70 dark:border-cyan-900/25 bg-slate-50/80 dark:bg-slate-800/35 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]"
+                      >
+                        <p className="text-[11px] text-text-tertiary font-semibold uppercase tracking-wide mb-1">
+                          {item.label}
+                        </p>
+                        <p className="text-sm text-text-primary">{item.value}</p>
+                      </div>
+                    ))}
+                  </div>
 
-              {/* Mobile & Type */}
-              <div>
-                <p className="text-xs text-text-tertiary font-semibold uppercase tracking-wide mb-1">
-                  Mobile
-                </p>
-                <p className="text-sm text-text-primary">
-                  {student.student_mobile_number || "N/A"}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-text-tertiary font-semibold uppercase tracking-wide mb-1">
-                  Student Type
-                </p>
-                <div className="flex items-center gap-2">
-                  {student.custom_student_type ? (
-                    <Badge variant="outline" className="text-xs">
-                      {student.custom_student_type}
-                    </Badge>
-                  ) : (
-                    <span className="text-sm text-text-tertiary">N/A</span>
-                  )}
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <div className="rounded-lg border border-border-light/70 dark:border-cyan-900/25 bg-slate-50/80 dark:bg-slate-800/35 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]">
+                      <p className="text-[11px] text-text-tertiary font-semibold uppercase tracking-wide mb-2">
+                        Student Type
+                      </p>
+                      <div className="flex items-center gap-2">
+                        {student.custom_student_type ? (
+                          <Badge variant="outline" className="text-xs bg-white/80 dark:bg-slate-900/30">
+                            {student.custom_student_type}
+                          </Badge>
+                        ) : (
+                          <span className="text-sm text-text-tertiary">N/A</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg border border-border-light/70 dark:border-cyan-900/25 bg-slate-50/80 dark:bg-slate-800/35 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]">
+                      <p className="text-[11px] text-text-tertiary font-semibold uppercase tracking-wide mb-2">
+                        Class / Program
+                      </p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {student.program ? (
+                          <Badge variant="outline" className="text-xs bg-white/80 dark:bg-slate-900/30">
+                            {student.program}
+                          </Badge>
+                        ) : null}
+                        {student.student_batch_name ? (
+                          <Badge variant="outline" className="text-xs bg-white/80 dark:bg-slate-900/30">
+                            {student.student_batch_name}
+                          </Badge>
+                        ) : null}
+                        {!student.program && !student.student_batch_name ? (
+                          <span className="text-sm text-text-tertiary">N/A</span>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-5 bg-gradient-to-b from-white to-error/5 dark:from-slate-900/30 dark:to-red-950/10">
+                  <div className="rounded-xl border border-error/15 bg-white/80 dark:bg-slate-900/30 shadow-[0_10px_24px_-18px_rgba(239,68,68,0.6)] p-4">
+                    <p className="text-[11px] text-text-tertiary font-semibold uppercase tracking-wide mb-3">
+                      Discontinuation Details
+                    </p>
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-[11px] text-text-tertiary font-semibold uppercase tracking-wide mb-1">
+                          Discontinuation Date
+                        </p>
+                        <p className="text-sm text-error font-semibold">{discontinuationDate}</p>
+                      </div>
+
+                      {student.custom_discontinuation_reason ? (
+                        <div>
+                          <p className="text-[11px] text-text-tertiary font-semibold uppercase tracking-wide mb-1">
+                            Reason
+                          </p>
+                          <p className="text-sm text-error font-semibold leading-6">
+                            {student.custom_discontinuation_reason}
+                          </p>
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
                 </div>
               </div>
-
-              {/* Branch & Program */}
-              <div>
-                <p className="text-xs text-text-tertiary font-semibold uppercase tracking-wide mb-1">
-                  Branch
-                </p>
-                <p className="text-sm text-text-primary">{student.custom_branch || "N/A"}</p>
-              </div>
-              <div>
-                <p className="text-xs text-text-tertiary font-semibold uppercase tracking-wide mb-1">
-                  Class / Program
-                </p>
-                <div className="flex items-center gap-2">
-                  {student.student_batch_name ? (
-                    <Badge variant="outline" className="text-xs">
-                      {student.student_batch_name}
-                    </Badge>
-                  ) : (
-                    <span className="text-sm text-text-tertiary">N/A</span>
-                  )}
-                </div>
-                {student.program && (
-                  <p className="text-xs text-text-tertiary mt-1">Program: {student.program}</p>
-                )}
-              </div>
-
-              {/* Joining & Discontinuation */}
-              <div>
-                <p className="text-xs text-text-tertiary font-semibold uppercase tracking-wide mb-1">
-                  Joining Date
-                </p>
-                <p className="text-sm text-text-primary">
-                  {student.joining_date
-                    ? new Date(student.joining_date).toLocaleDateString("en-IN", {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      })
-                    : "N/A"}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-text-tertiary font-semibold uppercase tracking-wide mb-1">
-                  Discontinuation Date
-                </p>
-                <p className="text-sm text-error font-semibold">{discontinuationDate}</p>
-              </div>
-
-              {/* Reason */}
-              {student.custom_discontinuation_reason && (
-                <div className="col-span-2">
-                  <p className="text-xs text-text-tertiary font-semibold uppercase tracking-wide mb-1">
-                    Reason
-                  </p>
-                  <p className="text-sm text-text-primary">{student.custom_discontinuation_reason}</p>
-                </div>
-              )}
             </div>
           </motion.div>
         )}

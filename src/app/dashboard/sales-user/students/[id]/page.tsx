@@ -429,7 +429,7 @@ export default function SalesUserStudentDetailPage() {
               <h3 className="font-semibold text-text-primary">Discontinuation Details</h3>
             </div>
             <div className="bg-error/5 border border-error/20 rounded-xl p-4">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <p className="text-xs text-text-tertiary mb-0.5">Date</p>
                   <p className="text-sm font-medium text-text-primary">
@@ -441,13 +441,7 @@ export default function SalesUserStudentDetailPage() {
                 <div>
                   <p className="text-xs text-text-tertiary mb-0.5">Reason</p>
                   <p className="text-sm font-medium text-text-primary">
-                    {student.custom_discontinuation_reason || "—"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-text-tertiary mb-0.5">Remarks</p>
-                  <p className="text-sm font-medium text-text-primary">
-                    {student.custom_discontinuation_remarks || "—"}
+                    {student.reason_for_leaving || student.custom_discontinuation_reason || "—"}
                   </p>
                 </div>
               </div>

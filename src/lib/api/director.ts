@@ -157,6 +157,8 @@ export interface DiscontinuedStudent {
   creation?: string;
   student_email_id?: string;
   student_mobile_number?: string;
+  parent_name?: string;
+  parent_mobile?: string;
   program?: string;
   student_batch_name?: string;
 }
@@ -193,52 +195,67 @@ export async function getDiscontinuedStudents(params?: {
   }
   searchParams.set("filters", JSON.stringify(filters));
 
-  const { data: studentData } = await apiClient.get(`/resource/Student?${searchParams}`);
-  const students: DiscontinuedStudent[] = studentData?.data ?? [];
-  const count = studentData?.message ?? 0; // get_list returns total in message
+  try {
+    const { data: studentData } = await apiClient.get(`/resource/Student?${searchParams}`);
+    const students: DiscontinuedStudent[] = studentData?.data ?? [];
+    const count = studentData?.message ?? studentData?.data?.length ?? 0;
 
-  // Step 2: Fetch latest Program Enrollment for each student to get class/program info
-  if (students.length > 0) {
-    const studentIds = students.map((s) => s.name);
-    const enrollmentParams = new URLSearchParams({
-      fields: JSON.stringify(["student", "program", "student_batch_name"]),
-      filters: JSON.stringify([
-        ["docstatus", "=", 1],
-        ["student", "in", studentIds],
-      ]),
-      order_by: "enrollment_date desc",
-      limit_page_length: String(studentIds.length * 2), // in case multiple enrollments per student
-    });
+    // Step 2: Fetch enrollment + guardian info via director/admin routes
+    if (students.length > 0) {
+      const studentIds = students.map((s) => s.name);
 
-    try {
-      const { data: enrollmentData } = await apiClient.get(`/resource/Program Enrollment?${enrollmentParams}`);
-      const enrollments: Record<string, { program: string; student_batch_name: string }> = {};
+      try {
+        const enrollmentRes = await fetch("/api/director/student-enrollments", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ studentIds }),
+        });
 
-      // Map latest enrollment per student
-      const seen = new Set<string>();
-      for (const enrollment of enrollmentData?.data ?? []) {
-        if (!seen.has(enrollment.student)) {
-          enrollments[enrollment.student] = {
-            program: enrollment.program,
-            student_batch_name: enrollment.student_batch_name,
-          };
-          seen.add(enrollment.student);
+        if (enrollmentRes.ok) {
+          const enrollments = await enrollmentRes.json();
+          for (const student of students) {
+            const entry = enrollments?.[student.name];
+            if (entry) {
+              student.program = entry.program || student.program || "";
+              student.student_batch_name = entry.student_batch_name || student.student_batch_name || "";
+            }
+          }
         }
+      } catch {
+        // Ignore enrollment lookup failures and continue with the available fields
       }
 
-      // Enrich students with enrollment data
-      for (const student of students) {
-        if (enrollments[student.name]) {
-          student.program = enrollments[student.name].program;
-          student.student_batch_name = enrollments[student.name].student_batch_name;
+      try {
+        const guardianRes = await fetch("/api/admin/guardian-mobiles", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ studentIds }),
+        });
+
+        if (guardianRes.ok) {
+          const guardianMap = await guardianRes.json();
+          for (const student of students) {
+            const guardian = guardianMap?.[student.name];
+            if (guardian) {
+              student.parent_name = guardian.parentName || student.parent_name;
+              student.parent_mobile = guardian.parentMobile || student.parent_mobile;
+            }
+          }
         }
+      } catch {
+        // Ignore guardian lookup failures and continue with the available fields
       }
-    } catch {
-      // If enrollment fetch fails, continue with student data only
     }
-  }
 
-  return { data: students, count };
+    return { data: students, count };
+  } catch (error) {
+    if (isPermissionDenied(error)) {
+      return { data: [], count: 0 };
+    }
+    throw error;
+  }
 }
 
 /** Get student count grouped by type (Fresher / Existing / Rejoining) — all branches */
@@ -1001,20 +1018,104 @@ export async function getBatchStudents(
   }
 }
 
-/** Aggregate active/inactive student counts for a set of batch names (one API call) */
+/** Aggregate active/inactive student counts for a program by using Program Enrollment
+ * as the source of truth, then falling back to batch membership for legacy data. */
+function normalizeProgramLabel(value?: string | null): string {
+  const raw = (value ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+  if (!raw) return "uncategorised";
+
+  const aliases: Record<string, string> = {
+    "plus one": "11th science",
+    "plus two": "12th science",
+    "11th state": "11th science state",
+    "11th cbse": "11th science cbse",
+    "12th state": "12th science state",
+    "12th cbse": "12th science cbse",
+  };
+
+  const canonical = aliases[raw] ?? raw;
+
+  return canonical
+    .replace(/\bscience state\b/g, "science")
+    .replace(/\bscience cbse\b/g, "science")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export async function getProgramBatchesStudentStats(
   batchNames: string[],
   branch?: string
 ): Promise<{ active: number; inactive: number }> {
   if (!batchNames.length) return { active: 0, inactive: 0 };
-  const results = await Promise.all(batchNames.map((name) => getBatchStudents(name, branch)));
-  let active = 0;
-  let inactive = 0;
-  for (const res of results) {
-    active += res.students.filter((s) => s.active).length;
-    inactive += res.students.filter((s) => !s.active).length;
+
+  const result = { active: 0, inactive: 0 };
+
+  try {
+    if (!branch) throw new Error("branch required");
+
+    const batches = await getBranchBatches(branch);
+    const programSet = new Set<string>();
+
+    for (const batch of batches.data ?? []) {
+      if (batchNames.includes(batch.name)) {
+        programSet.add(normalizeProgramLabel(batch.program || "Uncategorised"));
+      }
+    }
+
+    if (!programSet.size) throw new Error("No program found for selected batches");
+
+    const studentsRes = await apiClient.get("/resource/Student", {
+      params: {
+        fields: JSON.stringify(["name", "enabled"]),
+        filters: JSON.stringify([['custom_branch', '=', branch]]),
+        limit_page_length: 5000,
+      },
+    });
+
+    const students: Array<{ name: string; enabled?: number | string }> = studentsRes.data?.data ?? [];
+    if (!students.length) return result;
+
+    const studentIds = students.map((s) => s.name);
+    const batchSize = 100;
+    const latestByStudent = new Map<string, string>();
+
+    for (let i = 0; i < studentIds.length; i += batchSize) {
+      const batch = studentIds.slice(i, i + batchSize);
+      const peRes = await apiClient.get("/resource/Program Enrollment", {
+        params: {
+          fields: JSON.stringify(["student", "program", "docstatus"]),
+          filters: JSON.stringify([
+            ["docstatus", "=", 1],
+            ["student", "in", batch],
+          ]),
+          order_by: "enrollment_date desc",
+          limit_page_length: 5000,
+        },
+      });
+
+      for (const row of peRes.data?.data ?? []) {
+        if (!row.student || latestByStudent.has(row.student)) continue;
+        latestByStudent.set(row.student, row.program || "Uncategorised");
+      }
+    }
+
+    for (const student of students) {
+      const program = normalizeProgramLabel(latestByStudent.get(student.name));
+      if (!programSet.has(program)) continue;
+      if (Number(student.enabled) === 1) result.active++;
+      else result.inactive++;
+    }
+
+    return result;
+  } catch {
+    // Fallback to the legacy batch-membership count if PE lookup is unavailable.
+    const results = await Promise.all(batchNames.map((name) => getBatchStudents(name, branch)));
+    for (const res of results) {
+      result.active += res.students.filter((s) => s.active).length;
+      result.inactive += res.students.filter((s) => !s.active).length;
+    }
+    return result;
   }
-  return { active, inactive };
 }
 
 /** Get plan counts (Advanced/Intermediate/Basic/Free Access) for students in given batches */

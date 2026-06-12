@@ -1,32 +1,39 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, AlertTriangle, Loader2, UserX, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { DISCONTINUATION_REASONS } from "@/lib/utils/constants";
 import type { Student } from "@/lib/types/student";
+
+interface CleanupFailure {
+  step: string;
+  detail: string;
+}
+
+interface DiscontinueResult {
+  credit_notes: string[];
+  total_written_off: number;
+  message: string;
+  cleanup_failed?: CleanupFailure[];
+}
 
 interface Props {
   student: Student;
   onClose: () => void;
-  onSuccess: (result: {
-    credit_notes: string[];
-    total_written_off: number;
-    message: string;
-  }) => void;
+  onSuccess: (result: DiscontinueResult) => void;
+}
+
+function formatIssue(detail?: string) {
+  if (!detail) return "Unable to complete the update.";
+  return detail.length > 220 ? `${detail.slice(0, 217)}...` : detail;
 }
 
 export function DiscontinueStudentModal({ student, onClose, onSuccess }: Props) {
   const [reason, setReason] = useState("");
-  const [remarks, setRemarks] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<{
-    credit_notes: string[];
-    total_written_off: number;
-    message: string;
-  } | null>(null);
+  const [result, setResult] = useState<DiscontinueResult | null>(null);
 
   const fullName =
     student.student_name ||
@@ -35,10 +42,12 @@ export function DiscontinueStudentModal({ student, onClose, onSuccess }: Props) 
       .join(" ");
 
   const handleDiscontinue = useCallback(async () => {
-    if (!reason) {
-      setError("Please select a reason");
+    const trimmedReason = reason.trim();
+    if (!trimmedReason) {
+      setError("Please enter a discontinuation reason.");
       return;
     }
+
     setLoading(true);
     setError(null);
 
@@ -48,8 +57,7 @@ export function DiscontinueStudentModal({ student, onClose, onSuccess }: Props) 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           student_id: student.name,
-          reason,
-          remarks: remarks.trim() || undefined,
+          reason: trimmedReason,
         }),
       });
 
@@ -61,30 +69,34 @@ export function DiscontinueStudentModal({ student, onClose, onSuccess }: Props) 
       }
 
       if (data.failed?.length > 0) {
-        setError(
-          `Partially completed. ${data.failed.length} step(s) had issues: ${data.failed
-            .map((f: { step: string }) => f.step)
-            .join(", ")}`,
-        );
+        const firstFailure = data.failed[0] as { detail?: string } | undefined;
+        setError(formatIssue(firstFailure?.detail));
+        return;
       }
 
-      setResult({
-        credit_notes: data.credit_notes ?? [],
-        total_written_off: data.total_written_off ?? 0,
-        message: data.message ?? "Student discontinued",
-      });
+      if (data.cleanup_failed?.length > 0) {
+        const firstCleanupFailure = data.cleanup_failed[0] as { detail?: string } | undefined;
+        setError(formatIssue(firstCleanupFailure?.detail));
+      }
 
-      onSuccess({
+      const nextResult: DiscontinueResult = {
         credit_notes: data.credit_notes ?? [],
         total_written_off: data.total_written_off ?? 0,
         message: data.message ?? "Student discontinued",
-      });
+        cleanup_failed: data.cleanup_failed ?? [],
+      };
+
+      setResult(nextResult);
+
+      if ((nextResult.cleanup_failed?.length ?? 0) === 0) {
+        onSuccess(nextResult);
+      }
     } catch {
-      setError("Network error — please try again.");
+      setError("Network error - please try again.");
     } finally {
       setLoading(false);
     }
-  }, [student.name, reason, remarks, onSuccess]);
+  }, [onSuccess, reason, student.name]);
 
   return (
     <AnimatePresence>
@@ -102,7 +114,6 @@ export function DiscontinueStudentModal({ student, onClose, onSuccess }: Props) 
           onClick={(e) => e.stopPropagation()}
           className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6"
         >
-          {/* ── Success State ── */}
           {result ? (
             <div className="text-center py-4">
               <div className="h-14 w-14 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-4">
@@ -113,31 +124,28 @@ export function DiscontinueStudentModal({ student, onClose, onSuccess }: Props) 
               </h3>
               <p className="text-sm text-text-secondary mb-4">{result.message}</p>
 
-              {result.total_written_off > 0 && (
-                <div className="bg-app-bg rounded-xl p-4 mb-4 text-left">
-                  <p className="text-xs text-text-tertiary mb-1">Written Off</p>
-                  <p className="text-xl font-bold text-error">
-                    ₹{result.total_written_off.toLocaleString("en-IN")}
-                  </p>
-                  <p className="text-xs text-text-tertiary mt-1">
-                    {result.credit_notes.length} credit note(s) created
-                  </p>
-                </div>
-              )}
-
               {error && (
                 <div className="bg-warning/10 border border-warning/30 rounded-lg p-3 mb-4 text-sm text-warning text-left">
                   {error}
                 </div>
               )}
 
-              <Button variant="primary" size="sm" onClick={onClose} className="w-full">
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => {
+                  if (result && (result.cleanup_failed?.length ?? 0) > 0) {
+                    onSuccess(result);
+                  }
+                  onClose();
+                }}
+                className="w-full"
+              >
                 Done
               </Button>
             </div>
           ) : (
             <>
-              {/* ── Header ── */}
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center">
@@ -160,7 +168,6 @@ export function DiscontinueStudentModal({ student, onClose, onSuccess }: Props) 
                 </button>
               </div>
 
-              {/* ── Student Info ── */}
               <div className="bg-app-bg rounded-xl p-4 mb-5">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-9 h-9 rounded-full bg-primary-light text-primary flex items-center justify-center text-xs font-bold">
@@ -178,60 +185,40 @@ export function DiscontinueStudentModal({ student, onClose, onSuccess }: Props) 
                 </div>
                 <div className="text-xs text-text-secondary leading-relaxed space-y-1">
                   <p>
-                    • Student will be marked as <strong>Discontinued</strong> (enabled
+                    - Student will be marked as <strong>Discontinued</strong> (enabled
                     = 0)
                   </p>
                   <p>
-                    • Outstanding invoices will be zeroed via <strong>Credit Notes</strong>
+                    - Outstanding invoices will remain <strong>unchanged</strong>
                   </p>
-                  <p>• Program enrollment will be cancelled</p>
-                  <p>• Already-paid amounts stay as revenue — nothing is deleted</p>
+                  <p>- Program enrollment will be cancelled</p>
+                  <p>- Existing invoices stay alive - nothing is deleted</p>
                 </div>
               </div>
 
-              {/* ── Reason Selection ── */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-text-primary mb-2">
                   Reason for Discontinuation <span className="text-error">*</span>
                 </label>
-                <select
+                <textarea
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   disabled={loading}
-                  className="w-full px-3 py-2.5 rounded-[10px] border border-border-light bg-white text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all disabled:opacity-50"
-                >
-                  <option value="">Select a reason…</option>
-                  {DISCONTINUATION_REASONS.map((r) => (
-                    <option key={r} value={r}>
-                      {r}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* ── Remarks ── */}
-              <div className="mb-5">
-                <label className="block text-sm font-medium text-text-primary mb-2">
-                  Remarks <span className="text-text-tertiary font-normal">(optional)</span>
-                </label>
-                <textarea
-                  value={remarks}
-                  onChange={(e) => setRemarks(e.target.value)}
-                  disabled={loading}
-                  placeholder="Additional notes…"
-                  rows={2}
+                  placeholder="Enter the reason for discontinuation"
+                  rows={3}
                   className="w-full px-3 py-2.5 rounded-[10px] border border-border-light bg-white text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all placeholder:text-text-tertiary disabled:opacity-50 resize-none"
                 />
+                <p className="mt-1.5 text-xs text-text-tertiary">
+                  This text will be stored directly on the student record.
+                </p>
               </div>
 
-              {/* ── Error ── */}
               {error && (
                 <div className="bg-error/5 border border-error/20 rounded-lg p-3 mb-4 text-sm text-error">
                   {error}
                 </div>
               )}
 
-              {/* ── Actions ── */}
               <div className="flex items-center gap-3 justify-end">
                 <Button
                   variant="ghost"
@@ -245,13 +232,13 @@ export function DiscontinueStudentModal({ student, onClose, onSuccess }: Props) 
                   variant="primary"
                   size="sm"
                   onClick={handleDiscontinue}
-                  disabled={loading || !reason}
+                  disabled={loading || !reason.trim()}
                   className="!bg-warning hover:!bg-warning/90 !text-white gap-2"
                 >
                   {loading ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Processing…
+                      Processing...
                     </>
                   ) : (
                     <>

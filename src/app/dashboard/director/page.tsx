@@ -567,7 +567,7 @@ export default function DirectorDashboard() {
           </Link>
         </ThreeDCard>
         <ThreeDCard className="min-w-0">
-          <Link href="/dashboard/director/students" className="block h-full">
+          <Link href="/dashboard/director/fees/forfeited" className="block h-full">
             <Card className="h-full hover:shadow-card-hover transition-all duration-200 cursor-pointer border-amber-200/60 hover:border-amber-400/40 overflow-hidden">
               <CardContent className="p-3 text-center">
                 <TriangleAlert className="h-4 w-4 text-amber-500 mx-auto mb-1.5" />

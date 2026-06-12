@@ -587,6 +587,14 @@ async function proxyRequest(request: NextRequest, method: string) {
       (proxyPath.startsWith("resource/Course%20Schedule") ||
         proxyPath.startsWith("resource/Course Schedule"));
 
+    // Student reads — some Director/Management sessions can hit Frappe
+    // permission restrictions on the Student doctype even though the count query
+    // works. Use the admin token here so the discontinued-students modal can load.
+    const isStudentRead =
+      method === "GET" &&
+      (proxyPath.startsWith("resource/Student%20") ||
+        proxyPath.startsWith("resource/Student"));
+
     // Program Enrollment reads — Director/personal tokens may have User Permissions
     // in Frappe that restrict access to a subset of PE records (e.g. by branch or
     // academic year), causing incorrect plan counts on the students dashboard.
@@ -607,6 +615,7 @@ async function proxyRequest(request: NextRequest, method: string) {
       isStudentAttendanceRead ||
       isAssessmentRead ||
       isCourseScheduleRead ||
+      isStudentRead ||
       isProgramEnrollmentRead;
     if (!useAdminToken && hasUserToken) {
       headers["Authorization"] = `token ${sessionData.api_key}:${sessionData.api_secret}`;

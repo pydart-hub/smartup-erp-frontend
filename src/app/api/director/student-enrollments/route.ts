@@ -59,33 +59,51 @@ export async function POST(request: NextRequest) {
       custom_fee_structure?: string;
     }> = {};
 
-    // Chunk requests to avoid URL length limits
-    const chunkSize = 60;
+    // Chunk requests to avoid URL length limits.
+    // Some records can be pending/draft, so fall back to the broader query if
+    // the submitted-docs filter returns no enrollment rows for a student.
+    const chunkSize = 50;
     for (let i = 0; i < studentIds.length; i += chunkSize) {
       const chunk = studentIds.slice(i, i + chunkSize);
-      const params = new URLSearchParams({
+      const baseParams = new URLSearchParams({
         fields: JSON.stringify(["student", "program", "student_batch_name", "custom_plan", "custom_fee_structure"]),
-        filters: JSON.stringify([["student", "in", chunk], ["docstatus", "=", 1]]),
         order_by: "enrollment_date desc",
-        limit_page_length: String(chunk.length * 4),
+        limit_page_length: String(chunk.length * 8),
       });
 
-      const res = await fetch(
-        `${FRAPPE_URL}/api/resource/Program%20Enrollment?${params}`,
-        { headers: { Authorization: adminAuth, Accept: "application/json" }, cache: "no-store" }
-      );
+      const tryQuery = async (docstatusFilter?: [string, string, number | string]) => {
+        const params = new URLSearchParams(baseParams);
+        const filters: Array<[string, string, string | number | string[]]> = [["student", "in", chunk]];
+        if (docstatusFilter) filters.push(docstatusFilter);
+        params.set("filters", JSON.stringify(filters));
 
-      if (!res.ok) continue;
+        const res = await fetch(
+          `${FRAPPE_URL}/api/resource/Program%20Enrollment?${params}`,
+          { headers: { Authorization: adminAuth, Accept: "application/json" }, cache: "no-store" }
+        );
 
-      const json = await res.json();
-      for (const row of json?.data ?? []) {
-        if (row.student && !map[row.student]) {
-          map[row.student] = {
-            program: row.program,
-            student_batch_name: row.student_batch_name,
-            custom_plan: row.custom_plan,
-            custom_fee_structure: row.custom_fee_structure,
-          };
+        if (!res.ok) return [];
+
+        const json = await res.json();
+        return Array.isArray(json?.data) ? json.data : [];
+      };
+
+      const rows = await tryQuery(["docstatus", "=", 1]);
+      const fallbackRows = rows.length ? rows : await tryQuery();
+
+      for (const row of fallbackRows) {
+        if (!row?.student) continue;
+
+        const current = map[row.student];
+        const next = {
+          program: row.program ?? "",
+          student_batch_name: row.student_batch_name ?? "",
+          custom_plan: row.custom_plan ?? "",
+          custom_fee_structure: row.custom_fee_structure ?? "",
+        };
+
+        if (!current || !current.program || !current.student_batch_name) {
+          map[row.student] = next;
         }
       }
     }

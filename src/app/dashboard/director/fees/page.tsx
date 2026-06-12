@@ -22,6 +22,7 @@ import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Input } from "@/components/ui/Input";
 import {
   getAllBranches,
+  getCollectedByMode,
   getBranchInvoiceStats,
   getBranchForfeitedFees,
   getStudentCountForBranch,
@@ -169,6 +170,12 @@ function SummaryCards({
   branches: { name: string }[];
   duesData: DuesTodayBranchRow[] | undefined;
 }) {
+  const { data: collectedByMode, isLoading: loadingCollectedByMode } = useQuery({
+    queryKey: ["director-collected-by-mode"],
+    queryFn: getCollectedByMode,
+    staleTime: 120_000,
+  });
+
   /* Collect per-branch invoice stats */
   const statQueries = branches.map((b) =>
     // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -195,9 +202,9 @@ function SummaryCards({
     })
   );
 
-  const anyLoading = statQueries.some((q) => q.isLoading);
+  const anyLoading = statQueries.some((q) => q.isLoading) || loadingCollectedByMode;
   const total = statQueries.reduce((s, q) => s + (q.data?.totalInvoiced ?? 0), 0);
-  const collected = statQueries.reduce((s, q) => s + (q.data?.totalCollected ?? 0), 0);
+  const collected = collectedByMode?.total ?? 0;
   const outstanding = statQueries.reduce((s, q) => s + (q.data?.totalOutstanding ?? 0), 0);
   const forfeited = forfeitQueries.reduce((s, q) => s + (q.data ?? 0), 0);
   const pending = outstanding - forfeited;

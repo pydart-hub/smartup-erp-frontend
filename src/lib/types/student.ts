@@ -48,7 +48,8 @@ export interface Student {
   custom_place?: string;                 // Student's place/locality
   custom_school_name?: string;           // Previous/current school name
 
-  // Discontinuation fields (custom)
+  // Discontinuation fields (custom / legacy)
+  reason_for_leaving?: string;
   custom_discontinuation_date?: string;
   custom_discontinuation_reason?: string;
   custom_discontinuation_remarks?: string;
