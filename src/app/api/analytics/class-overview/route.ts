@@ -1,4 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  compareAcademicPrograms,
+  getActiveStudentsByLatestProgram,
+  normalizeProgramLabel,
+} from "@/lib/server/analyticsEnrollment";
 
 export const dynamic = "force-dynamic";
 
@@ -45,16 +50,45 @@ export async function GET(request: NextRequest) {
     const allBatches: { name: string; program: string; custom_branch: string }[] =
       sgRes.ok ? (await sgRes.json()).data ?? [] : [];
 
-    // 2. Group batches by program
-    const programMap = new Map<string, { batches: string[]; branches: Set<string> }>();
-    for (const b of allBatches) {
-      const prog = b.program?.trim() || "Uncategorized";
-      if (!programMap.has(prog)) programMap.set(prog, { batches: [], branches: new Set() });
-      programMap.get(prog)!.batches.push(b.name);
-      if (b.custom_branch) programMap.get(prog)!.branches.add(b.custom_branch);
+    const activeStudents = await getActiveStudentsByLatestProgram(auth);
+    const categorizedStudents = activeStudents.filter((student) => student.program !== "Uncategorized");
+
+    // 2. Build class list from active students' latest submitted Program Enrollment.
+    const exactProgramCounts = new Map<string, { students: Set<string>; branches: Set<string>; batches: Set<string> }>();
+    const normalizedProgramCounts = new Map<string, string>();
+    for (const student of categorizedStudents) {
+      if (!exactProgramCounts.has(student.program)) {
+        exactProgramCounts.set(student.program, {
+          students: new Set(),
+          branches: new Set(),
+          batches: new Set(),
+        });
+      }
+      const programEntry = exactProgramCounts.get(student.program)!;
+      programEntry.students.add(student.student);
+      if (student.branch) programEntry.branches.add(student.branch);
+      if (student.batch_name) programEntry.batches.add(student.batch_name);
+      if (!normalizedProgramCounts.has(student.normalized_program)) {
+        normalizedProgramCounts.set(student.normalized_program, student.program);
+      }
     }
 
-    if (programMap.size === 0) {
+    // 3. Map active batch docs to the resolved program names so metrics can still query schedules/exams.
+    const programMap = new Map<string, { batches: string[]; branches: Set<string> }>();
+    for (const b of allBatches) {
+      const rawProgram = b.program?.trim() || "Uncategorized";
+      const resolvedProgram =
+        exactProgramCounts.has(rawProgram)
+          ? rawProgram
+          : normalizedProgramCounts.get(normalizeProgramLabel(rawProgram)) ?? rawProgram;
+      if (!programMap.has(resolvedProgram)) {
+        programMap.set(resolvedProgram, { batches: [], branches: new Set() });
+      }
+      programMap.get(resolvedProgram)!.batches.push(b.name);
+      if (b.custom_branch) programMap.get(resolvedProgram)!.branches.add(b.custom_branch);
+    }
+
+    if (exactProgramCounts.size === 0) {
       return NextResponse.json({
         classes: [],
         overall: {
@@ -67,10 +101,11 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // 3. Aggregate metrics per program in parallel
+    // 4. Aggregate metrics per program in parallel
     const classResults = await Promise.all(
-      Array.from(programMap.entries()).map(async ([program, pd]) => {
-        const batchNames = pd.batches;
+      Array.from(exactProgramCounts.entries()).map(async ([program, counts]) => {
+        const pd = programMap.get(program);
+        const batchNames = pd?.batches ?? [];
 
         // 3a. Attendance records for this program's batches
         const attRes = await fetch(
@@ -88,8 +123,7 @@ export async function GET(request: NextRequest) {
         const attRecords: { student: string; status: string }[] =
           attRes.ok ? (await attRes.json()).data ?? [] : [];
 
-        const uniqueStudents = new Set(attRecords.map((r) => r.student));
-        const totalStudents = uniqueStudents.size;
+        const totalStudents = counts.students.size;
         const totalAtt = attRecords.length;
         const presentCount = attRecords.filter((r) => r.status === "Present" || r.status === "Late").length;
         const avgAttPct = totalAtt > 0 ? Math.round((presentCount / totalAtt) * 1000) / 10 : 0;
@@ -160,8 +194,8 @@ export async function GET(request: NextRequest) {
         return {
           program,
           total_students: totalStudents,
-          total_branches: pd.branches.size,
-          total_batches: batchNames.length,
+          total_branches: counts.branches.size,
+          total_batches: counts.batches.size,
           avg_attendance_pct: avgAttPct,
           avg_exam_score_pct: avgExamScore,
           pass_rate: passRate,
@@ -171,25 +205,22 @@ export async function GET(request: NextRequest) {
     );
 
     const validClasses = classResults
-      .filter((c) => c.total_batches > 0)
-      .sort((a, b) => a.program.localeCompare(b.program));
+      .filter((c) => c.total_students > 0)
+      .sort((a, b) => compareAcademicPrograms(a.program, b.program));
 
     return NextResponse.json({
       classes: validClasses,
       overall: {
-        total_students: validClasses.reduce((s, c) => s + c.total_students, 0),
-        avg_attendance_pct:
-          validClasses.length > 0
-            ? Math.round(validClasses.reduce((s, c) => s + c.avg_attendance_pct, 0) / validClasses.length)
-            : 0,
-        avg_exam_score_pct:
-          validClasses.length > 0
-            ? Math.round(validClasses.reduce((s, c) => s + c.avg_exam_score_pct, 0) / validClasses.length)
-            : 0,
-        pass_rate:
-          validClasses.length > 0
-            ? Math.round(validClasses.reduce((s, c) => s + c.pass_rate, 0) / validClasses.length)
-            : 0,
+        total_students: categorizedStudents.length,
+        avg_attendance_pct: categorizedStudents.length > 0
+          ? Math.round(validClasses.reduce((sum, cls) => sum + cls.avg_attendance_pct * cls.total_students, 0) / categorizedStudents.length)
+          : 0,
+        avg_exam_score_pct: categorizedStudents.length > 0
+          ? Math.round(validClasses.reduce((sum, cls) => sum + cls.avg_exam_score_pct * cls.total_students, 0) / categorizedStudents.length)
+          : 0,
+        pass_rate: categorizedStudents.length > 0
+          ? Math.round(validClasses.reduce((sum, cls) => sum + cls.pass_rate * cls.total_students, 0) / categorizedStudents.length)
+          : 0,
         chronic_absentees: validClasses.reduce((s, c) => s + c.chronic_absentees, 0),
       },
     });

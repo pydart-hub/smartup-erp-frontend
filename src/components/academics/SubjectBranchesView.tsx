@@ -179,6 +179,18 @@ export function SubjectBranchesView({ program, subject, onBack, onSelectBranch }
                           <p className="font-semibold text-primary text-sm">
                             {b.branch.replace("Smart Up ", "")}
                           </p>
+                          <div className="mt-1 space-y-0.5">
+                            {(b.teachers && b.teachers.length > 0) ? (
+                              b.teachers.map((teacher) => (
+                                <p key={teacher.instructor} className="text-xs text-text-tertiary">
+                                  Teacher: {teacher.instructor_name}
+                                  {teacher.phone ? ` (${teacher.phone})` : ""}
+                                </p>
+                              ))
+                            ) : (
+                              <p className="text-xs text-text-tertiary">Teacher: Not mapped</p>
+                            )}
+                          </div>
                           <p className="text-xs text-text-tertiary">
                             {b.avg_score}/{b.maximum_possible} avg
                           </p>

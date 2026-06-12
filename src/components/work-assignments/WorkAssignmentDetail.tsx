@@ -34,8 +34,8 @@ export const WorkAssignmentDetail: React.FC<WorkAssignmentDetailProps> = ({ assi
       setIsLoading(true);
       const doc = await getWorkAssignment(assignmentId);
       setAssignment(doc);
-    } catch (error: any) {
-      toast.error(error?.message || "Failed to load assignment details");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Failed to load assignment details");
     } finally {
       setIsLoading(false);
     }
@@ -43,6 +43,8 @@ export const WorkAssignmentDetail: React.FC<WorkAssignmentDetailProps> = ({ assi
 
   useEffect(() => {
     load();
+    // load depends on assignmentId only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [assignmentId]);
 
   const handleApprove = async (idx: number) => {
@@ -59,8 +61,8 @@ export const WorkAssignmentDetail: React.FC<WorkAssignmentDetailProps> = ({ assi
       } else {
         toast.error(result.message || "Approval failed");
       }
-    } catch (error: any) {
-      toast.error(error?.message || "Approval failed");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Approval failed");
     } finally {
       setIsUpdating(null);
     }
@@ -72,8 +74,8 @@ export const WorkAssignmentDetail: React.FC<WorkAssignmentDetailProps> = ({ assi
       await deleteWorkAssignment(assignmentId);
       toast.success("Work assignment deleted");
       router.push(basePath);
-    } catch (error: any) {
-      toast.error(error?.message || "Failed to delete assignment");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete assignment");
     } finally {
       setIsDeleting(false);
       setShowDeleteConfirm(false);
@@ -101,8 +103,8 @@ export const WorkAssignmentDetail: React.FC<WorkAssignmentDetailProps> = ({ assi
       } else {
         toast.error(result.message || "Rejection failed");
       }
-    } catch (error: any) {
-      toast.error(error?.message || "Rejection failed");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Rejection failed");
     } finally {
       setIsUpdating(null);
     }
@@ -137,9 +139,14 @@ export const WorkAssignmentDetail: React.FC<WorkAssignmentDetailProps> = ({ assi
             {assignment.topic ? <Badge variant="info">{assignment.topic}</Badge> : null}
             <Badge variant="outline">{assignment.for_branch}</Badge>
             <Badge variant="warning">Deadline: {new Date(assignment.deadline).toLocaleDateString()}</Badge>
-            <StatusBadge status={assignment.workflow_state as any} />
+            <StatusBadge status={assignment.workflow_state} />
           </div>
           {assignment.description ? <p className="text-sm text-text-secondary">{assignment.description}</p> : null}
+          {assignment.created_by_name ? (
+            <div className="text-sm text-text-secondary">
+              Assigned by {assignment.created_by_name}
+            </div>
+          ) : null}
           <div className="text-xs text-text-tertiary">
             Total: {assignment.total_assigned} | Submitted: {assignment.submitted_count} | Approved: {assignment.approved_count}
           </div>
@@ -163,8 +170,8 @@ export const WorkAssignmentDetail: React.FC<WorkAssignmentDetailProps> = ({ assi
                     <p className="text-xs text-text-tertiary">{row.instructor}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <StatusBadge status={row.submission_status as any} />
-                    <StatusBadge status={row.approval_status as any} type="approval" />
+                    <StatusBadge status={row.submission_status} />
+                    <StatusBadge status={row.approval_status} type="approval" />
                   </div>
                 </div>
 

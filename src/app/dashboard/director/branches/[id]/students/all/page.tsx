@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   ChevronRight,
   AlertCircle,
+  Calendar,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -35,6 +36,8 @@ export default function BranchAllStudentsPage() {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
   const [page, setPage] = useState(0);
 
   useEffect(() => {
@@ -47,14 +50,19 @@ export default function BranchAllStudentsPage() {
 
   useEffect(() => {
     setPage(0);
-  }, [statusFilter]);
+  }, [statusFilter, fromDate, toDate]);
 
   const enabledParam =
     statusFilter === "active" ? 1 : statusFilter === "inactive" ? 0 : undefined;
 
+  const hasDateRange = Boolean(fromDate || toDate);
   const { data: totalCount } = useQuery({
-    queryKey: ["director-branch-student-count", branchName],
-    queryFn: () => getStudentCountForBranch(branchName),
+    queryKey: ["director-branch-student-count", branchName, fromDate, toDate],
+    queryFn: () =>
+      getStudentCountForBranch(branchName, [
+        ...(fromDate ? [["joining_date", ">=", fromDate] as [string, string, string]] : []),
+        ...(toDate ? [["joining_date", "<=", toDate] as [string, string, string]] : []),
+      ]),
     staleTime: 120_000,
   });
 
@@ -63,11 +71,13 @@ export default function BranchAllStudentsPage() {
     isLoading,
     isError,
   } = useQuery({
-    queryKey: ["director-branch-students-list", branchName, search, statusFilter, page],
+    queryKey: ["director-branch-students-list", branchName, search, statusFilter, fromDate, toDate, page],
     queryFn: () =>
       getBranchStudents(branchName, {
         search: search || undefined,
         enabled: enabledParam,
+        fromDate: fromDate || undefined,
+        toDate: toDate || undefined,
         limit_start: page * PAGE_SIZE,
         limit_page_length: PAGE_SIZE,
         order_by: "student_name asc",
@@ -168,7 +178,11 @@ export default function BranchAllStudentsPage() {
             All Students — {shortName}
           </h1>
           <p className="text-sm text-text-secondary mt-0.5">
-            {totalCount !== undefined ? `${totalCount} total students` : "Loading..."}
+            {totalCount !== undefined
+              ? hasDateRange
+                ? `${totalCount} students in the selected date range`
+                : `${totalCount} total students`
+              : "Loading..."}
           </p>
         </div>
         <Badge variant="outline" className="self-start text-xs">
@@ -177,7 +191,7 @@ export default function BranchAllStudentsPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex flex-col lg:flex-row gap-3">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-tertiary" />
           <Input
@@ -186,6 +200,38 @@ export default function BranchAllStudentsPage() {
             onChange={(e) => setSearchInput(e.target.value)}
             className="pl-9"
           />
+        </div>
+        <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+          <label className="flex items-center gap-1.5 text-xs text-text-secondary">
+            <Calendar className="h-3.5 w-3.5" />
+            <input
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              className="h-9 rounded-[8px] border border-border-input bg-surface px-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+              aria-label="From date"
+            />
+          </label>
+          <span className="text-xs text-text-tertiary">to</span>
+          <input
+            type="date"
+            value={toDate}
+            onChange={(e) => setToDate(e.target.value)}
+            className="h-9 rounded-[8px] border border-border-input bg-surface px-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+            aria-label="To date"
+          />
+          {(fromDate || toDate) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setFromDate("");
+                setToDate("");
+              }}
+            >
+              Clear
+            </Button>
+          )}
         </div>
         <div className="flex gap-2">
           {(["all", "active", "inactive"] as StatusFilter[]).map((s) => (

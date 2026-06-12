@@ -7,9 +7,10 @@ import { CheckCircle2, XCircle, Clock, AlertCircle } from "lucide-react";
 
 type SubmissionStatus = "Pending" | "Submitted" | "Approved" | "Rejected";
 type ApprovalStatus = "Pending" | "Approved" | "Rejected";
+type WorkflowStatus = "Draft" | "Active" | "Completed" | "Cancelled";
 
 export interface StatusBadgeProps {
-  status: SubmissionStatus | ApprovalStatus;
+  status: SubmissionStatus | ApprovalStatus | WorkflowStatus;
   type?: "submission" | "approval";
   className?: string;
 }
@@ -28,7 +29,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
     bgColor = "bg-gray-100";
     textColor = "text-gray-700";
     icon = Clock;
-    label = "Pending";
+    label = type === "approval" ? "Awaiting Review" : "Pending";
   } else if (status === "Submitted") {
     bgColor = "bg-blue-100";
     textColor = "text-blue-700";
@@ -38,12 +39,32 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
     bgColor = "bg-green-100";
     textColor = "text-green-700";
     icon = CheckCircle2;
-    label = "✅ Approved";
+    label = "Approved";
   } else if (status === "Rejected") {
     bgColor = "bg-red-100";
     textColor = "text-red-700";
     icon = XCircle;
-    label = "❌ Rejected";
+    label = "Rejected";
+  } else if (status === "Draft") {
+    bgColor = "bg-slate-100";
+    textColor = "text-slate-700";
+    icon = Clock;
+    label = "Draft";
+  } else if (status === "Active") {
+    bgColor = "bg-blue-100";
+    textColor = "text-blue-700";
+    icon = AlertCircle;
+    label = "Active";
+  } else if (status === "Completed") {
+    bgColor = "bg-green-100";
+    textColor = "text-green-700";
+    icon = CheckCircle2;
+    label = "Completed";
+  } else if (status === "Cancelled") {
+    bgColor = "bg-red-100";
+    textColor = "text-red-700";
+    icon = XCircle;
+    label = "Cancelled";
   }
 
   const IconComponent = icon;
@@ -51,13 +72,13 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium",
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
         bgColor,
         textColor,
         className
       )}
     >
-      <IconComponent className="w-3 h-3" />
+      <IconComponent className="h-3 w-3" />
       {label}
     </span>
   );

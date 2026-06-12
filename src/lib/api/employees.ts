@@ -293,6 +293,17 @@ export async function getInstructors(params?: {
 
 /** Get instructors filtered by company (branch) via Employee cross-reference */
 export async function getInstructorsByCompany(company: string): Promise<Instructor[]> {
+  // Preferred path: server-side route with admin-token reads plus branch scoping.
+  try {
+    const { data } = await apiClient.get<{ data?: Instructor[] }>(
+      `/branch-manager/instructors?branch=${encodeURIComponent(company)}`,
+      { baseURL: "/api" }
+    );
+    return data?.data ?? [];
+  } catch {
+    // Fall back to legacy direct-doctype strategies below.
+  }
+
   // Strategy 1: filter directly by custom_company field on the Instructor doctype
   try {
     const filters = encodeURIComponent(JSON.stringify([["custom_company", "=", company]]));

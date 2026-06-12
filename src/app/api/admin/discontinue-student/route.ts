@@ -126,28 +126,6 @@ async function frappePut(
   return { ok: false, error: summarizeFrappeError(errText) };
 }
 
-async function frappeSetValue(
-  doctype: string,
-  name: string,
-  fieldname: Record<string, unknown>,
-): Promise<{ ok: boolean; error?: string }> {
-  const res = await frappeFetch(
-    `${FRAPPE_URL}/api/method/frappe.client.set_value`,
-    {
-      method: "POST",
-      headers: ADMIN_HEADERS,
-      body: JSON.stringify({
-        doctype,
-        name,
-        fieldname,
-      }),
-    },
-  );
-  if (res.ok) return { ok: true };
-  const errText = await res.text().catch(() => "Unknown error");
-  return { ok: false, error: summarizeFrappeError(errText) };
-}
-
 async function frappeCancelByDocstatus(
   doctype: string,
   name: string,
@@ -227,25 +205,12 @@ export async function POST(request: NextRequest) {
     });
 
     const today = new Date().toISOString().split("T")[0];
-    const studentEnabledResult = await frappePut("Student", student_id, {
+    const studentUpdateResult = await frappePut("Student", student_id, {
       enabled: 0,
+      custom_discontinuation_date: today,
+      custom_discontinuation_reason: reason,
+      custom_discontinuation_remarks: remarks || "",
     });
-    const studentMetaResult = studentEnabledResult.ok
-      ? await frappeSetValue("Student", student_id, {
-          custom_discontinuation_date: today,
-          custom_discontinuation_reason: reason,
-          custom_discontinuation_remarks: remarks || "",
-        })
-      : { ok: false, error: studentEnabledResult.error };
-    const studentUpdateResult = studentEnabledResult.ok && studentMetaResult.ok
-      ? { ok: true as const }
-      : {
-          ok: false as const,
-          error: [
-            !studentEnabledResult.ok ? `enabled update failed: ${studentEnabledResult.error}` : null,
-            !studentMetaResult.ok ? `metadata update failed: ${studentMetaResult.error}` : null,
-          ].filter(Boolean).join(" | "),
-        };
 
     log.push({
       step: "update_student",

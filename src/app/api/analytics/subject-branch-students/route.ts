@@ -1,4 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  getActiveCourseEnrollmentsForLatestPrograms,
+  getActiveStudentSetsForBatches,
+  normalizeProgramLabel,
+} from "@/lib/server/analyticsEnrollment";
 
 export const dynamic = "force-dynamic";
 
@@ -51,13 +56,18 @@ export async function GET(request: NextRequest) {
           ["group_based_on", "=", "Batch"],
           ["disabled", "=", 0],
         ]),
-        fields: JSON.stringify(["name"]),
+        fields: JSON.stringify(["name", "batch"]),
         limit_page_length: "200",
       })}`,
       { headers: { Authorization: auth }, cache: "no-store" },
     );
-    const batchDocs: { name: string }[] = sgRes.ok ? (await sgRes.json()).data ?? [] : [];
+    const batchDocs: { name: string; batch?: string }[] = sgRes.ok ? (await sgRes.json()).data ?? [] : [];
     const batchNames = batchDocs.map((b) => b.name);
+    const batchCodes = new Set(batchDocs.map((b) => b.batch?.trim()).filter(Boolean));
+    const [membership, activeCourseEnrollments] = await Promise.all([
+      getActiveStudentSetsForBatches(auth, batchNames),
+      getActiveCourseEnrollmentsForLatestPrograms(auth),
+    ]);
 
     if (batchNames.length === 0) {
       return NextResponse.json({
@@ -77,13 +87,14 @@ export async function GET(request: NextRequest) {
           ["schedule_date", ">=", fromDate],
           ["schedule_date", "<=", toDate],
         ]),
-        fields: JSON.stringify(["name"]),
+        fields: JSON.stringify(["name", "student_group"]),
         limit_page_length: "5000",
       })}`,
       { headers: { Authorization: auth }, cache: "no-store" },
     );
-    const schedules: { name: string }[] = schedulesRes.ok ? (await schedulesRes.json()).data ?? [] : [];
+    const schedules: { name: string; student_group: string }[] = schedulesRes.ok ? (await schedulesRes.json()).data ?? [] : [];
     const subjectScheduleNames = new Set(schedules.map((schedule) => schedule.name));
+    const subjectBatchNames = new Set<string>(schedules.map((schedule) => schedule.student_group).filter(Boolean));
 
     const attendanceRes = await fetch(
       `${FRAPPE_URL}/api/resource/Student%20Attendance?${new URLSearchParams({
@@ -114,14 +125,39 @@ export async function GET(request: NextRequest) {
     );
     const plans: { name: string; student_group: string; maximum_assessment_score: number }[] =
       plansRes.ok ? (await plansRes.json()).data ?? [] : [];
+    for (const plan of plans) subjectBatchNames.add(plan.student_group);
+
+    const enrolledSubjectStudents = new Set<string>();
+    for (const enrollment of activeCourseEnrollments) {
+      const matchesProgram =
+        enrollment.program === program || enrollment.normalized_program === normalizeProgramLabel(program);
+      const matchesBranch =
+        (enrollment.batch_group_name && batchNames.includes(enrollment.batch_group_name)) ||
+        batchCodes.has(enrollment.batch_name?.trim()) ||
+        enrollment.branch === branch;
+      if (!matchesProgram || enrollment.course !== subject || !matchesBranch) continue;
+      enrolledSubjectStudents.add(enrollment.student);
+    }
 
     if (plans.length === 0) {
       return NextResponse.json({
         program,
         subject,
         branch,
-        students: [],
-        overall: { total_students: 0, avg_attendance_pct: 0, avg_score_pct: 0, pass_rate: 0, highest_score_pct: 0, health_score: 0 },
+        students: Array.from(enrolledSubjectStudents).map((studentId) => ({
+          student: studentId,
+          student_name: membership.studentNames.get(studentId) ?? studentId,
+          student_group: "",
+          rank: 1,
+          attendance_pct: 0,
+          score: 0,
+          maximum_score: 0,
+          percentage: 0,
+          grade: "",
+          passed: false,
+          health_score: 0,
+        })),
+        overall: { total_students: enrolledSubjectStudents.size, avg_attendance_pct: 0, avg_score_pct: 0, pass_rate: 0, highest_score_pct: 0, health_score: 0 },
       });
     }
 
@@ -192,6 +228,18 @@ export async function GET(request: NextRequest) {
       entry.maximum_score += max;
       if (!entry.grade && row.grade) entry.grade = row.grade;
     }
+
+    for (const studentId of enrolledSubjectStudents) {
+      if (studentMap.has(studentId)) continue;
+        studentMap.set(studentId, {
+          student: studentId,
+          student_name: membership.studentNames.get(studentId) ?? studentId,
+          student_group: activeCourseEnrollments.find((row) => row.student === studentId && row.course === subject)?.batch_group_name || "",
+          score: 0,
+          maximum_score: 0,
+          grade: "",
+        });
+      }
 
     const students = Array.from(studentMap.values())
       .map((row) => {

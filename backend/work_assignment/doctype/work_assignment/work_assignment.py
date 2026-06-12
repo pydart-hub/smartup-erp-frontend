@@ -39,25 +39,55 @@ class WorkAssignment(Document):
             frappe.throw(_("Branch {0} does not exist").format(self.for_branch))
 
     def validate_instructors(self):
-        """Ensure at least one instructor is assigned"""
+        """Ensure at least one assignee is configured and normalize row metadata"""
         if not self.assignments or len(self.assignments) == 0:
-            frappe.throw(_("At least one instructor must be assigned"))
+            frappe.throw(_("At least one assignee must be assigned"))
         
-        # Check for duplicate instructors
-        instructors = [row.instructor for row in self.assignments]
-        if len(instructors) != len(set(instructors)):
-            frappe.throw(_("Each instructor can only be assigned once"))
-        
-        # Validate each instructor exists and is from the same branch
+        assignee_keys = []
         for row in self.assignments:
+            assignee_type = (row.assignee_type or "Instructor").strip()
+            if assignee_type == "Branch Manager":
+                assignee_key = row.branch_manager_user
+            else:
+                assignee_key = row.instructor
+            assignee_keys.append(assignee_key)
+
+        assignee_keys = [key for key in assignee_keys if key]
+        if len(assignee_keys) != len(set(assignee_keys)):
+            frappe.throw(_("Each assignee can only be assigned once"))
+        
+        # Validate each assignee exists and is from the same branch
+        for row in self.assignments:
+            assignee_type = (row.assignee_type or "Instructor").strip()
+            if assignee_type == "Branch Manager":
+                if not row.branch_manager_user:
+                    frappe.throw(_("Branch Manager User is mandatory in row {0}").format(row.idx))
+
+                user_doc = frappe.get_doc("User", row.branch_manager_user)
+                employee_name = frappe.db.get_value("Employee", {"user_id": row.branch_manager_user}, "name")
+                if not employee_name:
+                    frappe.throw(_("Branch Manager user {0} is not linked to an Employee").format(row.branch_manager_user))
+
+                emp_doc = frappe.get_doc("Employee", employee_name)
+                if emp_doc.company != self.for_branch:
+                    frappe.throw(_("Branch Manager {0} does not belong to branch {1}").format(user_doc.full_name or user_doc.name, self.for_branch))
+
+                row.assignee_name = user_doc.full_name or user_doc.name
+                row.instructor_name = row.assignee_name
+                row.employee = emp_doc.name
+                row.department = emp_doc.designation or emp_doc.department or ""
+                row.instructor = ""
+                continue
+
             if not row.instructor:
                 frappe.throw(_("Instructor is mandatory in row {0}").format(row.idx))
-            
-            # Fetch instructor details
+
             instructor_doc = frappe.get_doc("Instructor", row.instructor)
+            row.assignee_name = instructor_doc.instructor_name
             row.instructor_name = instructor_doc.instructor_name
             row.employee = instructor_doc.employee
             row.department = instructor_doc.department or ""
+            row.branch_manager_user = ""
 
     def calculate_status_counts(self):
         """Calculate formula fields"""
@@ -70,22 +100,28 @@ class WorkAssignment(Document):
         self.workflow_state = "Active"
         self.status = "Active"
         
-        # Create dashboard notifications for all assigned instructors
+        # Create dashboard notifications for all assigned recipients
         for row in self.assignments:
-            if row.submitted_by:
+            user_email = None
+            link = None
+
+            if (row.assignee_type or "Instructor") == "Branch Manager":
+                user_email = row.branch_manager_user
+                link = f"/app/branch-manager/my-assignments/{self.name}"
+            elif row.instructor:
                 instructor_user = frappe.get_doc("Instructor", row.instructor).employee
-                # Get user from employee
                 emp_doc = frappe.get_doc("Employee", instructor_user)
                 user_email = emp_doc.user_id
-                
-                if user_email:
-                    self.create_notification(
-                        user=user_email,
-                        subject=_("New Work Assignment: {0}").format(self.title),
-                        document_type="Work Assignment",
-                        document_name=self.name,
-                        link=f"/app/instructor/my-assignments/{self.name}"
-                    )
+                link = f"/app/instructor/my-assignments/{self.name}"
+
+            if user_email and link:
+                self.create_notification(
+                    user=user_email,
+                    subject=_("New Work Assignment: {0}").format(self.title),
+                    document_type="Work Assignment",
+                    document_name=self.name,
+                    link=link
+                )
 
     def create_notification(self, user, subject, document_type, document_name, link):
         """Create a dashboard notification (Notification Log)"""

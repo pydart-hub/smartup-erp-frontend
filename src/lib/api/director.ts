@@ -63,7 +63,7 @@ export async function getAllBranches(): Promise<BranchDetail[]> {
 
 async function getCount(
   doctype: string,
-  filters?: Record<string, string>
+  filters?: Record<string, string> | (string | string[])[][]
 ): Promise<number> {
   const params = new URLSearchParams({ doctype });
   if (filters) params.set("filters", JSON.stringify(filters));
@@ -74,9 +74,12 @@ async function getCount(
 }
 
 export async function getStudentCountForBranch(
-  branch: string
+  branch: string,
+  extraFilters?: (string | string[])[][]
 ): Promise<number> {
-  return getCount("Student", { custom_branch: branch });
+  const filters: (string | string[])[][] = [["custom_branch", "=", branch]];
+  if (extraFilters?.length) filters.push(...extraFilters);
+  return getCount("Student", filters);
 }
 
 export async function getActiveStudentCountForBranch(
@@ -844,6 +847,8 @@ export async function getBranchStudents(
   params?: {
     search?: string;
     enabled?: 0 | 1;
+    fromDate?: string;
+    toDate?: string;
     limit_start?: number;
     limit_page_length?: number;
     order_by?: string;
@@ -873,9 +878,13 @@ export async function getBranchStudents(
   );
   if (params?.order_by) searchParams.set("order_by", params.order_by);
 
-  const filters: string[][] = [["custom_branch", "=", branch]];
+  const filters: (string | string[])[][] = [["custom_branch", "=", branch]];
   if (params?.enabled !== undefined)
     filters.push(["enabled", "=", String(params.enabled)]);
+  if (params?.fromDate)
+    filters.push(["joining_date", ">=", params.fromDate]);
+  if (params?.toDate)
+    filters.push(["joining_date", "<=", params.toDate]);
   if (params?.search)
     filters.push(["student_name", "like", `%${params.search}%`]);
   searchParams.set("filters", JSON.stringify(filters));

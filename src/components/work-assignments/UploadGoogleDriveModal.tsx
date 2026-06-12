@@ -24,7 +24,7 @@ export const UploadGoogleDriveModal: React.FC<UploadGoogleDriveModalProps> = ({
   deadline,
   onSuccess,
 }) => {
-  const { instructorName } = useAuth();
+  const { instructorName, user, activeRole, role } = useAuth();
   const [link, setLink] = useState("");
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -55,11 +55,16 @@ export const UploadGoogleDriveModal: React.FC<UploadGoogleDriveModalProps> = ({
       return;
     }
 
+    const recipientKey =
+      activeRole === "Branch Manager" || role === "Branch Manager"
+        ? user?.email || ""
+        : instructorName || "";
+
     setIsSubmitting(true);
     try {
       const result = await submitInstructorWork({
         work_assignment_id: workAssignmentId,
-        instructor_id: instructorName || "",
+        instructor_id: recipientKey,
         google_drive_link: link.trim(),
       });
 

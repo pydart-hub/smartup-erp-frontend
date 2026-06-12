@@ -70,6 +70,32 @@ export async function getProgramEnrollment(name: string): Promise<FrappeSingleRe
 export async function createProgramEnrollment(
   payload: ProgramEnrollmentFormData
 ): Promise<ProgramEnrollment> {
+  async function patchProgramEnrollmentAndCourses(docName: string): Promise<void> {
+    if (payload.student_batch_name) {
+      await apiClient.put(`/resource/Program Enrollment/${encodeURIComponent(docName)}`, {
+        student_batch_name: payload.student_batch_name,
+      });
+    }
+
+    if (!payload.student_group_name) return;
+
+    const ceQuery = new URLSearchParams({
+      fields: JSON.stringify(["name", "custom_batch_name"]),
+      filters: JSON.stringify([["program_enrollment", "=", docName]]),
+      limit_page_length: "100",
+    });
+    const { data: ceList } = await apiClient.get(`/resource/Course Enrollment?${ceQuery}`);
+    const courseEnrollments: { name: string; custom_batch_name?: string | null }[] = ceList.data ?? [];
+    await Promise.all(
+      courseEnrollments.map((ce) => {
+        if (ce.custom_batch_name === payload.student_group_name) return Promise.resolve();
+        return apiClient.put(`/resource/Course Enrollment/${encodeURIComponent(ce.name)}`, {
+          custom_batch_name: payload.student_group_name,
+        });
+      })
+    );
+  }
+
   // 1. Save as draft
   //    Frappe sometimes returns HTTP 409 (Conflict) even when the PE is created.
   //    This happens due to naming collisions that Frappe resolves internally.
@@ -127,25 +153,10 @@ export async function createProgramEnrollment(
   //    auto-created Course Enrollment children before submitting.
   //    Frappe auto-creates Course Enrollments on PE save; they are mandatory
   //    for the `custom_batch_name` field before docstatus can be set to 1.
-  if (payload.student_group_name) {
-    try {
-      const ceQuery = new URLSearchParams({
-        fields: JSON.stringify(["name"]),
-        filters: JSON.stringify([["program_enrollment", "=", docName]]),
-        limit_page_length: "50",
-      });
-      const { data: ceList } = await apiClient.get(`/resource/Course Enrollment?${ceQuery}`);
-      const courseEnrollments: { name: string }[] = ceList.data ?? [];
-      await Promise.all(
-        courseEnrollments.map((ce) =>
-          apiClient.put(`/resource/Course Enrollment/${encodeURIComponent(ce.name)}`, {
-            custom_batch_name: payload.student_group_name,
-          }).catch((e) => console.warn(`[createProgramEnrollment] Could not set custom_batch_name on ${ce.name}:`, e))
-        )
-      );
-    } catch (ceErr) {
-      console.warn("[createProgramEnrollment] Could not patch Course Enrollments:", ceErr);
-    }
+  try {
+    await patchProgramEnrollmentAndCourses(docName);
+  } catch (ceErr) {
+    console.warn("[createProgramEnrollment] Initial PE/CE patch failed:", ceErr);
   }
 
   // 3. Submit (docstatus 0 → 1)
@@ -165,9 +176,37 @@ export async function createProgramEnrollment(
   }
 
   // 4. Return the submitted document
+  let finalDocstatus: 0 | 1 | 2 | undefined;
+  let submitRecoveryError: unknown = null;
+  try {
+    const { data: verifyPE } = await apiClient.get(
+      `/resource/Program Enrollment/${encodeURIComponent(docName)}?fields=["docstatus"]`
+    );
+    finalDocstatus = verifyPE.data?.docstatus;
+    if (finalDocstatus === 0) {
+      await patchProgramEnrollmentAndCourses(docName);
+      await apiClient.put(`/resource/Program Enrollment/${encodeURIComponent(docName)}`, {
+        docstatus: 1,
+      });
+      const { data: verifyAfterRetry } = await apiClient.get(
+        `/resource/Program Enrollment/${encodeURIComponent(docName)}?fields=["docstatus"]`
+      );
+      finalDocstatus = verifyAfterRetry.data?.docstatus;
+    }
+  } catch (retryErr) {
+    submitRecoveryError = retryErr;
+    console.warn(`[createProgramEnrollment] Final submit verification failed for ${docName}:`, retryErr);
+  }
+
   const { data: submitted } = await apiClient.get(
     `/resource/Program Enrollment/${encodeURIComponent(docName)}`
   );
+  if ((submitted.data?.docstatus ?? finalDocstatus) !== 1) {
+    const reason = submitRecoveryError
+      ? extractFrappeError(submitRecoveryError, "Program Enrollment could not be submitted")
+      : "Program Enrollment remained in draft state";
+    throw new Error(`${reason} (PE: ${docName})`);
+  }
   return submitted.data;
 }
 

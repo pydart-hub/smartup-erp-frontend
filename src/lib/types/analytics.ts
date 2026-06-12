@@ -538,6 +538,12 @@ export interface SubjectBranchResult {
   avg_score: number;
   maximum_possible: number;
   health_score: number;
+  teachers: {
+    instructor: string;
+    instructor_name: string;
+    employee?: string;
+    phone?: string;
+  }[];
 }
 
 export interface SubjectBranchesResponse {

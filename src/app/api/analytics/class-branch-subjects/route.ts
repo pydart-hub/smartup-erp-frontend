@@ -1,4 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  getActiveCourseEnrollmentsForLatestPrograms,
+  getActiveStudentSetsForBatches,
+  getActiveStudentsByLatestProgram,
+  normalizeProgramLabel,
+} from "@/lib/server/analyticsEnrollment";
 
 export const dynamic = "force-dynamic";
 
@@ -58,7 +64,7 @@ export async function GET(request: NextRequest) {
             ["group_based_on", "=", "Batch"],
             ["disabled", "=", 0],
           ]),
-          fields: JSON.stringify(["name"]),
+          fields: JSON.stringify(["name", "batch"]),
           limit_page_length: "100",
         })}`,
         { headers: { Authorization: auth }, cache: "no-store" },
@@ -69,8 +75,14 @@ export async function GET(request: NextRequest) {
     const programCourses = (programDoc.courses ?? [])
       .map((item) => item.course?.trim())
       .filter((course): course is string => Boolean(course));
-    const batchDocs: { name: string }[] = sgRes.ok ? (await sgRes.json()).data ?? [] : [];
+    const batchDocs: { name: string; batch?: string }[] = sgRes.ok ? (await sgRes.json()).data ?? [] : [];
     const batchNames = batchDocs.map((b) => b.name);
+    const batchCodes = new Set(batchDocs.map((b) => b.batch?.trim()).filter(Boolean));
+    const [membership, activeStudents, activeCourseEnrollments] = await Promise.all([
+      getActiveStudentSetsForBatches(auth, batchNames),
+      getActiveStudentsByLatestProgram(auth),
+      getActiveCourseEnrollmentsForLatestPrograms(auth),
+    ]);
 
     if (batchNames.length === 0) {
       return NextResponse.json({
@@ -102,8 +114,13 @@ export async function GET(request: NextRequest) {
     const attRecords: { student: string; status: string }[] =
       attRes.ok ? (await attRes.json()).data ?? [] : [];
 
-    const uniqueStudents = new Set(attRecords.map((r) => r.student));
-    const totalStudents = uniqueStudents.size;
+    const branchStudentUniverse = new Set(
+      activeStudents
+        .filter((student) => student.program === program || student.normalized_program === normalizeProgramLabel(program))
+        .filter((student) => student.branch === branch || batchCodes.has(student.batch_name?.trim()))
+        .map((student) => student.student),
+    );
+    const totalStudents = branchStudentUniverse.size;
     const totalAtt = attRecords.length;
     const presentCount = attRecords.filter(
       (r) => r.status === "Present" || r.status === "Late",
@@ -134,10 +151,24 @@ export async function GET(request: NextRequest) {
     );
     const plans: { name: string; student_group: string; course: string }[] =
       plansRes.ok ? (await plansRes.json()).data ?? [] : [];
+    const schedulesRes = await fetch(
+      `${FRAPPE_URL}/api/resource/Course%20Schedule?${new URLSearchParams({
+        filters: JSON.stringify([
+          ["student_group", "in", batchNames],
+          ["schedule_date", ">=", fromDate],
+          ["schedule_date", "<=", toDate],
+        ]),
+        fields: JSON.stringify(["course", "student_group"]),
+        limit_page_length: "5000",
+      })}`,
+      { headers: { Authorization: auth }, cache: "no-store" },
+    );
+    const schedules: { course: string; student_group: string }[] =
+      schedulesRes.ok ? (await schedulesRes.json()).data ?? [] : [];
 
-    const subjectMap: Record<string, { scores: number[]; maxs: number[] }> = {};
+    const subjectMap: Record<string, { scores: number[]; maxs: number[]; students: Set<string> }> = {};
     for (const course of programCourses) {
-      subjectMap[course] = { scores: [], maxs: [] };
+      subjectMap[course] = { scores: [], maxs: [], students: new Set() };
     }
     const batchStats: Record<
       string,
@@ -146,8 +177,24 @@ export async function GET(request: NextRequest) {
     for (const bn of batchNames) {
       batchStats[bn] = { students: new Set(), totalScore: 0, totalMax: 0, passed: 0 };
     }
+    const branchBatchNames = new Set(batchNames);
+    const subjectEnrollments = activeCourseEnrollments.filter((row) => {
+      const matchesProgram = row.program === program || row.normalized_program === normalizeProgramLabel(program);
+      const matchesBranch =
+        (row.batch_group_name && branchBatchNames.has(row.batch_group_name)) ||
+        batchCodes.has(row.batch_name?.trim()) ||
+        row.branch === branch;
+      return matchesProgram && matchesBranch;
+    });
+    for (const enrollment of subjectEnrollments) {
+      if (!subjectMap[enrollment.course]) {
+        subjectMap[enrollment.course] = { scores: [], maxs: [], students: new Set() };
+      }
+      subjectMap[enrollment.course].students.add(enrollment.student);
+    }
 
     if (plans.length > 0) {
+      const planLookup = new Map(plans.map((p) => [p.name, p]));
       const planNames = plans.map((p) => p.name);
       const resultsRes = await fetch(
         `${FRAPPE_URL}/api/resource/Assessment%20Result?${new URLSearchParams({
@@ -174,9 +221,8 @@ export async function GET(request: NextRequest) {
         assessment_plan: string;
       }[] = resultsRes.ok ? (await resultsRes.json()).data ?? [] : [];
 
-      const planLookup = new Map(plans.map((p) => [p.name, p]));
       for (const r of results) {
-        if (!subjectMap[r.course]) subjectMap[r.course] = { scores: [], maxs: [] };
+        if (!subjectMap[r.course]) subjectMap[r.course] = { scores: [], maxs: [], students: new Set() };
         subjectMap[r.course].scores.push(r.total_score);
         subjectMap[r.course].maxs.push(r.maximum_score);
 
@@ -187,6 +233,8 @@ export async function GET(request: NextRequest) {
           bs.totalScore += r.total_score;
           bs.totalMax += r.maximum_score;
           if (r.maximum_score > 0 && (r.total_score / r.maximum_score) * 100 >= 33) bs.passed++;
+          const batchStudents = membership.batchStudents.get(plan.student_group) ?? new Set<string>();
+          for (const studentId of batchStudents) subjectMap[r.course].students.add(studentId);
         }
       }
     }
@@ -202,7 +250,7 @@ export async function GET(request: NextRequest) {
         ).length;
         return {
           subject,
-          total_students: total,
+          total_students: d.students.size,
           avg_score: Math.round(avgScore * 10) / 10,
           avg_score_pct: avgPct,
           pass_rate: total > 0 ? Math.round((passed / total) * 1000) / 10 : 0,
@@ -215,7 +263,7 @@ export async function GET(request: NextRequest) {
 
     const batchSummaries = batchNames.map((name) => {
       const bs = batchStats[name];
-      const studentCount = bs.students.size;
+      const studentCount = membership.batchStudents.get(name)?.size ?? 0;
       const avgPct =
         bs.totalMax > 0 ? Math.round((bs.totalScore / bs.totalMax) * 1000) / 10 : 0;
       const passRate =

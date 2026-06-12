@@ -9,18 +9,30 @@ from urllib.parse import urlparse, parse_qs
 
 
 class WorkAssignmentDetail(Document):
-    """Child table for Work Assignment - stores per-instructor submission & approval data"""
+    """Child table for Work Assignment - stores per-assignee submission & approval data"""
 
     def validate(self):
         """Validate child row"""
-        self.validate_instructor()
+        self.validate_assignee()
         self.validate_google_drive_link()
 
-    def validate_instructor(self):
-        """Ensure instructor exists"""
+    def validate_assignee(self):
+        """Ensure either an Instructor or a Branch Manager is configured correctly."""
+        assignee_type = (self.assignee_type or "Instructor").strip()
+
+        if assignee_type == "Branch Manager":
+            if not self.branch_manager_user:
+                frappe.throw(_("Branch Manager User is mandatory"))
+
+            if not frappe.db.exists("User", self.branch_manager_user):
+                frappe.throw(_("Branch Manager user {0} does not exist").format(self.branch_manager_user))
+
+            # Branch Manager rows must not be forced through the Instructor-only path.
+            return
+
         if not self.instructor:
             frappe.throw(_("Instructor is mandatory"))
-        
+
         if not frappe.db.exists("Instructor", self.instructor):
             frappe.throw(_("Instructor {0} does not exist").format(self.instructor))
 

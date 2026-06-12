@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { ArrowRight, Loader2 } from "lucide-react";
-import { getInstructorAssignments } from "@/lib/api/workAssignment";
+import { getAssignmentsForRecipient } from "@/lib/api/workAssignment";
 import { InstructorAssignmentView } from "@/lib/types/workAssignment";
 import { DeadlineIndicator } from "./DeadlineIndicator";
 import { StatusBadge } from "./StatusBadge";
@@ -16,23 +16,30 @@ import { useAuth } from "@/lib/hooks/useAuth";
 
 export interface InstructorAssignmentListProps {
   onStatsChange?: (active: number, submitted: number, approved: number) => void;
+  recipientType?: "Instructor" | "Branch Manager";
+  basePath?: string;
 }
 
-export const InstructorAssignmentList: React.FC<InstructorAssignmentListProps> = ({ onStatsChange }) => {
-  const { instructorName } = useAuth();
+export const InstructorAssignmentList: React.FC<InstructorAssignmentListProps> = ({
+  onStatsChange,
+  recipientType = "Instructor",
+  basePath = "/dashboard/instructor/my-assignments",
+}) => {
+  const { instructorName, user } = useAuth();
   const [assignments, setAssignments] = useState<InstructorAssignmentView[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchAssignments = async () => {
-      if (!instructorName) {
+      const recipientKey = recipientType === "Branch Manager" ? user?.email || "" : instructorName || "";
+      if (!recipientKey) {
         setIsLoading(false);
         return;
       }
       try {
         setIsLoading(true);
-        const data = await getInstructorAssignments(instructorName);
+        const data = await getAssignmentsForRecipient({ recipientType, recipientKey });
         setAssignments(data);
         setError(null);
         if (onStatsChange) {
@@ -57,7 +64,7 @@ export const InstructorAssignmentList: React.FC<InstructorAssignmentListProps> =
     };
 
     fetchAssignments();
-  }, [instructorName]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [instructorName, recipientType, user?.email]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (isLoading) {
     return (
@@ -100,6 +107,11 @@ export const InstructorAssignmentList: React.FC<InstructorAssignmentListProps> =
                 {assignment.description && (
                   <p className="text-sm text-gray-600 line-clamp-2">{assignment.description}</p>
                 )}
+                {assignment.created_by_name && (
+                  <p className="text-xs text-gray-500">
+                    Assigned by {assignment.created_by_name}
+                  </p>
+                )}
                 {assignment.topic && (
                   <div className="flex items-center gap-2">
                     <Badge variant="outline" className="bg-blue-50">
@@ -111,12 +123,7 @@ export const InstructorAssignmentList: React.FC<InstructorAssignmentListProps> =
 
               {/* Center: Deadline */}
               <div className="md:col-span-3">
-                <DeadlineIndicator
-                  deadline={assignment.deadline}
-                  submissionStatus={
-                    assignment.my_assignment.approval_status as any
-                  }
-                />
+                <DeadlineIndicator deadline={assignment.deadline} submissionStatus={assignment.my_assignment.approval_status} />
               </div>
 
               {/* Right: Status & Action */}
@@ -136,7 +143,7 @@ export const InstructorAssignmentList: React.FC<InstructorAssignmentListProps> =
                   )}
                 </div>
 
-                <Link href={`/dashboard/instructor/my-assignments/${assignment.name}`}>
+                <Link href={`${basePath}/${assignment.name}`}>
                   <Button size="sm" variant="outline" className="mt-2 w-full">
                     View Details
                     <ArrowRight className="w-3 h-3 ml-2" />

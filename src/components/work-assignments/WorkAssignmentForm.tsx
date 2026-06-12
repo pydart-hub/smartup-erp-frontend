@@ -8,15 +8,15 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
-import apiClient from "@/lib/api/client";
-import { getInstructorsByCompany } from "@/lib/api/employees";
+import { getAllBranches } from "@/lib/api/director";
+import { getEmployees, getInstructorsByCompany } from "@/lib/api/employees";
 import {
   createWorkAssignment,
   getWorkAssignment,
   submitWorkAssignment,
   updateWorkAssignment,
 } from "@/lib/api/workAssignment";
-import type { WorkAssignmentCreatePayload } from "@/lib/types/workAssignment";
+import type { WorkAssignment, WorkAssignmentCreatePayload } from "@/lib/types/workAssignment";
 
 interface CompanyOption {
   name: string;
@@ -26,9 +26,16 @@ interface AcademicYearOption {
   name: string;
 }
 
-interface InstructorOption {
-  name: string;
-  instructor_name?: string;
+interface AssigneeOption {
+  key: string;
+  type: "Instructor" | "Branch Manager";
+  label: string;
+  secondaryLabel?: string;
+}
+
+interface SelectedAssignee {
+  key: string;
+  type: "Instructor" | "Branch Manager";
 }
 
 export interface WorkAssignmentFormProps {
@@ -96,8 +103,8 @@ export const WorkAssignmentForm: React.FC<WorkAssignmentFormProps> = ({ assignme
 
   const [branches, setBranches] = useState<CompanyOption[]>([]);
   const [years, setYears] = useState<AcademicYearOption[]>([]);
-  const [instructors, setInstructors] = useState<InstructorOption[]>([]);
-  const [isLoadingInstructors, setIsLoadingInstructors] = useState(false);
+  const [assignees, setAssignees] = useState<AssigneeOption[]>([]);
+  const [isLoadingAssignees, setIsLoadingAssignees] = useState(false);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -105,26 +112,42 @@ export const WorkAssignmentForm: React.FC<WorkAssignmentFormProps> = ({ assignme
   const [forBranch, setForBranch] = useState("");
   const [academicYear, setAcademicYear] = useState("");
   const [deadline, setDeadline] = useState(todayISO());
-  const [selectedInstructors, setSelectedInstructors] = useState<string[]>([""]);
+  const [selectedAssignees, setSelectedAssignees] = useState<SelectedAssignee[]>([{ key: "", type: "Instructor" }]);
 
-  const selectedSet = useMemo(() => new Set(selectedInstructors.filter(Boolean)), [selectedInstructors]);
+  const selectedSet = useMemo(() => new Set(selectedAssignees.map((item) => item.key).filter(Boolean)), [selectedAssignees]);
+
+  const mapAssignmentRowsToSelected = (rows: WorkAssignment["assignments"] | undefined): SelectedAssignee[] => {
+    const mapped = (rows || [])
+      .map((row) => {
+        if (row.assignee_type === "Branch Manager" && row.branch_manager_user) {
+          return { key: row.branch_manager_user, type: "Branch Manager" as const };
+        }
+        if (row.instructor) {
+          return { key: row.instructor, type: "Instructor" as const };
+        }
+        return null;
+      })
+      .filter((row): row is SelectedAssignee => row !== null);
+
+    return mapped.length ? mapped : [{ key: "", type: "Instructor" }];
+  };
 
   useEffect(() => {
     const loadData = async () => {
       try {
         setIsLoading(true);
-        const fields = encodeURIComponent(JSON.stringify(["name"]));
-        const instructorFields = encodeURIComponent(JSON.stringify(["name", "instructor_name"]));
-
-        const [branchRes, yearRes, instructorRes] = await Promise.all([
-          apiClient.get(`/resource/Company?fields=${fields}&limit_page_length=500&order_by=name asc`),
-          apiClient.get(`/resource/Academic Year?fields=${fields}&limit_page_length=50&order_by=name desc`),
-          apiClient.get(`/resource/Instructor?fields=${instructorFields}&limit_page_length=1000&order_by=instructor_name asc`),
+        const [branchData, yearRes] = await Promise.all([
+          getAllBranches(),
+          fetch("/api/director/student-achievements?mode=years", {
+            credentials: "include",
+            cache: "no-store",
+          }),
         ]);
-
-        const branchData = branchRes.data?.data || [];
-        const yearData = yearRes.data?.data || [];
-        const instructorData = instructorRes.data?.data || [];
+        if (!yearRes.ok) {
+          throw new Error(`Failed to load academic years (${yearRes.status})`);
+        }
+        const yearJson = await yearRes.json();
+        const yearData = yearJson?.years || [];
 
         const filteredBranches = branchData.filter((branch: CompanyOption) => !isParentCompany(branch.name));
 
@@ -144,12 +167,11 @@ export const WorkAssignmentForm: React.FC<WorkAssignmentFormProps> = ({ assignme
           setForBranch(doc.for_branch || "");
           setAcademicYear(doc.academic_year || "");
           setDeadline((doc.deadline || "").split(" ")[0] || todayISO());
-          const existing = (doc.assignments || []).map((a) => a.instructor).filter(Boolean);
-          setSelectedInstructors(existing.length ? existing : [""]);
+          setSelectedAssignees(mapAssignmentRowsToSelected(doc.assignments));
           setOriginalDocstatus(doc.docstatus ?? 0);
         }
-      } catch (error: any) {
-        toast.error(error?.message || "Failed to load form data");
+      } catch (error: unknown) {
+        toast.error(error instanceof Error ? error.message : "Failed to load form data");
       } finally {
         setIsLoading(false);
       }
@@ -159,55 +181,74 @@ export const WorkAssignmentForm: React.FC<WorkAssignmentFormProps> = ({ assignme
   }, [assignmentId, isEdit]);
 
   useEffect(() => {
-    const loadInstructorsForBranch = async () => {
+    const loadAssigneesForBranch = async () => {
       if (!forBranch) {
-        setInstructors([]);
-        setSelectedInstructors([""]);
+        setAssignees([]);
+        setSelectedAssignees([{ key: "", type: "Instructor" }]);
         return;
       }
 
       try {
-        setIsLoadingInstructors(true);
+        setIsLoadingAssignees(true);
         const branchInstructors = await getInstructorsByCompany(forBranch);
-        const mapped: InstructorOption[] = branchInstructors
-          .map((ins) => ({ name: ins.name, instructor_name: ins.instructor_name }))
-          .sort((a, b) => (a.instructor_name || a.name).localeCompare(b.instructor_name || b.name));
+        const employeeRows = await getEmployees({ company: forBranch, status: "Active", limit_page_length: 500 });
 
-        setInstructors(mapped);
+        const branchManagers: AssigneeOption[] = (employeeRows.data || [])
+          .filter((emp) => emp.user_id && (emp.designation || "").trim().toLowerCase() === "branch manager")
+          .map((emp) => ({
+            key: emp.user_id as string,
+            type: "Branch Manager" as const,
+            label: emp.employee_name || emp.user_id || emp.name,
+            secondaryLabel: emp.user_id || undefined,
+          }));
 
-        const validNameSet = new Set(mapped.map((ins) => ins.name));
-        setSelectedInstructors((prev) => {
-          const kept = prev.filter((name) => !name || validNameSet.has(name));
-          return kept.length ? kept : [""];
+        const instructorOptions: AssigneeOption[] = branchInstructors.map((ins) => ({
+          key: ins.name,
+          type: "Instructor" as const,
+          label: ins.instructor_name || ins.name,
+          secondaryLabel: ins.name,
+        }));
+
+        const combined = [...instructorOptions, ...branchManagers].sort((a, b) => a.label.localeCompare(b.label));
+        setAssignees(combined);
+
+        const validKeySet = new Set(combined.map((option) => option.key));
+        setSelectedAssignees((prev) => {
+          const kept = prev.filter((item) => !item.key || validKeySet.has(item.key));
+          return kept.length ? kept : [{ key: "", type: "Instructor" }];
         });
-      } catch (error: any) {
-        setInstructors([]);
-        setSelectedInstructors([""]);
-        toast.error(error?.message || "Failed to load instructors for branch");
+      } catch (error: unknown) {
+        setAssignees([]);
+        setSelectedAssignees([{ key: "", type: "Instructor" }]);
+        toast.error(error instanceof Error ? error.message : "Failed to load assignees for branch");
       } finally {
-        setIsLoadingInstructors(false);
+        setIsLoadingAssignees(false);
       }
     };
 
-    loadInstructorsForBranch();
+    loadAssigneesForBranch();
   }, [forBranch]);
 
-  const setInstructorAt = (index: number, value: string) => {
-    setSelectedInstructors((prev) => {
+  const setAssigneeAt = (index: number, value: string) => {
+    const selectedOption = assignees.find((option) => option.key === value);
+    setSelectedAssignees((prev) => {
       const next = [...prev];
-      next[index] = value;
+      next[index] = {
+        key: value,
+        type: selectedOption?.type || "Instructor",
+      };
       return next;
     });
   };
 
-  const addInstructorRow = () => {
-    setSelectedInstructors((prev) => [...prev, ""]);
+  const addAssigneeRow = () => {
+    setSelectedAssignees((prev) => [...prev, { key: "", type: "Instructor" }]);
   };
 
-  const removeInstructorRow = (index: number) => {
-    setSelectedInstructors((prev) => {
+  const removeAssigneeRow = (index: number) => {
+    setSelectedAssignees((prev) => {
       const next = prev.filter((_, i) => i !== index);
-      return next.length ? next : [""];
+      return next.length ? next : [{ key: "", type: "Instructor" }];
     });
   };
 
@@ -222,9 +263,9 @@ export const WorkAssignmentForm: React.FC<WorkAssignmentFormProps> = ({ assignme
     // Only enforce future deadline when creating — editing may keep existing past deadlines
     if (!isEdit && selectedDate < today) return "Deadline must be today or a future date";
 
-    const finalInstructors = selectedInstructors.filter(Boolean);
-    if (finalInstructors.length === 0) return "At least one instructor is required";
-    if (new Set(finalInstructors).size !== finalInstructors.length) return "Duplicate instructors are not allowed";
+    const finalAssignees = selectedAssignees.filter((item) => item.key);
+    if (finalAssignees.length === 0) return "At least one assignee is required";
+    if (new Set(finalAssignees.map((item) => item.key)).size !== finalAssignees.length) return "Duplicate assignees are not allowed";
 
     return null;
   };
@@ -245,7 +286,13 @@ export const WorkAssignmentForm: React.FC<WorkAssignmentFormProps> = ({ assignme
       for_branch: forBranch,
       academic_year: academicYear || undefined,
       deadline,
-      assignments: selectedInstructors.filter(Boolean).map((instructor) => ({ instructor })),
+      assignments: selectedAssignees
+        .filter((item) => item.key)
+        .map((item) =>
+          item.type === "Branch Manager"
+            ? { assignee_type: "Branch Manager" as const, branch_manager_user: item.key }
+            : { assignee_type: "Instructor" as const, instructor: item.key }
+        ),
     };
 
     try {
@@ -353,49 +400,49 @@ export const WorkAssignmentForm: React.FC<WorkAssignmentFormProps> = ({ assignme
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Assigned Instructors</CardTitle>
+          <CardTitle>Assigned People</CardTitle>
           <Button
             type="button"
             size="sm"
             variant="outline"
-            onClick={addInstructorRow}
-            disabled={!forBranch || instructors.length === 0 || isLoadingInstructors}
+            onClick={addAssigneeRow}
+            disabled={!forBranch || assignees.length === 0 || isLoadingAssignees}
           >
             <Plus className="h-4 w-4" /> Add Row
           </Button>
         </CardHeader>
         <CardContent className="space-y-3">
           {!forBranch ? (
-            <p className="text-sm text-text-tertiary">Select a branch to load instructors.</p>
-          ) : isLoadingInstructors ? (
+            <p className="text-sm text-text-tertiary">Select a branch to load instructors and branch managers.</p>
+          ) : isLoadingAssignees ? (
             <div className="flex items-center gap-2 py-2 text-sm text-text-tertiary">
-              <Loader2 className="h-4 w-4 animate-spin" /> Loading instructors…
+              <Loader2 className="h-4 w-4 animate-spin" /> Loading assignees…
             </div>
           ) : null}
 
-          {selectedInstructors.map((selected, index) => {
-            const available = instructors.filter((ins) => !selectedSet.has(ins.name) || ins.name === selected);
+          {selectedAssignees.map((selected, index) => {
+            const available = assignees.filter((option) => !selectedSet.has(option.key) || option.key === selected.key);
 
             return (
               <div key={`wa-ins-${index}`} className="flex items-center gap-2">
                 <select
                   className="h-10 flex-1 rounded-[10px] border border-border-input bg-surface px-3 text-sm text-text-primary"
-                  value={selected}
-                  onChange={(e) => setInstructorAt(index, e.target.value)}
-                  disabled={!forBranch || instructors.length === 0 || isLoadingInstructors}
+                  value={selected.key}
+                  onChange={(e) => setAssigneeAt(index, e.target.value)}
+                  disabled={!forBranch || assignees.length === 0 || isLoadingAssignees}
                 >
                   <option value="">
-                    {isLoadingInstructors
-                      ? "Loading instructors…"
+                    {isLoadingAssignees
+                      ? "Loading assignees…"
                       : !forBranch
                       ? "Select branch first"
-                      : instructors.length === 0
-                      ? "No instructors found for this branch"
-                      : "Select instructor"}
+                      : assignees.length === 0
+                      ? "No assignees found for this branch"
+                      : "Select assignee"}
                   </option>
-                  {available.map((ins) => (
-                    <option key={ins.name} value={ins.name}>
-                      {ins.instructor_name || ins.name}
+                  {available.map((option) => (
+                    <option key={`${option.type}-${option.key}`} value={option.key}>
+                      {option.label} ({option.type})
                     </option>
                   ))}
                 </select>
@@ -403,8 +450,8 @@ export const WorkAssignmentForm: React.FC<WorkAssignmentFormProps> = ({ assignme
                   type="button"
                   size="icon"
                   variant="outline"
-                  onClick={() => removeInstructorRow(index)}
-                  aria-label="Remove instructor row"
+                  onClick={() => removeAssigneeRow(index)}
+                  aria-label="Remove assignee row"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>

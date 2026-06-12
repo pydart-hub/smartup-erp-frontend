@@ -4,6 +4,11 @@
  * Returns discontinued students grouped by their latest class/program along with
  * invoice totals. Invoices are kept alive after discontinuation, so this route
  * reports total invoiced, paid, and pending amounts per student.
+ *
+ * Important:
+ * A student is considered discontinued primarily by Student.enabled = 0.
+ * custom_discontinuation_date is display metadata and may be missing if the
+ * second metadata update failed during the discontinuation flow.
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -73,6 +78,14 @@ function todayStr(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+function pickDiscontinuationDate(student: Record<string, unknown>): string {
+  return (
+    String(student.custom_discontinuation_date ?? "").trim() ||
+    String(student.modified ?? "").trim() ||
+    String(student.creation ?? "").trim()
+  );
+}
+
 function daysBetween(from: string, to: string): number {
   if (!from || !to) return 0;
   const start = new Date(from).getTime();
@@ -91,7 +104,6 @@ export async function GET(request: NextRequest) {
 
     const studentFilters: (string | number | string[])[][] = [
       ["enabled", "=", 0],
-      ["custom_discontinuation_date", "is", "set"],
     ];
     if (company) studentFilters.push(["custom_branch", "=", company]);
 
@@ -105,9 +117,11 @@ export async function GET(request: NextRequest) {
         "custom_discontinuation_date",
         "custom_discontinuation_reason",
         "custom_disabilities",
+        "modified",
+        "creation",
       ],
       500,
-      "custom_discontinuation_date desc",
+      "modified desc",
     );
 
     if (students.length === 0) {
@@ -240,7 +254,7 @@ export async function GET(request: NextRequest) {
         student_id: studentId,
         student_name: (student.student_name as string) || studentId,
         branch: (student.custom_branch as string) || "",
-        discontinuation_date: (student.custom_discontinuation_date as string) || "",
+        discontinuation_date: pickDiscontinuationDate(student),
         reason: (student.custom_discontinuation_reason as string) || "",
         total_invoiced_amount: totals.invoiced,
         paid_amount: totals.paid,

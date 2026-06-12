@@ -14,6 +14,26 @@ import {
   GMAssignmentView,
 } from "@/lib/types/workAssignment";
 
+async function resolveUserDisplayNames(userIds: string[]): Promise<Record<string, string>> {
+  const uniqueUsers = [...new Set(userIds.map((value) => value.trim()).filter(Boolean))];
+  if (uniqueUsers.length === 0) return {};
+
+  const params = new URLSearchParams();
+  uniqueUsers.forEach((user) => params.append("user", user));
+
+  try {
+    const response = await fetch(`/api/work-assignments/user-names?${params.toString()}`, {
+      credentials: "include",
+      cache: "no-store",
+    });
+    if (!response.ok) return {};
+    const json = await response.json();
+    return json?.data ?? {};
+  } catch {
+    return {};
+  }
+}
+
 /**
  * Create a new Work Assignment
  */
@@ -29,7 +49,16 @@ export async function createWorkAssignment(
  */
 export async function getWorkAssignment(id: string): Promise<WorkAssignment> {
   const response = await apiClient.get(`/resource/Work Assignment/${id}`);
-  return response.data.data;
+  const doc = response.data.data as Record<string, unknown>;
+  const createdBy = String(doc.owner || "");
+  const userNames = await resolveUserDisplayNames(createdBy ? [createdBy] : []);
+
+  return {
+    ...doc,
+    created_by: createdBy,
+    created_by_name: userNames[createdBy] || createdBy,
+    created_on: String(doc.creation || ""),
+  } as WorkAssignment;
 }
 
 /**
@@ -146,6 +175,12 @@ export async function getGMWorkAssignments(branch?: string): Promise<GMAssignmen
       )
     );
 
+    const ownerNames = await resolveUserDisplayNames(
+      docs
+        .filter((doc): doc is Record<string, unknown> => doc !== null)
+        .map((doc) => String(doc.owner || ""))
+    );
+
     return docs
       .filter((doc): doc is Record<string, unknown> => doc !== null)
       .map((doc) => {
@@ -169,6 +204,7 @@ export async function getGMWorkAssignments(branch?: string): Promise<GMAssignmen
           workflow_state: status,
           enabled: docStatus === 1,
           created_by: doc.owner as string,
+          created_by_name: ownerNames[String(doc.owner || "")] || String(doc.owner || ""),
           created_on: doc.creation as string,
           instructions_file: null,
           reference_link: null,
@@ -209,16 +245,25 @@ export async function getGMWorkAssignments(branch?: string): Promise<GMAssignmen
  * need to list Work Assignment Detail directly (that throws PermissionError).
  */
 export async function getInstructorAssignments(instructorId: string): Promise<InstructorAssignmentView[]> {
-  if (!instructorId) return [];
+  return getAssignmentsForRecipient({ recipientType: "Instructor", recipientKey: instructorId });
+}
+
+export async function getAssignmentsForRecipient(params: {
+  recipientType: "Instructor" | "Branch Manager";
+  recipientKey: string;
+}): Promise<InstructorAssignmentView[]> {
+  if (!params.recipientKey) return [];
   try {
     // Step 1: Get parent WAs where this instructor is in the child table, docstatus=1 only
     const parentFields = encodeURIComponent(
-      JSON.stringify(["name", "title", "description", "topic", "deadline", "for_branch"])
+      JSON.stringify(["name", "title", "description", "topic", "deadline", "for_branch", "owner", "creation"])
     );
+    const childRecipientField =
+      params.recipientType === "Branch Manager" ? "branch_manager_user" : "instructor";
     const parentFilters = encodeURIComponent(
       JSON.stringify([
         ["docstatus", "=", 1],
-        ["Work Assignment Detail", "instructor", "=", instructorId],
+        ["Work Assignment Detail", childRecipientField, "=", params.recipientKey],
       ])
     );
     const listRes = await apiClient.get(
@@ -237,12 +282,23 @@ export async function getInstructorAssignments(instructorId: string): Promise<In
       )
     );
 
+    const ownerNames = await resolveUserDisplayNames(
+      parentDocs
+        .filter((doc): doc is Record<string, unknown> => doc !== null)
+        .map((doc) => String(doc.owner || ""))
+    );
+
     const result: InstructorAssignmentView[] = [];
     for (const doc of parentDocs) {
       if (!doc) continue;
       const assignments = (doc.assignments as Record<string, unknown>[]) || [];
-      const myDetail = assignments.find((d) => d.instructor === instructorId);
+      const myDetail = assignments.find((d) =>
+        params.recipientType === "Branch Manager"
+          ? d.branch_manager_user === params.recipientKey
+          : d.instructor === params.recipientKey
+      );
       if (!myDetail) continue;
+      const createdBy = String(doc.owner || "");
       result.push({
         name: doc.name as string,
         title: doc.title as string,
@@ -250,6 +306,20 @@ export async function getInstructorAssignments(instructorId: string): Promise<In
         topic: (doc.topic as string) || "",
         deadline: doc.deadline as string,
         for_branch: doc.for_branch as string,
+        assignee_type: (myDetail.assignee_type as "Instructor" | "Branch Manager") || params.recipientType,
+        assignee_key:
+          (params.recipientType === "Branch Manager"
+            ? myDetail.branch_manager_user
+            : myDetail.instructor) as string,
+        assignee_name:
+          ((myDetail.assignee_name as string) ||
+            (myDetail.instructor_name as string) ||
+            (params.recipientType === "Branch Manager"
+              ? (myDetail.branch_manager_user as string)
+              : (myDetail.instructor as string))) as string,
+        created_by: createdBy,
+        created_by_name: ownerNames[createdBy] || createdBy,
+        created_on: String(doc.creation || ""),
         my_assignment: {
           idx: (myDetail.idx as number) || 0,
           submission_status: (myDetail.submission_status as "Pending" | "Submitted") || "Pending",
@@ -270,7 +340,7 @@ export async function getInstructorAssignments(instructorId: string): Promise<In
     if (!status || status === 404 || status === 500) {
       return [];
     }
-    console.error("Error fetching instructor assignments:", error);
+    console.error("Error fetching recipient assignments:", error);
     return [];
   }
 }
@@ -298,7 +368,7 @@ export async function submitInstructorWork(
     // a resubmission (otherwise canReview stays false and the approve/reject
     // buttons never appear for the new submission).
     const updatedAssignments = assignments.map((row) => {
-      if (row.instructor !== payload.instructor_id) return row;
+      if (row.instructor !== payload.instructor_id && row.branch_manager_user !== payload.instructor_id) return row;
       return {
         ...row,
         google_drive_link: payload.google_drive_link,

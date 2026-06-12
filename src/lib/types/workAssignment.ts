@@ -3,8 +3,11 @@
 
 export interface WorkAssignmentDetail {
   idx: number;
+  assignee_type?: "Instructor" | "Branch Manager";
   instructor: string;
   instructor_name: string;
+  branch_manager_user?: string | null;
+  assignee_name?: string | null;
   employee: string;
   department: string;
   submission_status: "Pending" | "Submitted";
@@ -25,6 +28,7 @@ export interface WorkAssignment {
   description: string;
   topic: string; // Just a label, optional
   created_by: string;
+  created_by_name?: string;
   created_on: string;
   for_branch: string;
   academic_year: string;
@@ -51,7 +55,9 @@ export interface WorkAssignmentCreatePayload {
   academic_year?: string;
   deadline: string;
   assignments: {
-    instructor: string;
+    assignee_type?: "Instructor" | "Branch Manager";
+    instructor?: string;
+    branch_manager_user?: string;
   }[];
   instructions_file?: string;
   reference_link?: string;
@@ -64,6 +70,12 @@ export interface InstructorAssignmentView {
   topic: string;
   deadline: string;
   for_branch: string;
+  assignee_type?: "Instructor" | "Branch Manager";
+  assignee_key?: string;
+  assignee_name?: string;
+  created_by?: string;
+  created_by_name?: string;
+  created_on?: string;
   my_assignment: {
     idx: number;
     submission_status: "Pending" | "Submitted";

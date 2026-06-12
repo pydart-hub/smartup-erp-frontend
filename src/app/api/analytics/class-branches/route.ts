@@ -1,4 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  getActiveCourseEnrollmentsForLatestPrograms,
+  getActiveStudentSetsForBatches,
+  getActiveStudentsByLatestProgram,
+  normalizeProgramLabel,
+} from "@/lib/server/analyticsEnrollment";
 
 export const dynamic = "force-dynamic";
 
@@ -66,7 +72,7 @@ export async function GET(request: NextRequest) {
             ["group_based_on", "=", "Batch"],
             ["disabled", "=", 0],
           ]),
-          fields: JSON.stringify(["name", "custom_branch"]),
+          fields: JSON.stringify(["name", "custom_branch", "batch"]),
           limit_page_length: "200",
         })}`,
         { headers: { Authorization: auth }, cache: "no-store" },
@@ -74,11 +80,20 @@ export async function GET(request: NextRequest) {
     ]);
     const programDoc: { courses?: ProgramCourse[] } =
       programRes.ok ? (await programRes.json()).data ?? {} : {};
-    const programCourses = (programDoc.courses ?? [])
-      .map((item) => item.course?.trim())
-      .filter((course): course is string => Boolean(course));
-    const batches: { name: string; custom_branch: string }[] =
+    const programCourseRows = (programDoc.courses ?? [])
+      .map((item) => ({
+        course: item.course?.trim() || "",
+        required: Number(item.required ?? 1),
+      }))
+      .filter((item): item is { course: string; required: number } => Boolean(item.course));
+    const programCourses = programCourseRows.map((item) => item.course);
+    const declaredProgramCourses = new Set(programCourses);
+    const batches: { name: string; custom_branch: string; batch?: string }[] =
       sgRes.ok ? (await sgRes.json()).data ?? [] : [];
+    const [activeStudents, activeCourseEnrollments] = await Promise.all([
+      getActiveStudentsByLatestProgram(auth),
+      getActiveCourseEnrollmentsForLatestPrograms(auth),
+    ]);
 
     // Group by branch
     const branchBatches = new Map<string, string[]>();
@@ -99,9 +114,42 @@ export async function GET(request: NextRequest) {
 
     const allBatchNames = batches.map((b) => b.name);
     const batchToBranch = new Map<string, string>();
+    const batchCodeToBranch = new Map<string, string>();
     for (const [branch, batchList] of branchBatches.entries()) {
       for (const b of batchList) batchToBranch.set(b, branch);
     }
+    for (const batch of batches) {
+      const batchCode = batch.batch?.trim();
+      if (batchCode && batch.custom_branch) {
+        batchCodeToBranch.set(batchCode, batch.custom_branch);
+      }
+    }
+    const membership = await getActiveStudentSetsForBatches(auth, allBatchNames);
+    const branchStudentSets = new Map<string, Set<string>>();
+    for (const [branch] of branchBatches.entries()) branchStudentSets.set(branch, new Set());
+    for (const [batchName, students] of membership.batchStudents.entries()) {
+      const branch = batchToBranch.get(batchName);
+      if (!branch) continue;
+      const branchStudents = branchStudentSets.get(branch)!;
+      for (const studentId of students) branchStudents.add(studentId);
+    }
+    const activeProgramStudents = activeStudents.filter(
+      (student) => student.program === program || student.normalized_program === normalizeProgramLabel(program),
+    );
+    const activeProgramStudentsByBranch = new Map<string, Set<string>>();
+    for (const student of activeProgramStudents) {
+      const resolvedBranch =
+        batchCodeToBranch.get(student.batch_name?.trim()) ??
+        student.branch;
+      if (!resolvedBranch) continue;
+      if (!activeProgramStudentsByBranch.has(resolvedBranch)) {
+        activeProgramStudentsByBranch.set(resolvedBranch, new Set());
+      }
+      activeProgramStudentsByBranch.get(resolvedBranch)!.add(student.student);
+    }
+    const activeProgramCourseEnrollments = activeCourseEnrollments.filter(
+      (row) => row.program === program || row.normalized_program === normalizeProgramLabel(program),
+    );
 
     // 3. Fetch all attendance + exam plans in parallel
     const [attRes, plansRes] = await Promise.all([
@@ -213,6 +261,7 @@ export async function GET(request: NextRequest) {
         scores: number[];
         maxs: number[];
         branches: Set<string>;
+        students: Set<string>;
         attendanceByStudent: Map<string, { p: number; t: number }>;
       }
     >();
@@ -225,11 +274,31 @@ export async function GET(request: NextRequest) {
           scores: [],
           maxs: [],
           branches: new Set(),
+          students: new Set(),
           attendanceByStudent: new Map(),
         });
       }
     }
     const scheduleToCourse = new Map(schedules.map((schedule) => [schedule.name, schedule.course]));
+    for (const enrollment of activeProgramCourseEnrollments) {
+      const branch =
+        batchToBranch.get(enrollment.batch_group_name) ??
+        batchCodeToBranch.get(enrollment.batch_name) ??
+        enrollment.branch;
+      if (!branch) continue;
+      if (!subjectGlobal.has(enrollment.course)) {
+        subjectGlobal.set(enrollment.course, {
+          scores: [],
+          maxs: [],
+          branches: new Set(),
+          students: new Set(),
+          attendanceByStudent: new Map(),
+        });
+      }
+      const subjectEntry = subjectGlobal.get(enrollment.course)!;
+      subjectEntry.branches.add(branch);
+      subjectEntry.students.add(enrollment.student);
+    }
     for (const record of attRecords) {
       const course = record.course_schedule ? scheduleToCourse.get(record.course_schedule) : undefined;
       if (!course) continue;
@@ -238,6 +307,7 @@ export async function GET(request: NextRequest) {
           scores: [],
           maxs: [],
           branches: new Set(),
+          students: new Set(),
           attendanceByStudent: new Map(),
         });
       }
@@ -261,6 +331,7 @@ export async function GET(request: NextRequest) {
           scores: [],
           maxs: [],
           branches: new Set(),
+          students: new Set(),
           attendanceByStudent: new Map(),
         });
       }
@@ -268,6 +339,12 @@ export async function GET(request: NextRequest) {
       sg.scores.push(r.total_score);
       sg.maxs.push(r.maximum_score);
       sg.branches.add(branch);
+      const batchStudents = membership.batchStudents.get(planLookup.get(r.assessment_plan)?.student_group ?? "");
+      if (batchStudents) {
+        for (const studentId of batchStudents) sg.students.add(studentId);
+      } else {
+        sg.students.add(r.student);
+      }
     }
 
     // 7. Build branch results
@@ -277,7 +354,10 @@ export async function GET(request: NextRequest) {
         const examData = branchExamMap.get(branch)!;
 
         const attValues = Array.from(attData.byStudent.values());
-        const totalStudents = attValues.length;
+        const totalStudents =
+          activeProgramStudentsByBranch.get(branch)?.size ??
+          branchStudentSets.get(branch)?.size ??
+          0;
         const totalP = attValues.reduce((s, v) => s + v.p, 0);
         const totalT = attValues.reduce((s, v) => s + v.t, 0);
         const avgAttPct = totalT > 0 ? Math.round((totalP / totalT) * 1000) / 10 : 0;
@@ -331,9 +411,11 @@ export async function GET(request: NextRequest) {
         ).length;
         const passRate = total > 0 ? Math.round((passed / total) * 1000) / 10 : 0;
         const healthScore = Math.round(attendancePct * 0.4 + avgPct * 0.35 + passRate * 0.25);
+        const usesProgramPopulation = declaredProgramCourses.has(subject);
+
         return {
           subject,
-          total_students: Math.max(total, attendanceValues.length),
+          total_students: usesProgramPopulation ? activeProgramStudents.length : d.students.size,
           avg_attendance_pct: attendancePct,
           avg_score_pct: avgPct,
           pass_rate: passRate,
@@ -343,21 +425,31 @@ export async function GET(request: NextRequest) {
       })
       .sort((a, b) => b.health_score - a.health_score || b.avg_score_pct - a.avg_score_pct);
 
+    const totalProgramStudents = activeProgramStudents.length;
     const overall =
       branchResults.length > 0
         ? {
-            total_students: branchResults.reduce((s, b) => s + b.total_students, 0),
-            avg_attendance_pct: Math.round(
-              branchResults.reduce((s, b) => s + b.avg_attendance_pct, 0) / branchResults.length,
-            ),
-            avg_exam_score_pct: Math.round(
-              branchResults.reduce((s, b) => s + b.avg_exam_score_pct, 0) / branchResults.length,
-            ),
-            pass_rate: Math.round(
-              branchResults.reduce((s, b) => s + b.pass_rate, 0) / branchResults.length,
-            ),
+            total_students: totalProgramStudents,
+            avg_attendance_pct: totalProgramStudents > 0
+              ? Math.round(
+                  branchResults.reduce((sum, branch) => sum + branch.avg_attendance_pct * branch.total_students, 0) /
+                    totalProgramStudents,
+                )
+              : 0,
+            avg_exam_score_pct: totalProgramStudents > 0
+              ? Math.round(
+                  branchResults.reduce((sum, branch) => sum + branch.avg_exam_score_pct * branch.total_students, 0) /
+                    totalProgramStudents,
+                )
+              : 0,
+            pass_rate: totalProgramStudents > 0
+              ? Math.round(
+                  branchResults.reduce((sum, branch) => sum + branch.pass_rate * branch.total_students, 0) /
+                    totalProgramStudents,
+                )
+              : 0,
           }
-        : { total_students: 0, avg_attendance_pct: 0, avg_exam_score_pct: 0, pass_rate: 0 };
+        : { total_students: totalProgramStudents, avg_attendance_pct: 0, avg_exam_score_pct: 0, pass_rate: 0 };
 
     return NextResponse.json({ program, branches: branchResults, subjects, overall });
   } catch (error: unknown) {

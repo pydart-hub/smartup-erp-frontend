@@ -90,6 +90,7 @@ export interface NavItem {
 }
 
 export const BRANCH_MANAGER_NAV: NavItem[] = [
+  { label: "My Assignments", href: "/dashboard/branch-manager/my-assignments", icon: "ClipboardList", emoji: "🗂️" },
   { label: "Dashboard", href: "/dashboard/branch-manager", icon: "LayoutDashboard", emoji: "📊" },
   { label: "New Admission", href: "/dashboard/branch-manager/new-admission", icon: "UserPlus", emoji: "🎓" },
   {

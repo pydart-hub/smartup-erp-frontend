@@ -8,7 +8,10 @@
   "engine": "InnoDB",
   "field_order": [
     "instructor_assignment_section",
+    "assignee_type",
     "instructor",
+    "branch_manager_user",
+    "assignee_name",
     "instructor_name",
     "employee",
     "department",
@@ -32,13 +35,33 @@
       "label": "Instructor Assignment"
     },
     {
+      "fieldname": "assignee_type",
+      "fieldtype": "Select",
+      "label": "Assignee Type",
+      "options": "Instructor\nBranch Manager",
+      "default": "Instructor",
+      "reqd": 1
+    },
+    {
       "fieldname": "instructor",
       "fieldtype": "Link",
       "label": "Instructor",
       "options": "Instructor",
-      "mandatory": 1,
-      "reqd": 1,
+      "mandatory_depends_on": "eval:doc.assignee_type != 'Branch Manager'",
       "in_list_view": 1
+    },
+    {
+      "fieldname": "branch_manager_user",
+      "fieldtype": "Link",
+      "label": "Branch Manager User",
+      "options": "User",
+      "mandatory_depends_on": "eval:doc.assignee_type == 'Branch Manager'"
+    },
+    {
+      "fieldname": "assignee_name",
+      "fieldtype": "Data",
+      "label": "Assignee Name",
+      "read_only": 1
     },
     {
       "fieldname": "instructor_name",

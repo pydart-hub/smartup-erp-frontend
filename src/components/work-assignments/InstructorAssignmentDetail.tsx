@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { getInstructorAssignments, isDeadlinePassed } from "@/lib/api/workAssignment";
+import { getAssignmentsForRecipient, isDeadlinePassed } from "@/lib/api/workAssignment";
 import type { InstructorAssignmentView } from "@/lib/types/workAssignment";
 import { DeadlineIndicator } from "./DeadlineIndicator";
 import { StatusBadge } from "./StatusBadge";
@@ -16,19 +16,26 @@ import { useAuth } from "@/lib/hooks/useAuth";
 
 export interface InstructorAssignmentDetailProps {
   assignmentId: string;
+  recipientType?: "Instructor" | "Branch Manager";
+  basePath?: string;
 }
 
-export const InstructorAssignmentDetail: React.FC<InstructorAssignmentDetailProps> = ({ assignmentId }) => {
-  const { instructorName } = useAuth();
+export const InstructorAssignmentDetail: React.FC<InstructorAssignmentDetailProps> = ({
+  assignmentId,
+  recipientType = "Instructor",
+  basePath = "/dashboard/instructor/my-assignments",
+}) => {
+  const { instructorName, user } = useAuth();
   const [assignment, setAssignment] = useState<InstructorAssignmentView | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showUpload, setShowUpload] = useState(false);
 
   const load = async () => {
-    if (!instructorName) return;
+    const recipientKey = recipientType === "Branch Manager" ? user?.email || "" : instructorName || "";
+    if (!recipientKey) return;
     try {
       setIsLoading(true);
-      const rows = await getInstructorAssignments(instructorName);
+      const rows = await getAssignmentsForRecipient({ recipientType, recipientKey });
       const found = rows.find((row) => row.name === assignmentId) || null;
       setAssignment(found);
     } catch (error: unknown) {
@@ -40,7 +47,9 @@ export const InstructorAssignmentDetail: React.FC<InstructorAssignmentDetailProp
 
   useEffect(() => {
     load();
-  }, [assignmentId, instructorName]);
+    // load depends on assignmentId and instructorName only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assignmentId, instructorName, recipientType, user?.email]);
 
   if (isLoading) {
     return (
@@ -87,11 +96,22 @@ export const InstructorAssignmentDetail: React.FC<InstructorAssignmentDetailProp
 
           {assignment.description ? <p className="text-sm text-text-secondary">{assignment.description}</p> : null}
 
-          <DeadlineIndicator deadline={assignment.deadline} submissionStatus={finalStatus as any} />
+          {assignment.created_by_name ? (
+            <div className="space-y-1 text-sm text-text-secondary">
+              <p>Assigned by: {assignment.created_by_name}</p>
+              {assignment.created_on ? (
+                <p className="text-xs text-text-tertiary">
+                  Assigned on {new Date(assignment.created_on).toLocaleString()}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
+          <DeadlineIndicator deadline={assignment.deadline} submissionStatus={finalStatus} />
 
           <div className="flex flex-wrap items-center gap-2">
-            <StatusBadge status={assignment.my_assignment.submission_status as any} />
-            <StatusBadge status={assignment.my_assignment.approval_status as any} type="approval" />
+            <StatusBadge status={assignment.my_assignment.submission_status} />
+            <StatusBadge status={assignment.my_assignment.approval_status} type="approval" />
           </div>
 
           {assignment.my_assignment.google_drive_link ? (
@@ -122,7 +142,7 @@ export const InstructorAssignmentDetail: React.FC<InstructorAssignmentDetailProp
       </Card>
 
       <div className="flex flex-wrap items-center gap-2">
-        <Link href="/dashboard/instructor/my-assignments">
+        <Link href={basePath}>
           <Button variant="outline">Back to list</Button>
         </Link>
 
