@@ -1,3 +1,6 @@
+import { frappeLevelExamDoctypeSync } from "@/lib/server/frappeLevelExamDoctypeSync";
+import type { LevelExamLevelWiseBucket } from "@/lib/types/levelExam";
+
 const FRAPPE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL;
 const FRAPPE_API_KEY = process.env.FRAPPE_API_KEY;
 const FRAPPE_API_SECRET = process.env.FRAPPE_API_SECRET;
@@ -85,6 +88,7 @@ type StoredExam = {
 };
 
 export type AttemptMetric = {
+  attemptId: string;
   studentId: string;
   studentName: string;
   branch: string;
@@ -98,6 +102,17 @@ export type AttemptMetric = {
   score: number;
   percentage: number;
   grade: string;
+};
+
+type StudentSubjectSummary = {
+  subjectName: string;
+  attempts: number;
+  avgScore: number;
+  avgPercentage: number;
+  topGrade: string;
+  latestExamTitle: string;
+  bestAttemptId: string | null;
+  levelWiseBuckets: LevelExamLevelWiseBucket[];
 };
 
 type QuestionBankExam = {
@@ -611,6 +626,7 @@ async function buildLevelExamDashboardData(): Promise<DashboardData> {
       const percentage = Number(row.percentage || 0);
       const score = Number(row.score_obtained || 0);
       return {
+        attemptId: String(row.name || ""),
         studentId,
         studentName: String(row.student_name || student.student_name),
         branch: student.branch,
@@ -808,22 +824,65 @@ export async function getLevelExamClassDetail(levelCode: "8" | "9" | "10") {
   )
     .map(([branch, students]) => {
       const branchAttempts = classAttempts.filter((attempt) => attempt.branch === branch);
+      const gradeCounts = branchAttempts.reduce<Record<string, number>>((acc, attempt) => {
+        acc[attempt.grade] = (acc[attempt.grade] || 0) + 1;
+        return acc;
+      }, {});
       return {
         branch,
         studentCount: students.length,
         attendedCount: new Set(branchAttempts.map((attempt) => attempt.studentId)).size,
         avgScore: round(average(branchAttempts.map((attempt) => attempt.score))),
         avgPercentage: round(average(branchAttempts.map((attempt) => attempt.percentage))),
+        topGrade: Object.entries(gradeCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "NA",
+        passRate: branchAttempts.length
+          ? round((branchAttempts.filter((attempt) => attempt.percentage >= 35).length / branchAttempts.length) * 100)
+          : 0,
       };
     })
     .sort((a, b) => b.attendedCount - a.attendedCount || b.avgPercentage - a.avgPercentage);
 
-  const studentsByBranch = branchSummaries.map((branch) => ({
-    branch: branch.branch,
-    students: classStudents
-      .filter((student) => student.branch === branch.branch)
-      .map((student) => {
+  const studentsByBranch = await Promise.all(
+    branchSummaries.map(async (branch) => ({
+      branch: branch.branch,
+      students: await Promise.all(
+        classStudents
+          .filter((student) => student.branch === branch.branch)
+          .map(async (student) => {
         const studentAttempts = classAttempts.filter((attempt) => attempt.studentId === student.student_id);
+        const bestAttempt = studentAttempts.slice().sort((a, b) => b.percentage - a.percentage)[0] || null;
+        const latestAttempt = studentAttempts
+          .slice()
+          .sort((a, b) => a.examId.localeCompare(b.examId))
+          .slice(-1)[0] || null;
+        const subjectSummaries = await Promise.all(
+          Array.from(
+          studentAttempts.reduce<Map<string, AttemptMetric[]>>((acc, attempt) => {
+            const existing = acc.get(attempt.subjectName) || [];
+            existing.push(attempt);
+            acc.set(attempt.subjectName, existing);
+            return acc;
+          }, new Map()),
+        )
+          .map(async ([subjectName, attempts]): Promise<StudentSubjectSummary> => {
+            const best = attempts.slice().sort((a, b) => b.percentage - a.percentage)[0] || null;
+            const levelWiseBuckets =
+              best?.attemptId
+                ? (await frappeLevelExamDoctypeSync.getResult(best.attemptId, student.student_id))?.level_wise_summary?.buckets ?? []
+                : [];
+            return {
+              subjectName,
+              attempts: attempts.length,
+              avgScore: round(average(attempts.map((attempt) => attempt.score))),
+              avgPercentage: round(average(attempts.map((attempt) => attempt.percentage))),
+              topGrade: best?.grade || "NA",
+              latestExamTitle: best?.examTitle || subjectName,
+              bestAttemptId: best?.attemptId || null,
+              levelWiseBuckets,
+            };
+          }),
+        );
+
         return {
           studentId: student.student_id,
           studentName: student.student_name,
@@ -831,17 +890,40 @@ export async function getLevelExamClassDetail(levelCode: "8" | "9" | "10") {
           attemptedExams: studentAttempts.length,
           scoredMarks: round(average(studentAttempts.map((attempt) => attempt.score))),
           percentage: round(average(studentAttempts.map((attempt) => attempt.percentage))),
-          topGrade:
-            studentAttempts.sort((a, b) => b.percentage - a.percentage)[0]?.grade || "NA",
+          topGrade: bestAttempt?.grade || "NA",
+          bestScore: bestAttempt?.score ?? 0,
+          bestPercentage: bestAttempt?.percentage ?? 0,
+          latestExamTitle: latestAttempt?.examTitle ?? "No diagnosis attempt yet",
+          subjectSummaries: subjectSummaries.sort(
+            (a, b) => b.avgPercentage - a.avgPercentage || a.subjectName.localeCompare(b.subjectName),
+          ),
         };
       })
-      .sort((a, b) => b.percentage - a.percentage || a.studentName.localeCompare(b.studentName)),
-  }));
+      )
+      .then((students) => students.sort((a, b) => b.percentage - a.percentage || a.studentName.localeCompare(b.studentName))),
+    })),
+  );
 
   return {
     classSummary,
     branchSummaries,
     studentsByBranch,
+  };
+}
+
+export async function getLevelExamClassBranchDetail(
+  levelCode: "8" | "9" | "10",
+  branchName: string,
+) {
+  const data = await getLevelExamClassDetail(levelCode);
+  const branchSummary = data.branchSummaries.find((item) => item.branch === branchName) || null;
+  const branchStudents = data.studentsByBranch.find((item) => item.branch === branchName)?.students ?? [];
+
+  return {
+    classSummary: data.classSummary,
+    branchSummary,
+    branchStudents,
+    availableBranches: data.branchSummaries,
   };
 }
 

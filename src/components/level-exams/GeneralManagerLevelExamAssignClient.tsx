@@ -7,6 +7,7 @@ import { ArrowLeft, GraduationCap, Layers3, Send } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { buildDiagnosisExamTitle } from "@/lib/utils/diagnosis";
 
 export type StudentItem = {
   student_id: string;
@@ -94,7 +95,7 @@ function sortLevels(levelA: string, levelB: string) {
 }
 
 function buildUnifiedExamTitle(levelCode: string, subjectName: string) {
-  return `${levelCode}th ${subjectName} Level Exam`;
+  return buildDiagnosisExamTitle(levelCode, subjectName);
 }
 
 export function GeneralManagerLevelExamAssignClient({ initialStudents, initialCatalog }: Props) {

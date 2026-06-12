@@ -667,11 +667,13 @@ def sync_exam_papers_from_catalog(exams=None):
             if not question_text or not correct_option_key or not options:
                 continue
 
+            source_level = str(raw_question.get("source_level") or class_level).strip()
+
             existing_question_name = frappe.db.get_value(
                 "Level Exam Question",
                 {
                     "subject": subject,
-                    "class_level": class_level,
+                    "class_level": source_level,
                     "question_text": question_text,
                 },
                 "name",
@@ -681,13 +683,13 @@ def sync_exam_papers_from_catalog(exams=None):
                 {
                     "doctype": "Level Exam Question",
                     "subject": subject,
-                    "class_level": class_level,
+                    "class_level": source_level,
                     "question_text": question_text,
                 }
             )
 
             question_doc.subject = subject
-            question_doc.class_level = class_level
+            question_doc.class_level = source_level
             question_doc.question_text = question_text
             question_doc.difficulty = difficulty if difficulty in {"Easy", "Medium", "Hard"} else "Medium"
             question_doc.correct_option_key = correct_option_key
@@ -717,6 +719,7 @@ def sync_exam_papers_from_catalog(exams=None):
             question_names.append(
                 {
                     "question": question_doc.name,
+                    "source_level": source_level,
                     "marks": marks,
                     "display_order": display_order,
                 }

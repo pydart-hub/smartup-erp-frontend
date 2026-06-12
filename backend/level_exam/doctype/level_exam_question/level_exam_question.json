@@ -20,7 +20,7 @@
   ],
   "fields": [
     { "fieldname": "subject", "fieldtype": "Data", "label": "Subject", "reqd": 1 },
-    { "fieldname": "class_level", "fieldtype": "Select", "label": "Class Level", "options": "8\n9\n10", "reqd": 1 },
+    { "fieldname": "class_level", "fieldtype": "Select", "label": "Class Level", "options": "5\n6\n7\n8\n9\n10", "reqd": 1 },
     { "fieldname": "source", "fieldtype": "Link", "label": "Source", "options": "Level Exam Source" },
     { "fieldname": "question_text", "fieldtype": "Text Editor", "label": "Question Text", "reqd": 1 },
     { "fieldname": "difficulty", "fieldtype": "Select", "label": "Difficulty", "options": "Easy\nMedium\nHard", "default": "Medium", "reqd": 1 },

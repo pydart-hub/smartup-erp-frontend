@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { getParentLevelExams } from "@/lib/api/levelExams";
+import { formatDiagnosisDisplayTitle } from "@/lib/utils/diagnosis";
 import { useParentData } from "../page";
 import type { LevelExamListItem } from "@/lib/types/levelExam";
 
@@ -121,17 +122,17 @@ export default function ParentLevelExamsPage() {
         <div>
           <h1 className="text-2xl font-bold text-text-primary flex items-center gap-2">
             <GraduationCap className="h-6 w-6 text-primary" />
-            Level Exams
+            Diagnosis
           </h1>
           <p className="text-sm text-text-secondary mt-1">
-            Subject-wise MCQ level exams assigned from the Level Exam module in Frappe.
+            Subject-wise MCQ diagnosis exams assigned for each child.
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Button asChild variant="outline" size="sm">
             <Link href="/dashboard/parent/level-exams/history">
               <History className="h-4 w-4" />
-              Exam History
+              Diagnosis History
             </Link>
           </Button>
         </div>
@@ -142,7 +143,7 @@ export default function ParentLevelExamsPage() {
           <CardHeader>
             <CardTitle>Select Child</CardTitle>
             <CardDescription>
-              Pick the child whose assigned level exams you want to view.
+              Pick the child whose assigned diagnosis exams you want to view.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -162,7 +163,7 @@ export default function ParentLevelExamsPage() {
                 </button>
               ))}
               {children.length === 0 && (
-                <p className="text-sm text-text-secondary">No linked children available for level exams yet.</p>
+                <p className="text-sm text-text-secondary">No linked children available for diagnosis exams yet.</p>
               )}
             </div>
           </CardContent>
@@ -173,7 +174,7 @@ export default function ParentLevelExamsPage() {
         <motion.div variants={item} className="space-y-4">
           {examsQuery.error instanceof Error && (
             <div className="rounded-[12px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              Failed to load assigned level exams: {examsQuery.error.message}
+              Failed to load assigned diagnosis exams: {examsQuery.error.message}
             </div>
           )}
 
@@ -188,7 +189,7 @@ export default function ParentLevelExamsPage() {
             <CardHeader>
               <CardTitle>Student Exam Dashboard</CardTitle>
               <CardDescription>
-                A quick performance snapshot based on completed level exams for {selectedChild.student_name}.
+                A quick performance snapshot based on completed diagnosis exams for {selectedChild.student_name}.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -229,7 +230,7 @@ export default function ParentLevelExamsPage() {
 
                 {performance.subjectStats.length === 0 ? (
                   <p className="mt-4 text-sm text-text-secondary">
-                    This dashboard will fill in automatically after the child completes level exams.
+                    This dashboard will fill in automatically after the child completes diagnosis exams.
                   </p>
                 ) : (
                   <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -269,10 +270,10 @@ export default function ParentLevelExamsPage() {
         </div>
       ) : (
         <>
-          <ExamSection title="Ready To Attend" exams={sections.active} studentId={studentId} emptyText="No active level exams are available for this child right now." />
-          <ExamSection title="Upcoming" exams={sections.upcoming} studentId={studentId} emptyText="No upcoming level exams are scheduled yet." />
-          <ExamSection title="Completed" exams={sections.completed} studentId={studentId} emptyText="No completed level exams yet." />
-          <ExamSection title="Expired" exams={sections.expired} studentId={studentId} emptyText="No expired level exams." />
+          <ExamSection title="Ready To Attend" exams={sections.active} studentId={studentId} emptyText="No active diagnosis exams are available for this child right now." />
+          <ExamSection title="Upcoming" exams={sections.upcoming} studentId={studentId} emptyText="No upcoming diagnosis exams are scheduled yet." />
+          <ExamSection title="Completed" exams={sections.completed} studentId={studentId} emptyText="No completed diagnosis exams yet." />
+          <ExamSection title="Expired" exams={sections.expired} studentId={studentId} emptyText="No expired diagnosis exams." />
         </>
       )}
     </motion.div>
@@ -340,7 +341,7 @@ function ExamSection({
               <CardContent className="p-5 flex items-start justify-between gap-4 flex-wrap">
                 <div className="space-y-2 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="text-base font-semibold text-text-primary">{exam.title}</h3>
+                    <h3 className="text-base font-semibold text-text-primary">{formatDiagnosisDisplayTitle(exam.title)}</h3>
                     <Badge variant={statusBadgeVariant(exam.status)}>{exam.status.replaceAll("_", " ")}</Badge>
                   </div>
                   <div className="flex items-center gap-3 text-sm text-text-secondary flex-wrap">
@@ -368,7 +369,7 @@ function ExamSection({
                   ) : (
                     <Button asChild size="sm">
                       <Link href={`/dashboard/parent/level-exams/${encodeURIComponent(exam.exam_id)}?studentId=${encodeURIComponent(studentId)}`}>
-                        {exam.status === "in_progress" ? "Resume" : "Open Exam"}
+                        {exam.status === "in_progress" ? "Resume" : "Open Diagnosis"}
                         <ChevronRight className="h-4 w-4" />
                       </Link>
                     </Button>

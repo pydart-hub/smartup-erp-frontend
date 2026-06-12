@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { getParentLevelExams } from "@/lib/api/levelExams";
+import { formatDiagnosisDisplayTitle } from "@/lib/utils/diagnosis";
 import { useParentData } from "../../page";
 
 export default function ParentLevelExamHistoryPage() {
@@ -42,7 +43,7 @@ export default function ParentLevelExamHistoryPage() {
           </Button>
           <h1 className="text-2xl font-bold text-text-primary flex items-center gap-2">
             <History className="h-6 w-6 text-primary" />
-            Level Exam History
+            Diagnosis History
           </h1>
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -61,16 +62,16 @@ export default function ParentLevelExamHistoryPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Completed Attempts</CardTitle>
+          <CardTitle>Completed Diagnosis Attempts</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {completed.length === 0 ? (
-            <p className="text-sm text-text-secondary">No completed attempts yet for the selected child.</p>
+            <p className="text-sm text-text-secondary">No completed diagnosis attempts yet for the selected child.</p>
           ) : (
             completed.map((exam) => (
               <div key={exam.exam_id} className="rounded-[12px] border border-border-light bg-app-bg p-4 flex items-center justify-between gap-3 flex-wrap">
                 <div>
-                  <p className="font-semibold text-text-primary">{exam.title}</p>
+                  <p className="font-semibold text-text-primary">{formatDiagnosisDisplayTitle(exam.title)}</p>
                   <p className="text-xs text-text-secondary mt-1">
                     {exam.subject_name} • Level {exam.level_code} • Submitted {exam.submitted_at ? new Date(exam.submitted_at).toLocaleString("en-IN") : "—"}
                   </p>

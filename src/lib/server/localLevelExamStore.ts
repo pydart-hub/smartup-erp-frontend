@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { existsSync } from "fs";
 import { mkdir, readFile, rename, writeFile } from "fs/promises";
 import path from "path";
+import { buildDiagnosisExamTitle } from "@/lib/utils/diagnosis";
 import type {
   LevelExamAttemptPayload,
   LevelExamDetail,
@@ -345,7 +346,7 @@ async function loadGeneratedExams(publishedRecords: PublishedExamRecord[]): Prom
 
         exams.push({
           id: `generated:${normalizeSubjectCode(subjectDoc.subject)}:${level}:${board}`,
-          title: `${level}th ${boardLabel(board)} ${subjectDoc.subject} Level Exam`,
+          title: buildDiagnosisExamTitle(level, subjectDoc.subject),
           subject_code: normalizeSubjectCode(subjectDoc.subject),
           subject_name: subjectDoc.subject,
           level_code: level,
@@ -774,7 +775,7 @@ export const localLevelExamStore = {
 
     const exam: StoredExam = {
       id: examId,
-      title: payload.title?.trim() || `${payload.level_code}th ${boardLabel(payload.board_code)} ${payload.subject_name.trim()} Level Exam`,
+      title: payload.title?.trim() || buildDiagnosisExamTitle(payload.level_code, payload.subject_name.trim()),
       subject_code,
       subject_name: payload.subject_name.trim(),
       level_code: payload.level_code,

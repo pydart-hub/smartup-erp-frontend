@@ -36,7 +36,7 @@ function deriveExamStatus(availableFrom: string, availableUntil: string): "upcom
 
 function buildEmptyAiSummary(studentName: string, subjectName: string): LevelExamResult["ai_summary"] {
   return {
-    headline: `${studentName} completed the ${subjectName} level exam.`,
+    headline: `${studentName} completed the ${subjectName} diagnosis exam.`,
     overview: "Detailed AI insights are not available for this result yet.",
     strengths: [],
     focus_areas: [],

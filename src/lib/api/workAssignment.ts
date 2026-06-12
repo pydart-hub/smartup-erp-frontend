@@ -150,89 +150,19 @@ export async function deleteWorkAssignment(id: string): Promise<void> {
  */
 export async function getGMWorkAssignments(branch?: string): Promise<GMAssignmentView[]> {
   try {
-    const fields = encodeURIComponent(
-      JSON.stringify(["name", "title", "description", "topic", "for_branch",
-        "academic_year", "deadline", "docstatus", "total_assigned",
-        "submitted_count", "approved_count"])
-    );
-    const filters: unknown[][] = [["docstatus", "!=", 2]]; // exclude cancelled/amended-away docs
-    if (branch) filters.push(["for_branch", "=", branch]);
-    const filtersParam = encodeURIComponent(JSON.stringify(filters));
+    const params = new URLSearchParams();
+    if (branch) params.set("branch", branch);
 
-    const listRes = await apiClient.get(
-      `/resource/Work Assignment?fields=${fields}${filters.length ? `&filters=${filtersParam}` : ""}&limit_page_length=200&order_by=creation desc`
-    );
-    const items: Record<string, unknown>[] = listRes.data.data || [];
-    if (!items.length) return [];
+    const response = await fetch(`/api/work-assignments/gm-list?${params.toString()}`, {
+      credentials: "include",
+      cache: "no-store",
+    });
+    if (!response.ok) {
+      throw new Error("Failed to fetch work assignments");
+    }
 
-    // Fetch full docs for assignments child table
-    const docs = await Promise.all(
-      items.map((item) =>
-        apiClient
-          .get(`/resource/Work Assignment/${encodeURIComponent(item.name as string)}`)
-          .then((r) => r.data.data as Record<string, unknown>)
-          .catch(() => null)
-      )
-    );
-
-    const ownerNames = await resolveUserDisplayNames(
-      docs
-        .filter((doc): doc is Record<string, unknown> => doc !== null)
-        .map((doc) => String(doc.owner || ""))
-    );
-
-    return docs
-      .filter((doc): doc is Record<string, unknown> => doc !== null)
-      .map((doc) => {
-        const childRows = (doc.assignments as Record<string, unknown>[]) || [];
-        const submitted = childRows.filter((r) => r.submission_status === "Submitted").length;
-        const approved = childRows.filter((r) => r.approval_status === "Approved").length;
-        const rejected = childRows.filter((r) => r.approval_status === "Rejected").length;
-        const pendingReview = childRows.filter(
-          (r) => r.submission_status === "Submitted" && r.approval_status === "Pending"
-        ).length;
-        const docStatus = doc.docstatus as number;
-        const status: "Draft" | "Active" | "Completed" | "Cancelled" =
-          docStatus === 0 ? "Draft"
-          : docStatus === 1 ? "Active"
-          : docStatus === 2 ? "Cancelled"
-          : "Draft";
-
-        return {
-          ...doc,
-          status,
-          workflow_state: status,
-          enabled: docStatus === 1,
-          created_by: doc.owner as string,
-          created_by_name: ownerNames[String(doc.owner || "")] || String(doc.owner || ""),
-          created_on: doc.creation as string,
-          instructions_file: null,
-          reference_link: null,
-          total_assigned: childRows.length,
-          submitted_count: submitted,
-          approved_count: approved,
-          assignments: childRows as unknown as WorkAssignmentDetail[],
-          status_details: {
-            total: childRows.length,
-            submitted,
-            approved,
-            rejected,
-            pending: childRows.length - submitted,
-            pending_review: pendingReview,
-          },
-          submissions: childRows.map((r) => ({
-            idx: r.idx as number,
-            instructor: r.instructor as string,
-            instructor_name: (r.instructor_name as string) || (r.instructor as string),
-            submission_status: (r.submission_status as string) || "Pending",
-            approval_status: (r.approval_status as string) || "Pending",
-            google_drive_link: (r.google_drive_link as string) || null,
-            submitted_on: (r.submitted_on as string) || null,
-            approval_remarks: (r.approval_remarks as string) || null,
-            rejection_reason: (r.rejection_reason as string) || null,
-          })),
-        } as GMAssignmentView;
-      });
+    const json = await response.json();
+    return (json?.data ?? []) as GMAssignmentView[];
   } catch (error) {
     console.error("Error fetching GM assignments:", error);
     return [];

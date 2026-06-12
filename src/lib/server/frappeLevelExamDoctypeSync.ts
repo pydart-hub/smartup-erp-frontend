@@ -2,13 +2,17 @@ import { readFile } from "fs/promises";
 import { resolve } from "path";
 import { randomUUID } from "crypto";
 import { callLevelExamMethod } from "@/lib/server/frappeLevelExam";
+import { buildDiagnosisExamTitle } from "@/lib/utils/diagnosis";
 import type {
   LevelExamAttemptPayload,
   LevelExamDetail,
+  LevelExamLevelWiseBucket,
+  LevelExamLevelWiseSummary,
   LevelExamListItem,
   LevelExamResult,
   LevelExamSubject,
   AttemptStatus,
+  LevelCode,
 } from "@/lib/types/levelExam";
 
 const FRAPPE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL;
@@ -36,6 +40,7 @@ type OptionRow = {
 
 type ExamQuestionRow = {
   id: string;
+  source_level?: string;
   stem: string;
   explanation?: string;
   difficulty: "easy" | "medium" | "hard";
@@ -122,8 +127,131 @@ function normalizeLevelCode(value?: string | null) {
   return match?.[1] || String(value || "");
 }
 
+function normalizeQuestionStem(value?: string | null) {
+  return String(value || "").replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+function getIncludedSourceLevels(levelCode: string) {
+  if (levelCode === "8") return ["5", "6", "7"] as const;
+  if (levelCode === "9") return ["5", "6", "7", "8"] as const;
+  if (levelCode === "10") return ["5", "6", "7", "8", "9"] as const;
+  return [normalizeLevelCode(levelCode)].filter(Boolean) as Array<"5" | "6" | "7" | "8" | "9" | "10">;
+}
+
+function getPerformanceStatus(percentage: number): LevelExamLevelWiseBucket["status"] {
+  if (percentage >= 75) return "strong";
+  if (percentage >= 40) return "watch";
+  return "revise";
+}
+
+function buildLevelWiseSummary(
+  targetExamLevel: string,
+  questions: LevelExamResult["questions"],
+): LevelExamLevelWiseSummary | null {
+  const includedSourceLevels = getIncludedSourceLevels(targetExamLevel);
+  if (includedSourceLevels.length === 0) return null;
+
+  const buckets = includedSourceLevels.map((sourceLevel) => {
+    const levelQuestions = questions.filter((question) => normalizeLevelCode(question.source_level || "") === sourceLevel);
+    const total_questions = levelQuestions.length;
+    const attempted_questions = levelQuestions.filter((question) => question.selected_option_id).length;
+    const correct_count = levelQuestions.filter((question) => question.is_correct).length;
+    const unanswered_count = levelQuestions.filter((question) => !question.selected_option_id).length;
+    const wrong_count = Math.max(0, attempted_questions - correct_count);
+    const total_marks = levelQuestions.reduce((sum, question) => sum + Number(question.marks || 0), 0);
+    const score_obtained = levelQuestions
+      .filter((question) => question.is_correct)
+      .reduce((sum, question) => sum + Number(question.marks || 0), 0);
+    const percentage = total_marks > 0 ? Math.round((score_obtained / total_marks) * 100) : 0;
+    const accuracy = attempted_questions > 0 ? Math.round((correct_count / attempted_questions) * 100) : 0;
+
+    return {
+      source_level: sourceLevel,
+      label: `${sourceLevel}th Level`,
+      total_questions,
+      attempted_questions,
+      correct_count,
+      wrong_count,
+      unanswered_count,
+      score_obtained,
+      total_marks,
+      percentage,
+      accuracy,
+      status: getPerformanceStatus(percentage),
+    } satisfies LevelExamLevelWiseBucket;
+  }).filter((bucket) => bucket.total_questions > 0);
+
+  if (buckets.length === 0) return null;
+
+  const sortedByStrength = [...buckets].sort((a, b) => b.percentage - a.percentage || b.score_obtained - a.score_obtained);
+  const strongest = sortedByStrength[0] || null;
+  const weakest = [...sortedByStrength].reverse()[0] || null;
+
+  const progression_summary = [
+    `This ${targetExamLevel}th diagnosis exam was checked across ${buckets.map((bucket) => bucket.label).join(", ")} foundations.`,
+    strongest ? `Strongest level: ${strongest.label} with ${strongest.score_obtained}/${strongest.total_marks} (${strongest.percentage}%).` : "",
+    weakest ? `Most support needed at ${weakest.label} with ${weakest.score_obtained}/${weakest.total_marks} (${weakest.percentage}%).` : "",
+  ].filter(Boolean);
+
+  return {
+    target_exam_level: normalizeLevelCode(targetExamLevel) as LevelExamLevelWiseSummary["target_exam_level"],
+    included_source_levels: buckets.map((bucket) => bucket.source_level),
+    buckets,
+    strongest_level: strongest?.source_level || null,
+    weakest_level: weakest?.source_level || null,
+    progression_summary,
+  };
+}
+
+function buildLevelAwareAiSummary(
+  studentName: string,
+  subjectName: string,
+  scoreObtained: number,
+  totalMarks: number,
+  percentage: number,
+  levelWiseSummary: LevelExamLevelWiseSummary | null,
+): LevelExamResult["ai_summary"] {
+  const strongestBucket = levelWiseSummary?.buckets
+    ? [...levelWiseSummary.buckets].sort((a, b) => b.percentage - a.percentage || b.score_obtained - a.score_obtained)[0]
+    : null;
+  const weakestBucket = levelWiseSummary?.buckets
+    ? [...levelWiseSummary.buckets].sort((a, b) => a.percentage - b.percentage || a.score_obtained - b.score_obtained)[0]
+    : null;
+
+  const headline =
+    percentage >= 80
+      ? `${studentName} performed strongly in ${subjectName}.`
+      : percentage >= 50
+        ? `${studentName} is making steady progress in ${subjectName}.`
+        : `${studentName} needs support in ${subjectName}.`;
+
+  const strengths = strongestBucket
+    ? [`Best level performance was in ${strongestBucket.label} with ${strongestBucket.percentage}% score.`]
+    : [];
+  const focus_areas = weakestBucket
+    ? [`Main revision need is ${weakestBucket.label}, where the score was ${weakestBucket.score_obtained}/${weakestBucket.total_marks} (${weakestBucket.percentage}%).`]
+    : [];
+  const exam_summary = levelWiseSummary?.progression_summary?.length
+    ? levelWiseSummary.progression_summary
+    : [`This exam result is based on ${subjectName} performance only.`];
+
+  return {
+    headline,
+    overview: `${studentName} scored ${scoreObtained}/${totalMarks} (${percentage}%).`,
+    strengths,
+    focus_areas,
+    exam_summary,
+    best_topic: strongestBucket ? strongestBucket.label : null,
+    priority_topic: weakestBucket ? weakestBucket.label : null,
+    study_topics: [],
+    next_step: weakestBucket
+      ? `Revise ${weakestBucket.label} concepts first, then retry similar ${subjectName} questions.`
+      : "Review incorrect questions and practise the weak topics.",
+  };
+}
+
 function titleForLevelExam(levelCode: string, subjectName: string) {
-  return `${levelCode}th ${subjectName} Level Exam`;
+  return buildDiagnosisExamTitle(levelCode, subjectName);
 }
 
 async function readJsonFile<T>(filePath: string): Promise<T> {
@@ -141,6 +269,7 @@ function mapJsonBankQuestion(question: JsonBankQuestion, index: number): ExamQue
 
   return {
     id: String(question.id),
+    source_level: normalizeLevelCode(question.source_level || ""),
     stem: String(question.question_text),
     explanation: "",
     difficulty: "medium",
@@ -473,6 +602,7 @@ function buildAttemptPayloadFromExam(
       .sort((a, b) => a.display_order - b.display_order)
       .map((question) => ({
         id: question.id,
+        source_level: question.source_level,
         stem: question.stem,
         explanation: question.explanation,
         difficulty: question.difficulty,
@@ -680,6 +810,18 @@ async function getQuestionBankExamById(examId: string) {
   return exams.find((exam) => exam.id === examId) || null;
 }
 
+async function getQuestionBankSourceLevelMap(subjectName: string, targetLevel: string) {
+  const exam = await getQuestionBankExamById(makeQuestionBankExamId(targetLevel, subjectName));
+  const sourceMap = new Map<string, string>();
+  for (const question of exam?.questions || []) {
+    const key = normalizeQuestionStem(question.stem);
+    if (key && question.source_level && !sourceMap.has(key)) {
+      sourceMap.set(key, normalizeLevelCode(question.source_level));
+    }
+  }
+  return sourceMap;
+}
+
 async function getPublishedExamIdsSafe(exams: StoredExamRecord[]) {
   if (!isEnabled()) return new Set<string>();
 
@@ -734,6 +876,9 @@ function isExistingQuestionReusable(
   question: ExamQuestionRow,
 ) {
   if (!existingQuestion) return false;
+  if (normalizeLevelCode(String(existingQuestion.class_level || "")) !== normalizeLevelCode(question.source_level || "")) {
+    return false;
+  }
   if (Number(existingQuestion.is_active || 0) !== 1) return false;
   if (String(existingQuestion.review_status || "").trim() !== "Approved") return false;
   if (String(existingQuestion.correct_option_key || "").trim() !== (question.options.find((option) => option.is_correct)?.option_key || "")) {
@@ -750,7 +895,7 @@ async function ensureQuestionDoc(
   const existingQuestion = existingQuestionsByText?.get(question.stem.trim()) || null;
   const payload = {
     subject: exam.subject_name,
-    class_level: exam.level_code,
+    class_level: normalizeLevelCode(question.source_level || exam.level_code),
     question_text: question.stem,
     difficulty: question.difficulty.charAt(0).toUpperCase() + question.difficulty.slice(1),
     correct_option_key: question.options.find((option) => option.is_correct)?.option_key || "",
@@ -779,9 +924,8 @@ async function ensurePaperDoc(exam: StoredExamRecord) {
     DOCTYPES.question,
     [
       ["subject", "=", exam.subject_name],
-      ["class_level", "=", exam.level_code],
     ],
-    ["name", "question_text", "is_active", "review_status", "correct_option_key"],
+    ["name", "question_text", "class_level", "is_active", "review_status", "correct_option_key"],
     5000,
   );
 
@@ -799,6 +943,7 @@ async function ensurePaperDoc(exam: StoredExamRecord) {
     if (!questionName) continue;
     questionRows.push({
       question: questionName,
+      source_level: normalizeLevelCode(question.source_level || ""),
       marks: question.marks,
       display_order: question.display_order,
     });
@@ -1567,6 +1712,12 @@ export const frappeLevelExamDoctypeSync = {
       const assignmentDoc = await getAssignmentDocByName(String(doc.assignment || ""));
       const answerRows = Array.isArray(doc.answers) ? doc.answers as Array<Record<string, unknown>> : [];
       const answerMap = new Map(answerRows.map((row) => [String(row.question || ""), row]));
+      const targetExamLevel = normalizeLevelCode(String(doc.class_level || ""));
+      const includedSourceLevels = new Set(getIncludedSourceLevels(targetExamLevel));
+      const sourceLevelMap = await getQuestionBankSourceLevelMap(
+        String(doc.subject || assignmentDoc?.subject || paperDoc.subject || ""),
+        targetExamLevel,
+      );
 
       const questionResults: LevelExamResult["questions"] = [];
       for (const paperRow of (Array.isArray(paperDoc.questions) ? paperDoc.questions as Array<Record<string, unknown>> : []).sort((a, b) => Number(a.display_order || a.idx || 0) - Number(b.display_order || b.idx || 0))) {
@@ -1577,9 +1728,17 @@ export const frappeLevelExamDoctypeSync = {
         const answerRow = answerMap.get(questionId);
         const correctOptionKey = String(answerRow?.correct_option_key || questionDoc.correct_option_key || "");
         const options = Array.isArray(questionDoc.options) ? questionDoc.options as Array<Record<string, unknown>> : [];
+        const questionStem = String(questionDoc.question_text || "");
+        const questionDocLevel = normalizeLevelCode(String(questionDoc.class_level || "")) as LevelCode | "";
+        const resolvedSourceLevel =
+          normalizeLevelCode(String(paperRow.source_level || "")) ||
+          (questionDocLevel && includedSourceLevels.has(questionDocLevel) ? questionDocLevel : "") ||
+          sourceLevelMap.get(normalizeQuestionStem(questionStem)) ||
+          null;
         questionResults.push({
           question_id: questionId,
-          stem: String(questionDoc.question_text || ""),
+          source_level: resolvedSourceLevel as LevelExamResult["questions"][number]["source_level"],
+          stem: questionStem,
           marks: Number(paperRow.marks || 0),
           selected_option_id: answerRow?.selected_option_key ? String(answerRow.selected_option_key) : null,
           correct_option_id: correctOptionKey,
@@ -1593,6 +1752,13 @@ export const frappeLevelExamDoctypeSync = {
           })),
         });
       }
+
+      const normalizedQuestions = questionResults.map((question) => ({
+        ...question,
+        source_level: (normalizeLevelCode(question.source_level || "") ||
+          null) as LevelExamResult["questions"][number]["source_level"],
+      }));
+      const levelWiseSummary = buildLevelWiseSummary(targetExamLevel, normalizedQuestions);
 
       return {
         attempt_id: attemptId,
@@ -1612,18 +1778,16 @@ export const frappeLevelExamDoctypeSync = {
         correct_count: Number(doc.correct_count || 0),
         wrong_count: Number(doc.wrong_count || 0),
         unanswered_count: Number(doc.unanswered_count || 0),
-        ai_summary: {
-          headline: Number(doc.percentage || 0) >= 80 ? "Strong performance" : Number(doc.percentage || 0) >= 50 ? "Steady progress" : "Needs support",
-          overview: `${String(doc.student_name || "Student")} scored ${Number(doc.score_obtained || 0)}/${Number(doc.total_marks || 0)}.`,
-          strengths: [],
-          focus_areas: [],
-          exam_summary: [],
-          best_topic: null,
-          priority_topic: null,
-          study_topics: [],
-          next_step: "Review incorrect questions and practise the weak topics.",
-        },
-        questions: questionResults,
+        level_wise_summary: levelWiseSummary,
+        ai_summary: buildLevelAwareAiSummary(
+          String(doc.student_name || "Student"),
+          String(doc.subject || assignmentDoc?.subject || paperDoc.subject || ""),
+          Number(doc.score_obtained || 0),
+          Number(doc.total_marks || 0),
+          Number(doc.percentage || 0),
+          levelWiseSummary,
+        ),
+        questions: normalizedQuestions,
       } satisfies LevelExamResult;
     });
   },
@@ -1753,7 +1917,7 @@ export const frappeLevelExamDoctypeSync = {
       const questionRows = await resourceList(
         DOCTYPES.question,
         [["name", "in", payload.questions.map((row) => row.question)]],
-        ["name", "question_text", "difficulty", "correct_option_key", "explanation", "options_json"],
+        ["name", "question_text", "class_level", "difficulty", "correct_option_key", "explanation", "options_json"],
         1000,
       );
       const questionMap = new Map(questionRows.map((row) => [String(row.name), row]));
@@ -1763,6 +1927,7 @@ export const frappeLevelExamDoctypeSync = {
         const options = parseRecordJson<Array<{ option_key: string; option_text: string }>>(questionDoc?.options_json, []);
         return {
           id: String(questionDoc?.name || row.question),
+          source_level: normalizeLevelCode(String(questionDoc?.class_level || "")),
           stem: String(questionDoc?.question_text || ""),
           explanation: questionDoc?.explanation ? String(questionDoc.explanation) : "",
           difficulty: String(questionDoc?.difficulty || "medium").toLowerCase() as ExamQuestionRow["difficulty"],

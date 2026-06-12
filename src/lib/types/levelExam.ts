@@ -103,6 +103,7 @@ export interface LevelExamAttemptPayload {
 
 export interface LevelExamResultQuestion {
   question_id: string;
+  source_level?: LevelCode | null;
   stem: string;
   marks: number;
   selected_option_id?: string | null;
@@ -133,6 +134,30 @@ export interface LevelExamAiSummary {
   next_step: string;
 }
 
+export interface LevelExamLevelWiseBucket {
+  source_level: LevelCode;
+  label: string;
+  total_questions: number;
+  attempted_questions: number;
+  correct_count: number;
+  wrong_count: number;
+  unanswered_count: number;
+  score_obtained: number;
+  total_marks: number;
+  percentage: number;
+  accuracy: number;
+  status: "strong" | "watch" | "revise";
+}
+
+export interface LevelExamLevelWiseSummary {
+  target_exam_level: LevelCode;
+  included_source_levels: LevelCode[];
+  buckets: LevelExamLevelWiseBucket[];
+  strongest_level?: LevelCode | null;
+  weakest_level?: LevelCode | null;
+  progression_summary: string[];
+}
+
 export interface LevelExamResult {
   attempt_id: string;
   exam_id: string;
@@ -152,6 +177,7 @@ export interface LevelExamResult {
   correct_count: number;
   wrong_count: number;
   unanswered_count: number;
+  level_wise_summary?: LevelExamLevelWiseSummary | null;
   ai_summary: LevelExamAiSummary;
   questions: LevelExamResultQuestion[];
 }

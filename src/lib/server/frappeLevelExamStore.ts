@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import { frappeLevelExamDoctypeSync } from "@/lib/server/frappeLevelExamDoctypeSync";
 import { parseLevelExamDocx } from "@/lib/server/levelExamDocParser";
+import { buildDiagnosisExamTitle } from "@/lib/utils/diagnosis";
 
 function assertFrappeLevelExamReady<T>(value: T | null, message: string): T {
   if (value === null) {
@@ -102,7 +103,7 @@ export const frappeLevelExamStore = {
 
     const exam = {
       id: examId,
-      title: payload.title?.trim() || `${payload.level_code}th ${payload.board_code === "cbse" ? "CBSE" : "State"} ${payload.subject_name.trim()} Level Exam`,
+      title: payload.title?.trim() || buildDiagnosisExamTitle(payload.level_code, payload.subject_name.trim()),
       subject_code: normalizeSubjectCode(payload.subject_name),
       subject_name: payload.subject_name.trim(),
       level_code: payload.level_code,

@@ -216,7 +216,7 @@ export const INSTRUCTOR_NAV: NavItem[] = [
 export const PARENT_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard/parent", icon: "LayoutDashboard", emoji: "📊" },
   { label: "Children", href: "/dashboard/parent/children", icon: "Baby", emoji: "👶" },
-  { label: "Level Exams", href: "/dashboard/parent/level-exams", icon: "ClipboardList", emoji: "📝" },
+  { label: "Diagnosis Exam", href: "/dashboard/parent/level-exams", icon: "ClipboardList", emoji: "📝" },
   { label: "Attendance", href: "/dashboard/parent/attendance", icon: "ClipboardCheck", emoji: "✅" },
   { label: "Schedule", href: "/dashboard/parent/schedule", icon: "CalendarDays", emoji: "📅" },
   { label: "Performance", href: "/dashboard/parent/performance", icon: "Trophy", emoji: "🏆" },
@@ -257,13 +257,13 @@ export const GENERAL_MANAGER_NAV: NavItem[] = [
   { label: "Actions Needed", href: "/dashboard/general-manager/actions-needed", icon: "MessageSquareWarning", emoji: "⚠️" },
   { label: "Exams", href: "/dashboard/general-manager/exams", icon: "ClipboardList", emoji: "📝" },
   {
-    label: "Level Exams",
+    label: "Diagnosis Exam",
     href: "/dashboard/general-manager/level-exams",
     icon: "BookOpen",
     emoji: "📘",
     children: [
       { label: "Overview", href: "/dashboard/general-manager/level-exams", icon: "LayoutDashboard", emoji: "📊" },
-      { label: "Publish Exams", href: "/dashboard/general-manager/level-exams/assign", icon: "UserPlus", emoji: "📤" },
+      { label: "Publish Diagnosis", href: "/dashboard/general-manager/level-exams/assign", icon: "UserPlus", emoji: "📤" },
     ],
   },
   { label: "Course Schedule", href: "/dashboard/general-manager/course-schedule", icon: "CalendarDays", emoji: "📅" },

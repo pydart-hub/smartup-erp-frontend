@@ -3,29 +3,23 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight, Building2, GraduationCap, Percent, Trophy, Users } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
-import { getGradeTone, getLevelExamClassDetail } from "@/lib/server/levelExamDashboard";
+import { getLevelExamClassDetail } from "@/lib/server/levelExamDashboard";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 type PageProps = {
   params: Promise<{ levelCode: string }>;
-  searchParams: Promise<{ branch?: string }>;
 };
 
-export default async function GMLevelExamClassDetailPage({ params, searchParams }: PageProps) {
+export default async function GMLevelExamClassDetailPage({ params }: PageProps) {
   const { levelCode } = await params;
-  const { branch } = await searchParams;
 
   if (!["8", "9", "10"].includes(levelCode)) {
     notFound();
   }
 
   const data = await getLevelExamClassDetail(levelCode as "8" | "9" | "10");
-  const selectedBranch = branch && data.branchSummaries.some((item) => item.branch === branch)
-    ? branch
-    : data.branchSummaries[0]?.branch;
-  const branchStudents = data.studentsByBranch.find((item) => item.branch === selectedBranch)?.students ?? [];
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
@@ -34,7 +28,7 @@ export default async function GMLevelExamClassDetailPage({ params, searchParams 
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-tertiary">Class Drilldown</p>
           <h1 className="mt-2 text-3xl font-bold text-text-primary">{levelCode}th Level Exam Branch-wise View</h1>
           <p className="mt-2 text-sm text-text-secondary">
-            Select a branch to view student-level marks and percentage for class {levelCode}.
+            Select a branch to open a dedicated diagnosis result page for class {levelCode}.
           </p>
         </div>
         <Button asChild variant="outline">
@@ -84,25 +78,22 @@ export default async function GMLevelExamClassDetailPage({ params, searchParams 
         </Card>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[0.95fr_1.25fr]">
+      <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Building2 className="h-5 w-5 text-primary" />
               Branch-wise View
             </CardTitle>
-            <CardDescription>Choose a branch to inspect class {levelCode} student performance.</CardDescription>
+            <CardDescription>Choose a branch to inspect class {levelCode} diagnosis results on a separate page.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {data.branchSummaries.map((item) => {
-              const active = item.branch === selectedBranch;
               return (
                 <Link
                   key={item.branch}
-                  href={`/dashboard/general-manager/level-exams/${levelCode}?branch=${encodeURIComponent(item.branch)}`}
-                  className={`block rounded-[18px] border p-4 transition-colors ${
-                    active ? "border-primary bg-primary/5" : "border-border-light bg-app-bg/50 hover:border-primary/30"
-                  }`}
+                  href={`/dashboard/general-manager/level-exams/${levelCode}/${encodeURIComponent(item.branch)}`}
+                  className="block rounded-[18px] border border-border-light bg-app-bg/50 p-4 transition-colors hover:border-primary/30 hover:bg-primary/5"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -131,54 +122,36 @@ export default async function GMLevelExamClassDetailPage({ params, searchParams 
 
         <Card>
           <CardHeader>
-            <CardTitle>
-              {selectedBranch ? `${selectedBranch} Student Performance` : "Student Performance"}
-            </CardTitle>
+            <CardTitle>Branch Result Pages</CardTitle>
             <CardDescription>
-              Student-wise scored marks and percentage for class {levelCode}.
+              Each branch opens its own clean diagnosis result page with student-wise cards and subject-wise breakdown.
             </CardDescription>
           </CardHeader>
-          <CardContent className="overflow-x-auto">
-            {selectedBranch ? (
-              branchStudents.length ? (
-                <table className="min-w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border-light text-left text-text-tertiary">
-                      <th className="px-3 py-3 font-medium">Student</th>
-                      <th className="px-3 py-3 font-medium">Batch</th>
-                      <th className="px-3 py-3 text-center font-medium">Attempts</th>
-                      <th className="px-3 py-3 text-center font-medium">Scored marks</th>
-                      <th className="px-3 py-3 text-center font-medium">Percentage</th>
-                      <th className="px-3 py-3 text-center font-medium">Grade</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {branchStudents.map((student) => (
-                      <tr key={student.studentId} className="border-b border-border-light/70 last:border-b-0">
-                        <td className="px-3 py-3 font-medium text-text-primary">{student.studentName}</td>
-                        <td className="px-3 py-3 text-text-secondary">{student.studentGroup || "-"}</td>
-                        <td className="px-3 py-3 text-center text-text-primary">{student.attemptedExams}</td>
-                        <td className="px-3 py-3 text-center text-text-primary">{student.scoredMarks}</td>
-                        <td className="px-3 py-3 text-center font-semibold text-primary">{student.percentage}%</td>
-                        <td className="px-3 py-3 text-center">
-                          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${getGradeTone(student.topGrade)}`}>
-                            {student.topGrade}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <div className="rounded-[18px] border border-dashed border-border-light p-6 text-sm text-text-secondary">
-                  No student attempt data found for this branch and class.
-                </div>
-              )
-            ) : (
-              <div className="rounded-[18px] border border-dashed border-border-light p-6 text-sm text-text-secondary">
-                No branches found for this class.
-              </div>
-            )}
+          <CardContent className="space-y-4">
+            <div className="rounded-[18px] border border-dashed border-border-light p-6 text-sm text-text-secondary">
+              Open any branch from the left panel to view its dedicated result page.
+            </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              {data.branchSummaries.slice(0, 4).map((item) => (
+                <Link
+                  key={item.branch}
+                  href={`/dashboard/general-manager/level-exams/${levelCode}/${encodeURIComponent(item.branch)}`}
+                  className="rounded-[16px] border border-border-light bg-app-bg p-4 transition-colors hover:border-primary/30 hover:bg-primary/5"
+                >
+                  <p className="font-semibold text-text-primary">{item.branch}</p>
+                  <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <p className="text-text-tertiary">Students</p>
+                      <p className="mt-1 font-semibold text-text-primary">{item.studentCount}</p>
+                    </div>
+                    <div>
+                      <p className="text-text-tertiary">Attended</p>
+                      <p className="mt-1 font-semibold text-text-primary">{item.attendedCount}</p>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </CardContent>
         </Card>
       </section>

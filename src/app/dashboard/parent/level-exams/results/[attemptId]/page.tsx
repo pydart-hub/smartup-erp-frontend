@@ -11,9 +11,17 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { getParentLevelExamResult } from "@/lib/api/levelExams";
-import type { LevelExamAiSummary, LevelExamResult } from "@/lib/types/levelExam";
+import { formatDiagnosisDisplayTitle } from "@/lib/utils/diagnosis";
+import type { LevelExamAiSummary, LevelExamLevelWiseBucket, LevelExamResult } from "@/lib/types/levelExam";
 
 function buildFallbackSummary(result: LevelExamResult): LevelExamAiSummary {
+  const levelBuckets = result.level_wise_summary?.buckets ?? [];
+  const strongestLevel = levelBuckets.length
+    ? [...levelBuckets].sort((a, b) => b.percentage - a.percentage || b.score_obtained - a.score_obtained)[0]
+    : null;
+  const weakestLevel = levelBuckets.length
+    ? [...levelBuckets].sort((a, b) => a.percentage - b.percentage || a.score_obtained - b.score_obtained)[0]
+    : null;
   type TopicStatus = "strong" | "watch" | "revise";
   const getStatusRank = (status: string) => {
     if (status === "revise") return 0;
@@ -81,33 +89,42 @@ function buildFallbackSummary(result: LevelExamResult): LevelExamAiSummary {
     headline,
     overview: `Scored ${result.score_obtained} out of ${result.total_marks} (${result.percentage}%). ${result.wrong_count} wrong and ${result.unanswered_count} unanswered.`,
     strengths: [
+      strongestLevel
+        ? `Strongest level performance: ${strongestLevel.label} with ${strongestLevel.score_obtained}/${strongestLevel.total_marks} (${strongestLevel.percentage}%).`
+        : null,
       studyTopics.find((topic) => topic.status === "strong")
         ? `Best performing topic: ${studyTopics.find((topic) => topic.status === "strong")?.topic}.`
         : result.correct_count > 0
           ? `${result.correct_count} question${result.correct_count === 1 ? "" : "s"} were answered correctly.`
           : "The attempt gives us a starting point for guided revision.",
-    ],
+    ].filter(Boolean) as string[],
     focus_areas: missedExamples.length
       ? missedExamples
       : [
+          weakestLevel
+            ? `Most support is needed in ${weakestLevel.label}, where the score was ${weakestLevel.score_obtained}/${weakestLevel.total_marks} (${weakestLevel.percentage}%).`
+            : null,
           result.wrong_count > 0
             ? `Review the incorrect answers and the related concepts from this exam.`
             : "Maintain the same accuracy level with one more practice round.",
           result.unanswered_count > 0
             ? "Improve time management so fewer questions are left unanswered."
             : "Keep practicing full-paper completion under time limits.",
-        ],
+        ].filter(Boolean) as string[],
     exam_summary: [
+      ...(result.level_wise_summary?.progression_summary ?? []),
       `This exam mainly covered ${studyTopics.map((topic) => topic.topic).slice(0, 3).join(", ") || result.subject_name}.`,
       studyTopics.find((topic) => topic.status === "revise")
         ? `The most important study topic is ${studyTopics.find((topic) => topic.status === "revise")?.topic}.`
         : "The child has a balanced performance pattern across the exam.",
     ],
-    best_topic: studyTopics.find((topic) => topic.status === "strong")?.topic || null,
-    priority_topic: studyTopics.find((topic) => topic.status === "revise")?.topic || studyTopics.find((topic) => topic.status === "watch")?.topic || null,
+    best_topic: strongestLevel?.label || studyTopics.find((topic) => topic.status === "strong")?.topic || null,
+    priority_topic: weakestLevel?.label || studyTopics.find((topic) => topic.status === "revise")?.topic || studyTopics.find((topic) => topic.status === "watch")?.topic || null,
     study_topics: studyTopics,
     next_step:
-      result.percentage >= 60
+      weakestLevel
+        ? `Next step: revise ${weakestLevel.label} questions first, then retry a short mixed-level practice set.`
+        : result.percentage >= 60
         ? `Next step: revisit the missed questions once and try another short practice set.`
         : `Next step: revise the exact wrong questions with the correct answers, then retry similar MCQs with guidance.`,
   };
@@ -162,7 +179,7 @@ export default function ParentLevelExamResultPage() {
         <Button asChild variant="ghost" size="sm">
           <Link href={`/dashboard/parent/level-exams?studentId=${encodeURIComponent(studentId)}`}>
             <ArrowLeft className="h-4 w-4" />
-            Back to Exams
+            Back to Diagnosis
           </Link>
         </Button>
       </div>
@@ -179,7 +196,7 @@ export default function ParentLevelExamResultPage() {
             <CardHeader>
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div>
-                  <CardTitle>{result.title}</CardTitle>
+                  <CardTitle>{formatDiagnosisDisplayTitle(result.title)}</CardTitle>
                   <p className="text-sm text-text-secondary mt-2">
                     {result.child.student_name} • {result.subject_name} • Level {result.level_code}
                   </p>
@@ -195,6 +212,32 @@ export default function ParentLevelExamResultPage() {
             </CardContent>
           </Card>
 
+          {result.level_wise_summary?.buckets?.length ? (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Target className="h-5 w-5 text-primary" />
+                  <CardTitle className="text-lg">Level-wise Performance</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  {result.level_wise_summary.buckets.map((bucket) => (
+                    <LevelWiseCard key={bucket.source_level} bucket={bucket} />
+                  ))}
+                </div>
+                <div className="rounded-[12px] border border-border-light bg-app-bg p-4">
+                  <p className="text-xs uppercase tracking-wide text-text-tertiary mb-3">Level Progress Summary</p>
+                  <div className="space-y-2">
+                    {result.level_wise_summary.progression_summary.map((item) => (
+                      <p key={item} className="text-sm text-text-primary leading-6">{item}</p>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
+
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">
@@ -208,7 +251,7 @@ export default function ParentLevelExamResultPage() {
                 <p className="mt-2 text-sm text-text-secondary leading-6">{aiSummary?.overview}</p>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid gap-4 md:grid-cols-2">
                 <SummaryPanel
                   icon={<Sparkles className="h-4 w-4 text-success" />}
                   label="Best Topic"
@@ -221,12 +264,6 @@ export default function ParentLevelExamResultPage() {
                   value={aiSummary?.priority_topic || "General revision"}
                   tone="warning"
                 />
-                <SummaryPanel
-                  icon={<Brain className="h-4 w-4 text-primary" />}
-                  label="Exam Pattern"
-                  value={`${topicCards.length} topic areas identified`}
-                  tone="primary"
-                />
               </div>
 
               <div className="rounded-[12px] border border-border-light bg-app-bg p-4">
@@ -238,6 +275,7 @@ export default function ParentLevelExamResultPage() {
                 </div>
               </div>
 
+              {topicCards.length > 0 ? (
               <div className="grid gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
                 <div className="rounded-[12px] border border-border-light bg-app-bg p-4">
                   <p className="text-xs uppercase tracking-wide text-text-tertiary mb-3">Topic Review</p>
@@ -320,6 +358,7 @@ export default function ParentLevelExamResultPage() {
                   )}
                 </div>
               </div>
+              ) : null}
 
               <div className="rounded-[12px] border border-success/20 bg-success/10 p-4">
                 <p className="text-xs uppercase tracking-wide text-text-tertiary mb-1">Next Step</p>
@@ -457,6 +496,31 @@ function MetricCard({ icon, label, value }: { icon: ReactNode; label: string; va
         <span className="text-xs uppercase tracking-wide text-text-tertiary">{label}</span>
       </div>
       <p className="text-lg font-semibold text-text-primary">{value}</p>
+    </div>
+  );
+}
+
+function LevelWiseCard({ bucket }: { bucket: LevelExamLevelWiseBucket }) {
+  const badgeVariant = bucket.status === "strong" ? "success" : bucket.status === "watch" ? "warning" : "error";
+
+  return (
+    <div className="rounded-[12px] border border-border-light bg-app-bg p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-text-primary">{bucket.label}</p>
+          <p className="mt-1 text-xs text-text-secondary">
+            {bucket.score_obtained}/{bucket.total_marks} score
+          </p>
+        </div>
+        <Badge variant={badgeVariant}>
+          {bucket.status === "strong" ? "Strong" : bucket.status === "watch" ? "Watch" : "Revise"}
+        </Badge>
+      </div>
+      <div className="mt-4 space-y-1 text-sm text-text-secondary">
+        <p>{bucket.percentage}% result</p>
+        <p>{bucket.correct_count} correct / {bucket.wrong_count} wrong / {bucket.unanswered_count} unanswered</p>
+        <p>{bucket.attempted_questions}/{bucket.total_questions} attempted</p>
+      </div>
     </div>
   );
 }
