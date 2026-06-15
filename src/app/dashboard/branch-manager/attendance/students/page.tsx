@@ -649,7 +649,9 @@ export default function AttendancePage() {
         doc.setFontSize(10);
         doc.text(`Range: ${formatDisplayDate(reportFromDate)} to ${formatDisplayDate(reportToDate)}`, 14, 23);
 
-        (doc as jsPDF & { autoTable: (options: Record<string, unknown>) => void }).autoTable({
+        (doc as InstanceType<typeof jsPDF> & {
+          autoTable: (options: Record<string, unknown>) => void;
+        }).autoTable({
           startY: 28,
           head: [[
             "Student ID",
