@@ -55,6 +55,8 @@ export interface StudentGroupOption {
   custom_branch?: string;
   custom_is_one_to_one?: 0 | 1;
   custom_subject?: string;
+  custom_o2o_rate_per_class?: number | string | null;
+  custom_o2o_rate_per_hour?: number | string | null;
 }
 
 // ── Field lists ────────────────────────────────────────────────────────────────
@@ -398,18 +400,31 @@ export async function getStudentGroups(params?: {
     );
     const groups = res.message ?? [];
 
+    const hydratedGroups = await Promise.all(
+      groups.map(async (group) => {
+        try {
+          const single = await apiClient.get<{ data: StudentGroupOption }>(
+            `/resource/Student Group/${encodeURIComponent(group.name)}?fields=${encodeURIComponent(JSON.stringify(baseFields))}`,
+          );
+          return { ...group, ...single.data.data };
+        } catch {
+          return group;
+        }
+      }),
+    );
+
     // Ensure the preselected group is included even if filtered by branch.
     const includeName = params.includeName?.trim();
-    if (includeName && !groups.some((g) => g.name === includeName)) {
+    if (includeName && !hydratedGroups.some((g) => g.name === includeName)) {
       try {
         const single = await apiClient.get<{ data: StudentGroupOption }>(
           `/resource/Student Group/${encodeURIComponent(includeName)}?fields=${encodeURIComponent(JSON.stringify(baseFields))}`,
         );
-        groups.push(single.data.data);
+        hydratedGroups.push(single.data.data);
       } catch { /* ignore */ }
     }
 
-    return { data: groups };
+    return { data: hydratedGroups };
   }
 
   const baseFilters: string[][] = [];

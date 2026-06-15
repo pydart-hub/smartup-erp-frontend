@@ -35,6 +35,21 @@ export function getO2OHourlyRate(program: string): number {
   return O2O_RATE_PER_HOUR[program] ?? 200;
 }
 
+export function parseO2OHourlyRate(value: unknown): number | null {
+  const parsed =
+    typeof value === "number"
+      ? value
+      : typeof value === "string"
+      ? Number(value.trim())
+      : NaN;
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+  return Number(parsed);
+}
+
+export function resolveO2OHourlyRate(program: string, customRate?: unknown): number {
+  return parseO2OHourlyRate(customRate) ?? getO2OHourlyRate(program);
+}
+
 /** Returns a human-readable label for the rate tier */
 export function getO2ORateLabel(program: string): string {
   const rate = getO2OHourlyRate(program);

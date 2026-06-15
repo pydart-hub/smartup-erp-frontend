@@ -90,7 +90,9 @@ export interface InstructorAssignmentView {
 
 export interface SubmitWorkPayload {
   work_assignment_id: string;
-  instructor_id: string;
+  instructor_id?: string;
+  recipient_key?: string;
+  recipient_type?: "Instructor" | "Branch Manager";
   google_drive_link: string;
 }
 

@@ -20,26 +20,13 @@ import {
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { admitStudent, getAcademicYears, getBranches } from "@/lib/api/enrollment";
+import { admitStudent, getAcademicYears, getBranches, getStudentGroups } from "@/lib/api/enrollment";
 import apiClient from "@/lib/api/client";
-import { getO2OHourlyRate } from "@/lib/utils/o2oFeeRates";
+import { parseO2OHourlyRate } from "@/lib/utils/o2oFeeRates";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/hooks/useAuth";
 
 // ── O2O supported programs ──────────────────────────────────────
-const O2O_PROGRAMS = [
-  "8th State",
-  "8th CBSE",
-  "9th State",
-  "9th CBSE",
-  "10th State",
-  "10th CBSE",
-  "11th Science State",
-  "11th Science CBSE",
-  "12th Science State",
-  "12th Science CBSE",
-];
-
 // ── Steps ───────────────────────────────────────────────────────
 const STEPS = [
   { id: 1, label: "Student Info", icon: User },
@@ -94,6 +81,7 @@ interface O2OFormState {
   custom_branch: string;
   program: string;
   academic_year: string;
+  hourly_rate: string;
 }
 
 const EMPTY_FORM: O2OFormState = {
@@ -112,6 +100,7 @@ const EMPTY_FORM: O2OFormState = {
   custom_branch: "",
   program: "",
   academic_year: "",
+  hourly_rate: "",
 };
 
 export default function AdmitOneToOnePage() {
@@ -144,14 +133,17 @@ function O2OAdmitContent() {
     name: string;
     student_name: string;
     o2oGroup: string;
+    ratePerHour?: number;
   } | null>(null);
   const [countdown, setCountdown] = useState(3);
+  const [rateTouched, setRateTouched] = useState(false);
 
   // Auto-redirect to one-to-one schedule setup 3 seconds after successful admission
   useEffect(() => {
     if (!successStudent) return;
     setCountdown(3);
-    const scheduleUrl = `${basePath}/course-schedule/one-to-one?group=${encodeURIComponent(successStudent.o2oGroup)}`;
+    const redirectRate = successStudent.ratePerHour;
+    const scheduleUrl = `${basePath}/course-schedule/one-to-one?group=${encodeURIComponent(successStudent.o2oGroup)}${redirectRate ? `&rate=${encodeURIComponent(String(redirectRate))}` : ""}`;
     const countdownTimer = setInterval(() => {
       setCountdown((c) => Math.max(c - 1, 0));
     }, 1000);
@@ -166,11 +158,37 @@ function O2OAdmitContent() {
   }, [successStudent, router, basePath]);
 
   // ── Data queries ─────────────────────────────────────────────
-  const { data: branchesRes } = useQuery({
+  const { data: allBranchesRes } = useQuery({
     queryKey: ["branches"],
     queryFn: getBranches,
   });
-  const branches = branchesRes ?? [];
+  const allBranches = allBranchesRes ?? [];
+  const branches = (() => {
+    if (!allBranches.length) return [];
+
+    if (allowedCompanies?.length) {
+      const filtered = allBranches.filter((b) => allowedCompanies.includes(b.name));
+      if (filtered.length > 0) return filtered;
+    }
+
+    if (defaultCompany) {
+      const filtered = allBranches.filter((b) => b.name === defaultCompany);
+      if (filtered.length > 0) return filtered;
+    }
+
+    return allBranches;
+  })();
+
+  useEffect(() => {
+    if (form.custom_branch) return;
+    if (defaultCompany && branches.some((branch) => branch.name === defaultCompany)) {
+      setForm((prev) => ({ ...prev, custom_branch: defaultCompany }));
+      return;
+    }
+    if (branches.length === 1) {
+      setForm((prev) => ({ ...prev, custom_branch: branches[0].name }));
+    }
+  }, [branches, defaultCompany, form.custom_branch]);
 
   const { data: academicYearsRes } = useQuery({
     queryKey: ["academic-years"],
@@ -178,13 +196,59 @@ function O2OAdmitContent() {
   });
   const academicYears = academicYearsRes ?? [];
 
+  const { data: defaultRateRes } = useQuery({
+    queryKey: ["o2o-default-rate", form.program],
+    queryFn: async () => {
+      const res = await fetch(`/api/one-to-one/default-rate?program=${encodeURIComponent(form.program)}`, {
+        credentials: "include",
+        cache: "no-store",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(String((data as { error?: string }).error ?? "Failed to load default rate"));
+      }
+      return data as { rate: number };
+    },
+    enabled: !!form.program,
+    staleTime: 60_000,
+  });
+
+  const { data: batchGroupsRes, isFetching: loadingBatchGroups } = useQuery({
+    queryKey: ["o2o-batch-groups", form.custom_branch, form.program, form.academic_year],
+    queryFn: () =>
+      getStudentGroups({
+        custom_branch: form.custom_branch,
+        program: form.program,
+        academic_year: form.academic_year,
+        limit_page_length: 100,
+      }),
+    enabled: !!(form.custom_branch && form.program && form.academic_year),
+    staleTime: 30_000,
+  });
+
+  const resolvedBatchGroup = (batchGroupsRes?.data ?? [])
+    .filter((group) => group.name && group.batch && !group.disabled)
+    .sort((a, b) => a.name.localeCompare(b.name))[0];
+
   // ── Helpers ──────────────────────────────────────────────────
   function set<K extends keyof O2OFormState>(key: K, value: O2OFormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
     setErrors((prev) => ({ ...prev, [key]: undefined }));
   }
 
-  const ratePerHour = form.program ? getO2OHourlyRate(form.program) : null;
+  const defaultRatePerHour = defaultRateRes?.rate ?? null;
+  const manualRatePerHour = parseO2OHourlyRate(form.hourly_rate);
+  const ratePerHour = manualRatePerHour ?? defaultRatePerHour;
+
+  useEffect(() => {
+    if (!form.program || !defaultRatePerHour) return;
+    if (!rateTouched || !form.hourly_rate.trim()) {
+      setForm((prev) => ({
+        ...prev,
+        hourly_rate: String(defaultRatePerHour),
+      }));
+    }
+  }, [defaultRatePerHour, form.program, form.hourly_rate, rateTouched]);
 
   // ── Validation per step ──────────────────────────────────────
   function validateStep(step: number): boolean {
@@ -217,6 +281,14 @@ function O2OAdmitContent() {
       if (!form.custom_branch) errs.custom_branch = "Branch is required";
       if (!form.program) errs.program = "Class is required";
       if (!form.academic_year) errs.academic_year = "Academic year is required";
+      if (!form.hourly_rate.trim()) {
+        errs.hourly_rate = "Hourly rate is required";
+      } else if (!manualRatePerHour) {
+        errs.hourly_rate = "Enter a valid hourly rate";
+      }
+      if (form.custom_branch && form.program && form.academic_year && !loadingBatchGroups && !resolvedBatchGroup) {
+        errs.program = "No active batch group exists for this branch, class, and academic year";
+      }
     }
 
     setErrors(errs);
@@ -242,6 +314,17 @@ function O2OAdmitContent() {
 
     try {
       const today = new Date().toISOString().split("T")[0];
+      const matchedGroup = resolvedBatchGroup;
+      const finalRatePerHour = parseO2OHourlyRate(form.hourly_rate);
+
+      if (!matchedGroup?.name || !matchedGroup.batch) {
+        throw new Error(
+          "No active batch group is configured for this branch, class, and academic year. Create one first, then retry One-to-One admission."
+        );
+      }
+      if (!finalRatePerHour) {
+        throw new Error("Enter a valid hourly rate before completing One-to-One admission.");
+      }
 
       // Find branch abbreviation for O2O group name
       const branchAbbr =
@@ -261,12 +344,15 @@ function O2OAdmitContent() {
         custom_branch_abbr: branchAbbr,
         program: form.program,
         academic_year: form.academic_year,
+        student_batch_name: matchedGroup.batch,
         enrollment_date: today,
+        studentGroupName: matchedGroup.name,
         guardian_name: form.guardian_name,
         guardian_email: form.guardian_email,
         guardian_mobile: form.guardian_mobile,
         guardian_relation: form.guardian_relation,
         guardian_password: form.guardian_password,
+        o2oHourlyRate: finalRatePerHour,
         isFreeAccess: false,
         skipAutoBilling: true,
       });
@@ -285,7 +371,8 @@ function O2OAdmitContent() {
           program: form.program,
           custom_branch: form.custom_branch,
           custom_is_one_to_one: 1,
-          custom_o2o_rate_per_hour: ratePerHour,
+          custom_o2o_rate_per_class: finalRatePerHour,
+          custom_o2o_rate_per_hour: finalRatePerHour,
           students: [
             {
               doctype: "Student Group Student",
@@ -353,14 +440,48 @@ function O2OAdmitContent() {
           {
             custom_fee_mode: "One-to-One",
             custom_o2o_student_group: o2oGroupName,
-            custom_o2o_rate_per_hour: ratePerHour,
+            custom_o2o_rate_per_class: finalRatePerHour,
+            custom_o2o_rate_per_hour: finalRatePerHour,
           }
         );
       } catch {
         // Fields may not exist on the backend yet — non-blocking
       }
 
-      setSuccessStudent({ name: studentId, student_name: studentName, o2oGroup: o2oGroupName });
+      try {
+        await apiClient.put(
+          `/resource/Student Group/${encodeURIComponent(o2oGroupName)}`,
+          {
+            custom_o2o_rate_per_class: finalRatePerHour,
+            custom_o2o_rate_per_hour: finalRatePerHour,
+          }
+        );
+      } catch {
+        // Non-blocking: fallback save route below still attempts persistence.
+      }
+
+      const ratePersistRes = await fetch("/api/one-to-one/rate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          rate: finalRatePerHour,
+          studentGroupName: o2oGroupName,
+          programEnrollmentName: result.programEnrollment.name,
+        }),
+      });
+      const ratePersistData = await ratePersistRes.json().catch(() => ({}));
+      if (!ratePersistRes.ok) {
+        const err = String((ratePersistData as { error?: string }).error ?? "Failed to save One-to-One hourly rate.");
+        throw new Error(err);
+      }
+
+      setSuccessStudent({
+        name: studentId,
+        student_name: studentName,
+        o2oGroup: o2oGroupName,
+        ratePerHour: finalRatePerHour,
+      });
       toast.success(`${studentName} admitted for One-to-One tuition`);
     } catch (err) {
       const msg =
@@ -398,7 +519,7 @@ function O2OAdmitContent() {
             {ratePerHour && (
               <div className="flex justify-between">
                 <span className="text-gray-500">Rate</span>
-                <span className="font-medium text-emerald-700">₹{ratePerHour}/hr</span>
+                <span className="font-medium text-emerald-700">₹{manualRatePerHour ?? ratePerHour}/hr</span>
               </div>
             )}
           </div>
@@ -409,7 +530,7 @@ function O2OAdmitContent() {
             <Button
               onClick={() =>
                 router.push(
-                  `${basePath}/course-schedule/one-to-one?group=${encodeURIComponent(successStudent.o2oGroup)}`
+                  `${basePath}/course-schedule/one-to-one?group=${encodeURIComponent(successStudent.o2oGroup)}${manualRatePerHour ? `&rate=${encodeURIComponent(String(manualRatePerHour))}` : ""}`
                 )
               }
               className="w-full"
@@ -421,6 +542,7 @@ function O2OAdmitContent() {
               onClick={() => {
                 setSuccessStudent(null);
                 setForm({ ...EMPTY_FORM, custom_branch: defaultCompany ?? "" });
+                setRateTouched(false);
                 setCurrentStep(1);
               }}
               className="w-full"
@@ -630,9 +752,9 @@ function O2OAdmitContent() {
                   }
                 >
                   <option value="">Select branch</option>
-                  {(allowedCompanies ?? branches.map((b) => b.name)).map((b) => (
-                    <option key={b} value={b}>
-                      {b}
+                  {branches.map((branch) => (
+                    <option key={branch.name} value={branch.name}>
+                      {branch.name}
                     </option>
                   ))}
                 </select>
@@ -645,14 +767,14 @@ function O2OAdmitContent() {
                   onChange={(e) => set("program", e.target.value)}
                 >
                   <option value="">Select class</option>
-                  <optgroup label="Plus One / Plus Two (₹300/hr)">
+                  <optgroup label="Plus One / Plus Two">
                     <option value="11th Science State">11th Science State</option>
                     <option value="11th Science CBSE">11th Science CBSE</option>
                     <option value="11th State">11th State</option>
                     <option value="12th Science State">12th Science State</option>
                     <option value="12th Science CBSE">12th Science CBSE</option>
                   </optgroup>
-                  <optgroup label="8th / 9th / 10th (₹200/hr)">
+                  <optgroup label="8th / 9th / 10th">
                     <option value="10th State">10th State</option>
                     <option value="10th CBSE">10th CBSE</option>
                     <option value="9th State">9th State</option>
@@ -677,6 +799,50 @@ function O2OAdmitContent() {
                   ))}
                 </select>
               </SelectField>
+
+              <Input
+                label="Hourly Rate *"
+                type="number"
+                min="1"
+                step="1"
+                value={form.hourly_rate}
+                onChange={(e) => {
+                  setRateTouched(true);
+                  set("hourly_rate", e.target.value);
+                }}
+                error={errors.hourly_rate}
+                hint={defaultRatePerHour ? `Suggested default for ${form.program || "this class"}: ₹${defaultRatePerHour}/hr` : "Enter the agreed hourly tuition amount"}
+                placeholder="e.g. 200"
+              />
+
+              {form.custom_branch && form.program && form.academic_year && (
+                <div className="sm:col-span-2 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm">
+                  {loadingBatchGroups ? (
+                    <div className="flex items-center gap-2 text-violet-700">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Resolving academic batch for this one-to-one admission...
+                    </div>
+                  ) : resolvedBatchGroup ? (
+                    <div className="space-y-1 text-violet-900">
+                      <p className="font-medium">Admission batch will be linked automatically</p>
+                      <p>
+                        Batch group: <span className="font-semibold">{resolvedBatchGroup.name}</span>
+                      </p>
+                      <p>
+                        Batch code: <span className="font-semibold">{resolvedBatchGroup.batch}</span>
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex items-start gap-2 text-red-700">
+                      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                      <p>
+                        No active batch group was found for this branch, class, and academic year.
+                        One-to-One admission cannot complete until one exists.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Rate badge */}
               {ratePerHour && (

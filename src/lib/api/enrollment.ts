@@ -636,6 +636,7 @@ export interface AdmitStudentForm {
   academic_year: string;
   student_batch_name?: string;   // Batch code (Student Batch Name)
   studentGroupName?: string;     // Student Group to enroll into e.g. "CHL-10th-25-1"
+  o2oHourlyRate?: number;
   enrollment_date: string;
   // Guardian
   guardian_name: string;
@@ -1060,6 +1061,12 @@ export async function admitStudent(
       custom_fee_structure: form.fee_structure,
       custom_plan: form.custom_plan,
       custom_no_of_instalments: form.custom_no_of_instalments,
+      ...(form.o2oHourlyRate
+        ? {
+            custom_o2o_rate_per_class: form.o2oHourlyRate,
+            custom_o2o_rate_per_hour: form.o2oHourlyRate,
+          }
+        : {}),
       // Demo students get a special category
       ...(form.isDemo ? { student_category: "Demo" } : {}),
       // Free Access students get a special category

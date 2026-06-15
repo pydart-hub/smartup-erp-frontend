@@ -22,9 +22,6 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { createCourseSchedule, getStudentGroups } from "@/lib/api/courseSchedule";
-import apiClient from "@/lib/api/client";
-import { createSalesOrder, getTuitionFeeItem, submitSalesOrder } from "@/lib/api/sales";
-import { getO2OHourlyRate } from "@/lib/utils/o2oFeeRates";
 
 const selectCls =
   "w-full h-10 rounded-[10px] border border-border-input bg-surface px-3 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors disabled:opacity-50";
@@ -49,48 +46,30 @@ type SessionLabelRow = {
   label: string;
 };
 
-type BillingResult = {
-  salesOrder?: string;
-  invoices?: string[];
-  amount: number;
-  hours: number;
-  rate: number;
-  error?: string;
-};
+function formatLocalDateInput(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function parseLocalDateInput(value: string): Date {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, (month || 1) - 1, day || 1);
+}
 
 function getMatchingDates(from: string, to: string, selectedDays: Set<number>): string[] {
   if (!from || !to || selectedDays.size === 0) return [];
   const dates: string[] = [];
-  const cur = new Date(from + "T00:00:00");
-  const end = new Date(to + "T00:00:00");
+  const cur = parseLocalDateInput(from);
+  const end = parseLocalDateInput(to);
   while (cur <= end) {
     if (selectedDays.has(cur.getDay())) {
-      dates.push(cur.toISOString().split("T")[0]);
+      dates.push(formatLocalDateInput(cur));
     }
     cur.setDate(cur.getDate() + 1);
   }
   return dates;
-}
-
-function getDurationHours(fromTime: string, toTime: string): number {
-  const [fromH, fromM] = fromTime.split(":").map(Number);
-  const [toH, toM] = toTime.split(":").map(Number);
-  const fromMinutes = fromH * 60 + fromM;
-  const toMinutes = toH * 60 + toM;
-  const diff = toMinutes - fromMinutes;
-  return diff > 0 ? diff / 60 : 0;
-}
-
-function extractStudentId(groupDocName: string, groupLabel?: string): string | null {
-  const sources = [groupLabel ?? "", groupDocName];
-  for (const src of sources) {
-    const bracketMatch = src.match(/\((STU-[^)]+)\)/i);
-    if (bracketMatch?.[1]) return bracketMatch[1].trim();
-
-    const genericMatch = src.match(/(STU-[A-Z0-9 ]+-\d{2}-\d{3})/i);
-    if (genericMatch?.[1]) return genericMatch[1].trim();
-  }
-  return null;
 }
 
 export default function OneToOneSchedulePage() {
@@ -113,16 +92,15 @@ function OneToOneScheduleContent() {
   const [selectedDays, setSelectedDays] = useState<Set<number>>(new Set());
   const [fromDate, setFromDate] = useState(() => {
     const d = new Date();
-    return d.toISOString().split("T")[0];
+    return formatLocalDateInput(d);
   });
   const [toDate, setToDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 30);
-    return d.toISOString().split("T")[0];
+    return formatLocalDateInput(d);
   });
 
-  // Single-mode state
-  const [singleDate, setSingleDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [singleDate, setSingleDate] = useState(() => formatLocalDateInput(new Date()));
   const [singleLabel, setSingleLabel] = useState("");
 
   const [setup, setSetup] = useState({
@@ -135,7 +113,7 @@ function OneToOneScheduleContent() {
   const [globalLabel, setGlobalLabel] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [progress, setProgress] = useState({ done: 0, total: 0 });
-  const [result, setResult] = useState<{ total: number; created: number; failed: { date: string; error: string }[]; billing?: BillingResult } | null>(null);
+  const [result, setResult] = useState<{ total: number; created: number; failed: { date: string; error: string }[] } | null>(null);
 
   const { data: groupRes } = useQuery({
     queryKey: ["o2o-student-groups", branch],
@@ -147,7 +125,10 @@ function OneToOneScheduleContent() {
       }),
     staleTime: 5 * 60_000,
   });
-  const groups = groupRes?.data ?? [];
+  const allGroups = groupRes?.data ?? [];
+  const groups = preselectedGroup
+    ? allGroups.filter((group) => group.name === preselectedGroup)
+    : allGroups;
 
   const matchingDates = useMemo(
     () => getMatchingDates(fromDate, toDate, selectedDays),
@@ -206,7 +187,7 @@ function OneToOneScheduleContent() {
     if (!validateSingle()) return;
     const rows = [{ date: singleDate, label: singleLabel }];
     setSessionRows(rows);
-    createSchedules(rows);
+    void createSchedules(rows);
   }
 
   function setRowLabel(index: number, label: string) {
@@ -222,7 +203,7 @@ function OneToOneScheduleContent() {
     setPhase("running");
     setProgress({ done: 0, total: rows.length });
 
-    const out = { total: rows.length, created: 0, failed: [] as { date: string; error: string }[], billing: undefined as BillingResult | undefined };
+    const out = { total: rows.length, created: 0, failed: [] as { date: string; error: string }[] };
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
@@ -242,92 +223,6 @@ function OneToOneScheduleContent() {
         out.failed.push({ date: row.date, error: msg.slice(0, 140) });
       }
       setProgress({ done: i + 1, total: rows.length });
-    }
-
-    // Duration-based O2O billing: amount = created sessions × duration hours × hourly rate.
-    if (out.created > 0) {
-      try {
-        const selectedGroup = groups.find((g) => g.name === setup.student_group);
-        const program = selectedGroup?.program?.trim();
-        if (!program) throw new Error("Program is missing on selected One-to-One group.");
-
-        const tuitionItem = await getTuitionFeeItem(program);
-        if (!tuitionItem) throw new Error(`No tuition fee item found for program \"${program}\".`);
-
-        const studentId = extractStudentId(setup.student_group, selectedGroup?.student_group_name);
-        if (!studentId) throw new Error("Could not determine student from selected One-to-One group name.");
-
-        const studentRes = await apiClient.get<{ data?: { customer?: string } }>(
-          `/resource/Student/${encodeURIComponent(studentId)}?fields=["customer"]`,
-        );
-        const customer = studentRes.data?.data?.customer;
-        if (!customer) throw new Error(`Student ${studentId} has no linked customer.`);
-
-        const durationHours = getDurationHours(setup.from_time, setup.to_time);
-        if (durationHours <= 0) throw new Error("Invalid session duration for billing.");
-
-        const totalHours = Number((durationHours * out.created).toFixed(2));
-        const ratePerHour = getO2OHourlyRate(program);
-        const totalAmount = Number((totalHours * ratePerHour).toFixed(2));
-
-        if (!branch) throw new Error("Branch is required to create billing documents.");
-
-        const today = new Date().toISOString().split("T")[0];
-        const soRes = await createSalesOrder({
-          customer,
-          company: branch,
-          transaction_date: today,
-          delivery_date: today,
-          order_type: "Sales",
-          items: [
-            {
-              item_code: tuitionItem.item_code,
-              qty: 1,
-              rate: totalAmount,
-              description: `One-to-One tuition: ${out.created} session(s) x ${durationHours.toFixed(2)}h x ₹${ratePerHour}/h`,
-            },
-          ],
-        });
-        const salesOrderName = soRes.data.name;
-        await submitSalesOrder(salesOrderName);
-
-        const invRes = await fetch("/api/admission/create-invoices", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            salesOrderName,
-            schedule: [{ amount: totalAmount, dueDate: today, label: "One-to-One Tuition" }],
-          }),
-        });
-
-        const invData = await invRes.json().catch(() => ({}));
-        if (!invRes.ok) {
-          const err = String((invData as { error?: string })?.error ?? `HTTP ${invRes.status}`);
-          out.billing = {
-            salesOrder: salesOrderName,
-            amount: totalAmount,
-            hours: totalHours,
-            rate: ratePerHour,
-            error: `Sales Order created, but invoice creation failed: ${err}`,
-          };
-        } else {
-          out.billing = {
-            salesOrder: salesOrderName,
-            invoices: (invData as { invoices?: string[] })?.invoices ?? [],
-            amount: totalAmount,
-            hours: totalHours,
-            rate: ratePerHour,
-          };
-        }
-      } catch (err: unknown) {
-        out.billing = {
-          amount: 0,
-          hours: 0,
-          rate: 0,
-          error: err instanceof Error ? err.message : "Billing creation failed",
-        };
-      }
     }
 
     setResult(out);
@@ -357,7 +252,6 @@ function OneToOneScheduleContent() {
         </div>
       </div>
 
-      {/* Mode toggle — only visible in setup phase */}
       {phase === "setup" && (
         <div className="flex gap-2 p-1 rounded-[12px] bg-surface border border-border-light w-fit">
           <button
@@ -396,7 +290,6 @@ function OneToOneScheduleContent() {
                   Single Session Setup
                 </h2>
 
-                {/* Student Group */}
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-text-primary">Student Group *</label>
                   <select
@@ -404,18 +297,17 @@ function OneToOneScheduleContent() {
                     value={setup.student_group}
                     onChange={(e) => setField("student_group", e.target.value)}
                   >
-                    <option value="">Select one-to-one group…</option>
+                    <option value="">Select one-to-one group...</option>
                     {groups.map((g) => (
                       <option key={g.name} value={g.name}>
                         {g.student_group_name}
-                        {g.program ? ` — ${g.program}` : ""}
+                        {g.program ? ` - ${g.program}` : ""}
                       </option>
                     ))}
                   </select>
                   {errors.student_group && <p className="text-xs text-error">{errors.student_group}</p>}
                 </div>
 
-                {/* From / To Time */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-text-primary">From Time *</label>
@@ -438,7 +330,6 @@ function OneToOneScheduleContent() {
                   </div>
                 </div>
 
-                {/* Single Date */}
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-text-primary">Date *</label>
                   <input
@@ -450,7 +341,6 @@ function OneToOneScheduleContent() {
                   {errors.singleDate && <p className="text-xs text-error">{errors.singleDate}</p>}
                 </div>
 
-                {/* Subject Label */}
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-text-primary">Subject Label</label>
                   <input
@@ -481,7 +371,7 @@ function OneToOneScheduleContent() {
                   {singleDate && (
                     <p className="text-text-secondary flex items-center gap-1">
                       <CalendarDays className="h-3 w-3" />
-                      {new Date(singleDate + "T00:00:00").toLocaleDateString("en-IN", {
+                      {parseLocalDateInput(singleDate).toLocaleDateString("en-IN", {
                         weekday: "short", day: "numeric", month: "short", year: "numeric",
                       })}
                     </p>
@@ -497,7 +387,7 @@ function OneToOneScheduleContent() {
             </Card>
 
             <Button className="w-full" onClick={createSingle}>
-              Create Schedule &amp; Bill
+              Create Schedule
             </Button>
           </div>
         </div>
@@ -519,11 +409,11 @@ function OneToOneScheduleContent() {
                     value={setup.student_group}
                     onChange={(e) => setField("student_group", e.target.value)}
                   >
-                    <option value="">Select one-to-one group…</option>
+                    <option value="">Select one-to-one group...</option>
                     {groups.map((g) => (
                       <option key={g.name} value={g.name}>
                         {g.student_group_name}
-                        {g.program ? ` — ${g.program}` : ""}
+                        {g.program ? ` - ${g.program}` : ""}
                       </option>
                     ))}
                   </select>
@@ -630,7 +520,7 @@ function OneToOneScheduleContent() {
                     <div key={d} className="flex items-center gap-2 px-2 py-1.5 rounded-[6px] bg-surface-secondary text-xs">
                       <CalendarDays className="h-3 w-3 text-text-tertiary" />
                       <span className="text-text-primary font-medium">
-                        {new Date(d + "T00:00:00").toLocaleDateString("en-IN", {
+                        {parseLocalDateInput(d).toLocaleDateString("en-IN", {
                           weekday: "short",
                           day: "numeric",
                           month: "short",
@@ -662,6 +552,10 @@ function OneToOneScheduleContent() {
               </Badge>
             </div>
 
+            <div className="rounded-[10px] border border-primary/15 bg-primary/5 p-3 text-sm text-text-secondary">
+              Billing is not created from this schedule page. One-to-One billing is generated later from the student page based on unbilled schedules.
+            </div>
+
             <div className="flex flex-col sm:flex-row gap-2">
               <input
                 value={globalLabel}
@@ -678,7 +572,7 @@ function OneToOneScheduleContent() {
               {sessionRows.map((row, idx) => (
                 <div key={row.date} className="grid grid-cols-1 sm:grid-cols-[180px_1fr] gap-2 p-3 border-b border-border-light last:border-b-0">
                   <div className="text-xs font-medium text-text-primary">
-                    {new Date(row.date + "T00:00:00").toLocaleDateString("en-IN", {
+                    {parseLocalDateInput(row.date).toLocaleDateString("en-IN", {
                       weekday: "short",
                       day: "numeric",
                       month: "short",
@@ -697,7 +591,7 @@ function OneToOneScheduleContent() {
 
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setPhase("setup")}>Back</Button>
-              <Button onClick={() => createSchedules()}>Create {sessionRows.length} Schedules</Button>
+              <Button onClick={() => void createSchedules()}>Create {sessionRows.length} Schedules</Button>
             </div>
           </CardContent>
         </Card>
@@ -711,7 +605,7 @@ function OneToOneScheduleContent() {
                 <div className="flex flex-col items-center gap-4">
                   <Loader2 className="h-10 w-10 text-primary animate-spin" />
                   <div className="text-center">
-                    <p className="text-lg font-semibold text-text-primary">Creating schedules…</p>
+                    <p className="text-lg font-semibold text-text-primary">Creating schedules...</p>
                     <p className="text-sm text-text-secondary mt-1">{progress.done} of {progress.total} completed</p>
                   </div>
                 </div>
@@ -751,21 +645,9 @@ function OneToOneScheduleContent() {
                   </div>
                 )}
 
-                {result.billing && (
-                  <div className={`rounded-[10px] border p-3 text-sm ${result.billing.error ? "bg-error/5 border-error/20" : "bg-success/5 border-success/20"}`}>
-                    <p className="font-semibold text-text-primary">Duration-Based Billing</p>
-                    {result.billing.error ? (
-                      <p className="text-text-secondary mt-1">{result.billing.error}</p>
-                    ) : (
-                      <div className="text-text-secondary mt-1 space-y-1">
-                        <p>Hours: {result.billing.hours.toFixed(2)} · Rate: ₹{result.billing.rate}/h</p>
-                        <p>Total: ₹{result.billing.amount.toLocaleString("en-IN")}</p>
-                        <p>Sales Order: {result.billing.salesOrder}</p>
-                        <p>Invoices: {(result.billing.invoices ?? []).join(", ") || "Created"}</p>
-                      </div>
-                    )}
-                  </div>
-                )}
+                <div className="rounded-[10px] border border-primary/15 bg-primary/5 p-3 text-sm text-text-secondary">
+                  Billing was not created here. Generate One-to-One billing later from the student page after reviewing unbilled schedules.
+                </div>
 
                 <div className="flex gap-2">
                   <Link href="/dashboard/branch-manager/course-schedule">

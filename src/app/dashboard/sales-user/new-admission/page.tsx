@@ -46,7 +46,7 @@ const admissionTypes = [
   },
   {
     title: "One to One",
-    description: "Individual tuition — personalized sessions with hourly billing. ₹300/hr for Plus One/Two, ₹200/hr for 8th–10th.",
+    description: "Individual tuition — personalized sessions with hourly billing and editable per-hour pricing.",
     icon: BookUser,
     href: "/dashboard/sales-user/admit-one-to-one",
     color: "bg-violet-50 text-violet-600 border-violet-200",

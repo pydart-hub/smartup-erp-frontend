@@ -20,7 +20,7 @@ import { useClassReminders } from "@/lib/hooks/useClassReminders";
 import { useTransferNotifications } from "@/lib/hooks/useTransferNotifications";
 import { useWorkAssignmentNotifications } from "@/lib/hooks/useWorkAssignmentNotifications";
 import type { ClassReminder } from "@/lib/stores/notificationStore";
-
+import type { InstructorAssignmentView } from "@/lib/types/workAssignment";
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatTime(t: string): string {
@@ -193,7 +193,7 @@ export function NotificationDropdown() {
                       Work Assignments Due
                     </p>
                   </div>
-                  {pendingAssignments.map((a) => (
+                  {pendingAssignments.map((a: InstructorAssignmentView) => (
                     <Link
                       key={a.name}
                       href="/dashboard/instructor/my-assignments"

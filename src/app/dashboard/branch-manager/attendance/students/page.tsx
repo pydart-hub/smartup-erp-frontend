@@ -7,7 +7,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Calendar, CheckCircle, XCircle, Clock, Users, Save,
   Loader2, School, ChevronRight, ArrowLeft, BarChart3,
-  BookOpen, ChevronDown, GraduationCap,
+  BookOpen, ChevronDown, GraduationCap, FileSpreadsheet,
+  FileText, ClipboardList, Eye,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Button } from "@/components/ui/Button";
@@ -19,6 +20,7 @@ import { getAttendance, bulkMarkAttendance } from "@/lib/api/attendance";
 import { getCourseSchedules, getStudentGroups } from "@/lib/api/courseSchedule";
 import type { CourseSchedule } from "@/lib/api/courseSchedule";
 import type { Batch, BatchStudent } from "@/lib/types/batch";
+import type { AttendanceRecord } from "@/lib/types/attendance";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useAcademicYearStore } from "@/lib/stores/academicYearStore";
 import apiClient from "@/lib/api/client";
@@ -39,12 +41,45 @@ interface ClassSummary {
   sessionsMarked: number;
 }
 
+interface AbsentDayDetail {
+  date: string;
+  label: string;
+  topic: string;
+  time: string;
+}
+
+interface StudentAttendanceReportRow {
+  studentId: string;
+  studentName: string;
+  totalSessions: number;
+  markedSessions: number;
+  present: number;
+  absent: number;
+  late: number;
+  attendancePct: number;
+  absentDays: AbsentDayDetail[];
+}
+
 /** Format HH:MM:SS → h:MM AM/PM */
 function formatTime12h(time: string): string {
   const [h, m] = time.split(":").map(Number);
   const ampm = h >= 12 ? "PM" : "AM";
   const hour12 = h % 12 || 12;
   return `${hour12}:${String(m).padStart(2, "0")} ${ampm}`;
+}
+
+function formatDisplayDate(date: string): string {
+  return new Date(`${date}T00:00:00`).toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function getMonthStart(date: string): string {
+  const current = new Date(`${date}T00:00:00`);
+  current.setDate(1);
+  return current.toISOString().split("T")[0];
 }
 
 const statusConfig = {
@@ -68,12 +103,17 @@ export default function AttendancePage() {
 
   // Batch session detail state
   const [selectedBatchId, setSelectedBatchId] = useState<string>("");
+  const [batchViewTab, setBatchViewTab] = useState<"mark" | "report">("mark");
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
   const [students, setStudents] = useState<BatchStudent[]>([]);
   const [attendance, setAttendance] = useState<Record<string, AttendanceStatus>>({});
   const [sessionLoading, setSessionLoading] = useState(false);
   const [saving, setSaving] = useState<string | null>(null);
   const [disabilityMap, setDisabilityMap] = useState<Record<string, string>>({});
+  const [reportFromDate, setReportFromDate] = useState(() => getMonthStart(new Date().toISOString().split("T")[0]));
+  const [reportToDate, setReportToDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [selectedAbsentStudentId, setSelectedAbsentStudentId] = useState<string | null>(null);
+  const [exporting, setExporting] = useState<"pdf" | "excel" | null>(null);
 
   // ── Batches list ──
   const { data: batchesRes } = useQuery({
@@ -102,7 +142,7 @@ export default function AttendancePage() {
     staleTime: 5 * 60_000,
     enabled: !!defaultCompany,
   });
-  const o2oGroups = o2oGroupRes?.data ?? [];
+  const o2oGroups = useMemo(() => o2oGroupRes?.data ?? [], [o2oGroupRes?.data]);
   const o2oGroupNames = useMemo(() => new Set(o2oGroups.map((g) => g.name)), [o2oGroups]);
 
   // ── Branch attendance records ──
@@ -254,7 +294,7 @@ export default function AttendancePage() {
     staleTime: 60_000,
   });
 
-  const batchSchedules = batchSchedulesRes?.data ?? [];
+  const batchSchedules = useMemo(() => batchSchedulesRes?.data ?? [], [batchSchedulesRes?.data]);
 
   // Attendance check for session states
   const { data: batchAttendanceCount } = useQuery({
@@ -284,7 +324,10 @@ export default function AttendancePage() {
       try {
         const [batchRes, attendanceRes] = await Promise.all([
           getBatch(schedule.student_group),
-          getAttendance(selectedDate, { student_group: schedule.student_group }),
+          getAttendance(selectedDate, {
+            student_group: schedule.student_group,
+            course_schedule: schedule.name,
+          }),
         ]);
 
         const batchStudents = (batchRes.data.students ?? []).filter(
@@ -336,11 +379,13 @@ export default function AttendancePage() {
       .catch(() => {});
   }, [students]);
 
-  function openClassAttendance(batchId: string) {
+  function openClassAttendance(batchId: string, tab: "mark" | "report" = "mark") {
     setSelectedBatchId(batchId);
+    setBatchViewTab(tab);
     setExpandedSession(null);
     setStudents([]);
     setAttendance({});
+    setSelectedAbsentStudentId(null);
     setViewMode("batch");
   }
 
@@ -350,6 +395,8 @@ export default function AttendancePage() {
     setExpandedSession(null);
     setStudents([]);
     setAttendance({});
+    setBatchViewTab("mark");
+    setSelectedAbsentStudentId(null);
   }
 
   function handleSessionClick(schedule: CourseSchedule) {
@@ -390,6 +437,7 @@ export default function AttendancePage() {
         student_group: schedule.student_group,
         date: selectedDate,
         students: entries,
+        course_schedule: schedule.name,
         custom_branch: schedule.custom_branch || defaultCompany || undefined,
       });
 
@@ -435,6 +483,210 @@ export default function AttendancePage() {
   const lateCount = Object.values(attendance).filter((s) => s === "Late").length;
 
   const selectedBatch = batchMap.get(selectedBatchId);
+  const { data: reportBatchRes, isLoading: reportBatchLoading } = useQuery({
+    queryKey: ["bm-batch-report-batch", selectedBatchId],
+    queryFn: () => getBatch(selectedBatchId),
+    enabled: !!selectedBatchId && viewMode === "batch" && batchViewTab === "report",
+    staleTime: 5 * 60_000,
+  });
+  const { data: reportSchedulesRes, isLoading: reportSchedulesLoading } = useQuery({
+    queryKey: ["bm-batch-report-schedules", selectedBatchId, reportFromDate, reportToDate],
+    queryFn: () =>
+      getCourseSchedules({
+        student_group: selectedBatchId || undefined,
+        from_date: reportFromDate,
+        to_date: reportToDate,
+        limit_page_length: 500,
+      }),
+    enabled: !!selectedBatchId && viewMode === "batch" && batchViewTab === "report",
+    staleTime: 60_000,
+  });
+  const { data: reportAttendanceRecords = [], isLoading: reportAttendanceLoading } = useQuery({
+    queryKey: ["bm-batch-report-attendance", selectedBatchId, reportFromDate, reportToDate],
+    queryFn: async () => {
+      const query = new URLSearchParams({
+        filters: JSON.stringify([
+          ["student_group", "=", selectedBatchId],
+          ["date", ">=", reportFromDate],
+          ["date", "<=", reportToDate],
+        ]),
+        fields: JSON.stringify([
+          "name",
+          "student",
+          "student_name",
+          "date",
+          "status",
+          "student_group",
+          "course_schedule",
+          "custom_branch",
+        ]),
+        order_by: "date asc",
+        limit_page_length: "0",
+      });
+      const { data } = await apiClient.get<{ data: AttendanceRecord[] }>(
+        `/resource/Student Attendance?${query.toString()}`,
+      );
+      return data.data ?? [];
+    },
+    enabled: !!selectedBatchId && viewMode === "batch" && batchViewTab === "report",
+    staleTime: 60_000,
+  });
+
+  const reportRows = useMemo<StudentAttendanceReportRow[]>(() => {
+    const activeStudents = (reportBatchRes?.data.students ?? []).filter((student: BatchStudent) => student.active !== 0);
+    const schedules = reportSchedulesRes?.data ?? [];
+    const scheduleMap = new Map(schedules.map((schedule) => [schedule.name, schedule]));
+    const derivedSessionKeys = new Set<string>();
+
+    for (const record of reportAttendanceRecords) {
+      derivedSessionKeys.add(record.course_schedule || record.date);
+    }
+
+    const totalSessions = Math.max(schedules.length, derivedSessionKeys.size);
+    const recordsByStudent = new Map<string, AttendanceRecord[]>();
+
+    for (const record of reportAttendanceRecords) {
+      const list = recordsByStudent.get(record.student) ?? [];
+      list.push(record);
+      recordsByStudent.set(record.student, list);
+    }
+
+    return activeStudents
+      .map((student) => {
+        const records = recordsByStudent.get(student.student) ?? [];
+        let present = 0;
+        let absent = 0;
+        let late = 0;
+        const absentDays: AbsentDayDetail[] = [];
+
+        for (const record of records) {
+          if (record.status === "Present") present += 1;
+          else if (record.status === "Absent") {
+            absent += 1;
+            const schedule = record.course_schedule ? scheduleMap.get(record.course_schedule) : undefined;
+            absentDays.push({
+              date: record.date,
+              label: schedule
+                ? `${formatDisplayDate(record.date)} • ${formatTime12h(schedule.from_time)} - ${formatTime12h(schedule.to_time)}`
+                : formatDisplayDate(record.date),
+              topic: schedule?.custom_topic || schedule?.course || schedule?.custom_event_title || "Attendance session",
+              time: schedule ? `${formatTime12h(schedule.from_time)} - ${formatTime12h(schedule.to_time)}` : "Time not available",
+            });
+          } else if (record.status === "Late") {
+            late += 1;
+          }
+        }
+
+        absentDays.sort((a, b) => a.date.localeCompare(b.date));
+
+        return {
+          studentId: student.student,
+          studentName: student.student_name || student.student,
+          totalSessions,
+          markedSessions: records.length,
+          present,
+          absent,
+          late,
+          attendancePct: totalSessions > 0 ? Math.round((((present + late) / totalSessions) * 100) * 10) / 10 : 0,
+          absentDays,
+        };
+      })
+      .sort((a, b) => a.studentName.localeCompare(b.studentName));
+  }, [reportAttendanceRecords, reportBatchRes, reportSchedulesRes]);
+
+  const selectedAbsentStudent = useMemo(
+    () => reportRows.find((row) => row.studentId === selectedAbsentStudentId) ?? null,
+    [reportRows, selectedAbsentStudentId],
+  );
+
+  const reportStats = useMemo(() => {
+    const totalStudents = reportRows.length;
+    const totalSessions = reportRows.reduce((sum, row) => sum + row.totalSessions, 0);
+    const totalPresent = reportRows.reduce((sum, row) => sum + row.present, 0);
+    const totalAbsent = reportRows.reduce((sum, row) => sum + row.absent, 0);
+    const totalLate = reportRows.reduce((sum, row) => sum + row.late, 0);
+    const avgAttendance = totalSessions > 0
+      ? Math.round((((totalPresent + totalLate) / totalSessions) * 100) * 10) / 10
+      : 0;
+    return { totalStudents, totalPresent, totalAbsent, totalLate, avgAttendance };
+  }, [reportRows]);
+
+  async function exportBatchReport(format: "pdf" | "excel") {
+    if (!reportRows.length) {
+      toast.error("No attendance report data available to export.");
+      return;
+    }
+
+    setExporting(format);
+    try {
+      const reportName = selectedBatch?.student_group_name ?? selectedBatchId ?? "attendance-report";
+      const fileBase = `${reportName.replace(/[^\w-]+/g, "_")}_${reportFromDate}_to_${reportToDate}`;
+      const exportRows = reportRows.map((row) => ({
+        "Student ID": row.studentId,
+        "Student Name": row.studentName,
+        "Total Sessions": row.totalSessions,
+        "Attendance Marked": row.markedSessions,
+        Present: row.present,
+        Absent: row.absent,
+        Late: row.late,
+        "Attendance %": row.attendancePct,
+        "Absent Days": row.absentDays.map((day) => day.label).join("; "),
+      }));
+
+      if (format === "excel") {
+        const XLSX = await import("xlsx");
+        const worksheet = XLSX.utils.json_to_sheet(exportRows);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance Report");
+        XLSX.writeFile(workbook, `${fileBase}.xlsx`);
+      } else {
+        const { jsPDF } = await import("jspdf");
+        await import("jspdf-autotable");
+        const doc = new jsPDF({ orientation: "landscape" });
+
+        doc.setFontSize(14);
+        doc.text(`${selectedBatch?.student_group_name ?? selectedBatchId} Attendance Report`, 14, 16);
+        doc.setFontSize(10);
+        doc.text(`Range: ${formatDisplayDate(reportFromDate)} to ${formatDisplayDate(reportToDate)}`, 14, 23);
+
+        (doc as jsPDF & { autoTable: (options: Record<string, unknown>) => void }).autoTable({
+          startY: 28,
+          head: [[
+            "Student ID",
+            "Student Name",
+            "Total",
+            "Marked",
+            "Present",
+            "Absent",
+            "Late",
+            "Attendance %",
+            "Absent Days",
+          ]],
+          body: reportRows.map((row) => [
+            row.studentId,
+            row.studentName,
+            row.totalSessions,
+            row.markedSessions,
+            row.present,
+            row.absent,
+            row.late,
+            `${row.attendancePct}%`,
+            row.absentDays.map((day) => day.label).join(", "),
+          ]),
+          styles: { fontSize: 8, cellPadding: 2 },
+          headStyles: { fillColor: [16, 185, 129] },
+        });
+
+        doc.save(`${fileBase}.pdf`);
+      }
+
+      toast.success(`${format === "excel" ? "Excel" : "PDF"} report exported.`);
+    } catch {
+      toast.error(`Failed to export ${format === "excel" ? "Excel" : "PDF"} report.`);
+    } finally {
+      setExporting(null);
+    }
+  }
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
@@ -596,6 +848,33 @@ export default function AttendancePage() {
                               )}
                             </div>
                           )}
+
+                          <div className="mt-4 flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openClassAttendance(cls.name, "mark");
+                              }}
+                            >
+                              <ClipboardList className="h-3.5 w-3.5" />
+                              Mark
+                            </Button>
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              className="flex-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openClassAttendance(cls.name, "report");
+                              }}
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                              Report
+                            </Button>
+                          </div>
                         </CardContent>
                       </Card>
                     </motion.div>
@@ -709,6 +988,33 @@ export default function AttendancePage() {
                                       </p>
                                     </div>
                                   )}
+
+                                  <div className="mt-4 flex gap-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="flex-1"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openClassAttendance(cls.name, "mark");
+                                      }}
+                                    >
+                                      <ClipboardList className="h-3.5 w-3.5" />
+                                      Mark
+                                    </Button>
+                                    <Button
+                                      variant="primary"
+                                      size="sm"
+                                      className="flex-1"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openClassAttendance(cls.name, "report");
+                                      }}
+                                    >
+                                      <Eye className="h-3.5 w-3.5" />
+                                      Report
+                                    </Button>
+                                  </div>
                                 </CardContent>
                               </Card>
                             </motion.div>
@@ -828,6 +1134,33 @@ export default function AttendancePage() {
                                       </p>
                                     </div>
                                   )}
+
+                                  <div className="mt-4 flex gap-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="flex-1"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openClassAttendance(cls.name, "mark");
+                                      }}
+                                    >
+                                      <ClipboardList className="h-3.5 w-3.5" />
+                                      Mark
+                                    </Button>
+                                    <Button
+                                      variant="primary"
+                                      size="sm"
+                                      className="flex-1"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openClassAttendance(cls.name, "report");
+                                      }}
+                                    >
+                                      <Eye className="h-3.5 w-3.5" />
+                                      Report
+                                    </Button>
+                                  </div>
                                 </CardContent>
                               </Card>
                             </motion.div>
@@ -839,6 +1172,7 @@ export default function AttendancePage() {
                 </AnimatePresence>
               </div>
             )}
+
           </motion.div>
         ) : (
           /* ── Batch Session Detail View ── */
@@ -860,34 +1194,90 @@ export default function AttendancePage() {
                   <h1 className="text-2xl font-bold text-text-primary">
                     {selectedBatch?.student_group_name ?? selectedBatchId}
                   </h1>
-                  <p className="text-sm text-text-secondary mt-0.5">Mark attendance per session</p>
+                  <p className="text-sm text-text-secondary mt-0.5">
+                    {batchViewTab === "mark" ? "Mark attendance per session" : "Attendance report by student"}
+                  </p>
                 </div>
               </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-text-secondary flex items-center gap-1">
-                  <Calendar className="h-3 w-3" /> Date
-                </label>
-                <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => {
-                    setSelectedDate(e.target.value);
-                    setExpandedSession(null);
-                    setStudents([]);
-                    setAttendance({});
-                  }}
-                  className="h-10 rounded-[10px] border border-border-input bg-surface px-3 text-sm"
-                />
+              <div className="flex flex-col gap-3 sm:items-end">
+                <div className="inline-flex rounded-[12px] border border-border-light bg-surface p-1">
+                  <button
+                    type="button"
+                    onClick={() => setBatchViewTab("mark")}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-[8px] transition-colors ${
+                      batchViewTab === "mark" ? "bg-primary text-white" : "text-text-secondary"
+                    }`}
+                  >
+                    Mark Attendance
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBatchViewTab("report")}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-[8px] transition-colors ${
+                      batchViewTab === "report" ? "bg-primary text-white" : "text-text-secondary"
+                    }`}
+                  >
+                    View Report
+                  </button>
+                </div>
+
+                {batchViewTab === "mark" ? (
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium text-text-secondary flex items-center gap-1">
+                      <Calendar className="h-3 w-3" /> Date
+                    </label>
+                    <input
+                      type="date"
+                      value={selectedDate}
+                      onChange={(e) => {
+                        setSelectedDate(e.target.value);
+                        setExpandedSession(null);
+                        setStudents([]);
+                        setAttendance({});
+                      }}
+                      className="h-10 rounded-[10px] border border-border-input bg-surface px-3 text-sm"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-medium text-text-secondary flex items-center gap-1">
+                        <Calendar className="h-3 w-3" /> From
+                      </label>
+                      <input
+                        type="date"
+                        value={reportFromDate}
+                        max={reportToDate}
+                        onChange={(e) => setReportFromDate(e.target.value)}
+                        className="h-10 rounded-[10px] border border-border-input bg-surface px-3 text-sm"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-medium text-text-secondary flex items-center gap-1">
+                        <Calendar className="h-3 w-3" /> To
+                      </label>
+                      <input
+                        type="date"
+                        value={reportToDate}
+                        min={reportFromDate}
+                        onChange={(e) => setReportToDate(e.target.value)}
+                        className="h-10 rounded-[10px] border border-border-input bg-surface px-3 text-sm"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Loading */}
-            {batchSchedulesLoading && (
-              <GifLoader />
-            )}
+            {batchViewTab === "mark" && (
+              <>
+                {/* Loading */}
+                {batchSchedulesLoading && (
+                  <GifLoader />
+                )}
 
-            {/* No sessions */}
-            {!batchSchedulesLoading && batchSchedules.length === 0 && (
+                {/* No sessions */}
+                {!batchSchedulesLoading && batchSchedules.length === 0 && (
               <div className="text-center py-10 text-text-secondary text-sm">
                 <Calendar className="h-10 w-10 mx-auto mb-3 text-text-tertiary" />
                 <p className="font-medium">No sessions scheduled</p>
@@ -917,10 +1307,10 @@ export default function AttendancePage() {
                   </div>
                 )}
               </div>
-            )}
+                )}
 
-            {/* Session Cards */}
-            {!batchSchedulesLoading && batchSchedules.length > 0 && (
+                {/* Session Cards */}
+                {!batchSchedulesLoading && batchSchedules.length > 0 && (
               <div className="space-y-4">
                 {batchSchedules.map((schedule) => {
                   const state = sessionStates.get(schedule.name) ?? "ready";
@@ -1153,6 +1543,168 @@ export default function AttendancePage() {
                     </motion.div>
                   );
                 })}
+                </div>
+                )}
+              </>
+            )}
+
+            {batchViewTab === "report" && (
+              <div className="space-y-6">
+                {(reportBatchLoading || reportSchedulesLoading || reportAttendanceLoading) && <GifLoader />}
+
+                {!reportBatchLoading && !reportSchedulesLoading && !reportAttendanceLoading && (
+                  <>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                      <Card>
+                        <CardContent className="p-4 text-center">
+                          <p className="text-3xl font-bold text-primary">{reportStats.totalStudents}</p>
+                          <p className="text-xs text-text-secondary font-medium mt-1">Students</p>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardContent className="p-4 text-center">
+                          <p className="text-3xl font-bold text-success">{reportStats.totalPresent}</p>
+                          <p className="text-xs text-success font-medium mt-1">Present</p>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardContent className="p-4 text-center">
+                          <p className="text-3xl font-bold text-error">{reportStats.totalAbsent}</p>
+                          <p className="text-xs text-error font-medium mt-1">Absent</p>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardContent className="p-4 text-center">
+                          <p className="text-3xl font-bold text-warning">{reportStats.avgAttendance}%</p>
+                          <p className="text-xs text-warning font-medium mt-1">Avg Attendance</p>
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    <div className="flex flex-col lg:flex-row gap-4">
+                      <Card className="flex-1">
+                        <CardHeader className="pb-3">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                            <div>
+                              <CardTitle className="text-base">Student Attendance Report</CardTitle>
+                              <p className="text-xs text-text-tertiary mt-1">
+                                Click the absent count to see exact absent days.
+                              </p>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => exportBatchReport("pdf")}
+                                disabled={exporting !== null || reportRows.length === 0}
+                              >
+                                {exporting === "pdf" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+                                PDF
+                              </Button>
+                              <Button
+                                variant="primary"
+                                size="sm"
+                                onClick={() => exportBatchReport("excel")}
+                                disabled={exporting !== null || reportRows.length === 0}
+                              >
+                                {exporting === "excel" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileSpreadsheet className="h-3.5 w-3.5" />}
+                                Excel
+                              </Button>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                          {reportRows.length === 0 ? (
+                            <div className="text-center py-12 text-sm text-text-secondary">
+                              No attendance records found for this date range.
+                            </div>
+                          ) : (
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm">
+                                <thead>
+                                  <tr className="border-y border-border-light bg-app-bg">
+                                    <th className="text-left p-3 font-medium text-text-secondary">Student</th>
+                                    <th className="text-center p-3 font-medium text-text-secondary">Total</th>
+                                    <th className="text-center p-3 font-medium text-text-secondary">Marked</th>
+                                    <th className="text-center p-3 font-medium text-text-secondary">Present</th>
+                                    <th className="text-center p-3 font-medium text-text-secondary">Absent</th>
+                                    <th className="text-center p-3 font-medium text-text-secondary">Late</th>
+                                    <th className="text-center p-3 font-medium text-text-secondary">Attendance %</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {reportRows.map((row) => (
+                                    <tr key={row.studentId} className="border-b border-border-light last:border-0 hover:bg-app-bg/60">
+                                      <td className="p-3">
+                                        <p className="font-medium text-text-primary">{row.studentName}</p>
+                                        <p className="text-xs text-text-tertiary">{row.studentId}</p>
+                                      </td>
+                                      <td className="p-3 text-center font-medium text-text-primary">{row.totalSessions}</td>
+                                      <td className="p-3 text-center text-text-secondary">{row.markedSessions}</td>
+                                      <td className="p-3 text-center font-medium text-success">{row.present}</td>
+                                      <td className="p-3 text-center">
+                                        {row.absent > 0 ? (
+                                          <button
+                                            type="button"
+                                            onClick={() => setSelectedAbsentStudentId(row.studentId)}
+                                            className="inline-flex items-center rounded-full bg-error/10 px-2.5 py-1 text-xs font-semibold text-error hover:bg-error/15"
+                                          >
+                                            {row.absent}
+                                          </button>
+                                        ) : (
+                                          <span className="font-medium text-text-secondary">0</span>
+                                        )}
+                                      </td>
+                                      <td className="p-3 text-center font-medium text-warning">{row.late}</td>
+                                      <td className="p-3 text-center">
+                                        <Badge
+                                          variant={row.attendancePct >= 80 ? "success" : row.attendancePct >= 60 ? "warning" : "error"}
+                                          className="text-[10px]"
+                                        >
+                                          {row.attendancePct}%
+                                        </Badge>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+
+                      <Card className="w-full lg:w-[340px]">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-base">Absent Days</CardTitle>
+                          <p className="text-xs text-text-tertiary mt-1">
+                            {selectedAbsentStudent ? selectedAbsentStudent.studentName : "Select an absent count from the report table."}
+                          </p>
+                        </CardHeader>
+                        <CardContent>
+                          {!selectedAbsentStudent ? (
+                            <div className="rounded-[12px] border border-dashed border-border-light p-6 text-center text-sm text-text-secondary">
+                              No student selected yet.
+                            </div>
+                          ) : selectedAbsentStudent.absentDays.length === 0 ? (
+                            <div className="rounded-[12px] border border-dashed border-border-light p-6 text-center text-sm text-text-secondary">
+                              No absent days in this range.
+                            </div>
+                          ) : (
+                            <div className="space-y-3">
+                              {selectedAbsentStudent.absentDays.map((day, index) => (
+                                <div key={`${day.date}-${index}`} className="rounded-[12px] border border-border-light bg-surface p-3">
+                                  <p className="text-sm font-semibold text-text-primary">{day.label}</p>
+                                  <p className="text-xs text-text-secondary mt-1">{day.topic}</p>
+                                  <p className="text-xs text-text-tertiary mt-1">{day.time}</p>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </motion.div>

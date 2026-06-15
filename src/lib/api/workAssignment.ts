@@ -14,26 +14,6 @@ import {
   GMAssignmentView,
 } from "@/lib/types/workAssignment";
 
-async function resolveUserDisplayNames(userIds: string[]): Promise<Record<string, string>> {
-  const uniqueUsers = [...new Set(userIds.map((value) => value.trim()).filter(Boolean))];
-  if (uniqueUsers.length === 0) return {};
-
-  const params = new URLSearchParams();
-  uniqueUsers.forEach((user) => params.append("user", user));
-
-  try {
-    const response = await fetch(`/api/work-assignments/user-names?${params.toString()}`, {
-      credentials: "include",
-      cache: "no-store",
-    });
-    if (!response.ok) return {};
-    const json = await response.json();
-    return json?.data ?? {};
-  } catch {
-    return {};
-  }
-}
-
 /**
  * Create a new Work Assignment
  */
@@ -49,16 +29,7 @@ export async function createWorkAssignment(
  */
 export async function getWorkAssignment(id: string): Promise<WorkAssignment> {
   const response = await apiClient.get(`/resource/Work Assignment/${id}`);
-  const doc = response.data.data as Record<string, unknown>;
-  const createdBy = String(doc.owner || "");
-  const userNames = await resolveUserDisplayNames(createdBy ? [createdBy] : []);
-
-  return {
-    ...doc,
-    created_by: createdBy,
-    created_by_name: userNames[createdBy] || createdBy,
-    created_on: String(doc.creation || ""),
-  } as WorkAssignment;
+  return response.data.data;
 }
 
 /**
@@ -150,19 +121,82 @@ export async function deleteWorkAssignment(id: string): Promise<void> {
  */
 export async function getGMWorkAssignments(branch?: string): Promise<GMAssignmentView[]> {
   try {
-    const params = new URLSearchParams();
-    if (branch) params.set("branch", branch);
+    const fields = encodeURIComponent(
+      JSON.stringify(["name", "title", "description", "topic", "for_branch",
+        "academic_year", "deadline", "docstatus", "total_assigned",
+        "submitted_count", "approved_count"])
+    );
+    const filters: unknown[][] = [["docstatus", "!=", 2]]; // exclude cancelled/amended-away docs
+    if (branch) filters.push(["for_branch", "=", branch]);
+    const filtersParam = encodeURIComponent(JSON.stringify(filters));
 
-    const response = await fetch(`/api/work-assignments/gm-list?${params.toString()}`, {
-      credentials: "include",
-      cache: "no-store",
-    });
-    if (!response.ok) {
-      throw new Error("Failed to fetch work assignments");
-    }
+    const listRes = await apiClient.get(
+      `/resource/Work Assignment?fields=${fields}${filters.length ? `&filters=${filtersParam}` : ""}&limit_page_length=200&order_by=creation desc`
+    );
+    const items: Record<string, unknown>[] = listRes.data.data || [];
+    if (!items.length) return [];
 
-    const json = await response.json();
-    return (json?.data ?? []) as GMAssignmentView[];
+    // Fetch full docs for assignments child table
+    const docs = await Promise.all(
+      items.map((item) =>
+        apiClient
+          .get(`/resource/Work Assignment/${encodeURIComponent(item.name as string)}`)
+          .then((r) => r.data.data as Record<string, unknown>)
+          .catch(() => null)
+      )
+    );
+
+    return docs
+      .filter((doc): doc is Record<string, unknown> => doc !== null)
+      .map((doc) => {
+        const childRows = (doc.assignments as Record<string, unknown>[]) || [];
+        const submitted = childRows.filter((r) => r.submission_status === "Submitted").length;
+        const approved = childRows.filter((r) => r.approval_status === "Approved").length;
+        const rejected = childRows.filter((r) => r.approval_status === "Rejected").length;
+        const pendingReview = childRows.filter(
+          (r) => r.submission_status === "Submitted" && r.approval_status === "Pending"
+        ).length;
+        const docStatus = doc.docstatus as number;
+        const status: "Draft" | "Active" | "Completed" | "Cancelled" =
+          docStatus === 0 ? "Draft"
+          : docStatus === 1 ? "Active"
+          : docStatus === 2 ? "Cancelled"
+          : "Draft";
+
+        return {
+          ...doc,
+          status,
+          workflow_state: status,
+          enabled: docStatus === 1,
+          created_by: doc.owner as string,
+          created_on: doc.creation as string,
+          instructions_file: null,
+          reference_link: null,
+          total_assigned: childRows.length,
+          submitted_count: submitted,
+          approved_count: approved,
+          assignments: childRows as unknown as WorkAssignmentDetail[],
+          status_details: {
+            total: childRows.length,
+            submitted,
+            approved,
+            rejected,
+            pending: childRows.length - submitted,
+            pending_review: pendingReview,
+          },
+          submissions: childRows.map((r) => ({
+            idx: r.idx as number,
+            instructor: r.instructor as string,
+            instructor_name: (r.instructor_name as string) || (r.instructor as string),
+            submission_status: (r.submission_status as string) || "Pending",
+            approval_status: (r.approval_status as string) || "Pending",
+            google_drive_link: (r.google_drive_link as string) || null,
+            submitted_on: (r.submitted_on as string) || null,
+            approval_remarks: (r.approval_remarks as string) || null,
+            rejection_reason: (r.rejection_reason as string) || null,
+          })),
+        } as GMAssignmentView;
+      });
   } catch (error) {
     console.error("Error fetching GM assignments:", error);
     return [];
@@ -170,30 +204,29 @@ export async function getGMWorkAssignments(branch?: string): Promise<GMAssignmen
 }
 
 /**
- * Get all Work Assignments for the current Instructor.
+ * Get all Work Assignments for the given recipient (Instructor or Branch Manager).
  * Uses Frappe's child-table filter syntax on the parent doctype so we never
  * need to list Work Assignment Detail directly (that throws PermissionError).
  */
-export async function getInstructorAssignments(instructorId: string): Promise<InstructorAssignmentView[]> {
-  return getAssignmentsForRecipient({ recipientType: "Instructor", recipientKey: instructorId });
-}
-
-export async function getAssignmentsForRecipient(params: {
+export async function getAssignmentsForRecipient({
+  recipientType,
+  recipientKey
+}: {
   recipientType: "Instructor" | "Branch Manager";
   recipientKey: string;
 }): Promise<InstructorAssignmentView[]> {
-  if (!params.recipientKey) return [];
+  if (!recipientKey) return [];
   try {
-    // Step 1: Get parent WAs where this instructor is in the child table, docstatus=1 only
+    const childField = recipientType === "Branch Manager" ? "branch_manager_user" : "instructor";
+
+    // Step 1: Get parent WAs where this recipient is in the child table, docstatus=1 only
     const parentFields = encodeURIComponent(
-      JSON.stringify(["name", "title", "description", "topic", "deadline", "for_branch", "owner", "creation"])
+      JSON.stringify(["name", "title", "description", "topic", "deadline", "for_branch"])
     );
-    const childRecipientField =
-      params.recipientType === "Branch Manager" ? "branch_manager_user" : "instructor";
     const parentFilters = encodeURIComponent(
       JSON.stringify([
         ["docstatus", "=", 1],
-        ["Work Assignment Detail", childRecipientField, "=", params.recipientKey],
+        ["Work Assignment Detail", childField, "=", recipientKey],
       ])
     );
     const listRes = await apiClient.get(
@@ -212,23 +245,12 @@ export async function getAssignmentsForRecipient(params: {
       )
     );
 
-    const ownerNames = await resolveUserDisplayNames(
-      parentDocs
-        .filter((doc): doc is Record<string, unknown> => doc !== null)
-        .map((doc) => String(doc.owner || ""))
-    );
-
     const result: InstructorAssignmentView[] = [];
     for (const doc of parentDocs) {
       if (!doc) continue;
       const assignments = (doc.assignments as Record<string, unknown>[]) || [];
-      const myDetail = assignments.find((d) =>
-        params.recipientType === "Branch Manager"
-          ? d.branch_manager_user === params.recipientKey
-          : d.instructor === params.recipientKey
-      );
+      const myDetail = assignments.find((d) => d[childField] === recipientKey);
       if (!myDetail) continue;
-      const createdBy = String(doc.owner || "");
       result.push({
         name: doc.name as string,
         title: doc.title as string,
@@ -236,20 +258,6 @@ export async function getAssignmentsForRecipient(params: {
         topic: (doc.topic as string) || "",
         deadline: doc.deadline as string,
         for_branch: doc.for_branch as string,
-        assignee_type: (myDetail.assignee_type as "Instructor" | "Branch Manager") || params.recipientType,
-        assignee_key:
-          (params.recipientType === "Branch Manager"
-            ? myDetail.branch_manager_user
-            : myDetail.instructor) as string,
-        assignee_name:
-          ((myDetail.assignee_name as string) ||
-            (myDetail.instructor_name as string) ||
-            (params.recipientType === "Branch Manager"
-              ? (myDetail.branch_manager_user as string)
-              : (myDetail.instructor as string))) as string,
-        created_by: createdBy,
-        created_by_name: ownerNames[createdBy] || createdBy,
-        created_on: String(doc.creation || ""),
         my_assignment: {
           idx: (myDetail.idx as number) || 0,
           submission_status: (myDetail.submission_status as "Pending" | "Submitted") || "Pending",
@@ -270,14 +278,14 @@ export async function getAssignmentsForRecipient(params: {
     if (!status || status === 404 || status === 500) {
       return [];
     }
-    console.error("Error fetching recipient assignments:", error);
+    console.error(`Error fetching assignments for ${recipientType}:`, error);
     return [];
   }
 }
 
 /**
- * Instructor submits work (Google Drive link).
- * Uses direct REST: fetches the full WA doc, updates the instructor's child row,
+ * User submits work (Google Drive link).
+ * Uses direct REST: fetches the full WA doc, updates the user's child row,
  * then PUTs it back. No custom Frappe method required.
  */
 export async function submitInstructorWork(
@@ -293,12 +301,16 @@ export async function submitInstructorWork(
     const now = new Date();
     const frappeNow = now.toISOString().replace("T", " ").replace(/\.\d{3}Z$/, "");
 
-    // Find and update the instructor's row.
+    const recipientType = payload.recipient_type || "Instructor";
+    const childField = recipientType === "Branch Manager" ? "branch_manager_user" : "instructor";
+    const targetKey = payload.recipient_key || payload.instructor_id;
+
+    // Find and update the user's row.
     // IMPORTANT: reset approval_status to "Pending" so the GM can re-review
     // a resubmission (otherwise canReview stays false and the approve/reject
     // buttons never appear for the new submission).
     const updatedAssignments = assignments.map((row) => {
-      if (row.instructor !== payload.instructor_id && row.branch_manager_user !== payload.instructor_id) return row;
+      if (row[childField] !== targetKey) return row;
       return {
         ...row,
         google_drive_link: payload.google_drive_link,

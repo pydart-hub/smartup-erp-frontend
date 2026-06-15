@@ -166,6 +166,8 @@ export const InstructorAssignmentDetail: React.FC<InstructorAssignmentDetailProp
         onClose={() => setShowUpload(false)}
         workAssignmentId={assignment.name}
         deadline={assignment.deadline}
+        recipientType={recipientType}
+        recipientKey={recipientType === "Branch Manager" ? user?.email || "" : instructorName || ""}
         onSuccess={async () => {
           setShowUpload(false);
           await load();

@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole, STAFF_ROLES } from "@/lib/utils/apiAuth";
-import { getO2OHourlyRate } from "@/lib/utils/o2oFeeRates";
+import { resolveO2OHourlyRate } from "@/lib/utils/o2oFeeRates";
+import { extractO2ORateFromRecord } from "@/lib/utils/o2oRateField";
+import { resolveStoredO2ORateFromBackend } from "@/lib/server/o2oStoredRate";
+import {
+  buildO2OBillingDescription,
+  getBillingMonthKey,
+  resolveBilledScheduleNames,
+} from "@/lib/utils/o2oBillingMetadata";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +22,10 @@ function authHeaders() {
     "Content-Type": "application/json",
     Authorization: `token ${API_KEY}:${API_SECRET}`,
   };
+}
+
+function uniqueStrings(values: Array<string | null | undefined>): string[] {
+  return [...new Set(values.filter((value): value is string => !!value))];
 }
 
 async function fetchRetry(url: string, init: RequestInit, retries = 2): Promise<Response> {
@@ -82,6 +93,32 @@ async function resolveAcademicYear(studentId: string): Promise<string | undefine
   return ayJson.data?.[0]?.name as string | undefined;
 }
 
+async function resolveStoredO2ORate(studentId: string, program: string, studentGroupName?: string, groupRate?: unknown): Promise<number> {
+  try {
+    const resolved = await resolveStoredO2ORateFromBackend({
+      studentId,
+      program,
+      studentGroupName,
+      fallbackGroupRate: groupRate,
+    });
+    return resolved.rate;
+  } catch {
+    // fall through
+  }
+
+  const headers = authHeaders();
+  const peFilters = encodeURIComponent(JSON.stringify([["student", "=", studentId], ["docstatus", "!=", 2]]));
+  const peFields = encodeURIComponent(JSON.stringify(["custom_o2o_rate_per_class", "custom_o2o_rate_per_hour"]));
+  const peRes = await fetchRetry(
+    `${FRAPPE_URL}/api/resource/Program Enrollment?filters=${peFilters}&fields=${peFields}&order_by=enrollment_date desc, creation desc&limit_page_length=1`,
+    { headers, cache: "no-store" },
+  );
+  if (!peRes.ok) return resolveO2OHourlyRate(program, groupRate);
+  const peJson = await peRes.json().catch(() => ({}));
+  const peRate = extractO2ORateFromRecord(peJson.data?.[0]);
+  return resolveO2OHourlyRate(program, peRate ?? groupRate);
+}
+
 async function resolveTuitionItem(program: string): Promise<{ item_code: string; item_name?: string } | null> {
   const headers = authHeaders();
   const fields = encodeURIComponent(JSON.stringify(["item_code", "item_name"]));
@@ -146,7 +183,7 @@ async function createAndSubmitInvoice(salesOrderName: string, amount: number, la
       {
         item_code: soItem.item_code,
         item_name: soItem.item_name,
-        description: `${label} — ${soItem.item_name || soItem.item_code}`,
+        description: `${label} - ${soItem.item_name || soItem.item_code}`,
         qty: 1,
         rate: amount,
         amount,
@@ -182,6 +219,13 @@ async function createAndSubmitInvoice(salesOrderName: string, amount: number, la
   return invName;
 }
 
+type ScheduleRow = {
+  name: string;
+  schedule_date?: string;
+  from_time?: string;
+  to_time?: string;
+};
+
 export async function POST(request: NextRequest) {
   try {
     const auth = requireRole(request, STAFF_ROLES);
@@ -190,6 +234,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => ({}));
     const studentId = String(body.studentId ?? "").trim();
     const action = String(body.action ?? "").trim() as BillingAction;
+    const billingMonth = String(body.billingMonth ?? "").trim();
+    const salesOrderNameFromBody = String(body.salesOrderName ?? "").trim();
+    const explicitRate = Number(body.rate ?? 0);
 
     if (!studentId || !["sales-order", "sales-invoice"].includes(action)) {
       return NextResponse.json({ error: "studentId and valid action are required" }, { status: 400 });
@@ -244,10 +291,23 @@ export async function POST(request: NextRequest) {
       program?: string;
       custom_branch?: string;
     }>;
-    const group = groupRows.find((row) => row.name.includes(`(${studentId})`) || row.student_group_name?.includes(studentId));
-    if (!group) {
+    const groupMatch = groupRows.find((row) => row.name.includes(`(${studentId})`) || row.student_group_name?.includes(studentId));
+    if (!groupMatch) {
       return NextResponse.json({ error: "No One-to-One student group found for this student." }, { status: 404 });
     }
+    const groupDetailRes = await fetchRetry(
+      `${FRAPPE_URL}/api/resource/Student%20Group/${encodeURIComponent(groupMatch.name)}?fields=${encodeURIComponent(JSON.stringify(["name", "student_group_name", "program", "custom_branch"]))}`,
+      { headers, cache: "no-store" },
+    );
+    if (!groupDetailRes.ok) {
+      return NextResponse.json({ error: `Failed to read One-to-One group details: ${await readErrorText(groupDetailRes)}` }, { status: 502 });
+    }
+    const group = (await groupDetailRes.json()).data as {
+      name: string;
+      student_group_name?: string;
+      program?: string;
+      custom_branch?: string;
+    };
     if (!group.program) {
       return NextResponse.json({ error: "One-to-One group program is missing." }, { status: 400 });
     }
@@ -261,26 +321,26 @@ export async function POST(request: NextRequest) {
     if (!scheduleRes.ok) {
       return NextResponse.json({ error: `Failed to fetch scheduled courses: ${await readErrorText(scheduleRes)}` }, { status: 502 });
     }
-    const schedules = ((await scheduleRes.json()).data ?? []) as Array<{ name: string; from_time?: string; to_time?: string }>;
+    const schedules = ((await scheduleRes.json()).data ?? []) as ScheduleRow[];
     if (schedules.length === 0) {
       return NextResponse.json({ error: "No scheduled courses found for this One-to-One student." }, { status: 400 });
     }
 
-    const totalHours = Number(
-      schedules.reduce((sum, row) => sum + hoursBetween(row.from_time, row.to_time), 0).toFixed(2),
-    );
-    if (totalHours <= 0) {
-      return NextResponse.json({ error: "Scheduled courses do not have a valid duration." }, { status: 400 });
-    }
-
-    const ratePerHour = getO2OHourlyRate(group.program);
-    const totalAmount = Number((totalHours * ratePerHour).toFixed(2));
+    const ratePerHour =
+      Number.isFinite(explicitRate) && explicitRate > 0
+        ? explicitRate
+        : await resolveStoredO2ORate(
+            studentId,
+            group.program,
+            group.name,
+            null,
+          );
     const academicYear = await resolveAcademicYear(studentId);
 
     const soFields = encodeURIComponent(JSON.stringify(["name", "docstatus", "grand_total", "creation", "transaction_date"]));
     const soFilters = encodeURIComponent(JSON.stringify([["customer", "=", student.customer], ["docstatus", "!=", 2]]));
     const soRes = await fetchRetry(
-      `${FRAPPE_URL}/api/resource/Sales Order?filters=${soFilters}&fields=${soFields}&order_by=creation desc&limit_page_length=10`,
+      `${FRAPPE_URL}/api/resource/Sales Order?filters=${soFilters}&fields=${soFields}&order_by=creation desc&limit_page_length=100`,
       { headers, cache: "no-store" },
     );
     if (!soRes.ok) {
@@ -291,16 +351,61 @@ export async function POST(request: NextRequest) {
       docstatus: number;
       grand_total?: number;
     }>;
-    const submittedSO = salesOrders.find((row) => row.docstatus === 1);
+    const submittedSOs = salesOrders.filter((row) => row.docstatus === 1);
+
+    const detailedSalesOrders: Array<{
+      name: string;
+      transaction_date?: string;
+      creation?: string;
+      items?: Array<{ description?: string | null }>;
+    }> = [];
+    for (const so of submittedSOs) {
+      const soDetailRes = await fetchRetry(
+        `${FRAPPE_URL}/api/resource/Sales Order/${encodeURIComponent(so.name)}`,
+        { headers, cache: "no-store" },
+      );
+      if (!soDetailRes.ok) continue;
+      const soDetail = (await soDetailRes.json()).data as {
+        name?: string;
+        transaction_date?: string;
+        creation?: string;
+        items?: Array<{ description?: string | null }>;
+      };
+      detailedSalesOrders.push({
+        name: so.name,
+        transaction_date: soDetail.transaction_date,
+        creation: soDetail.creation,
+        items: soDetail.items ?? [],
+      });
+    }
+    const billedScheduleNames = resolveBilledScheduleNames({
+      schedules,
+      salesOrders: detailedSalesOrders,
+    });
+
+    const availableMonths = uniqueStrings(schedules.map((row) => getBillingMonthKey(row.schedule_date))).sort();
+    const monthKey = billingMonth || availableMonths.slice(-1)[0];
+    if (!monthKey) {
+      return NextResponse.json({ error: "Could not determine a billing month from scheduled courses." }, { status: 400 });
+    }
+
+    const monthSchedules = schedules.filter((row) => getBillingMonthKey(row.schedule_date) === monthKey);
+    const unbilledMonthSchedules = monthSchedules.filter((row) => !billedScheduleNames.has(row.name));
+
+    if (unbilledMonthSchedules.length === 0) {
+      return NextResponse.json({ error: `No unbilled One-to-One schedules found for ${monthKey}.` }, { status: 409 });
+    }
+
+    const totalHours = Number(
+      unbilledMonthSchedules.reduce((sum, row) => sum + hoursBetween(row.from_time, row.to_time), 0).toFixed(2),
+    );
+    if (totalHours <= 0) {
+      return NextResponse.json({ error: "Unbilled schedules in this month do not have a valid duration." }, { status: 400 });
+    }
+
+    const totalAmount = Number((totalHours * ratePerHour).toFixed(2));
 
     if (action === "sales-order") {
-      if (submittedSO) {
-        return NextResponse.json(
-          { error: `Sales Order already exists: ${submittedSO.name}`, salesOrderName: submittedSO.name },
-          { status: 409 },
-        );
-      }
-
       const tuitionItem = await resolveTuitionItem(group.program);
       if (!tuitionItem) {
         return NextResponse.json({ error: `No tuition fee item found for program "${group.program}".` }, { status: 400 });
@@ -321,7 +426,13 @@ export async function POST(request: NextRequest) {
             item_code: tuitionItem.item_code,
             qty: 1,
             rate: totalAmount,
-            description: `One-to-One tuition: ${schedules.length} session(s), ${totalHours.toFixed(2)}h total x ₹${ratePerHour}/h`,
+            description: buildO2OBillingDescription({
+              sessionCount: unbilledMonthSchedules.length,
+              totalHours,
+              ratePerHour,
+              monthKey,
+              scheduleNames: unbilledMonthSchedules.map((row) => row.name),
+            }),
           },
         ],
       };
@@ -349,21 +460,26 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: `Sales Order submit failed: ${await readErrorText(submitSORes)}` }, { status: 502 });
       }
 
+      const invoiceName = await createAndSubmitInvoice(salesOrderName, totalAmount, "One-to-One Tuition");
+
       return NextResponse.json({
         salesOrderName,
+        invoices: [invoiceName],
         amount: totalAmount,
         hours: totalHours,
         rate: ratePerHour,
-        scheduleCount: schedules.length,
+        scheduleCount: unbilledMonthSchedules.length,
+        billingMonth: monthKey,
       });
     }
 
-    if (!submittedSO) {
+    const targetSalesOrderName = salesOrderNameFromBody || submittedSOs[0]?.name;
+    if (!targetSalesOrderName) {
       return NextResponse.json({ error: "No submitted Sales Order found. Generate Sales Order first." }, { status: 400 });
     }
 
     const invFilters = encodeURIComponent(JSON.stringify([
-      ["Sales Invoice Item", "sales_order", "=", submittedSO.name],
+      ["Sales Invoice Item", "sales_order", "=", targetSalesOrderName],
       ["docstatus", "=", 1],
     ]));
     const invFields = encodeURIComponent(JSON.stringify(["name"]));
@@ -382,16 +498,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const invoiceAmount = submittedSO.grand_total && submittedSO.grand_total > 0 ? submittedSO.grand_total : totalAmount;
-    const invoiceName = await createAndSubmitInvoice(submittedSO.name, invoiceAmount, "One-to-One Tuition");
+    const targetSO = submittedSOs.find((row) => row.name === targetSalesOrderName);
+    const invoiceAmount = targetSO?.grand_total && targetSO.grand_total > 0 ? targetSO.grand_total : totalAmount;
+    const invoiceName = await createAndSubmitInvoice(targetSalesOrderName, invoiceAmount, "One-to-One Tuition");
 
     return NextResponse.json({
-      salesOrderName: submittedSO.name,
+      salesOrderName: targetSalesOrderName,
       invoices: [invoiceName],
       amount: invoiceAmount,
       hours: totalHours,
       rate: ratePerHour,
-      scheduleCount: schedules.length,
+      scheduleCount: unbilledMonthSchedules.length,
+      billingMonth: monthKey,
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Internal server error";
