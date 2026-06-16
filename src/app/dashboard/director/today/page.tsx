@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
@@ -16,6 +16,7 @@ import {
   Building2,
   BookOpen,
   CreditCard,
+  Receipt,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -38,6 +39,17 @@ interface TodayAdmission {
   invoice_count: number;
 }
 
+interface TodayCollectedEntry {
+  name: string;
+  party?: string;
+  party_name?: string;
+  company?: string;
+  posting_date: string;
+  paid_amount: number;
+  mode_of_payment?: string;
+  reference_no?: string;
+}
+
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { staggerChildren: 0.06 } },
@@ -57,7 +69,18 @@ async function fetchTodaysAdmissions(): Promise<TodayAdmission[]> {
   return json.data ?? [];
 }
 
+async function fetchTodaysCollectedEntries(): Promise<TodayCollectedEntry[]> {
+  const res = await fetch("/api/director/today-collected", {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(`Failed: ${res.status}`);
+  const json = await res.json();
+  return json.data ?? [];
+}
+
 export default function TodayAdmissionsPage() {
+  const [activePanel, setActivePanel] = useState<"admissions" | "collected">("admissions");
+
   const { data: admissions, isLoading, isError } = useQuery({
     queryKey: ["director-today-admissions-detail"],
     queryFn: fetchTodaysAdmissions,
@@ -65,9 +88,21 @@ export default function TodayAdmissionsPage() {
     refetchInterval: 30_000,
   });
 
+  const {
+    data: collectedEntries,
+    isLoading: isCollectedLoading,
+    isError: isCollectedError,
+  } = useQuery({
+    queryKey: ["director-today-collected-detail"],
+    queryFn: fetchTodaysCollectedEntries,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+  });
+
   const rows = admissions ?? [];
+  const payments = collectedEntries ?? [];
   const totalBilled = rows.reduce((s, r) => s + r.total_billed, 0);
-  const totalPaid = rows.reduce((s, r) => s + r.total_paid, 0);
+  const totalPaid = payments.reduce((s, r) => s + r.paid_amount, 0);
   const totalOutstanding = rows.reduce((s, r) => s + r.total_outstanding, 0);
 
   const today = new Date().toLocaleDateString("en-IN", {
@@ -131,13 +166,24 @@ export default function TodayAdmissionsPage() {
             <p className="text-xs text-text-tertiary">Total Billed</p>
           </CardContent>
         </Card>
-        <Card className="border-green-500/20">
+        <Card
+          className={`border-green-500/20 cursor-pointer transition-all ${activePanel === "collected" ? "ring-2 ring-green-500/30 shadow-sm" : "hover:border-green-500/40"}`}
+          onClick={() => setActivePanel("collected")}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setActivePanel("collected");
+            }
+          }}
+        >
           <CardContent className="p-4 text-center">
             <CircleCheck className="h-5 w-5 text-green-500 mx-auto mb-1.5" />
             <p className="text-2xl font-bold text-green-600">
-              {isLoading ? "..." : formatCurrency(totalPaid)}
+              {isCollectedLoading ? "..." : formatCurrency(totalPaid)}
             </p>
-            <p className="text-xs text-text-tertiary">Collected</p>
+            <p className="text-xs text-text-tertiary">Today Collected Fees</p>
           </CardContent>
         </Card>
         <Card className="border-red-500/20">
@@ -151,9 +197,35 @@ export default function TodayAdmissionsPage() {
         </Card>
       </motion.div>
 
-      {/* Student list */}
+      <motion.div variants={itemVariants} className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => setActivePanel("admissions")}
+          className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+            activePanel === "admissions"
+              ? "bg-emerald-500 text-white"
+              : "border border-border-light text-text-secondary hover:border-emerald-300"
+          }`}
+        >
+          Admission List
+        </button>
+        <button
+          type="button"
+          onClick={() => setActivePanel("collected")}
+          className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+            activePanel === "collected"
+              ? "bg-green-500 text-white"
+              : "border border-border-light text-text-secondary hover:border-green-300"
+          }`}
+        >
+          Collection List
+        </button>
+      </motion.div>
+
+      {/* Detail list */}
       <motion.div variants={itemVariants}>
-        {isLoading ? (
+        {activePanel === "admissions" ? (
+          isLoading ? (
           <div className="flex items-center justify-center h-48">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
@@ -168,6 +240,13 @@ export default function TodayAdmissionsPage() {
             <p className="text-sm text-text-tertiary">No admissions today</p>
           </div>
         ) : (
+          <>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-text-primary">Today&apos;s Admission List</h2>
+            <Badge variant="outline" className="text-[11px]">
+              {rows.length} student{rows.length !== 1 ? "s" : ""}
+            </Badge>
+          </div>
           <div className="space-y-3">
             {rows.map((row) => (
               <motion.div
@@ -271,6 +350,93 @@ export default function TodayAdmissionsPage() {
               </motion.div>
             ))}
           </div>
+          </>
+        )
+        ) : isCollectedLoading ? (
+          <div className="flex items-center justify-center h-48">
+            <Loader2 className="h-6 w-6 animate-spin text-green-500" />
+          </div>
+        ) : isCollectedError ? (
+          <div className="flex flex-col items-center justify-center h-48 gap-3">
+            <AlertCircle className="h-8 w-8 text-error" />
+            <p className="text-sm text-error">Failed to load today&apos;s collections</p>
+          </div>
+        ) : payments.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-48 gap-3">
+            <Receipt className="h-8 w-8 text-text-tertiary" />
+            <p className="text-sm text-text-tertiary">No collections recorded today</p>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-text-primary">Today&apos;s Collection List</h2>
+              <Badge variant="outline" className="text-[11px] border-green-500/30 text-green-700">
+                {payments.length} entries
+              </Badge>
+            </div>
+            <div className="space-y-3">
+              {payments.map((entry) => (
+                <motion.div
+                  key={entry.name}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Card className="border-border-light hover:border-green-500/30 hover:shadow-sm transition-all">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-9 h-9 rounded-full bg-green-500/15 flex items-center justify-center flex-shrink-0">
+                            <Receipt className="h-4 w-4 text-green-500" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-text-primary truncate">
+                              {entry.party_name || entry.party || "Unknown Customer"}
+                            </p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <Building2 className="h-3 w-3 text-text-tertiary flex-shrink-0" />
+                              <span className="text-xs text-text-tertiary truncate">
+                                {entry.company?.replace("Smart Up ", "") || "-"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <span className="text-sm font-bold text-green-600 tabular-nums">
+                          {formatCurrency(entry.paid_amount)}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap gap-x-5 gap-y-1.5 pl-12">
+                        <div className="flex items-center gap-1.5">
+                          <CreditCard className="h-3 w-3 text-text-tertiary flex-shrink-0" />
+                          <span className="text-xs text-text-secondary">
+                            {entry.mode_of_payment || "Payment Mode N/A"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Clock className="h-3 w-3 text-text-tertiary flex-shrink-0" />
+                          <span className="text-xs text-text-secondary">
+                            {entry.posting_date || "-"}
+                          </span>
+                        </div>
+                        {entry.reference_no && (
+                          <div className="flex items-center gap-1.5">
+                            <Receipt className="h-3 w-3 text-text-tertiary flex-shrink-0" />
+                            <span className="text-xs text-text-secondary truncate">
+                              Ref: {entry.reference_no}
+                            </span>
+                          </div>
+                        )}
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                          {entry.name}
+                        </Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          </>
         )}
       </motion.div>
     </motion.div>

@@ -16,6 +16,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { getStudent } from "@/lib/api/students";
 import apiClient from "@/lib/api/client";
 import { selectPrimarySalesOrder, sortSalesOrdersForDisplay } from "@/lib/utils/salesOrderSelection";
+import { formatDate } from "@/lib/utils/formatters";
 
 function initials(name: string) {
   return name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
@@ -45,6 +46,10 @@ function SectionCard({ title, icon, children }: { title: string; icon: React.Rea
       </CardContent>
     </Card>
   );
+}
+
+function formatInvoiceDueDate(date: string): string {
+  return formatDate(date, "dd MMM yyyy");
 }
 
 export default function SalesUserStudentDetailPage() {
@@ -388,7 +393,7 @@ export default function SalesUserStudentDetailPage() {
                           <td className="py-2">
                             <span className={`flex items-center gap-1 text-xs ${isOverdue ? "text-error font-semibold" : "text-text-secondary"}`}>
                               {isOverdue && <Clock className="h-3 w-3 shrink-0" />}
-                              {new Date(dueDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                              {formatInvoiceDueDate(dueDate)}
                               {isOverdue && <span className="text-[9px] font-bold ml-0.5">OVERDUE</span>}
                             </span>
                           </td>

@@ -26,6 +26,7 @@ import { resolveO2OHourlyRate } from "@/lib/utils/o2oFeeRates";
 import { extractO2ORateFromRecord } from "@/lib/utils/o2oRateField";
 import { formatBillingMonthLabel, getBillingMonthKey, resolveBilledScheduleNames } from "@/lib/utils/o2oBillingMetadata";
 import { selectPrimarySalesOrder, sortSalesOrdersForDisplay } from "@/lib/utils/salesOrderSelection";
+import { formatDate } from "@/lib/utils/formatters";
 import { toast } from "sonner";
 
 type O2OBillingAction = "sales-order" | "sales-invoice";
@@ -144,6 +145,10 @@ function monthSortDesc(a: string, b: string): number {
   return a === b ? 0 : a > b ? -1 : 1;
 }
 
+function formatInvoiceDueDate(date: string): string {
+  return formatDate(date, "dd MMM yyyy");
+}
+
 export default function StudentViewPage() {
   const { id: rawId } = useParams<{ id: string }>();
   const id = decodeURIComponent(rawId);
@@ -260,13 +265,13 @@ export default function StudentViewPage() {
           }));
         }),
       );
-      return allInvoices
-        .flat()
-        .sort((a, b) => {
-          const aDate = Date.parse(a.due_date ?? a.posting_date ?? "");
-          const bDate = Date.parse(b.due_date ?? b.posting_date ?? "");
-          return (bDate || 0) - (aDate || 0);
-        });
+        return allInvoices
+          .flat()
+          .sort((a, b) => {
+            const aDate = Date.parse(a.due_date ?? a.posting_date ?? "");
+            const bDate = Date.parse(b.due_date ?? b.posting_date ?? "");
+            return (aDate || 0) - (bDate || 0);
+          });
     },
     enabled: submittedSalesOrderNames.length > 0,
     staleTime: 60_000,
@@ -1052,7 +1057,7 @@ export default function StudentViewPage() {
                           <td className="py-2">
                             <span className={`flex items-center gap-1 text-xs ${isOverdue ? "text-error font-semibold" : "text-text-secondary"}`}>
                               {isOverdue && <Clock className="h-3 w-3 shrink-0" />}
-                              {new Date(dueDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                              {formatInvoiceDueDate(dueDate)}
                               {isOverdue && <span className="text-[9px] font-bold ml-0.5">OVERDUE</span>}
                             </span>
                           </td>
