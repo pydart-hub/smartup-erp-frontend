@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { getStudents } from "@/lib/api/students";
+import { getStudents, getStudentCount } from "@/lib/api/students";
 import { DisabilityBadge } from "@/components/ui/DisabilityBadge";
 import { getAllBranches, getActiveStudentCountForBranch } from "@/lib/api/director";
 import apiClient from "@/lib/api/client";
@@ -86,7 +86,7 @@ async function fetchConvertedMap(
 }
 
 export default function SalesUserStudentsPage() {
-  const { defaultCompany } = useAuth();
+  const { user, allowedCompanies, defaultCompany } = useAuth();
 
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
@@ -100,7 +100,7 @@ export default function SalesUserStudentsPage() {
 
   // ── Students list (active only, branch-scoped) ───────────
   const { data: studentsRes, isLoading, isError, error } = useQuery({
-    queryKey: ["sales-students", search, page, defaultCompany],
+    queryKey: ["sales-students", search, page, allowedCompanies],
     queryFn: () =>
       getStudents({
         search: search || undefined,
@@ -108,7 +108,9 @@ export default function SalesUserStudentsPage() {
         limit_start: page * PAGE_SIZE,
         limit_page_length: PAGE_SIZE,
         order_by: "creation desc",
-        ...(defaultCompany ? { custom_branch: defaultCompany } : {}),
+        extraFilters: allowedCompanies && allowedCompanies.length > 0
+          ? [["custom_branch", "in", allowedCompanies]]
+          : undefined,
       }),
     staleTime: 30_000,
   });
@@ -123,10 +125,14 @@ export default function SalesUserStudentsPage() {
     staleTime: 300_000,
   });
 
+  const filteredBranches = allBranches.filter((b) =>
+    allowedCompanies && allowedCompanies.length > 0 ? allowedCompanies.includes(b.name) : true
+  );
+
   const { data: branchCounts = [] } = useQuery({
-    queryKey: ["sales-students-branch-counts", allBranches.map((b) => b.name)],
-    queryFn: () => Promise.all(allBranches.map((b) => getActiveStudentCountForBranch(b.name))),
-    enabled: allBranches.length > 0,
+    queryKey: ["sales-students-branch-counts", filteredBranches.map((b) => b.name)],
+    queryFn: () => Promise.all(filteredBranches.map((b) => getActiveStudentCountForBranch(b.name))),
+    enabled: filteredBranches.length > 0,
     staleTime: 120_000,
   });
 
@@ -161,9 +167,9 @@ export default function SalesUserStudentsPage() {
       </div>
 
       {/* Branch-wise counts */}
-      {allBranches.length > 0 && (
+      {filteredBranches.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-          {allBranches.map((branch, i) => {
+          {filteredBranches.map((branch, i) => {
             const count = branchCounts[i];
             const isOwn = branch.name === defaultCompany;
             const shortName = branch.name.replace("Smart Up ", "").replace("Smart Up", "HQ");

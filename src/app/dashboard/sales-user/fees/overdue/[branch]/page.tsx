@@ -17,6 +17,7 @@ import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
 import { getDuesTodayByClass } from "@/lib/api/director";
 import { formatCurrency } from "@/lib/utils/formatters";
+import { useAuth } from "@/lib/hooks/useAuth";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -36,15 +37,41 @@ export default function SalesOverdueClassPage() {
   const asOf = searchParams.get("as_of") || undefined;
   const childQs = asOf ? `?as_of=${asOf}` : "";
 
+  const { allowedCompanies, role } = useAuth();
+  const hasAccess =
+    role !== "Sales User" ||
+    !allowedCompanies ||
+    allowedCompanies.length === 0 ||
+    allowedCompanies.includes(branch);
+
   const { data: classes, isLoading, isError } = useQuery({
     queryKey: ["sales-dues-classes", branch, asOf],
     queryFn: () => getDuesTodayByClass(branch, asOf),
     staleTime: 30_000,
     refetchInterval: 60_000,
+    enabled: hasAccess,
   });
 
   const totalDues = (classes ?? []).reduce((s, c) => s + c.total_dues, 0);
   const totalStudents = (classes ?? []).reduce((s, c) => s + c.student_count, 0);
+
+  if (!hasAccess) {
+    return (
+      <div className="space-y-6">
+        <BreadcrumbNav />
+        <div className="flex flex-col items-center justify-center min-h-[300px] gap-3 rounded-2xl border border-red-100 bg-red-50/50 p-8 text-center animate-fade-in">
+          <AlertCircle className="h-10 w-10 text-red-500" />
+          <h2 className="text-lg font-semibold text-gray-900">Access Denied</h2>
+          <p className="text-sm text-gray-600 max-w-md">
+            You do not have permission to access data for branch "{shortName}". Mapped branches for your account are: {allowedCompanies?.join(", ")}.
+          </p>
+          <Link href="/dashboard/sales-user/fees/overdue" className="mt-2 text-sm font-semibold text-primary hover:text-primary-dark underline">
+            Go back to Overdue Fees
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <motion.div

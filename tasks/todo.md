@@ -1,9 +1,36 @@
 # SmartUp ERP — Task Tracker
 
+## Current: Sales User Branch Restrictions (2026-06-22)
+
+- [x] Add `SALES_USER_BRANCH_MAP` and helper to `src/lib/utils/constants.ts`
+- [x] Overwrite allowed branches during login in `src/app/api/auth/login/route.ts`
+- [x] Overwrite allowed branches in `src/app/api/auth/me/route.ts`
+- [x] Scope API proxy queries to allowed branches for Sales Users in `src/app/api/proxy/[...path]/route.ts`
+- [x] Scope dues-till-today endpoints for Sales Users in `src/app/api/fees/dues-till-today/route.ts`
+- [x] Scope recently-paid-claims in `src/app/api/fees/recently-paid-claims/route.ts` and followup-dashboard in `src/app/api/sales-user/followup-dashboard/route.ts`
+- [x] Filter dashboard and students list pages to show only allowed branches in frontend
+- [x] Filter overdue-paid page to show only allowed branches in frontend
+- [x] Add client-side route guards for overdue branch sub-pages
+- [x] Run typechecks and build verification
+
+### Review
+- Enforced branch-level scoping on proxy request context for GET queries when roles includes "Sales User" mapping email via `getSalesUserBranches`.
+- Enforced allowed company scoping for Sales Users in `dues-till-today/route.ts`, `recently-paid-claims/route.ts`, and `followup-dashboard/route.ts`. Attempting to load unauthorized branches directly returns `403 Forbidden`.
+- Scoped frontend dashboard, students list, and overdue paid pages by destructuring `allowedCompanies` from `useAuth` and filtering branch records accordingly.
+- Added strict client-side route guards on all overdue branch sub-routes (`/overdue/[branch]`, `/overdue/[branch]/all`, `/overdue/[branch]/[classId]`, `/overdue/[branch]/[classId]/[batch]`, and `/overdue/[branch]/paid-history`) displaying a custom Access Denied screen instead of initiating query fetch parameters.
+- Verified compilation and build success cleanly via `npx tsc --noEmit` and `npx next build`.
+
+## Current: Sales User Overdue Paid Overview Production Fix (2026-06-22)
+
+- [x] Refactor `level === "branch_students"` logic in `src/app/api/fees/dues-till-today/route.ts` into a standalone helper
+- [x] Modify `src/app/api/fees/recently-paid-claims/route.ts` to call this helper directly
+- [x] Run typechecks and builds to verify changes
+- [x] Test API endpoints locally
+
 ## Current: Push + Server Deployment & TS Bug Fixes (2026-06-22)
 
-- [/] Fix TypeScript compilation errors in `BranchAllStudentsPage`
-- [ ] Verify repo state and build success locally
+- [x] Fix TypeScript compilation errors in `BranchAllStudentsPage`
+- [x] Verify repo state and build success locally
 - [ ] Commit and push latest changes to origin/main
 - [ ] Deploy latest commit on server and restart PM2 process
 - [ ] Run post-deploy health checks and verify `https://smartuplearning.net`

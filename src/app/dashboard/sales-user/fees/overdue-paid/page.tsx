@@ -15,6 +15,7 @@ import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
 import { getDuesTodayByBranch, getRecentlyPaidClaims } from "@/lib/api/director";
 import { formatCurrency } from "@/lib/utils/formatters";
+import { useAuth } from "@/lib/hooks/useAuth";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -36,12 +37,17 @@ type BranchPaidHistoryRow = {
 };
 
 export default function SalesOverduePaidOverviewPage() {
+  const { allowedCompanies } = useAuth();
+
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["sales-overdue-paid-overview"],
+    queryKey: ["sales-overdue-paid-overview", allowedCompanies],
     queryFn: async (): Promise<BranchPaidHistoryRow[]> => {
       const branches = await getDuesTodayByBranch();
+      const filtered = branches.filter((b) =>
+        allowedCompanies && allowedCompanies.length > 0 ? allowedCompanies.includes(b.branch) : true
+      );
       const rows = await Promise.all(
-        branches.map(async (branch) => {
+        filtered.map(async (branch) => {
           const claims = await getRecentlyPaidClaims(branch.branch);
           const awaitingClaims = claims.filter((claim) => claim.claim_status === "awaiting_claim");
           return {

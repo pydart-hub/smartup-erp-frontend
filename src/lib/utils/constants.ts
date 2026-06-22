@@ -294,3 +294,15 @@ export const MENTOR_NAV: NavItem[] = [
   { label: "Assigned Students", href: "/dashboard/mentor/students", icon: "GraduationCap", emoji: "👨‍🎓" },
   { label: "Feedback Logs", href: "/dashboard/mentor/feedback", icon: "ClipboardList", emoji: "📝" },
 ];
+
+export const SALES_USER_BRANCH_MAP: Record<string, string[]> = {
+  "farijabasheer11@gmail.com": ["Smart Up Eraveli", "Smart Up Fortkochi", "Smart Up Kadavanthra"],
+  "saniya.smartup@gmail.com": ["Smart Up Thopumpadi", "Smart Up Palluruthy", "Smart Up Vennala"],
+  "sneha.smartup@gmail.com": ["Smart Up Moolamkuzhi", "Smart Up Chullickal", "Smart Up Edappally"],
+};
+
+export function getSalesUserBranches(email?: string): string[] {
+  if (!email) return [];
+  return SALES_USER_BRANCH_MAP[email.toLowerCase().trim()] || [];
+}
+

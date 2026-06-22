@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getSalesUserBranches } from "@/lib/utils/constants";
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,15 +13,29 @@ export async function GET(request: NextRequest) {
       Buffer.from(sessionCookie.value, "base64").toString()
     );
 
+    const roles: string[] = sessionData.roles || [];
+    let allowedCompanies: string[] = sessionData.allowed_companies || [];
+    let defaultCompany: string = sessionData.default_company || "";
+
+    if (roles.includes("Sales User") && sessionData.email) {
+      const mappedBranches = getSalesUserBranches(sessionData.email);
+      if (mappedBranches.length > 0) {
+        allowedCompanies = mappedBranches;
+        if (!defaultCompany || !mappedBranches.includes(defaultCompany)) {
+          defaultCompany = mappedBranches[0];
+        }
+      }
+    }
+
     return NextResponse.json({
       user: {
         name: sessionData.email,
         email: sessionData.email,
         full_name: sessionData.full_name,
-        roles: sessionData.roles || [],
+        roles,
         role_profile_name: sessionData.roles?.[0] || null,
-        allowed_companies: sessionData.allowed_companies || [],
-        default_company: sessionData.default_company || "",
+        allowed_companies: allowedCompanies,
+        default_company: defaultCompany,
         instructor_name: sessionData.instructor_name || undefined,
         instructor_display_name: sessionData.instructor_display_name || undefined,
         allowed_batches: sessionData.allowed_batches || undefined,

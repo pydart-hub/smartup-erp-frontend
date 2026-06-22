@@ -1,117 +1,67 @@
 "use client";
 
-import React, { useRef } from "react";
-import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import React from "react";
+import { motion } from "framer-motion";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import {
-  UserPlus,
-  CalendarDays,
-  TrendingUp,
-  Building2,
-  Loader2,
-  CalendarClock,
-  AlertTriangle,
-  ChevronRight,
-  ArrowUpRight,
   Phone,
   CheckCircle2,
+  AlertTriangle,
   Clock3,
+  PhoneMissed,
+  ChevronRight,
+  ArrowUpRight,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { AnimatedNumber, AnimatedCurrency, AnimatedName } from "@/components/dashboard/AnimatedValue";
-import { RecentActivity, type ActivityItem } from "@/components/dashboard/RecentActivity";
 import { useAuth } from "@/lib/hooks/useAuth";
-import { getStudentCount } from "@/lib/api/students";
-import { getAllBranches, getActiveStudentCountForBranch, getDuesTodayTotal } from "@/lib/api/director";
-import apiClient from "@/lib/api/client";
+import { getDuesTodayTotal } from "@/lib/api/director";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { getSalesUserFollowUpDashboard } from "@/lib/api/followup";
 
 const container = {
   hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { staggerChildren: 0.07 } },
+  visible: { opacity: 1, transition: { staggerChildren: 0.06 } },
 };
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 16 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.5, ease: "easeOut" as const },
-  },
+  hidden: { opacity: 0, y: 14 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: "easeOut" as const } },
 };
 
-function Tilt({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const sx = useSpring(x, { stiffness: 280, damping: 30 });
-  const sy = useSpring(y, { stiffness: 280, damping: 30 });
-  const rx = useTransform(sy, [-0.5, 0.5], [8, -8]);
-  const ry = useTransform(sx, [-0.5, 0.5], [-8, 8]);
-
-  function onMove(e: React.MouseEvent<HTMLDivElement>) {
-    const r = ref.current?.getBoundingClientRect();
-    if (!r) return;
-    x.set((e.clientX - r.left) / r.width - 0.5);
-    y.set((e.clientY - r.top) / r.height - 0.5);
-  }
-
-  function onLeave() {
-    x.set(0);
-    y.set(0);
-  }
-
-  return (
-    <motion.div
-      ref={ref}
-      onMouseMove={onMove}
-      onMouseLeave={onLeave}
-      style={{ perspective: "800px", rotateX: rx, rotateY: ry }}
-      whileTap={{ scale: 0.975 }}
-      className={className}
-    >
-      {children}
-    </motion.div>
-  );
-}
-
+/* ─── Minimal KPI card ─── */
 interface KpiCardProps {
   title: string;
   value: React.ReactNode;
   sub?: string;
   icon: React.ReactNode;
-  badge: string;
+  iconBg: string;
   accent: string;
-  loading?: boolean;
   href?: string;
   warn?: boolean;
+  loading?: boolean;
 }
 
-function KpiCard({ title, value, sub, icon, badge, accent, loading, href, warn }: KpiCardProps) {
+function KpiCard({ title, value, sub, icon, iconBg, accent, href, warn, loading }: KpiCardProps) {
   const inner = (
     <div
-      className={`relative h-full rounded-2xl bg-white border transition-all duration-300 overflow-hidden group ${
-        warn ? "border-orange-200 shadow-orange-100/60 shadow-md" : "border-gray-100 shadow-sm hover:shadow-md"
+      className={`relative h-full rounded-2xl bg-white border transition-all duration-200 overflow-hidden group ${
+        warn ? "border-orange-200 shadow-orange-50 shadow-md" : "border-gray-100 shadow-sm hover:shadow-md"
       }`}
     >
       <div className={`absolute top-0 inset-x-0 h-[3px] ${accent}`} />
       <div className="p-5 pt-6">
-        <div className={`inline-flex items-center justify-center w-10 h-10 rounded-xl ${badge} mb-4`}>{icon}</div>
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 mb-1">{title}</p>
-        <div className="text-[2rem] font-extrabold text-gray-900 leading-tight">
-          {loading ? <span className="block w-24 h-8 bg-gray-100 rounded-lg animate-pulse" /> : value}
+        <div className={`inline-flex items-center justify-center w-9 h-9 rounded-xl ${iconBg} mb-3`}>
+          {icon}
+        </div>
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-1">{title}</p>
+        <div className="text-[1.9rem] font-extrabold text-gray-900 leading-tight">
+          {loading ? <span className="block w-20 h-7 bg-gray-100 rounded-lg animate-pulse" /> : value}
         </div>
         {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
         {href && (
-          <div className="flex items-center gap-1 mt-4 text-[11px] font-semibold text-gray-400 group-hover:text-gray-600 transition-colors">
+          <div className="flex items-center gap-1 mt-3 text-[10px] font-semibold text-gray-400 group-hover:text-gray-600 transition-colors">
             <span>View details</span>
             <ArrowUpRight className="h-3 w-3" />
           </div>
@@ -129,77 +79,55 @@ function KpiCard({ title, value, sub, icon, badge, accent, loading, href, warn }
   );
 }
 
-const ACCENTS = ["bg-indigo-500", "bg-violet-500", "bg-sky-500", "bg-emerald-500", "bg-amber-500", "bg-rose-500", "bg-cyan-500", "bg-pink-500"];
-
-function BranchRow({
-  branch,
-  maxCount,
-  index,
+/* ─── Small stat pill ─── */
+function StatPill({
+  label,
+  value,
+  color,
+  icon,
+  loading,
 }: {
-  branch: { name: string; abbr: string };
-  maxCount: number;
-  index: number;
+  label: string;
+  value: number | string;
+  color: string;
+  icon: React.ReactNode;
+  loading?: boolean;
 }) {
-  const { data: count, isLoading } = useQuery({
-    queryKey: ["su-branch-count", branch.name],
-    queryFn: () => getActiveStudentCountForBranch(branch.name),
-    staleTime: 120_000,
-  });
-
-  const shortName = branch.name.replace("Smart Up ", "").replace("Smart Up", "HQ");
-  const pct = maxCount > 0 && count != null ? Math.round((count / maxCount) * 100) : 0;
-  const bar = ACCENTS[index % ACCENTS.length];
-
   return (
-    <motion.div
-      initial={{ opacity: 0, x: -10 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: index * 0.04, duration: 0.35, ease: "easeOut" }}
-      className="flex items-center gap-3 py-3 border-b border-gray-50 last:border-0"
-    >
-      <span className="w-5 text-center text-[10px] font-bold text-gray-300 shrink-0">{index + 1}</span>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between mb-1.5">
-          <p className="text-sm font-medium text-gray-700 truncate">{shortName}</p>
-          {isLoading ? (
-            <Loader2 className="h-3 w-3 animate-spin text-gray-300" />
-          ) : (
-            <span className="text-sm font-bold text-gray-900 tabular-nums">
-              <AnimatedNumber value={count ?? 0} />
-            </span>
-          )}
-        </div>
-        <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
-          <motion.div
-            className={`h-full rounded-full ${bar}`}
-            initial={{ width: 0 }}
-            animate={{ width: isLoading ? "0%" : `${pct}%` }}
-            transition={{ duration: 0.8, delay: index * 0.05, ease: "easeOut" }}
-          />
-        </div>
+    <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${color}`}>
+      <span className="shrink-0">{icon}</span>
+      <div>
+        <p className="text-[10px] font-semibold uppercase tracking-wide opacity-70">{label}</p>
+        {loading ? (
+          <span className="block w-10 h-4 bg-current/20 rounded animate-pulse" />
+        ) : (
+          <p className="text-lg font-bold leading-tight">{value}</p>
+        )}
       </div>
-    </motion.div>
+    </div>
   );
 }
 
-export default function SalesUserDashboard() {
-  const { user, defaultCompany } = useAuth();
-  const today = new Date().toISOString().split("T")[0];
-  const branchLabel = defaultCompany?.replace("Smart Up ", "") ?? "All Branches";
+/* ─── Status colour map ─── */
+const STATUS_COLORS: Record<string, string> = {
+  "Already Paid": "text-emerald-600 bg-emerald-50",
+  "Promised to Pay": "text-blue-600 bg-blue-50",
+  "Will Pay This Week": "text-sky-600 bg-sky-50",
+  "Called – No Answer": "text-amber-600 bg-amber-50",
+  "Called – Busy": "text-orange-600 bg-orange-50",
+  Disputed: "text-rose-600 bg-rose-50",
+};
 
-  const { data: todayCount, isLoading: loadingToday } = useQuery({
-    queryKey: ["su-today", defaultCompany, today],
-    queryFn: () => {
-      const f: string[][] = [
-        ["enabled", "=", "1"],
-        ["creation", ">=", `${today} 00:00:00`],
-        ["creation", "<=", `${today} 23:59:59`],
-      ];
-      if (defaultCompany) f.push(["custom_branch", "=", defaultCompany]);
-      return getStudentCount(f);
-    },
-    staleTime: 30_000,
-  });
+function statusBadge(status: string) {
+  const cls = STATUS_COLORS[status] ?? "text-gray-500 bg-gray-100";
+  return (
+    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cls}`}>{status}</span>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════ */
+export default function SalesUserDashboard() {
+  const { user } = useAuth();
 
   const { data: overdueData, isLoading: loadingOverdue } = useQuery({
     queryKey: ["su-overdue"],
@@ -215,168 +143,106 @@ export default function SalesUserDashboard() {
     refetchInterval: 120_000,
   });
 
-  const { data: recentStudents, isLoading: loadingRecent } = useQuery({
-    queryKey: ["su-recent", defaultCompany],
-    queryFn: async () => {
-      const f: string[][] = [["enabled", "=", "1"]];
-      if (defaultCompany) f.push(["custom_branch", "=", defaultCompany]);
-      const { data } = await apiClient.get("/resource/Student", {
-        params: {
-          filters: JSON.stringify(f),
-          fields: JSON.stringify(["name", "student_name", "creation", "custom_branch"]),
-          order_by: "creation desc",
-          limit_page_length: 8,
-        },
-      });
-      return (data.data ?? []) as Array<{
-        name: string;
-        student_name: string;
-        creation: string;
-        custom_branch?: string;
-      }>;
-    },
-    staleTime: 30_000,
-  });
-
-  const { data: allBranches = [] } = useQuery({
-    queryKey: ["su-all-branches"],
-    queryFn: getAllBranches,
-    staleTime: 300_000,
-  });
-
-  const { data: branchCounts = [] } = useQuery({
-    queryKey: ["su-branch-counts", allBranches.map((b) => b.name)],
-    queryFn: () => Promise.all(allBranches.map((b) => getActiveStudentCountForBranch(b.name))),
-    enabled: allBranches.length > 0,
-    staleTime: 120_000,
-  });
-
-  const maxBranchCount = branchCounts.length > 0 ? Math.max(...branchCounts) : 1;
   const hasOverdue = (overdueData?.total_dues ?? 0) > 0;
-
-  const recentActivities: ActivityItem[] = (recentStudents ?? []).map((s) => ({
-    id: s.name,
-    type: "student_added" as const,
-    message: `Admitted ${s.student_name}`,
-    timestamp: s.creation,
-  }));
 
   return (
     <motion.div variants={container} initial="hidden" animate="visible" className="space-y-5 pb-8">
       <BreadcrumbNav />
 
-      <motion.div variants={fadeUp} className="flex items-center justify-between gap-4 flex-wrap rounded-2xl border border-white/70 bg-white/70 backdrop-blur-sm p-5">
+      {/* ── Header ── */}
+      <motion.div
+        variants={fadeUp}
+        className="flex items-center justify-between gap-4 flex-wrap rounded-2xl border border-white/70 bg-white/70 backdrop-blur-sm px-5 py-4"
+      >
         <div>
-          <h1 className="text-2xl font-bold text-text-primary">
+          <h1 className="text-xl font-bold text-text-primary">
             <AnimatedName name={user?.full_name ?? "Sales User"} />
           </h1>
-          <p className="text-sm text-text-secondary mt-1">
-            {branchLabel} · Admissions, overdue follow-up, and conversion tracking
-          </p>
+          <p className="text-xs text-text-secondary mt-0.5">Fee follow-up dashboard</p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Link href="/dashboard/sales-user/followup" className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-teal-200 bg-teal-50 text-sm font-semibold text-teal-700 hover:bg-teal-100 transition-colors">
-            <Phone className="h-4 w-4" />
-            Follow-Up Dashboard
-          </Link>
-          <Link href="/dashboard/sales-user/new-admission" className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-border-light bg-surface text-sm font-semibold text-text-primary hover:bg-brand-wash transition-colors">
-            <UserPlus className="h-4 w-4" />
-            New Admission
-          </Link>
-        </div>
+        <Link
+          href="/dashboard/sales-user/fees/overdue"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-orange-200 bg-orange-50 text-sm font-semibold text-orange-700 hover:bg-orange-100 transition-colors"
+        >
+          <AlertTriangle className="h-4 w-4" />
+          Overdue Fees
+        </Link>
       </motion.div>
 
+      {/* ── 4 KPI cards ── */}
       <motion.div variants={fadeUp} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Tilt>
-          <KpiCard
-            title="Today's Admissions"
-            value={<AnimatedNumber value={todayCount ?? 0} />}
-            icon={<CalendarDays className="h-5 w-5 text-sky-600" />}
-            badge="bg-sky-50"
-            accent="bg-sky-500"
-            loading={loadingToday}
-          />
-        </Tilt>
-
-        <Tilt>
-          <KpiCard
-            title="Today Calls"
-            value={<AnimatedNumber value={followUpData?.summary.today_calls ?? 0} />}
-            sub={`${followUpData?.summary.week_calls ?? 0} this week`}
-            icon={<Phone className="h-5 w-5 text-emerald-600" />}
-            badge="bg-emerald-50"
-            accent="bg-emerald-500"
-            loading={loadingFollowUp}
-          />
-        </Tilt>
-
-        <Tilt>
-          <KpiCard
-            title="Converted"
-            value={<AnimatedNumber value={followUpData?.summary.converted_count ?? 0} />}
-            sub={formatCurrency(followUpData?.summary.paid_amount ?? 0)}
-            icon={<CheckCircle2 className="h-5 w-5 text-violet-600" />}
-            badge="bg-violet-50"
-            accent="bg-violet-500"
-            loading={loadingFollowUp}
-          />
-        </Tilt>
-
-        <Tilt>
-          <KpiCard
-            title="Overdue Fees"
-            value={<AnimatedCurrency value={overdueData?.total_dues ?? 0} />}
-            sub={`${overdueData?.student_count ?? 0} students`}
-            icon={<AlertTriangle className="h-5 w-5 text-orange-500" />}
-            badge="bg-orange-50"
-            accent={hasOverdue ? "bg-orange-500" : "bg-gray-200"}
-            loading={loadingOverdue}
-            href="/dashboard/sales-user/fees/overdue"
-            warn={hasOverdue}
-          />
-        </Tilt>
+        <KpiCard
+          title="Overdue Fees"
+          value={<AnimatedCurrency value={overdueData?.total_dues ?? 0} />}
+          sub={`${overdueData?.student_count ?? 0} students`}
+          icon={<AlertTriangle className="h-4 w-4 text-orange-500" />}
+          iconBg="bg-orange-50"
+          accent={hasOverdue ? "bg-orange-500" : "bg-gray-200"}
+          href="/dashboard/sales-user/fees/overdue"
+          warn={hasOverdue}
+          loading={loadingOverdue}
+        />
+        <KpiCard
+          title="Today Calls"
+          value={<AnimatedNumber value={followUpData?.summary.today_calls ?? 0} />}
+          sub={`${followUpData?.summary.week_calls ?? 0} this week`}
+          icon={<Phone className="h-4 w-4 text-emerald-600" />}
+          iconBg="bg-emerald-50"
+          accent="bg-emerald-500"
+          loading={loadingFollowUp}
+        />
+        <KpiCard
+          title="Converted"
+          value={<AnimatedNumber value={followUpData?.summary.converted_count ?? 0} />}
+          sub={formatCurrency(followUpData?.summary.paid_amount ?? 0)}
+          icon={<CheckCircle2 className="h-4 w-4 text-violet-600" />}
+          iconBg="bg-violet-50"
+          accent="bg-violet-500"
+          loading={loadingFollowUp}
+        />
+        <KpiCard
+          title="Pending Follow-Ups"
+          value={<AnimatedNumber value={followUpData?.summary.pending_followups ?? 0} />}
+          sub="Need callback or action"
+          icon={<Clock3 className="h-4 w-4 text-amber-600" />}
+          iconBg="bg-amber-50"
+          accent="bg-amber-500"
+          loading={loadingFollowUp}
+        />
       </motion.div>
 
-      <motion.div variants={fadeUp} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="rounded-2xl border border-amber-200/60 bg-amber-50/50 p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Clock3 className="h-4 w-4 text-amber-600" />
-            <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Pending Follow-Ups</p>
-          </div>
-          <p className="text-2xl font-bold text-text-primary">{loadingFollowUp ? "..." : followUpData?.summary.pending_followups ?? 0}</p>
-          <p className="text-xs text-text-secondary mt-1">Need callback or more action</p>
-        </div>
-        <div className="rounded-2xl border border-sky-200/60 bg-sky-50/50 p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Phone className="h-4 w-4 text-sky-600" />
-            <p className="text-xs font-semibold uppercase tracking-wide text-sky-700">Students Contacted</p>
-          </div>
-          <p className="text-2xl font-bold text-text-primary">{loadingFollowUp ? "..." : followUpData?.summary.students_contacted ?? 0}</p>
-          <p className="text-xs text-text-secondary mt-1">Across {loadingFollowUp ? "..." : followUpData?.summary.total_calls ?? 0} logged calls</p>
-        </div>
-        <div className="rounded-2xl border border-rose-200/60 bg-rose-50/50 p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <TrendingUp className="h-4 w-4 text-rose-600" />
-            <p className="text-xs font-semibold uppercase tracking-wide text-rose-700">No Answer / Busy</p>
-          </div>
-          <p className="text-2xl font-bold text-text-primary">{loadingFollowUp ? "..." : followUpData?.summary.no_answer_count ?? 0}</p>
-          <p className="text-xs text-text-secondary mt-1">Calls needing another attempt</p>
-        </div>
+      {/* ── 2 small stat pills ── */}
+      <motion.div variants={fadeUp} className="grid grid-cols-2 gap-3">
+        <StatPill
+          label="Students Contacted"
+          value={followUpData?.summary.students_contacted ?? 0}
+          color="border-sky-200/60 bg-sky-50/50 text-sky-800"
+          icon={<Phone className="h-4 w-4 text-sky-500" />}
+          loading={loadingFollowUp}
+        />
+        <StatPill
+          label="No Answer / Busy"
+          value={followUpData?.summary.no_answer_count ?? 0}
+          color="border-rose-200/60 bg-rose-50/50 text-rose-800"
+          icon={<PhoneMissed className="h-4 w-4 text-rose-500" />}
+          loading={loadingFollowUp}
+        />
       </motion.div>
 
+      {/* ── Overdue banner (only when there is overdue) ── */}
       {hasOverdue && (
-        <motion.div variants={fadeUp} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+        <motion.div variants={fadeUp}>
           <Link href="/dashboard/sales-user/fees/overdue">
-            <div className="flex items-center gap-3 px-5 py-3.5 rounded-xl bg-orange-50 border border-orange-100 hover:border-orange-200 hover:bg-orange-100/60 transition-all cursor-pointer group">
+            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-orange-50 border border-orange-100 hover:border-orange-200 hover:bg-orange-100/60 transition-all cursor-pointer group">
               <div className="relative shrink-0">
-                <CalendarClock className="h-4 w-4 text-orange-500" />
+                <AlertTriangle className="h-4 w-4 text-orange-500" />
                 <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-orange-500 animate-ping" />
                 <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-orange-500" />
               </div>
               <div className="flex-1 min-w-0">
-                <span className="text-sm font-semibold text-orange-800">Fee Overdue â€” Till Today</span>
+                <span className="text-sm font-semibold text-orange-800">Fee Overdue — Till Today</span>
                 <span className="text-sm text-orange-500 ml-2">
-                  {formatCurrency(overdueData?.total_dues ?? 0)} Â· {overdueData?.student_count ?? 0} students
+                  {formatCurrency(overdueData?.total_dues ?? 0)} · {overdueData?.student_count ?? 0} students
                 </span>
               </div>
               <ChevronRight className="h-4 w-4 text-orange-300 group-hover:translate-x-1 transition-transform shrink-0" />
@@ -385,80 +251,65 @@ export default function SalesUserDashboard() {
         </motion.div>
       )}
 
-      <motion.div variants={fadeUp} className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      {/* ── Recent Call History ── */}
+      <motion.div variants={fadeUp}>
         <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5">
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center">
-                <Building2 className="h-3.5 w-3.5 text-gray-500" />
+                <Phone className="h-3.5 w-3.5 text-gray-500" />
               </div>
-              <h3 className="text-sm font-semibold text-gray-800">Branch-wise Active Students</h3>
+              <h2 className="text-sm font-semibold text-gray-800">Recent Call History</h2>
             </div>
-            {allBranches.length > 0 && <span className="text-xs text-gray-400 font-medium">{allBranches.length} branches</span>}
+            <Link
+              href="/dashboard/sales-user/followup"
+              className="text-xs font-semibold text-teal-600 hover:text-teal-700 transition-colors"
+            >
+              See all →
+            </Link>
           </div>
 
-          {allBranches.length === 0 ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-5 w-5 animate-spin text-gray-300" />
-            </div>
-          ) : (
-            <div>
-              {allBranches.map((branch, idx) => (
-                <BranchRow key={branch.name} branch={branch} maxCount={maxBranchCount} index={idx} />
+          {loadingFollowUp ? (
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3 animate-pulse">
+                  <div className="w-8 h-8 rounded-full bg-gray-100 shrink-0" />
+                  <div className="flex-1 space-y-1.5">
+                    <div className="h-3 bg-gray-100 rounded w-1/2" />
+                    <div className="h-2.5 bg-gray-100 rounded w-1/3" />
+                  </div>
+                </div>
               ))}
             </div>
-          )}
-        </div>
-
-        <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5">
-          <div className="flex items-center gap-2.5 mb-4">
-            <div className="w-7 h-7 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center">
-              <Phone className="h-3.5 w-3.5 text-gray-500" />
-            </div>
-            <h3 className="text-sm font-semibold text-gray-800">Recent Call History</h3>
-          </div>
-          {loadingFollowUp ? (
-            <RecentActivity activities={[]} loading />
           ) : !(followUpData?.recent_logs?.length) ? (
-            <div className="text-center py-8">
+            <div className="text-center py-10">
+              <Phone className="h-8 w-8 text-gray-200 mx-auto mb-2" />
               <p className="text-sm text-text-tertiary">No follow-up calls logged yet</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="divide-y divide-gray-50">
               {followUpData.recent_logs.slice(0, 8).map((log, index) => (
                 <motion.div
                   key={log.name}
-                  initial={{ opacity: 0, x: -10 }}
+                  initial={{ opacity: 0, x: -8 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="flex items-start gap-3 p-2 rounded-[10px] hover:bg-app-bg transition-colors"
+                  transition={{ delay: index * 0.04 }}
+                  className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0"
                 >
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-teal-50 text-teal-600">
-                    <Phone className="h-4 w-4" />
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-teal-50">
+                    <Phone className="h-3.5 w-3.5 text-teal-600" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-text-primary">{log.student_name || log.student}</p>
-                    <p className="text-xs text-text-tertiary mt-0.5">
-                      {log.call_status}
-                      {log.payment_received || log.call_status === "Already Paid" ? " â€¢ Converted" : ""}
+                    <p className="text-sm font-medium text-text-primary truncate">
+                      {log.student_name || log.student}
                     </p>
+                    <p className="text-[11px] text-text-tertiary">{log.call_date}</p>
                   </div>
+                  {statusBadge(log.call_status)}
                 </motion.div>
               ))}
             </div>
           )}
-        </div>
-      </motion.div>
-
-      <motion.div variants={fadeUp}>
-        <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5">
-          <div className="flex items-center gap-2.5 mb-4">
-            <div className="w-7 h-7 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center">
-              <UserPlus className="h-3.5 w-3.5 text-gray-500" />
-            </div>
-            <h3 className="text-sm font-semibold text-gray-800">Recent Admissions</h3>
-          </div>
-          <RecentActivity activities={recentActivities} loading={loadingRecent} />
         </div>
       </motion.div>
     </motion.div>

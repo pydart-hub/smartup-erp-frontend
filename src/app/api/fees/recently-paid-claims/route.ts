@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parseSession } from "@/lib/utils/apiAuth";
+import { getBranchStudentsOverdueData } from "../dues-till-today/route";
+import { getSalesUserBranches } from "@/lib/utils/constants";
 
 export const dynamic = "force-dynamic";
 
@@ -74,16 +76,34 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
+    const roles = session.roles || [];
+    let allowedCompanies = session.allowed_companies || [];
+
+    if (roles.includes("Sales User") && session.email) {
+      const mappedBranches = getSalesUserBranches(session.email);
+      if (mappedBranches.length > 0) {
+        allowedCompanies = mappedBranches;
+      }
+    }
+
     const branch = request.nextUrl.searchParams.get("branch") || "";
     if (!branch) {
       return NextResponse.json({ error: "branch is required" }, { status: 400 });
+    }
+
+    if (roles.includes("Sales User") && !allowedCompanies.includes(branch)) {
+      return NextResponse.json({ error: "Access denied to this branch" }, { status: 403 });
     }
 
     const sinceDate = isoDaysAgo(4);
 
     const [followUpRes, overdueRes, paymentsRes, branchStudentsRes] = await Promise.all([
       frappeGet("resource/Fee Follow Up", {
-        filters: JSON.stringify([["branch", "=", branch]]),
+        filters: JSON.stringify(
+          roles.includes("Sales User") && session.email
+            ? [["branch", "=", branch], ["called_by", "=", session.email]]
+            : [["branch", "=", branch]]
+        ),
         fields: JSON.stringify([
           "name", "student", "student_name", "branch",
           "call_date", "called_by", "call_status",
@@ -94,21 +114,9 @@ export async function GET(request: NextRequest) {
         order_by: "call_date desc",
         limit_page_length: "1000",
       }),
-      fetch(
-        `${request.nextUrl.origin}/api/fees/dues-till-today?${new URLSearchParams({
-          level: "branch_students",
-          branch,
-        }).toString()}`,
-        {
-          headers: {
-            cookie: request.headers.get("cookie") || "",
-          },
-          cache: "no-store",
-        }
-      ).then(async (res) => {
-        if (!res.ok) throw new Error(`Overdue fetch failed: ${res.status}`);
-        return res.json();
-      }),
+      getBranchStudentsOverdueData(branch, new Date().toISOString().slice(0, 10)).then((rows) => ({
+        data: rows,
+      })),
       frappeGet("resource/Payment Entry", {
         filters: JSON.stringify([
           ["payment_type", "=", "Receive"],
@@ -133,10 +141,18 @@ export async function GET(request: NextRequest) {
       }),
     ]);
 
-    const latestLogByStudent = new Map<string, FollowUpLog>();
+    // ── All follow-up logs per student (ordered desc by call_date) ──
+    const allLogsByStudent = new Map<string, FollowUpLog[]>();
     for (const log of (followUpRes.data ?? []) as FollowUpLog[]) {
-      if (!log.student || latestLogByStudent.has(log.student)) continue;
-      latestLogByStudent.set(log.student, log);
+      if (!log.student) continue;
+      if (!allLogsByStudent.has(log.student)) allLogsByStudent.set(log.student, []);
+      allLogsByStudent.get(log.student)!.push(log);
+    }
+
+    // Latest log per student (logs are desc so first = latest)
+    const latestLogByStudent = new Map<string, FollowUpLog>();
+    for (const [studentId, logs] of allLogsByStudent) {
+      latestLogByStudent.set(studentId, logs[0]);
     }
 
     const overdueStudentMap = new Map<string, OverdueStudentRow>();
@@ -153,58 +169,118 @@ export async function GET(request: NextRequest) {
       customerToStudent.set(customer, student);
     }
 
-    const latestPaymentByStudent = new Map<string, PaymentEntryRow>();
+    // ── Build all payments per student (not just the latest) ──
+    // Key: studentId → PaymentEntryRow[]  (sorted desc by posting_date already)
+    const allPaymentsByStudent = new Map<string, PaymentEntryRow[]>();
     for (const pe of (paymentsRes.data ?? []) as PaymentEntryRow[]) {
       const customer = pe.party?.trim();
       if (!customer) continue;
       const student = customerToStudent.get(customer);
       const studentId = student?.name?.trim();
-      if (!studentId || latestPaymentByStudent.has(studentId)) continue;
-      latestPaymentByStudent.set(studentId, pe);
+      if (!studentId) continue;
+      if (!allPaymentsByStudent.has(studentId)) allPaymentsByStudent.set(studentId, []);
+      allPaymentsByStudent.get(studentId)!.push(pe);
     }
 
-    const data = Array.from(latestPaymentByStudent.entries())
-      .filter(([studentId]) => {
-        const log = latestLogByStudent.get(studentId);
-        const hasOverdueContext = overdueStudentMap.has(studentId) || !!log;
-        if (!hasOverdueContext) return false;
-        return true;
-      })
-      .map(([studentId, payment]) => {
-        const log = latestLogByStudent.get(studentId) ?? null;
-        const overdueStudent = overdueStudentMap.get(studentId);
-        const paymentDate = payment.posting_date || "";
-        const logDate = log?.call_date || "";
-        const claimedAfterPayment =
-          !!log &&
-          (log.payment_received === 1 || log.call_status === "Already Paid") &&
-          (!paymentDate || !logDate || logDate >= paymentDate);
+    // ── Emit one row per payment entry (handle multiple payments per student) ──
+    // A payment is "claimed" if there is a follow-up log that:
+    //   1. Was created AFTER (or on) the payment posting_date
+    //   2. Has payment_received=1 or call_status="Already Paid"
+    //   3. The amount_received matches (within ₹1 tolerance) OR amount_received is 0/null
+    //      (some users don't fill amount when marking Already Paid)
+    const rows: {
+      student_id: string;
+      student_name: string;
+      branch: string;
+      class_name: string;
+      batch_name: string;
+      total_dues: number;
+      claim_status: "claimed" | "awaiting_claim";
+      latest_followup: FollowUpLog | null;
+      recent_payment: {
+        name: string;
+        posting_date: string;
+        paid_amount: number;
+        mode_of_payment: string;
+      };
+      // Which specific follow-up log claimed this payment (for display)
+      claimed_by_log: FollowUpLog | null;
+    }[] = [];
 
-        return {
+    for (const [studentId, payments] of allPaymentsByStudent) {
+      const overdueStudent = overdueStudentMap.get(studentId);
+      const logsForStudent = allLogsByStudent.get(studentId) ?? [];
+      const latestLog = latestLogByStudent.get(studentId) ?? null;
+
+      // Only show if student has overdue context (is/was overdue) or has a follow-up log
+      const hasOverdueContext = overdueStudentMap.has(studentId) || logsForStudent.length > 0;
+      if (!hasOverdueContext) continue;
+
+      // Track which payments have already been claimed by a log
+      // to prevent the same payment from being shown twice
+      const claimedPaymentNames = new Set<string>();
+
+      // Match each payment to a claiming log
+      // A log can only claim one payment; a payment can only be claimed once.
+      // We go through payments (desc by date) and find the closest matching log.
+      const usedLogNames = new Set<string>();
+
+      for (const payment of payments) {
+        const paymentDate = payment.posting_date || "";
+        const paidAmt = payment.paid_amount ?? 0;
+
+        // Find a claiming log: must be on/after payment date, payment_received=1 or Already Paid
+        // and not already used to claim another payment
+        let claimingLog: FollowUpLog | null = null;
+        for (const log of logsForStudent) {
+          if (usedLogNames.has(log.name)) continue;
+          const logDate = log.call_date?.slice(0, 10) || "";
+          const isAfterPayment = !paymentDate || !logDate || logDate >= paymentDate;
+          const isPaymentLog = log.payment_received === 1 || log.call_status === "Already Paid";
+          if (!isAfterPayment || !isPaymentLog) continue;
+
+          // Amount match: if log has amount_received, it must be within ₹1 of paid_amount
+          const logAmt = log.amount_received ?? 0;
+          const amountMatches = logAmt === 0 || Math.abs(logAmt - paidAmt) <= 1;
+          if (!amountMatches) continue;
+
+          claimingLog = log;
+          usedLogNames.add(log.name);
+          claimedPaymentNames.add(payment.name);
+          break;
+        }
+
+        const isClaimed = claimingLog !== null;
+
+        rows.push({
           student_id: studentId,
-          student_name: overdueStudent?.student_name || log?.student_name || payment.party_name || studentId,
+          student_name: overdueStudent?.student_name || latestLog?.student_name || payment.party_name || studentId,
           branch,
           class_name: overdueStudent?.class_name || "",
           batch_name: overdueStudent?.batch_name || "",
           total_dues: overdueStudent?.total_dues ?? 0,
-          claim_status: claimedAfterPayment ? "claimed" : "awaiting_claim",
-          latest_followup: log,
+          claim_status: isClaimed ? "claimed" : "awaiting_claim",
+          latest_followup: latestLog,
           recent_payment: {
             name: payment.name,
             posting_date: payment.posting_date || "",
-            paid_amount: payment.paid_amount ?? 0,
+            paid_amount: paidAmt,
             mode_of_payment: payment.mode_of_payment || "",
           },
-        };
-      })
-      .sort((a, b) => {
-        if (a.claim_status !== b.claim_status) {
-          return a.claim_status === "awaiting_claim" ? -1 : 1;
-        }
-        return b.recent_payment.posting_date.localeCompare(a.recent_payment.posting_date);
-      });
+          claimed_by_log: claimingLog,
+        });
+      }
+    }
 
-    return NextResponse.json({ data });
+    // Sort: awaiting_claim first, then by payment date desc
+    rows.sort((a, b) => {
+      if (a.claim_status !== b.claim_status) {
+        return a.claim_status === "awaiting_claim" ? -1 : 1;
+      }
+      return b.recent_payment.posting_date.localeCompare(a.recent_payment.posting_date);
+    });
+
+    return NextResponse.json({ data: rows });
   } catch (err) {
     console.error("[fees/recently-paid-claims] Error:", err);
     return NextResponse.json(

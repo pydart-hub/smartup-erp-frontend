@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getSalesUserBranches } from "@/lib/utils/constants";
 
 const FRAPPE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL;
 
@@ -68,8 +69,19 @@ async function proxyRequest(request: NextRequest, method: string) {
     );
 
     const roles: string[] = sessionData.roles || [];
-    const allowedCompanies: string[] = sessionData.allowed_companies || [];
-    const defaultCompany: string = sessionData.default_company || "";
+    let allowedCompanies: string[] = sessionData.allowed_companies || [];
+    let defaultCompany: string = sessionData.default_company || "";
+
+    if (roles.includes("Sales User") && sessionData.email) {
+      const mappedBranches = getSalesUserBranches(sessionData.email);
+      if (mappedBranches.length > 0) {
+        allowedCompanies = mappedBranches;
+        if (!defaultCompany || !mappedBranches.includes(defaultCompany)) {
+          defaultCompany = mappedBranches[0];
+        }
+      }
+    }
+
     const isAdmin = roles.includes("Administrator") || roles.includes("Director");
     const isBranchManager = roles.includes("Branch Manager");
     const isHRManager = roles.includes("HR Manager");

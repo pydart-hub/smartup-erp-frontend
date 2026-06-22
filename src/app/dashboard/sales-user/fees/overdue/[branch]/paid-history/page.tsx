@@ -77,7 +77,7 @@ export default function PaidHistoryPage() {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-text-primary">{shortBranch} — Overdue Students Paid</h1>
+          <h1 className="text-2xl font-bold text-text-primary">{shortBranch} - Overdue Students Paid</h1>
           <p className="text-sm text-text-secondary mt-0.5">
             Only overdue students who also paid in the last 4 days
           </p>
@@ -128,8 +128,8 @@ export default function PaidHistoryPage() {
         </div>
       ) : (
         <motion.div initial="hidden" animate="visible" variants={containerVariants} className="space-y-2">
-          {awaitingRows.map((claim) => (
-            <motion.div key={claim.student_id} variants={itemVariants}>
+          {awaitingRows.map((claim, index) => (
+            <motion.div key={claim.recent_payment.name || `${claim.student_id}-${claim.recent_payment.posting_date}-${index}`} variants={itemVariants}>
               <Card className="border-emerald-200/70 bg-white">
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-3">
@@ -151,27 +151,28 @@ export default function PaidHistoryPage() {
 
                       <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-text-secondary">
                         <span>Paid on: {formatDate(claim.recent_payment.posting_date)}</span>
-                        <span>•</span>
+                        <span>|</span>
                         <span className="text-emerald-700 font-medium">
                           Paid {formatCurrency(claim.recent_payment.paid_amount)}
                         </span>
-                        <span>•</span>
+                        <span>|</span>
                         <span>{claim.recent_payment.mode_of_payment || "Payment received"}</span>
-                        <span>•</span>
+                        <span>|</span>
                         <span className="text-orange-700 font-medium">
                           Still overdue: {formatCurrency(claim.total_dues)}
                         </span>
                         {claim.latest_followup && (
                           <>
-                            <span>•</span>
+                            <span>|</span>
                             <span>Last call: {formatDate(claim.latest_followup.call_date)}</span>
-                            <span>•</span>
+                            <span>|</span>
                             <span>by {claim.latest_followup.called_by.split("@")[0]}</span>
                           </>
                         )}
                       </div>
                     </div>
 
+                    {!(claim.latest_followup?.payment_received === 1 || claim.latest_followup?.call_status === "Already Paid") && (
                     <button
                       onClick={() => {
                         setDrawerStudent({ student_id: claim.student_id, student_name: claim.student_name, branch });
@@ -187,6 +188,7 @@ export default function PaidHistoryPage() {
                       <PhoneCall className="h-3 w-3" />
                       Claim Conversion
                     </button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -198,8 +200,8 @@ export default function PaidHistoryPage() {
                 Claimed
               </p>
               <div className="space-y-2">
-                {claimedRows.map((claim) => (
-                  <Card key={`claimed-${claim.student_id}`} className="border-slate-200 bg-slate-50/70">
+                {claimedRows.map((claim, index) => (
+                  <Card key={`claimed-${claim.recent_payment.name || `${claim.student_id}-${claim.recent_payment.posting_date}-${index}`}`} className="border-slate-200 bg-slate-50/70">
                     <CardContent className="p-4 flex items-center justify-between gap-3">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -211,15 +213,15 @@ export default function PaidHistoryPage() {
                         </div>
                         <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-text-secondary">
                           <span>Paid on: {formatDate(claim.recent_payment.posting_date)}</span>
-                          <span>•</span>
+                          <span>|</span>
                           <span className="text-emerald-700 font-medium">
                             Paid {formatCurrency(claim.recent_payment.paid_amount)}
                           </span>
                           {claim.latest_followup && (
                             <>
-                              <span>•</span>
+                              <span>|</span>
                               <span>Claimed on: {formatDate(claim.latest_followup.call_date)}</span>
-                              <span>•</span>
+                              <span>|</span>
                               <span>by {claim.latest_followup.called_by.split("@")[0]}</span>
                             </>
                           )}

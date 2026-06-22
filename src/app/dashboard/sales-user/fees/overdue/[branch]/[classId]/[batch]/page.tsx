@@ -28,6 +28,7 @@ import { FollowUpDrawer } from "@/components/fees/FollowUpDrawer";
 import { FollowUpBadge } from "@/components/fees/FollowUpBadge";
 import { getBranchFollowUps } from "@/lib/api/followup";
 import type { FollowUpLog } from "@/lib/api/followup";
+import { useAuth } from "@/lib/hooks/useAuth";
 
 const PAYMENT_OPTION_LABELS: Record<string, string> = {
   "1": "One-Time",
@@ -75,8 +76,17 @@ export default function SalesOverdueStudentPage() {
   const asOf = searchParams.get("as_of") || undefined;
   const childQs = asOf ? `?as_of=${asOf}` : "";
 
+  const { allowedCompanies, role } = useAuth();
+  const hasAccess =
+    role !== "Sales User" ||
+    !allowedCompanies ||
+    allowedCompanies.length === 0 ||
+    allowedCompanies.includes(branch);
+
   const [planFilter, setPlanFilter] = useState("all");
   const [frequencyFilter, setFrequencyFilter] = useState("all");
+  const [notCalledOnly, setNotCalledOnly] = useState(false);
+  const [sortOrder, setSortOrder] = useState<"desc" | "asc" | "none">("none");
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [drawerStudent, setDrawerStudent] = useState<{ student_id: string; student_name: string; branch: string } | null>(null);
 
@@ -94,15 +104,34 @@ export default function SalesOverdueStudentPage() {
     queryFn: () => getDuesTodayByStudent(branch, batch, asOf),
     staleTime: 30_000,
     refetchInterval: 60_000,
+    enabled: hasAccess,
   });
 
   // Follow-up logs keyed by student_id — single branch request
   const { data: allLogs } = useQuery({
     queryKey: ["followup-batch", branch],
     queryFn: () => getBranchFollowUps(branch),
-    enabled: !!branch,
+    enabled: !!branch && hasAccess,
     staleTime: 60_000,
   });
+
+  if (!hasAccess) {
+    return (
+      <div className="space-y-6">
+        <BreadcrumbNav />
+        <div className="flex flex-col items-center justify-center min-h-[300px] gap-3 rounded-2xl border border-red-100 bg-red-50/50 p-8 text-center animate-fade-in">
+          <AlertCircle className="h-10 w-10 text-red-500" />
+          <h2 className="text-lg font-semibold text-gray-900">Access Denied</h2>
+          <p className="text-sm text-gray-600 max-w-md">
+            You do not have permission to access data for branch "{shortBranch}". Mapped branches for your account are: {allowedCompanies?.join(", ")}.
+          </p>
+          <Link href="/dashboard/sales-user/fees/overdue" className="mt-2 text-sm font-semibold text-primary hover:text-primary-dark underline">
+            Go back to Overdue Fees
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   const { planOptions, frequencyOptions } = useMemo(() => {
     const plans = new Set<string>();
@@ -119,15 +148,28 @@ export default function SalesOverdueStudentPage() {
 
   const filteredStudents = useMemo(() => {
     if (!students) return [];
-    return students.filter((s) => {
+    let result = students.filter((s) => {
       if (planFilter !== "all" && s.plan !== planFilter) return false;
       if (frequencyFilter !== "all" && s.no_of_instalments !== frequencyFilter) return false;
+      // Not-called filter: only students with no follow-up log in allLogs
+      if (notCalledOnly && allLogs && allLogs[s.student_id]) return false;
       return true;
     });
-  }, [students, planFilter, frequencyFilter]);
+    if (sortOrder === "desc") {
+      result = [...result].sort((a, b) => b.total_dues - a.total_dues);
+    } else if (sortOrder === "asc") {
+      result = [...result].sort((a, b) => a.total_dues - b.total_dues);
+    }
+    return result;
+  }, [students, planFilter, frequencyFilter, notCalledOnly, sortOrder, allLogs]);
+
+  const notCalledCount = useMemo(() => {
+    if (!students || !allLogs) return null;
+    return students.filter((s) => !allLogs[s.student_id]).length;
+  }, [students, allLogs]);
 
   const totalDues = filteredStudents.reduce((s, st) => s + st.total_dues, 0);
-  const hasActiveFilters = planFilter !== "all" || frequencyFilter !== "all";
+  const hasActiveFilters = planFilter !== "all" || frequencyFilter !== "all" || notCalledOnly || sortOrder !== "none";
 
   return (
     <motion.div
@@ -179,13 +221,14 @@ export default function SalesOverdueStudentPage() {
       </motion.div>
 
       {/* Filters */}
-      {!isLoading && students && students.length > 0 && (planOptions.length > 0 || frequencyOptions.length > 0) && (
+      {!isLoading && students && students.length > 0 && (
         <motion.div variants={itemVariants}>
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex items-center gap-1.5 text-sm text-text-secondary">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <div className="flex items-center gap-1.5 text-sm text-text-secondary shrink-0">
               <Filter className="h-4 w-4" />
               <span>Filters</span>
             </div>
+
             {planOptions.length > 0 && (
               <select
                 value={planFilter}
@@ -198,6 +241,7 @@ export default function SalesOverdueStudentPage() {
                 ))}
               </select>
             )}
+
             {frequencyOptions.length > 0 && (
               <select
                 value={frequencyFilter}
@@ -210,12 +254,65 @@ export default function SalesOverdueStudentPage() {
                 ))}
               </select>
             )}
+
+            {/* Not Called Yet toggle */}
+            <button
+              onClick={() => setNotCalledOnly((v) => !v)}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium transition-all shrink-0 ${
+                notCalledOnly
+                  ? "bg-rose-600 border-rose-600 text-white shadow-sm"
+                  : "bg-surface border-border-input text-text-secondary hover:border-rose-400 hover:text-rose-600"
+              }`}
+            >
+              <PhoneCall className="h-3.5 w-3.5" />
+              Not Called Yet
+              {notCalledCount !== null && (
+                <span
+                  className={`inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full text-[10px] font-bold ${
+                    notCalledOnly ? "bg-white text-rose-600" : "bg-rose-100 text-rose-700"
+                  }`}
+                >
+                  {notCalledCount}
+                </span>
+              )}
+            </button>
+
+            {/* Sort by due amount */}
+            <button
+              onClick={() =>
+                setSortOrder((prev) =>
+                  prev === "none" ? "desc" : prev === "desc" ? "asc" : "none"
+                )
+              }
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium transition-all shrink-0 ${
+                sortOrder !== "none"
+                  ? "bg-amber-500 border-amber-500 text-white shadow-sm"
+                  : "bg-surface border-border-input text-text-secondary hover:border-amber-400 hover:text-amber-600"
+              }`}
+            >
+              {sortOrder === "asc" ? (
+                <ChevronUp className="h-3.5 w-3.5" />
+              ) : (
+                <ChevronDown className="h-3.5 w-3.5" />
+              )}
+              {sortOrder === "asc"
+                ? "Due: Low to High"
+                : sortOrder === "desc"
+                ? "Due: High to Low"
+                : "Sort by Due"}
+            </button>
+
             {hasActiveFilters && (
               <button
-                onClick={() => { setPlanFilter("all"); setFrequencyFilter("all"); }}
-                className="text-xs text-primary hover:text-primary/80 underline underline-offset-2"
+                onClick={() => {
+                  setPlanFilter("all");
+                  setFrequencyFilter("all");
+                  setNotCalledOnly(false);
+                  setSortOrder("none");
+                }}
+                className="text-xs text-primary hover:text-primary/80 underline underline-offset-2 shrink-0"
               >
-                Clear filters
+                Clear all
               </button>
             )}
           </div>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
+import { getSalesUserBranches } from "@/lib/utils/constants";
 
 const FRAPPE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL;
 const FRAPPE_API_KEY = process.env.FRAPPE_API_KEY;
@@ -134,6 +135,17 @@ export async function POST(request: NextRequest) {
         "";
     } catch (upErr) {
       console.warn("[login] Failed to fetch User Permissions:", upErr);
+    }
+
+    // Override allowed branches for specific Sales Users
+    if (roles.includes("Sales User")) {
+      const mappedBranches = getSalesUserBranches(email);
+      if (mappedBranches.length > 0) {
+        allowedCompanies = mappedBranches;
+        if (!defaultCompany || !mappedBranches.includes(defaultCompany)) {
+          defaultCompany = mappedBranches[0];
+        }
+      }
     }
 
     // 6. Detect if user is an Instructor

@@ -107,7 +107,7 @@ export default function BranchAllStudentsPage() {
     refetchInterval: 120_000,
   });
 
-  // Follow-up logs keyed by student_id — single branch request
+  // Follow-up logs keyed by student_id - single branch request
   const { data: allLogs } = useQuery({
     queryKey: ["followup-branch-all", branch],
     queryFn: () => getBranchFollowUps(branch),
@@ -163,14 +163,14 @@ export default function BranchAllStudentsPage() {
     import("jspdf").then(({ default: jsPDF }) =>
       import("jspdf-autotable").then(({ default: autoTable }) => {
         const doc = new jsPDF({ orientation: "landscape" });
-        const title = `${shortBranch} — Overdue Students`;
+        const title = `${shortBranch} - Overdue Students`;
         const dateStr = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 
         doc.setFontSize(14);
         doc.text(title, 14, 16);
         doc.setFontSize(9);
         doc.text(
-          `Generated: ${dateStr} | Total Overdue: ₹${totalDues.toLocaleString("en-IN")} | Students: ${filteredStudents.length}`,
+          `Generated: ${dateStr} | Total Overdue: ?${totalDues.toLocaleString("en-IN")} | Students: ${filteredStudents.length}`,
           14,
           24
         );
@@ -185,7 +185,7 @@ export default function BranchAllStudentsPage() {
           PAYMENT_OPTION_LABELS[s.no_of_instalments] ?? s.no_of_instalments ?? "",
           s.guardian_name ?? "",
           s.guardian_phone ?? "",
-          `₹${s.total_dues.toLocaleString("en-IN")}`,
+          `?${s.total_dues.toLocaleString("en-IN")}`,
         ]);
 
         autoTable(doc, {
@@ -221,9 +221,9 @@ export default function BranchAllStudentsPage() {
       { header: "Guardian", key: "guardian", width: 22 },
       { header: "Phone", key: "phone", width: 14 },
       { header: "Instalment", key: "instalment", width: 16 },
-      { header: "Total (₹)", key: "total", width: 14 },
-      { header: "Paid (₹)", key: "paid", width: 14 },
-      { header: "Balance (₹)", key: "balance", width: 14 },
+      { header: "Total (?)", key: "total", width: 14 },
+      { header: "Paid (?)", key: "paid", width: 14 },
+      { header: "Balance (?)", key: "balance", width: 14 },
     ];
 
     // Style header row
@@ -255,7 +255,7 @@ export default function BranchAllStudentsPage() {
           row.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF7ED" } };
         }
 
-        const numFmt = '₹#,##0.00';
+        const numFmt = '?#,##0.00';
         row.getCell("total").numFmt = numFmt;
         row.getCell("paid").numFmt = numFmt;
         if ((inv.paid ?? 0) > 0) {
@@ -277,7 +277,7 @@ export default function BranchAllStudentsPage() {
       balance: totalDues,
     });
     sumRow.getCell("guardian").font = { bold: true };
-    const numFmt = '₹#,##0.00';
+    const numFmt = '?#,##0.00';
     sumRow.getCell("total").numFmt = numFmt;
     sumRow.getCell("total").font = { bold: true };
     sumRow.getCell("paid").numFmt = numFmt;
@@ -316,10 +316,10 @@ export default function BranchAllStudentsPage() {
         </Link>
         <div>
           <h1 className="text-2xl font-bold text-text-primary">
-            {shortBranch} — All Overdue Students
+            {shortBranch} - All Overdue Students
           </h1>
           <p className="text-sm text-text-secondary mt-0.5">
-            Complete list · all classes &amp; batches
+            Complete list - all classes &amp; batches
           </p>
         </div>
         {!isLoading && filteredStudents.length > 0 && (
@@ -422,17 +422,17 @@ export default function BranchAllStudentsPage() {
                               ? `Last call: ${formatDate(claim.latest_followup.call_date)}`
                               : `Paid on: ${formatDate(claim.recent_payment.posting_date)}`}
                           </span>
-                          <span>•</span>
+                          <span>|</span>
                           <span>
                             {claim.latest_followup
                               ? `by ${claim.latest_followup.called_by.split("@")[0]}`
                               : "No follow-up log yet"}
                           </span>
-                          <span>•</span>
+                          <span>|</span>
                           <span className="text-emerald-700 font-medium">
                             Paid {formatCurrency(claim.recent_payment.paid_amount)}
                           </span>
-                          <span>•</span>
+                          <span>|</span>
                           <span>{claim.recent_payment.mode_of_payment || "Payment received"}</span>
                         </div>
                       </div>
@@ -472,7 +472,7 @@ export default function BranchAllStudentsPage() {
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by name or ID…"
+                placeholder="Search by name or ID..."
                 className="w-full pl-9 pr-8 py-2 text-sm rounded-lg border border-border-input bg-surface text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
               />
               {search && (
