@@ -50,25 +50,22 @@ export async function getFeeStructures(params?: {
   custom_no_of_instalments?: string;
   docstatus?: number;
 }): Promise<FrappeListResponse<FeeStructure>> {
-  const filters: string[][] = [];
-  if (params?.program) filters.push(["program", "=", params.program]);
-  if (params?.academic_year) filters.push(["academic_year", "=", params.academic_year]);
-  if (params?.company) filters.push(["company", "=", params.company]);
-  if (params?.custom_plan) filters.push(["custom_plan", "=", params.custom_plan]);
-  if (params?.custom_no_of_instalments) filters.push(["custom_no_of_instalments", "=", params.custom_no_of_instalments]);
-  if (params?.docstatus !== undefined) filters.push(["docstatus", "=", String(params.docstatus)]);
-  const query = new URLSearchParams({
-    fields: JSON.stringify([
-      "name", "program", "academic_year", "academic_term",
-      "total_amount", "company", "receivable_account",
-      "custom_plan", "custom_no_of_instalments", "custom_branch_abbr", "docstatus",
-    ]),
-    limit_page_length: "200",
-    order_by: "modified desc",
-    ...(filters.length ? { filters: JSON.stringify(filters) } : {}),
+  const query = new URLSearchParams();
+  if (params?.program) query.set("program", params.program);
+  if (params?.academic_year) query.set("academic_year", params.academic_year);
+  if (params?.company) query.set("company", params.company);
+  if (params?.custom_plan) query.set("custom_plan", params.custom_plan);
+  if (params?.custom_no_of_instalments) query.set("custom_no_of_instalments", params.custom_no_of_instalments);
+  if (params?.docstatus !== undefined) query.set("docstatus", String(params.docstatus));
+
+  const res = await fetch(`/api/fee-structures?${query.toString()}`, {
+    credentials: "include",
   });
-  const { data } = await apiClient.get(`/resource/Fee Structure?${query.toString()}`);
-  return data;
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`fee-structures fetch failed: ${res.status} ${text.slice(0, 300)}`);
+  }
+  return res.json();
 }
 
 export async function getFeeStructure(name: string): Promise<FrappeSingleResponse<FeeStructure>> {

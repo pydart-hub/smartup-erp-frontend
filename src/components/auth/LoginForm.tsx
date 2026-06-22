@@ -39,8 +39,8 @@ export function LoginForm({ variant = "light" }: LoginFormProps) {
   }
 
   const inputBase = isDark
-    ? "bg-white/[0.04] border border-white/[0.08] text-white placeholder:text-white/25 focus:border-primary/60 focus:bg-white/[0.06] focus:shadow-[0_0_0_3px_rgba(26,158,143,0.12)]"
-    : "bg-surface border border-border-input text-text-primary placeholder:text-text-tertiary focus:border-primary focus:shadow-[0_0_0_3px_rgba(26,158,143,0.12)]";
+    ? "bg-white/[0.04] border border-white/[0.08] text-white placeholder:text-white/25 focus:border-[#5f2ea8]/60 focus:bg-white/[0.06] focus:shadow-[0_0_0_3px_rgba(95,46,168,0.12)]"
+    : "bg-surface border border-border-input text-text-primary placeholder:text-text-tertiary focus:border-[#5f2ea8] focus:shadow-[0_0_0_3px_rgba(95,46,168,0.12)]";
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
@@ -86,7 +86,7 @@ export function LoginForm({ variant = "light" }: LoginFormProps) {
           </label>
           <Link
             href="/auth/forgot-password"
-            className="text-xs font-medium text-primary/80 hover:text-primary transition-colors"
+            className="text-xs font-medium text-[#a374f5]/80 hover:text-[#a374f5] transition-colors"
           >
             Forgot password?
           </Link>
@@ -118,7 +118,7 @@ export function LoginForm({ variant = "light" }: LoginFormProps) {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="group w-full relative flex items-center justify-center gap-2 rounded-xl text-white font-semibold py-3.5 px-6 text-sm transition-all duration-300 disabled:opacity-50 overflow-hidden bg-gradient-to-r from-primary to-[#2DD4BF] shadow-[0_4px_20px_-4px_rgba(26,158,143,0.5)] hover:shadow-[0_6px_28px_-4px_rgba(26,158,143,0.65)] hover:scale-[1.01] active:scale-[0.99]"
+          className="group w-full relative flex items-center justify-center gap-2 rounded-xl text-white font-semibold py-3.5 px-6 text-sm transition-all duration-300 disabled:opacity-50 overflow-hidden bg-gradient-to-r from-[#5f2ea8] to-[#8e54e9] shadow-[0_4px_20px_-4px_rgba(95,46,168,0.5)] hover:shadow-[0_6px_28px_-4px_rgba(95,46,168,0.65)] hover:scale-[1.01] active:scale-[0.99]"
         >
           {isSubmitting ? (
             <>

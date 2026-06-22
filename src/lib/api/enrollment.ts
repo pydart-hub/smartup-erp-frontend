@@ -399,6 +399,7 @@ export async function getAcademicYears(): Promise<
   for (const yr of batchYears) {
     if (!existing.has(yr)) {
       fromDoctype.push({ name: yr, year_start_date: "", year_end_date: "" });
+      existing.add(yr);
     }
   }
 

@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -215,12 +216,24 @@ export function Sidebar({ navItems = BRANCH_MANAGER_NAV }: SidebarProps) {
         )}>
           {!sidebarCollapsed && (
             <Link href={homeHref} className="flex items-center gap-2.5">
-              <video src="/loading.webm" autoPlay loop muted playsInline width={45} height={45} className="object-contain block flex-shrink-0 drop-shadow-sm" />
+              <Image
+                src="/smartup-logo.png"
+                alt="SmartUp"
+                width={45}
+                height={45}
+                className="object-contain block flex-shrink-0 drop-shadow-sm"
+              />
               <span className="text-[#1a1a1a] dark:text-white text-xl tracking-[0.12em] uppercase leading-none" style={{ fontFamily: 'var(--font-montserrat)', fontWeight: 900 }}>SMART UP</span>
             </Link>
           )}
           {sidebarCollapsed && (
-            <video src="/loading.webm" autoPlay loop muted playsInline width={45} height={45} className="object-contain block flex-shrink-0 drop-shadow-sm" />
+            <Image
+              src="/smartup-logo.png"
+              alt="SmartUp"
+              width={45}
+              height={45}
+              className="object-contain block flex-shrink-0 drop-shadow-sm"
+            />
           )}
           {/* Mobile close */}
           <motion.button

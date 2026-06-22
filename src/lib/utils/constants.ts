@@ -250,6 +250,7 @@ export const SALES_USER_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard/sales-user", icon: "LayoutDashboard", emoji: "📊" },
   { label: "New Admission", href: "/dashboard/sales-user/new-admission", icon: "UserPlus", emoji: "🎓" },
   { label: "Students", href: "/dashboard/sales-user/students", icon: "GraduationCap", emoji: "👨‍🎓" },
+  { label: "Discontinued", href: "/dashboard/sales-user/discontinued", icon: "UserX", emoji: "?" },
   { label: "Fee Overdue", href: "/dashboard/sales-user/fees/overdue", icon: "CalendarClock", emoji: "⏰" },
   { label: "Overdue Paid", href: "/dashboard/sales-user/fees/overdue-paid", icon: "CalendarCheck2", emoji: "âœ…" },
   { label: "Follow-Up", href: "/dashboard/sales-user/followup", icon: "Phone", emoji: "ðŸ“ž" },

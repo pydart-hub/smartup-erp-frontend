@@ -5,23 +5,26 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import {
   ArrowRight,
-  Calendar,
   CalendarClock,
   ChevronDown,
   CircleDollarSign,
   GraduationCap,
   IndianRupee,
   Loader2,
+  MessageSquareText,
   ReceiptText,
   Sparkles,
   TriangleAlert,
   UserRoundX,
+  Phone,
+  X,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { getDiscontinuedFollowUps, type DiscontinuedFollowUpLog } from "@/lib/api/discontinuedFollowup";
 import type {
   ForfeitedBatch,
   ForfeitedStudent,
@@ -52,14 +55,192 @@ function formatShortDate(date?: string): string {
   });
 }
 
+function formatDateTime(date?: string): string {
+  if (!date) return "-";
+  return new Date(date).toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function FollowUpDetailsModal({
+  student,
+  onClose,
+}: {
+  student: ForfeitedStudent | null;
+  onClose: () => void;
+}) {
+  const studentKey = student?.student_id ?? null;
+  const [logState, setLogState] = useState<{
+    studentKey: string | null;
+    logs: DiscontinuedFollowUpLog[];
+    loading: boolean;
+  }>({
+    studentKey: null,
+    logs: [],
+    loading: false,
+  });
+
+  useEffect(() => {
+    if (!studentKey) return;
+    let alive = true;
+    getDiscontinuedFollowUps(studentKey)
+      .then((rows) => {
+        if (!alive) return;
+        setLogState({ studentKey, logs: rows, loading: false });
+      })
+      .catch((error) => {
+        console.error("[director-followup-details] Error:", error);
+        if (!alive) return;
+        setLogState({ studentKey, logs: [], loading: false });
+      });
+    return () => {
+      alive = false;
+    };
+  }, [studentKey]);
+
+  if (!student) return null;
+
+  const loading = studentKey !== logState.studentKey || logState.loading;
+  const logs = studentKey === logState.studentKey ? logState.logs : [];
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 bg-slate-950/45 backdrop-blur-sm"
+        onClick={onClose}
+      >
+        <motion.div
+          initial={{ opacity: 0, y: 16, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 16, scale: 0.98 }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
+          onClick={(event) => event.stopPropagation()}
+          className="mx-auto mt-16 max-h-[80vh] w-[min(720px,calc(100vw-2rem))] overflow-hidden rounded-[24px] border border-sky-100 bg-white shadow-[0_30px_80px_-30px_rgba(15,23,42,0.45)]"
+        >
+          <div className="flex items-start justify-between border-b border-border-light bg-gradient-to-r from-sky-50 via-white to-amber-50/50 px-5 py-4">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.16em] text-sky-700/80">Discontinued Follow-Up</p>
+              <h3 className="mt-1 text-lg font-semibold text-text-primary">{student.student_name}</h3>
+              <p className="mt-1 text-sm text-text-secondary">{student.student_id}</p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-full border border-border-light bg-white p-2 text-text-secondary transition-colors hover:bg-slate-50 hover:text-text-primary"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="space-y-4 overflow-y-auto px-5 py-5">
+            {loading ? (
+              <div className="flex h-36 items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : logs.length === 0 ? (
+              <div className="rounded-2xl border border-border-light bg-slate-50/70 p-5 text-sm text-text-secondary">
+                No follow-up details recorded yet.
+              </div>
+            ) : (
+              logs.map((log) => (
+                <div
+                  key={log.name}
+                  className="rounded-2xl border border-border-light bg-gradient-to-br from-white to-slate-50/60 p-4 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.5)]"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="info" className="px-2 py-0.5 text-[10px]">
+                          {log.call_status}
+                        </Badge>
+                        {log.interested_to_rejoin ? (
+                          <Badge variant="success" className="px-2 py-0.5 text-[10px]">
+                            Interested to Rejoin
+                          </Badge>
+                        ) : null}
+                        {log.followup_outcome ? (
+                          <Badge variant="warning" className="px-2 py-0.5 text-[10px]">
+                            {log.followup_outcome}
+                          </Badge>
+                        ) : null}
+                      </div>
+                      <p className="mt-2 text-sm font-medium text-text-primary">
+                        {formatDateTime(log.call_date)} by {log.called_by.split("@")[0]}
+                      </p>
+                    </div>
+                    {log.invoice_outstanding_at_call != null ? (
+                      <div className="rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-right">
+                        <p className="text-[10px] uppercase tracking-[0.12em] text-amber-700/70">Outstanding At Call</p>
+                        <p className="mt-1 text-sm font-semibold text-amber-700">
+                          {formatCurrency(log.invoice_outstanding_at_call)}
+                        </p>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-xl border border-border-light bg-white px-3 py-2.5">
+                      <p className="text-[10px] uppercase tracking-[0.12em] text-text-tertiary">Feedback Category</p>
+                      <p className="mt-1 text-sm font-medium text-text-primary">
+                        {log.feedback_category || "Not recorded"}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-border-light bg-white px-3 py-2.5">
+                      <p className="text-[10px] uppercase tracking-[0.12em] text-text-tertiary">Rejoin Probability</p>
+                      <p className="mt-1 text-sm font-medium text-text-primary">
+                        {log.rejoin_probability || "Not recorded"}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-border-light bg-white px-3 py-2.5">
+                      <p className="text-[10px] uppercase tracking-[0.12em] text-text-tertiary">Mobile Used</p>
+                      <p className="mt-1 text-sm font-medium text-text-primary">
+                        {log.latest_mobile_used || "Not recorded"}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-border-light bg-white px-3 py-2.5">
+                      <p className="text-[10px] uppercase tracking-[0.12em] text-text-tertiary">Reason Not Rejoining</p>
+                      <p className="mt-1 text-sm font-medium text-text-primary">
+                        {log.reason_not_rejoining || "Not recorded"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 rounded-xl border border-sky-100 bg-sky-50/60 px-3.5 py-3">
+                    <p className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.14em] text-sky-700/80">
+                      <MessageSquareText className="h-3.5 w-3.5" />
+                      Sales User Notes
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-text-primary">
+                      {log.feedback_notes || "No notes recorded."}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
 function StudentTile({
   student,
   batchName,
   index,
+  onOpenFollowUp,
 }: {
   student: ForfeitedStudent;
   batchName: string;
   index: number;
+  onOpenFollowUp: (student: ForfeitedStudent) => void;
 }) {
   return (
     <motion.article
@@ -93,7 +274,7 @@ function StudentTile({
                 </Badge>
               </div>
               <p className="mt-0.5 truncate text-[12px] text-text-secondary">
-                {student.student_id} • {student.branch || "No branch"} • {batchName}
+                {student.student_id} - {student.branch || "No branch"} - {batchName}
               </p>
             </div>
           </div>
@@ -155,6 +336,44 @@ function StudentTile({
             </p>
           </div>
 
+          <button
+            type="button"
+            onClick={() => student.latest_followup && onOpenFollowUp(student)}
+            className={`mt-3 w-full rounded-lg border border-sky-100 bg-sky-50/50 px-2.5 py-2 text-left transition-all ${
+              student.latest_followup
+                ? "hover:border-sky-200 hover:bg-sky-50 hover:shadow-[0_10px_22px_-20px_rgba(14,165,233,0.7)]"
+                : "cursor-default"
+            }`}
+          >
+            <p className="flex items-center gap-1.5 text-[9px] uppercase tracking-[0.12em] text-sky-700/80">
+              <Phone className="h-3 w-3" />
+              {student.latest_followup ? "Open Follow-Up Details" : "Latest Follow-Up"}
+            </p>
+            {student.latest_followup ? (
+              <div className="mt-1.5 space-y-1 text-[12px]">
+                <p className="font-medium text-text-primary">
+                  {student.latest_followup.call_status}
+                  {student.latest_followup.interested_to_rejoin ? (
+                    <span className="ml-1.5 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] text-emerald-700">
+                      Interested
+                    </span>
+                  ) : null}
+                </p>
+                <p className="text-text-secondary">
+                  {formatShortDate(student.latest_followup.call_date)} by {student.latest_followup.called_by.split("@")[0]}
+                </p>
+                {student.latest_followup.feedback_category ? (
+                  <p className="text-text-secondary">
+                    Feedback: <span className="font-medium text-text-primary">{student.latest_followup.feedback_category}</span>
+                  </p>
+                ) : null}
+                <p className="pt-0.5 text-[11px] font-medium text-sky-700">Click to view full details</p>
+              </div>
+            ) : (
+              <p className="mt-1 text-[12px] text-text-tertiary">No sales feedback recorded yet.</p>
+            )}
+          </button>
+
           <div className="mt-3">
             <Link
               href="/dashboard/director/students"
@@ -172,22 +391,28 @@ function StudentTile({
 
 export default function DirectorForfeitedFeesPage() {
   const { defaultCompany } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<ForfeitedResponse>({
-    batches: [],
-    total_invoiced: 0,
-    total_paid: 0,
-    total_outstanding: 0,
-    total_bad_debt: 0,
-    total_future_forfeited: 0,
-    student_count: 0,
-    bad_debt_student_count: 0,
+  const [pageState, setPageState] = useState<{
+    companyKey: string;
+    data: ForfeitedResponse;
+  }>({
+    companyKey: defaultCompany ?? "",
+    data: {
+      batches: [],
+      total_invoiced: 0,
+      total_paid: 0,
+      total_outstanding: 0,
+      total_bad_debt: 0,
+      total_future_forfeited: 0,
+      student_count: 0,
+      bad_debt_student_count: 0,
+    },
   });
   const [openBatches, setOpenBatches] = useState<Set<string>>(new Set());
+  const [selectedStudent, setSelectedStudent] = useState<ForfeitedStudent | null>(null);
 
   useEffect(() => {
     let alive = true;
-    setLoading(true);
+    const companyKey = defaultCompany ?? "";
 
     fetch(
       `/api/fees/forfeited-detail${defaultCompany ? `?company=${encodeURIComponent(defaultCompany)}` : ""}`,
@@ -198,7 +423,7 @@ export default function DirectorForfeitedFeesPage() {
       )
       .then((payload: ForfeitedResponse) => {
         if (!alive) return;
-        setData(payload);
+        setPageState({ companyKey, data: payload });
         if (payload.batches.length > 0) {
           setOpenBatches(new Set([payload.batches[0].batch_name]));
         }
@@ -206,19 +431,19 @@ export default function DirectorForfeitedFeesPage() {
       .catch((error) => {
         console.error("[director-forfeited-fees] Error:", error);
         if (!alive) return;
-        setData({
-          batches: [],
-          total_invoiced: 0,
-          total_paid: 0,
-          total_outstanding: 0,
-          total_bad_debt: 0,
-          total_future_forfeited: 0,
-          student_count: 0,
-          bad_debt_student_count: 0,
+        setPageState({
+          companyKey,
+          data: {
+            batches: [],
+            total_invoiced: 0,
+            total_paid: 0,
+            total_outstanding: 0,
+            total_bad_debt: 0,
+            total_future_forfeited: 0,
+            student_count: 0,
+            bad_debt_student_count: 0,
+          },
         });
-      })
-      .finally(() => {
-        if (alive) setLoading(false);
       });
 
     return () => {
@@ -226,6 +451,8 @@ export default function DirectorForfeitedFeesPage() {
     };
   }, [defaultCompany]);
 
+  const loading = pageState.companyKey !== (defaultCompany ?? "");
+  const data = pageState.data;
   const batchCount = data.batches.length;
   const totalInvoiceCount = useMemo(
     () =>
@@ -455,6 +682,7 @@ export default function DirectorForfeitedFeesPage() {
                             student={student}
                             batchName={batch.batch_name}
                             index={index}
+                            onOpenFollowUp={setSelectedStudent}
                           />
                         ))}
                       </div>
@@ -466,6 +694,11 @@ export default function DirectorForfeitedFeesPage() {
           })
         )}
       </motion.section>
+
+      <FollowUpDetailsModal
+        student={selectedStudent}
+        onClose={() => setSelectedStudent(null)}
+      />
     </motion.div>
   );
 }

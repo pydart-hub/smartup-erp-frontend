@@ -106,11 +106,11 @@ export default function LoginPage() {
         </AnimatePresence>
 
         {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,18,22,0.68)_0%,rgba(7,18,22,0.42)_34%,rgba(7,18,22,0.16)_58%,rgba(7,18,22,0.74)_100%)] z-10" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,0.7)_0%,rgba(0,0,0,0.4)_34%,rgba(0,0,0,0.1)_58%,rgba(0,0,0,0.8)_100%)] z-10" />
 
         <div className="absolute inset-0 z-20 pointer-events-none">
           <div className="absolute left-10 top-10 inline-flex items-center gap-3 rounded-full border border-white/12 bg-black/18 px-4 py-2 backdrop-blur-sm">
-            <span className="h-2 w-2 rounded-full bg-primary/90" />
+            <span className="h-2 w-2 rounded-full bg-[#5f2ea8]/90" />
             <span className={`${dmSans.className} text-[0.7rem] font-semibold uppercase tracking-[0.34em] text-white/78`}>
               Smartup Learning Ventures
             </span>
@@ -132,7 +132,7 @@ export default function LoginPage() {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, ease: "easeOut" }}
-                className={`${dmSans.className} mb-1.5 text-[0.82rem] font-bold uppercase tracking-[0.18em] text-[#23d3c5]`}
+                className={`${dmSans.className} mb-1.5 text-[0.82rem] font-bold uppercase tracking-[0.18em] text-[#a374f5]`}
               >
                 {slide.eyebrow}
               </motion.p>
@@ -140,7 +140,7 @@ export default function LoginPage() {
                 initial={{ opacity: 0, scaleX: 0.35 }}
                 animate={{ opacity: 1, scaleX: 1 }}
                 transition={{ duration: 0.6, ease: "easeOut" }}
-                className="mb-3 h-px w-12 origin-left bg-gradient-to-r from-primary/90 to-transparent"
+                className="mb-3 h-px w-12 origin-left bg-gradient-to-r from-[#5f2ea8]/90 to-transparent"
               />
               <motion.h1
                 initial={{ opacity: 0, y: 18 }}
@@ -149,7 +149,7 @@ export default function LoginPage() {
                 className={`${dmSans.className} max-w-[26rem] text-white text-[2.5rem] xl:text-[2.8rem] font-bold leading-[1] tracking-[-0.045em]`}
               >
                 <span className="block">{slide.title}</span>
-                <span className="block text-primary">{slide.accentTitle}</span>
+                <span className="block text-[#a374f5]">{slide.accentTitle}</span>
               </motion.h1>
               <motion.p
                 initial={{ opacity: 0, y: 22 }}
@@ -165,7 +165,7 @@ export default function LoginPage() {
                 transition={{ duration: 0.65, delay: 0.28, ease: "easeOut" }}
                 className={`${dmSans.className} mt-3 max-w-[24rem] text-[0.9rem] font-normal leading-6 tracking-[0.002em] text-white/80`}
               >
-                <span className="inline-block border-b border-primary/30 pb-0.5">{slide.supportingText}</span>
+                <span className="inline-block border-b border-[#5f2ea8]/40 pb-0.5">{slide.supportingText}</span>
               </motion.div>
             </motion.div>
           </AnimatePresence>
@@ -195,12 +195,8 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* ── Right Panel — Login Form (dark bg) ── */}
-      <div className="flex-1 flex flex-col min-h-screen bg-[#0a1a18] relative overflow-hidden">
-        {/* Ambient glow effects */}
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/8 rounded-full blur-[100px] pointer-events-none" />
-        <div className="absolute -bottom-32 -left-32 w-64 h-64 bg-[#2DD4BF]/6 rounded-full blur-[80px] pointer-events-none" />
-
+      {/* ── Right Panel — Login Form (light bg) ── */}
+      <div className="flex-1 flex flex-col min-h-screen bg-slate-50 relative overflow-hidden">
         {/* Centered form */}
         <div className="relative z-10 flex-1 flex items-center justify-center px-6 py-10 sm:px-12">
           <div className="w-full max-w-[420px]">
@@ -214,7 +210,7 @@ export default function LoginPage() {
                   height={40}
                   className="object-contain"
                 />
-                <span className="text-white text-lg font-bold tracking-wide">
+                <span className="text-slate-900 text-lg font-bold tracking-wide">
                   SMART UP
                 </span>
               </div>
@@ -227,32 +223,30 @@ export default function LoginPage() {
             >
               {/* Greeting with icon */}
               <div className="flex items-center gap-3 mb-6">
-                <div className="hidden lg:flex w-11 h-11 rounded-2xl bg-gradient-to-br from-primary/20 to-[#2DD4BF]/10 items-center justify-center border border-primary/20">
-                  <Image
-                    src="/smartup-logo.png"
-                    alt=""
-                    width={24}
-                    height={24}
-                    className="object-contain"
-                  />
-                </div>
+                <Image
+                  src="/smartup-logo.png"
+                  alt="SmartUp"
+                  width={68}
+                  height={68}
+                  className="hidden lg:block object-contain"
+                />
                 <div>
-                  <h2 className="text-2xl font-bold text-white">
+                  <h2 className="text-2xl font-bold text-slate-900">
                     Welcome back
                   </h2>
-                  <p className="text-white/40 text-sm">
+                  <p className="text-slate-500 text-sm">
                     Sign in to continue to your dashboard
                   </p>
                 </div>
               </div>
 
-              {/* Glass card */}
-              <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] backdrop-blur-sm p-6 sm:p-7">
-                <LoginForm variant="dark" />
+              {/* Glass card / Light card */}
+              <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6 sm:p-7">
+                <LoginForm variant="light" />
               </div>
 
               {/* Trust badges */}
-              <div className="mt-6 flex items-center justify-center gap-6 text-white/25 text-[11px]">
+              <div className="mt-6 flex items-center justify-center gap-6 text-slate-400 text-[11px]">
                 <span className="flex items-center gap-1.5">
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
                   Secure login
@@ -267,7 +261,7 @@ export default function LoginPage() {
               <div className="mt-5 flex justify-center">
                 <Link
                   href="/demo"
-                  className="group inline-flex items-center gap-2 text-sm font-medium text-white/35 hover:text-primary border border-white/[0.06] hover:border-primary/30 rounded-xl px-5 py-2.5 bg-white/[0.02] hover:bg-primary/[0.06] transition-all duration-200"
+                  className="group inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-[#5f2ea8] border border-slate-200 hover:border-[#5f2ea8]/30 rounded-xl px-5 py-2.5 bg-white hover:bg-[#5f2ea8]/5 transition-all duration-200 shadow-sm"
                 >
                   <Play className="w-3.5 h-3.5 fill-current" />
                   Try Demo

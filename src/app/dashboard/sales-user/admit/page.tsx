@@ -301,11 +301,20 @@ function AdmitPageContent() {
     ? allBranches.filter((b) => b.name === defaultCompany)
     : allBranches;
 
-  const { data: academicYears = [] } = useQuery({
+  const { data: academicYearsRaw = [] } = useQuery({
     queryKey: ["academic-years"],
     queryFn: getAcademicYears,
     staleTime: Infinity,
   });
+
+  const academicYears = useMemo(() => {
+    const seen = new Set<string>();
+    return academicYearsRaw.filter((year) => {
+      if (!year?.name || seen.has(year.name)) return false;
+      seen.add(year.name);
+      return true;
+    });
+  }, [academicYearsRaw]);
 
   // ── Programs available in the selected branch ─────────────────
   const { data: branchGroupsRes, isFetching: loadingBranchPrograms } = useQuery({
@@ -1132,8 +1141,8 @@ function AdmitPageContent() {
                     <SelectField label="Academic Year" required error={errors.academic_year?.message}>
                       <select className={selectCls} {...register("academic_year")}>
                         <option value="">Select year</option>
-                        {academicYears.map((y) => (
-                          <option key={y.name} value={y.name}>{y.name}</option>
+                        {academicYears.map((y, index) => (
+                          <option key={`${y.name}-${index}`} value={y.name}>{y.name}</option>
                         ))}
                       </select>
                     </SelectField>

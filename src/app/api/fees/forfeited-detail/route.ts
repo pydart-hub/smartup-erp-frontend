@@ -61,6 +61,16 @@ export interface ForfeitedStudent {
   is_bad_debt: boolean;
   invoice_count: number;
   disabilities: string;
+  latest_followup?: {
+    name: string;
+    call_date: string;
+    called_by: string;
+    call_status: string;
+    feedback_category?: string;
+    feedback_notes?: string;
+    interested_to_rejoin?: number;
+    followup_outcome?: string;
+  };
 }
 
 export interface ForfeitedBatch {
@@ -222,6 +232,22 @@ export async function GET(request: NextRequest) {
     }
 
     const batchMap = new Map<string, ForfeitedBatch>();
+    const followups = await frappeGetList(
+      "Discontinued Follow Up",
+      [["student", "in", studentIds]],
+      [
+        "name", "student", "call_date", "called_by", "call_status",
+        "feedback_category", "feedback_notes", "interested_to_rejoin",
+        "followup_outcome",
+      ],
+      1000,
+      "call_date desc",
+    );
+    const latestFollowupMap = new Map<string, Record<string, unknown>>();
+    for (const row of followups) {
+      const studentId = row.student as string;
+      if (studentId && !latestFollowupMap.has(studentId)) latestFollowupMap.set(studentId, row);
+    }
     let grandInvoiced = 0;
     let grandPaid = 0;
     let grandOutstanding = 0;
@@ -267,6 +293,18 @@ export async function GET(request: NextRequest) {
         is_bad_debt: totals.overdueOutstanding > 0,
         invoice_count: totals.count,
         disabilities: (student.custom_disabilities as string) || "",
+        latest_followup: latestFollowupMap.has(studentId)
+          ? {
+              name: String(latestFollowupMap.get(studentId)?.name ?? ""),
+              call_date: String(latestFollowupMap.get(studentId)?.call_date ?? ""),
+              called_by: String(latestFollowupMap.get(studentId)?.called_by ?? ""),
+              call_status: String(latestFollowupMap.get(studentId)?.call_status ?? ""),
+              feedback_category: String(latestFollowupMap.get(studentId)?.feedback_category ?? ""),
+              feedback_notes: String(latestFollowupMap.get(studentId)?.feedback_notes ?? ""),
+              interested_to_rejoin: Number(latestFollowupMap.get(studentId)?.interested_to_rejoin ?? 0),
+              followup_outcome: String(latestFollowupMap.get(studentId)?.followup_outcome ?? ""),
+            }
+          : undefined,
       };
 
       if (!batchMap.has(batchName)) {

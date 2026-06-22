@@ -90,27 +90,27 @@
             },
             {
               "class": "Plus One",
-              "annual_fees": 19500,
+              "annual_fees": 19000,
               "payment_plans": {
-                "early_bird": 17500,
-                "one_time_payment": 16200,
+                "early_bird": 16000,
+                "one_time_payment": 15000,
                 "quarterly": {
-                  "total_after_5pct_discount": 16600,
-                  "quarter_1": 5700,
-                  "quarter_2": 4200,
-                  "quarter_3": 4200,
-                  "quarter_4": 2500
+                  "total_after_5pct_discount": 15200,
+                  "quarter_1": 3800,
+                  "quarter_2": 3800,
+                  "quarter_3": 3800,
+                  "quarter_4": 3800
                 },
                 "6_installment": {
-                  "early_bird": 17500,
-                  "total_after_2_5pct_discount": 17100,
-                  "installment_1_to_5": 2900,
+                  "early_bird": 16000,
+                  "total_after_2_5pct_discount": 15600,
+                  "installment_1_to_5": 2600,
                   "installment_6_final": 2600
                 },
                 "8_installment": {
-                  "total": 17500,
-                  "installment_1_to_7": 2200,
-                  "installment_8_final": 2100
+                  "total": 16000,
+                  "installment_1_to_7": 2000,
+                  "installment_8_final": 2000
                 }
               }
             },
@@ -252,27 +252,27 @@
             },
             {
               "class": "Plus One",
-              "annual_fees": 30100,
+              "annual_fees": 25250,
               "payment_plans": {
-                "early_bird": 23200,
-                "one_time_payment": 21350,
+                "early_bird": 19500,
+                "one_time_payment": 17950,
                 "quarterly": {
-                  "total_after_5pct_discount": 22000,
-                  "quarter_1": 7500,
-                  "quarter_2": 5500,
-                  "quarter_3": 5500,
-                  "quarter_4": 3500
+                  "total_after_5pct_discount": 18500,
+                  "quarter_1": 5550,
+                  "quarter_2": 5550,
+                  "quarter_3": 5550,
+                  "quarter_4": 1850
                 },
                 "6_installment": {
-                  "early_bird": 23200,
-                  "total_after_2_5pct_discount": 22600,
-                  "installment_1_to_5": 3800,
-                  "installment_6_final": 3600
+                  "early_bird": 19500,
+                  "total_after_2_5pct_discount": 19000,
+                  "installment_1_to_5": 3150,
+                  "installment_6_final": 3250
                 },
                 "8_installment": {
-                  "total": 23200,
-                  "installment_1_to_7": 3000,
-                  "installment_8_final": 2200
+                  "total": 19500,
+                  "installment_1_to_7": 2450,
+                  "installment_8_final": 2350
                 }
               }
             },
@@ -414,27 +414,27 @@
             },
             {
               "class": "Plus One",
-              "annual_fees": 27750,
+              "annual_fees": 23300,
               "payment_plans": {
-                "early_bird": 23500,
-                "one_time_payment": 21600,
+                "early_bird": 19750,
+                "one_time_payment": 18150,
                 "quarterly": {
-                  "total_after_5pct_discount": 22300,
-                  "quarter_1": 7800,
+                  "total_after_5pct_discount": 18750,
+                  "quarter_1": 5600,
                   "quarter_2": 5600,
                   "quarter_3": 5600,
-                  "quarter_4": 3300
+                  "quarter_4": 1950
                 },
                 "6_installment": {
-                  "early_bird": 23500,
-                  "total_after_2_5pct_discount": 22900,
-                  "installment_1_to_5": 4000,
-                  "installment_6_final": 2900
+                  "early_bird": 19750,
+                  "total_after_2_5pct_discount": 19250,
+                  "installment_1_to_5": 3200,
+                  "installment_6_final": 3250
                 },
                 "8_installment": {
-                  "total": 23500,
-                  "installment_1_to_7": 3000,
-                  "installment_8_final": 2500
+                  "total": 19750,
+                  "installment_1_to_7": 2450,
+                  "installment_8_final": 2600
                 }
               }
             },
@@ -582,27 +582,27 @@
             },
             {
               "class": "Plus One",
-              "annual_fees": 21000,
+              "annual_fees": 19000,
               "payment_plans": {
-                "early_bird": 19000,
-                "one_time_payment": 17400,
+                "early_bird": 16000,
+                "one_time_payment": 15000,
                 "quarterly": {
-                  "total_after_5pct_discount": 18000,
-                  "quarter_1": 6300,
-                  "quarter_2": 4500,
-                  "quarter_3": 4500,
-                  "quarter_4": 2700
+                  "total_after_5pct_discount": 15200,
+                  "quarter_1": 3800,
+                  "quarter_2": 3800,
+                  "quarter_3": 3800,
+                  "quarter_4": 3800
                 },
                 "6_installment": {
-                  "early_bird": 19000,
-                  "total_after_2_5pct_discount": 18500,
-                  "installment_1_to_5": 3200,
-                  "installment_6_final": 2500
+                  "early_bird": 16000,
+                  "total_after_2_5pct_discount": 15600,
+                  "installment_1_to_5": 2600,
+                  "installment_6_final": 2600
                 },
                 "8_installment": {
-                  "total": 19000,
-                  "installment_1_to_7": 2500,
-                  "installment_8_final": 1500
+                  "total": 16000,
+                  "installment_1_to_7": 2000,
+                  "installment_8_final": 2000
                 }
               }
             },
@@ -744,27 +744,27 @@
             },
             {
               "class": "Plus One",
-              "annual_fees": 25500,
+              "annual_fees": 21400,
               "payment_plans": {
-                "early_bird": 23000,
-                "one_time_payment": 21200,
+                "early_bird": 19350,
+                "one_time_payment": 17850,
                 "quarterly": {
-                  "total_after_5pct_discount": 21900,
-                  "quarter_1": 7600,
+                  "total_after_5pct_discount": 18400,
+                  "quarter_1": 5500,
                   "quarter_2": 5500,
                   "quarter_3": 5500,
-                  "quarter_4": 3300
+                  "quarter_4": 1900
                 },
                 "6_installment": {
-                  "early_bird": 23000,
-                  "total_after_2_5pct_discount": 22400,
-                  "installment_1_to_5": 4000,
-                  "installment_6_final": 2400
+                  "early_bird": 19350,
+                  "total_after_2_5pct_discount": 18850,
+                  "installment_1_to_5": 3150,
+                  "installment_6_final": 3100
                 },
                 "8_installment": {
-                  "total": 23000,
-                  "installment_1_to_7": 3000,
-                  "installment_8_final": 2000
+                  "total": 19350,
+                  "installment_1_to_7": 2400,
+                  "installment_8_final": 2550
                 }
               }
             },
@@ -906,27 +906,27 @@
             },
             {
               "class": "Plus One",
-              "annual_fees": 27750,
+              "annual_fees": 23300,
               "payment_plans": {
-                "early_bird": 25000,
-                "one_time_payment": 22900,
+                "early_bird": 21000,
+                "one_time_payment": 19250,
                 "quarterly": {
-                  "total_after_5pct_discount": 23700,
-                  "quarter_1": 8300,
-                  "quarter_2": 5900,
-                  "quarter_3": 5900,
-                  "quarter_4": 3600
+                  "total_after_5pct_discount": 19900,
+                  "quarter_1": 5950,
+                  "quarter_2": 5950,
+                  "quarter_3": 5950,
+                  "quarter_4": 2050
                 },
                 "6_installment": {
-                  "early_bird": 25000,
-                  "total_after_2_5pct_discount": 24400,
-                  "installment_1_to_5": 4200,
-                  "installment_6_final": 3400
+                  "early_bird": 21000,
+                  "total_after_2_5pct_discount": 20500,
+                  "installment_1_to_5": 3400,
+                  "installment_6_final": 3500
                 },
                 "8_installment": {
-                  "total": 25000,
-                  "installment_1_to_7": 3300,
-                  "installment_8_final": 1900
+                  "total": 21000,
+                  "installment_1_to_7": 2600,
+                  "installment_8_final": 2800
                 }
               }
             },
@@ -1048,27 +1048,27 @@
             },
             {
               "class": "Plus One",
-              "annual_fees": 21000,
+              "annual_fees": 19000,
               "payment_plans": {
-                "early_bird": 19000,
-                "one_time_payment": 17400,
+                "early_bird": 16000,
+                "one_time_payment": 15000,
                 "quarterly": {
-                  "total_after_5pct_discount": 18000,
-                  "quarter_1": 6300,
-                  "quarter_2": 4500,
-                  "quarter_3": 4500,
-                  "quarter_4": 2700
+                  "total_after_5pct_discount": 15200,
+                  "quarter_1": 3800,
+                  "quarter_2": 3800,
+                  "quarter_3": 3800,
+                  "quarter_4": 3800
                 },
                 "6_installment": {
-                  "early_bird": 19000,
-                  "total_after_2_5pct_discount": 18500,
-                  "installment_1_to_5": 3200,
-                  "installment_6_final": 2500
+                  "early_bird": 16000,
+                  "total_after_2_5pct_discount": 15600,
+                  "installment_1_to_5": 2600,
+                  "installment_6_final": 2600
                 },
                 "8_installment": {
-                  "total": 19000,
-                  "installment_1_to_7": 2500,
-                  "installment_8_final": 1500
+                  "total": 16000,
+                  "installment_1_to_7": 2000,
+                  "installment_8_final": 2000
                 }
               }
             },
@@ -1184,27 +1184,27 @@
             },
             {
               "class": "Plus One",
-              "annual_fees": 25500,
+              "annual_fees": 21400,
               "payment_plans": {
-                "early_bird": 23000,
-                "one_time_payment": 21200,
+                "early_bird": 19350,
+                "one_time_payment": 17850,
                 "quarterly": {
-                  "total_after_5pct_discount": 21900,
-                  "quarter_1": 7600,
+                  "total_after_5pct_discount": 18400,
+                  "quarter_1": 5500,
                   "quarter_2": 5500,
                   "quarter_3": 5500,
-                  "quarter_4": 3300
+                  "quarter_4": 1900
                 },
                 "6_installment": {
-                  "early_bird": 23000,
-                  "total_after_2_5pct_discount": 22400,
-                  "installment_1_to_5": 4000,
-                  "installment_6_final": 2400
+                  "early_bird": 19350,
+                  "total_after_2_5pct_discount": 18850,
+                  "installment_1_to_5": 3150,
+                  "installment_6_final": 3100
                 },
                 "8_installment": {
-                  "total": 23000,
-                  "installment_1_to_7": 3000,
-                  "installment_8_final": 2000
+                  "total": 19350,
+                  "installment_1_to_7": 2400,
+                  "installment_8_final": 2550
                 }
               }
             },
@@ -1294,27 +1294,27 @@
             },
             {
               "class": "Plus One",
-              "annual_fees": 27750,
+              "annual_fees": 23300,
               "payment_plans": {
-                "early_bird": 25000,
-                "one_time_payment": 22700,
+                "early_bird": 21000,
+                "one_time_payment": 19100,
                 "quarterly": {
-                  "total_after_5pct_discount": 23700,
-                  "quarter_1": 8300,
-                  "quarter_2": 5900,
-                  "quarter_3": 5900,
-                  "quarter_4": 3600
+                  "total_after_5pct_discount": 19900,
+                  "quarter_1": 5950,
+                  "quarter_2": 5950,
+                  "quarter_3": 5950,
+                  "quarter_4": 2050
                 },
                 "6_installment": {
-                  "early_bird": 25000,
-                  "total_after_2_5pct_discount": 24400,
-                  "installment_1_to_5": 4200,
-                  "installment_6_final": 3400
+                  "early_bird": 21000,
+                  "total_after_2_5pct_discount": 20500,
+                  "installment_1_to_5": 3400,
+                  "installment_6_final": 3500
                 },
                 "8_installment": {
-                  "total": 25000,
-                  "installment_1_to_7": 3300,
-                  "installment_8_final": 1900
+                  "total": 21000,
+                  "installment_1_to_7": 2600,
+                  "installment_8_final": 2800
                 }
               }
             },
@@ -1954,27 +1954,27 @@
             },
             {
               "class": "Plus One",
-              "annual_fees": 41000,
+              "annual_fees": 31000,
               "payment_plans": {
-                "early_bird": 37000,
-                "one_time_payment": 33900,
+                "early_bird": 26000,
+                "one_time_payment": 25000,
                 "quarterly": {
-                  "total_after_5pct_discount": 35200,
-                  "quarter_1": 12300,
-                  "quarter_2": 8800,
-                  "quarter_3": 8800,
-                  "quarter_4": 5300
+                  "total_after_5pct_discount": 24700,
+                  "quarter_1": 6200,
+                  "quarter_2": 6200,
+                  "quarter_3": 6200,
+                  "quarter_4": 6100
                 },
                 "6_installment": {
-                  "early_bird": 37000,
-                  "total_after_2_5pct_discount": 36100,
-                  "installment_1_to_5": 6300,
-                  "installment_6_final": 4600
+                  "early_bird": 26000,
+                  "total_after_2_5pct_discount": 25350,
+                  "installment_1_to_5": 4200,
+                  "installment_6_final": 4350
                 },
                 "8_installment": {
-                  "total": 37000,
-                  "installment_1_to_7": 4900,
-                  "installment_8_final": 2700
+                  "total": 26000,
+                  "installment_1_to_7": 3250,
+                  "installment_8_final": 3250
                 }
               }
             },
@@ -2168,27 +2168,27 @@
             },
             {
               "class": "Plus One",
-              "annual_fees": 52500,
+              "annual_fees": 39600,
               "payment_plans": {
-                "early_bird": 47000,
-                "one_time_payment": 43100,
+                "early_bird": 35500,
+                "one_time_payment": 32600,
                 "quarterly": {
-                  "total_after_5pct_discount": 44700,
-                  "quarter_1": 15600,
-                  "quarter_2": 11200,
-                  "quarter_3": 11200,
-                  "quarter_4": 6700
+                  "total_after_5pct_discount": 33700,
+                  "quarter_1": 8400,
+                  "quarter_2": 8400,
+                  "quarter_3": 8400,
+                  "quarter_4": 8500
                 },
                 "6_installment": {
-                  "early_bird": 47000,
-                  "total_after_2_5pct_discount": 45800,
-                  "installment_1_to_5": 7700,
-                  "installment_6_final": 7300
+                  "early_bird": 35500,
+                  "total_after_2_5pct_discount": 34600,
+                  "installment_1_to_5": 5750,
+                  "installment_6_final": 5850
                 },
                 "8_installment": {
-                  "total": 47000,
-                  "installment_1_to_7": 5900,
-                  "installment_8_final": 5700
+                  "total": 35500,
+                  "installment_1_to_7": 4450,
+                  "installment_8_final": 4350
                 }
               }
             },
@@ -2382,27 +2382,27 @@
             },
             {
               "class": "Plus One",
-              "annual_fees": 54500,
+              "annual_fees": 41150,
               "payment_plans": {
-                "early_bird": 49000,
-                "one_time_payment": 44900,
+                "early_bird": 37000,
+                "one_time_payment": 33950,
                 "quarterly": {
-                  "total_after_5pct_discount": 46600,
-                  "quarter_1": 16400,
-                  "quarter_2": 11600,
-                  "quarter_3": 11600,
-                  "quarter_4": 7000
+                  "total_after_5pct_discount": 35150,
+                  "quarter_1": 8800,
+                  "quarter_2": 8800,
+                  "quarter_3": 8800,
+                  "quarter_4": 8750
                 },
                 "6_installment": {
-                  "early_bird": 49000,
-                  "total_after_2_5pct_discount": 47800,
-                  "installment_1_to_5": 8300,
-                  "installment_6_final": 6300
+                  "early_bird": 37000,
+                  "total_after_2_5pct_discount": 36100,
+                  "installment_1_to_5": 6000,
+                  "installment_6_final": 6100
                 },
                 "8_installment": {
-                  "total": 49000,
-                  "installment_1_to_7": 6500,
-                  "installment_8_final": 3500
+                  "total": 37000,
+                  "installment_1_to_7": 4600,
+                  "installment_8_final": 4800
                 }
               }
             },
@@ -2821,32 +2821,6 @@
               }
             },
             {
-              "class": "Plus One",
-              "annual_fees": 54500,
-              "payment_plans": {
-                "early_bird": 49000,
-                "one_time_payment": 45000,
-                "quarterly": {
-                  "total_after_5pct_discount": 46600,
-                  "quarter_1": 16200,
-                  "quarter_2": 11700,
-                  "quarter_3": 11700,
-                  "quarter_4": 7000
-                },
-                "6_installment": {
-                  "early_bird": 49000,
-                  "total_after_2_5pct_discount": 47800,
-                  "installment_1_to_5": 8000,
-                  "installment_6_final": 7800
-                },
-                "8_installment": {
-                  "total": 49000,
-                  "installment_1_to_7": 6200,
-                  "installment_8_final": 5600
-                }
-              }
-            },
-            {
               "class": "Plus Two",
               "annual_fees": 54500,
               "payment_plans": {
@@ -2927,32 +2901,6 @@
                   "total": 37000,
                   "installment_1_to_7": 4700,
                   "installment_8_final": 4100
-                }
-              }
-            },
-            {
-              "class": "Plus One",
-              "annual_fees": 61100,
-              "payment_plans": {
-                "early_bird": 55000,
-                "one_time_payment": 50500,
-                "quarterly": {
-                  "total_after_5pct_discount": 52200,
-                  "quarter_1": 18300,
-                  "quarter_2": 13000,
-                  "quarter_3": 13000,
-                  "quarter_4": 7900
-                },
-                "6_installment": {
-                  "early_bird": 55000,
-                  "total_after_2_5pct_discount": 53600,
-                  "installment_1_to_5": 9000,
-                  "installment_6_final": 8600
-                },
-                "8_installment": {
-                  "total": 55000,
-                  "installment_1_to_7": 6900,
-                  "installment_8_final": 6700
                 }
               }
             },
@@ -3042,27 +2990,27 @@
             },
             {
               "class": "Plus One",
-              "annual_fees": 67800,
+              "annual_fees": 31000,
               "payment_plans": {
-                "early_bird": 61000,
-                "one_time_payment": 56000,
+                "early_bird": 26000,
+                "one_time_payment": 25000,
                 "quarterly": {
-                  "total_after_5pct_discount": 58000,
-                  "quarter_1": 20300,
-                  "quarter_2": 14500,
-                  "quarter_3": 14500,
-                  "quarter_4": 8700
+                  "total_after_5pct_discount": 24700,
+                  "quarter_1": 6200,
+                  "quarter_2": 6200,
+                  "quarter_3": 6200,
+                  "quarter_4": 6100
                 },
                 "6_installment": {
-                  "early_bird": 61000,
-                  "total_after_2_5pct_discount": 59500,
-                  "installment_1_to_5": 10000,
-                  "installment_6_final": 9500
+                  "early_bird": 26000,
+                  "total_after_2_5pct_discount": 25350,
+                  "installment_1_to_5": 4200,
+                  "installment_6_final": 4350
                 },
                 "8_installment": {
-                  "total": 61000,
-                  "installment_1_to_7": 7700,
-                  "installment_8_final": 7100
+                  "total": 26000,
+                  "installment_1_to_7": 3250,
+                  "installment_8_final": 3250
                 }
               }
             },
@@ -3533,32 +3481,6 @@
               }
             },
             {
-              "class": "Plus One",
-              "annual_fees": 54500,
-              "payment_plans": {
-                "early_bird": 49000,
-                "one_time_payment": 45000,
-                "quarterly": {
-                  "total_after_5pct_discount": 46600,
-                  "quarter_1": 16400,
-                  "quarter_2": 11600,
-                  "quarter_3": 11600,
-                  "quarter_4": 7000
-                },
-                "6_installment": {
-                  "early_bird": 49000,
-                  "total_after_2_5pct_discount": 47800,
-                  "installment_1_to_5": 8000,
-                  "installment_6_final": 7800
-                },
-                "8_installment": {
-                  "total": 49000,
-                  "installment_1_to_7": 6200,
-                  "installment_8_final": 5600
-                }
-              }
-            },
-            {
               "class": "Plus Two",
               "annual_fees": 54500,
               "payment_plans": {
@@ -3691,32 +3613,6 @@
                   "total": 39400,
                   "installment_1_to_7": 5000,
                   "installment_8_final": 4400
-                }
-              }
-            },
-            {
-              "class": "Plus One",
-              "annual_fees": 57100,
-              "payment_plans": {
-                "early_bird": 51400,
-                "one_time_payment": 47200,
-                "quarterly": {
-                  "total_after_5pct_discount": 48800,
-                  "quarter_1": 17100,
-                  "quarter_2": 12200,
-                  "quarter_3": 12200,
-                  "quarter_4": 7300
-                },
-                "6_installment": {
-                  "early_bird": 51400,
-                  "total_after_2_5pct_discount": 50100,
-                  "installment_1_to_5": 8400,
-                  "installment_6_final": 8100
-                },
-                "8_installment": {
-                  "total": 51400,
-                  "installment_1_to_7": 6500,
-                  "installment_8_final": 5900
                 }
               }
             },
@@ -3858,27 +3754,27 @@
             },
             {
               "class": "Plus One",
-              "annual_fees": 61100,
+              "annual_fees": 31000,
               "payment_plans": {
-                "early_bird": 55000,
-                "one_time_payment": 50500,
+                "early_bird": 26000,
+                "one_time_payment": 25000,
                 "quarterly": {
-                  "total_after_5pct_discount": 52300,
-                  "quarter_1": 18300,
-                  "quarter_2": 13100,
-                  "quarter_3": 13100,
-                  "quarter_4": 7800
+                  "total_after_5pct_discount": 24700,
+                  "quarter_1": 6200,
+                  "quarter_2": 6200,
+                  "quarter_3": 6200,
+                  "quarter_4": 6100
                 },
                 "6_installment": {
-                  "early_bird": 55000,
-                  "total_after_2_5pct_discount": 53600,
-                  "installment_1_to_5": 9000,
-                  "installment_6_final": 8600
+                  "early_bird": 26000,
+                  "total_after_2_5pct_discount": 25350,
+                  "installment_1_to_5": 4200,
+                  "installment_6_final": 4350
                 },
                 "8_installment": {
-                  "total": 55000,
-                  "installment_1_to_7": 6900,
-                  "installment_8_final": 6700
+                  "total": 26000,
+                  "installment_1_to_7": 3250,
+                  "installment_8_final": 3250
                 }
               }
             },
