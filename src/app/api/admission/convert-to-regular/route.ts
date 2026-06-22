@@ -221,6 +221,15 @@ function applyCreditToSchedule(
   return result;
 }
 
+function normalizeScheduleAmounts(schedule: InstalmentEntry[]): InstalmentEntry[] {
+  return schedule.map((entry) => ({
+    ...entry,
+    amount: Number.isFinite(entry.amount)
+      ? Math.max(0, Math.round(entry.amount * 100) / 100)
+      : 0,
+  }));
+}
+
 function applySiblingDiscountToSchedule(
   schedule: InstalmentEntry[],
   totalAmount: number,
@@ -556,6 +565,20 @@ export async function POST(request: NextRequest) {
       );
       log.push(`Applied ₹${paidAmount} credit to instalment schedule`);
     }
+    schedule = normalizeScheduleAmounts(schedule);
+    const absorbedInstalments = schedule.filter((row) => row.amount <= 0);
+    const billableInstalments = schedule.filter((row) => row.amount > 0);
+    if (absorbedInstalments.length > 0) {
+      log.push(
+        `Fully absorbed instalments: ${absorbedInstalments.map((row) => row.label).join(", ")}`,
+      );
+    }
+    if (billableInstalments.length === 0) {
+      return NextResponse.json(
+        { error: "All instalments were fully absorbed by demo credit/discount; no billable invoice remains", log },
+        { status: 400 },
+      );
+    }
 
     // ── 6. Find tuition fee item for this program ─────────────────────────────
     const program: string = enrollment.program || student.custom_branch;
@@ -569,9 +592,9 @@ export async function POST(request: NextRequest) {
     log.push(`Tuition item: ${itemCode}`);
 
     // ── 7. Create new Sales Order ──────────────────────────────────────────────
-    const scheduleSum = schedule.reduce((s, i) => s + i.amount, 0);
-    const soQty = instalments;
-    const soRate = instalments > 1 && scheduleSum > 0 ? scheduleSum / instalments : schedule[0]?.amount ?? 0;
+    const scheduleSum = billableInstalments.reduce((s, i) => s + i.amount, 0);
+    const soQty = billableInstalments.length;
+    const soRate = soQty > 1 && scheduleSum > 0 ? scheduleSum / soQty : billableInstalments[0]?.amount ?? 0;
     const txnDate = enrollmentDate || new Date().toISOString().split("T")[0];
 
     const soPayload = {
@@ -729,7 +752,7 @@ frappe.response["message"] = {"patched": True, "grand_total": frappe.db.get_valu
 
     try {
       const createInvoicesUrl = new URL("/api/admission/create-invoices", request.url).toString();
-      const invoiceBody = JSON.stringify({ salesOrderName, schedule });
+      const invoiceBody = JSON.stringify({ salesOrderName, schedule: billableInstalments });
 
       // Use AbortController for 60-second timeout
       const controller = new AbortController();
@@ -753,6 +776,11 @@ frappe.response["message"] = {"patched": True, "grand_total": frappe.db.get_valu
       if (invoiceRes.ok) {
         const invoiceData = await invoiceRes.json();
         createdInvoices = invoiceData.invoices || [];
+        if (invoiceData.absorbed?.length > 0) {
+          log.push(
+            `Skipped absorbed invoice rows: ${invoiceData.absorbed.map((row: { label: string }) => row.label).join(", ")}`,
+          );
+        }
         if (createdInvoices.length > 0) {
           log.push(`✓ Created ${createdInvoices.length} invoice(s): ${createdInvoices.join(", ")}`);
         } else if (invoiceData.drafts?.length > 0) {
@@ -783,6 +811,11 @@ frappe.response["message"] = {"patched": True, "grand_total": frappe.db.get_valu
       ...(invoiceError && { invoiceError }), // Signal to frontend if invoices failed
       paidAmount,
       siblingDiscountAmount,
+      absorbedInstalments: absorbedInstalments.map((row) => ({
+        label: row.label,
+        dueDate: row.dueDate,
+        discountApplied: row.discountApplied ?? 0,
+      })),
       instalments,
       plan,
       log,

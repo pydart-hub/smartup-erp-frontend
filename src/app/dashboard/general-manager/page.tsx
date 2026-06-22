@@ -12,6 +12,8 @@ const cards = [
   { title: "Schedule", desc: "Class schedules & topic coverage", icon: Calendar, href: "/dashboard/general-manager/course-schedule", color: "bg-info/10 text-info" },
   { title: "Instructors", desc: "Instructor performance metrics", icon: Users, href: "/dashboard/general-manager/instructors", color: "bg-purple-100 text-purple-700" },
   { title: "Topic Coverage", desc: "Curriculum progress tracking", icon: GraduationCap, href: "/dashboard/general-manager/topic-coverage", color: "bg-orange-100 text-orange-700" },
+  { title: "Mentor Summary", desc: "Cross-branch mentor load & coverage", icon: Users, href: "/dashboard/general-manager/mentor-summary", color: "bg-teal-100 text-teal-700" },
+  { title: "Mentor Feedback", desc: "Student follow-up logs & notes", icon: ClipboardCheck, href: "/dashboard/general-manager/mentor-feedback", color: "bg-cyan-100 text-cyan-700" },
 ];
 
 const container = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.08 } } };

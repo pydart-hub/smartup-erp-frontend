@@ -1,5 +1,138 @@
 # SmartUp ERP — Task Tracker
 
+## Current: Push + Server Deployment & TS Bug Fixes (2026-06-22)
+
+- [/] Fix TypeScript compilation errors in `BranchAllStudentsPage`
+- [ ] Verify repo state and build success locally
+- [ ] Commit and push latest changes to origin/main
+- [ ] Deploy latest commit on server and restart PM2 process
+- [ ] Run post-deploy health checks and verify `https://smartuplearning.net`
+
+## Previous: Remove Sales User Leads Dashboard & CRM Implementation (2026-06-18)
+
+- [x] Remove Leads navigation link from `src/lib/utils/constants.ts`
+- [x] Delete `src/lib/types/crm.ts`
+- [x] Delete `src/lib/api/crm.ts`
+- [x] Delete components under `src/components/crm/`
+- [x] Delete route page under `src/app/dashboard/sales-user/leads/`
+- [x] Delete offline CRM structure documentation and scratch scripts (`docs/offline_crm_structure.md`, `scripts/inspect_lead.js`)
+- [x] Run compiler check (`npx tsc --noEmit` and `npx next build`) to verify a clean codebase
+
+### Review
+- Reverted Leads sidebar navigation links from `SALES_USER_NAV` in `src/lib/utils/constants.ts`.
+- Deleted type, API client, custom components, routes, scripts, and documentation related to the offline CRM/Leads dashboard.
+- Cleaned the `.next` compilation cache folder and verified a fully error-free project compile.
+
+## Previous: Sales User Leads Dashboard (2026-06-18)
+
+- [x] Create TypeScript types for `CRM Lead`, `CRM Lead Status`, and `CRM Lead Source` in `src/lib/types/crm.ts`
+- [x] Implement client-side API helper functions in `src/lib/api/crm.ts`
+- [x] Register navigation link for Leads in `src/lib/utils/constants.ts` under `SALES_USER_NAV`
+- [x] Create `LeadStatusBadge` component at `src/components/crm/LeadStatusBadge.tsx`
+- [x] Create `LeadFormModal` component at `src/components/crm/LeadFormModal.tsx`
+- [x] Implement the Leads page at `src/app/dashboard/sales-user/leads/page.tsx`
+- [x] Verify functionality, run build checks (`npx tsc --noEmit` and `npx next build`)
+
+### Review
+- Defined complete CRM type definitions matching the Frappe `CRM Lead`, `CRM Lead Status`, and `CRM Lead Source` Doctype schemas.
+- Developed clean, typed client-side API helper queries using `@tanstack/react-query` to fetch leads (scoped to `lead_owner`), fetch dynamic dropdown options, update individual lead statuses, and aggregate KPI statistics.
+- Added a "Leads" link to the `SALES_USER_NAV` sidebar definition under `src/lib/utils/constants.ts`.
+- Created a robust color-coded status badge component mapping all 21+ backend stages to Tailwind CSS color styles.
+- Created `LeadFormModal` using `react-hook-form` + `zod` to validate and submit new/edited leads, dynamically fetching status/source choices from Frappe and auto-filling `lead_owner` with the user's email.
+- Created `/dashboard/sales-user/leads` route with KPI summary cards (Total, Active, Follow-up, Converted), a real-time searching/filtering control panel, a details table, inline quick status-change select triggers, and full-detail edit actions.
+- Verified TypeScript compilation and production builds cleanly without errors.
+
+
+## Current: Restrict Mentors Dashboard for Branch Manager (2026-06-18)
+
+- [x] Create new API route `src/app/api/branch-manager/mentor-summary/route.ts` for branch-manager mentor summary
+- [x] Add client-side fetch helper `getBranchMentorSummary` to `src/lib/api/mentors.ts`
+- [x] Update `src/components/mentors/MentorSummaryReport.tsx` to support `hideBranchFilters`, `lockedBranch`, and `backHref` props
+- [x] Update `src/app/dashboard/branch-manager/mentors/dashboard/page.tsx` to render `MentorSummaryReport` locked to the branch
+- [x] Validate and run type checks (`npx tsc --noEmit`) and Next build (`npx next build`)
+- [x] Verify functionality and visual layout
+
+### Review
+- Developed a new API route `/api/branch-manager/mentor-summary` requiring the "Branch Manager" role (or higher) and validating that the requested branch matches the operator's company access.
+- Registered the `getBranchMentorSummary` fetch helper in `src/lib/api/mentors.ts` client API.
+- Hardened the `MentorSummaryReport` component to support conditional filters and branch-locking props. When locked, the branch filter selection and the overall "Branch Coverage" list are hidden, and the mentor loading and comparison table expands to full screen width.
+- Refactored `src/app/dashboard/branch-manager/mentors/dashboard/page.tsx` to render the brand-new restricted summary dashboard layout.
+- Verified TypeScript compilation and production builds cleanly.
+
+## Current: Mentors Landing Hub and Sub-pages Split (2026-06-18)
+
+- [x] Revert Mentors sidebar navigation to a single link in constants.ts
+- [x] Create a Landing Hub page at `src/app/dashboard/branch-manager/mentors/page.tsx` with 3 main navigation cards and live stats
+- [x] Create Dashboard & Load details page at `src/app/dashboard/branch-manager/mentors/dashboard/page.tsx`
+- [x] Create Mentor Profile Creation page at `src/app/dashboard/branch-manager/mentors/create/page.tsx`
+- [x] Create Student Assignment page at `src/app/dashboard/branch-manager/mentors/assign/page.tsx`
+- [x] Validate and run type checks (`npx tsc --noEmit`) and Next build (`npx next build`)
+- [x] Verify functionality and visual appearance
+
+### Review
+- Reverted the Branch Manager sidebar layout for "Mentors" to a clean single link in `src/lib/utils/constants.ts` to keep the menu compact.
+- Implemented a premium Mentors Portal Landing Hub page at `src/app/dashboard/branch-manager/mentors/page.tsx` with three 3D tilt cards utilizing the brand's primary teal and lime green color gradients.
+- Created `/dashboard/branch-manager/mentors/dashboard` containing the metrics overview cards and expandable Branch Mentor Load lists.
+- Created `/dashboard/branch-manager/mentors/create` containing the selector form to enroll active employees as new mentors.
+- Created `/dashboard/branch-manager/mentors/assign` containing the student assignment tabs, search tools, and allocation table.
+- Verified compilation and build success cleanly via `npx tsc --noEmit` and `npx next build`.
+
+## Current: Mentor Students Academic Score & Attendance Details (2026-06-17)
+
+- [x] Show academic average score and attendance rate directly on the "Assigned Students" table view
+- [x] Integrate backend queries to fetch Student Attendance and Assessment Results from Frappe
+- [x] Build redesigned Student details card with Academic Exam Results breakdown table
+- [x] Add Attendance & Absent Days tracker card, detailing absent history and recent logs
+- [x] Validate TypeScript compilation and production build cleanly
+
+### Review
+- Added average score and attendance rate calculation to `MentorStudentSummary` types and server builder in `src/lib/server/mentorData.ts`.
+- Integrated `Student Attendance` and `Assessment Result` queries from Frappe into `buildMentorStudentSummaries` and `buildMentorStudentDetail`.
+- Reworked Assigned Students table to show Academic Score and Attendance columns with colored outline badges.
+- Updated Student details view to include:
+  - **Academic Exam Results**: Showing Course, Assessment Group, score/maximum, grade badge, and exam date.
+  - **Attendance & Absent Days**: Showing attendance rate (%), Present Days/Total, Absent Days count, Absent History dates, and recent logs list.
+- Verified TypeScript compilation (`npx tsc --noEmit`) and next build (`npx next build`) passed successfully.
+- Conducted interactive verification via browser subagent and confirmed visual appeal and correct behavior of all components.
+
+## Current: Director Mentor Feedback Drill-down View (2026-06-17)
+
+
+- [x] Add state variables for active category tab, selected branch, and selected mentor
+- [x] Calculate branch-level aggregates (total logs, action items, unique mentors)
+- [x] Build Level 1 view showing a grid of branch classification cards
+- [x] Build Level 2 view showing branch-specific mentors cards
+- [x] Build Level 3 view displaying selected mentor's feedback logs with back-navigation
+- [x] Verify functionality and compile check cleanly
+
+### Review
+- Restructured `MentorFeedbackReport` to include a category tabs view-switcher for **Drill-down View** (default) and **Global Search**.
+- Added branch classification cards (Level 1) displaying total feedback count, action required badge, and unique mentor count.
+- Added branch-specific mentor cards (Level 2) with individual logs and action counts.
+- Added structured logs timeline (Level 3) displaying Academic Notes, Fee Notes, Contact Notes, and Overall Feedback side-by-side with appropriate headers.
+- Wired back-navigation paths between all drilldown levels.
+- Verified compilation and build success cleanly via `npx tsc --noEmit` and `npx next build`.
+- Interactively verified using browser subagent (navigating through Edappally branch and testing notes display).
+
+## Current: Batch-wise Student Assignment Classification (2026-06-17)
+
+- [x] Fetch active Student Groups (batches) and details for the branch in parallel
+- [x] Compute batch-wise total, assigned, and unassigned student counts
+- [x] Build interactive grid of batch cards (including "All Students") showing assignment progress
+- [x] Filter student table on card selection and support searching within selected batch
+- [x] Verify functionality and clean compile check via typescript build
+- [x] Group batches into categories: Regular, Subject-Wise, and One-to-One
+- [x] Add category tabs switcher to filter the batch cards grid
+- [x] Implement category-level student list filtering when no specific batch is selected
+
+### Review
+- Added `batchesDetailedQuery` to fetch all active `Student Group` (batch) records for the active branch and resolve their student memberships in parallel using `getBatch`.
+- Computed batch-wise metrics: total, assigned, and unassigned (pending) students.
+- Implemented a premium interactive cards grid displaying batch names, programs, assignment progress percentage, a linear progress bar, and metrics breakdown.
+- Wired card selection state (`selectedBatchId`) to filter the student table, displaying only students enrolled in the selected batch.
+- Verified compilation and build success via `npx tsc --noEmit` and `npx next build`.
+- Interactively verified behavior using a browser subagent: clicking batch cards filters the student table to the correct active students.
+
 ## Current: Director Fee Follow-Up Shows No Data (2026-05-25)
 
 - [x] Reproduce and trace director fee-followup request params from UI state to API route

@@ -352,6 +352,36 @@ export type InstructorLeaderboardBadge =
   | "had_rejections"
   | "late_submissions";
 
+export type InstructorLeaderboardMetricKey =
+  | "hr"
+  | "classes"
+  | "topics"
+  | "work"
+  | "exams"
+  | "students"
+  | "ontime";
+
+export interface InstructorLeaderboardSignal {
+  metric: InstructorLeaderboardMetricKey;
+  title: string;
+  reason: string;
+  earned_points: number;
+  max_points: number;
+  pct: number;
+}
+
+export interface InstructorLeaderboardWeakness extends InstructorLeaderboardSignal {
+  lost_points: number;
+  severity: "low" | "medium" | "high";
+  raw_facts: string[];
+}
+
+export interface InstructorLeaderboardLossSummary {
+  total_lost_points: number;
+  biggest_loss_metric: string | null;
+  biggest_loss_points: number;
+}
+
 export interface InstructorLeaderboardEntry {
   instructor: string;
   instructor_name: string;
@@ -391,6 +421,9 @@ export interface InstructorLeaderboardEntry {
   total_score: number;
   grade: string;
   badges: InstructorLeaderboardBadge[];
+  strengths: InstructorLeaderboardSignal[];
+  weaknesses: InstructorLeaderboardWeakness[];
+  loss_summary: InstructorLeaderboardLossSummary;
 }
 
 export interface InstructorLeaderboardResponse {

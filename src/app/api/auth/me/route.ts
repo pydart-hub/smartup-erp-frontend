@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
         instructor_display_name: sessionData.instructor_display_name || undefined,
         allowed_batches: sessionData.allowed_batches || undefined,
         default_batch: sessionData.default_batch || undefined,
+        mentor_profile: sessionData.mentor_profile || undefined,
       },
     });
   } catch {

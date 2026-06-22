@@ -13,7 +13,7 @@ export function useAuth() {
     user, isAuthenticated, isLoading, role, activeRole, switchableRoles,
     allowedCompanies, defaultCompany,
     isInstructor, instructorName, instructorDisplayName,
-    allowedBatches, defaultBatch,
+    allowedBatches, defaultBatch, mentorProfile,
     setUser, setLoading, setActiveRole: storeSetActiveRole, clearAuth,
   } = useAuthStore();
 
@@ -40,7 +40,7 @@ export function useAuth() {
     const loggedUser = await apiLogin(credentials);
     setUser(loggedUser);
     // Redirect to role-specific dashboard — pick the best app role, not just roles[0]
-    const APP_ROLES = ["Director", "Management", "General Manager", "Branch Manager", "HR Manager", "Administrator", "Instructor", "Batch Coordinator", "Teacher", "Sales User", "Accounts User", "Parent"];
+    const APP_ROLES = ["Director", "Management", "General Manager", "Branch Manager", "Mentor", "HR Manager", "Administrator", "Instructor", "Batch Coordinator", "Teacher", "Sales User", "Accounts User", "Parent"];
     const primaryRole = APP_ROLES.find((r) => loggedUser.roles?.includes(r)) || loggedUser.role_profile_name || "";
     const dashboardRoute = ROLE_DASHBOARD_MAP[primaryRole] || "/dashboard/branch-manager";
     router.push(dashboardRoute);
@@ -78,6 +78,7 @@ export function useAuth() {
     instructorDisplayName,
     allowedBatches,
     defaultBatch,
+    mentorProfile,
     login,
     logout,
     switchRole,

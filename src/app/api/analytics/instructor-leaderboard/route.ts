@@ -85,6 +85,51 @@ function getGrade(score: number): string {
   return "D";
 }
 
+function normalizeDateKey(value: unknown): string {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+
+  const isoPrefix = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoPrefix) return isoPrefix[1] + "-" + isoPrefix[2] + "-" + isoPrefix[3];
+
+  const dmy = raw.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if (dmy) return `${dmy[3]}-${dmy[2]}-${dmy[1]}`;
+
+  const parsed = new Date(raw);
+  if (!Number.isNaN(parsed.getTime())) {
+    return parsed.toISOString().slice(0, 10);
+  }
+
+  return raw;
+}
+
+type LeaderboardMetricKey =
+  | "hr"
+  | "classes"
+  | "topics"
+  | "work"
+  | "exams"
+  | "students"
+  | "ontime";
+
+type LeaderboardSignal = {
+  metric: LeaderboardMetricKey;
+  title: string;
+  reason: string;
+  earned_points: number;
+  max_points: number;
+  pct: number;
+  lost_points?: number;
+  severity?: "low" | "medium" | "high";
+  raw_facts?: string[];
+};
+
+function getSeverity(lostPoints: number): "low" | "medium" | "high" {
+  if (lostPoints >= 7) return "high";
+  if (lostPoints >= 3) return "medium";
+  return "low";
+}
+
 // ── GET handler ─────────────────────────────────────────────────────────────
 
 export async function GET(request: NextRequest) {
@@ -105,22 +150,34 @@ export async function GET(request: NextRequest) {
     // ── 1. Build date filters ────────────────────────────────────────────────
     const dateFilters: (string | number | null)[][] = from
       ? [["schedule_date", ">=", from], ["schedule_date", "<=", to]]
-      : [];
+      : [["schedule_date", "<=", to]];
 
     const attDateFilters: (string | number | null)[][] = from
       ? [["date", ">=", from], ["date", "<=", to]]
-      : [];
+      : [["date", "<=", to]];
 
     const hrDateFilters: (string | number | null)[][] = from
       ? [["attendance_date", ">=", from], ["attendance_date", "<=", to]]
-      : [];
+      : [["attendance_date", "<=", to]];
+
+    const waDateFilters: (string | number | null)[][] = from
+      ? [["deadline", ">=", from], ["deadline", "<=", to]]
+      : [["deadline", "<=", to]];
 
     // ── 2. Fetch Course Schedules ────────────────────────────────────────────
-    const schedules = await frappeList(
+    const rawSchedules = await frappeList(
       "Course Schedule",
-      ["name", "instructor", "instructor_name", "student_group", "course", "schedule_date", "custom_topic", "custom_topic_covered"],
+      ["name", "instructor", "instructor_name", "student_group", "course", "schedule_date", "custom_topic", "custom_topic_covered", "custom_event_type"],
       [...(branch ? [["custom_branch", "=", branch]] : []), ...dateFilters],
     );
+
+    const schedules = rawSchedules.filter((row) => {
+      const isEvent = String(row.custom_event_type ?? "").trim().length > 0;
+      const hasInstructor = String(row.instructor ?? "").trim().length > 0;
+      const hasStudentGroup = String(row.student_group ?? "").trim().length > 0;
+      const hasCourse = String(row.course ?? "").trim().length > 0;
+      return !isEvent && hasInstructor && hasStudentGroup && hasCourse;
+    });
 
     if (schedules.length === 0) {
       return NextResponse.json({
@@ -138,26 +195,49 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    const uniqueScheduleByGroupDate = new Map<string, string | null>();
+    for (const schedule of schedules) {
+      const scheduleName = String(schedule.name ?? "").trim();
+      const studentGroup = String(schedule.student_group ?? "").trim();
+      const scheduleDate = normalizeDateKey(schedule.schedule_date);
+      if (!scheduleName || !studentGroup || !scheduleDate) continue;
+      const key = `${studentGroup}|||${scheduleDate}`;
+      if (!uniqueScheduleByGroupDate.has(key)) {
+        uniqueScheduleByGroupDate.set(key, scheduleName);
+      } else if (uniqueScheduleByGroupDate.get(key) !== scheduleName) {
+        uniqueScheduleByGroupDate.set(key, null);
+      }
+    }
+
     // ── 3. Fetch Student Attendance ──────────────────────────────────────────
     const studentAtt = await frappeList(
       "Student Attendance",
-      ["student_group", "date", "status", "docstatus"],
-      [...(branch ? [["custom_branch", "=", branch]] : []), ["docstatus", "=", 1], ...attDateFilters],
+      ["name", "student_group", "date", "status", "docstatus", "course_schedule"],
+      [],
+      20000,
     );
 
-    // Set of conducted class keys: student_group|||date
-    const conductedSet = new Set<string>();
-    // Map of student_group → { present, total } for student attendance % per batch
-    const batchStudentAtt = new Map<string, { present: number; total: number }>();
+    const conductedScheduleSet = new Set<string>();
+    const scheduleStudentAtt = new Map<string, { present: number; total: number }>();
 
     for (const a of studentAtt) {
-      const sg = String(a.student_group ?? "");
-      const dt = String(a.date ?? "");
-      if (sg && dt) conductedSet.add(`${sg}|||${dt}`);
-      if (!batchStudentAtt.has(sg)) batchStudentAtt.set(sg, { present: 0, total: 0 });
-      const rec = batchStudentAtt.get(sg)!;
+      if (Number(a.docstatus ?? 0) === 2) continue;
+      const studentGroup = String(a.student_group ?? "").trim();
+      const attDate = normalizeDateKey(a.date);
+      const directScheduleName = String(a.course_schedule ?? "").trim();
+      const inferredScheduleName =
+        !directScheduleName && studentGroup && attDate
+          ? uniqueScheduleByGroupDate.get(`${studentGroup}|||${attDate}`) ?? ""
+          : "";
+      const scheduleName = directScheduleName || inferredScheduleName;
+      const isPresentLike = a.status === "Present" || a.status === "Late";
+
+      if (!scheduleName) continue;
+      conductedScheduleSet.add(scheduleName);
+      if (!scheduleStudentAtt.has(scheduleName)) scheduleStudentAtt.set(scheduleName, { present: 0, total: 0 });
+      const rec = scheduleStudentAtt.get(scheduleName)!;
       rec.total++;
-      if (a.status === "Present" || a.status === "Late") rec.present++;
+      if (isPresentLike) rec.present++;
     }
 
     // ── 4. Fetch HR Attendance ───────────────────────────────────────────────
@@ -201,7 +281,7 @@ export async function GET(request: NextRequest) {
     const waHeaders = await frappeList(
       "Work Assignment",
       ["name", "deadline", "for_branch", "docstatus"],
-      [...(branch ? [["for_branch", "=", branch]] : []), ["docstatus", "!=", 2]],
+      [...(branch ? [["for_branch", "=", branch]] : []), ["docstatus", "=", 1], ...waDateFilters],
     );
 
     // Step 2: For each WA, fetch the full document to get the child table rows
@@ -258,8 +338,8 @@ export async function GET(request: NextRequest) {
     // ── 8. Fetch Assessment Plans + Results for this branch ──────────────────
     const assessmentPlans = await frappeList(
       "Assessment Plan",
-      ["name", "student_group", "course"],
-      [...(branch ? [["custom_branch", "=", branch]] : []), ["docstatus", "=", 1]],
+      ["name", "student_group", "course", "schedule_date"],
+      [...(branch ? [["custom_branch", "=", branch]] : []), ["docstatus", "=", 1], ...dateFilters],
     );
 
     let examResults: { assessment_plan: string; total_score: number; maximum_score: number }[] = [];
@@ -275,10 +355,8 @@ export async function GET(request: NextRequest) {
       examResults = rawResults as typeof examResults;
     }
 
-    // Map student_group → pass rate
-    const batchPassRate = new Map<string, number>();
+    const planMetrics = new Map<string, { passRate: number }>();
     for (const plan of assessmentPlans) {
-      const sg = String(plan.student_group ?? "");
       const planName = String(plan.name ?? "");
       const planResults = examResults.filter((r) => r.assessment_plan === planName);
       if (planResults.length === 0) continue;
@@ -286,10 +364,18 @@ export async function GET(request: NextRequest) {
         (r) => r.maximum_score > 0 && (r.total_score / r.maximum_score) * 100 >= 33,
       ).length;
       const passRate = Math.round((passed / planResults.length) * 100);
-      // Average with existing if multiple plans per group
-      const existing = batchPassRate.get(sg);
-      batchPassRate.set(sg, existing !== undefined ? Math.round((existing! + passRate) / 2) : passRate);
+      planMetrics.set(planName, { passRate });
     }
+
+    const planMetaMap = new Map(
+      assessmentPlans.map((plan) => [
+        String(plan.name ?? ""),
+        {
+          student_group: String(plan.student_group ?? ""),
+          course: String(plan.course ?? ""),
+        },
+      ]),
+    );
 
     // ── 9. Aggregate per instructor ──────────────────────────────────────────
     type InstructorAccum = {
@@ -299,7 +385,8 @@ export async function GET(request: NextRequest) {
       classes_conducted: number;
       topics_assigned: number;
       topics_covered: number;
-      student_groups: Set<string>;
+      schedule_names: Set<string>;
+      batch_course_keys: Set<string>;
     };
 
     const instMap = new Map<string, InstructorAccum>();
@@ -315,15 +402,20 @@ export async function GET(request: NextRequest) {
           classes_conducted: 0,
           topics_assigned: 0,
           topics_covered: 0,
-          student_groups: new Set(),
+          schedule_names: new Set(),
+          batch_course_keys: new Set(),
         });
       }
       const acc = instMap.get(instId)!;
       acc.classes_scheduled++;
+      const scheduleName = String(s.name ?? "");
+      if (scheduleName) acc.schedule_names.add(scheduleName);
       const sg = String(s.student_group ?? "");
-      const dt = String(s.schedule_date ?? "");
-      if (conductedSet.has(`${sg}|||${dt}`)) acc.classes_conducted++;
-      if (sg) acc.student_groups.add(sg);
+      const course = String(s.course ?? "");
+      if (scheduleName && conductedScheduleSet.has(scheduleName)) {
+        acc.classes_conducted++;
+      }
+      if (sg && course) acc.batch_course_keys.add(`${sg}|||${course}`);
       if (s.custom_topic) {
         acc.topics_assigned++;
         if (s.custom_topic_covered) acc.topics_covered++;
@@ -356,22 +448,29 @@ export async function GET(request: NextRequest) {
       const waCompletionPct = pct(waApproved, waTotal);
       const waOnTimePct = pct(waOnTime, waTotal);
 
-      // Student pass rate (avg across instructor's batches)
-      const groups = Array.from(acc.student_groups);
+      // Student pass rate (avg across instructor's batch+course scope)
+      const batchCourseKeys = Array.from(acc.batch_course_keys);
       let avgPassRate = 0;
       let passRateCount = 0;
-      for (const sg of groups) {
-        const pr = batchPassRate.get(sg);
-        if (pr !== undefined) { avgPassRate += pr; passRateCount++; }
+      for (const [planName, meta] of planMetaMap.entries()) {
+        const key = `${meta.student_group}|||${meta.course}`;
+        if (!batchCourseKeys.includes(key)) continue;
+        const planMetric = planMetrics.get(planName);
+        if (!planMetric) continue;
+        avgPassRate += planMetric.passRate;
+        passRateCount++;
       }
       const studentPassRate = passRateCount > 0 ? Math.round(avgPassRate / passRateCount) : 0;
 
-      // Student attendance in batches (avg across instructor's batches)
+      // Student attendance only for the instructor's own schedules
       let totalStudentPresent = 0;
       let totalStudentSessions = 0;
-      for (const sg of groups) {
-        const bAtt = batchStudentAtt.get(sg);
-        if (bAtt) { totalStudentPresent += bAtt.present; totalStudentSessions += bAtt.total; }
+      for (const scheduleName of acc.schedule_names) {
+        const scheduleAtt = scheduleStudentAtt.get(scheduleName);
+        if (scheduleAtt) {
+          totalStudentPresent += scheduleAtt.present;
+          totalStudentSessions += scheduleAtt.total;
+        }
       }
       const studentAttendancePct = pct(totalStudentPresent, totalStudentSessions);
 
@@ -387,6 +486,204 @@ export async function GET(request: NextRequest) {
       const totalScore = Math.round(
         (score1_hr + score2_classes + score3_topics + score4_wa + score5_exams + score6_students + score7_ontime) * 10,
       ) / 10;
+
+      const strengths: LeaderboardSignal[] = [];
+      const weaknesses: LeaderboardSignal[] = [];
+
+      function pushStrength(signal: LeaderboardSignal) {
+        strengths.push(signal);
+      }
+
+      function pushWeakness(signal: LeaderboardSignal) {
+        const lostPoints = Math.round((signal.max_points - signal.earned_points) * 10) / 10;
+        if (lostPoints <= 0) return;
+        weaknesses.push({
+          ...signal,
+          lost_points: lostPoints,
+          severity: getSeverity(lostPoints),
+          raw_facts: signal.raw_facts ?? [],
+        });
+      }
+
+      if (hrTotalDays > 0) {
+        if (hrAttendancePct < 100 || lateEntries > 0 || earlyExits > 0) {
+          const hrFacts = [`${hrPresentDays}/${hrTotalDays} attendance days marked present`];
+          if (lateEntries > 0) hrFacts.push(`${lateEntries} late entr${lateEntries === 1 ? "y" : "ies"}`);
+          if (earlyExits > 0) hrFacts.push(`${earlyExits} early exit${earlyExits === 1 ? "" : "s"}`);
+          pushWeakness({
+            metric: "hr",
+            title: "HR Attendance",
+            reason:
+              lateEntries > 0 || earlyExits > 0
+                ? "Attendance consistency, late entries, or early exits reduced HR points."
+                : "Missed attendance days reduced HR attendance points.",
+            earned_points: score1_hr,
+            max_points: 20,
+            pct: hrAttendancePct,
+            raw_facts: hrFacts,
+          });
+        } else {
+          pushStrength({
+            metric: "hr",
+            title: "HR Attendance",
+            reason: "Maintained full HR attendance without point loss.",
+            earned_points: score1_hr,
+            max_points: 20,
+            pct: hrAttendancePct,
+          });
+        }
+      }
+
+      if (acc.classes_scheduled > 0) {
+        if (classesConductedPct < 100) {
+          pushWeakness({
+            metric: "classes",
+            title: "Classes Conducted",
+            reason: "Not all scheduled classes were conducted or marked through attendance.",
+            earned_points: score2_classes,
+            max_points: 20,
+            pct: classesConductedPct,
+            raw_facts: [`${acc.classes_conducted}/${acc.classes_scheduled} scheduled classes counted as conducted`],
+          });
+        } else {
+          pushStrength({
+            metric: "classes",
+            title: "Classes Conducted",
+            reason: "All scheduled classes were conducted or properly marked.",
+            earned_points: score2_classes,
+            max_points: 20,
+            pct: classesConductedPct,
+          });
+        }
+      }
+
+      if (acc.topics_assigned > 0) {
+        if (topicCoveragePct < 100) {
+          pushWeakness({
+            metric: "topics",
+            title: "Topic Coverage",
+            reason: "Assigned topics were not fully covered, which reduced topic coverage points.",
+            earned_points: score3_topics,
+            max_points: 20,
+            pct: topicCoveragePct,
+            raw_facts: [`${acc.topics_covered}/${acc.topics_assigned} assigned topics marked covered`],
+          });
+        } else {
+          pushStrength({
+            metric: "topics",
+            title: "Topic Coverage",
+            reason: "Covered all assigned topics without losing points.",
+            earned_points: score3_topics,
+            max_points: 20,
+            pct: topicCoveragePct,
+          });
+        }
+      }
+
+      if (waTotal > 0) {
+        if (waCompletionPct < 100 || waRejected > 0) {
+          const workFacts = [`${waApproved}/${waTotal} work assignments approved`];
+          if (waRejected > 0) workFacts.push(`${waRejected} rejected submission${waRejected === 1 ? "" : "s"}`);
+          pushWeakness({
+            metric: "work",
+            title: "Work Assignments",
+            reason:
+              waRejected > 0
+                ? "Rejected or unapproved work assignments reduced work score."
+                : "Work assignment completion was below full approval.",
+            earned_points: score4_wa,
+            max_points: 15,
+            pct: waCompletionPct,
+            raw_facts: workFacts,
+          });
+        } else {
+          pushStrength({
+            metric: "work",
+            title: "Work Assignments",
+            reason: "All tracked work assignments were approved.",
+            earned_points: score4_wa,
+            max_points: 15,
+            pct: waCompletionPct,
+          });
+        }
+
+        if (waOnTimePct < 100) {
+          pushWeakness({
+            metric: "ontime",
+            title: "On-Time Submission",
+            reason: "Late work submissions reduced the on-time submission score.",
+            earned_points: score7_ontime,
+            max_points: 5,
+            pct: waOnTimePct,
+            raw_facts: [`${waOnTime}/${waTotal} submitted work items were on time`],
+          });
+        } else {
+          pushStrength({
+            metric: "ontime",
+            title: "On-Time Submission",
+            reason: "All tracked work submissions were on time.",
+            earned_points: score7_ontime,
+            max_points: 5,
+            pct: waOnTimePct,
+          });
+        }
+      }
+
+      if (passRateCount > 0) {
+        if (studentPassRate < 100) {
+          pushWeakness({
+            metric: "exams",
+            title: "Student Exam Results",
+            reason: "Student pass rate in the instructor's batches reduced exam score.",
+            earned_points: score5_exams,
+            max_points: 10,
+            pct: studentPassRate,
+            raw_facts: [`Average batch pass rate: ${studentPassRate}%`],
+          });
+        } else {
+          pushStrength({
+            metric: "exams",
+            title: "Student Exam Results",
+            reason: "Student pass rate stayed strong enough to avoid point loss.",
+            earned_points: score5_exams,
+            max_points: 10,
+            pct: studentPassRate,
+          });
+        }
+      }
+
+      if (totalStudentSessions > 0) {
+        if (studentAttendancePct < 100) {
+          pushWeakness({
+            metric: "students",
+            title: "Student Attendance",
+            reason: "Lower student attendance in the instructor's batches reduced this score.",
+            earned_points: score6_students,
+            max_points: 10,
+            pct: studentAttendancePct,
+            raw_facts: [`${totalStudentPresent}/${totalStudentSessions} student attendance records were present or late`],
+          });
+        } else {
+          pushStrength({
+            metric: "students",
+            title: "Student Attendance",
+            reason: "Student attendance stayed high across the instructor's batches.",
+            earned_points: score6_students,
+            max_points: 10,
+            pct: studentAttendancePct,
+          });
+        }
+      }
+
+      strengths.sort((a, b) => b.earned_points - a.earned_points || b.pct - a.pct);
+      weaknesses.sort((a, b) => {
+        const lostDiff = (b.lost_points ?? 0) - (a.lost_points ?? 0);
+        if (lostDiff !== 0) return lostDiff;
+        return a.pct - b.pct;
+      });
+
+      const topWeakness = weaknesses[0] ?? null;
+      const totalLostPoints = Math.round((100 - totalScore) * 10) / 10;
 
       // ── Badges ──────────────────────────────────────────────────────────
       const badges: string[] = [];
@@ -432,6 +729,13 @@ export async function GET(request: NextRequest) {
         total_score: totalScore,
         grade: getGrade(totalScore),
         badges,
+        strengths,
+        weaknesses,
+        loss_summary: {
+          total_lost_points: totalLostPoints,
+          biggest_loss_metric: topWeakness?.title ?? null,
+          biggest_loss_points: topWeakness?.lost_points ?? 0,
+        },
       };
     });
 

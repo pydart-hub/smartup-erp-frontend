@@ -6,7 +6,7 @@ import { Topbar } from "@/components/layout/Topbar";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import { useAuthStore } from "@/lib/stores/authStore";
-import { PARENT_NAV, INSTRUCTOR_NAV, DIRECTOR_NAV, HR_MANAGER_NAV, SALES_USER_NAV, GENERAL_MANAGER_NAV, CLASS_INCHARGE_NAV } from "@/lib/utils/constants";
+import { PARENT_NAV, INSTRUCTOR_NAV, DIRECTOR_NAV, HR_MANAGER_NAV, SALES_USER_NAV, GENERAL_MANAGER_NAV, CLASS_INCHARGE_NAV, MENTOR_NAV } from "@/lib/utils/constants";
 import { NavigationLoader } from "@/components/NavigationLoader";
 
 function makeQueryClient() {
@@ -36,6 +36,7 @@ export default function DashboardLayout({
   const isHRManager = activeRole === "HR Manager";
   const isSalesUser = activeRole === "Sales User";
   const isBranchManager = activeRole === "Branch Manager";
+  const isMentor = activeRole === "Mentor";
   const isClassIncharge = activeRole === "Class Incharge";
 
   // Determine sidebar nav items based on role
@@ -45,6 +46,8 @@ export default function DashboardLayout({
     ? DIRECTOR_NAV
     : isGeneralManager
       ? GENERAL_MANAGER_NAV
+      : isMentor
+        ? MENTOR_NAV
       : isHRManager
         ? HR_MANAGER_NAV
         : isBranchManager

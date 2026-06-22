@@ -156,6 +156,7 @@ export interface StudentGroup {
   disabled?: 0 | 1;
   custom_branch?: string;          // link → Company
   custom_subject?: string;         // e.g. "Physics", "Phy-Chem"
+  custom_is_one_to_one?: 0 | 1;
 
   students?: StudentGroupMember[];
   instructors?: StudentGroupInstructor[];

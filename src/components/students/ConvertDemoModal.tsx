@@ -142,7 +142,13 @@ export function ConvertDemoModal({ student, onClose, onSuccess }: Props) {
   const [schedulePreview, setSchedulePreview] = useState<SchedulePreviewRow[]>([]);
   const [converting, setConverting] = useState(false);
   const [resultError, setResultError] = useState<string | null>(null);
-  const [resultData, setResultData] = useState<{ salesOrderName: string; invoices: string[]; paidAmount: number; invoiceError?: string } | null>(null);
+  const [resultData, setResultData] = useState<{
+    salesOrderName: string;
+    invoices: string[];
+    paidAmount: number;
+    invoiceError?: string;
+    absorbedInstalments?: Array<{ label: string; dueDate: string; discountApplied: number }>;
+  } | null>(null);
   const [useSiblingOffer, setUseSiblingOffer] = useState(false);
   const siblingGroup = student.custom_sibling_group ?? null;
 
@@ -249,6 +255,7 @@ export function ConvertDemoModal({ student, onClose, onSuccess }: Props) {
         paidAmount?: number;
         error?: string;
         invoiceError?: string;
+        absorbedInstalments?: Array<{ label: string; dueDate: string; discountApplied: number }>;
       };
 
       if (!res.ok || !data.success) {
@@ -262,9 +269,9 @@ export function ConvertDemoModal({ student, onClose, onSuccess }: Props) {
         invoices: data.invoices ?? [],
         paidAmount: data.paidAmount ?? 0,
         invoiceError: data.invoiceError,
+        absorbedInstalments: data.absorbedInstalments ?? [],
       });
       setStep("success");
-      onSuccess();
     } catch (err) {
       setResultError(err instanceof Error ? err.message : "Network error");
       setStep("select");
@@ -365,9 +372,26 @@ export function ConvertDemoModal({ student, onClose, onSuccess }: Props) {
                     <span className="font-medium text-success">-{fmtCurrency(resultData.paidAmount)}</span>
                   </div>
                 )}
+                {(resultData.absorbedInstalments?.length ?? 0) > 0 && (
+                  <div className="pt-1">
+                    <p className="text-xs text-text-tertiary">
+                      Fully adjusted by credit: {resultData.absorbedInstalments!.map((row) => row.label).join(", ")}
+                    </p>
+                  </div>
+                )}
               </div>
 
-              <Button variant="primary" size="sm" onClick={onClose} className="w-full">Done</Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => {
+                  onSuccess();
+                  onClose();
+                }}
+                className="w-full"
+              >
+                Done
+              </Button>
             </div>
           )}
 

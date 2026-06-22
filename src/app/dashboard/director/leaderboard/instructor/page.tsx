@@ -26,7 +26,7 @@ import {
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { getInstructorLeaderboard } from "@/lib/api/analytics";
 import { useAuthStore } from "@/lib/stores/authStore";
-import type { InstructorLeaderboardEntry } from "@/lib/types/analytics";
+import type { InstructorLeaderboardEntry, InstructorLeaderboardWeakness } from "@/lib/types/analytics";
 
 // -- Types ------------------------------------------------------------------
 
@@ -94,6 +94,16 @@ function pctColor(v: number) {
   if (v >= 85) return "text-emerald-500";
   if (v >= 65) return "text-amber-500";
   return "text-red-500";
+}
+
+function severityClasses(severity: InstructorLeaderboardWeakness["severity"]) {
+  if (severity === "high") {
+    return "text-red-600 bg-red-500/10 border-red-500/20";
+  }
+  if (severity === "medium") {
+    return "text-amber-600 bg-amber-500/10 border-amber-500/20";
+  }
+  return "text-sky-600 bg-sky-500/10 border-sky-500/20";
 }
 
 function initials(name: string) {
@@ -170,6 +180,64 @@ function BadgeChips({ badges }: { badges: string[] }) {
           </motion.span>
         );
       })}
+    </div>
+  );
+}
+
+function WeaknessCards({ entry }: { entry: InstructorLeaderboardEntry }) {
+  const topWeaknesses = entry.weaknesses.slice(0, 3);
+
+  if (topWeaknesses.length === 0) {
+    return (
+      <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3">
+        <p className="text-sm font-semibold text-emerald-600">No meaningful point-loss areas in this period.</p>
+        <p className="text-[11px] text-text-tertiary mt-1">This instructor kept a clean score profile across the tracked metrics.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm font-semibold text-text-primary">
+          Lost {entry.loss_summary.total_lost_points.toFixed(1)} points overall
+        </span>
+        {entry.loss_summary.biggest_loss_metric && (
+          <span className="text-[10px] font-bold px-2 py-1 rounded-full border text-red-600 bg-red-500/10 border-red-500/20">
+            Biggest drop: {entry.loss_summary.biggest_loss_metric} ({entry.loss_summary.biggest_loss_points.toFixed(1)} pts)
+          </span>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {topWeaknesses.map((item) => (
+          <div key={item.metric} className="bg-surface rounded-xl p-3 border border-border-light">
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-xs font-semibold text-text-primary leading-tight">{item.title}</p>
+              <span className={`shrink-0 text-[9px] font-bold px-2 py-1 rounded-full border ${severityClasses(item.severity)}`}>
+                {item.severity}
+              </span>
+            </div>
+            <p className="text-lg font-black text-red-500 mt-2 leading-none">
+              -{item.lost_points.toFixed(1)}
+              <span className="text-[10px] text-text-tertiary font-semibold ml-1">/ {item.max_points} pts</span>
+            </p>
+            <p className="text-[10px] text-text-secondary mt-2 leading-relaxed">{item.reason}</p>
+            <p className="text-[10px] text-text-tertiary mt-2">
+              Earned {item.earned_points.toFixed(1)}/{item.max_points} at {item.pct.toFixed(0)}%
+            </p>
+            {item.raw_facts.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {item.raw_facts.slice(0, 2).map((fact) => (
+                  <p key={fact} className="text-[10px] text-text-tertiary">
+                    {fact}
+                  </p>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -484,6 +552,11 @@ function RankRow({
               <div className="pt-4">
                 <p className="text-[9px] font-black uppercase tracking-widest text-text-tertiary mb-3">Score Breakdown</p>
                 <ScoreBreakdown entry={entry} />
+              </div>
+
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-widest text-text-tertiary mb-3">Why Points Were Lost</p>
+                <WeaknessCards entry={entry} />
               </div>
 
               <div>

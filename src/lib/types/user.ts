@@ -19,6 +19,8 @@ export interface User {
   allowed_batches?: string[];
   /** Default batch for this instructor */
   default_batch?: string;
+  /** Mentor Profile doctype name for mentor users */
+  mentor_profile?: string;
 }
 
 export interface AuthState {

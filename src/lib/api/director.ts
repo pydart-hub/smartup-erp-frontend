@@ -29,6 +29,13 @@ async function fetchDirectorBranchAcademics<T>(
   return data as T;
 }
 
+export async function getDirectorMentorSummary(branch?: string): Promise<import("@/lib/types/mentor").SystemMentorSummary> {
+  const params = new URLSearchParams();
+  if (branch) params.set("branch", branch);
+  const { data } = await apiClient.get(`/director/mentor-summary?${params.toString()}`, { baseURL: "/api" });
+  return data.data;
+}
+
 // ── Types ──
 
 export interface BranchSummary {
@@ -1504,6 +1511,38 @@ export interface DuesTodayStudentRow {
   overdue_invoices: { name: string; amount: number; grand_total: number; paid: number; due_date: string; instalment_label: string }[];
 }
 
+export interface RecentlyPaidClaimRow {
+  student_id: string;
+  student_name: string;
+  branch: string;
+  class_name: string;
+  batch_name: string;
+  total_dues: number;
+  claim_status: "awaiting_claim" | "claimed";
+  latest_followup: {
+    name: string;
+    student: string;
+    student_name: string;
+    branch: string;
+    call_date: string;
+    called_by: string;
+    call_status: string;
+    payment_received: number;
+    amount_received?: number;
+    payment_mode?: string;
+    remarks?: string;
+    next_followup_date?: string;
+    invoice_ref?: string;
+    creation: string;
+  } | null;
+  recent_payment: {
+    name: string;
+    posting_date: string;
+    paid_amount: number;
+    mode_of_payment: string;
+  };
+}
+
 /** Get total overdue dues across all branches */
 export async function getDuesTodayTotal(asOf?: string): Promise<DuesTodayTotal> {
   const params = new URLSearchParams({ level: "total" });
@@ -1559,6 +1598,14 @@ export async function getDuesTodayByBranchStudents(branch: string, asOf?: string
   if (asOf) params.set("as_of", asOf);
   const res = await fetch(`/api/fees/dues-till-today?${params}`, { credentials: "include" });
   if (!res.ok) throw new Error(`dues-till-today failed: ${res.status}`);
+  const json = await res.json();
+  return json.data ?? [];
+}
+
+export async function getRecentlyPaidClaims(branch: string): Promise<RecentlyPaidClaimRow[]> {
+  const params = new URLSearchParams({ branch });
+  const res = await fetch(`/api/fees/recently-paid-claims?${params}`, { credentials: "include" });
+  if (!res.ok) throw new Error(`recently-paid-claims failed: ${res.status}`);
   const json = await res.json();
   return json.data ?? [];
 }

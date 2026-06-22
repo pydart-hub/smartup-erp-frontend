@@ -2,7 +2,6 @@
 
 import React from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -13,6 +12,8 @@ import {
   ClipboardCheck,
   CalendarDays,
   CalendarCheck2,
+  CalendarClock,
+  Phone,
   IndianRupee,
   ShoppingCart,
   ChevronLeft,
@@ -49,6 +50,8 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   ClipboardCheck,
   CalendarDays,
   CalendarCheck2,
+  CalendarClock,
+  Phone,
   IndianRupee,
   ShoppingCart,
   UserCheck,

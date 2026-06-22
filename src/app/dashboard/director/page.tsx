@@ -649,6 +649,40 @@ export default function DirectorDashboard() {
         </div>
       </motion.div>
 
+      {/* Mentorship & Operations Cards */}
+      <motion.div variants={itemVariants}>
+        <div className="flex items-center gap-2.5 mb-4">
+          <div className="w-8 h-8 rounded-lg bg-teal-500/10 flex items-center justify-center">
+            <Users className="h-4 w-4 text-teal-600" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-text-primary leading-tight">Mentorship & Operations</h2>
+            <p className="text-xs text-text-tertiary">Student follow-ups and mentor load</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {[
+            { title: "Mentor Summary", desc: "Cross-branch mentor load", icon: Users, href: "/dashboard/director/mentor-summary", color: "bg-teal-100 text-teal-700" },
+            { title: "Feedback Logs", desc: "Student follow-up notes", icon: ClipboardCheck, href: "/dashboard/director/mentor-feedback", color: "bg-cyan-100 text-cyan-700" },
+          ].map((card) => (
+            <Link key={card.title} href={card.href}>
+              <motion.div
+                style={{ perspective: "600px" }}
+                whileHover={{ y: -5, rotateX: -5, rotateY: 4, scale: 1.03, transition: { duration: 0.18, ease: "easeOut" } }}
+                whileTap={{ scale: 0.97 }}
+                className="bg-surface rounded-[12px] border border-border-light p-4 hover:border-primary/30 hover:shadow-md transition-all group cursor-pointer h-full"
+              >
+                <div className={`w-9 h-9 rounded-[10px] flex items-center justify-center mb-3 ${card.color}`}>
+                  <card.icon className="w-4 h-4" />
+                </div>
+                <p className="text-xs font-semibold text-primary group-hover:text-primary/80 transition-colors">{card.title}</p>
+                <p className="text-[11px] text-text-tertiary mt-0.5">{card.desc}</p>
+              </motion.div>
+            </Link>
+          ))}
+        </div>
+      </motion.div>
+
       {/* Branches Grid */}
       <motion.div variants={itemVariants}>
         <div className="flex items-center justify-between mb-5">

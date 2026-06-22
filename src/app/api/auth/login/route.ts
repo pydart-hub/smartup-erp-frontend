@@ -96,6 +96,7 @@ export async function POST(request: NextRequest) {
     let defaultCompany = "";
     let allowedBatches: string[] = [];
     let defaultBatch = "";
+    let mentorProfile = "";
     try {
       const upResponse = await axios.get(
         `${FRAPPE_URL}/api/resource/User Permission`,
@@ -231,6 +232,26 @@ export async function POST(request: NextRequest) {
       console.warn("[login] Instructor detection failed:", instrErr);
     }
 
+    try {
+      const mentorRes = await axios.get(
+        `${FRAPPE_URL}/api/resource/Mentor Profile`,
+        {
+          params: {
+            filters: JSON.stringify([["user_id", "=", email], ["status", "=", "Active"]]),
+            fields: JSON.stringify(["name"]),
+            limit_page_length: 1,
+          },
+          headers: {
+            Authorization: adminAuth,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      mentorProfile = mentorRes.data?.data?.[0]?.name || "";
+    } catch (mentorErr) {
+      console.warn("[login] Mentor detection failed:", mentorErr);
+    }
+
     const user = {
       name: userData.name,
       email: userData.email,
@@ -245,6 +266,7 @@ export async function POST(request: NextRequest) {
       instructor_display_name: instructorDisplayName || undefined,
       allowed_batches: allowedBatches.length > 0 ? allowedBatches : undefined,
       default_batch: defaultBatch || undefined,
+      mentor_profile: mentorProfile || undefined,
     };
 
     const response = NextResponse.json({ user, message: "Login successful" });
@@ -261,6 +283,7 @@ export async function POST(request: NextRequest) {
       instructor_display_name: instructorDisplayName || undefined,
       allowed_batches: allowedBatches.length > 0 ? allowedBatches : undefined,
       default_batch: defaultBatch || undefined,
+      mentor_profile: mentorProfile || undefined,
     });
 
     response.cookies.set("smartup_session", Buffer.from(sessionData).toString("base64"), {

@@ -6,6 +6,7 @@ const ROLE_DASHBOARD_MAP: Record<string, string> = {
   Management: "/dashboard/director",
   "General Manager": "/dashboard/general-manager",
   "Branch Manager": "/dashboard/branch-manager",
+  Mentor: "/dashboard/mentor",
   "HR Manager": "/dashboard/hr-manager",
   "Class Incharge": "/dashboard/class-incharge",
   Instructor: "/dashboard/instructor",
@@ -78,6 +79,12 @@ export function proxy(request: NextRequest) {
     if (roles.includes("Sales User") && !roles.includes("Branch Manager") && !roles.includes("Administrator") && !roles.includes("Director") && !roles.includes("General Manager")) {
       if (pathname.startsWith("/dashboard/") && !pathname.startsWith("/dashboard/sales-user")) {
         return NextResponse.redirect(new URL("/dashboard/sales-user", request.url));
+      }
+    }
+
+    if (roles.includes("Mentor") && !roles.includes("Branch Manager") && !roles.includes("Administrator") && !roles.includes("Director") && !roles.includes("General Manager")) {
+      if (pathname.startsWith("/dashboard/") && !pathname.startsWith("/dashboard/mentor")) {
+        return NextResponse.redirect(new URL("/dashboard/mentor", request.url));
       }
     }
   } catch {

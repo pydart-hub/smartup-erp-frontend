@@ -45,6 +45,13 @@ const quickActions = [
     icon: <CalendarDays className="h-5 w-5" />,
     color: "info" as const,
   },
+  {
+    label: "Manage Mentors",
+    description: "Assign students to mentors",
+    href: "/dashboard/branch-manager/mentors",
+    icon: <Users className="h-5 w-5" />,
+    color: "secondary" as const,
+  },
 ];
 
 const containerVariants = {

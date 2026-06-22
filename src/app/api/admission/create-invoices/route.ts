@@ -52,6 +52,10 @@ interface ScheduleEntry {
   discountRemark?: string;
 }
 
+interface NormalizedScheduleEntry extends ScheduleEntry {
+  amount: number;
+}
+
 interface CreatedInstalmentSummary {
   label: string;
   amount: number;
@@ -73,6 +77,32 @@ export async function POST(request: NextRequest) {
     if (!salesOrderName || !schedule?.length) {
       return NextResponse.json(
         { error: "salesOrderName and schedule are required" },
+        { status: 400 },
+      );
+    }
+
+    const normalizedSchedule: NormalizedScheduleEntry[] = schedule.map((entry) => ({
+      ...entry,
+      amount: Number.isFinite(entry.amount)
+        ? Math.max(0, Math.round(entry.amount * 100) / 100)
+        : 0,
+    }));
+    const billableSchedule = normalizedSchedule.filter((entry) => entry.amount > 0);
+    const absorbedSchedule = normalizedSchedule
+      .filter((entry) => entry.amount <= 0)
+      .map((entry) => ({
+        label: entry.label,
+        dueDate: entry.dueDate,
+        discountApplied: entry.discountApplied ?? 0,
+        discountRemark: entry.discountRemark,
+      }));
+
+    if (billableSchedule.length === 0) {
+      return NextResponse.json(
+        {
+          error: "No billable invoices remain after applying credits/discounts",
+          absorbed: absorbedSchedule,
+        },
         { status: 400 },
       );
     }
@@ -165,8 +195,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    for (let i = 0; i < schedule.length; i++) {
-      const inst = schedule[i];
+    for (let i = 0; i < billableSchedule.length; i++) {
+      const inst = billableSchedule[i];
       // If the due date is already past, use today to avoid Frappe's
       // "Due Date cannot be before Posting Date" validation error.
       const effectiveDate = inst.dueDate < today ? today : inst.dueDate;
@@ -245,7 +275,7 @@ export async function POST(request: NextRequest) {
       await new Promise((r) => setTimeout(r, 2000));
       const stillFailed: typeof failedInstalments = [];
       for (const failed of failedInstalments) {
-        const inst = schedule[failed.index];
+        const inst = billableSchedule[failed.index];
         const effectiveDate = inst.dueDate < today ? today : inst.dueDate;
         const retryPayload = {
           doctype: "Sales Invoice",
@@ -347,7 +377,7 @@ export async function POST(request: NextRequest) {
           const programName = firstItem?.item_name
             ? firstItem.item_name.replace(/^Tuition Fee\s*[-–—]\s*/i, "").trim() || firstItem.item_name
             : "";
-          const scheduleForMessage = createdInstalments.length > 0 ? createdInstalments : schedule;
+          const scheduleForMessage = createdInstalments.length > 0 ? createdInstalments : billableSchedule;
           const totalAmount = scheduleForMessage.reduce((s: number, inst) => s + inst.amount, 0);
 
           const instalmentSummary = scheduleForMessage.length === 1
@@ -385,10 +415,26 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    if (createdInvoices.length === 0) {
+      return NextResponse.json(
+        {
+          error: "Invoice creation failed for every billable instalment",
+          ...(draftInvoices.length > 0 && { drafts: draftInvoices }),
+          ...(failedInstalments.length > 0 && { failed: failedInstalments }),
+          ...(absorbedSchedule.length > 0 && { absorbed: absorbedSchedule }),
+          whatsappSent,
+          ...(whatsappError && { whatsappError }),
+          ...(whatsappWarning && { whatsappWarning }),
+        },
+        { status: 502 },
+      );
+    }
+
     return NextResponse.json({
       invoices: createdInvoices,
       ...(draftInvoices.length > 0 && { drafts: draftInvoices }),
       ...(failedInstalments.length > 0 && { failed: failedInstalments }),
+      ...(absorbedSchedule.length > 0 && { absorbed: absorbedSchedule }),
       whatsappSent,
       ...(whatsappError && { whatsappError }),
       ...(whatsappWarning && { whatsappWarning }),

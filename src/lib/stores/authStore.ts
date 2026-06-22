@@ -12,6 +12,7 @@ const APP_ROLE_PRIORITY = [
   "Management",
   "General Manager",
   "Branch Manager",
+  "Mentor",
   "HR Manager",
   "Administrator",
   "Class Incharge",
@@ -24,7 +25,7 @@ const APP_ROLE_PRIORITY = [
 ];
 
 /** Roles the user can actively switch between in the UI. */
-const SWITCHABLE_ROLES = ["General Manager", "Branch Manager", "Class Incharge", "Instructor"] as const;
+const SWITCHABLE_ROLES = ["General Manager", "Branch Manager", "Mentor", "Class Incharge", "Instructor"] as const;
 
 /** Pick the best application role from the user's full role list. */
 function determinePrimaryRole(
@@ -72,6 +73,8 @@ interface AuthStore {
   allowedBatches: string[];
   /** Default batch for the instructor */
   defaultBatch: string;
+  /** Mentor profile doc name */
+  mentorProfile: string;
 
   setUser: (user: User) => void;
   setLoading: (loading: boolean) => void;
@@ -93,6 +96,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   instructorDisplayName: "",
   allowedBatches: [],
   defaultBatch: "",
+  mentorProfile: "",
 
   setUser: (user) => {
     const role = determinePrimaryRole(user.roles ?? [], user.role_profile_name ?? undefined);
@@ -112,6 +116,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
       instructorDisplayName: user.instructor_display_name ?? "",
       allowedBatches: user.allowed_batches ?? [],
       defaultBatch: user.default_batch ?? "",
+      mentorProfile: user.mentor_profile ?? "",
     });
   },
 
@@ -134,5 +139,6 @@ export const useAuthStore = create<AuthStore>((set) => ({
       instructorDisplayName: "",
       allowedBatches: [],
       defaultBatch: "",
+      mentorProfile: "",
     }),
 }));

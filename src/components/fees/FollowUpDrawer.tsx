@@ -29,6 +29,10 @@ interface FollowUpDrawerProps {
   };
   /** Query key to invalidate after successful save */
   invalidateKeys?: string[][];
+  initialCallStatus?: string;
+  initialPaymentReceived?: boolean;
+  initialAmountReceived?: number;
+  initialPaymentMode?: string;
 }
 
 export function FollowUpDrawer({
@@ -36,28 +40,20 @@ export function FollowUpDrawer({
   onClose,
   student,
   invalidateKeys = [],
+  initialCallStatus = "",
+  initialPaymentReceived = false,
+  initialAmountReceived,
+  initialPaymentMode = "",
 }: FollowUpDrawerProps) {
   const qc = useQueryClient();
   const overlayRef = useRef<HTMLDivElement>(null);
 
-  const [callStatus, setCallStatus] = useState<string>("");
-  const [paymentReceived, setPaymentReceived] = useState(false);
-  const [amountReceived, setAmountReceived] = useState("");
-  const [paymentMode, setPaymentMode] = useState("");
+  const [callStatus, setCallStatus] = useState<string>(initialCallStatus);
+  const [paymentReceived, setPaymentReceived] = useState(initialPaymentReceived);
+  const [amountReceived, setAmountReceived] = useState(initialAmountReceived ? String(initialAmountReceived) : "");
+  const [paymentMode, setPaymentMode] = useState(initialPaymentMode);
   const [remarks, setRemarks] = useState("");
   const [nextDate, setNextDate] = useState("");
-
-  // Reset form when drawer reopens for a new student
-  useEffect(() => {
-    if (open) {
-      setCallStatus("");
-      setPaymentReceived(false);
-      setAmountReceived("");
-      setPaymentMode("");
-      setRemarks("");
-      setNextDate("");
-    }
-  }, [open, student.student_id]);
 
   // Close on Escape
   useEffect(() => {

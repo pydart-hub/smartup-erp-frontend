@@ -58,6 +58,7 @@ export const PAYMENT_OPTION_LABELS: Record<string, string> = {
 export const ROLES = {
   GENERAL_MANAGER: "General Manager",
   BRANCH_MANAGER: "Branch Manager",
+  MENTOR: "Mentor",
   BATCH_COORDINATOR: "Batch Coordinator",
   TEACHER: "Teacher",
   ADMIN: "Administrator",
@@ -70,6 +71,7 @@ export const ROLE_DASHBOARD_MAP: Record<string, string> = {
   Management: "/dashboard/director",
   "General Manager": "/dashboard/general-manager",
   "Branch Manager": "/dashboard/branch-manager",
+  Mentor: "/dashboard/mentor",
   "Batch Coordinator": "/dashboard/batch-coordinator",
   Teacher: "/dashboard/teacher",
   Administrator: "/dashboard/admin",
@@ -129,6 +131,17 @@ export const BRANCH_MANAGER_NAV: NavItem[] = [
     ],
   },
   { label: "Topic Coverage", href: "/dashboard/branch-manager/topic-coverage", icon: "BookOpen", emoji: "📖" },
+  {
+    label: "Mentors",
+    href: "/dashboard/branch-manager/mentors",
+    icon: "Users",
+    emoji: "🤝",
+    children: [
+      { label: "Dashboard & Creation", href: "/dashboard/branch-manager/mentors/dashboard", icon: "LayoutDashboard", emoji: "📊" },
+      { label: "Student Assignment", href: "/dashboard/branch-manager/mentors/assign", icon: "UserCheck", emoji: "🧭" },
+      { label: "Student Feedback", href: "/dashboard/branch-manager/mentors/feedback", icon: "ClipboardList", emoji: "📝" },
+    ],
+  },
   { label: "Complaints", href: "/dashboard/branch-manager/complaints", icon: "MessageSquareWarning", emoji: "⚠️" },
   { label: "Transfers", href: "/dashboard/branch-manager/transfers", icon: "ArrowRightLeft", emoji: "🔄" },
 ];
@@ -190,6 +203,7 @@ export const DIRECTOR_NAV: NavItem[] = [
   { label: "Leaderboard", href: "/dashboard/director/leaderboard", icon: "Trophy", emoji: "🏆" },
   { label: "Work Assignments", href: "/dashboard/director/work-assignments", icon: "ClipboardList", emoji: "🗂️" },
   { label: "Reports", href: "/dashboard/director/reports", icon: "FileBarChart", emoji: "📈" },
+  { label: "Mentor Feedback", href: "/dashboard/director/mentor-feedback", icon: "ClipboardList", emoji: "📞" },
   { label: "Complaints", href: "/dashboard/director/complaints", icon: "MessageSquareWarning", emoji: "⚠️" },
   { label: "Transfers", href: "/dashboard/branch-manager/transfers", icon: "ArrowRightLeft", emoji: "🔄" },
 ];
@@ -237,6 +251,8 @@ export const SALES_USER_NAV: NavItem[] = [
   { label: "New Admission", href: "/dashboard/sales-user/new-admission", icon: "UserPlus", emoji: "🎓" },
   { label: "Students", href: "/dashboard/sales-user/students", icon: "GraduationCap", emoji: "👨‍🎓" },
   { label: "Fee Overdue", href: "/dashboard/sales-user/fees/overdue", icon: "CalendarClock", emoji: "⏰" },
+  { label: "Overdue Paid", href: "/dashboard/sales-user/fees/overdue-paid", icon: "CalendarCheck2", emoji: "âœ…" },
+  { label: "Follow-Up", href: "/dashboard/sales-user/followup", icon: "Phone", emoji: "ðŸ“ž" },
 ];
 
 export const GENERAL_MANAGER_NAV: NavItem[] = [
@@ -270,4 +286,11 @@ export const GENERAL_MANAGER_NAV: NavItem[] = [
   { label: "Instructors", href: "/dashboard/general-manager/instructors", icon: "UserCheck", emoji: "👨‍🏫" },
   { label: "Topic Coverage", href: "/dashboard/general-manager/topic-coverage", icon: "BookOpen", emoji: "📖" },
   { label: "Reports", href: "/dashboard/general-manager/reports", icon: "FileBarChart", emoji: "📈" },
+  { label: "Mentor Feedback", href: "/dashboard/general-manager/mentor-feedback", icon: "ClipboardList", emoji: "📞" },
+];
+
+export const MENTOR_NAV: NavItem[] = [
+  { label: "Dashboard", href: "/dashboard/mentor", icon: "LayoutDashboard", emoji: "📊" },
+  { label: "Assigned Students", href: "/dashboard/mentor/students", icon: "GraduationCap", emoji: "👨‍🎓" },
+  { label: "Feedback Logs", href: "/dashboard/mentor/feedback", icon: "ClipboardList", emoji: "📝" },
 ];

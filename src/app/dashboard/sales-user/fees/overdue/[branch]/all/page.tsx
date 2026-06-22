@@ -23,17 +23,16 @@ import {
   Sheet,
   CalendarDays,
   PhoneCall,
+  CheckCircle2,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { getDuesTodayByBranchStudents } from "@/lib/api/director";
+import { getDuesTodayByBranchStudents, getRecentlyPaidClaims } from "@/lib/api/director";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { FollowUpDrawer } from "@/components/fees/FollowUpDrawer";
 import { FollowUpBadge } from "@/components/fees/FollowUpBadge";
 import { getBranchFollowUps } from "@/lib/api/followup";
-import type { FollowUpLog } from "@/lib/api/followup";
-
 const PAYMENT_OPTION_LABELS: Record<string, string> = {
   "1": "One-Time",
   "4": "Quarterly",
@@ -84,6 +83,13 @@ export default function BranchAllStudentsPage() {
   const [search, setSearch] = useState("");
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [drawerStudent, setDrawerStudent] = useState<{ student_id: string; student_name: string; branch: string } | null>(null);
+  const [drawerDefaults, setDrawerDefaults] = useState<{
+    callStatus?: string;
+    paymentReceived?: boolean;
+    amountReceived?: number;
+    paymentMode?: string;
+  } | null>(null);
+
 
   function toggleExpand(id: string) {
     setExpandedIds((prev) => {
@@ -107,6 +113,14 @@ export default function BranchAllStudentsPage() {
     queryFn: () => getBranchFollowUps(branch),
     enabled: !!branch,
     staleTime: 60_000,
+  });
+
+  const { data: recentlyPaidClaims } = useQuery({
+    queryKey: ["recently-paid-claims", branch],
+    queryFn: () => getRecentlyPaidClaims(branch),
+    enabled: !!branch,
+    staleTime: 60_000,
+    refetchInterval: 120_000,
   });
 
   const { planOptions, frequencyOptions, classOptions, batchOptions } = useMemo(() => {
@@ -356,9 +370,96 @@ export default function BranchAllStudentsPage() {
                 )}
               </p>
             </div>
+            {!!recentlyPaidClaims?.length && (
+              <div className="text-right">
+                <p className="text-sm text-text-secondary">Overdue + Paid</p>
+                <Link
+                  href={`/dashboard/sales-user/fees/overdue/${encodeURIComponent(branch)}/paid-history${childQs}`}
+                  className="text-xl font-bold text-emerald-600 hover:text-emerald-700 underline underline-offset-2"
+                >
+                  {recentlyPaidClaims?.length}
+                </Link>
+              </div>
+            )}
           </CardContent>
         </Card>
       </motion.div>
+
+      {false && !!recentlyPaidClaims?.length && (
+        <motion.div variants={itemVariants}>
+          <Card className="border-emerald-200/70 bg-emerald-50/40">
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                    <h2 className="text-sm font-semibold text-text-primary">Past 4 Days Paid History</h2>
+                  </div>
+                  <p className="text-xs text-text-secondary mt-0.5">
+                    Recent branch payment history for the last 4 days. Use this to log or claim follow-up conversion.
+                  </p>
+                </div>
+                <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                  {recentlyPaidClaims?.length} student{recentlyPaidClaims?.length !== 1 ? "s" : ""}
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                {recentlyPaidClaims?.map((claim) => (
+                  <div
+                    key={claim.student_id}
+                    className="rounded-xl border border-emerald-200 bg-white/80 p-3"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-sm font-semibold text-text-primary">{claim.student_name}</p>
+                          <span className="text-[10px] text-text-tertiary font-mono">{claim.student_id}</span>
+                        </div>
+                        <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-text-secondary">
+                          <span>
+                            {claim.latest_followup
+                              ? `Last call: ${formatDate(claim.latest_followup.call_date)}`
+                              : `Paid on: ${formatDate(claim.recent_payment.posting_date)}`}
+                          </span>
+                          <span>•</span>
+                          <span>
+                            {claim.latest_followup
+                              ? `by ${claim.latest_followup.called_by.split("@")[0]}`
+                              : "No follow-up log yet"}
+                          </span>
+                          <span>•</span>
+                          <span className="text-emerald-700 font-medium">
+                            Paid {formatCurrency(claim.recent_payment.paid_amount)}
+                          </span>
+                          <span>•</span>
+                          <span>{claim.recent_payment.mode_of_payment || "Payment received"}</span>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          setDrawerStudent({ student_id: claim.student_id, student_name: claim.student_name, branch });
+                          setDrawerDefaults({
+                            callStatus: "Already Paid",
+                            paymentReceived: true,
+                            amountReceived: claim.recent_payment.paid_amount,
+                            paymentMode: claim.recent_payment.mode_of_payment,
+                          });
+                        }}
+                        className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-emerald-300 bg-emerald-50 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors"
+                      >
+                        <PhoneCall className="h-3 w-3" />
+                        Claim Conversion
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
 
       {/* Search + Filters */}
       {!isLoading && students && students.length > 0 && (
@@ -581,7 +682,10 @@ export default function BranchAllStudentsPage() {
                             <>
                               <FollowUpBadge log={lastLog} />
                               <button
-                                onClick={() => setDrawerStudent({ student_id: student.student_id, student_name: student.student_name, branch })}
+                                onClick={() => {
+                                  setDrawerStudent({ student_id: student.student_id, student_name: student.student_name, branch });
+                                  setDrawerDefaults(null);
+                                }}
                                 className="inline-flex items-center gap-1 text-[10px] text-primary hover:text-primary/80 underline underline-offset-2"
                               >
                                 Log Again
@@ -589,7 +693,10 @@ export default function BranchAllStudentsPage() {
                             </>
                           ) : (
                             <button
-                              onClick={() => setDrawerStudent({ student_id: student.student_id, student_name: student.student_name, branch })}
+                              onClick={() => {
+                                setDrawerStudent({ student_id: student.student_id, student_name: student.student_name, branch });
+                                setDrawerDefaults(null);
+                              }}
                               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-primary/30 bg-primary/5 text-[10px] font-medium text-primary hover:bg-primary/10 transition-colors"
                             >
                               <PhoneCall className="h-2.5 w-2.5" />
@@ -705,9 +812,16 @@ export default function BranchAllStudentsPage() {
       {/* Follow-Up Drawer */}
       <FollowUpDrawer
         open={drawerStudent !== null}
-        onClose={() => setDrawerStudent(null)}
+        onClose={() => {
+          setDrawerStudent(null);
+          setDrawerDefaults(null);
+        }}
         student={drawerStudent ?? { student_id: "", student_name: "", branch: "" }}
-        invalidateKeys={[["followup-branch-all", branch]]}
+        invalidateKeys={[["followup-branch-all", branch], ["recently-paid-claims", branch]]}
+        initialCallStatus={drawerDefaults?.callStatus}
+        initialPaymentReceived={drawerDefaults?.paymentReceived}
+        initialAmountReceived={drawerDefaults?.amountReceived}
+        initialPaymentMode={drawerDefaults?.paymentMode}
       />
     </motion.div>
   );

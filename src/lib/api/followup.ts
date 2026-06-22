@@ -30,6 +30,45 @@ export interface CreateFollowUpPayload {
   invoice_ref?: string;
 }
 
+export interface SalesUserFollowUpSummary {
+  today_calls: number;
+  week_calls: number;
+  total_calls: number;
+  students_contacted: number;
+  answered_count: number;
+  no_answer_count: number;
+  promised_count: number;
+  converted_count: number;
+  paid_amount: number;
+  pending_followups: number;
+}
+
+export interface SalesUserFollowUpBranchRow {
+  branch: string;
+  calls: number;
+  converted: number;
+  promised: number;
+  pending: number;
+}
+
+export interface SalesUserFollowUpStatusRow {
+  status: string;
+  count: number;
+}
+
+export interface SalesUserFollowUpDashboard {
+  user: {
+    email: string;
+    full_name: string;
+    branch: string;
+  };
+  summary: SalesUserFollowUpSummary;
+  by_branch: SalesUserFollowUpBranchRow[];
+  by_status: SalesUserFollowUpStatusRow[];
+  recent_logs: FollowUpLog[];
+  latest_by_student: FollowUpLog[];
+}
+
 /** Fetch follow-up logs for a specific student */
 export async function getStudentFollowUps(student: string): Promise<FollowUpLog[]> {
   const res = await fetch(`/api/fees/follow-up?student=${encodeURIComponent(student)}`, {
@@ -73,6 +112,22 @@ export async function createFollowUp(payload: CreateFollowUpPayload): Promise<{ 
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error || `Failed: ${res.status}`);
   }
+  return res.json();
+}
+
+export async function getSalesUserFollowUpDashboard(params?: {
+  from?: string;
+  to?: string;
+  branch?: string;
+}): Promise<SalesUserFollowUpDashboard> {
+  const qs = new URLSearchParams();
+  if (params?.from) qs.set("from", params.from);
+  if (params?.to) qs.set("to", params.to);
+  if (params?.branch) qs.set("branch", params.branch);
+  const res = await fetch(`/api/sales-user/followup-dashboard?${qs.toString()}`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(`followup dashboard failed: ${res.status}`);
   return res.json();
 }
 

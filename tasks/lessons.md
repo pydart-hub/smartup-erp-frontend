@@ -250,3 +250,17 @@
   - Welcome emails: 4 emails queued via Academiqedullp, all force-sent to Sent status, 0 errors
   - Email Queue: started clean (Error=0), ended clean (Error=0, Not Sent=0)
 
+## Branch Manager Mentors Portal - Hub Landing Page Pattern
+- **Date**: 2026-06-18
+- **Issue**: The user preferred a central hub page structure instead of sidebar dropdown sub-options for the Branch Manager Mentors layout, grouping features into three clear visual navigation cards that redirect to separate routes.
+- **Correction**: Avoid adding sub-items to sidebar navigation when splitting a massive page if the user expects a hub page. Create a central landing page with 3D-interactive cards representing the options (Dashboard & Details, Profile Creation, Student Assignment) and link them to dedicated sub-routes.
+- **Rule**: For Branch Manager pages with multiple distinct sub-modules, present them via a visual, animated 3D hub page using company branding colors (Teal & Lime Green) rather than default sidebar dropdowns, linking cards to distinct `/route/subpath` page structures.
+
+## Branch-Scoped Analytics Redirection
+- **Date**: 2026-06-18
+- **Issue**: The user wanted the Branch Manager to view the comprehensive, director-style Mentors Summary Dashboard instead of a simpler loading details card, but restricted to their branch data only.
+- **Correction**: When reuse of a global/cross-branch dashboard is requested for a branch-restricted role, implement a branch-locked prop configuration on the shared component to hide multi-branch coverage stats and input filters, and secure the data request on the server using the user's default company session attribute.
+- **Rule**: Always lock shared summary tables/reports to the user's default branch company when accessed via the Branch Manager role. Hide search inputs or cross-branch comparison cards that leak external data, and automatically expand the main data table to fill the empty layout columns.
+
+
+

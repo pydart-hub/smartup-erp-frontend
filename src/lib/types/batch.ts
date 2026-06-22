@@ -30,6 +30,7 @@ export interface Batch {
   // Custom fields (Smartup)
   custom_branch?: string;          // Company name e.g. "Smart Up Chullickal"
   custom_subject?: string;         // e.g. "Physics", "Phy-Chem"
+  custom_is_one_to_one?: 0 | 1;
 
   instructors?: BatchInstructor[];
   students?: BatchStudent[];
