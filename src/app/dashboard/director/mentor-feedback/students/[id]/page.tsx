@@ -69,8 +69,8 @@ export default function DirectorMentorStudentDetailPage() {
 
       <Card className="overflow-hidden border-0 bg-[radial-gradient(circle_at_top_left,_rgba(130,195,91,0.25),_transparent_30%),linear-gradient(135deg,rgba(255,255,255,0.96),rgba(231,245,255,0.92)_45%,rgba(215,240,236,0.96))] shadow-[0_28px_60px_-28px_rgba(13,61,89,0.35)]">
         <CardContent className="relative p-0">
-          <div className="absolute -right-16 -top-16 h-52 w-52 rounded-full bg-[#1A9E8F]/15 blur-3xl" />
-          <div className="absolute left-10 top-8 h-24 w-24 rounded-full bg-[#82C35B]/20 blur-2xl" />
+          <div className="absolute -right-16 -top-16 h-52 w-52 rounded-full bg-[#673AB7]/15 blur-3xl" />
+          <div className="absolute left-10 top-8 h-24 w-24 rounded-full bg-[#7E57C2]/20 blur-2xl" />
 
           <div className="relative grid gap-6 p-6 lg:grid-cols-[1.4fr_0.9fr] lg:p-8">
             <div className="space-y-5">
@@ -79,7 +79,7 @@ export default function DirectorMentorStudentDetailPage() {
                   <ArrowLeft className="h-3.5 w-3.5" /> Back to Director Mentor Feedback
                 </Link>
                 <div className="flex items-start gap-4 flex-wrap">
-                  <div className="flex h-20 w-20 items-center justify-center rounded-[28px] bg-[linear-gradient(145deg,#1A9E8F,#82C35B)] text-2xl font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_18px_30px_-16px_rgba(26,158,143,0.9)]">
+                  <div className="flex h-20 w-20 items-center justify-center rounded-[28px] bg-[linear-gradient(145deg,#673AB7,#7E57C2)] text-2xl font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_18px_30px_-16px_rgba(103,58,183,0.9)]">
                     {data.student.name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase()}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -182,7 +182,7 @@ export default function DirectorMentorStudentDetailPage() {
                     <p className="text-sm font-semibold text-slate-900">Attendance performance</p>
                     <p className="text-xs text-slate-500">Click the `Absent` tile to focus only on missed days.</p>
                   </div>
-                  <div className="rounded-2xl bg-[linear-gradient(135deg,#1A9E8F,#82C35B)] px-4 py-2 text-right text-white shadow-[0_16px_24px_-18px_rgba(26,158,143,0.9)]">
+                  <div className="rounded-2xl bg-[linear-gradient(135deg,#673AB7,#7E57C2)] px-4 py-2 text-right text-white shadow-[0_16px_24px_-18px_rgba(103,58,183,0.9)]">
                     <p className="text-[10px] uppercase tracking-[0.18em] text-white/75">Rate</p>
                     <p className="text-xl font-bold">{attendanceStats.pct}%</p>
                   </div>
@@ -316,7 +316,7 @@ function PanelCard({ title, icon, action, children }: { title: string; icon: Rea
     <Card className="overflow-hidden border border-slate-200/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(243,248,250,0.94))] shadow-[0_28px_50px_-32px_rgba(15,23,42,0.42)]">
       <CardHeader className="flex flex-row items-center justify-between gap-3 pb-3">
         <div className="flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,rgba(26,158,143,0.12),rgba(130,195,91,0.2))] text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]">{icon}</span>
+          <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,rgba(103,58,183,0.12),rgba(130,195,91,0.2))] text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]">{icon}</span>
           <CardTitle className="text-base">{title}</CardTitle>
         </div>
         {action}

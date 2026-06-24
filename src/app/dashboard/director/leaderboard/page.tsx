@@ -13,12 +13,12 @@ const OPTIONS = [
     description: "View branch-wise ranking, targets, and performance insights.",
     href: "/dashboard/director/leaderboard/branch",
     icon: School,
-    gradient: "from-teal-500 via-teal-600 to-cyan-600",
-    glow: "rgba(26,158,143,0.28)",
-    glowHover: "rgba(26,158,143,0.52)",
+    gradient: "from-[#7E57C2] via-[#673AB7] to-[#512DA8]",
+    glow: "rgba(103,58,183,0.28)",
+    glowHover: "rgba(103,58,183,0.52)",
     badge: "#1",
-    badgeColor: "from-teal-500 to-cyan-600",
-    particleColor: "#2dd4bf",
+    badgeColor: "from-[#7E57C2] to-[#512DA8]",
+    particleColor: "#7E57C2",
     rank: "1st",
   },
   {
@@ -26,12 +26,12 @@ const OPTIONS = [
     description: "Discover top-performing instructors by student results.",
     href: "/dashboard/director/leaderboard/instructor",
     icon: Users,
-    gradient: "from-emerald-500 via-teal-600 to-teal-700",
-    glow: "rgba(16,185,129,0.28)",
-    glowHover: "rgba(16,185,129,0.52)",
+    gradient: "from-[#7E57C2] via-[#673AB7] to-[#512DA8]",
+    glow: "rgba(103,58,183,0.28)",
+    glowHover: "rgba(103,58,183,0.52)",
     badge: "#2",
-    badgeColor: "from-emerald-500 to-teal-600",
-    particleColor: "#34d399",
+    badgeColor: "from-[#7E57C2] to-[#673AB7]",
+    particleColor: "#673AB7",
     rank: "2nd",
   },
 ];
@@ -256,9 +256,9 @@ export default function DirectorLeaderboardIndexPage() {
   return (
     <div className="relative max-w-6xl mx-auto space-y-8 min-h-[60vh]">
       {/* Background ambient orbs */}
-      <BackgroundOrb x="10%" y="20%" size={400} color="#1a9e8f" delay={0} />
-      <BackgroundOrb x="60%" y="10%" size={350} color="#34d399" delay={2} />
-      <BackgroundOrb x="80%" y="60%" size={300} color="#2dd4bf" delay={4} />
+      <BackgroundOrb x="10%" y="20%" size={400} color="#512DA8" delay={0} />
+      <BackgroundOrb x="60%" y="10%" size={350} color="#7E57C2" delay={2} />
+      <BackgroundOrb x="80%" y="60%" size={300} color="#673AB7" delay={4} />
 
       {/* Header */}
       <div className="space-y-4">
@@ -277,14 +277,14 @@ export default function DirectorLeaderboardIndexPage() {
             transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
             style={{ perspective: 400 }}
           >
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-400 via-teal-500 to-cyan-600 flex items-center justify-center shadow-2xl shadow-teal-500/40">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#7E57C2] via-[#673AB7] to-[#512DA8] flex items-center justify-center shadow-2xl shadow-[#673AB7]/40">
               <Trophy className="h-7 w-7 text-white drop-shadow-lg" />
             </div>
             <motion.div
               className="absolute inset-0 rounded-2xl"
               animate={{ scale: [1, 1.4, 1], opacity: [0.5, 0, 0.5] }}
               transition={{ duration: 2, repeat: Infinity }}
-              style={{ background: "radial-gradient(circle, rgba(45,212,191,0.4) 0%, transparent 70%)" }}
+              style={{ background: "radial-gradient(circle, rgba(103,58,183,0.4) 0%, transparent 70%)" }}
             />
           </motion.div>
 
@@ -292,7 +292,7 @@ export default function DirectorLeaderboardIndexPage() {
             <motion.h1
               className="text-3xl md:text-4xl font-black"
               style={{
-                background: "linear-gradient(135deg, #168577 0%, #1a9e8f 45%, #2dd4bf 100%)",
+                background: "linear-gradient(135deg, #512DA8 0%, #673AB7 45%, #7E57C2 100%)",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
               }}

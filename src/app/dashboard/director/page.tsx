@@ -84,15 +84,15 @@ function ThreeDCard({ children, className }: { children: React.ReactNode; classN
   return (
     <motion.div
       className={className}
-      style={{ perspective: "800px" }}
+      style={{ perspective: "1000px" }}
       whileHover={{
-        y: -5,
-        rotateX: -5,
-        rotateY: 4,
-        scale: 1.03,
-        transition: { duration: 0.18, ease: "easeOut" },
+        y: -4,
+        rotateX: -2,
+        rotateY: 2,
+        scale: 1.02,
+        transition: { duration: 0.2, ease: "easeOut" },
       }}
-      whileTap={{ scale: 0.97 }}
+      whileTap={{ scale: 0.96, y: 2 }}
     >
       {children}
     </motion.div>
@@ -134,7 +134,7 @@ function BranchCard({ branch, index: _index }: { branch: { name: string; company
         whileHover={{ y: -8, rotateX: -6, rotateY: 5, scale: 1.02, transition: { duration: 0.18 } }}
         whileTap={{ scale: 0.97 }}
       >
-        <Card className="h-full cursor-pointer border-border-light hover:border-primary/30 hover:shadow-md transition-all duration-200 group">
+        <Card className="h-full relative overflow-hidden rounded-[20px] bg-gradient-to-br from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 border border-slate-200 dark:border-slate-700 shadow-[inset_0_2px_4px_rgba(255,255,255,0.7),_0_8px_16px_rgba(0,0,0,0.06)] hover:shadow-[inset_0_2px_4px_rgba(255,255,255,0.9),_0_12px_24px_rgba(103,58,183,0.15)] hover:border-[#7E57C2]/40 transition-all duration-300 cursor-pointer group border-b-[4px] border-r-[2px] hover:-translate-y-1 active:translate-y-0 active:border-b-[1px] active:border-r-[1px]">
           <CardContent className="p-5">
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
@@ -334,7 +334,7 @@ export default function DirectorDashboard() {
                 Welcome,{" "}
               </motion.span>
               <AnimatedName name={user?.full_name?.split(" ")[0] || "Director"} />
-              <img src="/welcome.gif" alt="" className="h-20 w-20 object-contain" />
+              <video src="/Logo%20Icon%20Smile%20ALPHA.webm" autoPlay loop muted playsInline alt="" className="h-20 w-20 object-contain" />
             </h1>
             <motion.p
               className="text-text-secondary text-sm mt-0.5"
@@ -354,8 +354,9 @@ export default function DirectorDashboard() {
       {/* Today's Snapshot — compact highlight bar */}
       <motion.div variants={itemVariants}>
         <Link href="/dashboard/director/today">
-        <Card className="border-emerald-500/30 bg-gradient-to-r from-emerald-500/5 via-transparent to-teal-500/5 hover:shadow-md transition-shadow cursor-pointer">
-          <CardContent className="py-3 px-5 flex items-center gap-6 flex-wrap">
+        <Card className="relative overflow-hidden bg-gradient-to-br from-[#7E57C2]/15 via-white dark:via-slate-900 to-[#512DA8]/5 border-[#7E57C2]/30 shadow-[inset_0_2px_4px_rgba(255,255,255,0.8),_0_8px_20px_rgba(103,58,183,0.12)] hover:shadow-[inset_0_2px_4px_rgba(255,255,255,0.9),_0_12px_24px_rgba(103,58,183,0.2)] transition-all duration-300 cursor-pointer rounded-2xl group">
+          <div className="absolute inset-0 bg-white/40 dark:bg-black/20 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity" />
+          <CardContent className="relative py-3 px-5 flex items-center gap-6 flex-wrap z-10">
             {/* Admissions */}
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-full bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
@@ -411,7 +412,7 @@ export default function DirectorDashboard() {
       <motion.div variants={itemVariants} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-8 gap-3">
         <ThreeDCard className="min-w-0">
           <Link href="/dashboard/director/students" className="block h-full">
-            <Card className="h-full hover:shadow-card-hover transition-all duration-200 cursor-pointer border-border-light hover:border-primary/30 overflow-hidden">
+            <Card className="h-full relative overflow-hidden rounded-2xl bg-gradient-to-b from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 border border-slate-200 dark:border-slate-700 shadow-[inset_0_2px_4px_rgba(255,255,255,0.7),_0_6px_12px_rgba(0,0,0,0.05)] hover:shadow-[inset_0_2px_4px_rgba(255,255,255,0.9),_0_10px_20px_rgba(103,58,183,0.15)] transition-all duration-300 cursor-pointer group hover:border-[#7E57C2]/40">
               <CardContent className="p-3 text-center">
                 <GraduationCap className="h-4 w-4 text-primary mx-auto mb-1.5" />
                 {errTotalStudents ? (
@@ -459,7 +460,7 @@ export default function DirectorDashboard() {
         </ThreeDCard>
         <ThreeDCard className="min-w-0">
           <Link href="/dashboard/director/teachers" className="block h-full">
-            <Card className="h-full hover:shadow-card-hover transition-all duration-200 cursor-pointer border-border-light hover:border-info/30 overflow-hidden">
+            <Card className="h-full relative overflow-hidden rounded-2xl bg-gradient-to-b from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 border border-slate-200 dark:border-slate-700 shadow-[inset_0_2px_4px_rgba(255,255,255,0.7),_0_6px_12px_rgba(0,0,0,0.05)] hover:shadow-[inset_0_2px_4px_rgba(255,255,255,0.9),_0_10px_20px_rgba(59,130,246,0.15)] transition-all duration-300 cursor-pointer group hover:border-blue-500/40">
               <CardContent className="p-3 text-center">
                 <UserCheck className="h-4 w-4 text-info mx-auto mb-1.5" />
                 {errTotalStaff ? (
@@ -476,7 +477,7 @@ export default function DirectorDashboard() {
         </ThreeDCard>
         <ThreeDCard className="min-w-0">
           <Link href="/dashboard/director/fees" className="block h-full">
-            <Card className="h-full hover:shadow-card-hover transition-all duration-200 cursor-pointer border-border-light hover:border-warning/30 overflow-hidden">
+            <Card className="h-full relative overflow-hidden rounded-2xl bg-gradient-to-b from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 border border-slate-200 dark:border-slate-700 shadow-[inset_0_2px_4px_rgba(255,255,255,0.7),_0_6px_12px_rgba(0,0,0,0.05)] hover:shadow-[inset_0_2px_4px_rgba(255,255,255,0.9),_0_10px_20px_rgba(234,179,8,0.15)] transition-all duration-300 cursor-pointer group hover:border-yellow-500/40">
               <CardContent className="p-3 text-center">
                 <IndianRupee className="h-4 w-4 text-warning mx-auto mb-1.5" />
                 {errInvoiceStats ? (
@@ -493,7 +494,7 @@ export default function DirectorDashboard() {
         </ThreeDCard>
         <ThreeDCard className="min-w-0">
           <Link href="/dashboard/director/fees" className="block h-full">
-            <Card className="h-full hover:shadow-card-hover transition-all duration-200 cursor-pointer border-success/20 hover:border-success/30 overflow-hidden">
+            <Card className="h-full relative overflow-hidden rounded-2xl bg-gradient-to-b from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 border border-slate-200 dark:border-slate-700 shadow-[inset_0_2px_4px_rgba(255,255,255,0.7),_0_6px_12px_rgba(0,0,0,0.05)] hover:shadow-[inset_0_2px_4px_rgba(255,255,255,0.9),_0_10px_20px_rgba(34,197,94,0.15)] transition-all duration-300 cursor-pointer group hover:border-green-500/40">
               <CardContent className="p-3 text-center">
                 <CircleCheck className="h-4 w-4 text-success mx-auto mb-1.5" />
                 {errCollectedByMode ? (
@@ -531,7 +532,7 @@ export default function DirectorDashboard() {
         </ThreeDCard>
         <ThreeDCard className="min-w-0">
           <Link href="/dashboard/director/fees" className="block h-full">
-            <Card className="h-full hover:shadow-card-hover transition-all duration-200 cursor-pointer border-error/20 hover:border-error/30 overflow-hidden">
+            <Card className="h-full relative overflow-hidden rounded-2xl bg-gradient-to-b from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 border border-slate-200 dark:border-slate-700 shadow-[inset_0_2px_4px_rgba(255,255,255,0.7),_0_6px_12px_rgba(0,0,0,0.05)] hover:shadow-[inset_0_2px_4px_rgba(255,255,255,0.9),_0_10px_20px_rgba(239,68,68,0.15)] transition-all duration-300 cursor-pointer group hover:border-red-500/40">
               <CardContent className="p-3 text-center">
                 <Clock className="h-4 w-4 text-error mx-auto mb-1.5" />
                 {errInvoiceStats ? (
@@ -548,7 +549,7 @@ export default function DirectorDashboard() {
         </ThreeDCard>
         <ThreeDCard className="min-w-0">
           <Link href="/dashboard/director/dues" className="block h-full">
-            <Card className="h-full hover:shadow-card-hover transition-all duration-200 cursor-pointer border-orange-200/60 hover:border-orange-400/40 overflow-hidden">
+            <Card className="h-full relative overflow-hidden rounded-2xl bg-gradient-to-b from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 border border-slate-200 dark:border-slate-700 shadow-[inset_0_2px_4px_rgba(255,255,255,0.7),_0_6px_12px_rgba(0,0,0,0.05)] hover:shadow-[inset_0_2px_4px_rgba(255,255,255,0.9),_0_10px_20px_rgba(249,115,22,0.15)] transition-all duration-300 cursor-pointer group hover:border-orange-500/40">
               <CardContent className="p-3 text-center">
                 <CalendarClock className="h-4 w-4 text-orange-500 mx-auto mb-1.5" />
                 {errDuesToday ? (
@@ -568,7 +569,7 @@ export default function DirectorDashboard() {
         </ThreeDCard>
         <ThreeDCard className="min-w-0">
           <Link href="/dashboard/director/fees/forfeited" className="block h-full">
-            <Card className="h-full hover:shadow-card-hover transition-all duration-200 cursor-pointer border-amber-200/60 hover:border-amber-400/40 overflow-hidden">
+            <Card className="h-full relative overflow-hidden rounded-2xl bg-gradient-to-b from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 border border-slate-200 dark:border-slate-700 shadow-[inset_0_2px_4px_rgba(255,255,255,0.7),_0_6px_12px_rgba(0,0,0,0.05)] hover:shadow-[inset_0_2px_4px_rgba(255,255,255,0.9),_0_10px_20px_rgba(245,158,11,0.15)] transition-all duration-300 cursor-pointer group hover:border-amber-500/40">
               <CardContent className="p-3 text-center">
                 <TriangleAlert className="h-4 w-4 text-amber-500 mx-auto mb-1.5" />
                 {errForfeitedFees ? (
@@ -586,7 +587,7 @@ export default function DirectorDashboard() {
         </ThreeDCard>
         <ThreeDCard className="min-w-0">
           <Link href="/dashboard/director/accounts/budget" className="block h-full">
-            <Card className="h-full hover:shadow-card-hover transition-all duration-200 cursor-pointer border-teal-200/60 hover:border-teal-400/40 overflow-hidden">
+            <Card className="h-full relative overflow-hidden rounded-2xl bg-gradient-to-b from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 border border-slate-200 dark:border-slate-700 shadow-[inset_0_2px_4px_rgba(255,255,255,0.7),_0_6px_12px_rgba(0,0,0,0.05)] hover:shadow-[inset_0_2px_4px_rgba(255,255,255,0.9),_0_10px_20px_rgba(20,184,166,0.15)] transition-all duration-300 cursor-pointer group hover:border-teal-500/40">
               <CardContent className="p-3 text-center">
                 <Target className="h-4 w-4 text-teal-500 mx-auto mb-1.5" />
                 {errBudgetData ? (
@@ -636,9 +637,9 @@ export default function DirectorDashboard() {
                 style={{ perspective: "600px" }}
                 whileHover={{ y: -5, rotateX: -5, rotateY: 4, scale: 1.03, transition: { duration: 0.18, ease: "easeOut" } }}
                 whileTap={{ scale: 0.97 }}
-                className="bg-surface rounded-[12px] border border-border-light p-4 hover:border-primary/30 hover:shadow-md transition-all group cursor-pointer h-full"
+                className="bg-gradient-to-br from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 rounded-[16px] border border-slate-200 dark:border-slate-700 shadow-[inset_0_2px_4px_rgba(255,255,255,0.7),_0_4px_10px_rgba(0,0,0,0.04)] p-4 hover:border-[#7E57C2]/40 hover:shadow-[inset_0_2px_4px_rgba(255,255,255,0.9),_0_8px_16px_rgba(103,58,183,0.12)] transition-all duration-300 group cursor-pointer h-full relative overflow-hidden"
               >
-                <div className={`w-9 h-9 rounded-[10px] flex items-center justify-center mb-3 ${card.color}`}>
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 shadow-[inset_0_1px_3px_rgba(0,0,0,0.1)] ${card.color}`}>
                   <card.icon className="w-4 h-4" />
                 </div>
                 <p className="text-xs font-semibold text-primary group-hover:text-primary/80 transition-colors">{card.title}</p>
@@ -670,9 +671,9 @@ export default function DirectorDashboard() {
                 style={{ perspective: "600px" }}
                 whileHover={{ y: -5, rotateX: -5, rotateY: 4, scale: 1.03, transition: { duration: 0.18, ease: "easeOut" } }}
                 whileTap={{ scale: 0.97 }}
-                className="bg-surface rounded-[12px] border border-border-light p-4 hover:border-primary/30 hover:shadow-md transition-all group cursor-pointer h-full"
+                className="bg-gradient-to-br from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 rounded-[16px] border border-slate-200 dark:border-slate-700 shadow-[inset_0_2px_4px_rgba(255,255,255,0.7),_0_4px_10px_rgba(0,0,0,0.04)] p-4 hover:border-[#7E57C2]/40 hover:shadow-[inset_0_2px_4px_rgba(255,255,255,0.9),_0_8px_16px_rgba(103,58,183,0.12)] transition-all duration-300 group cursor-pointer h-full relative overflow-hidden"
               >
-                <div className={`w-9 h-9 rounded-[10px] flex items-center justify-center mb-3 ${card.color}`}>
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 shadow-[inset_0_1px_3px_rgba(0,0,0,0.1)] ${card.color}`}>
                   <card.icon className="w-4 h-4" />
                 </div>
                 <p className="text-xs font-semibold text-primary group-hover:text-primary/80 transition-colors">{card.title}</p>

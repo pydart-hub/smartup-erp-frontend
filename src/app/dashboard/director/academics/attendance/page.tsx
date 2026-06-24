@@ -69,14 +69,14 @@ function StatCard3D({
             background: useTransform(
               [glowX, glowY],
               ([gx, gy]) =>
-                `radial-gradient(220px circle at ${gx}% ${gy}%, rgba(26,158,143,0.07), transparent 65%)`
+                `radial-gradient(220px circle at ${gx}% ${gy}%, rgba(103,58,183,0.07), transparent 65%)`
             ),
           }}
         />
         {/* top accent line */}
         <div
           className="absolute top-0 left-4 right-4 h-[2px] rounded-b-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-          style={{ background: "linear-gradient(90deg, #1A9E8F, #82C35B)" }}
+          style={{ background: "linear-gradient(90deg, #673AB7, #7E57C2)" }}
         />
 
         <div className="relative flex items-start gap-3">
@@ -165,7 +165,7 @@ function BranchRow({
         {/* left accent stripe */}
         <div
           className="absolute left-0 top-2.5 bottom-2.5 w-[3px] rounded-r-full"
-          style={{ background: "linear-gradient(180deg, #1A9E8F, #82C35B)" }}
+          style={{ background: "linear-gradient(180deg, #673AB7, #7E57C2)" }}
         />
 
         <div className="flex items-center gap-4 px-4 py-3 pl-5">
@@ -355,8 +355,8 @@ export default function DirectorAcademicsAttendancePage() {
                 <motion.div
                   className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
                   style={{
-                    background: "linear-gradient(135deg, #1A9E8F 0%, #82C35B 100%)",
-                    boxShadow: "0 4px 12px rgba(26,158,143,0.28)",
+                    background: "linear-gradient(135deg, #673AB7 0%, #7E57C2 100%)",
+                    boxShadow: "0 4px 12px rgba(103,58,183,0.28)",
                   }}
                   animate={{ rotateY: [0, 14, 0, -14, 0] }}
                   transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}

@@ -444,7 +444,7 @@ export default function DirectorComplaintsPage() {
           </Card>
         </motion.div>
       ) : (
-        <div className="space-y-3">
+        <motion.div variants={container} initial="hidden" animate="show" className="space-y-3">
           {complaints.map((complaint) => (
             <motion.div key={complaint.name} variants={item}>
               <ComplaintRow
@@ -456,7 +456,7 @@ export default function DirectorComplaintsPage() {
               />
             </motion.div>
           ))}
-        </div>
+        </motion.div>
       )}
     </motion.div>
   );

@@ -17,7 +17,7 @@ const dmSans = DM_Sans({
 
 const SLIDES = [
   {
-    image: "/login-slide-1.jpg",
+    image: "/login-slide-1.png",
     eyebrow: "SMARTUP LEARNING",
     title: "Building Future-Ready",
     accentTitle: "Students",
@@ -26,7 +26,7 @@ const SLIDES = [
     supportingText: "One standard of quality across all branches.",
   },
   {
-    image: "/login-slide-2.jpg",
+    image: "/login-slide-2.png",
     eyebrow: "SMARTUP LEARNING",
     title: "Comprehensive Learning",
     accentTitle: "Solutions",
@@ -46,7 +46,7 @@ const SLIDES = [
       "Bridging traditional teaching with modern technology.",
   },
   {
-    image: "/login-slide-3.jpg",
+    image: "/login-slide-3.png",
     eyebrow: "SMARTUP LEARNING",
     title: "Personalized Learning",
     accentTitle: "for Every Student",
@@ -56,7 +56,7 @@ const SLIDES = [
       "Making education smarter, simpler, and more accessible.",
   },
   {
-    image: "/login-slide-4.jpg",
+    image: "/login-slide-4.png",
     eyebrow: "SMARTUP LEARNING",
     title: "Manage Your Institution",
     accentTitle: "with Precision",
@@ -82,9 +82,9 @@ export default function LoginPage() {
   const slide = SLIDES[activeSlide];
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row">
+    <div className="min-h-screen flex flex-col lg:flex-row relative">
       {/* ── Left Panel — Image Carousel + Text Overlay ── */}
-      <div className="hidden lg:block lg:w-[68%] relative overflow-hidden">
+      <div className="absolute inset-0 lg:relative lg:block lg:w-[68%] overflow-hidden z-0">
         {/* Crossfade background images */}
         <AnimatePresence initial={false}>
           <motion.div
@@ -106,9 +106,9 @@ export default function LoginPage() {
         </AnimatePresence>
 
         {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,0.7)_0%,rgba(0,0,0,0.4)_34%,rgba(0,0,0,0.1)_58%,rgba(0,0,0,0.8)_100%)] z-10" />
+        <div className="absolute inset-0 bg-black/40 lg:bg-[linear-gradient(90deg,rgba(0,0,0,0.7)_0%,rgba(0,0,0,0.4)_34%,rgba(0,0,0,0.1)_58%,rgba(0,0,0,0.8)_100%)] z-10" />
 
-        <div className="absolute inset-0 z-20 pointer-events-none">
+        <div className="hidden lg:block absolute inset-0 z-20 pointer-events-none">
           <div className="absolute left-10 top-10 inline-flex items-center gap-3 rounded-full border border-white/12 bg-black/18 px-4 py-2 backdrop-blur-sm">
             <span className="h-2 w-2 rounded-full bg-[#5f2ea8]/90" />
             <span className={`${dmSans.className} text-[0.7rem] font-semibold uppercase tracking-[0.34em] text-white/78`}>
@@ -118,7 +118,7 @@ export default function LoginPage() {
         </div>
 
         {/* Slide text at bottom */}
-        <div className="absolute bottom-12 left-10 right-10 z-20">
+        <div className="hidden lg:block absolute bottom-12 left-10 right-10 z-20">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeSlide}
@@ -196,21 +196,21 @@ export default function LoginPage() {
       </div>
 
       {/* ── Right Panel — Login Form (light bg) ── */}
-      <div className="flex-1 flex flex-col min-h-screen bg-slate-50 relative overflow-hidden">
+      <div className="flex-1 flex flex-col min-h-screen bg-black/30 lg:bg-[#f1f5f9] relative z-10 overflow-hidden backdrop-blur-md lg:backdrop-blur-none">
         {/* Centered form */}
         <div className="relative z-10 flex-1 flex items-center justify-center px-6 py-10 sm:px-12">
           <div className="w-full max-w-[420px]">
             {/* Mobile logo (hidden on lg+) */}
             <div className="lg:hidden text-center mb-10">
-              <div className="inline-flex items-center gap-3 mb-2">
+              <div className="inline-flex items-center gap-3 mb-2 bg-white/10 backdrop-blur-md px-5 py-2.5 rounded-full border border-white/20 shadow-lg">
                 <Image
                   src="/smartup-logo.png"
                   alt="SmartUp"
-                  width={40}
-                  height={40}
+                  width={36}
+                  height={36}
                   className="object-contain"
                 />
-                <span className="text-slate-900 text-lg font-bold tracking-wide">
+                <span className="text-white text-lg font-bold tracking-wide drop-shadow-md">
                   SMART UP
                 </span>
               </div>
@@ -222,31 +222,33 @@ export default function LoginPage() {
               transition={{ duration: 0.6, ease: "easeOut" }}
             >
               {/* Greeting with icon */}
-              <div className="flex items-center gap-3 mb-6">
+              <div className="flex items-center justify-center lg:justify-start gap-3 mb-6">
                 <Image
                   src="/smartup-logo.png"
                   alt="SmartUp"
                   width={68}
                   height={68}
-                  className="hidden lg:block object-contain"
+                  className="hidden lg:block object-contain drop-shadow-[4px_4px_8px_rgba(163,177,198,0.5)]"
                 />
-                <div>
-                  <h2 className="text-2xl font-bold text-slate-900">
+                <div className="text-center lg:text-left">
+                  <h2 className="text-2xl font-bold text-white lg:text-slate-800 drop-shadow-md lg:drop-shadow-[2px_2px_4px_rgba(255,255,255,0.8)]">
                     Welcome back
                   </h2>
-                  <p className="text-slate-500 text-sm">
+                  <p className="text-white/90 lg:text-slate-500 text-sm drop-shadow-md lg:drop-shadow-none mt-1 font-medium">
                     Sign in to continue to your dashboard
                   </p>
                 </div>
               </div>
 
-              {/* Glass card / Light card */}
-              <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6 sm:p-7">
+              {/* Skeuomorphic 3D card */}
+              <div className="rounded-[2rem] bg-[#f1f5f9] border border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.4)] lg:shadow-[12px_12px_24px_rgba(163,177,198,0.4),-12px_-12px_24px_rgba(255,255,255,0.9)] p-6 sm:p-9 backdrop-blur-none transition-all duration-300 relative">
+                {/* Inner highlight for 3D effect */}
+                <div className="absolute inset-0 rounded-[2rem] border-2 border-white/60 pointer-events-none hidden lg:block"></div>
                 <LoginForm variant="light" />
               </div>
 
               {/* Trust badges */}
-              <div className="mt-6 flex items-center justify-center gap-6 text-slate-400 text-[11px]">
+              <div className="mt-8 flex items-center justify-center gap-6 text-white/80 lg:text-slate-400 text-[11px] font-medium lg:drop-shadow-[1px_1px_1px_rgba(255,255,255,1)]">
                 <span className="flex items-center gap-1.5">
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
                   Secure login
@@ -261,7 +263,7 @@ export default function LoginPage() {
               <div className="mt-5 flex justify-center">
                 <Link
                   href="/demo"
-                  className="group inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-[#5f2ea8] border border-slate-200 hover:border-[#5f2ea8]/30 rounded-xl px-5 py-2.5 bg-white hover:bg-[#5f2ea8]/5 transition-all duration-200 shadow-sm"
+                  className="group inline-flex items-center gap-2 text-sm font-medium text-white/90 lg:text-slate-500 hover:text-white lg:hover:text-[#5f2ea8] border border-white/30 lg:border-slate-200 hover:border-white/50 lg:hover:border-[#5f2ea8]/30 rounded-xl px-5 py-2.5 bg-white/10 lg:bg-white hover:bg-white/20 lg:hover:bg-[#5f2ea8]/5 transition-all duration-200 shadow-sm backdrop-blur-sm lg:backdrop-blur-none"
                 >
                   <Play className="w-3.5 h-3.5 fill-current" />
                   Try Demo
@@ -272,7 +274,9 @@ export default function LoginPage() {
         </div>
 
         {/* Footer — Legal & Contact */}
-        <LoginFooter />
+        <div className="lg:bg-transparent bg-black/20">
+          <LoginFooter />
+        </div>
       </div>
     </div>
   );

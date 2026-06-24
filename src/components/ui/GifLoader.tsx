@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 
 export function GifLoader({ className, size = "md" }: { className?: string; size?: "sm" | "md" | "lg" }) {
-  const gifSize = size === "lg" ? "w-36 h-36" : size === "sm" ? "w-12 h-12" : "w-20 h-20";
-  const containerH = size === "lg" ? "h-72" : size === "sm" ? "h-24" : "h-48";
+  const gifSize = size === "lg" ? "w-48 h-48" : size === "sm" ? "w-16 h-16" : "w-32 h-32";
+  const containerH = size === "lg" ? "h-[300px]" : size === "sm" ? "h-24" : "h-64";
   const barW = size === "sm" ? "w-24" : "w-48";
 
   const [progress, setProgress] = useState(0);
@@ -22,16 +22,17 @@ export function GifLoader({ className, size = "md" }: { className?: string; size
   }, []);
 
   return (
-    <div className={`flex flex-col items-center justify-center gap-3 ${className ?? containerH}`}>
+    <div className={`flex flex-col items-center justify-center gap-4 ${className ?? containerH}`}>
       <video
-        src="/loading.webm"
         autoPlay
         loop
         muted
         playsInline
-        className={`${gifSize} object-contain`}
-      />
-      <p className="text-[10px] font-black uppercase tracking-[0.22em] text-primary">
+        className={`${gifSize} object-contain shrink-0`}
+      >
+        <source src="/Logo%20Icon%20LOOK%20ALPHA.webm" type="video/webm" />
+      </video>
+      <p className="-mt-6 text-[10px] font-black uppercase tracking-[0.22em] text-primary">
         CRAFTING THE FUTURE
       </p>
       <div className={`${barW} flex flex-col gap-1`}>

@@ -40,7 +40,7 @@ export default function MentorStudentsPage() {
     <div className="space-y-6">
       <BreadcrumbNav />
 
-      <section className="overflow-hidden rounded-[30px] border border-white/70 bg-[radial-gradient(circle_at_top_left,rgba(130,195,91,0.22),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(26,158,143,0.18),transparent_24%),linear-gradient(135deg,rgba(255,255,255,0.98),rgba(236,246,250,0.95)_50%,rgba(230,247,239,0.95))] p-6 shadow-[0_28px_60px_-30px_rgba(13,61,89,0.38)]">
+      <section className="overflow-hidden rounded-[30px] border border-white/70 bg-[radial-gradient(circle_at_top_left,rgba(130,195,91,0.22),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(103,58,183,0.18),transparent_24%),linear-gradient(135deg,rgba(255,255,255,0.98),rgba(236,246,250,0.95)_50%,rgba(230,247,239,0.95))] p-6 shadow-[0_28px_60px_-30px_rgba(13,61,89,0.38)]">
         <div className="grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-white/75 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
@@ -99,7 +99,7 @@ export default function MentorStudentsPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-200/70 bg-white/80">
                   {filtered.map((row) => (
-                    <tr key={row.assignment.name} className="transition-colors hover:bg-[linear-gradient(90deg,rgba(26,158,143,0.05),rgba(130,195,91,0.04))]">
+                    <tr key={row.assignment.name} className="transition-colors hover:bg-[linear-gradient(90deg,rgba(103,58,183,0.05),rgba(130,195,91,0.04))]">
                       <td className="px-5 py-4">
                         <Link href={`/dashboard/mentor/students/${encodeURIComponent(row.student.id)}`} className="font-semibold text-primary hover:underline">
                           {row.student.name}
@@ -182,7 +182,7 @@ function QuickStat({
     <div className="rounded-[22px] border border-white/80 bg-white/78 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.92),0_18px_30px_-26px_rgba(15,23,42,0.36)]">
       <div className="flex items-center justify-between gap-3">
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">{label}</p>
-        <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[linear-gradient(145deg,#1A9E8F,#82C35B)] text-white shadow-[0_16px_24px_-18px_rgba(26,158,143,0.7)]">
+        <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[linear-gradient(145deg,#673AB7,#7E57C2)] text-white shadow-[0_16px_24px_-18px_rgba(103,58,183,0.7)]">
           {icon}
         </div>
       </div>

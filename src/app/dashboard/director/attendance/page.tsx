@@ -7,9 +7,9 @@ import { GraduationCap, Briefcase, ChevronRight, Sparkles } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 
 // ─── Logo palette ─────────────────────────────────────────────────────────────
-const TEAL   = "#1A9E8F";
-const GREEN  = "#82C35B";
-const AQUA   = "#2DD4BF";
+const TEAL   = "#673AB7";
+const GREEN  = "#7E57C2";
+const AQUA   = "#512DA8";
 
 // ─── 3-D tilt card ────────────────────────────────────────────────────────────
 function TiltCard({

@@ -136,14 +136,14 @@ export default function MentorDashboardPage() {
     <div className="space-y-6">
       <BreadcrumbNav />
 
-      <section className="relative overflow-hidden rounded-[32px] border border-white/70 bg-[radial-gradient(circle_at_top_left,rgba(130,195,91,0.28),transparent_26%),radial-gradient(circle_at_bottom_right,rgba(26,158,143,0.22),transparent_25%),linear-gradient(135deg,rgba(255,255,255,0.98),rgba(236,246,250,0.96)_48%,rgba(230,247,239,0.96))] p-6 shadow-[0_30px_70px_-30px_rgba(13,61,89,0.42)] lg:p-8">
-        <div className="absolute -left-8 top-8 h-28 w-28 rounded-full bg-[#82C35B]/20 blur-3xl" />
-        <div className="absolute right-0 top-0 h-36 w-36 rounded-full bg-[#1A9E8F]/14 blur-3xl" />
+      <section className="relative overflow-hidden rounded-[32px] border border-white/70 bg-[radial-gradient(circle_at_top_left,rgba(130,195,91,0.28),transparent_26%),radial-gradient(circle_at_bottom_right,rgba(103,58,183,0.22),transparent_25%),linear-gradient(135deg,rgba(255,255,255,0.98),rgba(236,246,250,0.96)_48%,rgba(230,247,239,0.96))] p-6 shadow-[0_30px_70px_-30px_rgba(13,61,89,0.42)] lg:p-8">
+        <div className="absolute -left-8 top-8 h-28 w-28 rounded-full bg-[#7E57C2]/20 blur-3xl" />
+        <div className="absolute right-0 top-0 h-36 w-36 rounded-full bg-[#673AB7]/14 blur-3xl" />
 
         <div className="relative grid gap-6 lg:grid-cols-[1.45fr_0.85fr]">
           <div className="space-y-5">
             <div className="flex items-start gap-4">
-              <div className="flex h-20 w-20 items-center justify-center rounded-[28px] bg-[linear-gradient(145deg,#1A9E8F,#82C35B)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.38),0_18px_34px_-16px_rgba(26,158,143,0.9)]">
+              <div className="flex h-20 w-20 items-center justify-center rounded-[28px] bg-[linear-gradient(145deg,#673AB7,#7E57C2)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.38),0_18px_34px_-16px_rgba(103,58,183,0.9)]">
                 <Users className="h-9 w-9" />
               </div>
               <div className="min-w-0 flex-1">
@@ -187,7 +187,7 @@ export default function MentorDashboardPage() {
             </div>
 
             <div className="mt-4 space-y-4">
-              <div className="rounded-[24px] border border-white/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(237,248,243,0.92))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.92),0_18px_28px_-24px_rgba(26,158,143,0.4)]">
+              <div className="rounded-[24px] border border-white/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(237,248,243,0.92))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.92),0_18px_28px_-24px_rgba(103,58,183,0.4)]">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Student Health Snapshot</p>
                 <p className="mt-3 text-3xl font-bold text-slate-900">{isLoading ? "..." : healthyStudents}</p>
                 <p className="mt-2 text-sm text-slate-600">Students with recent feedback and no outstanding fee risk.</p>
@@ -204,7 +204,7 @@ export default function MentorDashboardPage() {
                     </p>
                   </div>
                   <Link href="/dashboard/mentor/students">
-                    <Button className="rounded-full bg-[linear-gradient(135deg,#1A9E8F,#82C35B)] px-5 shadow-[0_18px_28px_-18px_rgba(26,158,143,0.72)] hover:opacity-95">
+                    <Button className="rounded-full bg-[linear-gradient(135deg,#673AB7,#7E57C2)] px-5 shadow-[0_18px_28px_-18px_rgba(103,58,183,0.72)] hover:opacity-95">
                       Open Students
                     </Button>
                   </Link>
@@ -339,7 +339,7 @@ export default function MentorDashboardPage() {
               {filteredStudents.map((row) => (
                 <article
                   key={row.assignment.name}
-                  className="group overflow-hidden rounded-[28px] border border-slate-200/80 bg-[radial-gradient(circle_at_top_left,rgba(130,195,91,0.12),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(243,248,250,0.95))] p-5 shadow-[0_20px_34px_-24px_rgba(15,23,42,0.42)] transition-all hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-[0_28px_44px_-24px_rgba(26,158,143,0.34)]"
+                  className="group overflow-hidden rounded-[28px] border border-slate-200/80 bg-[radial-gradient(circle_at_top_left,rgba(130,195,91,0.12),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(243,248,250,0.95))] p-5 shadow-[0_20px_34px_-24px_rgba(15,23,42,0.42)] transition-all hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-[0_28px_44px_-24px_rgba(103,58,183,0.34)]"
                 >
                   <div className="flex items-start justify-between gap-5 flex-wrap">
                     <div className="min-w-0 flex-1">
@@ -402,7 +402,7 @@ export default function MentorDashboardPage() {
                     <Link href={`/dashboard/mentor/students/${encodeURIComponent(row.student.id)}`}>
                       <Button
                         variant="outline"
-                        className="rounded-full border-primary/20 bg-white/80 px-5 shadow-[0_14px_22px_-18px_rgba(26,158,143,0.45)] hover:bg-primary/5"
+                        className="rounded-full border-primary/20 bg-white/80 px-5 shadow-[0_14px_22px_-18px_rgba(103,58,183,0.45)] hover:bg-primary/5"
                       >
                         Open Record
                         <ArrowRight className="h-4 w-4" />

@@ -115,7 +115,7 @@ function initials(name: string) {
 const AVATAR_COLORS = [
   "from-violet-500 to-purple-600",
   "from-blue-500 to-indigo-600",
-  "from-emerald-500 to-teal-600",
+  "from-[#7E57C2] to-[#512DA8]",
   "from-amber-500 to-orange-600",
   "from-rose-500 to-pink-600",
   "from-sky-500 to-cyan-600",
@@ -803,7 +803,7 @@ export default function GMLeaderboardPage() {
       {/* -- Ambient background orbs -- */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden -z-10">
         <div className="absolute top-1/4 -left-20 w-72 h-72 rounded-full bg-gradient-to-br from-violet-400/20 to-indigo-500/10 blur-3xl" />
-        <div className="absolute top-3/4 right-0 w-96 h-96 rounded-full bg-gradient-to-br from-emerald-400/15 to-teal-500/10 blur-3xl" />
+        <div className="absolute top-3/4 right-0 w-96 h-96 rounded-full bg-gradient-to-br from-[#7E57C2]/15 to-[#673AB7]/10 blur-3xl" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full bg-gradient-to-br from-amber-400/10 to-orange-300/5 blur-3xl" />
       </div>
 
@@ -835,7 +835,7 @@ export default function GMLeaderboardPage() {
               <motion.span
                 animate={{ opacity: [1, 0.4, 1], scale: [1, 1.08, 1] }}
                 transition={{ repeat: Infinity, duration: 1.8 }}
-                className="text-[9px] font-black text-emerald-500 bg-gradient-to-r from-emerald-500/20 to-teal-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-full shadow-[0_0_12px_rgba(16,185,129,0.35)]" 
+                className="text-[9px] font-black text-[#673AB7] bg-gradient-to-r from-[#7E57C2]/20 to-[#673AB7]/10 border border-[#673AB7]/30 px-2 py-0.5 rounded-full shadow-[0_0_12px_rgba(103,58,183,0.35)]" 
               >
                 LIVE
               </motion.span>
@@ -945,8 +945,8 @@ export default function GMLeaderboardPage() {
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="flex flex-col items-center gap-2">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/loading.gif"
+                <video
+                  src="/Logo%20Icon%20LOOK%20ALPHA.webm" autoPlay loop muted playsInline
                   alt="Loading"
                   className="w-48 h-48 object-contain"
                   style={{ imageRendering: "pixelated" }}
@@ -976,7 +976,7 @@ export default function GMLeaderboardPage() {
             <StatCard icon={Users} label="Instructors" value={String(overall.total_instructors)} sub="ranked" gradient="from-violet-500 to-purple-600" />
             <StatCard icon={TrendingUp} label="Avg Score" value={String(overall.avg_score)} sub="out of 100" gradient="from-amber-400 to-orange-500" />
             <StatCard icon={ClipboardCheck} label="Avg Classes" value={`${overall.avg_classes_conducted_pct}%`} sub="conducted" gradient="from-blue-500 to-indigo-600" />
-            <StatCard icon={BookOpen} label="Avg Topics" value={`${overall.avg_topic_coverage_pct}%`} sub="coverage" gradient="from-emerald-500 to-teal-600" />
+            <StatCard icon={BookOpen} label="Avg Topics" value={`${overall.avg_topic_coverage_pct}%`} sub="coverage" gradient="from-[#7E57C2] to-[#512DA8]" />
           </div>
         )}
 

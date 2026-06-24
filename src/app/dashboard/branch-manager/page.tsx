@@ -234,7 +234,7 @@ export default function BranchManagerDashboard() {
                 Welcome back,{" "}
               </motion.span>
               <AnimatedName name={user?.full_name?.split(" ")[0] || "Manager"} />
-              <img src="/welcome.gif" alt="" className="h-20 w-20 object-contain" />
+              <video src="/Logo%20Icon%20Smile%20ALPHA.webm" autoPlay loop muted playsInline alt="" className="h-20 w-20 object-contain" />
             </h1>
             <motion.p className="text-text-secondary text-sm mt-0.5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8, duration: 0.5 }}>
               Here&apos;s what&apos;s happening at your branch today.

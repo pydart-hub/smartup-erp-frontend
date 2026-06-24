@@ -246,7 +246,7 @@ export default function BranchManagerMentorsHubPage() {
               { label: "Active Mentors", value: activeMentorsCount },
               { label: "Eligible Staff", value: eligibleEmployeesCount },
             ]}
-            gradientClass="from-[#1A9E8F] to-[#40BCAE] dark:from-[#2DD4BF] dark:to-[#0EA5E9]"
+            gradientClass="from-[#673AB7] to-[#40BCAE] dark:from-[#512DA8] dark:to-[#0EA5E9]"
             glowColor="rgba(26, 158, 143, 0.15)"
           />
 
@@ -260,7 +260,7 @@ export default function BranchManagerMentorsHubPage() {
               { label: "Unassigned Students", value: unassignedStudentsCount },
               { label: "Total Students", value: students.length },
             ]}
-            gradientClass="from-[#82C35B] to-[#1A9E8F] dark:from-[#86EFAC] dark:to-[#14B8A6]"
+            gradientClass="from-[#7E57C2] to-[#673AB7] dark:from-[#86EFAC] dark:to-[#14B8A6]"
             glowColor="rgba(130, 195, 91, 0.15)"
           />
 

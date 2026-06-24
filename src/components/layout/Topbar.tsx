@@ -85,9 +85,9 @@ export function Topbar() {
               ? "linear-gradient(to bottom, #f0fdf9, #f8fffe)"
               : "linear-gradient(to bottom, #f1f5f9, #f8fafc)",
             boxShadow: searchFocused
-              ? "inset 0 2px 4px rgba(0,0,0,0.08), 0 0 0 2px rgba(26,158,143,0.25)"
+              ? "inset 0 2px 4px rgba(0,0,0,0.08), 0 0 0 2px rgba(103,58,183,0.25)"
               : "inset 0 2px 4px rgba(0,0,0,0.07), inset 0 0 0 1px rgba(0,0,0,0.05)",
-            borderColor: searchFocused ? "rgba(26,158,143,0.3)" : "rgba(203,213,225,0.8)",
+            borderColor: searchFocused ? "rgba(103,58,183,0.3)" : "rgba(203,213,225,0.8)",
           }}
         >
           <motion.div
@@ -131,8 +131,8 @@ export function Topbar() {
                     layoutId="activeRole"
                     className="absolute inset-0 rounded-[10px]"
                     style={{
-                      background: "linear-gradient(to bottom, #1fa88e, #169679)",
-                      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.25), 0 3px 8px rgba(26,158,143,0.45)",
+                      background: "linear-gradient(to bottom, #7E57C2, #673AB7)",
+                      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.25), 0 3px 8px rgba(103,58,183,0.45)",
                     }}
                     transition={{ type: "spring", stiffness: 380, damping: 30 }}
                   />
@@ -172,7 +172,7 @@ export function Topbar() {
           >
             <div
               className="w-7 h-7 rounded-full bg-gradient-to-br from-primary to-teal-600 flex items-center justify-center text-white text-[11px] font-black"
-              style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.2), 0 2px 6px rgba(26,158,143,0.4)" }}
+              style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.2), 0 2px 6px rgba(103,58,183,0.4)" }}
             >
               {user?.full_name ? getInitials(user.full_name) : "U"}
             </div>

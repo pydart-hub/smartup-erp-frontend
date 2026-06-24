@@ -22,7 +22,7 @@ function Backdrop() {
     <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-app-bg">
       <motion.div
         className="absolute -top-48 -left-48 w-[680px] h-[680px] rounded-full"
-        style={{ background: "radial-gradient(circle, rgba(26,158,143,0.08) 0%, transparent 70%)" }}
+        style={{ background: "radial-gradient(circle, rgba(103,58,183,0.08) 0%, transparent 70%)" }}
         animate={{ x: [0, 48, 0], y: [0, 32, 0] }}
         transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
       />
@@ -87,7 +87,7 @@ function BranchCard({ branch, index }: { branch: { name: string; abbr: string };
               background: useTransform(
                 [glowX, glowY],
                 ([gx, gy]) =>
-                  `radial-gradient(280px circle at ${gx}% ${gy}%, rgba(26,158,143,0.07), transparent 65%)`
+                  `radial-gradient(280px circle at ${gx}% ${gy}%, rgba(103,58,183,0.07), transparent 65%)`
               ),
             }}
           />
@@ -95,7 +95,7 @@ function BranchCard({ branch, index }: { branch: { name: string; abbr: string };
           {/* Left accent stripe — brand gradient, same in both modes */}
           <div
             className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full"
-            style={{ background: "linear-gradient(180deg, #1A9E8F 0%, #82C35B 100%)" }}
+            style={{ background: "linear-gradient(180deg, #673AB7 0%, #7E57C2 100%)" }}
           />
 
           <div className="relative flex items-center gap-3 px-4 py-3">
@@ -132,7 +132,7 @@ function BranchCard({ branch, index }: { branch: { name: string; abbr: string };
                   transition={{ type: "spring", stiffness: 400, damping: 18 }}
                   className="text-[22px] font-black leading-none tracking-tight"
                   style={{
-                    background: "linear-gradient(135deg, #1A9E8F 0%, #82C35B 100%)",
+                    background: "linear-gradient(135deg, #673AB7 0%, #7E57C2 100%)",
                     WebkitBackgroundClip: "text",
                     WebkitTextFillColor: "transparent",
                   }}
@@ -195,8 +195,8 @@ export default function DirectorCourseSchedulePage() {
           <motion.div
             className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-md"
             style={{
-              background: "linear-gradient(135deg, #1A9E8F 0%, #82C35B 100%)",
-              boxShadow: "0 4px 12px rgba(26,158,143,0.30)",
+              background: "linear-gradient(135deg, #673AB7 0%, #7E57C2 100%)",
+              boxShadow: "0 4px 12px rgba(103,58,183,0.30)",
             }}
             animate={{ rotateY: [0, 14, 0, -14, 0] }}
             transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}

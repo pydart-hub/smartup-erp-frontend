@@ -86,7 +86,7 @@ function exportToPDF(
       const autoTable = autoTableModule.default;
 
       // SmartUp brand colors
-      const TEAL = [26, 158, 143] as const;        // #1A9E8F
+      const TEAL = [26, 158, 143] as const;        // #673AB7
       const TEAL_DARK = [18, 120, 108] as const;   // darker teal for text
       const TEAL_LIGHT = [224, 245, 242] as const;  // #E0F5F2 light teal bg
       const WHITE = [255, 255, 255] as const;

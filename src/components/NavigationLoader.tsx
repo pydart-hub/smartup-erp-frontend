@@ -109,7 +109,7 @@ export function NavigationLoader() {
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="flex flex-col items-center gap-2">
               <video
-                src="/loading.webm"
+                src="/Logo%20Icon%20LOOK%20ALPHA.webm"
                 autoPlay
                 loop
                 muted

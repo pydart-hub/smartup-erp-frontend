@@ -372,14 +372,14 @@ function MentorFeedbackReportContent({
     <div className="space-y-6">
       <BreadcrumbNav />
 
-      <Card className="overflow-hidden border-0 bg-[radial-gradient(circle_at_top_left,_rgba(130,195,91,0.28),_transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(26,158,143,0.18),_transparent_24%),linear-gradient(135deg,rgba(255,255,255,0.97),rgba(236,246,250,0.95)_48%,rgba(229,245,238,0.96))] shadow-[0_30px_60px_-28px_rgba(13,61,89,0.34)]">
+      <Card className="overflow-hidden border-0 bg-[radial-gradient(circle_at_top_left,_rgba(130,195,91,0.28),_transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(103,58,183,0.18),_transparent_24%),linear-gradient(135deg,rgba(255,255,255,0.97),rgba(236,246,250,0.95)_48%,rgba(229,245,238,0.96))] shadow-[0_30px_60px_-28px_rgba(13,61,89,0.34)]">
         <CardContent className="relative p-0">
-          <div className="absolute -left-8 top-8 h-28 w-28 rounded-full bg-[#82C35B]/20 blur-2xl" />
-          <div className="absolute right-6 top-0 h-36 w-36 rounded-full bg-[#1A9E8F]/14 blur-3xl" />
+          <div className="absolute -left-8 top-8 h-28 w-28 rounded-full bg-[#7E57C2]/20 blur-2xl" />
+          <div className="absolute right-6 top-0 h-36 w-36 rounded-full bg-[#673AB7]/14 blur-3xl" />
           <div className="relative grid gap-6 p-6 lg:grid-cols-[1.4fr_0.9fr] lg:p-8">
             <div className="space-y-5">
               <div className="flex items-start gap-4">
-                <div className="flex h-20 w-20 items-center justify-center rounded-[28px] bg-[linear-gradient(145deg,#1A9E8F,#82C35B)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_18px_32px_-16px_rgba(26,158,143,0.88)]">
+                <div className="flex h-20 w-20 items-center justify-center rounded-[28px] bg-[linear-gradient(145deg,#673AB7,#7E57C2)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_18px_32px_-16px_rgba(103,58,183,0.88)]">
                   <ClipboardList className="h-9 w-9" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -431,7 +431,7 @@ function MentorFeedbackReportContent({
                   }}
                   className={`flex flex-1 items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 ${
                     activeView === "drilldown"
-                      ? "bg-[linear-gradient(135deg,#1A9E8F,#82C35B)] text-white shadow-[0_16px_24px_-18px_rgba(26,158,143,0.9)]"
+                      ? "bg-[linear-gradient(135deg,#673AB7,#7E57C2)] text-white shadow-[0_16px_24px_-18px_rgba(103,58,183,0.9)]"
                       : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
                   }`}
                 >
@@ -445,7 +445,7 @@ function MentorFeedbackReportContent({
                   }}
                   className={`flex flex-1 items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 ${
                     activeView === "global"
-                      ? "bg-[linear-gradient(135deg,#1A9E8F,#82C35B)] text-white shadow-[0_16px_24px_-18px_rgba(26,158,143,0.9)]"
+                      ? "bg-[linear-gradient(135deg,#673AB7,#7E57C2)] text-white shadow-[0_16px_24px_-18px_rgba(103,58,183,0.9)]"
                       : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
                   }`}
                 >
@@ -536,12 +536,12 @@ function MentorFeedbackReportContent({
                             setSelectedBranch(b.branchName);
                             setSearch("");
                           }}
-                          className="cursor-pointer overflow-hidden rounded-[28px] border border-slate-200/80 bg-[radial-gradient(circle_at_top_left,rgba(130,195,91,0.18),transparent_35%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(243,248,250,0.95))] p-5 shadow-[0_20px_34px_-24px_rgba(15,23,42,0.42)] transition-all hover:-translate-y-1 hover:border-primary/20 hover:shadow-[0_28px_42px_-24px_rgba(26,158,143,0.35)] group"
+                          className="cursor-pointer overflow-hidden rounded-[28px] border border-slate-200/80 bg-[radial-gradient(circle_at_top_left,rgba(130,195,91,0.18),transparent_35%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(243,248,250,0.95))] p-5 shadow-[0_20px_34px_-24px_rgba(15,23,42,0.42)] transition-all hover:-translate-y-1 hover:border-primary/20 hover:shadow-[0_28px_42px_-24px_rgba(103,58,183,0.35)] group"
                         >
                           <div className="flex items-start justify-between gap-4">
                             <div className="min-w-0 flex-1 space-y-4">
                               <div className="flex items-center gap-3">
-                                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[linear-gradient(145deg,#1A9E8F,#82C35B)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_16px_28px_-18px_rgba(26,158,143,0.78)]">
+                                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[linear-gradient(145deg,#673AB7,#7E57C2)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_16px_28px_-18px_rgba(103,58,183,0.78)]">
                                   <Building2 className="h-5 w-5" />
                                 </div>
                                 <div className="min-w-0">
@@ -630,12 +630,12 @@ function MentorFeedbackReportContent({
                             setSelectedMentor(m.mentorUser);
                             setSearch("");
                           }}
-                          className="cursor-pointer overflow-hidden rounded-[28px] border border-slate-200/80 bg-[radial-gradient(circle_at_top_left,rgba(26,158,143,0.14),transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(243,248,250,0.95))] p-5 shadow-[0_20px_34px_-24px_rgba(15,23,42,0.42)] transition-all hover:-translate-y-1 hover:border-primary/20 hover:shadow-[0_28px_42px_-24px_rgba(26,158,143,0.35)] group"
+                          className="cursor-pointer overflow-hidden rounded-[28px] border border-slate-200/80 bg-[radial-gradient(circle_at_top_left,rgba(103,58,183,0.14),transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(243,248,250,0.95))] p-5 shadow-[0_20px_34px_-24px_rgba(15,23,42,0.42)] transition-all hover:-translate-y-1 hover:border-primary/20 hover:shadow-[0_28px_42px_-24px_rgba(103,58,183,0.35)] group"
                         >
                           <div className="flex items-start justify-between gap-4">
                             <div className="min-w-0 flex-1 space-y-4">
                               <div className="flex items-center gap-3">
-                                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[linear-gradient(145deg,#1A9E8F,#82C35B)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_16px_28px_-18px_rgba(26,158,143,0.78)]">
+                                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[linear-gradient(145deg,#673AB7,#7E57C2)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_16px_28px_-18px_rgba(103,58,183,0.78)]">
                                   <GraduationCap className="h-5 w-5" />
                                 </div>
                                 <div className="min-w-0">
@@ -831,7 +831,7 @@ function MentorFeedbackReportContent({
                                       onClick={() => {
                                         if (href) router.push(href);
                                       }}
-                                      className={`transition-colors ${href ? "cursor-pointer hover:bg-[linear-gradient(90deg,rgba(26,158,143,0.05),rgba(130,195,91,0.04))]" : ""}`}
+                                      className={`transition-colors ${href ? "cursor-pointer hover:bg-[linear-gradient(90deg,rgba(103,58,183,0.05),rgba(130,195,91,0.04))]" : ""}`}
                                     >
                                       <td className="px-5 py-4 align-top">
                                         <div className="space-y-1">
@@ -920,7 +920,7 @@ function FeedbackLogCard({
   };
 
   return (
-    <div className="rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(243,248,250,0.95))] p-5 shadow-[0_18px_30px_-24px_rgba(15,23,42,0.44)] transition-all hover:-translate-y-0.5 hover:shadow-[0_24px_36px_-24px_rgba(26,158,143,0.28)]">
+    <div className="rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(243,248,250,0.95))] p-5 shadow-[0_18px_30px_-24px_rgba(15,23,42,0.44)] transition-all hover:-translate-y-0.5 hover:shadow-[0_24px_36px_-24px_rgba(103,58,183,0.28)]">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 flex-wrap">
@@ -960,7 +960,7 @@ function FeedbackLogCard({
           <div className="flex flex-1 justify-center pt-0.5">
             <Link
               href={studentHref}
-              className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-[linear-gradient(135deg,rgba(26,158,143,0.08),rgba(130,195,91,0.12))] px-3.5 py-1.5 text-xs font-bold text-primary shadow-[0_14px_22px_-18px_rgba(26,158,143,0.45)] hover:bg-primary/10"
+              className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-[linear-gradient(135deg,rgba(103,58,183,0.08),rgba(130,195,91,0.12))] px-3.5 py-1.5 text-xs font-bold text-primary shadow-[0_14px_22px_-18px_rgba(103,58,183,0.45)] hover:bg-primary/10"
             >
               <ExternalLink className="h-3.5 w-3.5" />
               Complete Student Page

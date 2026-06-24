@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useRef, useMemo, Suspense, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -96,9 +96,7 @@ function Particles({ isDark }: { isDark: boolean }) {
       p[i * 3]     = (Math.random() - 0.5) * 24;
       p[i * 3 + 1] = (Math.random() - 0.5) * 14;
       p[i * 3 + 2] = (Math.random() - 0.5) * 14;
-      c[i * 3]     = 0.08 + Math.random() * 0.18;
-      c[i * 3 + 1] = 0.58 + Math.random() * 0.38;
-      c[i * 3 + 2] = 0.52 + Math.random() * 0.38;
+      c[i*3]=0.3+Math.random()*0.2; c[i*3+1]=0.15+Math.random()*0.2; c[i*3+2]=0.65+Math.random()*0.2;
     }
     return [p, c];
   }, []);
@@ -137,23 +135,23 @@ function ThreeScene({ isDark }: { isDark: boolean }) {
   return (
     <>
       <ambientLight intensity={isDark ? 0.2 : 0.8} />
-      <pointLight position={[8, 6, 4]}   intensity={isDark ? 2.2 : 1.0} color="#1A9E8F" />
-      <pointLight position={[-8, -4, -6]} intensity={isDark ? 1.2 : 0.6} color="#82C35B" />
+      <pointLight position={[8, 6, 4]}   intensity={isDark ? 2.2 : 1.0} color="#673AB7" />
+      <pointLight position={[-8, -4, -6]} intensity={isDark ? 1.2 : 0.6} color="#7E57C2" />
       {isDark && <pointLight position={[0, -6, 2]} intensity={0.8} color="#6D28D9" />}
 
       {isDark && <Stars radius={60} depth={40} count={1500} factor={3} saturation={0.2} fade speed={0.4} />}
       <Particles isDark={isDark} />
 
-      <OrbitalRing radius={4.0} speed={0.12}  color={isDark ? "#1A9E8F" : "#1A9E8F"} tilt={[0.5,  0,    0  ]} opacity={isDark ? 0.22 : 0.12} />
-      <OrbitalRing radius={5.5} speed={-0.08} color={isDark ? "#82C35B" : "#82C35B"} tilt={[-0.3, 0.4,  0  ]} opacity={isDark ? 0.22 : 0.10} />
-      <OrbitalRing radius={7.2} speed={0.06}  color={isDark ? "#2DD4BF" : "#2DD4BF"} tilt={[0.7, -0.3, 0.2]} opacity={isDark ? 0.22 : 0.08} />
+      <OrbitalRing radius={4.0} speed={0.12}  color={isDark ? "#673AB7" : "#673AB7"} tilt={[0.5,  0,    0  ]} opacity={isDark ? 0.22 : 0.12} />
+      <OrbitalRing radius={5.5} speed={-0.08} color={isDark ? "#7E57C2" : "#7E57C2"} tilt={[-0.3, 0.4,  0  ]} opacity={isDark ? 0.22 : 0.10} />
+      <OrbitalRing radius={7.2} speed={0.06}  color={isDark ? "#512DA8" : "#512DA8"} tilt={[0.7, -0.3, 0.2]} opacity={isDark ? 0.22 : 0.08} />
 
-      <FloatingShape position={[-8,  2.5, -4]} shape="icosa" color={isDark ? "#1A9E8F" : "#0D9488"} speed={0.25} opacity={isDark ? 0.45 : 0.18} />
-      <FloatingShape position={[ 8, -2.0, -5]} shape="octa"  color={isDark ? "#82C35B" : "#10B981"} speed={0.35} opacity={isDark ? 0.45 : 0.15} />
-      <FloatingShape position={[-6, -3.5, -3]} shape="tetra" color={isDark ? "#2DD4BF" : "#0EA5E9"} speed={0.30} opacity={isDark ? 0.45 : 0.14} />
-      <FloatingShape position={[ 7,  3.0, -3]} shape="torus" color={isDark ? "#1A9E8F" : "#1A9E8F"} speed={0.28} opacity={isDark ? 0.45 : 0.15} />
-      <FloatingShape position={[ 1,  5.0, -6]} shape="icosa" color={isDark ? "#82C35B" : "#82C35B"} speed={0.18} opacity={isDark ? 0.45 : 0.12} />
-      <FloatingShape position={[-2, -5.0, -4]} shape="octa"  color={isDark ? "#6D28D9" : "#8B5CF6"} speed={0.22} opacity={isDark ? 0.45 : 0.13} />
+      <FloatingShape position={[-8,2.5,-4]}  shape="icosa" color={"#673AB7"} speed={0.25} opacity={isDark?0.45:0.16} />
+      <FloatingShape position={[8,-2.0,-5]}  shape="octa"  color={"#7E57C2"} speed={0.35} opacity={isDark?0.45:0.14} />
+      <FloatingShape position={[-6,-3.5,-3]} shape="tetra" color={"#512DA8"} speed={0.30} opacity={isDark?0.45:0.13} />
+      <FloatingShape position={[7,3.0,-3]}   shape="torus" color={"#673AB7"} speed={0.28} opacity={isDark?0.45:0.14} />
+      <FloatingShape position={[1,5.0,-6]}   shape="icosa" color={"#7E57C2"} speed={0.18} opacity={isDark?0.45:0.11} />
+      <FloatingShape position={[-2,-5.0,-4]} shape="octa"  color={"#512DA8"} speed={0.22} opacity={isDark?0.45:0.12} />
     </>
   );
 }
@@ -269,7 +267,7 @@ export default function DirectorAcademicsLandingPage() {
         style={{
           background: isDark
             ? "linear-gradient(135deg, #060C18 0%, #0A1628 50%, #080E1A 100%)"
-            : "linear-gradient(135deg, #EAF7F5 0%, #F4F7F6 50%, #F0F9F7 100%)",
+            : "#FFFFFF",
         }}
       />
 
@@ -287,8 +285,8 @@ export default function DirectorAcademicsLandingPage() {
         className="absolute inset-0 pointer-events-none transition-opacity duration-500"
         style={{
           background: isDark
-            ? "radial-gradient(ellipse 70% 50% at 50% 30%, rgba(26,158,143,0.12) 0%, transparent 70%)"
-            : "radial-gradient(ellipse 70% 50% at 50% 30%, rgba(26,158,143,0.07) 0%, transparent 70%)",
+            ? "radial-gradient(ellipse 70% 50% at 50% 30%, rgba(103,58,183,0.12) 0%, transparent 70%)"
+            : "none",
         }}
       />
 

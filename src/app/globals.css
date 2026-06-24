@@ -19,9 +19,9 @@
   --color-text-tertiary: #9CA3AF;
 
   /* ── Brand & Interactive ── */
-  --color-primary: #1A9E8F;
-  --color-primary-hover: #168577;
-  --color-primary-light: #E0F5F2;
+  --color-primary: #673AB7;
+  --color-primary-hover: #512DA8;
+  --color-primary-light: #EDE7F6;
   --color-secondary: #82C35B;
   --color-secondary-hover: #6FAF48;
   --color-secondary-light: #EFF8E8;
@@ -29,7 +29,7 @@
   /* ── Borders ── */
   --color-border-light: #F3F4F6;
   --color-border-input: #D1D5DB;
-  --color-border-focus: #1A9E8F;
+  --color-border-focus: #673AB7;
 
   /* ── Status / Semantic ── */
   --color-success: #059669;
@@ -57,6 +57,29 @@
   --radius-lg: 14px;
   --radius-xl: 20px;
   --radius-full: 9999px;
+
+  /* ── Overrides for hardcoded colors ── */
+  --color-teal-50: #EDE7F6;
+  --color-teal-100: #D1C4E9;
+  --color-teal-200: #B39DDB;
+  --color-teal-300: #9575CD;
+  --color-teal-400: #7E57C2;
+  --color-teal-500: #673AB7;
+  --color-teal-600: #5E35B1;
+  --color-teal-700: #512DA8;
+  --color-teal-800: #4527A0;
+  --color-teal-900: #311B92;
+
+  --color-emerald-50: #EDE7F6;
+  --color-emerald-100: #D1C4E9;
+  --color-emerald-200: #B39DDB;
+  --color-emerald-300: #9575CD;
+  --color-emerald-400: #7E57C2;
+  --color-emerald-500: #673AB7;
+  --color-emerald-600: #5E35B1;
+  --color-emerald-700: #512DA8;
+  --color-emerald-800: #4527A0;
+  --color-emerald-900: #311B92;
 }
 
 /* ═══════════════════════════════════════════════
@@ -72,16 +95,16 @@
   --color-text-secondary: #D1D5DB;
   --color-text-tertiary: #6B7280;
 
-  --color-primary: #2DD4BF;
-  --color-primary-hover: #14B8A6;
-  --color-primary-light: #0F2624;
+  --color-primary: #7E57C2;
+  --color-primary-hover: #673AB7;
+  --color-primary-light: #311B92;
   --color-secondary: #86EFAC;
   --color-secondary-hover: #4ADE80;
   --color-secondary-light: #0C1F15;
 
   --color-border-light: #1F2937;
   --color-border-input: #374151;
-  --color-border-focus: #2DD4BF;
+  --color-border-focus: #7E57C2;
 
   --color-success: #34D399;
   --color-success-light: #064E3B;
@@ -130,7 +153,7 @@ html.theme-transitioning *::after {
 }
 
 .dark .theme-flash {
-  background: radial-gradient(circle at 50% 50%, rgba(45,212,191,0.12), transparent 70%);
+  background: radial-gradient(circle at 50% 50%, rgba(126,87,194,0.12), transparent 70%);
 }
 
 @keyframes theme-flash-anim {

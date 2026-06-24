@@ -21,6 +21,12 @@ function formatDate(value?: string): string {
   }
 }
 
+
+function toDialableNumber(value?: string): string {
+  if (!value) return "";
+  return value.replace(/[^\d+]/g, "");
+}
+
 export default function SalesUserDiscontinuedPage() {
   const [search, setSearch] = useState("");
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
@@ -36,7 +42,7 @@ export default function SalesUserDiscontinuedPage() {
     const q = search.trim().toLowerCase();
     if (!q) return rows;
     return rows.filter((row) =>
-      [row.student_name, row.student_id, row.branch, row.program, row.mobile]
+      [row.student_name, row.student_id, row.branch, row.program, row.mobile, row.parent_mobile]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(q)),
     );
@@ -159,6 +165,20 @@ export default function SalesUserDiscontinuedPage() {
                     <div className="rounded-xl border border-border-light bg-surface px-3 py-2">
                       <p className="text-[10px] uppercase tracking-wide text-text-tertiary">Discontinued</p>
                       <p className="mt-1 text-sm font-medium text-text-primary">{formatDate(row.discontinuation_date)}</p>
+                    </div>
+                    <div className="rounded-xl border border-border-light bg-surface px-3 py-2">
+                      <p className="text-[10px] uppercase tracking-wide text-text-tertiary">Parent Number</p>
+                      {toDialableNumber(row.parent_mobile) ? (
+                        <a
+                          href={`tel:${toDialableNumber(row.parent_mobile)}`}
+                          className="mt-1 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+                        >
+                          <Phone className="h-3.5 w-3.5" />
+                          {row.parent_mobile}
+                        </a>
+                      ) : (
+                        <p className="mt-1 text-sm font-medium text-text-tertiary">No number</p>
+                      )}
                     </div>
                     <div className="rounded-xl border border-red-100 bg-red-50/50 px-3 py-2">
                       <p className="text-[10px] uppercase tracking-wide text-red-700/70">Overdue</p>

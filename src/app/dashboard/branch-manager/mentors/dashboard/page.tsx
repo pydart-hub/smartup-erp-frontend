@@ -270,15 +270,15 @@ export default function BranchManagerMentorsDashboardPage() {
             className="space-y-6"
           >
             {/* Header */}
-            <Card className="overflow-hidden border-0 bg-[radial-gradient(circle_at_top_left,_rgba(130,195,91,0.28),_transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(26,158,143,0.18),_transparent_24%),linear-gradient(135deg,rgba(255,255,255,0.97),rgba(236,246,250,0.95)_48%,rgba(229,245,238,0.96))] shadow-[0_30px_60px_-28px_rgba(13,61,89,0.34)]">
+            <Card className="overflow-hidden border-0 bg-[radial-gradient(circle_at_top_left,_rgba(130,195,91,0.28),_transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(103,58,183,0.18),_transparent_24%),linear-gradient(135deg,rgba(255,255,255,0.97),rgba(236,246,250,0.95)_48%,rgba(229,245,238,0.96))] shadow-[0_30px_60px_-28px_rgba(13,61,89,0.34)]">
               <CardContent className="relative p-0">
-                <div className="absolute -left-8 top-8 h-28 w-28 rounded-full bg-[#82C35B]/20 blur-2xl" />
-                <div className="absolute right-6 top-0 h-36 w-36 rounded-full bg-[#1A9E8F]/14 blur-3xl" />
+                <div className="absolute -left-8 top-8 h-28 w-28 rounded-full bg-[#7E57C2]/20 blur-2xl" />
+                <div className="absolute right-6 top-0 h-36 w-36 rounded-full bg-[#673AB7]/14 blur-3xl" />
 
                 <div className="relative grid gap-6 p-6 lg:grid-cols-[1.45fr_0.95fr] lg:p-8">
                   <div className="space-y-5">
                     <div className="flex items-start gap-4">
-                      <div className="flex h-20 w-20 items-center justify-center rounded-[28px] bg-[linear-gradient(145deg,#1A9E8F,#82C35B)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_18px_32px_-16px_rgba(26,158,143,0.88)]">
+                      <div className="flex h-20 w-20 items-center justify-center rounded-[28px] bg-[linear-gradient(145deg,#673AB7,#7E57C2)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_18px_32px_-16px_rgba(103,58,183,0.88)]">
                         <Users className="h-9 w-9" />
                       </div>
                       <div className="min-w-0 flex-1">
@@ -312,7 +312,7 @@ export default function BranchManagerMentorsDashboardPage() {
                     <div className="mt-4 space-y-3">
                       <Button
                         onClick={() => setIsCreateModalOpen(true)}
-                        className="w-full justify-between rounded-2xl bg-[linear-gradient(135deg,#82C35B,#1A9E8F)] py-6 text-white shadow-[0_18px_28px_-18px_rgba(26,158,143,0.85)] hover:opacity-95"
+                        className="w-full justify-between rounded-2xl bg-[linear-gradient(135deg,#7E57C2,#673AB7)] py-6 text-white shadow-[0_18px_28px_-18px_rgba(103,58,183,0.85)] hover:opacity-95"
                       >
                         <span className="inline-flex items-center gap-2">
                           <Plus className="h-4 w-4" /> Register Mentor
@@ -403,11 +403,11 @@ export default function BranchManagerMentorsDashboardPage() {
                         return (
                           <tr
                             key={m.name}
-                            className="border-b border-border-light last:border-0 hover:bg-[linear-gradient(90deg,rgba(130,195,91,0.05),rgba(26,158,143,0.04))] transition-colors"
+                            className="border-b border-border-light last:border-0 hover:bg-[linear-gradient(90deg,rgba(130,195,91,0.05),rgba(103,58,183,0.04))] transition-colors"
                           >
                             <td className="px-5 py-4">
                               <div className="flex items-center gap-3">
-                                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[linear-gradient(145deg,#1A9E8F,#82C35B)] text-sm font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_14px_24px_-18px_rgba(26,158,143,0.8)]">
+                                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[linear-gradient(145deg,#673AB7,#7E57C2)] text-sm font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_14px_24px_-18px_rgba(103,58,183,0.8)]">
                                   {m.mentor_name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase()}
                                 </div>
                                 <div>
@@ -435,7 +435,7 @@ export default function BranchManagerMentorsDashboardPage() {
                                         ? "bg-error"
                                         : loadPercentage > 85
                                         ? "bg-warning"
-                                        : "bg-gradient-to-r from-[#82C35B] to-[#1A9E8F]"
+                                        : "bg-gradient-to-r from-[#7E57C2] to-[#673AB7]"
                                     }`}
                                   />
                                 </div>
@@ -505,13 +505,13 @@ export default function BranchManagerMentorsDashboardPage() {
             </div>
 
             {/* Mentor Details Summary Card */}
-            <Card className="relative overflow-hidden bg-gradient-to-r from-[#1A9E8F]/5 via-transparent to-[#82C35B]/5">
+            <Card className="relative overflow-hidden bg-gradient-to-r from-[#673AB7]/5 via-transparent to-[#7E57C2]/5">
               <CardContent className="p-6 md:p-8">
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
                   {/* Left info column */}
                   <div className="space-y-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#82C35B] to-[#1A9E8F] flex items-center justify-center shadow-md">
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#7E57C2] to-[#673AB7] flex items-center justify-center shadow-md">
                         <User className="h-6 w-6 text-white" />
                       </div>
                       <div>
@@ -760,7 +760,7 @@ export default function BranchManagerMentorsDashboardPage() {
                       </div>
                     ) : (
                       <select
-                        className="h-10 w-full rounded-[10px] border border-border-input bg-surface px-3 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-[#1A9E8F] focus:border-[#1A9E8F] transition-all"
+                        className="h-10 w-full rounded-[10px] border border-border-input bg-surface px-3 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-[#673AB7] focus:border-[#673AB7] transition-all"
                         value={newEmployeeId}
                         onChange={(e) => setNewEmployeeId(e.target.value)}
                         disabled={createMentorMutation.isPending}
@@ -782,7 +782,7 @@ export default function BranchManagerMentorsDashboardPage() {
                       value={newMentorName}
                       onChange={(e) => setNewMentorName(e.target.value)}
                       disabled={createMentorMutation.isPending}
-                      className="rounded-[10px] focus:ring-2 focus:ring-[#1A9E8F] focus:border-[#1A9E8F]"
+                      className="rounded-[10px] focus:ring-2 focus:ring-[#673AB7] focus:border-[#673AB7]"
                     />
                   </div>
 
@@ -811,7 +811,7 @@ export default function BranchManagerMentorsDashboardPage() {
                   <Button
                     onClick={() => createMentorMutation.mutate()}
                     disabled={createMentorMutation.isPending || !newEmployeeId}
-                    className="bg-gradient-to-r from-[#82C35B] to-[#1A9E8F] text-white hover:opacity-95 rounded-xl min-w-[100px]"
+                    className="bg-gradient-to-r from-[#7E57C2] to-[#673AB7] text-white hover:opacity-95 rounded-xl min-w-[100px]"
                   >
                     {createMentorMutation.isPending ? (
                       <>

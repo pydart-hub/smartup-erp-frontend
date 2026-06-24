@@ -43,6 +43,56 @@ function pickLatestByStudent<T extends { student?: string }>(rows: T[]): Map<str
   return map;
 }
 
+
+async function getParentMobileMap(studentIds: string[]): Promise<Record<string, string>> {
+  if (studentIds.length === 0) return {};
+
+  const studentGuardianRows = await frappeGetList(
+    "Student",
+    [["name", "in", studentIds]],
+    ["name", "guardians.guardian"],
+    Math.max(studentIds.length, 50),
+  );
+
+  const studentToGuardian = new Map<string, string>();
+  const guardianIds: string[] = [];
+  for (const row of studentGuardianRows) {
+    const studentId = String(row.name ?? "");
+    const guardianId = String(row.guardian ?? "");
+    if (!studentId || !guardianId || studentToGuardian.has(studentId)) continue;
+    studentToGuardian.set(studentId, guardianId);
+    if (!guardianIds.includes(guardianId)) guardianIds.push(guardianId);
+  }
+
+  if (guardianIds.length === 0) return {};
+
+  const guardians = await frappeGetList(
+    "Guardian",
+    [["name", "in", guardianIds]],
+    ["name", "mobile_number"],
+    Math.max(guardianIds.length, 50),
+  );
+
+  const guardianToMobile = new Map<string, string>();
+  for (const row of guardians) {
+    const guardianId = String(row.name ?? "");
+    const mobile = String(row.mobile_number ?? "");
+    if (guardianId && mobile) {
+      guardianToMobile.set(guardianId, mobile);
+    }
+  }
+
+  const result: Record<string, string> = {};
+  for (const [studentId, guardianId] of studentToGuardian.entries()) {
+    const mobile = guardianToMobile.get(guardianId);
+    if (mobile) {
+      result[studentId] = mobile;
+    }
+  }
+
+  return result;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const session = parseSession(request);
@@ -79,6 +129,7 @@ export async function GET(request: NextRequest) {
 
     const studentIds = students.map((row) => row.name as string);
     const today = new Date().toISOString().slice(0, 10);
+    const parentMobileMap = await getParentMobileMap(studentIds);
 
     const enrollments = await frappeGetList(
       "Program Enrollment",
@@ -146,7 +197,7 @@ export async function GET(request: NextRequest) {
         program: String(enrollment?.program ?? ""),
         batch: String(enrollment?.student_batch_name ?? ""),
         mobile: String(student.student_mobile_number ?? ""),
-        parent_mobile: String(student.custom_parent_name ?? ""),
+        parent_mobile: parentMobileMap[studentId] ?? "",
         discontinuation_date: String(student.custom_discontinuation_date ?? ""),
         discontinuation_reason: String(student.custom_discontinuation_reason ?? ""),
         outstanding_amount: outstanding?.outstanding_amount ?? 0,

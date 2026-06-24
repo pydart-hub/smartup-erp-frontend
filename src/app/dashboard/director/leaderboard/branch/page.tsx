@@ -43,7 +43,7 @@ const PERIODS: { value: Period; label: string; emoji: string }[] = [
 
 const PERF_TYPES: { value: PerfType; label: string; icon: React.ComponentType<{ className?: string }>; gradient: string }[] = [
   { value: "overall", label: "Overall", icon: Crown, gradient: "from-violet-500 to-purple-600" },
-  { value: "collection", label: "Collection", icon: TrendingUp, gradient: "from-emerald-500 to-teal-600" },
+  { value: "collection", label: "Collection", icon: TrendingUp, gradient: "from-[#7E57C2] to-[#512DA8]" },
   { value: "admissions", label: "Admissions", icon: UserPlus, gradient: "from-blue-500 to-indigo-600" },
   { value: "fees", label: "Revenue", icon: IndianRupee, gradient: "from-amber-500 to-orange-600" },
 ];

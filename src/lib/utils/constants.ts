@@ -297,7 +297,7 @@ export const MENTOR_NAV: NavItem[] = [
 ];
 
 export const SALES_USER_BRANCH_MAP: Record<string, string[]> = {
-  "farijabasheer11@gmail.com": ["Smart Up Eraveli", "Smart Up Fortkochi", "Smart Up Kadavanthra"],
+  "farijabasheer11@gmail.com": ["Smart Up Eraveli", "Smart Up Fortkochi", "Smart Up Kadavanthara"],
   "saniya.smartup@gmail.com": ["Smart Up Thopumpadi", "Smart Up Palluruthy", "Smart Up Vennala"],
   "sneha.smartup@gmail.com": ["Smart Up Moolamkuzhi", "Smart Up Chullickal", "Smart Up Edappally"],
 };

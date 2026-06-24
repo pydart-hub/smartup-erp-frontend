@@ -31,7 +31,7 @@ const DEMO_ROLES = [
     description:
       "Manage students, staff, admissions, fees, and track branch performance with real-time analytics.",
     icon: Building2,
-    color: "from-primary to-[#2DD4BF]",
+    color: "from-primary to-[#512DA8]",
     shadow: "shadow-primary/25",
     href: "/demo/branch-manager",
     features: [

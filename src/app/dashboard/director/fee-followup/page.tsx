@@ -239,7 +239,7 @@ function ScoreRing({ score, size = 60 }: { score: number; size?: number }) {
   const dash = (score / 100) * circ;
   // Use brand teal for high, secondary green for mid, muted for low
   const trackColor = "#E0F5F2";
-  const arcColor   = score >= 70 ? "#1A9E8F" : score >= 40 ? "#82C35B" : "#9CA3AF";
+  const arcColor   = score >= 70 ? "#673AB7" : score >= 40 ? "#7E57C2" : "#9CA3AF";
   return (
     <svg width={size} height={size} className="-rotate-90">
       <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={trackColor} strokeWidth={6} />
@@ -276,7 +276,7 @@ function ScoreBarRow({ label, value, weight }: { label: string; value: number; w
           animate={{ width: `${pct}%` }}
           transition={{ duration: 0.9, ease: "easeOut" }}
           className="h-full rounded-full"
-          style={{ background: "linear-gradient(to right, #1A9E8F, #82C35B)" }}
+          style={{ background: "linear-gradient(to right, #673AB7, #7E57C2)" }}
         />
       </div>
     </div>
@@ -290,9 +290,9 @@ function PodiumCard({ user, rank, expanded, onToggle }: {
   const heights  = { 1: "h-20", 2: "h-14", 3: "h-10" } as Record<number, string>;
   const configs  = {
     1: {
-      card:   "from-[#EAF7F5] to-white border-[#1A9E8F]/30",
-      base:   "from-[#E0F5F2] to-[#EAF7F5] border-[#1A9E8F]/20",
-      shadow: "shadow-[0_4px_20px_rgba(26,158,143,0.18)]",
+      card:   "from-[#EAF7F5] to-white border-[#673AB7]/30",
+      base:   "from-[#E0F5F2] to-[#EAF7F5] border-[#673AB7]/20",
+      shadow: "shadow-[0_4px_20px_rgba(103,58,183,0.18)]",
       crown:  true,
     },
     2: {
@@ -302,8 +302,8 @@ function PodiumCard({ user, rank, expanded, onToggle }: {
       crown:  false,
     },
     3: {
-      card:   "from-[#F0F9EC] to-white border-[#82C35B]/25",
-      base:   "from-[#EFF8E8] to-white border-[#82C35B]/15",
+      card:   "from-[#F0F9EC] to-white border-[#7E57C2]/25",
+      base:   "from-[#EFF8E8] to-white border-[#7E57C2]/15",
       shadow: "shadow-card",
       crown:  false,
     },
@@ -428,12 +428,12 @@ function StatCard({
 }) {
   // Icon + accent strip color — all within brand/semantic palette
   const configs: Record<string, { iconBg: string; iconColor: string; accent: string }> = {
-    blue:    { iconBg: "bg-primary-light",   iconColor: "text-primary",  accent: "#1A9E8F" },
-    violet:  { iconBg: "bg-primary-light",   iconColor: "text-primary",  accent: "#1A9E8F" },
+    blue:    { iconBg: "bg-primary-light",   iconColor: "text-primary",  accent: "#673AB7" },
+    violet:  { iconBg: "bg-primary-light",   iconColor: "text-primary",  accent: "#673AB7" },
     amber:   { iconBg: "bg-warning-light",   iconColor: "text-warning",  accent: "#D97706" },
     emerald: { iconBg: "bg-success-light",   iconColor: "text-success",  accent: "#059669" },
     red:     { iconBg: "bg-error-light",     iconColor: "text-error",    accent: "#DC2626" },
-    teal:    { iconBg: "bg-primary-light",   iconColor: "text-primary",  accent: "#1A9E8F" },
+    teal:    { iconBg: "bg-primary-light",   iconColor: "text-primary",  accent: "#673AB7" },
   };
   const c = configs[color] ?? configs.teal;
   const numValue = typeof value === "number" ? value : 0;
@@ -565,7 +565,7 @@ export default function FeeFollowUpDashboard() {
           <div className="flex items-center gap-3">
             <div
               className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shrink-0"
-              style={{ boxShadow: "0 4px 12px rgba(26,158,143,0.30)" }}
+              style={{ boxShadow: "0 4px 12px rgba(103,58,183,0.30)" }}
             >
               <PhoneCall className="h-5 w-5 text-white" />
             </div>
@@ -654,7 +654,7 @@ export default function FeeFollowUpDashboard() {
         {isLoading && (
           <div className="flex flex-col items-center justify-center h-48 gap-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/welcome.gif" alt="Loading" className="w-20 h-20 object-contain" />
+            <video src="/Logo%20Icon%20Smile%20ALPHA.webm" autoPlay loop muted playsInline alt="Loading" className="w-20 h-20 object-contain" />
             <p className="text-xs font-semibold text-text-tertiary animate-pulse tracking-wide">Fetching Call Datas…</p>
           </div>
         )}
@@ -833,7 +833,7 @@ export default function FeeFollowUpDashboard() {
                                         animate={{ width: `${u.totalScore}%` }}
                                         transition={{ duration: 0.8 }}
                                         className="h-full rounded-full"
-                                        style={{ background: "linear-gradient(to right, #1A9E8F, #82C35B)" }}
+                                        style={{ background: "linear-gradient(to right, #673AB7, #7E57C2)" }}
                                       />
                                     </div>
                                   </div>

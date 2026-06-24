@@ -142,26 +142,27 @@ export function Sidebar({ navItems = BRANCH_MANAGER_NAV }: SidebarProps) {
         href={item.href}
         onClick={() => setSidebarOpen(false)}
         className={cn(
-          "group flex items-center gap-3 rounded-xl px-3 transition-all duration-200 relative",
+          "group flex items-center transition-all duration-200 relative",
           isChild ? "py-1.5 text-xs font-normal" : "py-2.5 text-sm font-medium",
           isActive
             ? "text-white"
             : "text-text-secondary hover:text-text-primary",
-          sidebarCollapsed && "justify-center px-0",
-          isChild && !sidebarCollapsed && "pl-10"
+          sidebarCollapsed
+            ? "justify-center px-0 mx-auto w-10 h-10 rounded-xl"
+            : cn("gap-3 rounded-xl px-3", isChild && "pl-10")
         )}
       >
         {isActive && (
           <motion.div
             layoutId="sidebar-active"
-            className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary to-teal-500 shadow-[0_4px_16px_rgba(26,158,143,0.4)]"
+            className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary to-[#512DA8] shadow-[0_4px_16px_rgba(103,58,183,0.4)]"
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
           />
         )}
         {!isActive && (
           <span className="absolute inset-0 rounded-xl bg-transparent group-hover:bg-black/[0.04] dark:group-hover:bg-white/[0.05] transition-colors" />
         )}
-        <span className="relative flex items-center gap-3 w-full">
+        <span className={cn("relative flex items-center", sidebarCollapsed ? "justify-center" : "gap-3 w-full")}>
           {renderIcon(item.icon, item.emoji, isActive, isChild)}
           {!sidebarCollapsed && <span className="truncate">{item.label}</span>}
           {item.badge && !sidebarCollapsed && (
@@ -211,35 +212,69 @@ export function Sidebar({ navItems = BRANCH_MANAGER_NAV }: SidebarProps) {
       >
         {/* Header */}
         <div className={cn(
-          "h-16 flex items-center border-b border-white/30 dark:border-white/[0.08] px-4 shrink-0",
-          sidebarCollapsed ? "justify-center" : "justify-between"
+          "h-16 flex items-center border-b border-white/30 dark:border-white/[0.08] shrink-0 relative",
+          sidebarCollapsed ? "justify-center px-0" : "justify-between px-4"
         )}>
           {!sidebarCollapsed && (
-            <Link href={homeHref} className="flex items-center gap-2.5">
+            <Link href={homeHref} className="flex items-center gap-2.5 overflow-hidden">
               <Image
                 src="/smartup-logo.png"
                 alt="SmartUp"
-                width={45}
-                height={45}
+                width={36}
+                height={36}
                 className="object-contain block flex-shrink-0 drop-shadow-sm"
               />
-              <span className="text-[#1a1a1a] dark:text-white text-xl tracking-[0.12em] uppercase leading-none" style={{ fontFamily: 'var(--font-montserrat)', fontWeight: 900 }}>SMART UP</span>
+              <span className="text-[#1a1a1a] dark:text-white text-lg tracking-[0.12em] uppercase leading-none" style={{ fontFamily: 'var(--font-montserrat)', fontWeight: 900 }}>SMART UP</span>
             </Link>
           )}
           {sidebarCollapsed && (
-            <Image
-              src="/smartup-logo.png"
-              alt="SmartUp"
-              width={45}
-              height={45}
-              className="object-contain block flex-shrink-0 drop-shadow-sm"
-            />
+            <Link href={homeHref} className="flex items-center justify-center">
+              <Image
+                src="/smartup-logo.png"
+                alt="SmartUp"
+                width={36}
+                height={36}
+                className="object-contain block flex-shrink-0 drop-shadow-sm"
+              />
+            </Link>
           )}
+
+          {/* Collapse Toggle (Desktop only) */}
+          <motion.button
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.92 }}
+            onClick={toggleSidebarCollapsed}
+            className={cn(
+              "hidden lg:flex items-center justify-center text-text-tertiary hover:text-primary transition-all z-50",
+              sidebarCollapsed
+                ? "absolute top-1/2 -translate-y-1/2 -right-3.5 w-7 h-7 rounded-full bg-white dark:bg-slate-800 shadow-[0_4px_12px_rgba(0,0,0,0.1)] border border-slate-200 dark:border-slate-700"
+                : "w-8 h-8 rounded-xl bg-black/[0.04] dark:bg-white/[0.05] hover:bg-primary/10 border border-transparent dark:border-white/10"
+            )}
+            style={{ perspective: 400 }}
+          >
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={sidebarCollapsed ? "collapsed" : "expanded"}
+                initial={{ rotateY: -90, opacity: 0 }}
+                animate={{ rotateY: 0, opacity: 1 }}
+                exit={{ rotateY: 90, opacity: 0 }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
+                className="flex items-center justify-center"
+              >
+                {sidebarCollapsed ? (
+                  <ChevronRight className="h-3.5 w-3.5 text-primary" />
+                ) : (
+                  <ChevronLeft className="h-4 w-4" />
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </motion.button>
+
           {/* Mobile close */}
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={() => setSidebarOpen(false)}
-            className="lg:hidden text-text-tertiary hover:text-text-primary transition-colors p-1 rounded-lg hover:bg-black/5"
+            className="lg:hidden text-text-tertiary hover:text-primary transition-colors p-1 rounded-lg hover:bg-black/5"
           >
             <X className="h-5 w-5" />
           </motion.button>
@@ -262,26 +297,28 @@ export function Sidebar({ navItems = BRANCH_MANAGER_NAV }: SidebarProps) {
                       href={item.href}
                       onClick={() => setSidebarOpen(false)}
                       className={cn(
-                        "group flex-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 relative",
+                        "group flex-1 flex items-center transition-all duration-200 relative",
                         isParentActive
                           ? "text-white"
                           : isChildActive
                             ? "text-primary"
                             : "text-text-secondary hover:text-text-primary",
-                        sidebarCollapsed && "justify-center px-0"
+                        sidebarCollapsed
+                          ? "justify-center px-0 mx-auto w-10 h-10 rounded-xl"
+                          : "gap-3 rounded-xl px-3 py-2.5 text-sm font-medium"
                       )}
                     >
                       {isParentActive && (
                         <motion.div
                           layoutId="sidebar-active"
-                          className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary to-teal-500 shadow-[0_4px_16px_rgba(26,158,143,0.4)]"
+                          className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary to-[#512DA8] shadow-[0_4px_16px_rgba(103,58,183,0.4)]"
                           transition={{ type: "spring", stiffness: 300, damping: 30 }}
                         />
                       )}
                       {!isParentActive && (
                         <span className="absolute inset-0 rounded-xl bg-transparent group-hover:bg-black/[0.04] dark:group-hover:bg-white/[0.05] transition-colors" />
                       )}
-                      <span className="relative flex items-center gap-3">
+                      <span className={cn("relative flex items-center", sidebarCollapsed ? "justify-center" : "gap-3")}>
                         {renderIcon(item.icon, item.emoji, isParentActive)}
                         {!sidebarCollapsed && <span>{item.label}</span>}
                       </span>
@@ -330,21 +367,7 @@ export function Sidebar({ navItems = BRANCH_MANAGER_NAV }: SidebarProps) {
           })}
         </nav>
 
-        {/* Collapse Toggle (Desktop only) */}
-        <div className="hidden lg:flex items-center justify-center p-3 border-t border-white/30 dark:border-white/[0.08]">
-          <motion.button
-            whileHover={{ scale: 1.08 }}
-            whileTap={{ scale: 0.92 }}
-            onClick={toggleSidebarCollapsed}
-            className="w-8 h-8 rounded-xl bg-black/[0.04] dark:bg-white/[0.05] hover:bg-primary/10 flex items-center justify-center text-text-tertiary hover:text-primary transition-all border border-white/30 dark:border-white/10"
-          >
-            {sidebarCollapsed ? (
-              <ChevronRight className="h-4 w-4" />
-            ) : (
-              <ChevronLeft className="h-4 w-4" />
-            )}
-          </motion.button>
-        </div>
+        {/* Bottom toggle removed */}
       </aside>
     </>
   );

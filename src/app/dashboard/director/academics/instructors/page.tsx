@@ -32,9 +32,9 @@ function StatCard3D({ icon: Icon, iconClass, label, value, sub, delay = 0 }: {
         className="relative overflow-hidden rounded-xl bg-surface border border-border-light shadow-card hover:shadow-card-hover transition-shadow duration-200 group p-4">
         <motion.div className="pointer-events-none absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
           style={{ background: useTransform([glowX, glowY], ([gx, gy]) =>
-            `radial-gradient(220px circle at ${gx}% ${gy}%, rgba(26,158,143,0.07), transparent 65%)`) }} />
+            `radial-gradient(220px circle at ${gx}% ${gy}%, rgba(103,58,183,0.07), transparent 65%)`) }} />
         <div className="absolute top-0 left-4 right-4 h-[2px] rounded-b-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-          style={{ background: "linear-gradient(90deg, #1A9E8F, #82C35B)" }} />
+          style={{ background: "linear-gradient(90deg, #673AB7, #7E57C2)" }} />
         <div className="relative flex items-start gap-3">
           <motion.div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${iconClass}`}
             style={{ transformStyle: "preserve-3d" }} whileHover={{ rotateY: 16, rotateX: -10, scale: 1.08 }}
@@ -90,7 +90,7 @@ export default function DirectorAcademicsInstructorsPage() {
             <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.22,1,0.36,1] }}
               className="flex items-center gap-3">
               <motion.div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                style={{ background: "linear-gradient(135deg, #1A9E8F 0%, #82C35B 100%)", boxShadow: "0 4px 12px rgba(26,158,143,0.28)" }}
+                style={{ background: "linear-gradient(135deg, #673AB7 0%, #7E57C2 100%)", boxShadow: "0 4px 12px rgba(103,58,183,0.28)" }}
                 animate={{ rotateY: [0, 14, 0, -14, 0] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}>
                 <GraduationCap className="h-4 w-4 text-white" />
               </motion.div>
@@ -191,7 +191,7 @@ function BranchRow3D({ branch, topicPct, classPct, instructors, delay, onClick }
         className="relative w-full text-left overflow-hidden rounded-xl bg-surface border border-border-light shadow-card hover:shadow-card-hover transition-shadow duration-200 group px-4 py-3 pl-5 flex items-center justify-between gap-3">
         {/* left accent stripe */}
         <div className="absolute left-0 top-2.5 bottom-2.5 w-[3px] rounded-r-full"
-          style={{ background: "linear-gradient(180deg, #1A9E8F, #82C35B)" }} />
+          style={{ background: "linear-gradient(180deg, #673AB7, #7E57C2)" }} />
         {/* topic pct badge */}
         <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-sm font-black shrink-0 ${pctBadgeColor(topicPct, 70, 50)}`}>
           {topicPct}%
