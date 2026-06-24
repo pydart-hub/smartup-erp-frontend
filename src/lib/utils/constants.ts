@@ -17,7 +17,7 @@ export const CLASS_LEVELS = ["8", "9", "10", "11", "12"] as const;
 
 export const BATCH_NAMES = ["A", "B", "C", "D", "E", "F", "G", "H"] as const;
 
-export const ATTENDANCE_STATUSES = ["Present", "Absent", "Late"] as const;
+export const ATTENDANCE_STATUSES = ["Present", "Absent", "Late", "Not Enrolled"] as const;
 
 export const PAYMENT_MODES = ["Cash", "Bank Transfer", "UPI", "Cheque", "Razorpay"] as const;
 

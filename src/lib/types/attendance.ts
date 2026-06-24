@@ -9,13 +9,14 @@ export interface AttendanceRecord {
   student_name?: string;
   student_mobile_number?: string;
   date: string;                // required
-  status: "Present" | "Absent" | "Late"; // required
+  status: "Present" | "Absent" | "Late" | "Not Enrolled"; // required
   student_group?: string;      // link → Student Group
   course_schedule?: string;    // link → Course Schedule
   leave_application?: string;
   custom_branch?: string;      // link → Company (Branch)
   link_nvfk?: string;          // Program (internal Frappe link field)
   amended_from?: string;
+  custom_not_enrolled?: 0 | 1; // Attendance row represents a not-enrolled student for the session
   custom_video_watched?: 0 | 1; // Parent confirmed video class watched
   custom_video_watched_on?: string; // ISO datetime when marked watched
 }
@@ -27,6 +28,7 @@ export interface AttendanceSummary {
   present: number;
   absent: number;
   late: number;
+  not_enrolled?: number;
   percentage: number;
 }
 
@@ -38,8 +40,8 @@ export interface BulkAttendancePayload {
   student_group: string;        // Student Group name
   date: string;
   course_schedule?: string;     // Course Schedule name for session-level attendance
-  /** Each entry: { student: "STU-...", student_name: "Name", status: "Present"|"Absent"|"Late" } */
-  students: { student: string; student_name: string; status: "Present" | "Absent" | "Late" }[];
+  /** Each entry: { student: "STU-...", student_name: "Name", status: "Present"|"Absent"|"Late"|"Not Enrolled" } */
+  students: { student: string; student_name: string; status: "Present" | "Absent" | "Late" | "Not Enrolled" }[];
   custom_branch?: string;       // Company / branch for the student group
 }
 

@@ -7,7 +7,7 @@ const FRAPPE_API_SECRET = process.env.FRAPPE_API_SECRET;
 type AttendanceEntry = {
   student: string;
   student_name: string;
-  status: "Present" | "Absent" | "Late";
+  status: "Present" | "Absent" | "Late" | "Not Enrolled";
 };
 
 type AttendancePayload = {
@@ -82,16 +82,18 @@ async function getExistingAttendance(date: string, studentGroup: string, courseS
       ["student_group", "=", studentGroup],
       ["course_schedule", "=", courseSchedule],
     ]),
-    fields: JSON.stringify(["name", "student", "status", "course_schedule", "custom_branch"]),
+    fields: JSON.stringify(["name", "docstatus", "student", "status", "course_schedule", "custom_branch", "custom_not_enrolled"]),
     limit_page_length: "500",
   });
   const json = await frappeFetch(`resource/Student%20Attendance?${query.toString()}`);
   return (json.data ?? []) as Array<{
     name: string;
+    docstatus?: number;
     student: string;
     status: string;
     course_schedule?: string;
     custom_branch?: string;
+    custom_not_enrolled?: number;
   }>;
 }
 
@@ -137,15 +139,22 @@ export async function POST(req: NextRequest) {
 
     for (const entry of students) {
       const existing = existingMap.get(entry.student);
-      if (existing && existing.status === entry.status) continue;
+      const existingStatus = existing?.custom_not_enrolled ? "Not Enrolled" : existing?.status;
+      if (existing && existingStatus === entry.status) continue;
 
       if (existing) {
-        await frappeFetch("method/frappe.client.cancel", {
-          method: "POST",
-          body: JSON.stringify({
-            doctype: "Student Attendance",
-            name: existing.name,
-          }),
+        if (existing.docstatus === 1) {
+          await frappeFetch("method/frappe.client.cancel", {
+            method: "POST",
+            body: JSON.stringify({
+              doctype: "Student Attendance",
+              name: existing.name,
+            }),
+          });
+        }
+
+        await frappeFetch(`resource/Student%20Attendance/${encodeURIComponent(existing.name)}`, {
+          method: "DELETE",
         });
       }
 
@@ -159,6 +168,7 @@ export async function POST(req: NextRequest) {
           student_group: studentGroup,
           course_schedule: scheduleName,
           custom_branch: body.custom_branch || schedule.custom_branch || undefined,
+          custom_not_enrolled: entry.status === "Not Enrolled" ? 1 : 0,
           docstatus: 1,
         }),
       });

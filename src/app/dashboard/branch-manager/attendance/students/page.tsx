@@ -24,8 +24,9 @@ import type { AttendanceRecord } from "@/lib/types/attendance";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useAcademicYearStore } from "@/lib/stores/academicYearStore";
 import apiClient from "@/lib/api/client";
+import { ATTENDANCE_STATUSES } from "@/lib/utils/constants";
 
-type AttendanceStatus = "Present" | "Absent" | "Late";
+type AttendanceStatus = (typeof ATTENDANCE_STATUSES)[number];
 
 type SessionState = "ready" | "completed";
 
@@ -35,6 +36,7 @@ interface ClassSummary {
   present: number;
   absent: number;
   late: number;
+  notEnrolled: number;
   total: number;
   percentage: number;
   sessionCount: number;
@@ -53,9 +55,11 @@ interface StudentAttendanceReportRow {
   studentName: string;
   totalSessions: number;
   markedSessions: number;
+  eligibleSessions: number;
   present: number;
   absent: number;
   late: number;
+  notEnrolled: number;
   attendancePct: number;
   absentDays: AbsentDayDetail[];
 }
@@ -86,6 +90,7 @@ const statusConfig = {
   Present: { icon: CheckCircle, color: "text-success", bg: "bg-success-light", ring: "ring-success/20" },
   Absent: { icon: XCircle, color: "text-error", bg: "bg-error-light", ring: "ring-error/20" },
   Late: { icon: Clock, color: "text-warning", bg: "bg-warning-light", ring: "ring-warning/20" },
+  "Not Enrolled": { icon: Users, color: "text-sky-700", bg: "bg-sky-50", ring: "ring-sky-500/20" },
 };
 
 export default function AttendancePage() {
@@ -194,18 +199,25 @@ export default function AttendancePage() {
   // Build class summaries
   const allSummaries: ClassSummary[] = useMemo(() => {
     const rawRecords = branchAttendanceRes?.data ?? [];
-    const groupMap = new Map<string, { present: number; absent: number; late: number }>();
+    const groupMap = new Map<string, { present: number; absent: number; late: number; notEnrolled: number }>();
+    const recordsBySchedule = new Map<string, AttendanceRecord[]>();
 
     for (const row of rawRecords) {
       if (!row.student_group) continue;
       const members = batchMembersMap?.get(row.student_group);
       if (members && !members.has(row.student)) continue;
 
-      const existing = groupMap.get(row.student_group) ?? { present: 0, absent: 0, late: 0 };
-      if (row.status === "Present") existing.present += 1;
+      const existing = groupMap.get(row.student_group) ?? { present: 0, absent: 0, late: 0, notEnrolled: 0 };
+      if (row.custom_not_enrolled || row.status === "Not Enrolled") existing.notEnrolled += 1;
+      else if (row.status === "Present") existing.present += 1;
       else if (row.status === "Absent") existing.absent += 1;
       else if (row.status === "Late") existing.late += 1;
       groupMap.set(row.student_group, existing);
+
+      const sessionKey = row.course_schedule || `${row.student_group}::${row.date}`;
+      const sessionRecords = recordsBySchedule.get(sessionKey) ?? [];
+      sessionRecords.push(row);
+      recordsBySchedule.set(sessionKey, sessionRecords);
     }
 
     // Session counts per batch
@@ -213,6 +225,18 @@ export default function AttendancePage() {
     const sessionCountMap = new Map<string, number>();
     for (const s of schedules) {
       sessionCountMap.set(s.student_group, (sessionCountMap.get(s.student_group) ?? 0) + 1);
+
+      const sessionKey = s.name || `${s.student_group}::${selectedDate}`;
+      const sessionRecords = recordsBySchedule.get(sessionKey) ?? [];
+      if (sessionRecords.length === 0) continue;
+
+      const memberCount = batchMembersMap?.get(s.student_group)?.size ?? 0;
+      const missingCount = Math.max(memberCount - sessionRecords.length, 0);
+      if (missingCount === 0) continue;
+
+      const existing = groupMap.get(s.student_group) ?? { present: 0, absent: 0, late: 0, notEnrolled: 0 };
+      existing.notEnrolled += missingCount;
+      groupMap.set(s.student_group, existing);
     }
 
     // Include regular batches + o2o groups
@@ -224,8 +248,8 @@ export default function AttendancePage() {
 
     return Array.from(allGroups)
       .map((groupName) => {
-        const counts = groupMap.get(groupName) ?? { present: 0, absent: 0, late: 0 };
-        const total = counts.present + counts.absent + counts.late;
+        const counts = groupMap.get(groupName) ?? { present: 0, absent: 0, late: 0, notEnrolled: 0 };
+        const total = counts.present + counts.absent + counts.late + counts.notEnrolled;
         const batch = batchMap.get(groupName);
         const o2oGroup = o2oGroups.find((g) => g.name === groupName);
         const sessionCount = sessionCountMap.get(groupName) ?? 0;
@@ -234,13 +258,13 @@ export default function AttendancePage() {
           displayName: batch?.student_group_name ?? o2oGroup?.student_group_name ?? groupName,
           ...counts,
           total,
-          percentage: total > 0 ? Math.round((counts.present / total) * 100) : 0,
+          percentage: counts.present + counts.absent + counts.late > 0 ? Math.round((counts.present / (counts.present + counts.absent + counts.late)) * 100) : 0,
           sessionCount,
           sessionsMarked: total > 0 ? sessionCount : 0,
         };
       })
       .sort((a, b) => a.displayName.localeCompare(b.displayName));
-  }, [branchAttendanceRes, batchMembersMap, batches, batchMap, branchSchedulesRes, o2oGroups]);
+  }, [branchAttendanceRes, batchMembersMap, batches, batchMap, branchSchedulesRes, o2oGroups, selectedDate]);
 
   // Subject group names — batches that have custom_subject set
   const subjectGroupNames = useMemo(
@@ -266,6 +290,7 @@ export default function AttendancePage() {
   const overallPresent = allSummaries.reduce((s, c) => s + c.present, 0);
   const overallAbsent = allSummaries.reduce((s, c) => s + c.absent, 0);
   const overallLate = allSummaries.reduce((s, c) => s + c.late, 0);
+  const overallNotEnrolled = allSummaries.reduce((s, c) => s + c.notEnrolled, 0);
   const overallTotal = overallPresent + overallAbsent + overallLate;
   const overallPercentage = overallTotal > 0 ? Math.round((overallPresent / overallTotal) * 100) : 0;
 
@@ -337,12 +362,13 @@ export default function AttendancePage() {
 
         const existingMap: Record<string, AttendanceStatus> = {};
         for (const record of attendanceRes.data) {
-          existingMap[record.student] = record.status as AttendanceStatus;
+          existingMap[record.student] = record.custom_not_enrolled || record.status === "Not Enrolled" ? "Not Enrolled" : (record.status as AttendanceStatus);
         }
 
         const initial: Record<string, AttendanceStatus> = {};
+        const hasSavedAttendance = attendanceRes.data.length > 0;
         for (const s of batchStudents) {
-          initial[s.student] = existingMap[s.student] ?? "Present";
+          initial[s.student] = existingMap[s.student] ?? (hasSavedAttendance ? "Not Enrolled" : "Present");
         }
         setAttendance(initial);
       } catch {
@@ -412,7 +438,7 @@ export default function AttendancePage() {
 
   function toggleStatus(studentId: string) {
     setAttendance((prev) => {
-      const cycle: AttendanceStatus[] = ["Present", "Absent", "Late"];
+      const cycle: AttendanceStatus[] = [...ATTENDANCE_STATUSES];
       const current = prev[studentId] ?? "Present";
       const next = cycle[(cycle.indexOf(current) + 1) % cycle.length];
       return { ...prev, [studentId]: next };
@@ -481,6 +507,7 @@ export default function AttendancePage() {
   const presentCount = Object.values(attendance).filter((s) => s === "Present").length;
   const absentCount = Object.values(attendance).filter((s) => s === "Absent").length;
   const lateCount = Object.values(attendance).filter((s) => s === "Late").length;
+  const notEnrolledCount = Object.values(attendance).filter((s) => s === "Not Enrolled").length;
 
   const selectedBatch = batchMap.get(selectedBatchId);
   const { data: reportBatchRes, isLoading: reportBatchLoading } = useQuery({
@@ -519,6 +546,7 @@ export default function AttendancePage() {
           "student_group",
           "course_schedule",
           "custom_branch",
+          "custom_not_enrolled",
         ]),
         order_by: "date asc",
         limit_page_length: "0",
@@ -536,13 +564,13 @@ export default function AttendancePage() {
     const activeStudents = (reportBatchRes?.data.students ?? []).filter((student: BatchStudent) => student.active !== 0);
     const schedules = reportSchedulesRes?.data ?? [];
     const scheduleMap = new Map(schedules.map((schedule) => [schedule.name, schedule]));
-    const derivedSessionKeys = new Set<string>();
+    const markedSessionKeys = new Set<string>();
 
     for (const record of reportAttendanceRecords) {
-      derivedSessionKeys.add(record.course_schedule || record.date);
+      markedSessionKeys.add(record.course_schedule || record.date);
     }
 
-    const totalSessions = Math.max(schedules.length, derivedSessionKeys.size);
+    const totalSessions = Math.max(schedules.length, markedSessionKeys.size);
     const recordsByStudent = new Map<string, AttendanceRecord[]>();
 
     for (const record of reportAttendanceRecords) {
@@ -554,12 +582,19 @@ export default function AttendancePage() {
     return activeStudents
       .map((student) => {
         const records = recordsByStudent.get(student.student) ?? [];
+        const studentSessionKeys = new Set<string>();
         let present = 0;
         let absent = 0;
         let late = 0;
+        let explicitNotEnrolled = 0;
         const absentDays: AbsentDayDetail[] = [];
 
         for (const record of records) {
+          studentSessionKeys.add(record.course_schedule || record.date);
+          if (record.custom_not_enrolled || record.status === "Not Enrolled") {
+            explicitNotEnrolled += 1;
+            continue;
+          }
           if (record.status === "Present") present += 1;
           else if (record.status === "Absent") {
             absent += 1;
@@ -577,17 +612,22 @@ export default function AttendancePage() {
           }
         }
 
+        const fallbackNotEnrolled = Array.from(markedSessionKeys).filter((sessionKey) => !studentSessionKeys.has(sessionKey)).length;
+        const notEnrolled = explicitNotEnrolled + fallbackNotEnrolled;
         absentDays.sort((a, b) => a.date.localeCompare(b.date));
+        const eligibleSessions = present + absent + late;
 
         return {
           studentId: student.student,
           studentName: student.student_name || student.student,
           totalSessions,
           markedSessions: records.length,
+          eligibleSessions,
           present,
           absent,
           late,
-          attendancePct: totalSessions > 0 ? Math.round((((present + late) / totalSessions) * 100) * 10) / 10 : 0,
+          notEnrolled,
+          attendancePct: eligibleSessions > 0 ? Math.round((((present + late) / eligibleSessions) * 100) * 10) / 10 : 0,
           absentDays,
         };
       })
@@ -602,13 +642,15 @@ export default function AttendancePage() {
   const reportStats = useMemo(() => {
     const totalStudents = reportRows.length;
     const totalSessions = reportRows.reduce((sum, row) => sum + row.totalSessions, 0);
+    const totalEligibleSessions = reportRows.reduce((sum, row) => sum + row.eligibleSessions, 0);
     const totalPresent = reportRows.reduce((sum, row) => sum + row.present, 0);
     const totalAbsent = reportRows.reduce((sum, row) => sum + row.absent, 0);
     const totalLate = reportRows.reduce((sum, row) => sum + row.late, 0);
-    const avgAttendance = totalSessions > 0
-      ? Math.round((((totalPresent + totalLate) / totalSessions) * 100) * 10) / 10
+    const totalNotEnrolled = reportRows.reduce((sum, row) => sum + row.notEnrolled, 0);
+    const avgAttendance = totalEligibleSessions > 0
+      ? Math.round((((totalPresent + totalLate) / totalEligibleSessions) * 100) * 10) / 10
       : 0;
-    return { totalStudents, totalPresent, totalAbsent, totalLate, avgAttendance };
+    return { totalStudents, totalSessions, totalEligibleSessions, totalPresent, totalAbsent, totalLate, totalNotEnrolled, avgAttendance };
   }, [reportRows]);
 
   async function exportBatchReport(format: "pdf" | "excel") {
@@ -629,6 +671,7 @@ export default function AttendancePage() {
         Present: row.present,
         Absent: row.absent,
         Late: row.late,
+        "Not Enrolled": row.notEnrolled,
         "Attendance %": row.attendancePct,
         "Absent Days": row.absentDays.map((day) => day.label).join("; "),
       }));
@@ -661,6 +704,7 @@ export default function AttendancePage() {
             "Present",
             "Absent",
             "Late",
+            "Not Enrolled",
             "Attendance %",
             "Absent Days",
           ]],
@@ -672,6 +716,7 @@ export default function AttendancePage() {
             row.present,
             row.absent,
             row.late,
+            row.notEnrolled,
             `${row.attendancePct}%`,
             row.absentDays.map((day) => day.label).join(", "),
           ]),
@@ -730,7 +775,7 @@ export default function AttendancePage() {
             </div>
 
             {/* Overall Summary Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
               <Card>
                 <CardContent className="p-4 text-center">
                   <p className="text-3xl font-bold text-primary">{overallPercentage}%</p>
@@ -753,6 +798,12 @@ export default function AttendancePage() {
                 <CardContent className="p-4 text-center">
                   <p className="text-3xl font-bold text-warning">{overallLate}</p>
                   <p className="text-xs text-warning font-medium mt-1">Late</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <p className="text-3xl font-bold text-sky-700">{overallNotEnrolled}</p>
+                  <p className="text-xs text-sky-700 font-medium mt-1">Not Enrolled</p>
                 </CardContent>
               </Card>
             </div>
@@ -812,6 +863,10 @@ export default function AttendancePage() {
                                     className="bg-error transition-all"
                                     style={{ width: `${(cls.absent / cls.total) * 100}%` }}
                                   />
+                                  <div
+                                    className="bg-sky-400 transition-all"
+                                    style={{ width: `${(cls.notEnrolled / cls.total) * 100}%` }}
+                                  />
                                 </div>
                               </div>
 
@@ -827,6 +882,11 @@ export default function AttendancePage() {
                                   {cls.late > 0 && (
                                     <span className="flex items-center gap-1 text-warning font-medium">
                                       <Clock className="h-3 w-3" /> {cls.late}
+                                    </span>
+                                  )}
+                                  {cls.notEnrolled > 0 && (
+                                    <span className="flex items-center gap-1 text-sky-700 font-medium">
+                                      <Users className="h-3 w-3" /> {cls.notEnrolled}
                                     </span>
                                   )}
                                 </div>
@@ -969,6 +1029,7 @@ export default function AttendancePage() {
                                           <div className="bg-success transition-all" style={{ width: `${(cls.present / cls.total) * 100}%` }} />
                                           <div className="bg-warning transition-all" style={{ width: `${(cls.late / cls.total) * 100}%` }} />
                                           <div className="bg-error transition-all" style={{ width: `${(cls.absent / cls.total) * 100}%` }} />
+                                        <div className="bg-sky-400 transition-all" style={{ width: `${(cls.notEnrolled / cls.total) * 100}%` }} />
                                         </div>
                                       </div>
                                       <div className="flex items-center justify-between text-xs">
@@ -976,6 +1037,7 @@ export default function AttendancePage() {
                                           <span className="flex items-center gap-1 text-success font-medium"><CheckCircle className="h-3 w-3" />{cls.present}</span>
                                           <span className="flex items-center gap-1 text-error font-medium"><XCircle className="h-3 w-3" />{cls.absent}</span>
                                           {cls.late > 0 && <span className="flex items-center gap-1 text-warning font-medium"><Clock className="h-3 w-3" />{cls.late}</span>}
+                                          {cls.notEnrolled > 0 && <span className="flex items-center gap-1 text-sky-700 font-medium"><Users className="h-3 w-3" />{cls.notEnrolled}</span>}
                                         </div>
                                         <Badge variant={cls.percentage >= 80 ? "success" : cls.percentage >= 60 ? "warning" : "error"} className="text-[10px]">
                                           {cls.percentage}%
@@ -1115,6 +1177,7 @@ export default function AttendancePage() {
                                           <div className="bg-success transition-all" style={{ width: `${(cls.present / cls.total) * 100}%` }} />
                                           <div className="bg-warning transition-all" style={{ width: `${(cls.late / cls.total) * 100}%` }} />
                                           <div className="bg-error transition-all" style={{ width: `${(cls.absent / cls.total) * 100}%` }} />
+                                        <div className="bg-sky-400 transition-all" style={{ width: `${(cls.notEnrolled / cls.total) * 100}%` }} />
                                         </div>
                                       </div>
                                       <div className="flex items-center justify-between text-xs">
@@ -1122,6 +1185,7 @@ export default function AttendancePage() {
                                           <span className="flex items-center gap-1 text-success font-medium"><CheckCircle className="h-3 w-3" />{cls.present}</span>
                                           <span className="flex items-center gap-1 text-error font-medium"><XCircle className="h-3 w-3" />{cls.absent}</span>
                                           {cls.late > 0 && <span className="flex items-center gap-1 text-warning font-medium"><Clock className="h-3 w-3" />{cls.late}</span>}
+                                          {cls.notEnrolled > 0 && <span className="flex items-center gap-1 text-sky-700 font-medium"><Users className="h-3 w-3" />{cls.notEnrolled}</span>}
                                         </div>
                                         <Badge variant={cls.percentage >= 80 ? "success" : cls.percentage >= 60 ? "warning" : "error"} className="text-[10px]">
                                           {cls.percentage}%
@@ -1435,7 +1499,7 @@ export default function AttendancePage() {
                                 ) : (
                                   <>
                                     {/* Summary counters */}
-                                    <div className="grid grid-cols-3 gap-3 mb-4">
+                                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
                                       <div className="bg-success-light rounded-[10px] p-2.5 text-center border border-success/10">
                                         <p className="text-lg font-bold text-success">{presentCount}</p>
                                         <p className="text-[10px] text-success font-medium">Present</p>
@@ -1447,6 +1511,10 @@ export default function AttendancePage() {
                                       <div className="bg-warning-light rounded-[10px] p-2.5 text-center border border-warning/10">
                                         <p className="text-lg font-bold text-warning">{lateCount}</p>
                                         <p className="text-[10px] text-warning font-medium">Late</p>
+                                      </div>
+                                      <div className="rounded-[10px] border border-sky-200 bg-sky-50 p-2.5 text-center">
+                                        <p className="text-lg font-bold text-sky-700">{notEnrolledCount}</p>
+                                        <p className="text-[10px] font-medium text-sky-700">Not Enrolled</p>
                                       </div>
                                     </div>
 
@@ -1522,7 +1590,15 @@ export default function AttendancePage() {
                                               <p className="text-xs text-text-tertiary">{student.student}</p>
                                             </div>
                                             <Badge
-                                              variant={status === "Present" ? "success" : status === "Absent" ? "error" : "warning"}
+                                              variant={
+                                                status === "Present"
+                                                  ? "success"
+                                                  : status === "Absent"
+                                                    ? "error"
+                                                    : status === "Late"
+                                                      ? "warning"
+                                                      : "info"
+                                              }
                                               className="text-[10px]"
                                             >
                                               {status}
@@ -1533,7 +1609,7 @@ export default function AttendancePage() {
                                     </div>
 
                                     <p className="text-xs text-text-tertiary mt-3 text-center">
-                                      Tap a student to cycle: Present → Absent → Late
+                                      Tap a student to cycle through Present, Absent, Late, and Not Enrolled
                                     </p>
                                   </>
                                 )}
@@ -1556,7 +1632,7 @@ export default function AttendancePage() {
 
                 {!reportBatchLoading && !reportSchedulesLoading && !reportAttendanceLoading && (
                   <>
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                       <Card>
                         <CardContent className="p-4 text-center">
                           <p className="text-3xl font-bold text-primary">{reportStats.totalStudents}</p>
@@ -1581,6 +1657,12 @@ export default function AttendancePage() {
                           <p className="text-xs text-warning font-medium mt-1">Avg Attendance</p>
                         </CardContent>
                       </Card>
+                      <Card>
+                        <CardContent className="p-4 text-center">
+                          <p className="text-3xl font-bold text-sky-700">{reportStats.totalNotEnrolled}</p>
+                          <p className="text-xs text-sky-700 font-medium mt-1">Not Enrolled</p>
+                        </CardContent>
+                      </Card>
                     </div>
 
                     <div className="flex flex-col lg:flex-row gap-4">
@@ -1590,7 +1672,7 @@ export default function AttendancePage() {
                             <div>
                               <CardTitle className="text-base">Student Attendance Report</CardTitle>
                               <p className="text-xs text-text-tertiary mt-1">
-                                Click the absent count to see exact absent days.
+                                Click the absent count to see exact absent days. Not Enrolled is excluded from attendance percentage.
                               </p>
                             </div>
                             <div className="flex gap-2">
@@ -1631,6 +1713,7 @@ export default function AttendancePage() {
                                     <th className="text-center p-3 font-medium text-text-secondary">Present</th>
                                     <th className="text-center p-3 font-medium text-text-secondary">Absent</th>
                                     <th className="text-center p-3 font-medium text-text-secondary">Late</th>
+                                    <th className="text-center p-3 font-medium text-text-secondary">Not Enrolled</th>
                                     <th className="text-center p-3 font-medium text-text-secondary">Attendance %</th>
                                   </tr>
                                 </thead>
@@ -1658,6 +1741,7 @@ export default function AttendancePage() {
                                         )}
                                       </td>
                                       <td className="p-3 text-center font-medium text-warning">{row.late}</td>
+                                      <td className="p-3 text-center font-medium text-sky-700">{row.notEnrolled}</td>
                                       <td className="p-3 text-center">
                                         <Badge
                                           variant={row.attendancePct >= 80 ? "success" : row.attendancePct >= 60 ? "warning" : "error"}

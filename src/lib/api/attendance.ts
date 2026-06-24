@@ -17,6 +17,7 @@ export async function getAttendanceRecordsByCourseSchedule(
       "student_group",
       "course_schedule",
       "custom_branch",
+      "custom_not_enrolled",
     ]),
     limit_page_length: "0",
   });
@@ -53,7 +54,7 @@ export async function getAttendance(date: string, params?: {
   if (params?.course_schedule) filters.push(["course_schedule", "=", params.course_schedule]);
   const query = new URLSearchParams({
     filters: JSON.stringify(filters),
-    fields: JSON.stringify(["name", "student", "student_name", "date", "status", "student_group", "course_schedule", "custom_branch"]),
+    fields: JSON.stringify(["name", "docstatus", "student", "student_name", "date", "status", "student_group", "course_schedule", "custom_branch", "custom_not_enrolled"]),
     limit_page_length: "0",
   });
   const { data } = await apiClient.get(`/resource/Student Attendance?${query.toString()}`);
@@ -85,32 +86,34 @@ export async function updateAttendance(id: string, updates: Partial<AttendanceRe
 export async function bulkMarkAttendance(payload: BulkAttendancePayload): Promise<{ message: string }> {
   const { student_group, date, students, custom_branch, course_schedule } = payload;
 
-  // 1. Fetch existing attendance for this date + group (only submitted, docstatus=1)
   const existingRes = await getAttendance(date, { student_group, course_schedule });
   const existingMap = new Map<string, AttendanceRecord>();
   for (const rec of existingRes.data) {
     existingMap.set(rec.student, rec);
   }
 
-  // 2. Process each student
   const promises: Promise<unknown>[] = [];
 
   for (const { student, student_name, status } of students) {
     const existing = existingMap.get(student);
 
-    if (existing && existing.status === status) {
-      // Same status — no change needed
+    const existingStatus = existing?.custom_not_enrolled ? "Not Enrolled" : existing?.status;
+    if (existing && existingStatus === status) {
       continue;
     }
 
     if (existing) {
-      // Different status — cancel old, then create new
       promises.push(
-        apiClient
-          .post("/method/frappe.client.cancel", {
-            doctype: "Student Attendance",
-            name: existing.name,
-          })
+        Promise.resolve()
+          .then(() =>
+            existing.docstatus === 1
+              ? apiClient.post("/method/frappe.client.cancel", {
+                  doctype: "Student Attendance",
+                  name: existing.name,
+                })
+              : undefined
+          )
+          .then(() => apiClient.delete(`/resource/Student Attendance/${encodeURIComponent(existing.name)}`))
           .then(() =>
             apiClient.post("/resource/Student Attendance", {
               student,
@@ -120,12 +123,12 @@ export async function bulkMarkAttendance(payload: BulkAttendancePayload): Promis
               student_group,
               course_schedule: course_schedule || existing.course_schedule || undefined,
               custom_branch: custom_branch || existing.custom_branch || undefined,
+              custom_not_enrolled: status === "Not Enrolled" ? 1 : 0,
               docstatus: 1,
             })
           )
       );
     } else {
-      // No existing record — create new
       promises.push(
         apiClient.post("/resource/Student Attendance", {
           student,
@@ -135,6 +138,7 @@ export async function bulkMarkAttendance(payload: BulkAttendancePayload): Promis
           student_group,
           course_schedule: course_schedule || undefined,
           custom_branch: custom_branch || undefined,
+          custom_not_enrolled: status === "Not Enrolled" ? 1 : 0,
           docstatus: 1,
         })
       );
