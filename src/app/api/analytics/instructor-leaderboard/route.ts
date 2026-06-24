@@ -142,10 +142,22 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const branchParam = searchParams.get("branch") ?? "";
     const period = searchParams.get("period") || "all";
+    const fromParam = searchParams.get("from_date");
+    const toParam = searchParams.get("to_date");
     // Empty string or "all" → no branch filter (show all branches)
     const branch = branchParam === "all" ? "" : branchParam;
 
-    const { from, to } = getPeriodRange(period);
+    let from: string | null = null;
+    let to: string = new Date().toISOString().slice(0, 10);
+
+    if (fromParam || toParam) {
+      from = (fromParam && fromParam !== "null" && fromParam !== "undefined" && fromParam.trim() !== "") ? fromParam : null;
+      to = (toParam && toParam !== "null" && toParam !== "undefined" && toParam.trim() !== "") ? toParam : new Date().toISOString().slice(0, 10);
+    } else {
+      const range = getPeriodRange(period);
+      from = range.from;
+      to = range.to;
+    }
 
     // ── 1. Build date filters ────────────────────────────────────────────────
     const dateFilters: (string | number | null)[][] = from
@@ -213,7 +225,10 @@ export async function GET(request: NextRequest) {
     const studentAtt = await frappeList(
       "Student Attendance",
       ["name", "student_group", "date", "status", "docstatus", "course_schedule"],
-      [],
+      [
+        ...(branch ? [["custom_branch", "=", branch]] : []),
+        ...attDateFilters,
+      ],
       20000,
     );
 
@@ -284,7 +299,7 @@ export async function GET(request: NextRequest) {
       [...(branch ? [["for_branch", "=", branch]] : []), ["docstatus", "=", 1], ...waDateFilters],
     );
 
-    // Step 2: For each WA, fetch the full document to get the child table rows
+    // Step 2: Fetch the full document in parallel to get the child table rows
     type WaDetailRow = {
       instructor: string;
       submission_status: string;
@@ -292,32 +307,33 @@ export async function GET(request: NextRequest) {
       submitted_on: string;
       deadline: string; // from parent doc
     };
-    const allWaDetails: WaDetailRow[] = [];
-    for (const wa of waHeaders) {
+
+    const waPromises = waHeaders.map(async (wa) => {
       const waName = String(wa.name ?? "");
       const waDeadline = String(wa.deadline ?? "");
-      if (!waName) continue;
+      if (!waName) return [];
       try {
         const docRes = await fetch(
           `${FRAPPE_URL}/api/resource/${encodeURIComponent("Work Assignment")}/${encodeURIComponent(waName)}`,
           { headers: { Authorization: adminAuth, Accept: "application/json" }, cache: "no-store" },
         );
-        if (!docRes.ok) continue;
+        if (!docRes.ok) return [];
         const docJson = await docRes.json();
         const assignments: Record<string, unknown>[] = docJson?.data?.assignments ?? [];
-        for (const row of assignments) {
-          allWaDetails.push({
-            instructor: String(row.instructor ?? ""),
-            submission_status: String(row.submission_status ?? ""),
-            approval_status: String(row.approval_status ?? ""),
-            submitted_on: String(row.submitted_on ?? ""),
-            deadline: waDeadline,
-          });
-        }
+        return assignments.map((row) => ({
+          instructor: String(row.instructor ?? ""),
+          submission_status: String(row.submission_status ?? ""),
+          approval_status: String(row.approval_status ?? ""),
+          submitted_on: String(row.submitted_on ?? ""),
+          deadline: waDeadline,
+        }));
       } catch {
-        // skip if fetch fails for this WA
+        return [];
       }
-    }
+    });
+
+    const waResults = await Promise.all(waPromises);
+    const allWaDetails: WaDetailRow[] = waResults.flat();
 
     // Map instructor → { total, approved, onTime, rejected }
     const waMap = new Map<string, { total: number; approved: number; onTime: number; rejected: number }>();
@@ -448,19 +464,20 @@ export async function GET(request: NextRequest) {
       const waCompletionPct = pct(waApproved, waTotal);
       const waOnTimePct = pct(waOnTime, waTotal);
 
-      // Student pass rate (avg across instructor's batch+course scope)
+      // Student pass rate (exact pass rate across all exam papers)
       const batchCourseKeys = Array.from(acc.batch_course_keys);
-      let avgPassRate = 0;
-      let passRateCount = 0;
+      let examsTotal = 0;
+      let examsPassed = 0;
       for (const [planName, meta] of planMetaMap.entries()) {
         const key = `${meta.student_group}|||${meta.course}`;
         if (!batchCourseKeys.includes(key)) continue;
-        const planMetric = planMetrics.get(planName);
-        if (!planMetric) continue;
-        avgPassRate += planMetric.passRate;
-        passRateCount++;
+        const planResults = examResults.filter((r) => r.assessment_plan === planName);
+        examsTotal += planResults.length;
+        examsPassed += planResults.filter(
+          (r) => r.maximum_score > 0 && (r.total_score / r.maximum_score) * 100 >= 33,
+        ).length;
       }
-      const studentPassRate = passRateCount > 0 ? Math.round(avgPassRate / passRateCount) : 0;
+      const studentPassRate = examsTotal > 0 ? Math.round((examsPassed / examsTotal) * 100) : 0;
 
       // Student attendance only for the instructor's own schedules
       let totalStudentPresent = 0;
@@ -629,7 +646,7 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      if (passRateCount > 0) {
+      if (examsTotal > 0) {
         if (studentPassRate < 100) {
           pushWeakness({
             metric: "exams",
@@ -638,7 +655,7 @@ export async function GET(request: NextRequest) {
             earned_points: score5_exams,
             max_points: 10,
             pct: studentPassRate,
-            raw_facts: [`Average batch pass rate: ${studentPassRate}%`],
+            raw_facts: [`Student exam pass rate: ${studentPassRate}%`],
           });
         } else {
           pushStrength({
@@ -718,6 +735,10 @@ export async function GET(request: NextRequest) {
         wa_on_time_pct: waOnTimePct,
         student_pass_rate: studentPassRate,
         student_attendance_pct: studentAttendancePct,
+        exams_passed: examsPassed,
+        exams_total: examsTotal,
+        student_att_present: totalStudentPresent,
+        student_att_total: totalStudentSessions,
         // Score breakdown
         score_hr: score1_hr,
         score_classes: score2_classes,

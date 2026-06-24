@@ -410,6 +410,10 @@ export interface InstructorLeaderboardEntry {
   // Student outcomes
   student_pass_rate: number;
   student_attendance_pct: number;
+  exams_passed: number;
+  exams_total: number;
+  student_att_present: number;
+  student_att_total: number;
   // Score breakdown
   score_hr: number;
   score_classes: number;

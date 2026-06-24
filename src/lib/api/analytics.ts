@@ -136,9 +136,13 @@ export async function getScheduleAnalytics(params: {
 export async function getInstructorLeaderboard(params: {
   branch: string;
   period?: string;
+  from_date?: string;
+  to_date?: string;
 }): Promise<InstructorLeaderboardResponse> {
   const query = new URLSearchParams({ branch: params.branch });
   if (params.period) query.set("period", params.period);
+  if (params.from_date) query.set("from_date", params.from_date);
+  if (params.to_date) query.set("to_date", params.to_date);
   const res = await fetch(`/api/analytics/instructor-leaderboard?${query}`, {
     credentials: "include",
   });

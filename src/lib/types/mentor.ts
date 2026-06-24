@@ -16,6 +16,11 @@ export interface MentorStudentAssignment {
   name: string;
   student: string;
   student_name: string;
+  student_type?: string;
+  program?: string;
+  custom_plan?: string;
+  attendance_pct?: number | null;
+  average_score?: number | null;
   mentor_profile: string;
   mentor_user: string;
   mentor_employee?: string;

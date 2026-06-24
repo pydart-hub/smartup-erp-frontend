@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useMemo, useRef, useEffect } from "react";
+import React, { useState, useMemo, useRef, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import {
@@ -22,23 +23,20 @@ import {
   TrendingUp,
   Building2,
   Check,
+  Calendar,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { getInstructorLeaderboard } from "@/lib/api/analytics";
 import { useAuthStore } from "@/lib/stores/authStore";
 import type { InstructorLeaderboardEntry, InstructorLeaderboardWeakness } from "@/lib/types/analytics";
+import { format, parseISO, isValid, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, getDay } from "date-fns";
 
 // -- Types ------------------------------------------------------------------
 
 type Period = "month" | "quarter" | "year" | "all";
 type Tab = "overall" | "hr" | "classes" | "topics" | "work" | "exams" | "students";
 
-const PERIODS: { value: Period; label: string }[] = [
-  { value: "month", label: "This Month" },
-  { value: "quarter", label: "Quarter" },
-  { value: "year", label: "This FY" },
-  { value: "all", label: "All Time" },
-];
+
 
 const TABS: { value: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { value: "overall",  label: "Overall",       icon: Trophy       },
@@ -78,6 +76,160 @@ const BADGE_CONFIG: Record<string, { label: string; color: string; icon: React.C
   had_rejections:  { label: "Had Rejections",   color: "text-orange-600 bg-orange-500/10 border-orange-500/20",   icon: AlertCircle },
   late_submissions:{ label: "Late Submissions", color: "text-red-600 bg-red-500/10 border-red-500/20",             icon: Clock     },
 };
+
+function ModernDatePicker({
+  value,
+  onChange,
+  label
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  label: string;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Local active month/year view in calendar popup
+  const [currentMonth, setCurrentMonth] = useState(() => {
+    const d = value ? parseISO(value) : new Date();
+    return isValid(d) ? d : new Date();
+  });
+
+  // Handle outside click to close
+  useEffect(() => {
+    function handleOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    if (isOpen) document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, [isOpen]);
+
+  // Sync currentMonth when external value changes
+  useEffect(() => {
+    if (value) {
+      const d = parseISO(value);
+      if (isValid(d)) {
+        setCurrentMonth(d);
+      }
+    }
+  }, [value]);
+
+  // Calendar dates generation
+  const monthStart = startOfMonth(currentMonth);
+  const monthEnd = endOfMonth(currentMonth);
+  const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
+  
+  // Padding days at start of month grid (week starts on Sunday)
+  const startDayOfWeek = getDay(monthStart);
+  const paddingDays = Array.from({ length: startDayOfWeek });
+
+  const handleDaySelect = (day: Date) => {
+    const formatted = format(day, "yyyy-MM-dd");
+    onChange(formatted);
+    setIsOpen(false);
+  };
+
+  const handlePrevMonth = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentMonth(prev => subMonths(prev, 1));
+  };
+
+  const handleNextMonth = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentMonth(prev => addMonths(prev, 1));
+  };
+
+  const formattedDisplay = value 
+    ? format(parseISO(value), "dd-MM-yyyy")
+    : "Select date";
+
+  return (
+    <div ref={containerRef} className="relative flex items-center gap-1.5 flex-1 min-w-[120px]">
+      <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider shrink-0">{label}</span>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between bg-black/[0.04] dark:bg-white/[0.04] border border-black/[0.06] dark:border-white/[0.08] px-2.5 py-1.5 rounded-xl text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-black/[0.08] dark:hover:bg-white/[0.08] transition-all text-left cursor-pointer"
+      >
+        <span>{formattedDisplay}</span>
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
+            className="absolute top-full left-0 mt-2 w-60 p-3.5 z-[100] bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.14)]"
+          >
+            {/* Calendar Header */}
+            <div className="flex items-center justify-between mb-3">
+              <button
+                type="button"
+                onClick={handlePrevMonth}
+                className="w-6 h-6 rounded-lg flex items-center justify-center hover:bg-black/[0.05] dark:hover:bg-white/[0.05] text-text-secondary hover:text-text-primary cursor-pointer text-xs"
+              >
+                &larr;
+              </button>
+              <span className="text-xs font-black text-text-primary">
+                {format(currentMonth, "MMMM yyyy")}
+              </span>
+              <button
+                type="button"
+                onClick={handleNextMonth}
+                className="w-6 h-6 rounded-lg flex items-center justify-center hover:bg-black/[0.05] dark:hover:bg-white/[0.05] text-text-secondary hover:text-text-primary cursor-pointer text-xs"
+              >
+                &rarr;
+              </button>
+            </div>
+
+            {/* Calendar Grid Header */}
+            <div className="grid grid-cols-7 gap-1 text-center mb-1">
+              {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map(d => (
+                <span key={d} className="text-[9px] font-bold text-text-tertiary">
+                  {d}
+                </span>
+              ))}
+            </div>
+
+            {/* Calendar Grid Body */}
+            <div className="grid grid-cols-7 gap-1">
+              {paddingDays.map((_, i) => (
+                <div key={`pad-${i}`} className="w-6 h-6" />
+              ))}
+              
+              {daysInMonth.map((day) => {
+                const isSelected = value && isSameDay(day, parseISO(value));
+                const isToday = isSameDay(day, new Date());
+                
+                return (
+                  <button
+                    type="button"
+                    key={day.toISOString()}
+                    onClick={() => handleDaySelect(day)}
+                    className={`w-6 h-6 rounded-lg text-[10px] font-bold flex items-center justify-center transition-all cursor-pointer
+                      ${isSelected 
+                        ? "bg-[#673AB7] text-white shadow-md shadow-[#673AB7]/30" 
+                        : isToday
+                          ? "border border-[#673AB7] text-[#673AB7] dark:text-[#7E57C2]"
+                          : "text-text-secondary hover:bg-black/[0.05] dark:hover:bg-white/[0.05] hover:text-text-primary"
+                      }
+                    `}
+                  >
+                    {format(day, "d")}
+                  </button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
 // -- Helpers ----------------------------------------------------------------
 
@@ -409,11 +561,12 @@ function PodiumCard({
           </div>
 
           {/* Mini stat grid */}
-          <div className="grid grid-cols-3 gap-1.5 mb-4">
+          <div className="grid grid-cols-4 gap-1.5 mb-4">
             {[
               { label: "HR Att.", val: entry.hr_attendance_pct },
               { label: "Classes", val: entry.classes_conducted_pct },
               { label: "Topics", val: entry.topic_coverage_pct },
+              { label: "Exams", val: entry.student_pass_rate },
             ].map((s) => (
               <div
                 key={s.label}
@@ -598,7 +751,7 @@ function RankRow({
                     {
                       label: "Student Pass Rate",
                       val: `${entry.student_pass_rate}%`,
-                      sub: "across batches",
+                      sub: `${entry.exams_passed}/${entry.exams_total} exams passed`,
                       note: undefined,
                       noteColor: "",
                       pct: entry.student_pass_rate,
@@ -606,7 +759,7 @@ function RankRow({
                     {
                       label: "Student Att.",
                       val: `${entry.student_attendance_pct}%`,
-                      sub: "in batches",
+                      sub: `${entry.student_att_present}/${entry.student_att_total} present`,
                       note: undefined,
                       noteColor: "",
                       pct: entry.student_attendance_pct,
@@ -696,22 +849,43 @@ function StatCard({
 // --- MAIN PAGE ---------------------------------------------------------------
 
 export default function GMLeaderboardPage() {
-  const [period, setPeriod] = useState<Period>("all");
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-text-tertiary animate-pulse">Loading Leaderboard...</div>}>
+      <LeaderboardContent />
+    </Suspense>
+  );
+}
+
+function LeaderboardContent() {
+  const searchParams = useSearchParams();
+  const initialPeriod = (searchParams?.get("period") || "all");
+  const [tempFromDate, setTempFromDate] = useState<string>(() => {
+    const today = new Date();
+    if (initialPeriod === "month") {
+      return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`;
+    }
+    if (initialPeriod === "quarter") {
+      const qMonth = Math.floor(today.getMonth() / 3) * 3;
+      return new Date(today.getFullYear(), qMonth, 1).toISOString().slice(0, 10);
+    }
+    if (initialPeriod === "year") {
+      const year = today.getMonth() >= 5 ? today.getFullYear() : today.getFullYear() - 1;
+      return `${year}-06-01`;
+    }
+    return ""; // all time
+  });
+  const [tempToDate, setTempToDate] = useState<string>(() => {
+    return new Date().toISOString().slice(0, 10);
+  });
+
+  const [fromDate, setFromDate] = useState<string>(tempFromDate);
+  const [toDate, setToDate] = useState<string>(tempToDate);
   const [activeTab, setActiveTab] = useState<Tab>("overall");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selectedBranch, setSelectedBranch] = useState<string>("all");
   const [branchOpen, setBranchOpen] = useState(false);
   const branchRef = useRef<HTMLDivElement>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const transitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  function startTransition() {
-    if (transitionTimer.current) clearTimeout(transitionTimer.current);
-    setIsTransitioning(true);
-  }
-  function endTransition() {
-    transitionTimer.current = setTimeout(() => setIsTransitioning(false), 800);
-  }
 
   // Close branch dropdown on outside click
   useEffect(() => {
@@ -731,16 +905,52 @@ export default function GMLeaderboardPage() {
   const branchParam = selectedBranch;
 
   const { data, isLoading, isFetching, error } = useQuery({
-    queryKey: ["instructor-leaderboard", branchParam, period],
-    queryFn: () => getInstructorLeaderboard({ branch: branchParam, period }),
+    queryKey: ["instructor-leaderboard", branchParam, fromDate, toDate],
+    queryFn: () => getInstructorLeaderboard({ branch: branchParam, from_date: fromDate || undefined, to_date: toDate }),
     staleTime: 120_000,
     placeholderData: keepPreviousData,
   });
 
-  // End transition once fetch settles
+  const LOADING_STEPS = useMemo(() => [
+    { label: "Initializing academic session..." },
+    { label: "Fetching Course Schedules..." },
+    { label: "Retrieving Student Attendance records..." },
+    { label: "Gathering HR Attendance & employee links..." },
+    { label: "Checking Work Assignment submissions..." },
+    { label: "Analyzing Student Exam pass rates..." },
+    { label: "Aggregating performance scores..." },
+    { label: "Finalizing instructor leaderboard..." },
+  ], []);
+
+  const [currentStep, setCurrentStep] = useState(0);
+
   useEffect(() => {
-    if (!isFetching) endTransition();
-  }, [isFetching]);
+    if (!isTransitioning) {
+      setCurrentStep(0);
+      return;
+    }
+    const interval = setInterval(() => {
+      setCurrentStep((prev) => {
+        if (prev < LOADING_STEPS.length - 1) {
+          return prev + 1;
+        }
+        return prev;
+      });
+    }, 200);
+    return () => clearInterval(interval);
+  }, [isTransitioning, LOADING_STEPS]);
+
+  // Auto-manage loading overlay based on fetching status and progress completion
+  useEffect(() => {
+    if (isFetching) {
+      setIsTransitioning(true);
+    } else {
+      if (currentStep === LOADING_STEPS.length - 1) {
+        const timer = setTimeout(() => setIsTransitioning(false), 500);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [isFetching, currentStep, LOADING_STEPS]);
 
   const displayLabel = selectedBranch === "all" ? "All Branches" : selectedBranch;
 
@@ -812,7 +1022,7 @@ export default function GMLeaderboardPage() {
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+        className="relative z-30 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
       >
         <div>
           <BreadcrumbNav />
@@ -846,7 +1056,7 @@ export default function GMLeaderboardPage() {
         </div>
 
         {/* Controls: branch + period */}
-        <div className="flex flex-col gap-2 self-start sm:self-auto">
+        <div className="relative z-30 flex flex-col gap-2 self-start sm:self-auto">
           {/* Branch selector — dropdown */}
           {branches.length > 0 && (
             <div ref={branchRef} className="relative">
@@ -883,7 +1093,7 @@ export default function GMLeaderboardPage() {
                       return (
                         <button
                           key={b}
-                          onClick={() => { startTransition(); setSelectedBranch(b); setBranchOpen(false); }}
+                          onClick={() => { setSelectedBranch(b); setBranchOpen(false); }}
                           className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 text-xs font-semibold
                             transition-colors text-left
                             ${
@@ -903,21 +1113,34 @@ export default function GMLeaderboardPage() {
             </div>
           )}
 
-          {/* Period selector */}
-          <div className="flex gap-1 bg-white/50 dark:bg-white/[0.04] backdrop-blur-md border border-white/60 dark:border-white/10 rounded-2xl p-1 shadow-sm">
-            {PERIODS.map((p) => (
-              <button
-                key={p.value}
-                onClick={() => { startTransition(); setPeriod(p.value); }}
-                className={`relative px-3 py-1.5 text-xs font-semibold rounded-xl transition-all ${
-                  period === p.value
-                    ? "bg-primary text-white shadow-md shadow-primary/30"
-                    : "text-text-tertiary hover:text-text-secondary hover:bg-black/5 dark:hover:bg-white/5"
-                }`}
-              >
-                {p.label}
-              </button>
-            ))}
+          {/* Custom Date Range selector */}
+          <div className="relative z-20 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-white/70 dark:bg-white/[0.06] backdrop-blur-md border border-white/70 dark:border-white/10 rounded-2xl p-2.5 shadow-sm">
+            <div className="flex items-center gap-2 px-1">
+              <Calendar className="w-3.5 h-3.5 text-primary shrink-0" />
+              <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider">Custom Filter</span>
+            </div>
+            <div className="hidden sm:block h-4 w-px bg-black/[0.08] dark:bg-white/[0.08]" />
+            <ModernDatePicker
+              label="From"
+              value={tempFromDate}
+              onChange={(val) => setTempFromDate(val)}
+            />
+            <div className="h-4 w-px bg-black/[0.08] dark:bg-white/[0.08] hidden sm:block" />
+            <ModernDatePicker
+              label="To"
+              value={tempToDate}
+              onChange={(val) => setTempToDate(val)}
+            />
+            <div className="h-4 w-px bg-black/[0.08] dark:bg-white/[0.08] hidden sm:block" />
+            <button
+              onClick={() => {
+                setFromDate(tempFromDate);
+                setToDate(tempToDate);
+              }}
+              className="px-4 py-1.5 rounded-xl bg-[#673AB7] text-white text-xs font-bold shadow-md shadow-[#673AB7]/30 hover:bg-[#512DA8] hover:shadow-[#512DA8]/40 transition-all shrink-0"
+            >
+              Apply
+            </button>
           </div>
         </div>
       </motion.div>
@@ -931,35 +1154,75 @@ export default function GMLeaderboardPage() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.22 }}
-            className="fixed inset-0 z-[100] overflow-hidden pointer-events-none"
+            className="fixed inset-0 z-[100] overflow-hidden"
           >
             {/* Frosted glass base */}
-            <div className="absolute inset-0 bg-white/50 dark:bg-slate-950/60 backdrop-blur-[3px]" />
+            <div className="absolute inset-0 bg-slate-100/60 dark:bg-slate-950/70 backdrop-blur-[8px]" />
             {/* Diagonal sweeping sheen */}
             <motion.div
-              className="absolute inset-y-0 w-[45%] bg-gradient-to-r from-transparent via-white/60 dark:via-white/10 to-transparent skew-x-[-18deg]"
+              className="absolute inset-y-0 w-[45%] bg-gradient-to-r from-transparent via-white/40 dark:via-white/5 to-transparent skew-x-[-18deg]"
               animate={{ x: ["-50%", "220%"] }}
               transition={{ duration: 1.3, repeat: Infinity, ease: "easeInOut", repeatDelay: 0.4 }}
             />
             {/* GIF + label — centered on viewport */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="flex flex-col items-center gap-2">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
+            <div className="absolute inset-0 flex items-center justify-center p-4">
+              <div className="flex flex-col items-center gap-4 max-w-sm w-full">
+                {/* Logo Video */}
                 <video
                   src="/Logo%20Icon%20LOOK%20ALPHA.webm" autoPlay loop muted playsInline
-                  className="w-48 h-48 object-contain"
+                  className="w-32 h-32 object-contain"
                   style={{ imageRendering: "pixelated" }}
                 />
-                <motion.div
-                  animate={{ opacity: [0.6, 1, 0.6] }}
-                  transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
-                  className="px-3.5 py-1 rounded-full
-                    bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl
-                    border border-white/70 dark:border-white/10
-                    shadow-[0_4px_16px_rgba(0,0,0,0.12)]"
-                >
-                  <p className="text-[10px] font-black text-primary uppercase tracking-widest">Loading…</p>
-                </motion.div>
+
+                {/* Glassmorphic progress box */}
+                <div className="w-full bg-white/70 dark:bg-slate-900/80 backdrop-blur-xl rounded-[2rem] border border-white/60 dark:border-white/10 p-5 shadow-[0_20px_50px_rgba(0,0,0,0.08)] flex flex-col gap-4">
+                  <div className="space-y-0.5">
+                    <h3 className="text-xs font-black text-text-primary uppercase tracking-wider">Analyzing Leaderboard</h3>
+                    <p className="text-[10px] text-text-tertiary">Compiling statistics for the selected timeframe...</p>
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="h-1.5 w-full bg-black/[0.04] dark:bg-white/[0.04] rounded-full overflow-hidden relative">
+                    <motion.div
+                      className="h-full bg-gradient-to-r from-[#7E57C2] to-[#512DA8] rounded-full"
+                      animate={{ width: `${((currentStep + 1) / LOADING_STEPS.length) * 100}%` }}
+                      transition={{ duration: 0.2 }}
+                    />
+                  </div>
+
+                  {/* Step status details */}
+                  <div className="space-y-2">
+                    {LOADING_STEPS.map((step, idx) => {
+                      const isCompleted = idx < currentStep;
+                      const isActive = idx === currentStep;
+                      const isPending = idx > currentStep;
+
+                      return (
+                        <div
+                          key={idx}
+                          className={`flex items-center gap-2 text-[10px] sm:text-xs transition-opacity duration-300 ${
+                            isCompleted ? "opacity-60" : isActive ? "opacity-100 font-bold" : "opacity-30"
+                          }`}
+                        >
+                          {isCompleted ? (
+                            <div className="w-3.5 h-3.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                              <Check className="w-2 h-2 text-emerald-500 stroke-[3]" />
+                            </div>
+                          ) : isActive ? (
+                            <div className="w-3.5 h-3.5 flex items-center justify-center shrink-0">
+                              <span className="w-1.5 h-1.5 rounded-full bg-[#673AB7] animate-pulse" />
+                            </div>
+                          ) : (
+                            <div className="w-3.5 h-3.5 rounded-full border border-black/10 dark:border-white/10 shrink-0" />
+                          )}
+                          <span className={`${isActive ? "text-[#673AB7] dark:text-[#7E57C2]" : "text-text-secondary"}`}>
+                            {step.label}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             </div>
           </motion.div>
@@ -967,15 +1230,16 @@ export default function GMLeaderboardPage() {
       </AnimatePresence>
 
       {/* -- Data content -- */}
-      <div className="relative space-y-6">
+      <div className="relative z-10 space-y-6">
 
         {/* -- Stat cards -- */}
         {overall && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             <StatCard icon={Users} label="Instructors" value={String(overall.total_instructors)} sub="ranked" gradient="from-violet-500 to-purple-600" />
             <StatCard icon={TrendingUp} label="Avg Score" value={String(overall.avg_score)} sub="out of 100" gradient="from-amber-400 to-orange-500" />
             <StatCard icon={ClipboardCheck} label="Avg Classes" value={`${overall.avg_classes_conducted_pct}%`} sub="conducted" gradient="from-blue-500 to-indigo-600" />
             <StatCard icon={BookOpen} label="Avg Topics" value={`${overall.avg_topic_coverage_pct}%`} sub="coverage" gradient="from-[#7E57C2] to-[#512DA8]" />
+            <StatCard icon={GraduationCap} label="Avg Exams" value={`${overall.avg_student_pass_rate}%`} sub="pass rate" gradient="from-rose-500 to-pink-600" />
           </div>
         )}
 

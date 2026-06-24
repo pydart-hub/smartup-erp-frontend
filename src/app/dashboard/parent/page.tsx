@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
+import { CroppedSmileLogo } from "@/components/ui/CroppedSmileLogo";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { AnimatedNumber, AnimatedCurrency, AnimatedName } from "@/components/dashboard/AnimatedValue";
 import { Badge } from "@/components/ui/Badge";
@@ -285,7 +286,7 @@ export default function ParentDashboardPage() {
         <h1 className="text-2xl font-bold text-text-primary flex items-center gap-2">
           <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>Welcome, </motion.span>
           <AnimatedName name={user?.full_name?.split(" ")[0] || "Parent"} />
-          <video src="/Logo%20Icon%20Smile%20ALPHA.webm" autoPlay loop muted playsInline  className="h-20 w-20 object-contain" />
+          <CroppedSmileLogo />
         </h1>
         <p className="text-sm text-text-secondary mt-1">
           Here&apos;s an overview of your child&apos;s academic progress and fees
@@ -831,3 +832,4 @@ export default function ParentDashboardPage() {
     </motion.div>
   );
 }
+

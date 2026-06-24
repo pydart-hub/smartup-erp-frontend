@@ -120,6 +120,11 @@ function MentorFeedbackReportContent({
       name: "assignment-" + assignment.name,
       student: assignment.student,
       student_name: assignment.student_name || assignment.student,
+      student_type: assignment.student_type,
+      program: assignment.program,
+      custom_plan: assignment.custom_plan,
+      attendance_pct: assignment.attendance_pct,
+      average_score: assignment.average_score,
       mentor_profile: assignment.mentor_profile,
       mentor_user: assignment.mentor_user,
       branch: assignment.branch,
@@ -253,6 +258,7 @@ function MentorFeedbackReportContent({
       averageScore?: number | null;
       logsCount: number;
       latestLogAt?: string;
+      hasPreviousLog: boolean;
       actionRequiredCount: number;
     }>();
 
@@ -271,6 +277,7 @@ function MentorFeedbackReportContent({
           averageScore: row.average_score,
           logsCount: isAssignmentPlaceholder ? 0 : 1,
           latestLogAt: isAssignmentPlaceholder ? undefined : row.call_datetime,
+          hasPreviousLog: !isAssignmentPlaceholder,
           actionRequiredCount: !isAssignmentPlaceholder && row.action_required ? 1 : 0,
         });
         continue;
@@ -279,15 +286,16 @@ function MentorFeedbackReportContent({
       if (!isAssignmentPlaceholder) {
         existing.logsCount += 1;
         existing.actionRequiredCount += row.action_required ? 1 : 0;
+        if (!existing.latestLogAt || (row.call_datetime && row.call_datetime > existing.latestLogAt)) {
+          existing.latestLogAt = row.call_datetime;
+        }
+        existing.hasPreviousLog = true;
       }
       if (!existing.studentType && row.student_type) existing.studentType = row.student_type;
       if (!existing.program && row.program) existing.program = row.program;
       if (!existing.customPlan && row.custom_plan) existing.customPlan = row.custom_plan;
       if (existing.attendancePct == null && row.attendance_pct != null) existing.attendancePct = row.attendance_pct;
       if (existing.averageScore == null && row.average_score != null) existing.averageScore = row.average_score;
-      if (!isAssignmentPlaceholder && (!existing.latestLogAt || (row.call_datetime && row.call_datetime > existing.latestLogAt))) {
-        existing.latestLogAt = row.call_datetime;
-      }
     }
 
     return Array.from(groups.values()).sort((a, b) => a.studentName.localeCompare(b.studentName));
@@ -386,6 +394,13 @@ function MentorFeedbackReportContent({
       studentSortDirection !== "asc"
     );
   }, [studentPlanFilter, studentProgramFilter, studentSort, studentSortDirection, studentTypeFilter]);
+
+  const getPerformanceColor = (value?: number | null) => {
+    if (value == null) return "#64748b";
+    if (value >= 80) return "#16a34a";
+    if (value >= 60) return "#d97706";
+    return "#e11d48";
+  };
 
   const heroTitle = useMemo(() => {
     if (activeView === "global") {
@@ -909,14 +924,26 @@ function MentorFeedbackReportContent({
                                           {row.logsCount}
                                         </span>
                                       </td>
-                                      <td className="px-5 py-4 text-sm font-semibold text-emerald-600">
+                                      <td
+                                        className="px-5 py-4 text-sm font-semibold"
+                                        style={{ color: getPerformanceColor(row.attendancePct) }}
+                                      >
                                         {row.attendancePct != null ? `${row.attendancePct}%` : "N/A"}
                                       </td>
-                                      <td className="px-5 py-4 text-sm font-semibold text-sky-700">
+                                      <td
+                                        className="px-5 py-4 text-sm font-semibold"
+                                        style={{ color: getPerformanceColor(row.averageScore) }}
+                                      >
                                         {row.averageScore != null ? `${row.averageScore}%` : "N/A"}
                                       </td>
                                       <td className="px-5 py-4 text-sm text-slate-500">
-                                        {row.latestLogAt ? row.latestLogAt.replace("T", " ").slice(0, 16) : "N/A"}
+                                        {row.hasPreviousLog && row.latestLogAt ? (
+                                          row.latestLogAt.replace("T", " ").slice(0, 16)
+                                        ) : (
+                                          <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
+                                            No previous log
+                                          </span>
+                                        )}
                                       </td>
                                     </tr>
                                   );

@@ -30,6 +30,7 @@ import {
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { CroppedSmileLogo } from "@/components/ui/CroppedSmileLogo";
 import { useAuth } from "@/lib/hooks/useAuth";
 import {
   getAllBranches,
@@ -334,7 +335,7 @@ export default function DirectorDashboard() {
                 Welcome,{" "}
               </motion.span>
               <AnimatedName name={user?.full_name?.split(" ")[0] || "Director"} />
-              <video src="/Logo%20Icon%20Smile%20ALPHA.webm" autoPlay loop muted playsInline  className="h-20 w-20 object-contain" />
+              <CroppedSmileLogo />
             </h1>
             <motion.p
               className="text-text-secondary text-sm mt-0.5"
@@ -744,3 +745,5 @@ export default function DirectorDashboard() {
     </motion.div>
   );
 }
+
+

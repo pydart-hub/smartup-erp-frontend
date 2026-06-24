@@ -14,6 +14,7 @@ import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { AnimatedNumber, AnimatedName } from "@/components/dashboard/AnimatedValue";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
+import { CroppedSmileLogo } from "@/components/ui/CroppedSmileLogo";
 import { Badge } from "@/components/ui/Badge";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useInstructorBatches } from "@/lib/hooks/useInstructorBatches";
@@ -77,7 +78,7 @@ export default function InstructorDashboard() {
             Welcome,{" "}
           </motion.span>
           <AnimatedName name={instructorDisplayName || user?.full_name || "Instructor"} />
-          <video src="/Logo%20Icon%20Smile%20ALPHA.webm" autoPlay loop muted playsInline  className="h-20 w-20 object-contain" />
+          <CroppedSmileLogo />
         </h1>
         <motion.p className="text-sm text-text-secondary mt-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8, duration: 0.5 }}>
           {defaultCompany && (
@@ -177,3 +178,4 @@ export default function InstructorDashboard() {
     </motion.div>
   );
 }
+

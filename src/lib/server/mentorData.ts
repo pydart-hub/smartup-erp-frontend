@@ -190,27 +190,96 @@ export async function fetchMentorAssignments(params?: {
   const studentIds = [...new Set(flattened.map((row) => row.student).filter(Boolean))];
   if (studentIds.length === 0) return flattened;
 
-  const studentRows: Array<{ name: string; student_name?: string }> = [];
+  const studentRows: Array<{ name: string; student_name?: string; custom_student_type?: string }> = [];
   const chunkSize = 100;
 
   for (let index = 0; index < studentIds.length; index += chunkSize) {
     const chunk = studentIds.slice(index, index + chunkSize);
     const studentRes = await frappeAdminGet("resource/Student", {
-      fields: JSON.stringify(["name", "student_name"]),
+      fields: JSON.stringify(["name", "student_name", "custom_student_type"]),
       filters: JSON.stringify([["name", "in", chunk]]),
       limit_page_length: String(chunk.length + 10),
     });
 
-    studentRows.push(...((studentRes.data ?? []) as Array<{ name: string; student_name?: string }>));
+    studentRows.push(...((studentRes.data ?? []) as Array<{ name: string; student_name?: string; custom_student_type?: string }>));
   }
 
-  const studentMap = new Map(
-    studentRows.map((row) => [row.name, row.student_name || row.name]),
-  );
+  const studentMap = new Map(studentRows.map((row) => [row.name, row]));
+
+  const programRows: ProgramEnrollmentRow[] = [];
+  for (let index = 0; index < studentIds.length; index += chunkSize) {
+    const chunk = studentIds.slice(index, index + chunkSize);
+    const programRes = await frappeAdminGet("resource/Program Enrollment", {
+      fields: JSON.stringify(["student", "program", "custom_plan"]),
+      filters: JSON.stringify([["docstatus", "=", 1], ["student", "in", chunk]]),
+      limit_page_length: String(chunk.length * 3),
+      order_by: "enrollment_date desc, creation desc",
+    });
+
+    programRows.push(...((programRes.data ?? []) as ProgramEnrollmentRow[]));
+  }
+
+  const programMap = new Map<string, ProgramEnrollmentRow>();
+  for (const row of programRows) {
+    if (row.student && !programMap.has(row.student)) {
+      programMap.set(row.student, row);
+    }
+  }
+
+  const studentAttendanceMap = new Map<string, { present: number; total: number }>();
+  for (let index = 0; index < studentIds.length; index += chunkSize) {
+    const chunk = studentIds.slice(index, index + chunkSize);
+    const attendanceRes = await frappeAdminGet("resource/Student Attendance", {
+      fields: JSON.stringify(["student", "status"]),
+      filters: JSON.stringify([["docstatus", "=", 1], ["student", "in", chunk]]),
+      limit_page_length: String(chunk.length * 100),
+    });
+
+    for (const row of (attendanceRes.data ?? []) as Array<{ student: string; status: string }>) {
+      if (!row.student) continue;
+      const stats = studentAttendanceMap.get(row.student) ?? { present: 0, total: 0 };
+      stats.total++;
+      if (row.status === "Present" || row.status === "Late") {
+        stats.present++;
+      }
+      studentAttendanceMap.set(row.student, stats);
+    }
+  }
+
+  const studentScoreMap = new Map<string, { totalScore: number; totalMax: number }>();
+  for (let index = 0; index < studentIds.length; index += chunkSize) {
+    const chunk = studentIds.slice(index, index + chunkSize);
+    const assessmentRes = await frappeAdminGet("resource/Assessment Result", {
+      fields: JSON.stringify(["student", "total_score", "maximum_score"]),
+      filters: JSON.stringify([["docstatus", "=", 1], ["student", "in", chunk]]),
+      limit_page_length: String(chunk.length * 100),
+    });
+
+    for (const row of (assessmentRes.data ?? []) as Array<{ student: string; total_score: number; maximum_score: number }>) {
+      if (!row.student) continue;
+      const stats = studentScoreMap.get(row.student) ?? { totalScore: 0, totalMax: 0 };
+      stats.totalScore += Number(row.total_score || 0);
+      stats.totalMax += Number(row.maximum_score || 0);
+      studentScoreMap.set(row.student, stats);
+    }
+  }
 
   return flattened.map((row) => ({
     ...row,
-    student_name: studentMap.get(row.student) || row.student_name || row.student,
+    student_name: studentMap.get(row.student)?.student_name || row.student_name || row.student,
+    student_type: studentMap.get(row.student)?.custom_student_type,
+    program: programMap.get(row.student)?.program,
+    custom_plan: programMap.get(row.student)?.custom_plan,
+    attendance_pct: (() => {
+      const attendance = studentAttendanceMap.get(row.student);
+      if (!attendance || attendance.total === 0) return null;
+      return Math.round((attendance.present / attendance.total) * 100);
+    })(),
+    average_score: (() => {
+      const score = studentScoreMap.get(row.student);
+      if (!score || score.totalMax === 0) return null;
+      return Math.round((score.totalScore / score.totalMax) * 100);
+    })(),
   }));
 }
 

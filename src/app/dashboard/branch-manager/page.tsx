@@ -19,6 +19,7 @@ import { StatsCard } from "@/components/dashboard/StatsCard";
 import { QuickActions } from "@/components/dashboard/QuickActions";
 import { RecentActivity, type ActivityItem } from "@/components/dashboard/RecentActivity";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
+import { CroppedSmileLogo } from "@/components/ui/CroppedSmileLogo";
 import { Badge } from "@/components/ui/Badge";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useAcademicYearStore } from "@/lib/stores/academicYearStore";
@@ -234,7 +235,7 @@ export default function BranchManagerDashboard() {
                 Welcome back,{" "}
               </motion.span>
               <AnimatedName name={user?.full_name?.split(" ")[0] || "Manager"} />
-              <video src="/Logo%20Icon%20Smile%20ALPHA.webm" autoPlay loop muted playsInline  className="h-20 w-20 object-contain" />
+              <CroppedSmileLogo />
             </h1>
             <motion.p className="text-text-secondary text-sm mt-0.5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8, duration: 0.5 }}>
               Here&apos;s what&apos;s happening at your branch today.
@@ -466,3 +467,4 @@ export default function BranchManagerDashboard() {
     </motion.div>
   );
 }
+
