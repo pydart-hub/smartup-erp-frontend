@@ -11,8 +11,9 @@ export default function MentorDashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { role, isLoading, isAuthenticated } = useAuthStore();
-  const isMentor = role === "Mentor";
+  const { role, activeRole, user, isLoading, isAuthenticated } = useAuthStore();
+  const effectiveRole = activeRole ?? role;
+  const isMentor = effectiveRole === "Mentor" || (user?.roles ?? []).includes("Mentor");
 
   useEffect(() => {
     if (isLoading) return;
@@ -25,11 +26,14 @@ export default function MentorDashboardLayout({
         "Branch Manager": "/dashboard/branch-manager",
         "General Manager": "/dashboard/general-manager",
         Director: "/dashboard/director",
+        Parent: "/dashboard/parent",
+        Instructor: "/dashboard/instructor",
+        "Class Incharge": "/dashboard/class-incharge",
         Administrator: "/dashboard/branch-manager",
       };
-      router.replace(roleRoutes[role ?? ""] || "/dashboard/branch-manager");
+      router.replace(roleRoutes[effectiveRole ?? ""] || "/dashboard/branch-manager");
     }
-  }, [isAuthenticated, isLoading, isMentor, role, router]);
+  }, [effectiveRole, isAuthenticated, isLoading, isMentor, router]);
 
   if (isLoading || !isMentor) return <GifLoader />;
   return <>{children}</>;

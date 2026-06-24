@@ -187,7 +187,31 @@ export async function fetchMentorAssignments(params?: {
     }
   }
 
-  return flattened;
+  const studentIds = [...new Set(flattened.map((row) => row.student).filter(Boolean))];
+  if (studentIds.length === 0) return flattened;
+
+  const studentRows: Array<{ name: string; student_name?: string }> = [];
+  const chunkSize = 100;
+
+  for (let index = 0; index < studentIds.length; index += chunkSize) {
+    const chunk = studentIds.slice(index, index + chunkSize);
+    const studentRes = await frappeAdminGet("resource/Student", {
+      fields: JSON.stringify(["name", "student_name"]),
+      filters: JSON.stringify([["name", "in", chunk]]),
+      limit_page_length: String(chunk.length + 10),
+    });
+
+    studentRows.push(...((studentRes.data ?? []) as Array<{ name: string; student_name?: string }>));
+  }
+
+  const studentMap = new Map(
+    studentRows.map((row) => [row.name, row.student_name || row.name]),
+  );
+
+  return flattened.map((row) => ({
+    ...row,
+    student_name: studentMap.get(row.student) || row.student_name || row.student,
+  }));
 }
 
 export async function fetchMentorFeedback(params?: {

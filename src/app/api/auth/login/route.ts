@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
 import { getSalesUserBranches } from "@/lib/utils/constants";
 
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 1. Verify credentials — Frappe returns 401 if wrong
+    // 1. Verify credentials â€” Frappe returns 401 if wrong
     await axios.post(
       `${FRAPPE_URL}/api/method/login`,
       { usr: email, pwd: password },
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     );
 
     // 2. Use server admin token to fetch full User document
-    //    The User doc includes a `roles` child table — no separate get_list needed
+    //    The User doc includes a `roles` child table â€” no separate get_list needed
     const adminAuth = `token ${FRAPPE_API_KEY}:${FRAPPE_API_SECRET}`;
 
     const userResponse = await axios.get(
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
 
     // 4. Generate fresh API key/secret for this user via admin token.
     //    generate_keys returns ONLY api_secret in its response.
-    //    api_key lives on the User doc — if the user already has one, Frappe keeps it;
+    //    api_key lives on the User doc â€” if the user already has one, Frappe keeps it;
     //    otherwise generate_keys creates one. We read it from the User doc after the call.
     let apiKey = "";
     let apiSecret = "";
@@ -89,10 +89,10 @@ export async function POST(request: NextRequest) {
     } catch (keyErr) {
       console.warn("[login] generate_keys failed for", email, keyErr);
       apiKey = userData.api_key || "";
-      // apiSecret stays empty — proxy will fall back to admin credentials
+      // apiSecret stays empty â€” proxy will fall back to admin credentials
     }
 
-    // 5. Fetch User Permission → Company to know which branches this user can access
+    // 5. Fetch User Permission â†’ Company to know which branches this user can access
     let allowedCompanies: string[] = [];
     let defaultCompany = "";
     let allowedBatches: string[] = [];
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 6. Detect if user is an Instructor
-    //    Chain: User email → Employee(user_id) → Instructor(employee)
+    //    Chain: User email â†’ Employee(user_id) â†’ Instructor(employee)
     let instructorName = "";
     let instructorDisplayName = "";
     try {
@@ -189,24 +189,13 @@ export async function POST(request: NextRequest) {
         if (instrData) {
           instructorName = instrData.name;
           instructorDisplayName = instrData.instructor_name || empData.employee_name || "";
-
-          // Pure instructors: move "Instructor" to position 0 for frontend
-          // role detection. Users with higher-priority roles keep their primary
-          // role untouched — the frontend picks the best role from store.
-          const HIGHER_ROLES = ["Director", "Management", "General Manager", "Branch Manager", "HR Manager", "Administrator"];
-          const hasPrimaryRole = HIGHER_ROLES.some((r) => roles.includes(r));
-
-          if (!hasPrimaryRole) {
-            // Ensure "Instructor" is at position 0 for frontend role detection.
-            const existingIdx = roles.indexOf("Instructor");
-            if (existingIdx > -1) roles.splice(existingIdx, 1);
-            roles.unshift("Instructor");
-          }
+          // Keep instructor metadata for instructor-specific APIs, but do not
+          // add or promote the Instructor role unless it already exists on the user.
 
           // 6b. Ensure ALL instructors (including BM+Instructor) have
           //     "Academics User" role in Frappe.  Course Schedule and Student
           //     Attendance DocType permissions require this role for
-          //     write/create — without it, the user cannot create schedules
+          //     write/create â€” without it, the user cannot create schedules
           //     or mark attendance even when acting in instructor mode.
           if (!roles.includes("Academics User")) {
             try {
@@ -322,3 +311,5 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+

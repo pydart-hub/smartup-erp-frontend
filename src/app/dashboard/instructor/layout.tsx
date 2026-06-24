@@ -1,15 +1,13 @@
-"use client";
+﻿"use client";
 
 import { GifLoader } from "@/components/ui/GifLoader";
 import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/lib/stores/authStore";
-import {} from "lucide-react";
 
 /**
- * Instructor layout — protects all /dashboard/instructor/* routes.
- * If the user is NOT an instructor, they are redirected to their
- * correct dashboard based on their primary role.
+ * Instructor layout - protects all /dashboard/instructor/* routes.
+ * Access should only be granted when the user actually has the Instructor role.
  */
 export default function InstructorDashboardLayout({
   children,
@@ -17,44 +15,36 @@ export default function InstructorDashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { role, isLoading, isAuthenticated, isInstructor: storeIsInstructor } = useAuthStore();
-  const isInstructor = storeIsInstructor || role === "Instructor";
+  const { role, activeRole, user, isLoading, isAuthenticated } = useAuthStore();
+  const effectiveRole = activeRole ?? role;
+  const isInstructor = (user?.roles ?? []).includes("Instructor");
 
   useEffect(() => {
-    // Wait until auth check finishes
     if (isLoading) return;
 
-    // Not authenticated → handled by middleware, but safety fallback
     if (!isAuthenticated) {
       router.replace("/auth/login");
       return;
     }
 
-    // Authenticated but NOT an instructor → redirect to their own dashboard
     if (!isInstructor) {
-      const ROLE_ROUTES: Record<string, string> = {
+      const roleRoutes: Record<string, string> = {
         "Branch Manager": "/dashboard/branch-manager",
+        "General Manager": "/dashboard/general-manager",
+        Director: "/dashboard/director",
+        Mentor: "/dashboard/mentor",
+        "Class Incharge": "/dashboard/class-incharge",
         Parent: "/dashboard/parent",
         Teacher: "/dashboard/teacher",
         Administrator: "/dashboard/admin",
       };
-      const dest = ROLE_ROUTES[role ?? ""] || "/dashboard/branch-manager";
+      const dest = roleRoutes[effectiveRole ?? ""] || "/dashboard/branch-manager";
       router.replace(dest);
     }
-  }, [isLoading, isAuthenticated, isInstructor, role, router]);
+  }, [effectiveRole, isAuthenticated, isInstructor, isLoading, router]);
 
-  // While auth is loading, show spinner
-  if (isLoading) {
-    return (
-      <GifLoader />
-    );
-  }
-
-  // Not instructor → show nothing while redirect happens
-  if (!isInstructor) {
-    return (
-      <GifLoader />
-    );
+  if (isLoading || !isInstructor) {
+    return <GifLoader />;
   }
 
   return <>{children}</>;

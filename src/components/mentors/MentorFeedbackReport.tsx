@@ -22,7 +22,7 @@ import {
   GraduationCap,
   Sparkles,
 } from "lucide-react";
-import type { MentorFeedback } from "@/lib/types/mentor";
+import type { MentorFeedback, MentorStudentAssignment } from "@/lib/types/mentor";
 
 export function MentorFeedbackReport(props: {
   title: string;
@@ -31,6 +31,7 @@ export function MentorFeedbackReport(props: {
   lockedBranch?: string;
   backHref?: string;
   studentDetailHref?: (studentId: string) => string;
+  assignmentsEndpoint?: string;
 }) {
   return (
     <Suspense fallback={
@@ -53,6 +54,7 @@ function MentorFeedbackReportContent({
   lockedBranch,
   backHref,
   studentDetailHref,
+  assignmentsEndpoint,
 }: {
   title: string;
   endpoint: string;
@@ -60,6 +62,7 @@ function MentorFeedbackReportContent({
   lockedBranch?: string;
   backHref?: string;
   studentDetailHref?: (studentId: string) => string;
+  assignmentsEndpoint?: string;
 }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
@@ -93,6 +96,41 @@ function MentorFeedbackReportContent({
     enabled: hideBranchLevel ? !!lockedBranch : true,
   });
 
+  const { data: assignments = [] } = useQuery<MentorStudentAssignment[]>({
+    queryKey: ["mentor-feedback-assignments", assignmentsEndpoint, hideBranchLevel ? lockedBranch : undefined],
+    queryFn: async () => {
+      if (!assignmentsEndpoint) return [];
+      const url = new URL(assignmentsEndpoint, window.location.origin);
+      if (hideBranchLevel && lockedBranch) {
+        url.searchParams.set("branch", lockedBranch);
+      }
+      url.searchParams.set("status", "Active");
+      const res = await fetch(url.toString(), { credentials: "include", cache: "no-store" });
+      if (!res.ok) throw new Error("Failed to fetch mentor assignments");
+      const json = await res.json();
+      return json.data ?? [];
+    },
+    staleTime: 60_000,
+    enabled: Boolean(assignmentsEndpoint) && (hideBranchLevel ? !!lockedBranch : true),
+  });
+
+  const drilldownRows = useMemo<MentorFeedback[]>(() => {
+    if ((data ?? []).length > 0) return data ?? [];
+    return assignments.map((assignment) => ({
+      name: "assignment-" + assignment.name,
+      student: assignment.student,
+      student_name: assignment.student_name || assignment.student,
+      mentor_profile: assignment.mentor_profile,
+      mentor_user: assignment.mentor_user,
+      branch: assignment.branch,
+      call_datetime: assignment.modified || assignment.assigned_on || assignment.creation || "",
+      call_status: "Not Logged Yet",
+      discussion_category: "Pending Feedback",
+      action_required: 0,
+      creation: assignment.creation,
+    }));
+  }, [assignments, data]);
+
   // Flat filtering for Global View
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -117,7 +155,7 @@ function MentorFeedbackReportContent({
 
   // 1. Group by branch
   const branchGroups = useMemo(() => {
-    const rawData = data ?? [];
+    const rawData = drilldownRows;
     const groups: Record<string, {
       branchName: string;
       logsCount: number;
@@ -135,8 +173,11 @@ function MentorFeedbackReportContent({
           mentors: new Set(),
         };
       }
-      groups[b].logsCount++;
-      if (row.action_required) {
+      const isAssignmentPlaceholder = row.name.startsWith("assignment-");
+      if (!isAssignmentPlaceholder) {
+        groups[b].logsCount++;
+      }
+      if (!isAssignmentPlaceholder && row.action_required) {
         groups[b].actionRequiredCount++;
       }
       if (row.mentor_user) {
@@ -145,12 +186,12 @@ function MentorFeedbackReportContent({
     });
 
     return Object.values(groups).sort((a, b) => a.branchName.localeCompare(b.branchName));
-  }, [data]);
+  }, [drilldownRows]);
 
   // 2. Group by mentor (for selected branch)
   const mentorGroups = useMemo(() => {
     if (!effectiveSelectedBranch) return [];
-    const rawData = data ?? [];
+    const rawData = drilldownRows;
     const branchData = rawData.filter((row) => (row.branch || "Unassigned Branch") === effectiveSelectedBranch);
 
     const groups: Record<string, {
@@ -172,7 +213,10 @@ function MentorFeedbackReportContent({
           students: new Set(),
         };
       }
-      groups[m].logsCount++;
+      const isAssignmentPlaceholder = row.name.startsWith("assignment-");
+      if (!isAssignmentPlaceholder) {
+        groups[m].logsCount++;
+      }
       if (!groups[m].mentorName && (row.mentor_name || row.mentor_profile)) {
         groups[m].mentorName = row.mentor_name || row.mentor_profile;
       }
@@ -186,17 +230,17 @@ function MentorFeedbackReportContent({
     });
 
     return Object.values(groups).sort((a, b) => a.mentorUser.localeCompare(b.mentorUser));
-  }, [data, effectiveSelectedBranch]);
+  }, [drilldownRows, effectiveSelectedBranch]);
 
   // 3. Filtered logs for selected mentor and branch
   const drilldownFilteredLogs = useMemo(() => {
-    const rawData = data ?? [];
+    const rawData = drilldownRows;
     return rawData.filter((row) => {
       const b = row.branch || "Unassigned Branch";
       const m = row.mentor_user || "Unassigned Mentor";
       return b === effectiveSelectedBranch && m === effectiveSelectedMentor;
     });
-  }, [data, effectiveSelectedBranch, effectiveSelectedMentor]);
+  }, [drilldownRows, effectiveSelectedBranch, effectiveSelectedMentor]);
 
   const mentorStudentGroups = useMemo(() => {
     const groups = new Map<string, {
@@ -215,6 +259,7 @@ function MentorFeedbackReportContent({
     for (const row of drilldownFilteredLogs) {
       const studentId = row.student || "Unknown Student";
       const existing = groups.get(studentId);
+      const isAssignmentPlaceholder = row.name.startsWith("assignment-");
       if (!existing) {
         groups.set(studentId, {
           studentId,
@@ -224,21 +269,23 @@ function MentorFeedbackReportContent({
           customPlan: row.custom_plan,
           attendancePct: row.attendance_pct,
           averageScore: row.average_score,
-          logsCount: 1,
-          latestLogAt: row.call_datetime,
-          actionRequiredCount: row.action_required ? 1 : 0,
+          logsCount: isAssignmentPlaceholder ? 0 : 1,
+          latestLogAt: isAssignmentPlaceholder ? undefined : row.call_datetime,
+          actionRequiredCount: !isAssignmentPlaceholder && row.action_required ? 1 : 0,
         });
         continue;
       }
 
-      existing.logsCount += 1;
-      existing.actionRequiredCount += row.action_required ? 1 : 0;
+      if (!isAssignmentPlaceholder) {
+        existing.logsCount += 1;
+        existing.actionRequiredCount += row.action_required ? 1 : 0;
+      }
       if (!existing.studentType && row.student_type) existing.studentType = row.student_type;
       if (!existing.program && row.program) existing.program = row.program;
       if (!existing.customPlan && row.custom_plan) existing.customPlan = row.custom_plan;
       if (existing.attendancePct == null && row.attendance_pct != null) existing.attendancePct = row.attendance_pct;
       if (existing.averageScore == null && row.average_score != null) existing.averageScore = row.average_score;
-      if (!existing.latestLogAt || (row.call_datetime && row.call_datetime > existing.latestLogAt)) {
+      if (!isAssignmentPlaceholder && (!existing.latestLogAt || (row.call_datetime && row.call_datetime > existing.latestLogAt))) {
         existing.latestLogAt = row.call_datetime;
       }
     }
@@ -413,7 +460,7 @@ function MentorFeedbackReportContent({
                 <MetricCard label="Total Feedback Logs" value={data?.length ?? 0} tone="default" />
                 <MetricCard label="Action Required" value={(data ?? []).filter((row) => row.action_required).length} tone="amber" />
                 {!hideBranchLevel && (
-                  <MetricCard label="Branches Covered" value={new Set((data ?? []).map((row) => row.branch).filter(Boolean)).size} tone="mint" />
+                  <MetricCard label="Branches Covered" value={new Set(drilldownRows.map((row) => row.branch).filter(Boolean)).size} tone="mint" />
                 )}
               </div>
             </div>
@@ -1025,3 +1072,6 @@ function MetricCard({
     </div>
   );
 }
+
+
+
