@@ -75,7 +75,7 @@ export default function DemoSelectionPage() {
         >
           <div className="inline-flex items-center gap-3 mb-4">
             <Image
-              src="/smartup-logo.png"
+              src="/smartup-logo-v2.png"
               alt="SmartUp"
               width={36}
               height={36}

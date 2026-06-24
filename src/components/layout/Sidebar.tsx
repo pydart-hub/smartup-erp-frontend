@@ -218,7 +218,7 @@ export function Sidebar({ navItems = BRANCH_MANAGER_NAV }: SidebarProps) {
           {!sidebarCollapsed && (
             <Link href={homeHref} className="flex items-center gap-2.5 overflow-hidden">
               <Image
-                src="/smartup-logo.png"
+                src="/smartup-logo-v2.png"
                 alt="SmartUp"
                 width={36}
                 height={36}
@@ -230,7 +230,7 @@ export function Sidebar({ navItems = BRANCH_MANAGER_NAV }: SidebarProps) {
           {sidebarCollapsed && (
             <Link href={homeHref} className="flex items-center justify-center">
               <Image
-                src="/smartup-logo.png"
+                src="/smartup-logo-v2.png"
                 alt="SmartUp"
                 width={36}
                 height={36}

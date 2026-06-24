@@ -58,7 +58,7 @@ export default function DemoParentLayout({ children }: { children: React.ReactNo
       >
         {/* Logo */}
         <div className="p-5 flex items-center gap-3 border-b border-border-light">
-          <Image src="/smartup-logo.png" alt="SmartUp" width={32} height={32} className="object-contain" />
+          <Image src="/smartup-logo-v2.png" alt="SmartUp" width={32} height={32} className="object-contain" />
           <div>
             <span className="text-sm font-bold text-text-primary tracking-wide">SMART UP</span>
             <div className="flex items-center gap-1.5">
