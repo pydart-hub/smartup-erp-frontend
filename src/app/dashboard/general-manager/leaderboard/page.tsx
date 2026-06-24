@@ -833,7 +833,6 @@ export default function GMLeaderboardPage() {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <video
                   src="/Logo%20Icon%20LOOK%20ALPHA.webm" autoPlay loop muted playsInline
-                  alt="Loading"
                   className="w-48 h-48 object-contain"
                   style={{ imageRendering: "pixelated" }}
                 />
