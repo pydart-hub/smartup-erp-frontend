@@ -203,13 +203,12 @@ export default function LoginPage() {
             {/* Mobile logo (hidden on lg+) */}
             <div className="lg:hidden text-center mb-10">
               <div className="inline-flex items-center gap-3 mb-2 bg-white/10 backdrop-blur-md px-5 py-2.5 rounded-full border border-white/20 shadow-lg">
-                <video
-                  src="/Logo%20Icon%20Smile%20ALPHA.webm"
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  className="w-9 h-9 object-contain"
+                <Image
+                  src="/smartup-logo.png"
+                  alt="SmartUp"
+                  width={36}
+                  height={36}
+                  className="object-contain"
                 />
                 <span className="text-white text-lg font-bold tracking-wide drop-shadow-md">
                   SMART UP
@@ -224,13 +223,12 @@ export default function LoginPage() {
             >
               {/* Greeting with icon */}
               <div className="flex items-center justify-center lg:justify-start gap-3 mb-6">
-                <video
-                  src="/Logo%20Icon%20Smile%20ALPHA.webm"
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  className="hidden lg:block w-[68px] h-[68px] object-contain drop-shadow-[4px_4px_8px_rgba(163,177,198,0.5)]"
+                <Image
+                  src="/smartup-logo.png"
+                  alt="SmartUp"
+                  width={68}
+                  height={68}
+                  className="hidden lg:block object-contain drop-shadow-[4px_4px_8px_rgba(163,177,198,0.5)]"
                 />
                 <div className="text-center lg:text-left">
                   <h2 className="text-2xl font-bold text-white lg:text-slate-800 drop-shadow-md lg:drop-shadow-[2px_2px_4px_rgba(255,255,255,0.8)]">
