@@ -334,7 +334,7 @@ export default function DirectorDashboard() {
                 Welcome,{" "}
               </motion.span>
               <AnimatedName name={user?.full_name?.split(" ")[0] || "Director"} />
-              <video src="/Logo%20Icon%20Smile%20ALPHA.webm" autoPlay loop muted playsInline alt="" className="h-20 w-20 object-contain" />
+              <video src="/Logo%20Icon%20Smile%20ALPHA.webm" autoPlay loop muted playsInline  className="h-20 w-20 object-contain" />
             </h1>
             <motion.p
               className="text-text-secondary text-sm mt-0.5"

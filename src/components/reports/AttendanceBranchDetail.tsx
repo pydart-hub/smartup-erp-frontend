@@ -80,7 +80,7 @@ export function AttendanceBranchDetail({ branch, fromDate, toDate, onBack }: Pro
   if (isLoading) return (
     <div className="flex flex-col items-center justify-center h-48 gap-3">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <video src="/Logo%20Icon%20LOOK%20ALPHA.webm" autoPlay loop muted playsInline alt="Loading" className="w-20 h-20 object-contain" />
+      <video src="/Logo%20Icon%20LOOK%20ALPHA.webm" autoPlay loop muted playsInline  className="w-20 h-20 object-contain" />
       <p className="text-xs font-semibold text-text-tertiary animate-pulse tracking-wide">Loading…</p>
     </div>
   );
