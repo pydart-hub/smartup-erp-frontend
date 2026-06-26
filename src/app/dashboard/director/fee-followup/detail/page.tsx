@@ -99,6 +99,7 @@ function DetailInner() {
 
   const queryString = useMemo(() => {
     const params = new URLSearchParams();
+    params.set("kind", kind);
     if (branch) params.set("branch", branch);
     if (from) params.set("from", from);
     if (to) params.set("to", to);
@@ -459,3 +460,5 @@ export default function FeeFollowUpDetailPage() {
     </Suspense>
   );
 }
+
+

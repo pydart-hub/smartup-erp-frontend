@@ -15,10 +15,6 @@ import type {
 } from "@/lib/types/assessment";
 import type { FrappeListResponse, FrappeSingleResponse } from "@/lib/types/api";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Master Data (via proxy)
-// ─────────────────────────────────────────────────────────────────────────────
-
 /** List all assessment criteria */
 export async function getAssessmentCriteria(): Promise<AssessmentCriteria[]> {
   const { data } = await apiClient.get<FrappeListResponse<AssessmentCriteria>>(
@@ -45,7 +41,7 @@ export async function getGradingScale(name: string): Promise<GradingScale> {
   return data.data;
 }
 
-/** List assessment groups (exam types) — exclude root group */
+/** List assessment groups (exam types) - exclude root group */
 export async function getAssessmentGroups(): Promise<AssessmentGroup[]> {
   const { data } = await apiClient.get<FrappeListResponse<AssessmentGroup>>(
     "/resource/Assessment Group",
@@ -59,10 +55,6 @@ export async function getAssessmentGroups(): Promise<AssessmentGroup[]> {
   );
   return data.data;
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Assessment Plans — Exams (via proxy for listing, /api/exams/* for create)
-// ─────────────────────────────────────────────────────────────────────────────
 
 /** List assessment plans with filters */
 export async function getAssessmentPlans(params?: {
@@ -110,10 +102,6 @@ export async function getAssessmentPlan(name: string): Promise<AssessmentPlan> {
   return data.data;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Server-Side API Routes (use /api/exams/* with admin auth)
-// ─────────────────────────────────────────────────────────────────────────────
-
 /** Fetch existing Assessment Plans for a batch + date (to show occupied exam slots) */
 export async function getExamsForBatchDate(
   studentGroup: string,
@@ -156,6 +144,18 @@ export async function createExam(data: {
   }
   const json = await res.json();
   return json.data;
+}
+
+/** Delete a scheduled exam when it has no saved results */
+export async function deleteExam(name: string): Promise<void> {
+  const res = await fetch(`/api/exams/${encodeURIComponent(name)}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.error || "Failed to delete exam");
+  }
 }
 
 /** Bulk save marks for an exam */
