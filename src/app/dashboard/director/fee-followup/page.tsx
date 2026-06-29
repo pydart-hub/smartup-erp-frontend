@@ -1,10 +1,11 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform, animate as animateValue } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import {
+  Building2,
   Phone,
   PhoneCall,
   PhoneOff,
@@ -70,9 +71,17 @@ interface LogEntry {
   next_followup_date?: string;
 }
 
+interface ByBranch {
+  branch: string;
+  converted_amount: number;
+  pending_overdue: number;
+  initial_overdue: number;
+}
+
 interface FeeFollowUpData {
   summary: Summary;
   by_user: ByUser[];
+  by_branch: ByBranch[];
   logs: LogEntry[];
 }
 
@@ -476,6 +485,7 @@ export default function FeeFollowUpDashboard() {
   const [calledBy, setCalledBy] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [expandedUsers, setExpandedUsers] = useState(true);
+  const [expandedBranches, setExpandedBranches] = useState(true);
   const [logSearch, setLogSearch] = useState("");
   const [leaderboardOpen, setLeaderboardOpen] = useState(true);
   const [expandedPodium, setExpandedPodium] = useState<Record<number, boolean>>({});
@@ -525,6 +535,7 @@ export default function FeeFollowUpDashboard() {
 
   const summary = data?.summary;
   const byUser = data?.by_user ?? [];
+  const byBranch = data?.by_branch ?? [];
   const rawLogs = data?.logs ?? [];
 
   // Aggregate per-branch rows into one row per user
@@ -869,6 +880,75 @@ export default function FeeFollowUpDashboard() {
                     </motion.div>
                   )}
                 </AnimatePresence>
+              </Card>
+            )}
+
+            {/* ── Branch Breakdown ── */}
+            {byBranch.length > 0 && (
+              <Card>
+                <div
+                  className="flex items-center justify-between px-4 pt-4 pb-3 cursor-pointer select-none"
+                  onClick={() => setExpandedBranches((v) => !v)}
+                >
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-semibold text-text-primary">Branch Breakdown</span>
+                    <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium bg-primary/10 text-primary">
+                      {byBranch.length} branch{byBranch.length !== 1 ? "es" : ""}
+                    </span>
+                  </div>
+                  {expandedBranches ? (
+                    <ChevronUp className="h-4 w-4 text-text-tertiary" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-text-tertiary" />
+                  )}
+                </div>
+
+                {expandedBranches && (
+                  <CardContent className="pt-0 pb-4">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="border-b border-border-light">
+                            <th className="text-left py-2 px-2 text-text-tertiary font-semibold uppercase tracking-wide text-[10px]">Branch</th>
+                            <th className="text-right py-2 px-2 text-text-tertiary font-semibold uppercase tracking-wide text-[10px]">Initial Overdue</th>
+                            <th className="text-right py-2 px-2 text-text-tertiary font-semibold uppercase tracking-wide text-[10px]">Converted</th>
+                            <th className="text-right py-2 px-2 text-text-tertiary font-semibold uppercase tracking-wide text-[10px]">Pending Overdue</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {byBranch.map((b, i) => {
+                            const conversionRate = b.initial_overdue > 0 ? (b.converted_amount / b.initial_overdue) * 100 : 0;
+                            return (
+                              <tr
+                                key={b.branch}
+                                className={`border-b border-border-light/50 ${i % 2 === 0 ? "" : "bg-surface-alt/30"}`}
+                              >
+                                <td className="py-2.5 px-2 font-medium text-text-primary">
+                                  {b.branch}
+                                </td>
+                                <td className="py-2.5 px-2 text-right font-semibold text-text-primary">
+                                  {formatCurrency(b.initial_overdue)}
+                                </td>
+                                <td className="py-2.5 px-2 text-right text-emerald-700 font-medium">
+                                  <div>{formatCurrency(b.converted_amount)}</div>
+                                  {b.initial_overdue > 0 && (
+                                    <div className="text-[9px] text-text-tertiary font-normal">
+                                      {conversionRate.toFixed(1)}% converted
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="py-2.5 px-2 text-right text-red-600 font-semibold">
+                                  {formatCurrency(b.pending_overdue)}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </CardContent>
+                )}
               </Card>
             )}
 

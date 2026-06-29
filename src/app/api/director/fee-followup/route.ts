@@ -300,6 +300,105 @@ async function getCollectedLogs(params: {
   return collectedLogs.sort((a, b) => (b.call_date || "").localeCompare(a.call_date || ""));
 }
 
+async function getDiscontinuedCustomers(): Promise<string[]> {
+  try {
+    const filters: (string | number | string[])[][] = [
+      ["enabled", "=", 0],
+      ["custom_discontinuation_date", "is", "set"],
+    ];
+    const res = await frappeGet("resource/Student", {
+      filters: JSON.stringify(filters),
+      fields: JSON.stringify(["customer"]),
+      limit_page_length: "500",
+    });
+    return (res.data ?? [])
+      .map((s: { customer?: string }) => s.customer)
+      .filter(Boolean) as string[];
+  } catch (err) {
+    console.error("Failed to fetch discontinued customers", err);
+    return [];
+  }
+}
+
+async function getPendingOverdueByBranch(todayDate: string): Promise<Record<string, number>> {
+  try {
+    const discCustomers = await getDiscontinuedCustomers();
+    const filters: (string | number | string[])[][] = [
+      ["docstatus", "=", 1],
+      ["outstanding_amount", ">", 0],
+      ["due_date", "<=", todayDate],
+    ];
+    if (discCustomers.length > 0) {
+      filters.push(["customer", "not in", discCustomers]);
+    }
+    const res = await frappeGet("resource/Sales Invoice", {
+      filters: JSON.stringify(filters),
+      fields: JSON.stringify([
+        "company",
+        "sum(outstanding_amount) as total_dues",
+      ]),
+      group_by: "company",
+      limit_page_length: "100",
+    });
+
+    const duesMap: Record<string, number> = {};
+    for (const row of (res.data ?? [])) {
+      if (row.company) {
+        duesMap[row.company] = row.total_dues ?? 0;
+      }
+    }
+    return duesMap;
+  } catch (err) {
+    console.error("Failed to fetch pending overdue by branch", err);
+    return {};
+  }
+}
+
+function computeBranchBreakdown(logs: FollowUpLog[], pendingDuesMap: Record<string, number>) {
+  const branchMap = new Map<string, {
+    branch: string;
+    converted_amount: number;
+    pending_overdue: number;
+    initial_overdue: number;
+  }>();
+
+  // Initialize from pending dues map
+  for (const [branch, pending] of Object.entries(pendingDuesMap)) {
+    if (!branchMap.has(branch)) {
+      branchMap.set(branch, {
+        branch,
+        converted_amount: 0,
+        pending_overdue: pending,
+        initial_overdue: pending,
+      });
+    }
+  }
+
+  // Aggregate converted amounts from logs
+  for (const log of logs) {
+    if (log.payment_received && log.amount_received) {
+      const branch = log.branch || "Unknown";
+      if (!branchMap.has(branch)) {
+        branchMap.set(branch, {
+          branch,
+          converted_amount: 0,
+          pending_overdue: 0,
+          initial_overdue: 0,
+        });
+      }
+      const item = branchMap.get(branch)!;
+      item.converted_amount += log.amount_received;
+    }
+  }
+
+  // Recalculate initial overdue
+  for (const item of branchMap.values()) {
+    item.initial_overdue = item.pending_overdue + item.converted_amount;
+  }
+
+  return Array.from(branchMap.values()).sort((a, b) => b.initial_overdue - a.initial_overdue);
+}
+
 export async function GET(request: NextRequest) {
   try {
     const session = parseSession(request);
@@ -318,10 +417,14 @@ export async function GET(request: NextRequest) {
     const statusFilter = searchParams.get("status") || "";
     const kind = searchParams.get("kind") || "";
 
+    const todayDate = to || new Date().toISOString().slice(0, 10);
+    const pendingDuesMap = await getPendingOverdueByBranch(todayDate);
+
     if (kind === "collected") {
       const logs = await getCollectedLogs({ branch, from, to, calledBy, statusFilter });
       const { summary, by_user } = summarizeLogs(logs);
-      return NextResponse.json({ summary, by_user, logs });
+      const by_branch = computeBranchBreakdown(logs, pendingDuesMap);
+      return NextResponse.json({ summary, by_user, by_branch, logs });
     }
 
     const filters: [string, string, string, string][] = [];
@@ -358,8 +461,9 @@ export async function GET(request: NextRequest) {
     const data = await res.json();
     const logs: FollowUpLog[] = data.data ?? [];
     const { summary, by_user } = summarizeLogs(logs);
+    const by_branch = computeBranchBreakdown(logs, pendingDuesMap);
 
-    return NextResponse.json({ summary, by_user, logs });
+    return NextResponse.json({ summary, by_user, by_branch, logs });
   } catch (err) {
     console.error("[director/fee-followup] Error:", err);
     return NextResponse.json(
@@ -368,4 +472,5 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
 
