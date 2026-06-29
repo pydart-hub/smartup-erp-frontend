@@ -119,6 +119,7 @@ export const BRANCH_MANAGER_NAV: NavItem[] = [
   { label: "Teachers", href: "/dashboard/branch-manager/teachers", icon: "UserCheck", emoji: "👨‍🏫" },
   { label: "Fees", href: "/dashboard/branch-manager/fees", icon: "IndianRupee", emoji: "💰" },
   { label: "Exams", href: "/dashboard/branch-manager/exams", icon: "ClipboardList", emoji: "📝" },
+  { label: "Diagnosis Exam", href: "/dashboard/branch-manager/level-exams", icon: "Microscope", emoji: "🔬" },
   {
     label: "Academics",
     href: "/dashboard/branch-manager/academics",
@@ -127,6 +128,7 @@ export const BRANCH_MANAGER_NAV: NavItem[] = [
     children: [
       { label: "Attendance Report", href: "/dashboard/branch-manager/attendance/report", icon: "ClipboardCheck", emoji: "✅" },
       { label: "Exam Analytics", href: "/dashboard/branch-manager/exams/analytics", icon: "Trophy", emoji: "🏆" },
+      { label: "Diagnosis Exam", href: "/dashboard/branch-manager/level-exams", icon: "Microscope", emoji: "🔬" },
       { label: "Student Performance", href: "/dashboard/branch-manager/student-performance", icon: "TrendingUp", emoji: "📊" },
     ],
   },
@@ -231,10 +233,10 @@ export const PARENT_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard/parent", icon: "LayoutDashboard", emoji: "📊" },
   { label: "Children", href: "/dashboard/parent/children", icon: "Baby", emoji: "👶" },
   { label: "Diagnosis Exam", href: "/dashboard/parent/level-exams", icon: "ClipboardList", emoji: "📝" },
+  { label: "Learning Hub", href: "/dashboard/parent/learning-hub", icon: "BookOpen", emoji: "✨" },
   { label: "Attendance", href: "/dashboard/parent/attendance", icon: "ClipboardCheck", emoji: "✅" },
   { label: "Schedule", href: "/dashboard/parent/schedule", icon: "CalendarDays", emoji: "📅" },
   { label: "Performance", href: "/dashboard/parent/performance", icon: "Trophy", emoji: "🏆" },
-  { label: "Video Classes", href: "/dashboard/parent/video-classes", icon: "Video", emoji: "🎬" },
   { label: "Fees", href: "/dashboard/parent/fees", icon: "IndianRupee", emoji: "💰" },
   { label: "Complaints", href: "/dashboard/parent/complaints", icon: "MessageSquareWarning", emoji: "⚠️" },
 ];
@@ -269,6 +271,7 @@ export const GENERAL_MANAGER_NAV: NavItem[] = [
       { label: "Batches", href: "/dashboard/general-manager/batches", icon: "Users", emoji: "👥" },
     ],
   },
+  { label: "Learning Hub", href: "/dashboard/general-manager/learning-hub", icon: "BookOpen", emoji: "✨" },
   { label: "Academics", href: "/dashboard/general-manager/academics", icon: "BarChart3", emoji: "📈" },
   { label: "Attendance", href: "/dashboard/general-manager/attendance", icon: "ClipboardCheck", emoji: "✅" },
   { label: "Actions Needed", href: "/dashboard/general-manager/actions-needed", icon: "MessageSquareWarning", emoji: "⚠️" },

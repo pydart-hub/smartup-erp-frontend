@@ -1040,3 +1040,147 @@ export async function getLevelExamBranchSubjectDetail(
     studentSummaries,
   };
 }
+
+export async function getLevelExamDashboardDataForBranch(branchName: string) {
+  const data = await getLevelExamDashboardData();
+  const branchStudents = data.activeStudents.filter((student) => student.branch === branchName);
+  const branchAttempts = data.attempts.filter((attempt) => attempt.branch === branchName);
+  const branchStudentIds = new Set(branchStudents.map((student) => student.student_id));
+
+  const classSummaries = ["8", "9", "10"].map((levelCode) => {
+    const classStudents = branchStudents.filter((student) => student.level_code === levelCode);
+    const classAttempts = branchAttempts.filter((attempt) => attempt.levelCode === levelCode);
+    const assignedStudents = new Set(
+      data.attempts
+        .filter((attempt) => attempt.branch === branchName && attempt.levelCode === levelCode)
+        .map((attempt) => attempt.studentId),
+    );
+    const gradeCounts = classAttempts.reduce<Record<string, number>>((acc, attempt) => {
+      acc[attempt.grade] = (acc[attempt.grade] || 0) + 1;
+      return acc;
+    }, {});
+
+    return {
+      levelCode,
+      studentCount: classStudents.length,
+      assignedCount: assignedStudents.size,
+      attendedCount: new Set(classAttempts.map((attempt) => attempt.studentId)).size,
+      avgScore: round(average(classAttempts.map((attempt) => attempt.score))),
+      avgPercentage: round(average(classAttempts.map((attempt) => attempt.percentage))),
+      topGrade: Object.entries(gradeCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "NA",
+      passRate: classAttempts.length
+        ? round((classAttempts.filter((attempt) => attempt.percentage >= 35).length / classAttempts.length) * 100)
+        : 0,
+    };
+  });
+
+  const subjectSummaries = Array.from(
+    branchAttempts.reduce<Map<string, AttemptMetric[]>>((acc, attempt) => {
+      const existing = acc.get(attempt.subjectName) || [];
+      existing.push(attempt);
+      acc.set(attempt.subjectName, existing);
+      return acc;
+    }, new Map()),
+  )
+    .map(([subjectName, attempts]) => ({
+      subjectName,
+      attempts: attempts.length,
+      avgScore: round(average(attempts.map((attempt) => attempt.score))),
+      avgPercentage: round(average(attempts.map((attempt) => attempt.percentage))),
+      topGrade:
+        Object.entries(
+          attempts.reduce<Record<string, number>>((acc, attempt) => {
+            acc[attempt.grade] = (acc[attempt.grade] || 0) + 1;
+            return acc;
+          }, {}),
+        ).sort((a, b) => b[1] - a[1])[0]?.[0] || "NA",
+    }))
+    .sort((a, b) => b.attempts - a.attempts || b.avgPercentage - a.avgPercentage);
+
+  return {
+    branchName,
+    hero: {
+      activeStudents: branchStudents.length,
+      attendedStudents: new Set(branchAttempts.map((attempt) => attempt.studentId)).size,
+      publishedExams: new Set(branchAttempts.map((attempt) => attempt.examId)).size,
+      overallAvgScore: round(average(branchAttempts.map((attempt) => attempt.score))),
+      overallAvgPercentage: round(average(branchAttempts.map((attempt) => attempt.percentage))),
+      passRate: branchAttempts.length
+        ? round((branchAttempts.filter((attempt) => attempt.percentage >= 35).length / branchAttempts.length) * 100)
+        : 0,
+      activeSubjects: new Set(branchAttempts.map((attempt) => attempt.subjectName)).size,
+      assignedStudents: branchStudentIds.size,
+    },
+    classSummaries,
+    subjectSummaries,
+  };
+}
+
+export async function getLevelExamClassDetailForBranch(
+  levelCode: "8" | "9" | "10",
+  branchName: string,
+) {
+  const data = await getLevelExamDashboardData();
+  const classStudents = data.activeStudents.filter(
+    (student) => student.level_code === levelCode && student.branch === branchName,
+  );
+  const classAttempts = data.attempts.filter(
+    (attempt) => attempt.levelCode === levelCode && attempt.branch === branchName,
+  );
+
+  const classSummary = {
+    levelCode,
+    branchName,
+    studentCount: classStudents.length,
+    attendedCount: new Set(classAttempts.map((attempt) => attempt.studentId)).size,
+    avgScore: round(average(classAttempts.map((attempt) => attempt.score))),
+    avgPercentage: round(average(classAttempts.map((attempt) => attempt.percentage))),
+    passRate: classAttempts.length
+      ? round((classAttempts.filter((attempt) => attempt.percentage >= 35).length / classAttempts.length) * 100)
+      : 0,
+    topGrade:
+      Object.entries(
+        classAttempts.reduce<Record<string, number>>((acc, attempt) => {
+          acc[attempt.grade] = (acc[attempt.grade] || 0) + 1;
+          return acc;
+        }, {}),
+      ).sort((a, b) => b[1] - a[1])[0]?.[0] || "NA",
+  };
+
+  const subjectSummaries = Array.from(
+    classAttempts.reduce<Map<string, AttemptMetric[]>>((acc, attempt) => {
+      const existing = acc.get(attempt.subjectName) || [];
+      existing.push(attempt);
+      acc.set(attempt.subjectName, existing);
+      return acc;
+    }, new Map()),
+  )
+    .map(([subjectName, attempts]) => ({
+      subjectName,
+      attempts: attempts.length,
+      attendedStudents: new Set(attempts.map((attempt) => attempt.studentId)).size,
+      avgScore: round(average(attempts.map((attempt) => attempt.score))),
+      avgPercentage: round(average(attempts.map((attempt) => attempt.percentage))),
+      topGrade:
+        Object.entries(
+          attempts.reduce<Record<string, number>>((acc, attempt) => {
+            acc[attempt.grade] = (acc[attempt.grade] || 0) + 1;
+            return acc;
+          }, {}),
+        ).sort((a, b) => b[1] - a[1])[0]?.[0] || "NA",
+    }))
+    .sort((a, b) => b.avgPercentage - a.avgPercentage || b.attempts - a.attempts);
+
+  return {
+    classSummary,
+    subjectSummaries,
+  };
+}
+
+export async function getLevelExamSubjectDetailForBranch(
+  levelCode: "8" | "9" | "10",
+  subjectName: string,
+  branchName: string,
+) {
+  return getLevelExamBranchSubjectDetail(levelCode, subjectName, branchName);
+}

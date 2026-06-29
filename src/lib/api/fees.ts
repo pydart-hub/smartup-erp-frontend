@@ -30,6 +30,17 @@ export interface PendingInvoiceRow {
   status: string;
 }
 
+export interface StudentTransactionHistoryRow {
+  payment_entry_id: string;
+  invoice_id: string;
+  posting_date: string;
+  amount: number;
+  mode: "Razorpay" | "UPI" | "Bank" | "Cash";
+  raw_mode_of_payment?: string;
+  reference_no?: string;
+  remarks?: string;
+}
+
 // ── Fee Categories ──
 export async function getFeeCategories(): Promise<FrappeListResponse<FeeCategory>> {
   const { data } = await apiClient.get("/resource/Fee Category?limit_page_length=0");
@@ -253,6 +264,26 @@ export async function getPendingInvoices(params?: {
     credentials: "include",
   });
   if (!res.ok) throw new Error(`pending-invoices failed: ${res.status}`);
+  const json = await res.json();
+  return json.data ?? [];
+}
+export async function getStudentTransactionHistory(
+  studentId: string,
+  branch: string,
+): Promise<StudentTransactionHistoryRow[]> {
+  const params = new URLSearchParams({
+    student_id: studentId,
+    branch,
+  });
+
+  const res = await fetch(`/api/fees/student-transaction-history?${params.toString()}`, {
+    credentials: "include",
+  });
+
+  if (!res.ok) {
+    throw new Error(`student-transaction-history failed: ${res.status}`);
+  }
+
   const json = await res.json();
   return json.data ?? [];
 }

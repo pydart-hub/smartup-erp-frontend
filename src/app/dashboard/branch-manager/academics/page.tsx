@@ -9,7 +9,7 @@ import { getInstructorAnalytics } from "@/lib/api/analytics";
 import { motion } from "framer-motion";
 import {
   ClipboardCheck, BookOpen, GraduationCap, Trophy,
-  AlertTriangle, UserCheck, TrendingUp, ArrowRight,
+  AlertTriangle, UserCheck, TrendingUp, ArrowRight, Microscope,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -275,7 +275,7 @@ export default function AcademicsOverviewPage() {
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
-        className="grid grid-cols-2 sm:grid-cols-4 gap-3"
+        className="grid grid-cols-2 sm:grid-cols-5 gap-3"
       >
         <Link
           href="/dashboard/branch-manager/attendance/report"
@@ -297,6 +297,13 @@ export default function AcademicsOverviewPage() {
         >
           <GraduationCap className="w-5 h-5 text-info mx-auto mb-2" />
           <p className="text-xs font-medium text-primary">Exam Results</p>
+        </Link>
+        <Link
+          href="/dashboard/branch-manager/level-exams"
+          className="bg-surface rounded-[12px] p-4 border border-border-light hover:border-primary/30 transition-colors text-center"
+        >
+          <Microscope className="w-5 h-5 text-primary mx-auto mb-2" />
+          <p className="text-xs font-medium text-primary">Diagnosis Exam</p>
         </Link>
         <Link
           href="/dashboard/branch-manager/student-performance"

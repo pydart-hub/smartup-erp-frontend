@@ -26,6 +26,7 @@ import { getDuesTodayByStudent } from "@/lib/api/director";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { FollowUpDrawer } from "@/components/fees/FollowUpDrawer";
 import { FollowUpBadge } from "@/components/fees/FollowUpBadge";
+import { StudentTransactionHistory } from "@/components/fees/StudentTransactionHistory";
 import { getBranchFollowUps } from "@/lib/api/followup";
 import type { FollowUpLog } from "@/lib/api/followup";
 import { useAuth } from "@/lib/hooks/useAuth";
@@ -452,6 +453,10 @@ export default function SalesOverdueStudentPage() {
                             <>{student.overdue_invoices.length} instalment{student.overdue_invoices.length !== 1 ? "s" : ""} <ChevronDown className="h-3 w-3" /></>
                           )}
                         </button>
+                        <StudentTransactionHistory
+                          studentId={student.student_id}
+                          branch={branch}
+                        />
                       </div>
                     </div>
                   </div>

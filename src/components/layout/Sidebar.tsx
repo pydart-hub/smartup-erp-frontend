@@ -37,6 +37,7 @@ import {
   ClipboardList,
   Video,
   UserX,
+  Microscope,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useUIStore } from "@/lib/stores/uiStore";
@@ -71,6 +72,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   ClipboardList,
   Video,
   UserX,
+  Microscope,
 };
 
 interface SidebarProps {

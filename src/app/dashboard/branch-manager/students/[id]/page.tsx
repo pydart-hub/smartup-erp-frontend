@@ -22,11 +22,12 @@ import { getSalesInvoices } from "@/lib/api/sales";
 import apiClient from "@/lib/api/client";
 import { DiscontinueStudentModal } from "@/components/students/DiscontinueStudentModal";
 import { ConvertDemoModal } from "@/components/students/ConvertDemoModal";
+import { StudentTransactionHistory } from "@/components/fees/StudentTransactionHistory";
 import { resolveO2OHourlyRate } from "@/lib/utils/o2oFeeRates";
 import { extractO2ORateFromRecord } from "@/lib/utils/o2oRateField";
 import { formatBillingMonthLabel, getBillingMonthKey, resolveBilledScheduleNames } from "@/lib/utils/o2oBillingMetadata";
 import { selectPrimarySalesOrder, sortSalesOrdersForDisplay } from "@/lib/utils/salesOrderSelection";
-import { formatDate } from "@/lib/utils/formatters";
+import { formatDate, formatCurrency } from "@/lib/utils/formatters";
 import { toast } from "sonner";
 
 type O2OBillingAction = "sales-order" | "sales-invoice";
@@ -1034,51 +1035,62 @@ export default function StudentViewPage() {
 
             {/* Invoice list */}
             {salesInvoices.length > 0 && (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border-light">
-                      <th className="text-left pb-2 font-semibold text-text-secondary text-xs">Invoice</th>
-                      <th className="text-left pb-2 font-semibold text-text-secondary text-xs">Due Date</th>
-                      <th className="text-right pb-2 font-semibold text-text-secondary text-xs">Amount</th>
-                      <th className="text-right pb-2 font-semibold text-text-secondary text-xs">Outstanding</th>
-                      <th className="text-right pb-2 font-semibold text-text-secondary text-xs">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {salesInvoices.map((inv: { name: string; due_date?: string; posting_date: string; grand_total: number; outstanding_amount: number; status: string }) => {
-                      const todayStr = new Date().toISOString().split("T")[0];
-                      const dueDate = inv.due_date ?? inv.posting_date;
-                      const isPaid = inv.outstanding_amount <= 0;
-                      const isOverdue = !isPaid && dueDate < todayStr;
-                      return (
-                        <tr key={inv.name} className="border-b border-border-light last:border-0">
-                          <td className="py-2 text-xs font-mono text-text-primary">{inv.name}</td>
-                          <td className="py-2">
-                            <span className={`flex items-center gap-1 text-xs ${isOverdue ? "text-error font-semibold" : "text-text-secondary"}`}>
-                              {isOverdue && <Clock className="h-3 w-3 shrink-0" />}
-                              {formatInvoiceDueDate(dueDate)}
-                              {isOverdue && <span className="text-[9px] font-bold ml-0.5">OVERDUE</span>}
-                            </span>
-                          </td>
-                          <td className="py-2 text-right text-xs font-semibold text-text-primary">₹{inv.grand_total.toLocaleString("en-IN")}</td>
-                          <td className="py-2 text-right text-xs">
-                            {isPaid ? (
-                              <span className="text-success">—</span>
-                            ) : (
-                              <span className="font-semibold text-error">₹{inv.outstanding_amount.toLocaleString("en-IN")}</span>
-                            )}
-                          </td>
-                          <td className="py-2 text-right">
-                            <Badge variant={isPaid ? "success" : isOverdue ? "error" : "warning"}>
-                              {isPaid ? "Paid" : isOverdue ? "Overdue" : "Pending"}
-                            </Badge>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+              <div className="space-y-4">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border-light">
+                        <th className="text-left pb-2 font-semibold text-text-secondary text-xs">Invoice</th>
+                        <th className="text-left pb-2 font-semibold text-text-secondary text-xs">Due Date</th>
+                        <th className="text-right pb-2 font-semibold text-text-secondary text-xs">Amount</th>
+                        <th className="text-right pb-2 font-semibold text-text-secondary text-xs">Outstanding</th>
+                        <th className="text-right pb-2 font-semibold text-text-secondary text-xs">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {salesInvoices.map((inv: { name: string; due_date?: string; posting_date: string; grand_total: number; outstanding_amount: number; status: string }) => {
+                        const todayStr = new Date().toISOString().split("T")[0];
+                        const dueDate = inv.due_date ?? inv.posting_date;
+                        const isPaid = inv.outstanding_amount <= 0;
+                        const isOverdue = !isPaid && dueDate < todayStr;
+                        return (
+                          <tr key={inv.name} className="border-b border-border-light last:border-0">
+                            <td className="py-2 text-xs font-mono text-text-primary">{inv.name}</td>
+                            <td className="py-2">
+                              <span className={`flex items-center gap-1 text-xs ${isOverdue ? "text-error font-semibold" : "text-text-secondary"}`}>
+                                {isOverdue && <Clock className="h-3 w-3 shrink-0" />}
+                                {formatInvoiceDueDate(dueDate)}
+                                {isOverdue && <span className="text-[9px] font-bold ml-0.5">OVERDUE</span>}
+                              </span>
+                            </td>
+                            <td className="py-2 text-right text-xs font-semibold text-text-primary">{formatCurrency(inv.grand_total)}</td>
+                            <td className="py-2 text-right text-xs">
+                              {isPaid ? (
+                                <span className="text-success">-</span>
+                              ) : (
+                                <span className="font-semibold text-error">{formatCurrency(inv.outstanding_amount)}</span>
+                              )}
+                            </td>
+                            <td className="py-2 text-right">
+                              <Badge variant={isPaid ? "success" : isOverdue ? "error" : "warning"}>
+                                {isPaid ? "Paid" : isOverdue ? "Overdue" : "Pending"}
+                              </Badge>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {student?.custom_branch && (
+                  <div className="rounded-[12px] border border-border-light bg-app-bg px-4 py-3">
+                    <StudentTransactionHistory
+                      studentId={id}
+                      branch={student.custom_branch}
+                    />
+                  </div>
+                )}
               </div>
             )}
 
@@ -1137,9 +1149,13 @@ export default function StudentViewPage() {
         <ConvertDemoModal
           student={student}
           onClose={() => setShowConvertDemo(false)}
-          onSuccess={() => {
+          onSuccess={(result) => {
             setShowConvertDemo(false);
-            toast.success(`${fullName} converted to Regular student successfully.`);
+            if (result.invoiceError) {
+              toast.warning(`${fullName} converted, but sale invoice creation failed. Sales Order ${result.salesOrderName} needs review.`);
+            } else {
+              toast.success(`${fullName} converted to Regular student successfully.`);
+            }
             queryClient.invalidateQueries({ queryKey: ["student", id] });
             queryClient.invalidateQueries({ queryKey: ["enrollment", id] });
             queryClient.invalidateQueries({ queryKey: ["student-invoices", customerName] });

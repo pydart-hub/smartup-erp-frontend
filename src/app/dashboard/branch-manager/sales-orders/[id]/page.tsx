@@ -23,6 +23,7 @@ import { generateInstalmentDueDates } from "@/lib/utils/feeSchedule";
 import { toast } from "sonner";
 import type { SalesOrderStatus, SalesInvoice } from "@/lib/types/sales";
 import RazorpayPayButton from "@/components/payments/RazorpayPayButton";
+import { StudentTransactionHistory } from "@/components/fees/StudentTransactionHistory";
 
 const STATUS_COLORS: Record<SalesOrderStatus, "default" | "success" | "warning" | "error" | "info"> = {
   Draft: "default",
@@ -608,6 +609,15 @@ export default function SalesOrderDetailPage() {
                   <><RefreshCw className="h-4 w-4" /> Repair</>
                 )}
               </Button>
+            </div>
+          )}
+
+          {so.student && so.company && (
+            <div className="mb-4 rounded-[12px] border border-border-light bg-app-bg px-4 py-3">
+              <StudentTransactionHistory
+                studentId={so.student}
+                branch={so.company}
+              />
             </div>
           )}
 

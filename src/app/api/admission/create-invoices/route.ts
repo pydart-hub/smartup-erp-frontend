@@ -62,6 +62,13 @@ interface CreatedInstalmentSummary {
   dueDate: string;
 }
 
+interface FailedInstalment {
+  index: number;
+  label: string;
+  error: string;
+  draftInvoiceName?: string;
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Auth: require staff role (BM / Admin / Director)
@@ -168,7 +175,7 @@ export async function POST(request: NextRequest) {
     const createdInvoices: string[] = [];
     const createdInstalments: CreatedInstalmentSummary[] = [];
     const draftInvoices: string[] = []; // Created but submission failed
-    const failedInstalments: { index: number; label: string; error: string }[] = [];
+    const failedInstalments: FailedInstalment[] = [];
 
     const today = new Date().toISOString().split("T")[0];
 
@@ -259,7 +266,12 @@ export async function POST(request: NextRequest) {
         console.error(`[create-invoices] Failed to submit invoice ${invName}:`, submitErr);
         // Track as draft — created but not submitted
         draftInvoices.push(invName);
-        failedInstalments.push({ index: i, label: inst.label, error: `Created as draft but submission failed: ${submitErr}` });
+        failedInstalments.push({
+          index: i,
+          label: inst.label,
+          error: `Created as draft but submission failed: ${submitErr}`,
+          draftInvoiceName: invName,
+        });
       } else {
         createdInvoices.push(invName);
         createdInstalments.push({
@@ -277,6 +289,31 @@ export async function POST(request: NextRequest) {
       for (const failed of failedInstalments) {
         const inst = billableSchedule[failed.index];
         const effectiveDate = inst.dueDate < today ? today : inst.dueDate;
+        if (failed.draftInvoiceName) {
+          const retrySubmit = await fetchRetry(
+            `${FRAPPE_URL}/api/resource/Sales Invoice/${encodeURIComponent(failed.draftInvoiceName)}`,
+            { method: "PUT", headers, body: JSON.stringify({ docstatus: 1 }) },
+          );
+          if (!retrySubmit.ok) {
+            const submitErr = await retrySubmit.text().catch(() => "");
+            stillFailed.push({
+              ...failed,
+              error: `Draft invoice submission failed after retry: ${submitErr}`,
+            });
+          } else {
+            createdInvoices.push(failed.draftInvoiceName);
+            createdInstalments.push({
+              label: inst.label,
+              amount: inst.amount,
+              dueDate: effectiveDate,
+            });
+            console.log(
+              `[create-invoices] Draft submission retry succeeded for instalment ${failed.index + 1}: ${failed.draftInvoiceName}`,
+            );
+          }
+          continue;
+        }
+
         const retryPayload = {
           doctype: "Sales Invoice",
           customer: soData.customer,
@@ -318,7 +355,11 @@ export async function POST(request: NextRequest) {
         if (!retrySubmit.ok) {
           const submitErr = await retrySubmit.text().catch(() => "");
           draftInvoices.push(retryInvName);
-          stillFailed.push({ ...failed, error: `Created as draft but submission failed: ${submitErr}` });
+          stillFailed.push({
+            ...failed,
+            error: `Created as draft but submission failed: ${submitErr}`,
+            draftInvoiceName: retryInvName,
+          });
         } else {
           createdInvoices.push(retryInvName);
           createdInstalments.push({

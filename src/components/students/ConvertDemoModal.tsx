@@ -46,7 +46,13 @@ interface SchedulePreviewRow {
 interface Props {
   student: Student;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (result: {
+    salesOrderName: string;
+    invoices: string[];
+    paidAmount: number;
+    invoiceError?: string;
+    absorbedInstalments?: Array<{ label: string; dueDate: string; discountApplied: number }>;
+  }) => void;
 }
 
 const PLAN_OPTIONS = [
@@ -289,6 +295,7 @@ export function ConvertDemoModal({ student, onClose, onSuccess }: Props) {
   const siblingDiscountAmount = feeConfig && siblingDiscountRate > 0
     ? Math.round(getBaseOptionTotal(feeConfig, instalments) * siblingDiscountRate)
     : 0;
+  const hasInvoiceIssue = Boolean(resultData?.invoiceError);
 
   function isPlanDisabled(planValue: string): boolean {
     return isRestrictedBranch && planValue !== "Advanced";
@@ -343,13 +350,26 @@ export function ConvertDemoModal({ student, onClose, onSuccess }: Props) {
           {/* ── Success ── */}
           {step === "success" && resultData && (
             <div className="p-6 text-center">
-              <div className="h-14 w-14 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="h-7 w-7 text-success" />
+              <div className={`h-14 w-14 rounded-full flex items-center justify-center mx-auto mb-4 ${hasInvoiceIssue ? "bg-warning/10" : "bg-success/10"}`}>
+                {hasInvoiceIssue ? (
+                  <AlertCircle className="h-7 w-7 text-warning" />
+                ) : (
+                  <CheckCircle className="h-7 w-7 text-success" />
+                )}
               </div>
-              <h3 className="text-lg font-semibold text-text-primary mb-1">Converted Successfully</h3>
+              <h3 className="text-lg font-semibold text-text-primary mb-1">
+                {hasInvoiceIssue ? "Converted With Invoice Issue" : "Converted Successfully"}
+              </h3>
               <p className="text-sm text-text-secondary mb-5">
                 {fullName} is now a Regular student ({plan} plan, {instalments === 1 ? "One-Time" : `${instalments} Instalments`}).
               </p>
+
+              {hasInvoiceIssue && (
+                <div className="rounded-xl border border-warning/30 bg-warning/10 p-4 mb-5 text-left">
+                  <p className="text-sm font-medium text-warning">Sales Order was created, but invoice creation needs attention.</p>
+                  <p className="text-xs text-text-secondary mt-1">{resultData.invoiceError}</p>
+                </div>
+              )}
 
               <div className="bg-app-bg rounded-xl p-4 mb-5 text-left space-y-2">
                 <div className="flex justify-between text-sm">
@@ -363,7 +383,7 @@ export function ConvertDemoModal({ student, onClose, onSuccess }: Props) {
                   ) : resultData.invoiceError ? (
                     <span className="font-medium text-warning text-xs text-right max-w-[200px]">{resultData.invoiceError.slice(0, 80)}</span>
                   ) : (
-                    <span className="font-medium text-text-secondary italic">being created…</span>
+                    <span className="font-medium text-text-secondary italic">No invoices created</span>
                   )}
                 </div>
                 {resultData.paidAmount > 0 && (
@@ -385,7 +405,7 @@ export function ConvertDemoModal({ student, onClose, onSuccess }: Props) {
                 variant="primary"
                 size="sm"
                 onClick={() => {
-                  onSuccess();
+                  onSuccess(resultData);
                   onClose();
                 }}
                 className="w-full"
@@ -651,3 +671,4 @@ export function ConvertDemoModal({ student, onClose, onSuccess }: Props) {
     </AnimatePresence>
   );
 }
+
