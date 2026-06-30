@@ -16,12 +16,21 @@ export function PrintButton() {
 
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
+          @page {
+            margin: 18mm;
+          }
           body {
             background-color: #ffffff !important;
             color: #0f172a !important;
           }
           .no-print {
             display: none !important;
+          }
+          /* Prevent page breaks cutting off questions */
+          .bg-emerald-500\\/5, .bg-rose-500\\/5, .bg-slate-900\\/30 {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+            margin-bottom: 12px !important;
           }
           /* Convert dark-mode card background to clean bordered printable blocks */
           .bg-slate-800\\/80, .bg-slate-800, .bg-slate-900\\/50, .bg-slate-900\\/60 {
@@ -82,6 +91,17 @@ export function PrintButton() {
           /* Keep borders visible in print */
           .border, .border-slate-700\\/50, .border-slate-800, .border-b {
             border-color: #cbd5e1 !important;
+          }
+          /* Grid alignments on print */
+          .grid {
+            display: grid !important;
+            gap: 12px !important;
+          }
+          .grid-cols-1 {
+            grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+          }
+          .sm\\:grid-cols-2 {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
           }
           /* Hide decorative background elements */
           .bg-emerald-500\\/10, .bg-violet-600\\/10, .blur-\\[100px\\] {

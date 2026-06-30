@@ -114,6 +114,17 @@ export default async function ResultPage({ params }: PageProps) {
           <p className="mt-2 text-slate-400 text-sm sm:text-base">
             Diagnosis details for **{attempt.studentName}** • {attempt.publishing.title}
           </p>
+          {historyAttempts.length > 1 && (
+            <div className="mt-4 no-print">
+              <a
+                href="#history-section"
+                className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-violet-400 hover:text-violet-300 transition-colors duration-150 border border-violet-500/30 hover:border-violet-500/50 px-3.5 py-1.5 rounded-full bg-violet-500/10 cursor-pointer"
+              >
+                <TrendingUp className="w-3.5 h-3.5" />
+                View Attempt History ({historyAttempts.length})
+              </a>
+            </div>
+          )}
         </div>
 
         {/* Dynamic Score Card Grid */}
@@ -324,7 +335,7 @@ export default async function ResultPage({ params }: PageProps) {
 
         {/* Attempt History Section */}
         {historyAttempts.length > 0 && (
-          <div className="bg-slate-800/80 border border-slate-700/50 rounded-3xl p-6 sm:p-8 shadow-lg mb-8 relative no-print">
+          <div id="history-section" className="bg-slate-800/80 border border-slate-700/50 rounded-3xl p-6 sm:p-8 shadow-lg mb-8 relative no-print scroll-mt-6">
             <h2 className="text-xl font-bold text-white mb-6 border-b border-slate-700/40 pb-4 flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-violet-400" />
               <span>Assessment History for {attempt.studentPhone}</span>
