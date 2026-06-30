@@ -6,15 +6,14 @@ import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   AlertCircle,
-  ArrowUpRight,
+  ChevronDown,
   GraduationCap,
-  MapPin,
   Phone,
   Play,
   ShieldCheck,
   Sparkles,
-  TimerReset,
   User,
+  WalletCards,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 
@@ -130,277 +129,295 @@ export default function ExamSiteLandingPage() {
   };
 
   return (
-    <div className="min-h-screen overflow-hidden bg-[linear-gradient(145deg,#f3efe6_0%,#eef4ef_32%,#eef5fb_68%,#f6f1ea_100%)] text-text-primary selection:bg-primary-light selection:text-primary dark:bg-[linear-gradient(160deg,#08111f_0%,#0c1628_38%,#111c2f_100%)]">
-      <div className="pointer-events-none absolute inset-0 opacity-95 dark:opacity-100">
-        <div className="absolute -left-24 top-10 h-[34rem] w-[34rem] rounded-full bg-[radial-gradient(circle,rgba(234,117,64,0.22),transparent_58%)] dark:bg-[radial-gradient(circle,rgba(236,119,64,0.18),transparent_58%)]" />
-        <div className="absolute left-[28%] top-0 h-[28rem] w-[28rem] rounded-full bg-[radial-gradient(circle,rgba(77,115,255,0.18),transparent_60%)] dark:bg-[radial-gradient(circle,rgba(101,128,255,0.18),transparent_60%)]" />
-        <div className="absolute -right-10 bottom-0 h-[26rem] w-[26rem] rounded-full bg-[radial-gradient(circle,rgba(74,171,135,0.18),transparent_58%)] dark:bg-[radial-gradient(circle,rgba(74,171,135,0.14),transparent_58%)]" />
-        <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.35),transparent_30%,transparent_70%,rgba(255,255,255,0.22))] dark:bg-[linear-gradient(120deg,rgba(255,255,255,0.03),transparent_30%,transparent_70%,rgba(255,255,255,0.04))]" />
+    <div className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top,#f6f1ff_0%,#fbf8ff_42%,#ffffff_100%)] text-text-primary selection:bg-[#eee7ff] selection:text-[#5d35d5] dark:bg-[radial-gradient(circle_at_top,#17122b_0%,#141028_42%,#0d0b1a_100%)]">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute left-[-8rem] top-[-2rem] h-[24rem] w-[24rem] rounded-full bg-[radial-gradient(circle,rgba(103,58,183,0.16),transparent_68%)] blur-3xl dark:bg-[radial-gradient(circle,rgba(103,58,183,0.2),transparent_68%)]" />
+        <div className="absolute left-[32%] top-[8%] h-[22rem] w-[22rem] rounded-full bg-[radial-gradient(circle,rgba(149,117,205,0.18),transparent_72%)] blur-3xl animate-[floatSoft_12s_ease-in-out_infinite] dark:bg-[radial-gradient(circle,rgba(149,117,205,0.14),transparent_72%)]" />
+        <div className="absolute bottom-[-8rem] right-[-6rem] h-[22rem] w-[22rem] rounded-full bg-[radial-gradient(circle,rgba(126,87,194,0.12),transparent_72%)] blur-3xl animate-[floatSoft_15s_ease-in-out_infinite_reverse] dark:bg-[radial-gradient(circle,rgba(126,87,194,0.14),transparent_72%)]" />
       </div>
 
-      <header className="relative z-10 mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-6 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-3 rounded-full border border-white/60 bg-white/80 px-4 py-2 shadow-[0_10px_30px_rgba(21,31,52,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-white/6 dark:shadow-[0_20px_40px_rgba(0,0,0,0.35)]">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[linear-gradient(135deg,#6f4bd8,#8f63ff)] shadow-[0_10px_24px_rgba(111,75,216,0.28)]">
-            <Image src="/smartup-logo-v2.png" alt="SmartUp Logo" width={28} height={28} className="object-contain brightness-0 invert" />
+      <header className="relative z-10 border-b border-[#e9deff] bg-white/72 backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-[#eadfff] bg-white shadow-[0_12px_24px_rgba(93,53,213,0.08)] dark:border-white/10 dark:bg-white/8 sm:h-11 sm:w-11">
+              <Image src="/smartup-logo-v2.png" alt="SmartUp Logo" width={26} height={26} className="object-contain" priority />
+            </div>
+            <div className="flex min-w-0 items-baseline gap-2">
+              <span className="truncate text-[1.5rem] font-bold tracking-[-0.05em] text-slate-950 dark:text-white sm:text-[1.9rem]">Smartup</span>
+              <span className="shrink-0 text-xs font-bold uppercase tracking-[0.18em] text-[#673ab7] sm:text-sm">Exam</span>
+            </div>
           </div>
-          <div>
-            <div className="text-[11px] font-bold uppercase tracking-[0.28em] text-slate-400 dark:text-slate-500">SmartUp</div>
-            <div className="text-base font-bold text-slate-900 dark:text-white">Diagnosis Exam</div>
-          </div>
-        </div>
 
-        <div className="flex items-center gap-3">
-          <ThemeToggle />
-          <button
-            onClick={() => router.push("/auth/login")}
-            className="inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/80 px-5 py-3 text-sm font-semibold text-slate-700 shadow-[0_10px_24px_rgba(21,31,52,0.08)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:bg-white dark:border-white/10 dark:bg-white/6 dark:text-slate-200 dark:hover:bg-white/10"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Login
-          </button>
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            <ThemeToggle />
+            <button
+              onClick={() => router.push("/auth/login")}
+              className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#e9deff] bg-white/92 px-3 text-sm font-semibold text-slate-700 shadow-[0_10px_24px_rgba(93,53,213,0.06)] transition duration-200 hover:-translate-y-0.5 hover:border-[#d7c5ff] hover:bg-white dark:border-white/10 dark:bg-white/6 dark:text-slate-200 dark:hover:bg-white/10 sm:h-12 sm:px-5"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="hidden sm:inline">Login</span>
+            </button>
+          </div>
         </div>
       </header>
 
-      <main className="relative z-10 mx-auto grid w-full max-w-7xl gap-10 px-4 pb-12 pt-4 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:px-8 lg:pb-16 lg:pt-8">
-        <section className="flex flex-col justify-between gap-8">
-          <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#7a5af8]/20 bg-white/50 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.24em] text-[#6d4be0] backdrop-blur-xl dark:border-[#8f78ff]/20 dark:bg-white/6 dark:text-[#b09dff]">
-              <Sparkles className="h-4 w-4" />
-              Curated Premium Experience
-            </div>
-
-            <h1 className="mt-6 max-w-4xl font-black tracking-[-0.06em] text-slate-950 dark:text-white">
-              <span className="block text-5xl leading-[0.95] sm:text-6xl lg:text-[5.6rem]">Diagnosis,</span>
-              <span className="mt-1 block text-5xl leading-[0.95] sm:text-6xl lg:text-[5.6rem]">reframed</span>
-              <span className="mt-3 block max-w-3xl text-xl font-semibold tracking-[-0.03em] text-slate-600 sm:text-2xl dark:text-slate-300">
-                Give every student a polished exam journey with a focused entry flow, elegant interaction, and a report that feels presentation-ready.
+      <main className="relative z-10 mx-auto grid min-h-[calc(100vh-74px)] w-full max-w-7xl gap-8 px-4 py-6 sm:px-6 lg:grid-cols-[1fr_0.98fr] lg:items-center lg:px-8 lg:py-10 xl:gap-10">
+        <section className="order-1 max-w-xl lg:order-1 lg:pl-8">
+          <div className="max-w-md">
+            <h1 className="text-[2.15rem] font-bold tracking-[-0.06em] text-slate-950 dark:text-white sm:text-5xl lg:text-[3.8rem] lg:leading-[1.02]">
+              <span className="block pb-1">Begin Your</span>
+              <span className="mt-1 block bg-[linear-gradient(135deg,#5d35d5,#7e57c2)] bg-clip-text pb-2 text-transparent">
+                Diagnosis
               </span>
             </h1>
-
-            <p className="mt-6 max-w-2xl text-base leading-8 text-slate-600 dark:text-slate-400 sm:text-lg">
-              This diagnosis workspace is designed for clarity, trust, and speed. Select the class, branch, and active paper, then launch directly into a cleaner assessment experience.
+            <div className="mt-4 h-1 w-24 rounded-full bg-[linear-gradient(90deg,#5d35d5,#7e57c2)] sm:mt-5 sm:w-28" />
+            <p className="mt-6 text-base leading-8 text-slate-600 dark:text-slate-400 sm:text-lg sm:leading-9">
+              A focused, premium exam experience designed for clarity and performance.
             </p>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
-            <EditorialCard
-              eyebrow="Refined"
-              title="Live autosave"
-              description="Answers keep syncing in the background so the student flow stays stress-free."
-              icon={<ShieldCheck className="h-4 w-4" />}
+          <div className="mt-8 space-y-5 sm:mt-10 sm:space-y-6">
+            <InfoRow
+              icon={<Sparkles className="h-5 w-5" />}
+              title="Fast & Focused"
+              description="Intentionally crisp and time-efficient flow."
             />
-            <EditorialCard
-              eyebrow="Adaptive"
-              title="Theme aware"
-              description="Light and dark mode carry through the diagnosis pages with one consistent feel."
-              icon={<Sparkles className="h-4 w-4" />}
+            <InfoRow
+              icon={<ShieldCheck className="h-5 w-5" />}
+              title="Secure & Private"
+              description="Your data and progress are always protected."
             />
-            <EditorialCard
-              eyebrow="Compact"
-              title="Better exports"
-              description="Reports are structured for concise printing instead of long, repetitive page stacks."
-              icon={<TimerReset className="h-4 w-4" />}
+            <InfoRow
+              icon={<WalletCards className="h-5 w-5" />}
+              title="Insightful Reports"
+              description="Concise reports that help you improve."
             />
           </div>
         </section>
 
-        <section className="relative overflow-hidden rounded-[36px] border border-white/60 bg-white/78 p-6 shadow-[0_24px_80px_rgba(19,30,48,0.12)] backdrop-blur-2xl dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.04))] dark:shadow-[0_30px_90px_rgba(0,0,0,0.38)] sm:p-8 lg:p-9">
-          <div className="pointer-events-none absolute right-0 top-0 h-40 w-40 rounded-full bg-[radial-gradient(circle,rgba(122,90,248,0.18),transparent_62%)] dark:bg-[radial-gradient(circle,rgba(122,90,248,0.18),transparent_62%)]" />
-          <div className="pointer-events-none absolute bottom-0 left-0 h-36 w-36 rounded-full bg-[radial-gradient(circle,rgba(234,117,64,0.16),transparent_62%)] dark:bg-[radial-gradient(circle,rgba(234,117,64,0.12),transparent_62%)]" />
+        <section className="order-2 lg:order-2 [perspective:1800px]">
+          <div className="relative mx-auto max-w-[620px] overflow-hidden rounded-[28px] border border-[#eee4ff] bg-white/88 p-4 shadow-[0_16px_42px_rgba(93,53,213,0.08)] backdrop-blur-2xl transition duration-500 hover:-translate-y-1 hover:[transform:rotateX(1.5deg)_rotateY(-2deg)_translateY(-4px)] hover:shadow-[0_24px_58px_rgba(93,53,213,0.12)] dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.04))] dark:shadow-[0_22px_56px_rgba(0,0,0,0.3)] sm:p-5 lg:ml-auto lg:p-6 [transform-style:preserve-3d]">
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-[radial-gradient(circle_at_top,rgba(103,58,183,0.12),transparent_72%)] dark:bg-[radial-gradient(circle_at_top,rgba(126,87,194,0.16),transparent_72%)]" />
+            <div className="pointer-events-none absolute -right-10 top-10 h-28 w-28 rounded-full bg-[radial-gradient(circle,rgba(103,58,183,0.14),transparent_70%)] blur-2xl animate-[pulseGlow_6s_ease-in-out_infinite]" />
 
-          <div className="relative z-10 mb-7 flex items-start justify-between gap-4">
-            <div>
-              <div className="text-[11px] font-bold uppercase tracking-[0.28em] text-slate-400 dark:text-slate-500">Student Access</div>
-              <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] text-slate-950 dark:text-white">Begin Your Diagnosis</h2>
-              <p className="mt-2 max-w-md text-sm leading-7 text-slate-600 dark:text-slate-400">
-                Fill in the student details and choose the active paper. The entry flow is intentionally crisp, fast, and premium.
-              </p>
+            <div className="relative mb-5 flex items-start gap-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[18px] bg-[linear-gradient(180deg,rgba(103,58,183,0.14),rgba(103,58,183,0.05))] text-[#673ab7] shadow-[inset_0_1px_0_rgba(255,255,255,0.65)] dark:bg-[linear-gradient(180deg,rgba(149,117,205,0.2),rgba(149,117,205,0.08))] sm:h-12 sm:w-12">
+                <WalletCards className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="text-[11px] font-bold uppercase tracking-[0.24em] text-[#673ab7] sm:text-xs">Step 1 of 3</div>
+                <h2 className="mt-2 text-[1.55rem] font-bold tracking-[-0.04em] text-slate-950 dark:text-white sm:text-[1.8rem]">Student Details</h2>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Fill in your details to continue</p>
+              </div>
             </div>
-            <div className="hidden rounded-3xl border border-slate-200/80 bg-slate-50/80 p-3 text-slate-500 shadow-inner dark:border-white/10 dark:bg-white/5 dark:text-slate-400 sm:block">
-              <ArrowUpRight className="h-5 w-5" />
-            </div>
-          </div>
 
-          <form onSubmit={handleStartExam} className="relative z-10 space-y-5">
-            <InputField icon={<User className="h-4.5 w-4.5" />} label="Student Full Name">
-              <input
-                type="text"
-                required
-                value={studentName}
-                onChange={(e) => setStudentName(e.target.value)}
-                placeholder="Enter your full name"
-                className="h-14 w-full rounded-[22px] border border-slate-200/80 bg-slate-50/78 px-11 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#7a5af8]/40 focus:bg-white focus:ring-4 focus:ring-[#7a5af8]/10 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-slate-500 dark:focus:bg-white/7"
-              />
-            </InputField>
+            <form onSubmit={handleStartExam} className="relative space-y-4">
+              <InputField icon={<User className="h-[18px] w-[18px]" />}>
+                <input
+                  type="text"
+                  required
+                  value={studentName}
+                  onChange={(e) => setStudentName(e.target.value)}
+                  placeholder="Full Name"
+                  className="h-13 w-full rounded-[18px] border border-[#e9deff] bg-white/92 px-12 pr-4 text-[15px] text-slate-900 outline-none transition duration-300 placeholder:text-slate-400 hover:border-[#d7c5ff] focus:border-[#673ab7] focus:shadow-[0_0_0_4px_rgba(103,58,183,0.08),0_14px_24px_rgba(103,58,183,0.08)] dark:border-white/10 dark:bg-white/[0.05] dark:text-white dark:placeholder:text-slate-500 dark:hover:border-white/15"
+                />
+              </InputField>
 
-            <InputField icon={<MapPin className="h-4.5 w-4.5" />} label="Select Your Branch">
-              <select
-                required
-                value={studentBranch}
-                onChange={(e) => setStudentBranch(e.target.value)}
-                className="h-14 w-full appearance-none rounded-[22px] border border-slate-200/80 bg-slate-50/78 px-11 pr-10 text-sm text-slate-900 outline-none transition focus:border-[#7a5af8]/40 focus:bg-white focus:ring-4 focus:ring-[#7a5af8]/10 dark:border-white/10 dark:bg-white/5 dark:text-white dark:focus:bg-white/7"
-              >
-                <option value="" disabled>Select your branch</option>
-                {BRANCHES.map((branch) => (
-                  <option key={branch} value={branch}>{branch}</option>
-                ))}
-              </select>
-            </InputField>
+              <InputField icon={<WalletCards className="h-[18px] w-[18px]" />}>
+                <select
+                  required
+                  value={studentBranch}
+                  onChange={(e) => setStudentBranch(e.target.value)}
+                  className="h-13 w-full appearance-none rounded-[18px] border border-[#e9deff] bg-white/92 px-12 pr-12 text-[15px] text-slate-900 outline-none transition duration-300 hover:border-[#d7c5ff] focus:border-[#673ab7] focus:shadow-[0_0_0_4px_rgba(103,58,183,0.08),0_14px_24px_rgba(103,58,183,0.08)] dark:border-white/10 dark:bg-white/[0.05] dark:text-white dark:hover:border-white/15"
+                >
+                  <option value="" disabled>Select Your Branch</option>
+                  {BRANCHES.map((branch) => (
+                    <option key={branch} value={branch}>{branch}</option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8d79b4] dark:text-slate-500" />
+              </InputField>
 
-            <InputField icon={<Phone className="h-4.5 w-4.5" />} label="Phone Number">
-              <input
-                type="tel"
-                required
-                value={studentPhone}
-                onChange={(e) => setStudentPhone(e.target.value)}
-                placeholder="Enter phone number"
-                className="h-14 w-full rounded-[22px] border border-slate-200/80 bg-slate-50/78 px-11 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#7a5af8]/40 focus:bg-white focus:ring-4 focus:ring-[#7a5af8]/10 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-slate-500 dark:focus:bg-white/7"
-              />
-            </InputField>
+              <InputField icon={<Phone className="h-[18px] w-[18px]" />}>
+                <input
+                  type="tel"
+                  required
+                  value={studentPhone}
+                  onChange={(e) => setStudentPhone(e.target.value)}
+                  placeholder="Phone Number"
+                  className="h-13 w-full rounded-[18px] border border-[#e9deff] bg-white/92 px-12 pr-4 text-[15px] text-slate-900 outline-none transition duration-300 placeholder:text-slate-400 hover:border-[#d7c5ff] focus:border-[#673ab7] focus:shadow-[0_0_0_4px_rgba(103,58,183,0.08),0_14px_24px_rgba(103,58,183,0.08)] dark:border-white/10 dark:bg-white/[0.05] dark:text-white dark:placeholder:text-slate-500 dark:hover:border-white/15"
+                />
+              </InputField>
 
-            <div className="grid gap-4 sm:grid-cols-3">
-              {LEVEL_OPTIONS.map((level) => {
-                const active = classLevel === level.value;
-                return (
-                  <button
-                    key={level.value}
-                    type="button"
-                    onClick={() => setClassLevel(level.value)}
-                    className={`rounded-[22px] border px-4 py-4 text-left transition ${
-                      active
-                        ? "border-[#7a5af8]/35 bg-[linear-gradient(135deg,rgba(122,90,248,0.16),rgba(122,90,248,0.06))] shadow-[0_14px_30px_rgba(122,90,248,0.12)] dark:border-[#8f78ff]/35 dark:bg-[linear-gradient(135deg,rgba(143,120,255,0.18),rgba(143,120,255,0.05))]"
-                        : "border-slate-200/80 bg-slate-50/70 hover:border-[#7a5af8]/25 hover:bg-white dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/8"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`flex h-9 w-9 items-center justify-center rounded-full ${active ? "bg-[#7a5af8] text-white" : "bg-white text-slate-500 dark:bg-white/10 dark:text-slate-300"}`}>
-                        <GraduationCap className="h-4.5 w-4.5" />
-                      </div>
-                      <div>
-                        <div className="text-sm font-bold text-slate-900 dark:text-white">{level.label}</div>
-                        <div className="text-[11px] uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Level</div>
-                      </div>
+              <div className="pt-1">
+                <label className="mb-3 block text-[1rem] font-semibold tracking-[-0.02em] text-slate-900 dark:text-white">Select Class Level</label>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  {LEVEL_OPTIONS.map((level) => {
+                    const active = classLevel === level.value;
+                    return (
+                      <button
+                        key={level.value}
+                        type="button"
+                        onClick={() => setClassLevel(level.value)}
+                        className={`relative rounded-[20px] border px-3 py-4 text-center transition duration-300 [transform-style:preserve-3d] hover:-translate-y-1 hover:[transform:translateY(-4px)_rotateX(2deg)] ${
+                          active
+                            ? "border-[#673ab7] bg-[linear-gradient(180deg,rgba(103,58,183,0.08),rgba(103,58,183,0.02))] shadow-[0_14px_24px_rgba(103,58,183,0.1)]"
+                            : "border-[#e9deff] bg-white hover:border-[#d7c5ff] hover:shadow-[0_14px_22px_rgba(93,53,213,0.06)] dark:border-white/10 dark:bg-white/[0.05]"
+                        }`}
+                      >
+                        {active ? (
+                          <div className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-[#673ab7] text-white shadow-[0_12px_20px_rgba(103,58,183,0.28)] animate-[pulseGlow_4s_ease-in-out_infinite]">
+                            <span className="text-xs">✓</span>
+                          </div>
+                        ) : null}
+                        <div className={`mx-auto flex h-10 w-10 items-center justify-center rounded-full ${active ? "bg-[#efe8ff] text-[#673ab7]" : "bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-300"}`}>
+                          <GraduationCap className="h-5 w-5" />
+                        </div>
+                        <div className="mt-3 text-[15px] font-semibold text-slate-950 dark:text-white">{level.label}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {classLevel ? (
+                <div className="rounded-[20px] border border-[#eee4ff] bg-[#fbf8ff]/92 p-3.5 dark:border-white/10 dark:bg-white/[0.04]">
+                  <div className="mb-3 text-[11px] font-bold uppercase tracking-[0.22em] text-[#7e6a9f] dark:text-slate-400">Available Subject Exams</div>
+                  {fetchingExams ? (
+                    <div className="rounded-[16px] border border-[#e9deff] bg-white px-4 py-4 text-center text-sm text-slate-500 dark:border-white/10 dark:bg-white/[0.05] dark:text-slate-400">
+                      Checking active exams...
                     </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            {classLevel ? (
-              <div className="rounded-[26px] border border-slate-200/80 bg-slate-50/72 p-4 dark:border-white/10 dark:bg-white/5">
-                <div className="mb-3 text-[11px] font-bold uppercase tracking-[0.22em] text-slate-400 dark:text-slate-500">Active Subject Papers</div>
-                {fetchingExams ? (
-                  <div className="rounded-[22px] border border-slate-200/80 bg-white px-4 py-6 text-center text-sm text-slate-500 dark:border-white/10 dark:bg-white/6 dark:text-slate-400">
-                    Checking active exams...
-                  </div>
-                ) : exams.length === 0 ? (
-                  <div className="flex gap-3 rounded-[22px] border border-amber-300/40 bg-amber-50 px-4 py-4 text-sm text-amber-700 dark:border-amber-400/20 dark:bg-amber-500/10 dark:text-amber-300">
-                    <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
-                    <span>No active diagnosis exams are available for {LEVEL_OPTIONS.find((item) => item.value === classLevel)?.label} right now.</span>
-                  </div>
-                ) : (
-                  <div className="grid gap-3">
-                    {exams.map((exam) => {
-                      const isSelected = selectedExamId === exam.publishingId;
-                      return (
-                        <button
-                          key={exam.publishingId}
-                          type="button"
-                          onClick={() => setSelectedExamId(exam.publishingId)}
-                          className={`rounded-[22px] border px-4 py-4 text-left transition-all ${
-                            isSelected
-                              ? "border-[#7a5af8]/35 bg-[linear-gradient(135deg,rgba(122,90,248,0.16),rgba(122,90,248,0.05))] shadow-[0_14px_30px_rgba(122,90,248,0.12)] dark:border-[#8f78ff]/35 dark:bg-[linear-gradient(135deg,rgba(143,120,255,0.2),rgba(143,120,255,0.05))]"
-                              : "border-slate-200/80 bg-white/70 hover:border-[#7a5af8]/25 hover:bg-white dark:border-white/10 dark:bg-white/6 dark:hover:bg-white/8"
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-4">
-                            <div>
-                              <div className="text-sm font-bold text-slate-900 dark:text-white">{exam.subjectName}</div>
-                              <div className="mt-1 text-xs leading-6 text-slate-500 dark:text-slate-400">
-                                {exam.totalQuestions} questions · {exam.totalMarks} marks · {exam.durationMinutes} mins
+                  ) : exams.length === 0 ? (
+                    <div className="flex gap-3 rounded-[16px] border border-amber-300/40 bg-amber-50 px-4 py-4 text-sm text-amber-700 dark:border-amber-400/20 dark:bg-amber-500/10 dark:text-amber-300">
+                      <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+                      <span>No active diagnosis exams are available for {LEVEL_OPTIONS.find((item) => item.value === classLevel)?.label} right now.</span>
+                    </div>
+                  ) : (
+                    <div className="grid gap-3">
+                      {exams.map((exam) => {
+                        const isSelected = selectedExamId === exam.publishingId;
+                        return (
+                          <button
+                            key={exam.publishingId}
+                            type="button"
+                            onClick={() => setSelectedExamId(exam.publishingId)}
+                            className={`rounded-[18px] border px-4 py-3 text-left transition duration-300 hover:-translate-y-0.5 ${
+                              isSelected
+                                ? "border-[#673ab7]/35 bg-[linear-gradient(145deg,rgba(103,58,183,0.12),rgba(103,58,183,0.03))] shadow-[0_12px_22px_rgba(103,58,183,0.12)] dark:border-[#9575cd]/40 dark:bg-[linear-gradient(145deg,rgba(149,117,205,0.16),rgba(149,117,205,0.05))]"
+                                : "border-[#e9deff] bg-white hover:border-[#d7c5ff] hover:shadow-[0_10px_20px_rgba(93,53,213,0.06)] dark:border-white/10 dark:bg-white/[0.05] dark:hover:bg-white/[0.07]"
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-4">
+                              <div>
+                                <div className="text-sm font-semibold text-slate-950 dark:text-white">{exam.subjectName}</div>
+                                <div className="mt-1 text-xs leading-6 text-slate-500 dark:text-slate-400">
+                                  {exam.totalQuestions} questions · {exam.totalMarks} marks · {exam.durationMinutes} mins
+                                </div>
+                              </div>
+                              <div className={`mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border transition duration-200 ${isSelected ? "border-[#673ab7] bg-[#673ab7]" : "border-slate-300 dark:border-slate-600"}`}>
+                                <div className={`h-2 w-2 rounded-full ${isSelected ? "bg-white" : "bg-transparent"}`} />
                               </div>
                             </div>
-                            <div className={`mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border ${isSelected ? "border-[#7a5af8] bg-[#7a5af8]" : "border-slate-300 dark:border-slate-600"}`}>
-                              <div className={`h-2 w-2 rounded-full ${isSelected ? "bg-white" : "bg-transparent"}`} />
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              ) : null}
+
+              {error ? (
+                <div className="flex gap-3 rounded-[16px] border border-rose-300/40 bg-rose-50 px-4 py-4 text-sm text-rose-700 dark:border-rose-400/20 dark:bg-rose-500/10 dark:text-rose-300">
+                  <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+                  <span>{error}</span>
+                </div>
+              ) : null}
+
+              <button
+                type="submit"
+                disabled={loading || !selectedExamId || fetchingExams}
+                className="inline-flex h-13 w-full items-center justify-center gap-3 rounded-[18px] bg-[linear-gradient(135deg,#5d35d5,#7e57c2)] px-6 text-[15px] font-semibold text-white shadow-[0_18px_30px_rgba(93,53,213,0.24)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_36px_rgba(93,53,213,0.3)] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none dark:disabled:bg-slate-700"
+              >
+                {loading ? (
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                ) : (
+                  <>
+                    <Play className="h-4 w-4 fill-current" />
+                    Start Diagnosis Exam
+                    <span className="ml-1 text-lg">→</span>
+                  </>
                 )}
-              </div>
-            ) : null}
+              </button>
 
-            {error ? (
-              <div className="flex gap-3 rounded-[22px] border border-rose-300/40 bg-rose-50 px-4 py-4 text-sm text-rose-700 dark:border-rose-400/20 dark:bg-rose-500/10 dark:text-rose-300">
-                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
-                <span>{error}</span>
+              <div className="flex items-center justify-center gap-2 text-sm text-[#7a6897] dark:text-slate-400">
+                <ShieldCheck className="h-4 w-4" />
+                No registration required
               </div>
-            ) : null}
-
-            <button
-              type="submit"
-              disabled={loading || !selectedExamId || fetchingExams}
-              className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-[24px] bg-[linear-gradient(135deg,#6f4bd8,#8b61ff)] px-6 text-sm font-bold text-white shadow-[0_20px_34px_rgba(111,75,216,0.28)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_40px_rgba(111,75,216,0.35)] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none dark:disabled:bg-slate-700"
-            >
-              {loading ? (
-                <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-              ) : (
-                <>
-                  <Play className="h-4 w-4 fill-current" />
-                  Start Diagnosis Exam
-                </>
-              )}
-            </button>
-          </form>
+            </form>
+          </div>
         </section>
       </main>
+
+      <style jsx>{`
+        @keyframes floatSoft {
+          0%,
+          100% {
+            transform: translate3d(0, 0, 0);
+          }
+          50% {
+            transform: translate3d(0, -18px, 0);
+          }
+        }
+
+        @keyframes pulseGlow {
+          0%,
+          100% {
+            opacity: 0.75;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 1;
+            transform: scale(1.08);
+          }
+        }
+      `}</style>
     </div>
   );
 }
 
-function EditorialCard({
-  eyebrow,
+function InfoRow({
+  icon,
   title,
   description,
-  icon,
 }: {
-  eyebrow: string;
+  icon: React.ReactNode;
   title: string;
   description: string;
-  icon: React.ReactNode;
 }) {
   return (
-    <div className="rounded-[28px] border border-white/60 bg-white/70 p-5 shadow-[0_14px_34px_rgba(22,31,52,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-white/6 dark:shadow-[0_20px_40px_rgba(0,0,0,0.28)]">
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-[11px] font-bold uppercase tracking-[0.24em] text-slate-400 dark:text-slate-500">{eyebrow}</span>
-        <span className="rounded-full border border-slate-200/80 bg-white/80 p-2 text-slate-500 dark:border-white/10 dark:bg-white/8 dark:text-slate-300">
-          {icon}
-        </span>
+    <div className="flex items-start gap-4">
+      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(180deg,rgba(103,58,183,0.12),rgba(103,58,183,0.04))] text-[#673ab7] shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] dark:bg-[linear-gradient(180deg,rgba(149,117,205,0.18),rgba(149,117,205,0.05))] sm:h-14 sm:w-14">
+        {icon}
       </div>
-      <div className="mt-5 text-xl font-black tracking-[-0.03em] text-slate-950 dark:text-white">{title}</div>
-      <p className="mt-2 text-sm leading-7 text-slate-600 dark:text-slate-400">{description}</p>
+      <div>
+        <div className="text-base font-semibold text-slate-950 dark:text-white sm:text-[1.05rem]">{title}</div>
+        <p className="mt-1.5 text-sm leading-7 text-slate-500 dark:text-slate-400 sm:mt-2 sm:text-base">{description}</p>
+      </div>
     </div>
   );
 }
 
 function InputField({
   icon,
-  label,
   children,
 }: {
   icon: React.ReactNode;
-  label: string;
   children: React.ReactNode;
 }) {
   return (
-    <div>
-      <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.22em] text-slate-400 dark:text-slate-500">{label}</label>
-      <div className="relative text-slate-400 dark:text-slate-500">
-        <div className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2">{icon}</div>
-        {children}
-      </div>
+    <div className="relative text-[#8d79b4] dark:text-slate-500">
+      <div className="pointer-events-none absolute left-5 top-1/2 -translate-y-1/2">{icon}</div>
+      {children}
     </div>
   );
 }
