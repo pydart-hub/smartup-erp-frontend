@@ -20,6 +20,7 @@ import {
 import type { GradeResult, QuestionSnapshot } from "@/lib/public-exam/grading";
 import { PrintButton } from "@/components/public-exam/PrintButton";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
+import { NextExamButton } from "@/components/public-exam/NextExamButton";
 
 type PageProps = {
   params: Promise<{
@@ -230,10 +231,27 @@ export default async function ResultPage({ params }: PageProps) {
   const historyAttempts = attempt.studentPhone
     ? await db.examAttempt.findMany({
         where: { studentPhone: attempt.studentPhone },
-        orderBy: { startedAt: "desc" },
+        orderBy: { createdAt: "desc" },
         include: { publishing: { select: { title: true } } },
       })
     : [];
+
+  const now = new Date();
+  const activeExams = await db.examPublishing.findMany({
+    where: {
+      classLevel: attempt.classLevel,
+      isActive: true,
+      startAt: { lte: now },
+      endAt: { gte: now },
+    },
+    include: {
+      subject: { select: { name: true } },
+    },
+    orderBy: { title: "asc" },
+  });
+
+  const attemptedPublishingIds = new Set(historyAttempts.map((h) => h.publishingId));
+  const nextExam = activeExams.find((exam) => !attemptedPublishingIds.has(exam.id));
 
   const questionsList: QuestionSnapshot[] = typeof attempt.paperSnapshotJson === "string"
     ? JSON.parse(attempt.paperSnapshotJson)
@@ -526,10 +544,21 @@ export default async function ResultPage({ params }: PageProps) {
         </section>
 
         <div className="no-print flex flex-col gap-3 pb-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center">
-          <Link href="/exam-site" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3 text-sm font-bold text-white transition-colors hover:bg-primary-hover">
-            <span>Take Another Exam</span>
-            <ArrowRight className="h-4 w-4" />
-          </Link>
+          {nextExam ? (
+            <NextExamButton
+              studentName={attempt.studentName}
+              studentBranch={attempt.studentBranch || ""}
+              studentPhone={attempt.studentPhone || ""}
+              classLevel={attempt.classLevel}
+              publishingId={nextExam.id}
+              subjectName={nextExam.subject.name}
+            />
+          ) : (
+            <Link href="/exam-site" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3 text-sm font-bold text-white transition-colors hover:bg-primary-hover">
+              <span>All Exams Completed</span>
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          )}
           <PrintButton />
           <Link href="/auth/login" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-border-light bg-surface px-6 py-3 text-sm font-bold text-text-primary transition-colors hover:bg-app-bg">
             <Home className="h-4 w-4" />

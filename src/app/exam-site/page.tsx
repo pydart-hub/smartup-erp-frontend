@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   AlertCircle,
+  CheckCircle2,
   ArrowRight,
   ChevronDown,
   GraduationCap,
@@ -32,6 +33,7 @@ type ActiveExam = {
 
 type AttemptHistoryItem = {
   id: string;
+  publishingId: string;
   studentName: string;
   studentBranch: string | null;
   classLevel: string;
@@ -91,6 +93,16 @@ export default function ExamSiteLandingPage() {
   const [hasSavedDetails, setHasSavedDetails] = useState(false);
 
   const normalizedPhone = useMemo(() => studentPhone.replace(/\D/g, ""), [studentPhone]);
+
+  const nextUnattemptedExam = useMemo(() => {
+    if (exams.length === 0) return null;
+    const attemptedPublishingIds = new Set(
+      historyItems
+        .filter((h) => h.status === "submitted" || h.status === "auto_submitted")
+        .map((h) => h.publishingId)
+    );
+    return exams.find((exam) => !attemptedPublishingIds.has(exam.publishingId)) || null;
+  }, [exams, historyItems]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -192,7 +204,9 @@ export default function ExamSiteLandingPage() {
     if (!normalizedPhone) return setError("Please enter your phone number");
     if (!/^\d{10}$/.test(normalizedPhone)) return setError("Please enter a valid 10-digit phone number");
     if (!classLevel) return setError("Please select your class");
-    if (!selectedExamId) return setError("No active exam selected");
+    
+    const examToStart = nextUnattemptedExam;
+    if (!examToStart) return setError("No active exam available for this class level");
 
     setLoading(true);
     setError(null);
@@ -206,7 +220,7 @@ export default function ExamSiteLandingPage() {
           studentBranch,
           studentPhone: normalizedPhone,
           classLevel,
-          publishingId: selectedExamId,
+          publishingId: examToStart.publishingId,
         }),
       });
 
@@ -424,33 +438,35 @@ export default function ExamSiteLandingPage() {
                 </div>
               )}
 
-              {classLevel ? (
+              {classLevel && (
                 <div className="rounded-[20px] border border-[#eee4ff] bg-[#fbf8ff]/92 p-3.5 dark:border-white/10 dark:bg-white/[0.04]">
-                  <div className="mb-3 text-[11px] font-bold uppercase tracking-[0.22em] text-[#7e6a9f] dark:text-slate-400">Available Subject Exams</div>
+                  <div className="mb-3 text-[11px] font-bold uppercase tracking-[0.22em] text-[#7e6a9f] dark:text-slate-400">Diagnosis Sequence Status</div>
                   {fetchingExams ? (
                     <div className="rounded-[16px] border border-[#e9deff] bg-white px-4 py-4 text-center text-sm text-slate-500 dark:border-white/10 dark:bg-white/[0.05] dark:text-slate-400">Checking active exams...</div>
                   ) : exams.length === 0 ? (
                     <div className="flex gap-3 rounded-[16px] border border-amber-300/40 bg-amber-50 px-4 py-4 text-sm text-amber-700 dark:border-amber-400/20 dark:bg-amber-500/10 dark:text-amber-300"><AlertCircle className="mt-0.5 h-5 w-5 shrink-0" /><span>No active diagnosis exams are available for {LEVEL_OPTIONS.find((item) => item.value === classLevel)?.label} right now.</span></div>
+                  ) : nextUnattemptedExam ? (
+                    <div className="rounded-[18px] border border-primary/20 bg-primary/5 p-4 dark:border-white/10 dark:bg-white/[0.04]">
+                      <div className="text-xs font-bold text-[#673ab7] uppercase tracking-wider dark:text-[#9575cd]">Up Next</div>
+                      <div className="mt-2 text-base font-bold text-slate-950 dark:text-white">{nextUnattemptedExam.subjectName}</div>
+                      <div className="mt-1 text-xs leading-6 text-slate-500 dark:text-slate-400">
+                        {nextUnattemptedExam.totalQuestions} questions · {nextUnattemptedExam.totalMarks} marks · {nextUnattemptedExam.durationMinutes} mins
+                      </div>
+                      <p className="mt-2 text-[11px] text-slate-400">
+                        This exam will run under a {nextUnattemptedExam.durationMinutes}-minute timer.
+                      </p>
+                    </div>
                   ) : (
-                    <div className="grid gap-3">
-                      {exams.map((exam) => {
-                        const isSelected = selectedExamId === exam.publishingId;
-                        return (
-                          <button key={exam.publishingId} type="button" onClick={() => setSelectedExamId(exam.publishingId)} className={`rounded-[18px] border px-4 py-3 text-left transition duration-300 hover:-translate-y-0.5 ${isSelected ? "border-[#673ab7]/35 bg-[linear-gradient(145deg,rgba(103,58,183,0.12),rgba(103,58,183,0.03))] shadow-[0_12px_22px_rgba(103,58,183,0.12)] dark:border-[#9575cd]/40 dark:bg-[linear-gradient(145deg,rgba(149,117,205,0.16),rgba(149,117,205,0.05))]" : "border-[#e9deff] bg-white hover:border-[#d7c5ff] hover:shadow-[0_10px_20px_rgba(93,53,213,0.06)] dark:border-white/10 dark:bg-white/[0.05] dark:hover:bg-white/[0.07]"}`}>
-                            <div className="flex items-start justify-between gap-4">
-                              <div>
-                                <div className="text-sm font-semibold text-slate-950 dark:text-white">{exam.subjectName}</div>
-                                <div className="mt-1 text-xs leading-6 text-slate-500 dark:text-slate-400">{exam.totalQuestions} questions · {exam.totalMarks} marks · {exam.durationMinutes} mins</div>
-                              </div>
-                              <div className={`mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border transition duration-200 ${isSelected ? "border-[#673ab7] bg-[#673ab7]" : "border-slate-300 dark:border-slate-600"}`}><div className={`h-2 w-2 rounded-full ${isSelected ? "bg-white" : "bg-transparent"}`} /></div>
-                            </div>
-                          </button>
-                        );
-                      })}
+                    <div className="rounded-[18px] border border-emerald-300/40 bg-emerald-50 px-4 py-4 text-sm text-emerald-700 dark:border-white/10 dark:bg-white/[0.04] dark:text-emerald-300 flex gap-3">
+                      <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+                      <div>
+                        <span className="font-bold block text-emerald-800 dark:text-emerald-400">All Exams Completed!</span>
+                        <span className="text-xs">You have completed all {exams.length} active subject exams for Class {classLevel}. View your performance reports below.</span>
+                      </div>
                     </div>
                   )}
                 </div>
-              ) : null}
+              )}
 
               {error ? (
                 <div className="flex items-start gap-3 rounded-[16px] border border-rose-300/40 bg-rose-50 px-4 py-3.5 text-sm text-rose-700 dark:border-rose-400/20 dark:bg-rose-500/10 dark:text-rose-300">
@@ -459,8 +475,8 @@ export default function ExamSiteLandingPage() {
                 </div>
               ) : null}
 
-              <button type="submit" disabled={loading || !selectedExamId || fetchingExams} className="inline-flex h-13 w-full items-center justify-center gap-3 rounded-[18px] bg-[linear-gradient(135deg,#5d35d5,#7e57c2)] px-6 text-[15px] font-semibold text-white shadow-[0_18px_30px_rgba(93,53,213,0.24)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_36px_rgba(93,53,213,0.3)] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none dark:disabled:bg-slate-700">
-                {loading ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" /> : <><Play className="h-4 w-4 fill-current" />Start Diagnosis Exam<span className="ml-1 text-lg">→</span></>}
+              <button type="submit" disabled={loading || fetchingExams || !nextUnattemptedExam} className="inline-flex h-13 w-full items-center justify-center gap-3 rounded-[18px] bg-[linear-gradient(135deg,#5d35d5,#7e57c2)] px-6 text-[15px] font-semibold text-white shadow-[0_18px_30px_rgba(93,53,213,0.24)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_36px_rgba(93,53,213,0.3)] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none dark:disabled:bg-slate-700">
+                {loading ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" /> : <><Play className="h-4 w-4 fill-current" />{nextUnattemptedExam ? `Start ${nextUnattemptedExam.subjectName} Exam` : "Start Diagnosis Exam"}<span className="ml-1 text-lg">→</span></>}
               </button>
 
               <div className="flex items-center justify-center gap-2 text-sm text-[#7a6897] dark:text-slate-400">
