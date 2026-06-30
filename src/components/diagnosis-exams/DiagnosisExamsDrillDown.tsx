@@ -8,6 +8,8 @@ import {
   User,
   Calendar,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Phone,
   ArrowLeft,
   BookOpen,
@@ -58,6 +60,14 @@ export function DiagnosisExamsDrillDown({
 }: DiagnosisExamsDrillDownProps) {
   const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
+  const [expandedStudentKeys, setExpandedStudentKeys] = useState<Record<string, boolean>>({});
+
+  const toggleStudentExpand = (key: string) => {
+    setExpandedStudentKeys((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
 
   // Helper: Format Dates
   const formatDate = (dateStr: Date | string) => {
@@ -95,6 +105,52 @@ export function DiagnosisExamsDrillDown({
     const classMatch = !selectedClass || attempt.classLevel === selectedClass;
     return branchMatch && classMatch;
   });
+
+  // Group attempts by student
+  const studentGroups = React.useMemo(() => {
+    const groups: Record<
+      string,
+      {
+        key: string;
+        studentName: string;
+        studentPhone: string | null;
+        studentBranch: string | null;
+        classLevel: string;
+        attempts: AttemptWithPublishing[];
+      }
+    > = {};
+
+    filteredAttempts.forEach((attempt) => {
+      const normalizedPhone = attempt.studentPhone ? attempt.studentPhone.replace(/\D/g, "") : "";
+      const groupKey = normalizedPhone || attempt.studentName.toLowerCase().trim();
+
+      if (!groups[groupKey]) {
+        groups[groupKey] = {
+          key: groupKey,
+          studentName: attempt.studentName,
+          studentPhone: attempt.studentPhone,
+          studentBranch: attempt.studentBranch,
+          classLevel: attempt.classLevel,
+          attempts: [],
+        };
+      } else {
+        // Keep the longer name (which is usually more complete)
+        if (attempt.studentName.length > groups[groupKey].studentName.length) {
+          groups[groupKey].studentName = attempt.studentName;
+        }
+      }
+
+      groups[groupKey].attempts.push(attempt);
+    });
+
+    // Sort attempts inside each group by startedAt descending
+    Object.values(groups).forEach((g) => {
+      g.attempts.sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
+    });
+
+    // Sort groups by student name
+    return Object.values(groups).sort((a, b) => a.studentName.localeCompare(b.studentName));
+  }, [filteredAttempts]);
 
   // Level 1: Branch summaries
   const getBranchSummaries = () => {
@@ -398,7 +454,7 @@ export function DiagnosisExamsDrillDown({
           </div>
 
           <div className="bg-white dark:bg-[#0E1526]/85 border border-slate-200/60 dark:border-slate-800/80 rounded-3xl shadow-sm overflow-hidden">
-            {filteredAttempts.length === 0 ? (
+            {studentGroups.length === 0 ? (
               <div className="p-10 text-center text-text-secondary text-sm">
                 No student attempts found for Class {selectedClass} in {selectedBranch}.
               </div>
@@ -407,104 +463,188 @@ export function DiagnosisExamsDrillDown({
                 <table className="w-full text-left border-collapse text-sm">
                   <thead>
                     <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800 text-text-tertiary font-bold text-xs uppercase tracking-wider">
+                      <th className="py-4 px-6 w-10"></th>
                       <th className="py-4 px-6">Student Name</th>
                       <th className="py-4 px-6">Phone</th>
-                      <th className="py-4 px-6">Subject</th>
-                      <th className="py-4 px-6 text-center">Status</th>
-                      <th className="py-4 px-6 text-center">Score / Grade</th>
-                      <th className="py-4 px-6">Started At</th>
+                      <th className="py-4 px-6 text-center">Attempts</th>
+                      <th className="py-4 px-6">Subjects</th>
+                      <th className="py-4 px-6">Last Attempt</th>
                       <th className="py-4 px-6 text-center">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50 text-text-secondary font-medium">
-                    {filteredAttempts.map((item) => {
-                      const isSubmitted = item.status === "submitted" || item.status === "auto_submitted";
+                    {studentGroups.map((student) => {
+                      const isExpanded = !!expandedStudentKeys[student.key];
+                      const attemptCount = student.attempts.length;
+                      const subjectsList = Array.from(
+                        new Set(student.attempts.map((a) => a.publishing.subject.name))
+                      ).join(", ");
+                      const latestAttempt = student.attempts[0];
+
                       return (
-                        <tr key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition-colors duration-150">
-                          <td className="py-4 px-6">
-                            <div className="flex items-center gap-2">
-                              <div className="bg-slate-100 dark:bg-slate-800 p-1.5 rounded-full">
-                                <User className="w-4 h-4 text-text-secondary" />
-                              </div>
-                              <span className="font-bold text-text-primary">{item.studentName}</span>
-                            </div>
-                          </td>
-                          <td className="py-4 px-6">
-                            {item.studentPhone ? (
-                              <div className="flex items-center gap-1">
-                                <Phone className="w-3.5 h-3.5 text-text-tertiary" />
-                                <span>{item.studentPhone}</span>
-                              </div>
-                            ) : (
-                              <span className="text-text-tertiary">—</span>
-                            )}
-                          </td>
-                          <td className="py-4 px-6">
-                            <div className="flex items-center gap-1.5">
-                              <BookOpen className="w-3.5 h-3.5 text-[#5f2ea8]" />
-                              <span className="max-w-[180px] truncate" title={item.publishing.title}>
-                                {item.publishing.subject.name}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="py-4 px-6 text-center">
-                            <span
-                              className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold ${
-                                isSubmitted
-                                  ? "bg-emerald-500/10 text-emerald-600"
-                                  : "bg-amber-500/10 text-amber-600"
-                              }`}
-                            >
-                              {item.status === "in_progress" ? (
-                                <>
-                                  <Clock className="w-3.5 h-3.5" />
-                                  <span>In Progress</span>
-                                </>
+                        <React.Fragment key={student.key}>
+                          <tr
+                            onClick={() => toggleStudentExpand(student.key)}
+                            className="hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition-colors duration-150 cursor-pointer"
+                          >
+                            <td className="py-4 px-6 text-center">
+                              {isExpanded ? (
+                                <ChevronDown className="w-4 h-4 text-text-tertiary" />
                               ) : (
-                                <>
-                                  <CheckCircle2 className="w-3.5 h-3.5" />
-                                  <span>Submitted</span>
-                                </>
+                                <ChevronRight className="w-4 h-4 text-text-tertiary" />
                               )}
-                            </span>
-                          </td>
-                          <td className="py-4 px-6 text-center font-bold text-text-primary">
-                            {isSubmitted ? (
-                              <span
-                                className={`rounded-xl px-2 py-1 text-xs ${
-                                  item.percentage >= 80
-                                    ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600"
-                                    : item.percentage >= 50
-                                    ? "bg-amber-50 dark:bg-amber-500/10 text-amber-600"
-                                    : "bg-rose-50 dark:bg-rose-500/10 text-rose-600"
-                                }`}
-                              >
-                                {item.scoreObtained} / {item.totalMarks} ({item.percentage}%)
-                              </span>
-                            ) : (
-                              <span className="text-text-tertiary">—</span>
-                            )}
-                          </td>
-                          <td className="py-4 px-6 text-xs text-text-tertiary">
-                            <div className="flex items-center gap-1">
-                              <Calendar className="w-3.5 h-3.5" />
-                              <span>{formatDate(item.startedAt)}</span>
-                            </div>
-                          </td>
-                          <td className="py-4 px-6 text-center">
-                            {isSubmitted ? (
-                              <Link
-                                href={`${detailUrlPrefix}/${item.id}`}
+                            </td>
+                            <td className="py-4 px-6">
+                              <div className="flex items-center gap-2">
+                                <div className="bg-slate-100 dark:bg-slate-800 p-1.5 rounded-full">
+                                  <User className="w-4 h-4 text-text-secondary" />
+                                </div>
+                                <span className="font-bold text-text-primary">
+                                  {student.studentName}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="py-4 px-6">
+                              {student.studentPhone ? (
+                                <div className="flex items-center gap-1">
+                                  <Phone className="w-3.5 h-3.5 text-text-tertiary" />
+                                  <span>{student.studentPhone}</span>
+                                </div>
+                              ) : (
+                                <span className="text-text-tertiary">—</span>
+                              )}
+                            </td>
+                            <td className="py-4 px-6 text-center">
+                              <Badge variant="outline" className="font-black">
+                                {attemptCount} {attemptCount === 1 ? "attempt" : "attempts"}
+                              </Badge>
+                            </td>
+                            <td className="py-4 px-6">
+                              <div className="flex items-center gap-1.5">
+                                <BookOpen className="w-3.5 h-3.5 text-[#5f2ea8]" />
+                                <span className="max-w-[200px] truncate" title={subjectsList}>
+                                  {subjectsList}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="py-4 px-6 text-xs text-text-tertiary">
+                              {latestAttempt ? (
+                                <div className="flex items-center gap-1">
+                                  <Calendar className="w-3.5 h-3.5" />
+                                  <span>{formatDate(latestAttempt.startedAt)}</span>
+                                </div>
+                              ) : (
+                                <span>—</span>
+                              )}
+                            </td>
+                            <td className="py-4 px-6 text-center">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleStudentExpand(student.key);
+                                }}
                                 className="inline-flex items-center gap-1 text-xs font-bold text-[#5f2ea8] hover:text-[#4d238c] hover:underline cursor-pointer"
                               >
-                                <ExternalLink className="w-3.5 h-3.5" />
-                                <span>Details</span>
-                              </Link>
-                            ) : (
-                              <span className="text-text-tertiary text-xs">—</span>
-                            )}
-                          </td>
-                        </tr>
+                                {isExpanded ? "Hide History" : "View History"}
+                              </button>
+                            </td>
+                          </tr>
+
+                          {/* Expanded Attempt History Details */}
+                          {isExpanded && (
+                            <tr className="bg-slate-50/40 dark:bg-slate-900/10">
+                              <td colSpan={7} className="py-4 px-8 border-t border-b border-slate-100 dark:border-slate-800">
+                                <div className="rounded-2xl border border-slate-200/50 dark:border-slate-800/80 bg-white dark:bg-slate-950/30 p-4 space-y-3 shadow-inner">
+                                  <p className="text-xs font-bold text-text-tertiary uppercase tracking-wider flex items-center gap-1.5">
+                                    <Activity className="w-3.5 h-3.5 text-[#5f2ea8]" />
+                                    <span>Attempt History ({attemptCount})</span>
+                                  </p>
+                                  <div className="overflow-hidden rounded-xl border border-slate-100 dark:border-slate-800/80 bg-white dark:bg-[#0E1526]/50">
+                                    <table className="w-full text-left text-xs border-collapse">
+                                      <thead>
+                                        <tr className="bg-slate-50 dark:bg-slate-900/80 border-b border-slate-100 dark:border-slate-800 text-text-tertiary font-bold uppercase tracking-wider">
+                                          <th className="py-2.5 px-4">Subject Exam Paper</th>
+                                          <th className="py-2.5 px-4 text-center">Status</th>
+                                          <th className="py-2.5 px-4 text-center">Score / Grade</th>
+                                          <th className="py-2.5 px-4">Date</th>
+                                          <th className="py-2.5 px-4 text-center">Action</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-text-secondary font-medium">
+                                        {student.attempts.map((attempt) => {
+                                          const isSubmitted =
+                                            attempt.status === "submitted" ||
+                                            attempt.status === "auto_submitted";
+                                          return (
+                                            <tr key={attempt.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20">
+                                              <td className="py-3 px-4 font-bold text-text-primary">
+                                                {attempt.publishing.title}
+                                              </td>
+                                              <td className="py-3 px-4 text-center">
+                                                <span
+                                                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                                                    isSubmitted
+                                                      ? "bg-emerald-500/10 text-emerald-600"
+                                                      : "bg-amber-500/10 text-amber-600"
+                                                  }`}
+                                                >
+                                                  {attempt.status === "in_progress" ? (
+                                                    <>
+                                                      <Clock className="w-3 h-3" />
+                                                      <span>In Progress</span>
+                                                    </>
+                                                  ) : (
+                                                    <>
+                                                      <CheckCircle2 className="w-3 h-3" />
+                                                      <span>Submitted</span>
+                                                    </>
+                                                  )}
+                                                </span>
+                                              </td>
+                                              <td className="py-3 px-4 text-center font-bold text-text-primary">
+                                                {isSubmitted ? (
+                                                  <span
+                                                    className={`rounded-lg px-2 py-0.5 text-[11px] ${
+                                                      attempt.percentage >= 80
+                                                        ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600"
+                                                        : attempt.percentage >= 50
+                                                        ? "bg-amber-50 dark:bg-amber-500/10 text-amber-600"
+                                                        : "bg-rose-50 dark:bg-rose-500/10 text-rose-600"
+                                                    }`}
+                                                  >
+                                                    {attempt.scoreObtained} / {attempt.totalMarks} ({attempt.percentage}%)
+                                                  </span>
+                                                ) : (
+                                                  <span className="text-text-tertiary">—</span>
+                                                )}
+                                              </td>
+                                              <td className="py-3 px-4 text-text-tertiary">
+                                                {formatDate(attempt.startedAt)}
+                                              </td>
+                                              <td className="py-3 px-4 text-center">
+                                                {isSubmitted ? (
+                                                  <Link
+                                                    href={`${detailUrlPrefix}/${attempt.id}`}
+                                                    className="inline-flex items-center gap-1 font-bold text-[#5f2ea8] hover:text-[#4d238c] hover:underline cursor-pointer"
+                                                  >
+                                                    <ExternalLink className="w-3 h-3" />
+                                                    <span>View Report</span>
+                                                  </Link>
+                                                ) : (
+                                                  <span className="text-text-tertiary">—</span>
+                                                )}
+                                              </td>
+                                            </tr>
+                                          );
+                                        })}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
                       );
                     })}
                   </tbody>
