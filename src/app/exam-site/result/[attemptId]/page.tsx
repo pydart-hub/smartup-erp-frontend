@@ -405,19 +405,33 @@ export default async function ResultPage({ params }: PageProps) {
             <h2 className="text-lg font-black text-text-primary sm:text-xl">Compact Response Review</h2>
           </div>
           <div className="mt-4 grid gap-2.5 lg:grid-cols-2">
-            {condensedQuestions.map(({ question, selected, isCorrect, topic }, index) => (
-              <article key={question.id} className={`rounded-[20px] border p-3.5 ${selected === null ? "border-warning/20 bg-warning/5" : isCorrect ? "border-success/20 bg-success/8" : "border-error/20 bg-error/5"}`}>
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-text-tertiary">Question {index + 1} - {topic}</div>
-                    <p className="mt-1.5 text-sm font-semibold leading-6 text-text-primary">{shortenText(question.questionText, 160)}</p>
+            {condensedQuestions.map(({ question, selected, isCorrect, topic }, index) => {
+              const correctOptionObj = question.options.find((opt) => opt.optionKey === question.correctOption);
+              const correctText = correctOptionObj
+                ? `${correctOptionObj.optionKey}. ${correctOptionObj.optionText}`
+                : question.correctOption;
+
+              return (
+                <article key={question.id} className={`rounded-[20px] border p-3.5 ${selected === null ? "border-warning/20 bg-warning/5" : isCorrect ? "border-success/20 bg-success/8" : "border-error/20 bg-error/5"}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                      <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-text-tertiary">Question {index + 1} - {topic}</div>
+                      <p className="mt-1.5 text-sm font-semibold leading-6 text-text-primary">{shortenText(question.questionText, 160)}</p>
+                      
+                      {!isCorrect && (
+                        <div className="mt-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-2.5 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
+                          <span className="text-[10px] uppercase font-bold tracking-wider opacity-75 mr-1.5">Correct Answer:</span>
+                          <span>{correctText}</span>
+                        </div>
+                      )}
+                    </div>
+                    <span className={`rounded-full px-3 py-1 text-[11px] font-bold ${selected === null ? "bg-warning/10 text-warning" : isCorrect ? "bg-success/10 text-success" : "bg-error/10 text-error"}`}>
+                      {selected === null ? "Skipped" : isCorrect ? "Correct" : "Incorrect"}
+                    </span>
                   </div>
-                  <span className={`rounded-full px-3 py-1 text-[11px] font-bold ${selected === null ? "bg-warning/10 text-warning" : isCorrect ? "bg-success/10 text-success" : "bg-error/10 text-error"}`}>
-                    {selected === null ? "Skipped" : isCorrect ? "Correct" : "Incorrect"}
-                  </span>
-                </div>
-              </article>
-            ))}
+                </article>
+              );
+            })}
           </div>
         </section>
 
