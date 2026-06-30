@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React from "react";
 import { Printer } from "lucide-react";
@@ -18,7 +18,7 @@ export function PrintButton() {
         @media print {
           @page {
             size: A4;
-            margin: 10mm;
+            margin: 8mm;
           }
 
           html,
@@ -29,18 +29,27 @@ export function PrintButton() {
             print-color-adjust: exact;
           }
 
-          .no-print {
+          .no-print,
+          header,
+          footer,
+          .screen-review,
+          .screen-history {
             display: none !important;
           }
 
           main {
             width: 100% !important;
             max-width: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+
+          #print-report {
+            display: block !important;
           }
 
           section,
           article,
-          .question-card,
           table,
           tr,
           td,
@@ -49,35 +58,22 @@ export function PrintButton() {
             page-break-inside: avoid !important;
           }
 
-          .shadow-card,
           [class*="shadow-"] {
             box-shadow: none !important;
-          }
-
-          .rounded-\[30px\],
-          .rounded-\[28px\],
-          .rounded-\[24px\],
-          .rounded-2xl,
-          .rounded-3xl {
-            border-radius: 12px !important;
-          }
-
-          .bg-surface,
-          .bg-app-bg,
-          [class*="bg-success\/10"],
-          [class*="bg-warning\/10"],
-          [class*="bg-error\/10"],
-          [class*="bg-primary\/5"],
-          [class*="bg-primary\/8"],
-          [class*="bg-success\/8"],
-          [class*="bg-error\/5"],
-          [class*="bg-warning\/5"] {
-            background: #ffffff !important;
           }
 
           .border,
           [class*="border-"] {
             border-color: #cbd5e1 !important;
+          }
+
+          .bg-surface,
+          .bg-app-bg,
+          [class*="bg-success\/"],
+          [class*="bg-warning\/"],
+          [class*="bg-error\/"],
+          [class*="bg-primary\/"] {
+            background: #ffffff !important;
           }
 
           .text-text-primary,
@@ -93,20 +89,8 @@ export function PrintButton() {
             color: #475569 !important;
           }
 
-          .print\:grid-cols-2,
-          .sm\:grid-cols-2 {
-            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-          }
-
-          .question-card {
-            padding: 12px !important;
-            margin-bottom: 10px !important;
-          }
-
-          .question-card p,
-          .question-card span,
-          .question-card div {
-            line-height: 1.4 !important;
+          .hidden.print\:block {
+            display: block !important;
           }
         }
       `}} />
