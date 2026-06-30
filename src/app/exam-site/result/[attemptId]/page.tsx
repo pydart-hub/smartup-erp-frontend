@@ -250,7 +250,7 @@ export default async function ResultPage({ params }: PageProps) {
     questions: questionsList,
   });
 
-  const condensedQuestions = questionsList.slice(0, 6).map((question) => {
+  const condensedQuestions = questionsList.map((question) => {
     const answer = attempt.answers.find((item) => item.questionId === question.id);
     const selected = answer?.selectedOption || null;
     return {
@@ -286,7 +286,7 @@ export default async function ResultPage({ params }: PageProps) {
         </div>
 
         <section className="no-print mb-5 grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
-          <div className="rounded-[30px] border border-border-light bg-surface p-5 shadow-card sm:p-6">
+          <div className="rounded-[28px] border border-border-light bg-surface p-4 shadow-card sm:p-5">
             <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_230px]">
               <div>
                 <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/8 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.22em] text-primary">
@@ -306,7 +306,7 @@ export default async function ResultPage({ params }: PageProps) {
             </div>
           </div>
 
-          <div className="rounded-[30px] border border-border-light bg-surface p-5 shadow-card sm:p-6">
+          <div className="rounded-[28px] border border-border-light bg-surface p-4 shadow-card sm:p-5">
             <div className="flex items-center gap-2 border-b border-border-light pb-3">
               <Sparkles className="h-4 w-4 text-primary" />
               <div className="text-sm font-black uppercase tracking-[0.22em] text-text-secondary">Whole Paper Summary</div>
@@ -323,25 +323,25 @@ export default async function ResultPage({ params }: PageProps) {
           </div>
         </section>
 
-        <section className="no-print mb-5 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="rounded-[30px] border border-border-light bg-surface p-5 shadow-card sm:p-6">
+        <section className="no-print mb-5 grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
+          <div className="rounded-[28px] border border-border-light bg-surface p-4 shadow-card sm:p-5">
             <div className="flex items-center gap-2 border-b border-border-light pb-3">
               <Layers3 className="h-4 w-4 text-primary" />
               <div className="text-sm font-black uppercase tracking-[0.22em] text-text-secondary">Topic Insight</div>
             </div>
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
+            <div className="mt-4 grid gap-2.5 md:grid-cols-2">
               {insight.topicInsights.slice(0, 4).map((topic) => (
-                <div key={topic.topic} className="rounded-[24px] border border-border-light bg-app-bg p-4">
+                <div key={topic.topic} className="rounded-[20px] border border-border-light bg-app-bg p-3.5">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <div className="text-sm font-bold text-text-primary">{topic.topic}</div>
-                      <div className="mt-1 text-xs text-text-secondary">{topic.correct}/{topic.total} correct - {topic.accuracy}% accuracy</div>
+                      <div className="text-[13px] font-bold leading-5 text-text-primary">{topic.topic}</div>
+                      <div className="mt-1 text-[11px] text-text-secondary">{topic.correct}/{topic.total} correct - {topic.accuracy}% accuracy</div>
                     </div>
                     <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${topic.accuracy >= 75 ? "bg-success/10 text-success" : topic.accuracy >= 40 ? "bg-warning/10 text-warning" : "bg-error/10 text-error"}`}>
                       {topic.accuracy >= 75 ? "Strong" : topic.accuracy >= 40 ? "Watch" : "Revise"}
                     </span>
                   </div>
-                  <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-text-secondary">
+                  <div className="mt-2.5 flex flex-wrap gap-2 text-[10px] text-text-secondary">
                     <span className="rounded-full bg-surface px-2.5 py-1">{topic.correct} correct</span>
                     <span className="rounded-full bg-surface px-2.5 py-1">{topic.wrong} wrong</span>
                     <span className="rounded-full bg-surface px-2.5 py-1">{topic.skipped} skipped</span>
@@ -352,18 +352,18 @@ export default async function ResultPage({ params }: PageProps) {
           </div>
 
           <div className="grid gap-4">
-            <div className="rounded-[30px] border border-border-light bg-surface p-5 shadow-card sm:p-6">
+            <div className="rounded-[28px] border border-border-light bg-surface p-4 shadow-card sm:p-5">
               <div className="flex items-center gap-2 border-b border-border-light pb-3">
                 <TrendingUp className="h-4 w-4 text-primary" />
                 <div className="text-sm font-black uppercase tracking-[0.22em] text-text-secondary">Strengths And Focus</div>
               </div>
-              <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-1">
+              <div className="mt-4 grid gap-2.5">
                 <InsightList title="Strengths" tone="success" items={insight.strengths} />
                 <InsightList title="Focus Areas" tone="warning" items={insight.focusAreas} />
               </div>
             </div>
 
-            <div className="rounded-[30px] border border-border-light bg-surface p-5 shadow-card sm:p-6">
+            <div className="rounded-[28px] border border-border-light bg-surface p-4 shadow-card sm:p-5">
               <div className="flex items-center gap-2 border-b border-border-light pb-3">
                 <Clock3 className="h-4 w-4 text-primary" />
                 <div className="text-sm font-black uppercase tracking-[0.22em] text-text-secondary">Difficulty Pattern</div>
@@ -386,13 +386,13 @@ export default async function ResultPage({ params }: PageProps) {
             <BookOpen className="h-5 w-5 text-primary" />
             <h2 className="text-lg font-black text-text-primary sm:text-xl">Compact Response Review</h2>
           </div>
-          <div className="mt-4 grid gap-3 lg:grid-cols-2">
+          <div className="mt-4 grid gap-2.5 lg:grid-cols-2">
             {condensedQuestions.map(({ question, selected, isCorrect, topic }, index) => (
-              <article key={question.id} className={`rounded-[24px] border p-4 ${selected === null ? "border-warning/20 bg-warning/5" : isCorrect ? "border-success/20 bg-success/8" : "border-error/20 bg-error/5"}`}>
+              <article key={question.id} className={`rounded-[20px] border p-3.5 ${selected === null ? "border-warning/20 bg-warning/5" : isCorrect ? "border-success/20 bg-success/8" : "border-error/20 bg-error/5"}`}>
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-text-tertiary">Question {index + 1} - {topic}</div>
-                    <p className="mt-2 text-sm font-semibold leading-6 text-text-primary">{shortenText(question.questionText, 120)}</p>
+                    <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-text-tertiary">Question {index + 1} - {topic}</div>
+                    <p className="mt-1.5 text-sm font-semibold leading-6 text-text-primary">{shortenText(question.questionText, 160)}</p>
                   </div>
                   <span className={`rounded-full px-3 py-1 text-[11px] font-bold ${selected === null ? "bg-warning/10 text-warning" : isCorrect ? "bg-success/10 text-success" : "bg-error/10 text-error"}`}>
                     {selected === null ? "Skipped" : isCorrect ? "Correct" : "Incorrect"}
@@ -555,7 +555,7 @@ function InsightList({ title, tone, items }: { title: string; tone: "success" | 
   return (
     <div className="rounded-[24px] border border-border-light bg-app-bg p-4">
       <div className={`inline-flex rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] ${tone === "success" ? "bg-success/10 text-success" : "bg-warning/10 text-warning"}`}>{title}</div>
-      <div className="mt-3 space-y-2.5">
+      <div className="mt-2.5 space-y-2">
         {items.map((item) => <p key={item} className="text-sm leading-6 text-text-primary">- {item}</p>)}
       </div>
     </div>

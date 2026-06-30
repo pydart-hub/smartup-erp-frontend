@@ -1,13 +1,18 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/public-exam/db";
 import { randomUUID } from "crypto";
 
 export async function POST(request: NextRequest) {
   try {
     const { studentName, studentBranch, studentPhone, classLevel, publishingId } = await request.json();
+    const normalizedPhone = typeof studentPhone === "string" ? studentPhone.replace(/\D/g, "") : "";
 
-    if (!studentName?.trim() || !studentBranch || !studentPhone?.trim() || !classLevel || !publishingId) {
+    if (!studentName?.trim() || !studentBranch || !normalizedPhone || !classLevel || !publishingId) {
       return NextResponse.json({ error: "Missing required parameters" }, { status: 400 });
+    }
+
+    if (!/^\d{10}$/.test(normalizedPhone)) {
+      return NextResponse.json({ error: "Please enter a valid 10-digit phone number" }, { status: 400 });
     }
 
     const publishing = await db.examPublishing.findUnique({
@@ -37,7 +42,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Exam is not active or not found" }, { status: 404 });
     }
 
-    // Format the questions into a frozen snapshot
     const questionsSnapshot = publishing.paper.questions.map((pq) => {
       const q = pq.question;
       return {
@@ -47,7 +51,7 @@ export async function POST(request: NextRequest) {
         difficulty: q.difficulty,
         marks: pq.marks,
         displayOrder: pq.displayOrder,
-        correctOption: q.correctOption, // to grade on server
+        correctOption: q.correctOption,
         options: q.options.map((opt) => ({
           id: opt.id,
           optionKey: opt.optionKey,
@@ -56,17 +60,15 @@ export async function POST(request: NextRequest) {
       };
     });
 
-    // Generate secure session token to authorize answer updates
     const sessionToken = randomUUID();
-    const sessionTokenHash = sessionToken; // simple hash/token matching
+    const sessionTokenHash = sessionToken;
 
-    // Create attempt
     const attempt = await db.examAttempt.create({
       data: {
         publishingId: publishing.id,
         studentName: studentName.trim(),
         studentBranch: studentBranch.trim(),
-        studentPhone: studentPhone.trim(),
+        studentPhone: normalizedPhone,
         classLevel,
         status: "in_progress",
         totalMarks: publishing.paper.totalMarks,
@@ -80,13 +82,12 @@ export async function POST(request: NextRequest) {
       sessionToken,
     });
 
-    // Set HTTP-only cookie for attempt authentication
     response.cookies.set(`exam_session_${attempt.id}`, sessionToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
       path: "/",
-      maxAge: 60 * 60 * 4, // 4 hours
+      maxAge: 60 * 60 * 4,
     });
 
     return response;
