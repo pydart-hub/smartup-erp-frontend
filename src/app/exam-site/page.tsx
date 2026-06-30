@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
@@ -88,8 +88,26 @@ export default function ExamSiteLandingPage() {
   const [fetchingHistory, setFetchingHistory] = useState(false);
   const [historyItems, setHistoryItems] = useState<AttemptHistoryItem[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [hasSavedDetails, setHasSavedDetails] = useState(false);
 
   const normalizedPhone = useMemo(() => studentPhone.replace(/\D/g, ""), [studentPhone]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedName = localStorage.getItem("smartup_exam_student_name");
+      const savedBranch = localStorage.getItem("smartup_exam_student_branch");
+      const savedPhone = localStorage.getItem("smartup_exam_student_phone");
+      const savedClass = localStorage.getItem("smartup_exam_student_class");
+
+      if (savedName && savedBranch && savedPhone && savedClass) {
+        setStudentName(savedName);
+        setStudentBranch(savedBranch);
+        setStudentPhone(savedPhone);
+        setClassLevel(savedClass);
+        setHasSavedDetails(true);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (!classLevel) {
@@ -154,6 +172,18 @@ export default function ExamSiteLandingPage() {
     };
   }, [normalizedPhone]);
 
+  const handleClearDetails = () => {
+    localStorage.removeItem("smartup_exam_student_name");
+    localStorage.removeItem("smartup_exam_student_branch");
+    localStorage.removeItem("smartup_exam_student_phone");
+    localStorage.removeItem("smartup_exam_student_class");
+    setStudentName("");
+    setStudentBranch("");
+    setStudentPhone("");
+    setClassLevel("");
+    setHasSavedDetails(false);
+  };
+
   const handleStartExam = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -185,6 +215,13 @@ export default function ExamSiteLandingPage() {
         setError(data.error || "Failed to start the exam");
         return;
       }
+
+      // Save student details for seamless one-by-one exam flow
+      localStorage.setItem("smartup_exam_student_name", studentName.trim());
+      localStorage.setItem("smartup_exam_student_branch", studentBranch.trim());
+      localStorage.setItem("smartup_exam_student_phone", normalizedPhone);
+      localStorage.setItem("smartup_exam_student_class", classLevel);
+      setHasSavedDetails(true);
 
       sessionStorage.setItem(`exam_token_${data.attemptId}`, data.sessionToken);
       router.push(`/exam-site/attempt/${data.attemptId}`);
@@ -266,30 +303,53 @@ export default function ExamSiteLandingPage() {
             </div>
 
             <form onSubmit={handleStartExam} className="relative space-y-4">
-              <InputField icon={<User className="h-[18px] w-[18px]" />}>
-                <input type="text" required value={studentName} onChange={(e) => setStudentName(e.target.value)} placeholder="Full Name" className="h-13 w-full rounded-[18px] border border-[#e9deff] bg-white/92 px-12 pr-4 text-[15px] text-slate-900 outline-none transition duration-300 placeholder:text-slate-400 hover:border-[#d7c5ff] focus:border-[#673ab7] focus:shadow-[0_0_0_4px_rgba(103,58,183,0.08),0_14px_24px_rgba(103,58,183,0.08)] dark:border-white/10 dark:bg-white/[0.05] dark:text-white dark:placeholder:text-slate-500 dark:hover:border-white/15" />
-              </InputField>
+              {hasSavedDetails ? (
+                <div className="relative overflow-hidden rounded-[20px] border border-primary/20 bg-primary/5 p-4 text-sm backdrop-blur dark:border-white/10 dark:bg-white/[0.04]">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#673ab7] dark:text-[#9575cd]">Registered Student</div>
+                      <div className="mt-1 text-base font-bold text-slate-950 dark:text-white">{studentName}</div>
+                      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                        Class {classLevel} · {studentBranch} · {studentPhone}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleClearDetails}
+                      className="shrink-0 text-xs font-bold text-rose-500 hover:text-rose-600 hover:underline cursor-pointer"
+                    >
+                      Change Details
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <InputField icon={<User className="h-[18px] w-[18px]" />}>
+                    <input type="text" required value={studentName} onChange={(e) => setStudentName(e.target.value)} placeholder="Full Name" className="h-13 w-full rounded-[18px] border border-[#e9deff] bg-white/92 px-12 pr-4 text-[15px] text-slate-900 outline-none transition duration-300 placeholder:text-slate-400 hover:border-[#d7c5ff] focus:border-[#673ab7] focus:shadow-[0_0_0_4px_rgba(103,58,183,0.08),0_14px_24px_rgba(103,58,183,0.08)] dark:border-white/10 dark:bg-white/[0.05] dark:text-white dark:placeholder:text-slate-500 dark:hover:border-white/15" />
+                  </InputField>
 
-              <InputField icon={<WalletCards className="h-[18px] w-[18px]" />}>
-                <select required value={studentBranch} onChange={(e) => setStudentBranch(e.target.value)} className="h-13 w-full appearance-none rounded-[18px] border border-[#e9deff] bg-white/92 px-12 pr-12 text-[15px] text-slate-900 outline-none transition duration-300 hover:border-[#d7c5ff] focus:border-[#673ab7] focus:shadow-[0_0_0_4px_rgba(103,58,183,0.08),0_14px_24px_rgba(103,58,183,0.08)] dark:border-white/10 dark:bg-white/[0.05] dark:text-white dark:hover:border-white/15">
-                  <option value="" disabled>Select Your Branch</option>
-                  {BRANCHES.map((branch) => <option key={branch} value={branch}>{branch}</option>)}
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8d79b4] dark:text-slate-500" />
-              </InputField>
+                  <InputField icon={<WalletCards className="h-[18px] w-[18px]" />}>
+                    <select required value={studentBranch} onChange={(e) => setStudentBranch(e.target.value)} className="h-13 w-full appearance-none rounded-[18px] border border-[#e9deff] bg-white/92 px-12 pr-12 text-[15px] text-slate-900 outline-none transition duration-300 hover:border-[#d7c5ff] focus:border-[#673ab7] focus:shadow-[0_0_0_4px_rgba(103,58,183,0.08),0_14px_24px_rgba(103,58,183,0.08)] dark:border-white/10 dark:bg-white/[0.05] dark:text-white dark:hover:border-white/15">
+                      <option value="" disabled>Select Your Branch</option>
+                      {BRANCHES.map((branch) => <option key={branch} value={branch}>{branch}</option>)}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8d79b4] dark:text-slate-500" />
+                  </InputField>
 
-              <InputField icon={<Phone className="h-[18px] w-[18px]" />}>
-                <input
-                  type="tel"
-                  required
-                  value={studentPhone}
-                  onChange={(e) => setStudentPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                  placeholder="Phone Number"
-                  inputMode="numeric"
-                  maxLength={10}
-                  className="h-13 w-full rounded-[18px] border border-[#e9deff] bg-white/92 px-12 pr-4 text-[15px] text-slate-900 outline-none transition duration-300 placeholder:text-slate-400 hover:border-[#d7c5ff] focus:border-[#673ab7] focus:shadow-[0_0_0_4px_rgba(103,58,183,0.08),0_14px_24px_rgba(103,58,183,0.08)] dark:border-white/10 dark:bg-white/[0.05] dark:text-white dark:placeholder:text-slate-500 dark:hover:border-white/15"
-                />
-              </InputField>
+                  <InputField icon={<Phone className="h-[18px] w-[18px]" />}>
+                    <input
+                      type="tel"
+                      required
+                      value={studentPhone}
+                      onChange={(e) => setStudentPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                      placeholder="Phone Number"
+                      inputMode="numeric"
+                      maxLength={10}
+                      className="h-13 w-full rounded-[18px] border border-[#e9deff] bg-white/92 px-12 pr-4 text-[15px] text-slate-900 outline-none transition duration-300 placeholder:text-slate-400 hover:border-[#d7c5ff] focus:border-[#673ab7] focus:shadow-[0_0_0_4px_rgba(103,58,183,0.08),0_14px_24px_rgba(103,58,183,0.08)] dark:border-white/10 dark:bg-white/[0.05] dark:text-white dark:placeholder:text-slate-500 dark:hover:border-white/15"
+                    />
+                  </InputField>
+                </>
+              )}
 
               {normalizedPhone.length === 10 ? (
                 <div className="rounded-[20px] border border-[#eee4ff] bg-[#fbf8ff]/92 p-3.5 dark:border-white/10 dark:bg-white/[0.04]">
@@ -346,21 +406,23 @@ export default function ExamSiteLandingPage() {
                 </div>
               ) : null}
 
-              <div className="pt-1">
-                <label className="mb-3 block text-[1rem] font-semibold tracking-[-0.02em] text-slate-900 dark:text-white">Select Class Level</label>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  {LEVEL_OPTIONS.map((level) => {
-                    const active = classLevel === level.value;
-                    return (
-                      <button key={level.value} type="button" onClick={() => setClassLevel(level.value)} className={`relative rounded-[20px] border px-3 py-4 text-center transition duration-300 [transform-style:preserve-3d] hover:-translate-y-1 hover:[transform:translateY(-4px)_rotateX(2deg)] ${active ? "border-[#673ab7] bg-[linear-gradient(180deg,rgba(103,58,183,0.08),rgba(103,58,183,0.02))] shadow-[0_14px_24px_rgba(103,58,183,0.1)]" : "border-[#e9deff] bg-white hover:border-[#d7c5ff] hover:shadow-[0_14px_22px_rgba(93,53,213,0.06)] dark:border-white/10 dark:bg-white/[0.05]"}`}>
-                        {active ? <div className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-[#673ab7] text-white shadow-[0_12px_20px_rgba(103,58,183,0.28)] animate-[pulseGlow_4s_ease-in-out_infinite]"><span className="text-xs">✓</span></div> : null}
-                        <div className={`mx-auto flex h-10 w-10 items-center justify-center rounded-full ${active ? "bg-[#efe8ff] text-[#673ab7]" : "bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-300"}`}><GraduationCap className="h-5 w-5" /></div>
-                        <div className="mt-3 text-[15px] font-semibold text-slate-950 dark:text-white">{level.label}</div>
-                      </button>
-                    );
-                  })}
+              {!hasSavedDetails && (
+                <div className="pt-1">
+                  <label className="mb-3 block text-[1rem] font-semibold tracking-[-0.02em] text-slate-950 dark:text-white">Select Class Level</label>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    {LEVEL_OPTIONS.map((level) => {
+                      const active = classLevel === level.value;
+                      return (
+                        <button key={level.value} type="button" onClick={() => setClassLevel(level.value)} className={`relative rounded-[20px] border px-3 py-4 text-center transition duration-300 [transform-style:preserve-3d] hover:-translate-y-1 hover:[transform:translateY(-4px)_rotateX(2deg)] ${active ? "border-[#673ab7] bg-[linear-gradient(180deg,rgba(103,58,183,0.08),rgba(103,58,183,0.02))] shadow-[0_14px_24px_rgba(103,58,183,0.1)]" : "border-[#e9deff] bg-white hover:border-[#d7c5ff] hover:shadow-[0_14px_22px_rgba(93,53,213,0.06)] dark:border-white/10 dark:bg-white/[0.05]"}`}>
+                          {active ? <div className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-[#673ab7] text-white shadow-[0_12px_20px_rgba(103,58,183,0.28)] animate-[pulseGlow_4s_ease-in-out_infinite]"><span className="text-xs">✓</span></div> : null}
+                          <div className={`mx-auto flex h-10 w-10 items-center justify-center rounded-full ${active ? "bg-[#efe8ff] text-[#673ab7]" : "bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-300"}`}><GraduationCap className="h-5 w-5" /></div>
+                          <div className="mt-3 text-[15px] font-semibold text-slate-950 dark:text-white">{level.label}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {classLevel ? (
                 <div className="rounded-[20px] border border-[#eee4ff] bg-[#fbf8ff]/92 p-3.5 dark:border-white/10 dark:bg-white/[0.04]">
