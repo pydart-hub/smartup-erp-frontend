@@ -13,6 +13,7 @@ import {
   Home,
 } from "lucide-react";
 import { GradeResult } from "@/lib/public-exam/grading";
+import { PrintButton } from "@/components/public-exam/PrintButton";
 
 type PageProps = {
   params: Promise<{
@@ -187,7 +188,7 @@ export default async function ResultPage({ params }: PageProps) {
         </div>
 
         {/* Buttons / Navigation */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 no-print">
           <Link
             href="/exam-site"
             className="w-full sm:w-auto px-8 py-3.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold rounded-2xl text-center shadow-lg shadow-emerald-500/20 transition-all duration-200 cursor-pointer flex items-center justify-center gap-2"
@@ -195,6 +196,7 @@ export default async function ResultPage({ params }: PageProps) {
             <span>Take Another Exam</span>
             <ArrowRight className="w-4 h-4" />
           </Link>
+          <PrintButton />
           <Link
             href="/auth/login"
             className="w-full sm:w-auto px-8 py-3.5 bg-slate-800 hover:bg-slate-700/60 border border-slate-700 text-slate-300 hover:text-white font-bold rounded-2xl text-center transition-all duration-200 cursor-pointer flex items-center justify-center gap-2"
