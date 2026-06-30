@@ -96,6 +96,8 @@ model ExamAttempt {
   publishingId       String
   publishing         ExamPublishing   @relation(fields: [publishingId], references: [id])
   studentName        String           // Manually entered
+  studentBranch      String?          // Manually selected branch
+  studentPhone       String?          // Manually entered phone number
   classLevel         String           // Manually selected ("8", "9", "10")
   status             String           @default("in_progress") // "in_progress", "submitted", "auto_submitted"
   startedAt          DateTime         @default(now())

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { BookOpen, User, GraduationCap, Play, AlertCircle, ArrowLeft } from "lucide-react";
+import { BookOpen, User, GraduationCap, Play, AlertCircle, ArrowLeft, MapPin, Phone } from "lucide-react";
 
 type ActiveExam = {
   publishingId: string;
@@ -19,6 +19,8 @@ type ActiveExam = {
 export default function ExamSiteLandingPage() {
   const router = useRouter();
   const [studentName, setStudentName] = useState("");
+  const [studentBranch, setStudentBranch] = useState("");
+  const [studentPhone, setStudentPhone] = useState("");
   const [classLevel, setClassLevel] = useState("");
   const [exams, setExams] = useState<ActiveExam[]>([]);
   const [selectedExamId, setSelectedExamId] = useState("");
@@ -67,6 +69,14 @@ export default function ExamSiteLandingPage() {
       setError("Please enter your name");
       return;
     }
+    if (!studentBranch) {
+      setError("Please select your branch");
+      return;
+    }
+    if (!studentPhone.trim()) {
+      setError("Please enter your phone number");
+      return;
+    }
     if (!classLevel) {
       setError("Please select your class");
       return;
@@ -85,6 +95,8 @@ export default function ExamSiteLandingPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           studentName,
+          studentBranch,
+          studentPhone,
           classLevel,
           publishingId: selectedExamId,
         }),
@@ -166,6 +178,52 @@ export default function ExamSiteLandingPage() {
                     value={studentName}
                     onChange={(e) => setStudentName(e.target.value)}
                     placeholder="Enter your name"
+                    className="w-full pl-12 pr-4 py-3.5 bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all duration-200 text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Branch Selector */}
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block">
+                  Select Your Branch
+                </label>
+                <div className="relative">
+                  <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+                  <select
+                    required
+                    value={studentBranch}
+                    onChange={(e) => setStudentBranch(e.target.value)}
+                    className="w-full pl-12 pr-4 py-3.5 bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all duration-200 text-sm appearance-none cursor-pointer"
+                  >
+                    <option value="" disabled>Select your branch</option>
+                    <option value="SmartUp KADAVANTHARA">SmartUp KADAVANTHARA</option>
+                    <option value="SmartUp Edappally">SmartUp Edappally</option>
+                    <option value="SmartUp VENNALA">SmartUp VENNALA</option>
+                    <option value="SmartUp ERAVELI">SmartUp ERAVELI</option>
+                    <option value="SmartUp FORTKOCHI">SmartUp FORTKOCHI</option>
+                    <option value="SmartUp CHULLIKAL">SmartUp CHULLIKAL</option>
+                    <option value="SmartUp PALLURUTHY">SmartUp PALLURUTHY</option>
+                    <option value="SmartUp THOPPUMPADY">SmartUp THOPPUMPADY</option>
+                    <option value="SmartUp MOOLAMKUZHI">SmartUp MOOLAMKUZHI</option>
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-slate-500" />
+                </div>
+              </div>
+
+              {/* Phone Input */}
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block">
+                  Phone Number
+                </label>
+                <div className="relative">
+                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+                  <input
+                    type="tel"
+                    required
+                    value={studentPhone}
+                    onChange={(e) => setStudentPhone(e.target.value)}
+                    placeholder="Enter phone number"
                     className="w-full pl-12 pr-4 py-3.5 bg-slate-900 border border-slate-700 focus:border-emerald-500 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all duration-200 text-sm"
                   />
                 </div>

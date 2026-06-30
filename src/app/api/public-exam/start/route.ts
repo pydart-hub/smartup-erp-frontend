@@ -4,9 +4,9 @@ import { randomUUID } from "crypto";
 
 export async function POST(request: NextRequest) {
   try {
-    const { studentName, classLevel, publishingId } = await request.json();
+    const { studentName, studentBranch, studentPhone, classLevel, publishingId } = await request.json();
 
-    if (!studentName?.trim() || !classLevel || !publishingId) {
+    if (!studentName?.trim() || !studentBranch || !studentPhone?.trim() || !classLevel || !publishingId) {
       return NextResponse.json({ error: "Missing required parameters" }, { status: 400 });
     }
 
@@ -65,6 +65,8 @@ export async function POST(request: NextRequest) {
       data: {
         publishingId: publishing.id,
         studentName: studentName.trim(),
+        studentBranch: studentBranch.trim(),
+        studentPhone: studentPhone.trim(),
         classLevel,
         status: "in_progress",
         totalMarks: publishing.paper.totalMarks,

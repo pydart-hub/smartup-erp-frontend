@@ -11,6 +11,7 @@ import {
   TrendingUp,
   Brain,
   Home,
+  BookOpen,
 } from "lucide-react";
 import { GradeResult } from "@/lib/public-exam/grading";
 import { PrintButton } from "@/components/public-exam/PrintButton";
@@ -33,6 +34,7 @@ export default async function ResultPage({ params }: PageProps) {
           title: true,
         },
       },
+      answers: true, // Fetch answers
     },
   });
 
@@ -49,6 +51,40 @@ export default async function ResultPage({ params }: PageProps) {
   const results: GradeResult = typeof attempt.resultSnapshotJson === "string"
     ? JSON.parse(attempt.resultSnapshotJson)
     : (attempt.resultSnapshotJson as unknown as GradeResult);
+
+  // Fetch candidate's previous attempts by phone number
+  const historyAttempts = attempt.studentPhone
+    ? await db.examAttempt.findMany({
+        where: { studentPhone: attempt.studentPhone },
+        orderBy: { startedAt: "desc" },
+        include: {
+          publishing: {
+            select: {
+              title: true,
+            },
+          },
+        },
+      })
+    : [];
+
+  interface SnapshotQuestion {
+    id: string;
+    classLevel: string;
+    questionText: string;
+    difficulty: string;
+    marks: number;
+    displayOrder: number;
+    correctOption: string;
+    options: {
+      id: string;
+      optionKey: string;
+      optionText: string;
+    }[];
+  }
+
+  const questionsList: SnapshotQuestion[] = typeof attempt.paperSnapshotJson === "string"
+    ? JSON.parse(attempt.paperSnapshotJson)
+    : (attempt.paperSnapshotJson as unknown as SnapshotQuestion[]);
 
   if (!results) {
     return (
@@ -186,6 +222,173 @@ export default async function ResultPage({ params }: PageProps) {
             </div>
           </div>
         </div>
+
+        {/* Full Questions Review Section */}
+        <div className="bg-slate-800/80 border border-slate-700/50 rounded-3xl p-6 sm:p-8 shadow-lg mb-8 relative">
+          <h2 className="text-xl font-bold text-white mb-6 border-b border-slate-700/40 pb-4 flex items-center gap-2">
+            <BookOpen className="w-5 h-5 text-emerald-400" />
+            <span>Question Paper & Student Responses Review</span>
+          </h2>
+
+          <div className="space-y-6">
+            {questionsList.map((q, qIdx) => {
+              const answer = attempt.answers.find((a) => a.questionId === q.id);
+              const selected = answer?.selectedOption || null;
+              const isCorrect = selected === q.correctOption;
+
+              return (
+                <div
+                  key={q.id}
+                  className={`p-5 rounded-2xl border transition-colors duration-200 ${
+                    selected === null
+                      ? "bg-slate-900/30 border-slate-700/40"
+                      : isCorrect
+                      ? "bg-emerald-500/5 border-emerald-500/20"
+                      : "bg-rose-500/5 border-rose-500/20"
+                  }`}
+                >
+                  {/* Question Header */}
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-3">
+                    <div className="text-sm font-semibold text-slate-300">
+                      <span className="text-emerald-400 font-bold mr-1">Q{qIdx + 1}.</span>
+                      {q.questionText}
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-slate-900 border border-slate-700/60 text-slate-400">
+                        {q.difficulty}
+                      </span>
+                      {selected === null ? (
+                        <span className="text-xs text-amber-500 font-semibold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 flex items-center gap-1">
+                          <AlertCircle className="w-3.5 h-3.5" />
+                          Skipped
+                        </span>
+                      ) : isCorrect ? (
+                        <span className="text-xs text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          Correct
+                        </span>
+                      ) : (
+                        <span className="text-xs text-rose-400 font-semibold bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20 flex items-center gap-1">
+                          <XCircle className="w-3.5 h-3.5" />
+                          Incorrect
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Options List */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-4">
+                    {q.options.map((opt) => {
+                      const isSelected = selected === opt.optionKey;
+                      const isCorrectOption = q.correctOption === opt.optionKey;
+
+                      let optionStyle = "bg-slate-900/50 border-slate-800 text-slate-400";
+                      if (isCorrectOption) {
+                        optionStyle = "bg-emerald-500/10 border-emerald-500/30 text-emerald-300 font-medium";
+                      } else if (isSelected && !isCorrect) {
+                        optionStyle = "bg-rose-500/10 border-rose-500/30 text-rose-300 font-medium";
+                      }
+
+                      return (
+                        <div
+                          key={opt.id}
+                          className={`p-3.5 rounded-xl border flex items-center justify-between gap-3 text-xs ${optionStyle}`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px] border ${
+                              isCorrectOption
+                                ? "bg-emerald-500 text-slate-950 border-emerald-500"
+                                : isSelected
+                                ? "bg-rose-500 text-slate-100 border-rose-500"
+                                : "bg-slate-800 border-slate-700 text-slate-400"
+                            }`}>
+                              {opt.optionKey}
+                            </span>
+                            <span>{opt.optionText}</span>
+                          </div>
+                          {isCorrectOption && (
+                            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                          )}
+                          {isSelected && !isCorrect && (
+                            <XCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Attempt History Section */}
+        {historyAttempts.length > 0 && (
+          <div className="bg-slate-800/80 border border-slate-700/50 rounded-3xl p-6 sm:p-8 shadow-lg mb-8 relative no-print">
+            <h2 className="text-xl font-bold text-white mb-6 border-b border-slate-700/40 pb-4 flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-violet-400" />
+              <span>Assessment History for {attempt.studentPhone}</span>
+            </h2>
+            
+            <p className="text-xs text-slate-400 mb-4">
+              Found {historyAttempts.length} total attempt{historyAttempts.length > 1 ? "s" : ""} registered under this phone number.
+            </p>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-700/60 text-slate-400 font-bold uppercase tracking-wider">
+                    <th className="pb-3 pr-2">Date & Time</th>
+                    <th className="pb-3 pr-2">Exam Title</th>
+                    <th className="pb-3 pr-2">Class</th>
+                    <th className="pb-3 pr-2 text-right">Score</th>
+                    <th className="pb-3 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60 text-slate-300">
+                  {historyAttempts.map((hist) => {
+                    const isCurrent = hist.id === attempt.id;
+                    const histDate = new Date(hist.createdAt).toLocaleDateString(undefined, {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    });
+
+                    return (
+                      <tr key={hist.id} className={`hover:bg-slate-900/20 ${isCurrent ? "bg-emerald-500/5" : ""}`}>
+                        <td className="py-3 pr-2 font-medium text-slate-400">{histDate}</td>
+                        <td className="py-3 pr-2 font-semibold">
+                          {hist.publishing.title}
+                          {isCurrent && (
+                            <span className="ml-2 text-[9px] font-bold text-emerald-400 border border-emerald-500/25 px-1.5 py-0.5 rounded bg-emerald-500/5 uppercase tracking-wide">
+                              Current
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 pr-2 text-slate-400">Class {hist.classLevel}</td>
+                        <td className="py-3 pr-2 text-right font-bold text-white">{hist.percentage}% ({hist.scoreObtained}/{hist.totalMarks})</td>
+                        <td className="py-3 text-right font-medium">
+                          {isCurrent ? (
+                            <span className="text-slate-500 select-none">Viewing</span>
+                          ) : (
+                            <Link
+                              href={`/exam-site/result/${hist.id}`}
+                              className="text-emerald-400 hover:text-emerald-300 font-semibold hover:underline"
+                            >
+                              View Report
+                            </Link>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* Buttons / Navigation */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 no-print">
