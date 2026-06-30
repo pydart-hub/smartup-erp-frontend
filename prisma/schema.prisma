@@ -1,0 +1,130 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("STANDALONE_DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// 1. Subjects
+model Subject {
+  code       String             @id // e.g. "MATHEMATICS", "SCIENCE"
+  name       String
+  createdAt  DateTime           @default(now())
+  questions  Question[]
+  papers     Paper[]
+  publishings ExamPublishing[]
+}
+
+// 2. Question Bank
+model Question {
+  id            String             @id @default(uuid())
+  subjectCode   String
+  subject       Subject            @relation(fields: [subjectCode], references: [code])
+  classLevel    String             // "8", "9", "10"
+  questionText  String             @db.Text
+  difficulty    String             @default("medium") // "easy", "medium", "hard"
+  correctOption String             // "A", "B", "C", "D"
+  explanation   String?            @db.Text
+  isActive      Boolean            @default(true)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  options       QuestionOption[]
+  paperLinks    PaperQuestion[]
+}
+
+// 3. Question Options
+model QuestionOption {
+  id           String   @id @default(uuid())
+  questionId   String
+  question     Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  optionKey    String   // "A", "B", "C", "D"
+  optionText   String   @db.Text
+  displayOrder Int
+}
+
+// 4. Exam Papers (Templates)
+model Paper {
+  id              String             @id @default(uuid())
+  title           String
+  subjectCode     String
+  subject         Subject            @relation(fields: [subjectCode], references: [code])
+  classLevel      String             // "8", "9", "10"
+  durationMinutes Int                @default(40)
+  totalQuestions  Int                @default(0)
+  totalMarks      Int                @default(0)
+  status          String             @default("Draft") // "Draft", "Published"
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  questions       PaperQuestion[]
+  publishings     ExamPublishing[]
+}
+
+// 5. Questions inside Papers
+model PaperQuestion {
+  id           String   @id @default(uuid())
+  paperId      String
+  paper        Paper    @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  questionId   String
+  question     Question @relation(fields: [questionId], references: [id])
+  displayOrder Int
+  marks        Int      @default(1)
+}
+
+// 6. Active Exam Publishings (The actual exam a student takes)
+model ExamPublishing {
+  id              String        @id @default(uuid())
+  slug            String        @unique // e.g. "science-class-9-midterm"
+  title           String
+  paperId         String
+  paper           Paper         @relation(fields: [paperId], references: [id])
+  classLevel      String        // "8", "9", "10"
+  subjectCode     String
+  subject         Subject       @relation(fields: [subjectCode], references: [code])
+  durationMinutes Int
+  startAt         DateTime
+  endAt           DateTime
+  isActive        Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  attempts        ExamAttempt[]
+}
+
+// 7. Student Exam Attempts (Completely separate from Frappe!)
+model ExamAttempt {
+  id                 String           @id @default(uuid())
+  publishingId       String
+  publishing         ExamPublishing   @relation(fields: [publishingId], references: [id])
+  studentName        String           // Manually entered
+  classLevel         String           // Manually selected ("8", "9", "10")
+  status             String           @default("in_progress") // "in_progress", "submitted", "auto_submitted"
+  startedAt          DateTime         @default(now())
+  submittedAt        DateTime?
+  scoreObtained      Int              @default(0)
+  totalMarks         Int              @default(0)
+  percentage         Int              @default(0)
+  correctCount       Int              @default(0)
+  wrongCount         Int              @default(0)
+  unansweredCount    Int              @default(0)
+  
+  // CRITICAL: A frozen JSON snapshot of the exam paper questions and correct options at start time
+  paperSnapshotJson  Json
+  resultSnapshotJson Json?            // Detailed score breakdown and AI feedback
+  
+  sessionTokenHash   String           // Secure token to authorize question autosaving
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  answers            AttemptAnswer[]
+}
+
+// 8. Individual Question Answers (Atomic autosave database writes)
+model AttemptAnswer {
+  id             String      @id @default(uuid())
+  attemptId      String
+  attempt        ExamAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId     String
+  selectedOption String      // "A", "B", "C", "D"
+  answeredAt     DateTime    @default(now())
+
+  @@unique([attemptId, questionId])
+}

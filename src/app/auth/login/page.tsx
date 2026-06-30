@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import { DM_Sans } from "next/font/google";
-import { Play } from "lucide-react";
+import { Play, BookOpen } from "lucide-react";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { LoginFooter } from "@/components/auth/LoginFooter";
 
@@ -259,14 +259,21 @@ export default function LoginPage() {
                 </span>
               </div>
 
-              {/* Demo Button */}
-              <div className="mt-5 flex justify-center">
+              {/* Demo & Diagnosis Exam Buttons */}
+              <div className="mt-5 flex justify-center gap-4">
                 <Link
                   href="/demo"
                   className="group inline-flex items-center gap-2 text-sm font-medium text-white/90 lg:text-slate-500 hover:text-white lg:hover:text-[#5f2ea8] border border-white/30 lg:border-slate-200 hover:border-white/50 lg:hover:border-[#5f2ea8]/30 rounded-xl px-5 py-2.5 bg-white/10 lg:bg-white hover:bg-white/20 lg:hover:bg-[#5f2ea8]/5 transition-all duration-200 shadow-sm backdrop-blur-sm lg:backdrop-blur-none"
                 >
                   <Play className="w-3.5 h-3.5 fill-current" />
                   Try Demo
+                </Link>
+                <Link
+                  href="/exam-site"
+                  className="group inline-flex items-center gap-2 text-sm font-medium text-white/90 lg:text-slate-500 hover:text-white lg:hover:text-emerald-600 border border-white/30 lg:border-slate-200 hover:border-white/50 lg:hover:border-emerald-600/30 rounded-xl px-5 py-2.5 bg-white/10 lg:bg-white hover:bg-white/20 lg:hover:bg-emerald-600/5 transition-all duration-200 shadow-sm backdrop-blur-sm lg:backdrop-blur-none"
+                >
+                  <BookOpen className="w-3.5 h-3.5" />
+                  Diagnosis Exam
                 </Link>
               </div>
             </motion.div>
