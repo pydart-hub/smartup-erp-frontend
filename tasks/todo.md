@@ -911,27 +911,27 @@
 
 ## Current: Standalone Diagnosis Exam Website (Decoupled)
 
-- [ ] Install PostgreSQL on VPS & Create database `smartup_offline` with user `smartup_offline_admin` and password `Smartup@123`
-- [ ] Add `STANDALONE_DATABASE_URL` environment variable to `.env.local`
-- [ ] Add `prisma` and `@prisma/client` dependencies to `package.json` and initialize Prisma schema
-- [ ] Create `prisma/schema.prisma` with standalone schemas
-- [ ] Write database client singleton helper in `src/lib/public-exam/db.ts`
-- [ ] Write seeding script `scripts/seed-standalone-exams.ts` to parse `docs/Level Test/JSON/*.json`
+- [x] Install PostgreSQL on VPS & Create database `smartup_offline` with user `smartup_offline_admin` and password `Smartup@123`
+- [x] Add `STANDALONE_DATABASE_URL` environment variable to `.env.local`
+- [x] Add `prisma` and `@prisma/client` dependencies to `package.json` and initialize Prisma schema
+- [x] Create `prisma/schema.prisma` with standalone schemas
+- [x] Write database client singleton helper in `src/lib/public-exam/db.ts`
+- [x] Write seeding script `scripts/seed-standalone-exams.ts` to parse `docs/Level Test/JSON/*.json`
   - Rule: Grade 10 exam uses levels 5-9 questions; Grade 9 uses levels 5-8; Grade 8 uses levels 5-7.
   - Quality check: Filter for valid MCQs (`correct_option_key` and at least 2 options).
-- [ ] Run the database seeding to populate Postgres tables
-- [ ] Implement Serverless APIs for the public exam:
+- [x] Run the database seeding to populate Postgres tables
+- [x] Implement Serverless APIs for the public exam:
   - `GET /api/public-exam/active` (fetch active exam for class)
   - `POST /api/public-exam/start` (register user, snapshot questions, return session token)
   - `POST /api/public-exam/attempt/[attemptId]/answer` (autosave single answer)
   - `POST /api/public-exam/attempt/[attemptId]/submit` (grade attempt, save stats & AI feedback)
-- [ ] Create Standalone public pages under `/exam-site`:
+- [x] Create Standalone public pages under `/exam-site`:
   - `/exam-site` (Landing/Registration page)
   - `/exam-site/attempt/[attemptId]` (Interactive player, timer, and autosave)
   - `/exam-site/result/[attemptId]` (Score card & feedback summary)
-- [ ] Add "Diagnosis Exam" button next to "Try Demo" in `src/app/auth/login/page.tsx`
-- [ ] Add Admin Results viewer pages under `/dashboard/general-manager/standalone-exams`
-- [ ] Run type-checking `npx tsc --noEmit` and production build `npm run build` to verify
+- [x] Add "Diagnosis Exam" button next to "Try Demo" in `src/app/auth/login/page.tsx`
+- [x] Add Admin Results viewer pages under `/dashboard/general-manager/standalone-exams`
+- [x] Run type-checking `npx tsc --noEmit` and production build `npm run build` to verify
 
 ---
 
