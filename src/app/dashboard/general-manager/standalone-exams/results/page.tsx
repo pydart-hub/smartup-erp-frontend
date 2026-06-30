@@ -11,6 +11,7 @@ import {
   PlusCircle,
   ListFilter,
 } from "lucide-react";
+import { calculateDiagnosedLevel } from "@/lib/public-exam/grading";
 
 export const dynamic = "force-dynamic";
 
@@ -87,12 +88,13 @@ export default async function ResultsDashboardPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-sm">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold">
+                 <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold">
                   <th className="py-3 px-5">Student Name</th>
                   <th className="py-3 px-5">Class</th>
                   <th className="py-3 px-5">Exam Paper Title</th>
                   <th className="py-3 px-5 text-center">Status</th>
                   <th className="py-3 px-5 text-center">Score / Grade</th>
+                  <th className="py-3 px-5 text-center">Diagnosed Level</th>
                   <th className="py-3 px-5">Started At</th>
                   <th className="py-3 px-5 text-center">Action</th>
                 </tr>
@@ -100,6 +102,10 @@ export default async function ResultsDashboardPage() {
               <tbody className="divide-y divide-slate-100 text-slate-700">
                 {attempts.map((item) => {
                   const isSubmitted = item.status === "submitted" || item.status === "auto_submitted";
+                  const diagnosedLevel = isSubmitted ? (
+                    (item.resultSnapshotJson && (typeof item.resultSnapshotJson === "object" ? (item.resultSnapshotJson as any).diagnosedLevel : JSON.parse(item.resultSnapshotJson as string).diagnosedLevel)) ||
+                    calculateDiagnosedLevel(item.classLevel, item.paperSnapshotJson, item.resultSnapshotJson)
+                  ) : null;
                   return (
                     <tr key={item.id} className="hover:bg-slate-50/80 transition-colors duration-150">
                       <td className="py-3.5 px-5 font-bold text-slate-900">{item.studentName}</td>
@@ -136,6 +142,15 @@ export default async function ResultsDashboardPage() {
                               : "text-rose-600"
                           }`}>
                             {item.scoreObtained} ({item.percentage}%)
+                          </span>
+                        ) : (
+                          <span className="text-slate-400">—</span>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-5 text-center font-bold text-slate-900">
+                        {isSubmitted ? (
+                          <span className="inline-flex items-center gap-1 bg-violet-50 text-[#5f2ea8] px-2.5 py-0.5 rounded-full text-xs font-black">
+                            {diagnosedLevel || "N/A"}
                           </span>
                         ) : (
                           <span className="text-slate-400">—</span>

@@ -23,6 +23,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { calculateDiagnosedLevel } from "@/lib/public-exam/grading";
 
 export interface AttemptWithPublishing {
   id: string;
@@ -39,6 +40,8 @@ export interface AttemptWithPublishing {
   correctCount: number;
   wrongCount: number;
   unansweredCount: number;
+  paperSnapshotJson?: any;
+  resultSnapshotJson?: any;
   publishing: {
     title: string;
     subject: {
@@ -566,6 +569,7 @@ export function DiagnosisExamsDrillDown({
                                           <th className="py-2.5 px-4">Subject Exam Paper</th>
                                           <th className="py-2.5 px-4 text-center">Status</th>
                                           <th className="py-2.5 px-4 text-center">Score / Grade</th>
+                                          <th className="py-2.5 px-4 text-center">Diagnosed Level</th>
                                           <th className="py-2.5 px-4">Date</th>
                                           <th className="py-2.5 px-4 text-center">Action</th>
                                         </tr>
@@ -575,6 +579,10 @@ export function DiagnosisExamsDrillDown({
                                           const isSubmitted =
                                             attempt.status === "submitted" ||
                                             attempt.status === "auto_submitted";
+                                          const diagnosedLevel = isSubmitted ? (
+                                            (attempt.resultSnapshotJson && (typeof attempt.resultSnapshotJson === "object" ? (attempt.resultSnapshotJson as any).diagnosedLevel : JSON.parse(attempt.resultSnapshotJson).diagnosedLevel)) ||
+                                            calculateDiagnosedLevel(attempt.classLevel, attempt.paperSnapshotJson, attempt.resultSnapshotJson)
+                                          ) : null;
                                           return (
                                             <tr key={attempt.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20">
                                               <td className="py-3 px-4 font-bold text-text-primary">
@@ -613,6 +621,15 @@ export function DiagnosisExamsDrillDown({
                                                     }`}
                                                   >
                                                     {attempt.scoreObtained} / {attempt.totalMarks} ({attempt.percentage}%)
+                                                  </span>
+                                                ) : (
+                                                  <span className="text-text-tertiary">—</span>
+                                                )}
+                                              </td>
+                                              <td className="py-3 px-4 text-center font-bold text-text-primary">
+                                                {isSubmitted ? (
+                                                  <span className="inline-flex items-center gap-1 bg-violet-50 dark:bg-violet-500/10 text-[#5f2ea8] px-2 py-0.5 rounded-lg text-[11px] font-black">
+                                                    {diagnosedLevel || "N/A"}
                                                   </span>
                                                 ) : (
                                                   <span className="text-text-tertiary">—</span>

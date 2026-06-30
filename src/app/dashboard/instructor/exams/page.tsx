@@ -52,7 +52,7 @@ function formatTime12h(time?: string) {
 }
 
 export default function InstructorExamsPage() {
-  const { defaultCompany } = useAuth();
+  const { defaultCompany, instructorName } = useAuth();
   const { activeBatches, isLoading: batchesLoading } = useInstructorBatches();
   const [search, setSearch] = useState("");
   const [groupFilter, setGroupFilter] = useState<string>("all");
@@ -63,22 +63,20 @@ export default function InstructorExamsPage() {
     [activeBatches],
   );
 
-  // Fetch exams — then filter to only instructor's batches
+  // Fetch exams — then filter to only instructor's batches or examiner match
   const { data: allExams = [], isLoading: examsLoading } = useQuery({
     queryKey: ["instructor-assessment-plans", defaultCompany],
-    queryFn: () =>
-      getAssessmentPlans({ custom_branch: defaultCompany || undefined }),
+    queryFn: () => getAssessmentPlans(),
     staleTime: 30_000,
-    enabled: !!defaultCompany,
   });
 
-  // Filter to instructor's batches
+  // Filter to instructor's batches or examiner match
   const exams = useMemo(
     () =>
-      batchNames.length > 0
-        ? allExams.filter((e) => batchNames.includes(e.student_group))
-        : [],
-    [allExams, batchNames],
+      allExams.filter(
+        (e) => batchNames.includes(e.student_group) || e.examiner === instructorName
+      ),
+    [allExams, batchNames, instructorName],
   );
 
   // Fetch exam groups

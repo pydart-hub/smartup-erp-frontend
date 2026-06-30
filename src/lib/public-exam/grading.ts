@@ -25,6 +25,7 @@ export type GradeResult = {
   correctCount: number;
   wrongCount: number;
   unansweredCount: number;
+  diagnosedLevel?: string;
   aiSummary: {
     headline: string;
     overview: string;
@@ -38,6 +39,7 @@ export type GradeResult = {
   questions: Array<{
     questionId: string;
     questionText: string;
+    classLevel?: string;
     marks: number;
     selectedOption: string | null;
     correctOption: string;
@@ -51,11 +53,63 @@ export type GradeResult = {
   }>;
 };
 
+export function getOrdinalSuffix(val: string): string {
+  const num = parseInt(val, 10);
+  if (isNaN(num)) return val;
+  if (num === 1) return "1st";
+  if (num === 2) return "2nd";
+  if (num === 3) return "3rd";
+  return `${num}th`;
+}
+
+export function calculateDiagnosedLevel(
+  attemptClassLevel: string,
+  paperSnapshotJson: any,
+  resultSnapshotJson: any
+): string | null {
+  if (!resultSnapshotJson) return null;
+
+  try {
+    const paperQuestions: QuestionSnapshot[] = typeof paperSnapshotJson === "string"
+      ? JSON.parse(paperSnapshotJson)
+      : paperSnapshotJson;
+
+    const results: GradeResult = typeof resultSnapshotJson === "string"
+      ? JSON.parse(resultSnapshotJson)
+      : resultSnapshotJson;
+
+    if (!paperQuestions || !results || !results.questions) return null;
+
+    const correctMap = new Map(results.questions.map((q) => [q.questionId, q.isCorrect]));
+
+    // Group questions by class level and determine if all questions in that level are correct
+    const levels = Array.from(new Set(paperQuestions.map((q) => q.classLevel)))
+      .map(lvl => parseInt(lvl, 10))
+      .filter(lvl => !isNaN(lvl))
+      .sort((a, b) => a - b);
+
+    for (const lvl of levels) {
+      const lvlStr = String(lvl);
+      const lvlQuestions = paperQuestions.filter((q) => q.classLevel === lvlStr);
+      const hasFailure = lvlQuestions.some((q) => !correctMap.get(q.id));
+      if (hasFailure) {
+        return getOrdinalSuffix(lvlStr);
+      }
+    }
+
+    return getOrdinalSuffix(attemptClassLevel);
+  } catch (error) {
+    console.error("Error calculating diagnosed level:", error);
+    return null;
+  }
+}
+
 export function gradeAttempt(
   studentName: string,
   subjectName: string,
   questions: QuestionSnapshot[],
-  answers: AnswerRecord[]
+  answers: AnswerRecord[],
+  targetClassLevel?: string
 ): GradeResult {
   const answerMap = new Map(answers.map((a) => [a.questionId, a.selectedOption]));
 
@@ -80,6 +134,7 @@ export function gradeAttempt(
     return {
       questionId: q.id,
       questionText: q.questionText,
+      classLevel: q.classLevel,
       marks: q.marks,
       selectedOption: selected,
       correctOption: q.correctOption,
@@ -136,6 +191,29 @@ export function gradeAttempt(
       ? `Revise incorrect questions with explanations, then attempt a short revision quiz.`
       : `Schedule a 1-to-1 session to review the exam paper and clarify primary concepts.`;
 
+  // Calculate diagnosed level if targetClassLevel is supplied
+  let diagnosedLevel: string | undefined = undefined;
+  if (targetClassLevel) {
+    const correctMap = new Map(gradedQuestions.map((q) => [q.questionId, q.isCorrect]));
+    const levels = Array.from(new Set(questions.map((q) => q.classLevel)))
+      .map(lvl => parseInt(lvl, 10))
+      .filter(lvl => !isNaN(lvl))
+      .sort((a, b) => a - b);
+
+    for (const lvl of levels) {
+      const lvlStr = String(lvl);
+      const lvlQuestions = questions.filter((q) => q.classLevel === lvlStr);
+      const hasFailure = lvlQuestions.some((q) => !correctMap.get(q.id));
+      if (hasFailure) {
+        diagnosedLevel = getOrdinalSuffix(lvlStr);
+        break;
+      }
+    }
+    if (!diagnosedLevel) {
+      diagnosedLevel = getOrdinalSuffix(targetClassLevel);
+    }
+  }
+
   return {
     scoreObtained: score,
     totalMarks,
@@ -143,6 +221,7 @@ export function gradeAttempt(
     correctCount: correct,
     wrongCount: wrong,
     unansweredCount: unanswered,
+    diagnosedLevel,
     aiSummary: {
       headline,
       overview,

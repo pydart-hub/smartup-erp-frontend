@@ -77,7 +77,7 @@ export default function InstructorExamMarkEntryPage() {
   const params = useParams();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { defaultCompany } = useAuth();
+  const { defaultCompany, instructorName } = useAuth();
   const { isBatchAllowed, isLoading: batchesLoading } = useInstructorBatches();
   const examId = decodeURIComponent(params.id as string);
 
@@ -91,7 +91,7 @@ export default function InstructorExamMarkEntryPage() {
   });
 
   // Access check
-  const hasAccess = !batchesLoading && plan ? isBatchAllowed(plan.student_group) : true;
+  const hasAccess = !batchesLoading && plan ? (isBatchAllowed(plan.student_group) || plan.examiner === instructorName) : true;
 
   // Fetch students
   const { data: sgData, isLoading: sgLoading } = useQuery({

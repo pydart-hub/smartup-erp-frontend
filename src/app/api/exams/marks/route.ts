@@ -92,10 +92,10 @@ export async function POST(request: NextRequest) {
 
       try {
         if (existing) {
-          // If submitted, amend (cancel then re-create)
+          // If submitted, amend (cancel then delete)
           if (existing.docstatus === 1) {
             // Cancel existing
-            await fetch(
+            const cancelRes = await fetch(
               `${FRAPPE_URL}/api/resource/Assessment%20Result/${encodeURIComponent(existing.name)}`,
               {
                 method: "PUT",
@@ -104,8 +104,12 @@ export async function POST(request: NextRequest) {
                 cache: "no-store",
               },
             );
-          } else {
-            // Delete draft
+            if (!cancelRes.ok) {
+              const errText = await cancelRes.text();
+              errors.push(`${mark.student} (cancel): ${errText.slice(0, 200)}`);
+              continue;
+            }
+            // Delete the cancelled document to avoid naming conflicts or database clutter
             await fetch(
               `${FRAPPE_URL}/api/resource/Assessment%20Result/${encodeURIComponent(existing.name)}`,
               {
@@ -114,6 +118,21 @@ export async function POST(request: NextRequest) {
                 cache: "no-store",
               },
             );
+          } else {
+            // Delete draft
+            const deleteRes = await fetch(
+              `${FRAPPE_URL}/api/resource/Assessment%20Result/${encodeURIComponent(existing.name)}`,
+              {
+                method: "DELETE",
+                headers: { Authorization: auth },
+                cache: "no-store",
+              },
+            );
+            if (!deleteRes.ok) {
+              const errText = await deleteRes.text();
+              errors.push(`${mark.student} (delete): ${errText.slice(0, 200)}`);
+              continue;
+            }
           }
         }
 
@@ -158,7 +177,7 @@ export async function POST(request: NextRequest) {
         const createdResult = (await createRes.json()).data;
 
         // Submit the result
-        await fetch(
+        const submitRes = await fetch(
           `${FRAPPE_URL}/api/resource/Assessment%20Result/${encodeURIComponent(createdResult.name)}`,
           {
             method: "PUT",
@@ -167,6 +186,21 @@ export async function POST(request: NextRequest) {
             cache: "no-store",
           },
         );
+
+        if (!submitRes.ok) {
+          const errText = await submitRes.text();
+          errors.push(`${mark.student} (submit): ${errText.slice(0, 200)}`);
+          // Clean up the draft result that failed to submit
+          await fetch(
+            `${FRAPPE_URL}/api/resource/Assessment%20Result/${encodeURIComponent(createdResult.name)}`,
+            {
+              method: "DELETE",
+              headers: { Authorization: auth },
+              cache: "no-store",
+            },
+          );
+          continue;
+        }
 
         created++;
       } catch (e: unknown) {

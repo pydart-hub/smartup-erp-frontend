@@ -17,7 +17,7 @@ import {
   TrendingUp,
   XCircle,
 } from "lucide-react";
-import type { GradeResult, QuestionSnapshot } from "@/lib/public-exam/grading";
+import { GradeResult, QuestionSnapshot, calculateDiagnosedLevel } from "@/lib/public-exam/grading";
 import { PrintButton } from "@/components/public-exam/PrintButton";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { NextExamButton } from "@/components/public-exam/NextExamButton";
@@ -261,6 +261,8 @@ export default async function ResultPage({ params }: PageProps) {
     return <div className="min-h-screen bg-app-bg flex items-center justify-center text-text-secondary">Results processing error. Please contact your coordinator.</div>;
   }
 
+  const diagnosedLevel = results.diagnosedLevel || calculateDiagnosedLevel(attempt.classLevel, attempt.paperSnapshotJson, attempt.resultSnapshotJson);
+
   const insight = buildInsight({
     studentName: attempt.studentName,
     subjectName: attempt.publishing.title,
@@ -315,8 +317,11 @@ export default async function ResultPage({ params }: PageProps) {
                 <p className="mt-4 max-w-2xl text-sm leading-7 text-text-secondary">{insight.overview}</p>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-4 xl:grid-cols-2">
+              <div className="grid gap-3 grid-cols-2 sm:grid-cols-5 xl:grid-cols-2">
                 <MetricCard icon={<Sparkles className="h-4 w-4 text-primary" />} label="Score" value={`${results.percentage}%`} helper={`${results.scoreObtained} / ${results.totalMarks} marks`} />
+                {diagnosedLevel && (
+                  <MetricCard icon={<Brain className="h-4 w-4 text-[#5f2ea8]" />} label="Student Level" value={diagnosedLevel} helper="Diagnosed capability level" />
+                )}
                 <MetricCard icon={<Target className="h-4 w-4 text-warning" />} label="Priority" value={shortenText(insight.priorityTopic ?? "General revision", 26)} helper="Primary revision area" />
                 <MetricCard icon={<CheckCircle2 className="h-4 w-4 text-success" />} label="Correct" value={String(attempt.correctCount)} helper="Strong answers" />
                 <MetricCard icon={<XCircle className="h-4 w-4 text-error" />} label="Incorrect" value={String(attempt.wrongCount)} helper="Needs review" />

@@ -26,7 +26,7 @@ const item = {
 
 export default function InstructorCreateExamPage() {
   const router = useRouter();
-  const { defaultCompany } = useAuth();
+  const { defaultCompany, instructorName } = useAuth();
   const { activeBatches, isLoading: batchesLoading } = useInstructorBatches();
 
   const [studentGroup, setStudentGroup] = useState("");
@@ -104,6 +104,7 @@ export default function InstructorCreateExamPage() {
       to_time: toTime,
       maximum_assessment_score: Number(maxScore),
       custom_topic: topic || undefined,
+      examiner: instructorName || undefined,
     });
   }
 

@@ -2,7 +2,7 @@ import React from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/public-exam/db";
-import { GradeResult } from "@/lib/public-exam/grading";
+import { GradeResult, calculateDiagnosedLevel } from "@/lib/public-exam/grading";
 import { DatabaseErrorCard } from "@/components/diagnosis-exams/DatabaseErrorCard";
 import {
   ArrowLeft,
@@ -57,6 +57,8 @@ export default async function GMStudentResultDetailPage({ params }: PageProps) {
 
     const { aiSummary } = results;
 
+    const diagnosedLevel = results.diagnosedLevel || calculateDiagnosedLevel(attempt.classLevel, attempt.paperSnapshotJson, attempt.resultSnapshotJson);
+
     return (
       <div className="p-4 lg:p-6 max-w-4xl mx-auto space-y-6 text-slate-800">
         {/* Back navigation */}
@@ -81,6 +83,12 @@ export default async function GMStudentResultDetailPage({ params }: PageProps) {
                 <GraduationCap className="w-4 h-4 text-slate-400" />
                 <span>Class Level: {attempt.classLevel}</span>
               </span>
+              {diagnosedLevel && (
+                <span className="flex items-center gap-1 bg-[#5f2ea8]/10 text-[#5f2ea8] px-2 py-0.5 rounded-md font-extrabold border border-[#5f2ea8]/10">
+                  <Brain className="w-3.5 h-3.5 text-[#5f2ea8]" />
+                  <span>Diagnosed Student Level: {diagnosedLevel}</span>
+                </span>
+              )}
               {attempt.studentBranch && (
                 <span className="flex items-center gap-1">
                   <Building2 className="w-4 h-4 text-slate-400" />

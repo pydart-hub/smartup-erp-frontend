@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/public-exam/db";
 
 export async function GET(request: NextRequest) {
@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       attempts: attempts.map((attempt) => ({
         id: attempt.id,
+        publishingId: attempt.publishingId,
         studentName: attempt.studentName,
         studentBranch: attempt.studentBranch,
         classLevel: attempt.classLevel,

@@ -64,7 +64,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       attempt.studentName,
       attempt.publishing.title ?? "Diagnosis Exam",
       paperQuestions,
-      studentAnswers
+      studentAnswers,
+      attempt.classLevel
     );
 
     // Save final stats and results JSON in database
