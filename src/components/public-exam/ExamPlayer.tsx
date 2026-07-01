@@ -59,6 +59,8 @@ export default function ExamPlayer({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const flushTimerRef = useRef<NodeJS.Timeout | null>(null);
   const flushPromiseRef = useRef<Promise<boolean> | null>(null);
+  const flushPendingAnswersRef = useRef<(options?: { keepalive?: boolean }) => Promise<boolean>>(async () => true);
+  const autoSubmitRef = useRef<() => Promise<void>>(async () => {});
   const pendingAnswersRef = useRef<Record<string, string>>({});
 
   const flushPendingAnswers = async (options: { keepalive?: boolean } = {}) => {

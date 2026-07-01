@@ -14,6 +14,20 @@ type AttemptLifecycleRecord = {
   };
 };
 
+async function findAttemptWithPublishing(attemptId: string) {
+  return db.examAttempt.findUnique({
+    where: { id: attemptId },
+    include: {
+      publishing: {
+        select: {
+          title: true,
+          durationMinutes: true,
+        },
+      },
+    },
+  });
+}
+
 export function parsePaperSnapshot(paperSnapshotJson: unknown): QuestionSnapshot[] {
   return typeof paperSnapshotJson === "string"
     ? JSON.parse(paperSnapshotJson)
@@ -52,7 +66,7 @@ async function finalizeAttempt(
     attempt.classLevel
   );
 
-  return db.examAttempt.update({
+  await db.examAttempt.update({
     where: { id: attempt.id },
     data: {
       status,
@@ -65,20 +79,12 @@ async function finalizeAttempt(
       resultSnapshotJson: JSON.stringify(graded),
     },
   });
+
+  return findAttemptWithPublishing(attempt.id);
 }
 
 export async function finalizeExpiredAttemptIfNeeded(attemptId: string, now = new Date()) {
-  const attempt = await db.examAttempt.findUnique({
-    where: { id: attemptId },
-    include: {
-      publishing: {
-        select: {
-          title: true,
-          durationMinutes: true,
-        },
-      },
-    },
-  });
+  const attempt = await findAttemptWithPublishing(attemptId);
 
   if (!attempt) {
     return { attempt: null, finalized: false, expired: false };
@@ -95,17 +101,7 @@ export async function finalizeExpiredAttemptIfNeeded(attemptId: string, now = ne
 }
 
 export async function submitAttempt(attemptId: string, autoSubmitted: boolean, now = new Date()) {
-  const attempt = await db.examAttempt.findUnique({
-    where: { id: attemptId },
-    include: {
-      publishing: {
-        select: {
-          title: true,
-          durationMinutes: true,
-        },
-      },
-    },
-  });
+  const attempt = await findAttemptWithPublishing(attemptId);
 
   if (!attempt) {
     return null;
