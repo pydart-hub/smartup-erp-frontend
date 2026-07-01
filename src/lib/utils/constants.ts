@@ -186,7 +186,16 @@ export const DIRECTOR_NAV: NavItem[] = [
     ],
   },
   { label: "Exams", href: "/dashboard/director/exams", icon: "ClipboardList", emoji: "📝" },
-  { label: "Diagnosis Exam", href: "/dashboard/director/diagnosis-exams", icon: "Microscope", emoji: "🔬" },
+  {
+    label: "Diagnosis Exam",
+    href: "/dashboard/director/diagnosis-exams",
+    icon: "Microscope",
+    emoji: "🔬",
+    children: [
+      { label: "Overview", href: "/dashboard/director/diagnosis-exams", icon: "LayoutDashboard", emoji: "📊" },
+      { label: "Report", href: "/dashboard/director/diagnosis-exams/report", icon: "FileSpreadsheet", emoji: "📄" },
+    ],
+  },
   {
     label: "Academics",
     href: "/dashboard/director/academics",
@@ -287,7 +296,16 @@ export const GENERAL_MANAGER_NAV: NavItem[] = [
       { label: "Publish Level Exam", href: "/dashboard/general-manager/level-exams/assign", icon: "UserPlus", emoji: "📤" },
     ],
   },
-  { label: "Diagnosis Exam", href: "/dashboard/general-manager/diagnosis-exams", icon: "Microscope", emoji: "🔬" },
+  {
+    label: "Diagnosis Exam",
+    href: "/dashboard/general-manager/diagnosis-exams",
+    icon: "Microscope",
+    emoji: "🔬",
+    children: [
+      { label: "Overview", href: "/dashboard/general-manager/diagnosis-exams", icon: "LayoutDashboard", emoji: "📊" },
+      { label: "Report", href: "/dashboard/general-manager/diagnosis-exams/report", icon: "FileSpreadsheet", emoji: "📄" },
+    ],
+  },
   { label: "Course Schedule", href: "/dashboard/general-manager/course-schedule", icon: "CalendarDays", emoji: "📅" },
   { label: "Instructors", href: "/dashboard/general-manager/instructors", icon: "UserCheck", emoji: "👨‍🏫" },
   { label: "Topic Coverage", href: "/dashboard/general-manager/topic-coverage", icon: "BookOpen", emoji: "📖" },
