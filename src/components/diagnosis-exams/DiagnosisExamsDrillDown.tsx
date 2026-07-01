@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Building2,
   GraduationCap,
@@ -19,6 +20,7 @@ import {
   Clock,
   ExternalLink,
   BookOpenCheck,
+  Trash2,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -48,6 +50,10 @@ export interface AttemptWithPublishing {
       name: string;
     };
   };
+  answers?: Array<{
+    questionId: string;
+    selectedOption: string;
+  }>;
 }
 
 interface DiagnosisExamsDrillDownProps {
@@ -61,6 +67,43 @@ export function DiagnosisExamsDrillDown({
   detailUrlPrefix,
   title,
 }: DiagnosisExamsDrillDownProps) {
+  const router = useRouter();
+  const [localAttempts, setLocalAttempts] = useState<AttemptWithPublishing[]>(attempts);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    setLocalAttempts(attempts);
+  }, [attempts]);
+
+  const handleDeleteAttempt = async (attemptId: string) => {
+    if (!window.confirm("Are you sure you want to delete this in-progress exam attempt? This action cannot be undone.")) {
+      return;
+    }
+
+    setIsDeleting(attemptId);
+    try {
+      const res = await fetch(`/api/public-exam/attempt/${attemptId}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to delete attempt");
+      }
+
+      // Update local state immediately
+      setLocalAttempts((prev) => prev.filter((a) => a.id !== attemptId));
+
+      // Refresh server components
+      router.refresh();
+    } catch (err) {
+      console.error("Error deleting attempt:", err);
+      alert(err instanceof Error ? err.message : "Failed to delete the attempt.");
+    } finally {
+      setIsDeleting(null);
+    }
+  };
+
   const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [expandedStudentKeys, setExpandedStudentKeys] = useState<Record<string, boolean>>({});
@@ -83,8 +126,8 @@ export function DiagnosisExamsDrillDown({
   };
 
   // 1. Calculate General statistics
-  const totalAttemptsCount = attempts.length;
-  const completedAttempts = attempts.filter(
+  const totalAttemptsCount = localAttempts.length;
+  const completedAttempts = localAttempts.filter(
     (a) => a.status === "submitted" || a.status === "auto_submitted"
   );
   const completedCount = completedAttempts.length;
@@ -103,7 +146,7 @@ export function DiagnosisExamsDrillDown({
       : 0;
 
   // 2. Filter attempts based on current drill-down selection
-  const filteredAttempts = attempts.filter((attempt) => {
+  const filteredAttempts = localAttempts.filter((attempt) => {
     const branchMatch = !selectedBranch || attempt.studentBranch === selectedBranch;
     const classMatch = !selectedClass || attempt.classLevel === selectedClass;
     return branchMatch && classMatch;
@@ -158,7 +201,7 @@ export function DiagnosisExamsDrillDown({
   // Level 1: Branch summaries
   const getBranchSummaries = () => {
     const branchMap = new Map<string, AttemptWithPublishing[]>();
-    attempts.forEach((a) => {
+    localAttempts.forEach((a) => {
       const branchKey = a.studentBranch || "Unknown Branch";
       const list = branchMap.get(branchKey) || [];
       list.push(a);
@@ -192,7 +235,7 @@ export function DiagnosisExamsDrillDown({
   // Level 2: Class summaries for a selected branch
   const getClassSummaries = (branch: string) => {
     const classMap = new Map<string, AttemptWithPublishing[]>();
-    attempts
+    localAttempts
       .filter((a) => (a.studentBranch || "Unknown Branch") === branch)
       .forEach((a) => {
         const classKey = a.classLevel;
@@ -583,10 +626,35 @@ export function DiagnosisExamsDrillDown({
                                             (attempt.resultSnapshotJson && (typeof attempt.resultSnapshotJson === "object" ? (attempt.resultSnapshotJson as any).diagnosedLevel : JSON.parse(attempt.resultSnapshotJson).diagnosedLevel)) ||
                                             calculateDiagnosedLevel(attempt.classLevel, attempt.paperSnapshotJson, attempt.resultSnapshotJson)
                                           ) : null;
+
+                                          let inProgressScore = 0;
+                                          let inProgressPercentage = 0;
+                                          if (!isSubmitted) {
+                                            try {
+                                              const questions: any[] = typeof attempt.paperSnapshotJson === "string"
+                                                ? JSON.parse(attempt.paperSnapshotJson)
+                                                : attempt.paperSnapshotJson;
+                                              const answers = attempt.answers || [];
+                                              const answerMap = new Map(answers.map((a: any) => [a.questionId, a.selectedOption]));
+
+                                              questions.forEach((q: any) => {
+                                                const ans = answerMap.get(q.id);
+                                                if (ans && ans === q.correctOption) {
+                                                  inProgressScore += q.marks || 1;
+                                                }
+                                              });
+                                              inProgressPercentage = attempt.totalMarks > 0
+                                                ? Math.round((inProgressScore / attempt.totalMarks) * 100)
+                                                : 0;
+                                            } catch (e) {
+                                              console.error("Error calculating live score:", e);
+                                            }
+                                          }
+
                                           return (
                                             <tr key={attempt.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20">
                                               <td className="py-3 px-4 font-bold text-text-primary">
-                                                {attempt.publishing.title}
+                                                {attempt.publishing.subject.name}
                                               </td>
                                               <td className="py-3 px-4 text-center">
                                                 <span
@@ -623,7 +691,12 @@ export function DiagnosisExamsDrillDown({
                                                     {attempt.scoreObtained} / {attempt.totalMarks} ({attempt.percentage}%)
                                                   </span>
                                                 ) : (
-                                                  <span className="text-text-tertiary">—</span>
+                                                  <span
+                                                    className="rounded-lg px-2 py-0.5 text-[11px] bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400"
+                                                    title="Live score of in-progress exam"
+                                                  >
+                                                    {inProgressScore} / {attempt.totalMarks} ({inProgressPercentage}%)
+                                                  </span>
                                                 )}
                                               </td>
                                               <td className="py-3 px-4 text-center font-bold text-text-primary">
@@ -648,7 +721,14 @@ export function DiagnosisExamsDrillDown({
                                                     <span>View Report</span>
                                                   </Link>
                                                 ) : (
-                                                  <span className="text-text-tertiary">—</span>
+                                                  <button
+                                                    onClick={() => handleDeleteAttempt(attempt.id)}
+                                                    disabled={isDeleting === attempt.id}
+                                                    className="inline-flex items-center gap-1 font-bold text-rose-600 hover:text-rose-800 disabled:opacity-50 hover:underline cursor-pointer"
+                                                  >
+                                                    <Trash2 className="w-3 h-3" />
+                                                    <span>{isDeleting === attempt.id ? "Deleting..." : "Delete"}</span>
+                                                  </button>
                                                 )}
                                               </td>
                                             </tr>

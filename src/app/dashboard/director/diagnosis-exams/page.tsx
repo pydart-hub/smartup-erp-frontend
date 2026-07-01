@@ -15,6 +15,12 @@ export default async function DirectorDiagnosisExamsPage() {
             subject: true,
           },
         },
+        answers: {
+          select: {
+            questionId: true,
+            selectedOption: true,
+          },
+        },
       },
       orderBy: { startedAt: "desc" },
     });
