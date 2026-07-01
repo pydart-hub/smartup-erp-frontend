@@ -36,6 +36,24 @@ const STATUS_COLORS: Record<SalesOrderStatus, "default" | "success" | "warning" 
   Closed: "default",
 };
 
+function formatDateInputLocal(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function getAllowedPaymentDateRange() {
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+
+  return {
+    today: formatDateInputLocal(today),
+    yesterday: formatDateInputLocal(yesterday),
+  };
+}
+
 function InfoRow({ label, value }: { label: string; value?: string | null }) {
   return (
     <div className="flex justify-between items-start py-2 border-b border-border-light last:border-0">
@@ -50,13 +68,14 @@ export default function SalesOrderDetailPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const decodedId = decodeURIComponent(id);
+  const { today: todayDate, yesterday: yesterdayDate } = getAllowedPaymentDateRange();
 
   // ── Payment modal state ─────────────────────────────────────
   const [paymentInvoice, setPaymentInvoice] = useState<SalesInvoice | null>(null);
   const [payTab, setPayTab] = useState<"online" | "cash">("online");
   const [payAmount, setPayAmount] = useState("");
   const [payMode, setPayMode] = useState("Cash");
-  const [payDate, setPayDate] = useState(new Date().toISOString().split("T")[0]);
+  const [payDate, setPayDate] = useState(todayDate);
   const [payRef, setPayRef] = useState("");
 
   function openPaymentModal(inv: SalesInvoice) {
@@ -64,7 +83,7 @@ export default function SalesOrderDetailPage() {
     setPayTab("online");
     setPayAmount(String(inv.outstanding_amount));
     setPayMode("Cash");
-    setPayDate(new Date().toISOString().split("T")[0]);
+    setPayDate(todayDate);
     setPayRef("");
   }
 
@@ -821,9 +840,13 @@ export default function SalesOrderDetailPage() {
                   label="Payment Date"
                   type="date"
                   value={payDate}
-                  readOnly
-                  className="cursor-not-allowed opacity-70"
+                  onChange={(e) => setPayDate(e.target.value)}
+                  min={yesterdayDate}
+                  max={todayDate}
                 />
+                <p className="text-xs text-text-tertiary">
+                  Only today and yesterday are allowed.
+                </p>
 
                 <div className="flex gap-3 mt-2">
                   <Button variant="outline" size="md" onClick={closePaymentModal} className="flex-1">

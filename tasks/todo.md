@@ -2,11 +2,17 @@
 
 ## Current: PDF and Excel Report Downloads (2026-07-01)
 
-- [/] Plan and analyze PDF and Excel export libraries
-- [ ] Implement Excel generation and cell styling in `DiagnosisExamsReport.tsx`
-- [ ] Implement PDF generation and auto-table styling in `DiagnosisExamsReport.tsx`
-- [ ] Replace CSV button with a dropdown selecting Excel/PDF
-- [ ] Verify build correctness and deploy to production
+- [x] Plan and analyze PDF and Excel export libraries
+- [x] Implement Excel generation and cell styling in `DiagnosisExamsReport.tsx`
+- [x] Implement PDF generation and auto-table styling in `DiagnosisExamsReport.tsx`
+- [x] Replace CSV button with a dropdown selecting Excel/PDF
+- [x] Verify build correctness and deploy to production
+
+### Review
+- Replaced the single CSV download button with a dropdown menu displaying "Excel Document (.xlsx)" and "PDF Document (.pdf)".
+- Implemented `handleDownloadExcel` utilizing `exceljs` to generate class-level sheet data with lavender header backgrounds and auto-fit column dimensions.
+- Implemented `handleDownloadPDF` utilizing `jspdf` and `jspdf-autotable` to generate a styled landscape PDF report with brand violet headers (`#5f2ea8`) and italicized red text matching the UI styling for "Not Attended" entries.
+- Verified TypeScript checks and deployed directly to production server (`smartup-erp`).
 
 ## Current: Diagnosis Exam Report Enhancements (2026-07-01)
 

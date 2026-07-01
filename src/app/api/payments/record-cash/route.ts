@@ -23,6 +23,28 @@ const FRAPPE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL;
 const API_KEY = process.env.FRAPPE_API_KEY;
 const API_SECRET = process.env.FRAPPE_API_SECRET;
 
+function formatDateInIndia(date: Date) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+function isAllowedPostingDate(postingDate: string) {
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+
+  const allowedDates = new Set([
+    formatDateInIndia(today),
+    formatDateInIndia(yesterday),
+  ]);
+
+  return allowedDates.has(postingDate);
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Auth: require staff role (BM / Admin / Director)
@@ -48,6 +70,13 @@ export async function POST(request: NextRequest) {
 
     if (amount <= 0) {
       return NextResponse.json({ error: "Amount must be positive" }, { status: 400 });
+    }
+
+    if (!isAllowedPostingDate(posting_date)) {
+      return NextResponse.json(
+        { error: "Payment date must be either today or yesterday" },
+        { status: 400 },
+      );
     }
 
     const headers = {

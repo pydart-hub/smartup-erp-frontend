@@ -1,4 +1,4 @@
-"use client";
+ï»¿"use client";
 
 import React, { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
@@ -327,7 +327,7 @@ export default function ExamSiteLandingPage() {
                       <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#673ab7] dark:text-[#9575cd]">Registered Student</div>
                       <div className="mt-1 text-base font-bold text-slate-950 dark:text-white">{studentName}</div>
                       <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                        Class {classLevel} · {studentBranch} · {studentPhone}
+                        Class {classLevel} - {studentBranch} - {studentPhone}
                       </p>
                     </div>
                     <button
@@ -390,7 +390,7 @@ export default function ExamSiteLandingPage() {
                             <div>
                               <div className="text-sm font-semibold text-slate-950 dark:text-white">{item.examTitle}</div>
                               <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                                {item.studentName} · Class {item.classLevel} · {item.studentBranch || "Branch not set"}
+                                {item.studentName} - Class {item.classLevel} - {item.studentBranch || "Branch not set"}
                               </div>
                               <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{formatHistoryDate(item.createdAt)}</div>
                             </div>
@@ -453,7 +453,7 @@ export default function ExamSiteLandingPage() {
                       <div className="text-xs font-bold uppercase text-[#673ab7] tracking-wider dark:text-[#9575cd]">Up Next</div>
                       <div className="mt-2 text-base font-bold text-slate-950 dark:text-white">{nextUnattemptedExam.subjectName}</div>
                       <div className="mt-1 text-xs leading-6 text-slate-500 dark:text-slate-400">
-                        {nextUnattemptedExam.totalQuestions} questions · {nextUnattemptedExam.totalMarks} marks · {nextUnattemptedExam.durationMinutes} mins
+                        {nextUnattemptedExam.totalQuestions} questions - {nextUnattemptedExam.totalMarks} marks - {nextUnattemptedExam.durationMinutes} mins
                       </div>
                       <p className="mt-2 text-[11px] text-slate-400">
                         This exam will run under a {nextUnattemptedExam.durationMinutes}-minute timer.
@@ -545,3 +545,4 @@ function InputField({ icon, children }: { icon: React.ReactNode; children: React
     </div>
   );
 }
+
