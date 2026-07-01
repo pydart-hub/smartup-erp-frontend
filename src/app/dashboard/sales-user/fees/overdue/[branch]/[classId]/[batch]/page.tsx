@@ -101,8 +101,8 @@ export default function SalesOverdueStudentPage() {
   }
 
   const { data: students, isLoading, isError } = useQuery({
-    queryKey: ["sales-dues-students", branch, batch, asOf],
-    queryFn: () => getDuesTodayByStudent(branch, batch, asOf),
+    queryKey: ["sales-dues-students", branch, batch, asOf, classId],
+    queryFn: () => getDuesTodayByStudent(branch, batch, asOf, classId),
     staleTime: 30_000,
     refetchInterval: 60_000,
     enabled: hasAccess,

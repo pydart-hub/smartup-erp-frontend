@@ -1,5 +1,36 @@
 # SmartUp ERP — Task Tracker
 
+## Current: Diagnosis Exam Report Enhancements (2026-07-01)
+
+- [x] Plan and analyze branch filtering and level score extraction
+- [x] Modify `diagnostics.ts` helper to extract correct/total questions count per level
+- [x] Implement branch filter dropdown, unattempted state, and scores under badge in `DiagnosisExamsReport.tsx`
+- [x] Verify build correctness via typescript compilation
+
+### Review
+- Modified `diagnostics.ts` (`getAttemptLevelBreakdown`) to extract the `correctCount` and `totalCount` of the diagnosed level (the first failed level or the highest assessed level) and return them as `diagnosedCorrect` and `diagnosedTotal`.
+- Added a Branch Filter dropdown in `DiagnosisExamsReport.tsx` allowing users to filter diagnostic details dynamically by branch.
+- Filtered the CSV export output to match the current filtered view (branch & search parameters).
+- Rendered "Not Attended" in styled, italicized red text when a student hasn't taken a subject's diagnosis exam (instead of showing a silent dash `—`).
+- Displayed the score obtained in the diagnosed level questions (e.g. `3/5 marks`) directly underneath each diagnosed level badge.
+- Verified compilation and production build correctness.
+
+## Current: Restrict Overdue Batch Mapping to Current Class (2026-07-01)
+
+- [x] Plan and analyze the mapping between clicked class and Student Group programs
+- [x] Modify dues-till-today API route to filter student groups and support "Unassigned" batch query
+- [x] Modify `getDuesTodayByStudent` client API helper and pages to pass class/item code
+- [x] Verify TypeScript compiler diagnostics and build success
+
+### Review
+- Analyzed the backend database structure and identified that students transferred from 10th State to 10th CBSE still had outstanding 10th State Tuition Fee invoices, but were only enrolled in the `Edappally-10th CBSE-A` student group.
+- Restructured `dues-till-today/route.ts` so that in `level === "batch"`, student groups are filtered by `program` matching the queried `item_code`'s program. This avoids mapping State fee dues to CBSE batches.
+- Kept the `"Unassigned"` grouping in the response mapping as `"Unassigned Batch"` when students have dues but do not belong to any student group of that program.
+- Enhanced the `level === "student"` endpoint to support `"Unassigned"` batch query and to filter invoices by `item_code` when queried, returning only class-specific dues.
+- Updated `getDuesTodayByStudent` client API query helper to accept and pass the class/item code.
+- Updated both Director and Sales User batch details pages to pass the queried `classId` parameter down.
+- Verified compilation and build success cleanly via `npx tsc --noEmit` and `npx next build`.
+
 ## Current: Sales User Branch Restrictions (2026-06-22)
 
 - [x] Add `SALES_USER_BRANCH_MAP` and helper to `src/lib/utils/constants.ts`

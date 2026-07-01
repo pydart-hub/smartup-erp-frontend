@@ -1583,9 +1583,10 @@ export async function getDuesTodayByBatch(branch: string, itemCode: string, asOf
 }
 
 /** Get student-wise dues for a specific batch */
-export async function getDuesTodayByStudent(branch: string, batch: string, asOf?: string): Promise<DuesTodayStudentRow[]> {
+export async function getDuesTodayByStudent(branch: string, batch: string, asOf?: string, itemCode?: string): Promise<DuesTodayStudentRow[]> {
   const params = new URLSearchParams({ level: "student", branch, batch });
   if (asOf) params.set("as_of", asOf);
+  if (itemCode) params.set("item_code", itemCode);
   const res = await fetch(`/api/fees/dues-till-today?${params}`, { credentials: "include" });
   if (!res.ok) throw new Error(`dues-till-today failed: ${res.status}`);
   const json = await res.json();

@@ -102,18 +102,36 @@ export function getAttemptLevelBreakdown(attempt: AttemptWithPublishing) {
 
     // Mark the diagnosed level in the breakdown
     let diagnosedLevelStr: string | null = null;
+    let diagnosedCorrect: number | null = null;
+    let diagnosedTotal: number | null = null;
     if (firstFailedLvlStr !== null) {
       diagnosedLevelStr = getOrdinalSuffix(firstFailedLvlStr);
       breakdown.forEach((item) => {
         if (item.level === firstFailedLvlStr) {
           item.isDiagnosedLevel = true;
+          diagnosedCorrect = item.correctCount;
+          diagnosedTotal = item.totalCount;
         }
       });
     } else {
       diagnosedLevelStr = getOrdinalSuffix(attempt.classLevel);
+      breakdown.forEach((item) => {
+        if (item.level === attempt.classLevel) {
+          item.isDiagnosedLevel = true;
+          diagnosedCorrect = item.correctCount;
+          diagnosedTotal = item.totalCount;
+        }
+      });
+      // Fallback if no matching level was in breakdown
+      if (diagnosedCorrect === null && breakdown.length > 0) {
+        const lastLvl = breakdown[breakdown.length - 1];
+        lastLvl.isDiagnosedLevel = true;
+        diagnosedCorrect = lastLvl.correctCount;
+        diagnosedTotal = lastLvl.totalCount;
+      }
     }
 
-    return { breakdown, diagnosedLevel: diagnosedLevelStr };
+    return { breakdown, diagnosedLevel: diagnosedLevelStr, diagnosedCorrect, diagnosedTotal };
   } catch (e) {
     console.error("Error generating level breakdown:", e);
     return { breakdown: [], diagnosedLevel: null };

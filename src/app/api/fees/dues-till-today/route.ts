@@ -144,6 +144,14 @@ export async function getBranchStudentsOverdueData(branch: string, todayDate: st
     })
   );
 
+  const studentClassMap = new Map<string, string>(); // studentId → class_name (first match)
+  for (const inv of invoices) {
+    if (inv.student && !studentClassMap.has(inv.student)) {
+      const cls = invoiceClassMap.get(inv.name);
+      if (cls) studentClassMap.set(inv.student, cls);
+    }
+  }
+
   // Step 2: Fetch student names in chunks of 50 (avoids URL-too-long for large branches)
   const nameMap = new Map<string, string>();
   const joiningDateMap = new Map<string, string>();
@@ -194,10 +202,10 @@ export async function getBranchStudentsOverdueData(branch: string, todayDate: st
   try {
     const sgListRes = await frappeGet("resource/Student Group", {
       filters: JSON.stringify([["disabled", "=", 0], ["custom_branch", "=", branch]]),
-      fields: JSON.stringify(["name", "student_group_name"]),
+      fields: JSON.stringify(["name", "student_group_name", "program"]),
       limit_page_length: "500",
     });
-    const sgList: { name: string; student_group_name: string }[] = sgListRes.data ?? [];
+    const sgList: { name: string; student_group_name: string; program?: string }[] = sgListRes.data ?? [];
     const studentIdSet = new Set(studentIds);
     await Promise.all(
       sgList.map(async (sg) => {
@@ -205,8 +213,14 @@ export async function getBranchStudentsOverdueData(branch: string, todayDate: st
           const sgDoc = await frappeGet(`resource/Student Group/${encodeURIComponent(sg.name)}`, {});
           const sgStudents: { student: string }[] = sgDoc?.data?.students ?? [];
           for (const s of sgStudents) {
-            if (studentIdSet.has(s.student) && !studentBatchMap.has(s.student)) {
-              studentBatchMap.set(s.student, sg.student_group_name || sg.name);
+            if (studentIdSet.has(s.student)) {
+              const cls = studentClassMap.get(s.student);
+              const prog = cls ? cls.replace(" Tuition Fee", "") : "";
+              if (sg.program === prog) {
+                studentBatchMap.set(s.student, sg.student_group_name || sg.name);
+              } else if (!studentBatchMap.has(s.student)) {
+                studentBatchMap.set(s.student, sg.student_group_name || sg.name);
+              }
             }
           }
         } catch { /* skip */ }
@@ -234,7 +248,6 @@ export async function getBranchStudentsOverdueData(branch: string, todayDate: st
   }
 
   // Step 4: Aggregate per student
-  const studentClassMap = new Map<string, string>(); // studentId → class_name (first match)
   const studentMap = new Map<string, {
     total_dues: number;
     overdue_invoices: { name: string; amount: number; grand_total: number; paid: number; due_date: string; instalment_label: string }[];
@@ -503,8 +516,6 @@ export async function GET(request: NextRequest) {
       const discCustomers = await getDiscontinuedCustomers(branch);
 
       // Step 1: Get overdue invoices for this branch + item_code.
-      // Use the same proven frappePost pattern as the class level (4-element filters
-      // with child-table join work when the parent doctype is Sales Invoice).
       const invFilters: (string | number | string[])[][] = [
         ["Sales Invoice", "docstatus", "=", 1],
         ["Sales Invoice", "outstanding_amount", ">", 0],
@@ -544,14 +555,15 @@ export async function GET(request: NextRequest) {
       const studentIds = Array.from(studentDues.keys());
 
       // Step 2: Find Student Groups for this branch, then build student→SG mapping.
-      // Cannot query `Student Group Student` child table directly (PermissionError).
-      // Instead, fetch all Student Groups for this branch and read their students arrays.
       const sgListRes = await frappeGet("resource/Student Group", {
         filters: JSON.stringify([["disabled", "=", 0], ["custom_branch", "=", branch]]),
-        fields: JSON.stringify(["name", "student_group_name"]),
+        fields: JSON.stringify(["name", "student_group_name", "program"]),
         limit_page_length: "500",
       });
-      const sgList: { name: string; student_group_name: string }[] = sgListRes.data ?? [];
+      const sgList: { name: string; student_group_name: string; program?: string }[] = sgListRes.data ?? [];
+
+      const targetProgram = itemCode.replace(" Tuition Fee", "");
+      const filteredSgList = sgList.filter((sg) => sg.program === targetProgram);
 
       // For each SG, fetch the full document to get its students child array
       const studentToSG = new Map<string, string>();
@@ -561,7 +573,7 @@ export async function GET(request: NextRequest) {
       // Only fetch SG details if we have student IDs to match
       const studentIdSet = new Set(studentIds);
       await Promise.all(
-        sgList.map(async (sg) => {
+        filteredSgList.map(async (sg) => {
           try {
             const sgDoc = await frappeGet(
               `resource/Student Group/${encodeURIComponent(sg.name)}`,
@@ -597,10 +609,9 @@ export async function GET(request: NextRequest) {
       }
 
       const rows = Array.from(sgDues.entries())
-        .filter(([sgId]) => sgId !== "Unassigned")
         .map(([sgId, { total_dues, students }]) => ({
           batch_id: sgId,
-          batch_name: sgDisplayNames.get(sgId) ?? sgId,
+          batch_name: sgId === "Unassigned" ? "Unassigned Batch" : (sgDisplayNames.get(sgId) ?? sgId),
           total_dues,
           student_count: students.size,
         }))
@@ -615,35 +626,87 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: "branch and batch are required" }, { status: 400 });
       }
 
-      // Step 1: Get students from the Student Group
-      const sgJson = await frappeGet(
-        `resource/Student Group/${encodeURIComponent(batch)}`,
-        {},
-      );
-      const sgStudents: { student: string; student_name: string; active: number }[] =
-        sgJson?.data?.students ?? [];
+      let studentIds: string[] = [];
+      let sgStudents: { student: string; student_name: string; active: number }[] = [];
 
-      if (!sgStudents.length) {
-        return NextResponse.json({ data: [] });
+      if (batch === "Unassigned") {
+        if (!itemCode) {
+          return NextResponse.json({ error: "item_code is required for Unassigned batch" }, { status: 400 });
+        }
+        const invFilters: (string | number | string[])[][] = [
+          ["Sales Invoice", "docstatus", "=", 1],
+          ["Sales Invoice", "outstanding_amount", ">", 0],
+          ["Sales Invoice", "due_date", "<=", todayDate],
+          ["Sales Invoice", "company", "=", branch],
+          ["Sales Invoice Item", "item_code", "=", itemCode],
+        ];
+        const discCustomers = await getDiscontinuedCustomers(branch);
+        if (discCustomers.length > 0) {
+          invFilters.push(["Sales Invoice", "customer", "not in", discCustomers]);
+        }
+
+        const invJson = await frappePost("method/frappe.client.get_list", {
+          doctype: "Sales Invoice",
+          fields: [
+            `${bt}tabSales Invoice${bt}.student`,
+            `${bt}tabSales Invoice${bt}.customer_name`,
+          ],
+          filters: invFilters,
+          limit_page_length: 2000,
+        });
+
+        const invoices: { student: string; customer_name: string }[] = invJson.message ?? [];
+        const uniqueStudentIds = Array.from(new Set(invoices.map((i) => i.student).filter(Boolean)));
+        if (!uniqueStudentIds.length) {
+          return NextResponse.json({ data: [] });
+        }
+        studentIds = uniqueStudentIds;
+        sgStudents = uniqueStudentIds.map((id) => {
+          const inv = invoices.find((i) => i.student === id);
+          return {
+            student: id,
+            student_name: inv?.customer_name || id,
+            active: 1,
+          };
+        });
+      } else {
+        // Step 1: Get students from the Student Group
+        const sgJson = await frappeGet(
+          `resource/Student Group/${encodeURIComponent(batch)}`,
+          {},
+        );
+        sgStudents = sgJson?.data?.students ?? [];
+        if (!sgStudents.length) {
+          return NextResponse.json({ data: [] });
+        }
+        studentIds = sgStudents.map((s) => s.student);
       }
-
-      let studentIds = sgStudents.map((s) => s.student);
 
       const discCustomers = await getDiscontinuedCustomers(branch);
 
       // Step 2: Fetch overdue invoices for these students
-      const invRes = await frappeGet("resource/Sales Invoice", {
-        filters: JSON.stringify([
-          ["docstatus", "=", 1],
-          ["outstanding_amount", ">", 0],
-          ["due_date", "<=", todayDate],
-          ["student", "in", studentIds],
-          ["company", "=", branch],
-        ]),
-        fields: JSON.stringify([
-          "name", "student", "outstanding_amount", "due_date", "grand_total",
-        ]),
-        limit_page_length: "2000",
+      const siFilters: (string | number | string[])[][] = [
+        ["Sales Invoice", "docstatus", "=", 1],
+        ["Sales Invoice", "outstanding_amount", ">", 0],
+        ["Sales Invoice", "due_date", "<=", todayDate],
+        ["Sales Invoice", "student", "in", studentIds],
+        ["Sales Invoice", "company", "=", branch],
+      ];
+      if (itemCode) {
+        siFilters.push(["Sales Invoice Item", "item_code", "=", itemCode]);
+      }
+
+      const invJson = await frappePost("method/frappe.client.get_list", {
+        doctype: "Sales Invoice",
+        fields: [
+          `${bt}tabSales Invoice${bt}.name`,
+          `${bt}tabSales Invoice${bt}.student`,
+          `${bt}tabSales Invoice${bt}.outstanding_amount`,
+          `${bt}tabSales Invoice${bt}.due_date`,
+          `${bt}tabSales Invoice${bt}.grand_total`,
+        ],
+        filters: siFilters,
+        limit_page_length: 2000,
       });
 
       const invoices: {
@@ -652,7 +715,7 @@ export async function GET(request: NextRequest) {
         outstanding_amount: number;
         due_date: string;
         grand_total: number;
-      }[] = invRes.data ?? [];
+      }[] = invJson.message ?? [];
 
       // Step 2b: Fetch Sales Orders for these students to get plan + instalment info
       const soRes = await frappeGet("resource/Sales Order", {
@@ -741,10 +804,6 @@ export async function GET(request: NextRequest) {
       }
 
       // ── Fetch guardian info for each student ──
-      // The Student Guardian child table and its resource endpoint both return
-      // PermissionError even with the admin token. The only working approach is
-      // fetching each Student document individually (guardians are in the full doc).
-      // Batches are small (≤50 students), so parallel fetches are fast.
       const studentGuardianMap = new Map<string, string>(); // student → guardian doc ID
       const guardianNameMap = new Map<string, string>();    // guardian ID → name
       const guardianPhoneMap = new Map<string, string>();   // guardian ID → phone

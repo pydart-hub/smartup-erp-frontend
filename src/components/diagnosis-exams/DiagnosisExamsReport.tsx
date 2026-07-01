@@ -11,6 +11,7 @@ import {
   Activity,
   Award,
   BookOpen,
+  ChevronDown,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -29,6 +30,7 @@ interface DiagnosisExamsReportProps {
 export function DiagnosisExamsReport({ attempts, title }: DiagnosisExamsReportProps) {
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedBranch, setSelectedBranch] = useState<string>("all");
 
   // Group attempts by classLevel
   const classGroupsMap = new Map<string, AttemptWithPublishing[]>();
@@ -61,6 +63,11 @@ export function DiagnosisExamsReport({ attempts, title }: DiagnosisExamsReportPr
   // Identify all unique subjects assessed in this class
   const classSubjects = Array.from(
     new Set(classAttempts.map((a) => a.publishing.subject.name))
+  ).sort();
+
+  // Unique branches for the branch filter dropdown
+  const uniqueBranches = Array.from(
+    new Set(classAttempts.map((a) => a.studentBranch).filter((b): b is string => !!b))
   ).sort();
 
   // Group student attempts inside selected class
@@ -96,12 +103,13 @@ export function DiagnosisExamsReport({ attempts, title }: DiagnosisExamsReportPr
     a.studentName.localeCompare(b.studentName)
   );
 
-  // Filter students based on search query
+  // Filter students based on search query and selected branch
   const filteredStudents = studentsList.filter(
     (s) =>
-      s.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (s.studentPhone && s.studentPhone.includes(searchQuery)) ||
-      (s.studentBranch && s.studentBranch.toLowerCase().includes(searchQuery.toLowerCase()))
+      (s.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (s.studentPhone && s.studentPhone.includes(searchQuery)) ||
+        (s.studentBranch && s.studentBranch.toLowerCase().includes(searchQuery.toLowerCase()))) &&
+      (selectedBranch === "all" || s.studentBranch === selectedBranch)
   );
 
   // Export report to CSV
@@ -109,7 +117,7 @@ export function DiagnosisExamsReport({ attempts, title }: DiagnosisExamsReportPr
     if (!selectedClass) return;
 
     const headers = ["Student Name", "Phone", "Branch", "Class", ...classSubjects];
-    const rows = studentsList.map((student) => {
+    const rows = filteredStudents.map((student) => {
       const rowData = [
         student.studentName,
         student.studentPhone || "—",
@@ -206,6 +214,7 @@ export function DiagnosisExamsReport({ attempts, title }: DiagnosisExamsReportPr
               onClick={() => {
                 setSelectedClass(null);
                 setSearchQuery("");
+                setSelectedBranch("all");
               }}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-text-secondary hover:text-text-primary bg-white dark:bg-[#0E1526] border border-slate-200 dark:border-slate-800 rounded-2xl cursor-pointer hover:shadow-sm transition-all"
             >
@@ -214,7 +223,7 @@ export function DiagnosisExamsReport({ attempts, title }: DiagnosisExamsReportPr
             </button>
 
             {/* Actions / Search */}
-            <div className="flex flex-col sm:flex-row gap-3 flex-1 max-w-xl md:justify-end">
+            <div className="flex flex-col sm:flex-row gap-3 flex-1 max-w-2xl md:justify-end">
               {/* Search Field */}
               <div className="relative flex-1">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
@@ -227,10 +236,27 @@ export function DiagnosisExamsReport({ attempts, title }: DiagnosisExamsReportPr
                 />
               </div>
 
+              {/* Branch Filter */}
+              <div className="relative shrink-0">
+                <select
+                  value={selectedBranch}
+                  onChange={(e) => setSelectedBranch(e.target.value)}
+                  className="w-full sm:w-auto pl-4 pr-10 py-2.5 rounded-2xl bg-white dark:bg-[#0E1526] border border-slate-200 dark:border-slate-800 text-xs font-semibold text-text-secondary focus:ring-1 focus:ring-[#5f2ea8] outline-none transition-all cursor-pointer appearance-none min-w-[150px] h-[38px] leading-tight"
+                >
+                  <option value="all">All Branches</option>
+                  {uniqueBranches.map((br) => (
+                    <option key={br} value={br}>
+                      {br.replace("Smart Up ", "").replace("SmartUp ", "")}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary pointer-events-none" />
+              </div>
+
               {/* Export Button */}
               <Button
                 onClick={handleDownloadCSV}
-                className="rounded-2xl font-bold bg-[#5f2ea8] hover:bg-[#4d238c] text-white flex items-center gap-1.5 shadow-sm px-4 py-2"
+                className="rounded-2xl font-bold bg-[#5f2ea8] hover:bg-[#4d238c] text-white flex items-center gap-1.5 shadow-sm px-4 py-2 h-[38px]"
               >
                 <Download className="w-4 h-4" />
                 <span>Download Report (CSV)</span>
@@ -311,13 +337,13 @@ export function DiagnosisExamsReport({ attempts, title }: DiagnosisExamsReportPr
                           const attempt = student.attemptsBySubject[subName];
                           if (!attempt) {
                             return (
-                              <td key={subName} className="py-4 px-6 text-center text-text-tertiary text-xs italic">
-                                —
+                              <td key={subName} className="py-4 px-6 text-center text-red-500/60 dark:text-red-400/50 text-[10px] uppercase font-bold tracking-wide italic">
+                                Not Attended
                               </td>
                             );
                           }
 
-                          const { diagnosedLevel } = getAttemptLevelBreakdown(attempt);
+                          const { diagnosedLevel, diagnosedCorrect, diagnosedTotal } = getAttemptLevelBreakdown(attempt);
                           const isSubmitted = attempt.status === "submitted" || attempt.status === "auto_submitted";
 
                           // Styling depending on diagnosed status
@@ -331,12 +357,19 @@ export function DiagnosisExamsReport({ attempts, title }: DiagnosisExamsReportPr
 
                           return (
                             <td key={subName} className="py-4 px-6 text-center">
-                              <span
-                                className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-0.5 text-[11px] font-black ${badgeClass}`}
-                                title={isSubmitted ? "Final Diagnosed Level" : "In Progress Live Level"}
-                              >
-                                {diagnosedLevel || "N/A"}{!isSubmitted && <span className="text-[9px] font-normal opacity-70"> (Live)</span>}
-                              </span>
+                              <div className="flex flex-col items-center gap-1 justify-center">
+                                <span
+                                  className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-0.5 text-[11px] font-black ${badgeClass}`}
+                                  title={isSubmitted ? "Final Diagnosed Level" : "In Progress Live Level"}
+                                >
+                                  {diagnosedLevel || "N/A"}{!isSubmitted && <span className="text-[9px] font-normal opacity-70"> (Live)</span>}
+                                </span>
+                                {diagnosedCorrect !== undefined && diagnosedTotal !== undefined && diagnosedCorrect !== null && diagnosedTotal !== null && (
+                                  <span className="text-[10px] text-text-tertiary font-bold tracking-tight">
+                                    {diagnosedCorrect}/{diagnosedTotal} marks
+                                  </span>
+                                )}
+                              </div>
                             </td>
                           );
                         })}

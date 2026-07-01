@@ -68,8 +68,8 @@ export default function DuesStudentPage() {
   const [frequencyFilter, setFrequencyFilter] = useState<string>("all");
 
   const { data: students, isLoading, isError } = useQuery({
-    queryKey: ["director-dues-students", branch, batch, asOf],
-    queryFn: () => getDuesTodayByStudent(branch, batch, asOf),
+    queryKey: ["director-dues-students", branch, batch, asOf, classId],
+    queryFn: () => getDuesTodayByStudent(branch, batch, asOf, classId),
     staleTime: 30_000,
     refetchInterval: 30_000,
   });
