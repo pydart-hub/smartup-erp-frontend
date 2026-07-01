@@ -738,26 +738,38 @@ export function DiagnosisExamsDrillDown({
                                 <span>—</span>
                               )}
                             </td>
-                            <td className="py-4 px-6 text-center space-x-2">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleStudentExpand(student.key);
-                                }}
-                                className="inline-flex items-center gap-1 text-xs font-bold text-[#5f2ea8] hover:text-[#4d238c] hover:underline cursor-pointer"
-                              >
-                                {isExpanded ? "Hide History" : "View History"}
-                              </button>
-                              <span className="text-text-tertiary">|</span>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedStudentForSummary(student);
-                                }}
-                                className="inline-flex items-center gap-1 text-xs font-bold text-[#5f2ea8] hover:text-[#4d238c] hover:underline cursor-pointer"
-                              >
-                                Overall Summary
-                              </button>
+                            <td className="py-4 px-6">
+                              <div className="flex flex-col items-center justify-center gap-1.5">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleStudentExpand(student.key);
+                                  }}
+                                  className="w-28 justify-center inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold text-[#5f2ea8] bg-[#5f2ea8]/5 border border-[#5f2ea8]/10 hover:bg-[#5f2ea8]/10 rounded-xl transition-all cursor-pointer"
+                                >
+                                  {isExpanded ? (
+                                    <>
+                                      <ChevronUp className="w-3.5 h-3.5" />
+                                      <span>Hide History</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <ChevronDown className="w-3.5 h-3.5" />
+                                      <span>View History</span>
+                                    </>
+                                  )}
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedStudentForSummary(student);
+                                  }}
+                                  className="w-28 justify-center inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold text-white bg-[#5f2ea8] hover:bg-[#4d238c] border border-[#5f2ea8]/15 rounded-xl shadow-sm transition-all cursor-pointer"
+                                >
+                                  <Activity className="w-3.5 h-3.5" />
+                                  <span>Summary</span>
+                                </button>
+                              </div>
                             </td>
                           </tr>
 
