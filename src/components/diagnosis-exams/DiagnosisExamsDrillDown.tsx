@@ -21,6 +21,7 @@ import {
   ExternalLink,
   BookOpenCheck,
   Trash2,
+  X,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -150,6 +151,108 @@ export function DiagnosisExamsDrillDown({
         {score} / {attempt.totalMarks} ({percentage}%)
       </span>
     );
+  };
+
+  const getOrdinalSuffix = (val: string): string => {
+    const num = parseInt(val, 10);
+    if (isNaN(num)) return val;
+    if (num === 1) return "1st";
+    if (num === 2) return "2nd";
+    if (num === 3) return "3rd";
+    return `${num}th`;
+  };
+
+  const [selectedStudentForSummary, setSelectedStudentForSummary] = useState<{
+    key: string;
+    studentName: string;
+    studentPhone: string | null;
+    studentBranch: string | null;
+    classLevel: string;
+    attempts: AttemptWithPublishing[];
+  } | null>(null);
+
+  const getAttemptLevelBreakdown = (attempt: AttemptWithPublishing) => {
+    try {
+      const questions: any[] = typeof attempt.paperSnapshotJson === "string"
+        ? JSON.parse(attempt.paperSnapshotJson)
+        : attempt.paperSnapshotJson;
+
+      if (!questions || questions.length === 0) return { breakdown: [], diagnosedLevel: null };
+
+      // Map correct answers
+      const correctMap = new Map<string, boolean>();
+      const isSubmitted = attempt.status === "submitted" || attempt.status === "auto_submitted";
+
+      if (isSubmitted) {
+        const results = typeof attempt.resultSnapshotJson === "string"
+          ? JSON.parse(attempt.resultSnapshotJson)
+          : attempt.resultSnapshotJson;
+        if (results && results.questions) {
+          results.questions.forEach((q: any) => {
+            correctMap.set(q.questionId, q.isCorrect);
+          });
+        }
+      } else {
+        const answers = attempt.answers || [];
+        const answerMap = new Map(answers.map((a: any) => [a.questionId, a.selectedOption]));
+        questions.forEach((q) => {
+          const ans = answerMap.get(q.id);
+          correctMap.set(q.id, !!ans && ans === q.correctOption);
+        });
+      }
+
+      // Group questions by classLevel
+      const levelsMap = new Map<string, { correct: number; total: number }>();
+      questions.forEach((q) => {
+        const lvl = q.classLevel;
+        const stats = levelsMap.get(lvl) || { correct: 0, total: 0 };
+        stats.total += 1;
+        if (correctMap.get(q.id)) {
+          stats.correct += 1;
+        }
+        levelsMap.set(lvl, stats);
+      });
+
+      const levelCodes = Array.from(levelsMap.keys())
+        .map((lvl) => parseInt(lvl, 10))
+        .filter((lvl) => !isNaN(lvl))
+        .sort((a, b) => a - b);
+
+      let firstFailedLvlStr: string | null = null;
+      const breakdown = levelCodes.map((lvl) => {
+        const lvlStr = String(lvl);
+        const stats = levelsMap.get(lvlStr)!;
+        const isPassed = stats.correct === stats.total;
+        if (!isPassed && firstFailedLvlStr === null) {
+          firstFailedLvlStr = lvlStr;
+        }
+        return {
+          level: lvlStr,
+          correctCount: stats.correct,
+          totalCount: stats.total,
+          isPassed,
+          isDiagnosedLevel: false,
+        };
+      });
+
+      // Mark the diagnosed level in the breakdown
+      let diagnosedLevelStr: string | null = null;
+      if (firstFailedLvlStr !== null) {
+        diagnosedLevelStr = getOrdinalSuffix(firstFailedLvlStr);
+        breakdown.forEach((item) => {
+          if (item.level === firstFailedLvlStr) {
+            item.isDiagnosedLevel = true;
+          }
+        });
+      } else {
+        diagnosedLevelStr = getOrdinalSuffix(attempt.classLevel);
+      }
+
+      return { breakdown, diagnosedLevel: diagnosedLevelStr };
+    } catch (e) {
+      console.error("Error generating level breakdown:", e);
+      return { breakdown: [], diagnosedLevel: null };
+    }
   };
 
   const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
@@ -635,7 +738,7 @@ export function DiagnosisExamsDrillDown({
                                 <span>—</span>
                               )}
                             </td>
-                            <td className="py-4 px-6 text-center">
+                            <td className="py-4 px-6 text-center space-x-2">
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -644,6 +747,16 @@ export function DiagnosisExamsDrillDown({
                                 className="inline-flex items-center gap-1 text-xs font-bold text-[#5f2ea8] hover:text-[#4d238c] hover:underline cursor-pointer"
                               >
                                 {isExpanded ? "Hide History" : "View History"}
+                              </button>
+                              <span className="text-text-tertiary">|</span>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedStudentForSummary(student);
+                                }}
+                                className="inline-flex items-center gap-1 text-xs font-bold text-[#5f2ea8] hover:text-[#4d238c] hover:underline cursor-pointer"
+                              >
+                                Overall Summary
                               </button>
                             </td>
                           </tr>
@@ -759,6 +872,164 @@ export function DiagnosisExamsDrillDown({
             )}
           </div>
         </section>
+      )}
+
+      {/* Overall Summary Modal */}
+      {selectedStudentForSummary && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-[#0E1526] rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl max-w-3xl w-full max-h-[85vh] overflow-hidden flex flex-col transition-all duration-300">
+            {/* Modal Header */}
+            <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-[#5f2ea8] bg-[#5f2ea8]/10 px-2.5 py-1 rounded-full">
+                  Diagnostic Assessment Profile
+                </span>
+                <h3 className="text-xl font-black text-text-primary mt-1.5">
+                  {selectedStudentForSummary.studentName}
+                </h3>
+              </div>
+              <button
+                onClick={() => setSelectedStudentForSummary(null)}
+                className="rounded-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:bg-slate-100 text-text-secondary transition-all"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="overflow-y-auto p-6 space-y-6 flex-1">
+              {/* Profile Overview Card */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800/80 rounded-2xl p-4 text-xs font-semibold text-text-secondary">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-text-tertiary block mb-1">Phone Number</span>
+                  <span className="text-text-primary text-sm font-bold">
+                    {selectedStudentForSummary.studentPhone || "—"}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-text-tertiary block mb-1">Current Class</span>
+                  <span className="text-text-primary text-sm font-bold">
+                    Class {selectedStudentForSummary.classLevel}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-text-tertiary block mb-1">Total Exams</span>
+                  <span className="text-text-primary text-sm font-bold">
+                    {selectedStudentForSummary.attempts.length} attempts
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-text-tertiary block mb-1">Current Branch</span>
+                  <span className="text-text-primary text-sm font-bold">
+                    {selectedStudentForSummary.studentBranch || "—"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Assessment Breakdown List */}
+              <div className="space-y-4">
+                <h4 className="text-xs font-black uppercase tracking-wider text-text-tertiary flex items-center gap-1.5">
+                  <Activity className="w-4 h-4 text-[#5f2ea8]" />
+                  <span>Subject Performance & Diagnostics</span>
+                </h4>
+
+                <div className="space-y-4">
+                  {selectedStudentForSummary.attempts.map((attempt) => {
+                    const { breakdown, diagnosedLevel } = getAttemptLevelBreakdown(attempt);
+                    const isSubmitted = attempt.status === "submitted" || attempt.status === "auto_submitted";
+
+                    return (
+                      <div
+                        key={attempt.id}
+                        className="bg-white dark:bg-[#0E1526]/50 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 space-y-4 shadow-sm"
+                      >
+                        {/* Attempt Top Info */}
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-50 dark:border-slate-900 pb-3">
+                          <div className="space-y-1">
+                            <h5 className="font-bold text-text-primary flex items-center gap-1.5">
+                              <BookOpen className="w-4 h-4 text-[#5f2ea8]" />
+                              <span>{attempt.publishing.subject.name}</span>
+                            </h5>
+                            <p className="text-[10px] text-text-tertiary">
+                              Assessed: {formatDate(attempt.startedAt)}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {renderScoreBadge(attempt)}
+                            {isSubmitted && diagnosedLevel && (
+                              <span className="inline-flex items-center gap-1 bg-violet-50 dark:bg-violet-500/10 text-[#5f2ea8] px-2.5 py-0.5 rounded-lg text-[10px] font-black border border-[#5f2ea8]/10">
+                                Level: {diagnosedLevel}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Level Breakdown Grid */}
+                        <div className="space-y-2">
+                          <p className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider">
+                            Level-wise MCQ Analysis:
+                          </p>
+                          {breakdown.length === 0 ? (
+                            <p className="text-xs text-text-tertiary italic">
+                              Questions snapshot not found. Diagnostics unavailable.
+                            </p>
+                          ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                              {breakdown.map((item) => {
+                                let badgeColorClass = "bg-slate-50 text-slate-500 border border-slate-200/50";
+                                let suffix = "";
+
+                                if (item.isPassed) {
+                                  badgeColorClass = "bg-success-light text-success border border-success/15";
+                                  suffix = " (Passed) ✅";
+                                } else if (item.isDiagnosedLevel) {
+                                  badgeColorClass = "bg-violet-50 dark:bg-violet-500/10 text-[#5f2ea8] border border-[#5f2ea8]/20 font-black shadow-sm shadow-[#5f2ea8]/5 ring-1 ring-[#5f2ea8]/20";
+                                  suffix = " (Diagnosed Level) 🎯";
+                                } else {
+                                  badgeColorClass = "bg-error-light text-error border border-error/15";
+                                  suffix = " (Failed) ❌";
+                                }
+
+                                return (
+                                  <div
+                                    key={item.level}
+                                    className={`p-2.5 rounded-xl text-center flex flex-col justify-center items-center gap-1 text-xs font-semibold ${badgeColorClass}`}
+                                  >
+                                    <span className="text-[9px] uppercase font-bold tracking-wider opacity-70">
+                                      Class {item.level} Questions
+                                    </span>
+                                    <span className="text-sm font-black">
+                                      {item.correctCount} / {item.totalCount}
+                                    </span>
+                                    <span className="text-[8px] font-black opacity-80 uppercase tracking-widest leading-none">
+                                      {suffix}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/30 flex justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedStudentForSummary(null)}
+                className="rounded-xl font-bold"
+              >
+                Close Profile
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
