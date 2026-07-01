@@ -47,8 +47,8 @@ export function NextExamButton({
 
       sessionStorage.setItem(`exam_token_${data.attemptId}`, data.sessionToken);
       router.push(`/exam-site/attempt/${data.attemptId}`);
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
+      console.error(error);
       alert("Failed to connect to the server. Please check your internet connection.");
     } finally {
       setLoading(false);
@@ -57,7 +57,7 @@ export function NextExamButton({
 
   return (
     <button
-      onClick={handleStartNextExam}
+      onClick={() => void handleStartNextExam()}
       disabled={loading}
       className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3 text-sm font-bold text-white transition-colors hover:bg-primary-hover disabled:bg-slate-400 cursor-pointer"
     >

@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/public-exam/db";
+import { finalizeExpiredAttemptIfNeeded } from "@/lib/public-exam/attempts";
 
-type RouteParams = {
-  params: Promise<{
-    attemptId: string;
-  }>;
-};
+type RouteParams = { params: Promise<{ attemptId: string }> };
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
@@ -16,7 +13,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
     }
 
-    // Verify session token from cookies or header
     const token = request.cookies.get(`exam_session_${attemptId}`)?.value || request.headers.get("x-exam-session-token");
     if (!token) {
       return NextResponse.json({ error: "Unauthorized session" }, { status: 401 });
@@ -24,38 +20,22 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     const attempt = await db.examAttempt.findUnique({
       where: { id: attemptId },
-      select: { status: true, sessionTokenHash: true },
+      include: { publishing: { select: { durationMinutes: true } } },
     });
 
-    if (!attempt) {
-      return NextResponse.json({ error: "Attempt not found" }, { status: 404 });
+    if (!attempt) return NextResponse.json({ error: "Attempt not found" }, { status: 404 });
+    if (attempt.sessionTokenHash !== token) return NextResponse.json({ error: "Invalid session token" }, { status: 403 });
+    if (attempt.status !== "in_progress") return NextResponse.json({ error: "Attempt is already submitted or expired" }, { status: 400 });
+
+    const lifecycle = await finalizeExpiredAttemptIfNeeded(attemptId);
+    if (lifecycle.expired) {
+      return NextResponse.json({ error: "Attempt has expired and was auto-submitted" }, { status: 409 });
     }
 
-    if (attempt.status !== "in_progress") {
-      return NextResponse.json({ error: "Attempt is already submitted or expired" }, { status: 400 });
-    }
-
-    if (attempt.sessionTokenHash !== token) {
-      return NextResponse.json({ error: "Invalid session token" }, { status: 403 });
-    }
-
-    // Upsert AttemptAnswer
     await db.attemptAnswer.upsert({
-      where: {
-        attemptId_questionId: {
-          attemptId,
-          questionId,
-        },
-      },
-      update: {
-        selectedOption,
-        answeredAt: new Date(),
-      },
-      create: {
-        attemptId,
-        questionId,
-        selectedOption,
-      },
+      where: { attemptId_questionId: { attemptId, questionId } },
+      update: { selectedOption, answeredAt: new Date() },
+      create: { attemptId, questionId, selectedOption },
     });
 
     return NextResponse.json({ success: true });

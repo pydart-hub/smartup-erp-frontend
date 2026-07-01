@@ -1,6 +1,6 @@
-﻿"use client";
+"use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Activity,
@@ -57,26 +57,127 @@ export default function ExamPlayer({
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const flushTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const flushPromiseRef = useRef<Promise<boolean> | null>(null);
+  const pendingAnswersRef = useRef<Record<string, string>>({});
 
-  const handleAutoSubmit = useCallback(async () => {
+  const flushPendingAnswers = async (options: { keepalive?: boolean } = {}) => {
+    while (true) {
+      if (flushPromiseRef.current) {
+        const inFlightResult = await flushPromiseRef.current;
+        if (!inFlightResult) return false;
+      }
+
+      const snapshot = { ...pendingAnswersRef.current };
+      const payload = Object.entries(snapshot).map(([questionId, selectedOption]) => ({ questionId, selectedOption }));
+
+      if (payload.length === 0) {
+        return true;
+      }
+
+      pendingAnswersRef.current = {};
+      setSavingMap((prev) => {
+        const next = { ...prev };
+        for (const answer of payload) {
+          next[answer.questionId] = "saving";
+        }
+        return next;
+      });
+
+      const token = sessionStorage.getItem(`exam_token_${attemptId}`) || "";
+
+      flushPromiseRef.current = (async () => {
+        try {
+          const res = await fetch(`/api/public-exam/attempt/${attemptId}/answers`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-exam-session-token": token,
+            },
+            body: JSON.stringify({ answers: payload }),
+            keepalive: options.keepalive,
+          });
+
+          if (!res.ok) {
+            throw new Error("Bulk save failed");
+          }
+
+          setSavingMap((prev) => {
+            const next = { ...prev };
+            for (const answer of payload) {
+              if (pendingAnswersRef.current[answer.questionId] === undefined) {
+                next[answer.questionId] = "saved";
+              }
+            }
+            return next;
+          });
+
+          return true;
+        } catch (error) {
+          console.error(error);
+          for (const answer of payload) {
+            if (pendingAnswersRef.current[answer.questionId] === undefined) {
+              pendingAnswersRef.current[answer.questionId] = answer.selectedOption;
+            }
+          }
+
+          setSavingMap((prev) => {
+            const next = { ...prev };
+            for (const answer of payload) {
+              next[answer.questionId] = "error";
+            }
+            return next;
+          });
+
+          return false;
+        } finally {
+          flushPromiseRef.current = null;
+        }
+      })();
+
+      const result = await flushPromiseRef.current;
+      if (!result) {
+        return false;
+      }
+    }
+  };
+
+  flushPendingAnswersRef.current = flushPendingAnswers;
+
+  const scheduleFlush = () => {
+    if (flushTimerRef.current) {
+      clearTimeout(flushTimerRef.current);
+    }
+
+    flushTimerRef.current = setTimeout(() => {
+      void flushPendingAnswers();
+    }, 2500);
+  };
+
+  const handleAutoSubmit = async () => {
     setSubmitting(true);
+    const flushed = await flushPendingAnswers();
     const token = sessionStorage.getItem(`exam_token_${attemptId}`) || "";
 
     try {
-      await fetch(`/api/public-exam/attempt/${attemptId}/submit`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-exam-session-token": token,
-        },
-        body: JSON.stringify({ autoSubmitted: true }),
-      });
-    } catch (err) {
-      console.error(err);
+      if (flushed) {
+        await fetch(`/api/public-exam/attempt/${attemptId}/submit`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-exam-session-token": token,
+          },
+          body: JSON.stringify({ autoSubmitted: true }),
+        });
+      }
+    } catch (error) {
+      console.error(error);
     } finally {
       router.push(`/exam-site/result/${attemptId}`);
     }
-  }, [attemptId, router]);
+  };
+
+  autoSubmitRef.current = handleAutoSubmit;
 
   useEffect(() => {
     const startTime = new Date(startedAt).getTime();
@@ -87,7 +188,7 @@ export default function ExamPlayer({
       setRemainingSeconds(diff);
       if (diff <= 0) {
         if (timerRef.current) clearInterval(timerRef.current);
-        void handleAutoSubmit();
+        void autoSubmitRef.current();
       }
     };
 
@@ -96,7 +197,28 @@ export default function ExamPlayer({
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [startedAt, durationMinutes, handleAutoSubmit]);
+  }, [startedAt, durationMinutes]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        void flushPendingAnswersRef.current({ keepalive: true });
+      }
+    };
+
+    const handleBeforeUnload = () => {
+      void flushPendingAnswersRef.current({ keepalive: true });
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
+    };
+  }, []);
 
   const formatTime = (secs: number) => {
     const h = Math.floor(secs / 3600);
@@ -107,31 +229,22 @@ export default function ExamPlayer({
       .join(":");
   };
 
-  const saveAnswerToDb = async (qId: string, optionKey: string) => {
-    setSavingMap((prev) => ({ ...prev, [qId]: "saving" }));
-    const token = sessionStorage.getItem(`exam_token_${attemptId}`) || "";
-
-    try {
-      const res = await fetch(`/api/public-exam/attempt/${attemptId}/answer`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-exam-session-token": token,
-        },
-        body: JSON.stringify({ questionId: qId, selectedOption: optionKey }),
-      });
-
-      setSavingMap((prev) => ({ ...prev, [qId]: res.ok ? "saved" : "error" }));
-    } catch (err) {
-      console.error(err);
-      setSavingMap((prev) => ({ ...prev, [qId]: "error" }));
-    }
-  };
-
   const handleSelectOption = (optionKey: string) => {
     const activeQuestion = questions[currentIndex];
     setAnswers((prev) => ({ ...prev, [activeQuestion.id]: optionKey }));
-    void saveAnswerToDb(activeQuestion.id, optionKey);
+    pendingAnswersRef.current[activeQuestion.id] = optionKey;
+    setSavingMap((prev) => ({ ...prev, [activeQuestion.id]: "saving" }));
+    scheduleFlush();
+  };
+
+  const handleMoveQuestion = async (nextIndex: number) => {
+    await flushPendingAnswers();
+    setCurrentIndex(nextIndex);
+  };
+
+  const handleOpenSubmitModal = async () => {
+    await flushPendingAnswers();
+    setShowSubmitModal(true);
   };
 
   const handleFinalSubmit = async () => {
@@ -140,6 +253,13 @@ export default function ExamPlayer({
     const token = sessionStorage.getItem(`exam_token_${attemptId}`) || "";
 
     try {
+      const flushed = await flushPendingAnswers();
+      if (!flushed) {
+        setSubmitError("Some answers are still unsaved. Please wait a moment and try again.");
+        setSubmitting(false);
+        return;
+      }
+
       const res = await fetch(`/api/public-exam/attempt/${attemptId}/submit`, {
         method: "POST",
         headers: {
@@ -157,8 +277,8 @@ export default function ExamPlayer({
       }
 
       router.push(`/exam-site/result/${attemptId}`);
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
+      console.error(error);
       setSubmitError("Failed to submit exam. Please verify your internet connection.");
       setSubmitting(false);
     }
@@ -235,7 +355,7 @@ export default function ExamPlayer({
           <div className="mt-5 flex items-center justify-between gap-3 border-t border-border-light pt-4">
             <button
               disabled={currentIndex === 0}
-              onClick={() => setCurrentIndex((idx) => idx - 1)}
+              onClick={() => void handleMoveQuestion(currentIndex - 1)}
               className="inline-flex h-11 items-center gap-2 rounded-2xl border border-border-light bg-app-bg px-4 text-sm font-bold text-text-primary transition hover:bg-surface disabled:cursor-not-allowed disabled:opacity-50"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -250,7 +370,7 @@ export default function ExamPlayer({
 
             {currentIndex === questions.length - 1 ? (
               <button
-                onClick={() => setShowSubmitModal(true)}
+                onClick={() => void handleOpenSubmitModal()}
                 className="inline-flex h-11 items-center gap-2 rounded-2xl bg-primary px-5 text-sm font-bold text-white shadow-[0_14px_28px_rgba(103,58,183,0.22)] transition hover:bg-primary-hover"
               >
                 <Send className="h-4 w-4" />
@@ -258,7 +378,7 @@ export default function ExamPlayer({
               </button>
             ) : (
               <button
-                onClick={() => setCurrentIndex((idx) => idx + 1)}
+                onClick={() => void handleMoveQuestion(currentIndex + 1)}
                 className="inline-flex h-11 items-center gap-2 rounded-2xl bg-primary px-5 text-sm font-bold text-white shadow-[0_14px_28px_rgba(103,58,183,0.22)] transition hover:bg-primary-hover"
               >
                 Next
@@ -292,10 +412,10 @@ export default function ExamPlayer({
             <div className="mt-4">
               <div className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-text-tertiary">Question Palette</div>
               <div className="grid max-h-[380px] grid-cols-5 gap-2 overflow-y-auto pr-1">
-                {questions.map((q, idx) => {
+                {questions.map((question, idx) => {
                   const isCurrent = idx === currentIndex;
-                  const isAnswered = !!answers[q.id];
-                  const saveStatus = savingMap[q.id];
+                  const isAnswered = !!answers[question.id];
+                  const saveStatus = savingMap[question.id];
 
                   let style = "border-border-light bg-app-bg text-text-secondary hover:border-primary/30";
                   if (isAnswered && saveStatus === "error") style = "border-error/25 bg-error/10 text-error";
@@ -304,8 +424,8 @@ export default function ExamPlayer({
 
                   return (
                     <button
-                      key={q.id}
-                      onClick={() => setCurrentIndex(idx)}
+                      key={question.id}
+                      onClick={() => void handleMoveQuestion(idx)}
                       className={`aspect-square rounded-2xl border text-xs font-bold transition ${style}`}
                     >
                       {idx + 1}
@@ -348,7 +468,7 @@ export default function ExamPlayer({
               <button
                 type="button"
                 disabled={submitting}
-                onClick={handleFinalSubmit}
+                onClick={() => void handleFinalSubmit()}
                 className="inline-flex h-11 items-center gap-2 rounded-2xl bg-primary px-5 text-sm font-bold text-white transition hover:bg-primary-hover disabled:opacity-50"
               >
                 {submitting ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" /> : <CheckCircle className="h-4 w-4" />}
@@ -370,3 +490,7 @@ function StatCard({ value, label, tone }: { value: string; label: string; tone: 
     </div>
   );
 }
+
+
+
+
