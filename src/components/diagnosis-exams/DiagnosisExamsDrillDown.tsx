@@ -108,50 +108,48 @@ export function DiagnosisExamsDrillDown({
     if (!attempt) return <span className="text-text-tertiary">—</span>;
     const isSubmitted = attempt.status === "submitted" || attempt.status === "auto_submitted";
 
-    if (isSubmitted) {
-      return (
-        <span
-          className={`rounded-lg px-2 py-0.5 text-[11px] font-bold ${
-            attempt.percentage >= 80
-              ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600"
-              : attempt.percentage >= 50
-              ? "bg-amber-50 dark:bg-amber-500/10 text-amber-600"
-              : "bg-rose-50 dark:bg-rose-500/10 text-rose-600"
-          }`}
-        >
-          {attempt.scoreObtained} / {attempt.totalMarks} ({attempt.percentage}%)
-        </span>
-      );
+    let score = attempt.scoreObtained;
+    let percentage = attempt.percentage;
+
+    if (!isSubmitted) {
+      // In-progress live score calculation
+      try {
+        const questions: any[] = typeof attempt.paperSnapshotJson === "string"
+          ? JSON.parse(attempt.paperSnapshotJson)
+          : attempt.paperSnapshotJson;
+        const answers = attempt.answers || [];
+        const answerMap = new Map(answers.map((a: any) => [a.questionId, a.selectedOption]));
+
+        let liveScore = 0;
+        questions.forEach((q: any) => {
+          const ans = answerMap.get(q.id);
+          if (ans && ans === q.correctOption) {
+            liveScore += q.marks || 1;
+          }
+        });
+        score = liveScore;
+        percentage = attempt.totalMarks > 0 ? Math.round((liveScore / attempt.totalMarks) * 100) : 0;
+      } catch (e) {
+        console.error("Error calculating live score for badge:", e);
+      }
     }
 
-    // In-progress live score calculation
-    try {
-      const questions: any[] = typeof attempt.paperSnapshotJson === "string"
-        ? JSON.parse(attempt.paperSnapshotJson)
-        : attempt.paperSnapshotJson;
-      const answers = attempt.answers || [];
-      const answerMap = new Map(answers.map((a: any) => [a.questionId, a.selectedOption]));
-
-      let score = 0;
-      questions.forEach((q: any) => {
-        const ans = answerMap.get(q.id);
-        if (ans && ans === q.correctOption) {
-          score += q.marks || 1;
-        }
-      });
-      const pct = attempt.totalMarks > 0 ? Math.round((score / attempt.totalMarks) * 100) : 0;
-      return (
-        <span
-          className="rounded-lg px-2 py-0.5 text-[11px] bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 font-bold"
-          title="Live score of in-progress exam"
-        >
-          {score} / {attempt.totalMarks} ({pct}%)
-        </span>
-      );
-    } catch (e) {
-      console.error("Error rendering score badge:", e);
-      return <span className="text-text-tertiary">—</span>;
+    // Class styles based on percentage thresholds using semantic tokens from globals.css
+    let colorClass = "bg-error-light text-error border border-error/15";
+    if (percentage >= 80) {
+      colorClass = "bg-success-light text-success border border-success/15";
+    } else if (percentage >= 50) {
+      colorClass = "bg-warning-light text-warning border border-warning/15";
     }
+
+    return (
+      <span
+        className={`rounded-lg px-2.5 py-0.5 text-[11px] font-bold whitespace-nowrap inline-block ${colorClass}`}
+        title={isSubmitted ? "Final Score" : "Live Score (In Progress)"}
+      >
+        {score} / {attempt.totalMarks} ({percentage}%)
+      </span>
+    );
   };
 
   const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
