@@ -31,6 +31,7 @@ export function DiagnosisExamsReport({ attempts, title }: DiagnosisExamsReportPr
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedBranch, setSelectedBranch] = useState<string>("all");
+  const [downloadMenuOpen, setDownloadMenuOpen] = useState(false);
 
   // Group attempts by classLevel
   const classGroupsMap = new Map<string, AttemptWithPublishing[]>();
@@ -112,47 +113,151 @@ export function DiagnosisExamsReport({ attempts, title }: DiagnosisExamsReportPr
       (selectedBranch === "all" || s.studentBranch === selectedBranch)
   );
 
-  // Export report to CSV
-  const handleDownloadCSV = () => {
+  // Export report to Excel
+  const handleDownloadExcel = async () => {
     if (!selectedClass) return;
+    try {
+      const ExcelJS = (await import("exceljs")).default;
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet(`Class ${selectedClass} Report`);
 
-    const headers = ["Student Name", "Phone", "Branch", "Class", ...classSubjects];
-    const rows = filteredStudents.map((student) => {
-      const rowData = [
-        student.studentName,
-        student.studentPhone || "—",
-        student.studentBranch || "—",
-        `Class ${selectedClass}`,
-      ];
+      const headers = ["Student Name", "Phone", "Branch", "Class", ...classSubjects];
+      ws.addRow(headers);
 
-      classSubjects.forEach((subName) => {
-        const attempt = student.attemptsBySubject[subName];
-        if (!attempt) {
-          rowData.push("Not Attempted");
-        } else {
-          const { diagnosedLevel } = getAttemptLevelBreakdown(attempt);
-          const isSubmitted = attempt.status === "submitted" || attempt.status === "auto_submitted";
-          rowData.push(diagnosedLevel ? `${diagnosedLevel}${isSubmitted ? "" : " (Live)"}` : "—");
+      // Style header
+      ws.getRow(1).font = { bold: true };
+      ws.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE6E6FA" } }; // light violet/lavender header background
+
+      filteredStudents.forEach((student) => {
+        const rowData = [
+          student.studentName,
+          student.studentPhone || "—",
+          student.studentBranch || "—",
+          `Class ${selectedClass}`,
+        ];
+
+        classSubjects.forEach((subName) => {
+          const attempt = student.attemptsBySubject[subName];
+          if (!attempt) {
+            rowData.push("Not Attended");
+          } else {
+            const { diagnosedLevel, diagnosedCorrect, diagnosedTotal } = getAttemptLevelBreakdown(attempt);
+            const isSubmitted = attempt.status === "submitted" || attempt.status === "auto_submitted";
+            if (diagnosedLevel) {
+              const liveStr = isSubmitted ? "" : " (Live)";
+              const scoreStr = (diagnosedCorrect !== null && diagnosedTotal !== null) ? ` (${diagnosedCorrect}/${diagnosedTotal})` : "";
+              rowData.push(`${diagnosedLevel}${liveStr}${scoreStr}`);
+            } else {
+              rowData.push("—");
+            }
+          }
+        });
+
+        ws.addRow(rowData);
+      });
+
+      // Auto-fit column widths
+      ws.columns?.forEach((col) => {
+        let maxLen = 0;
+        col.eachCell?.({ includeEmpty: true }, (cell) => {
+          const val = cell.value ? String(cell.value) : "";
+          if (val.length > maxLen) maxLen = val.length;
+        });
+        col.width = Math.max(maxLen + 3, 12);
+      });
+
+      const buf = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Class_${selectedClass}_Diagnosis_Report_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Excel export failed:", err);
+      alert("Excel export failed. Check console for details.");
+    }
+  };
+
+  // Export report to PDF
+  const handleDownloadPDF = async () => {
+    if (!selectedClass) return;
+    try {
+      const { jsPDF } = await import("jspdf");
+      const autoTable = (await import("jspdf-autotable")).default;
+      const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+
+      doc.setFontSize(16);
+      doc.text(`SmartUp \u2014 Diagnosis Exam Class-Wise Report (Class ${selectedClass})`, 14, 15);
+      
+      doc.setFontSize(9);
+      doc.setTextColor(100);
+      doc.text(
+        `Exported: ${new Date().toLocaleDateString("en-IN")} | ${filteredStudents.length} students | ${classSubjects.length} subjects`,
+        14,
+        21
+      );
+
+      const headers = [["Student Info", "Branch", ...classSubjects]];
+
+      const rows = filteredStudents.map((student) => {
+        const studentInfo = student.studentPhone
+          ? `${student.studentName}\nPhone: ${student.studentPhone}`
+          : student.studentName;
+
+        const rowData = [
+          studentInfo,
+          student.studentBranch || "—",
+        ];
+
+        classSubjects.forEach((subName) => {
+          const attempt = student.attemptsBySubject[subName];
+          if (!attempt) {
+            rowData.push("Not Attended");
+          } else {
+            const { diagnosedLevel, diagnosedCorrect, diagnosedTotal } = getAttemptLevelBreakdown(attempt);
+            const isSubmitted = attempt.status === "submitted" || attempt.status === "auto_submitted";
+            if (diagnosedLevel) {
+              const liveStr = isSubmitted ? "" : " (Live)";
+              const scoreStr = (diagnosedCorrect !== null && diagnosedTotal !== null) ? `\n(${diagnosedCorrect}/${diagnosedTotal})` : "";
+              rowData.push(`${diagnosedLevel}${liveStr}${scoreStr}`);
+            } else {
+              rowData.push("—");
+            }
+          }
+        });
+
+        return rowData;
+      });
+
+      autoTable(doc, {
+        startY: 25,
+        head: headers,
+        body: rows,
+        styles: { fontSize: 8, cellPadding: 3, valign: "middle" },
+        headStyles: { fillColor: [95, 46, 168], textColor: 255, fontStyle: "bold" }, // #5f2ea8 (violet) header
+        columnStyles: {
+          0: { cellWidth: 45 },
+          1: { cellWidth: 40 },
+        },
+        alternateRowStyles: { fillColor: [250, 248, 252] }, // very light violet alternate row
+        didParseCell: (data) => {
+          // Highlight "Not Attended" cells with muted red color
+          if (data.cell.section === "body" && data.cell.text.includes("Not Attended")) {
+            data.cell.styles.textColor = [239, 68, 68]; // red-500
+            data.cell.styles.fontStyle = "italic";
+          }
         }
       });
 
-      return rowData;
-    });
-
-    const csvContent = [
-      headers.join(","),
-      ...rows.map((r) => r.map((val) => `"${val.replace(/"/g, '""')}"`).join(",")),
-    ].join("\n");
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `Class_${selectedClass}_Diagnosis_Report.csv`);
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      doc.save(`Class_${selectedClass}_Diagnosis_Report_${new Date().toISOString().slice(0, 10)}.pdf`);
+    } catch (err) {
+      console.error("PDF export failed:", err);
+      alert("PDF export failed. Check console for details.");
+    }
   };
 
   return (
@@ -253,14 +358,47 @@ export function DiagnosisExamsReport({ attempts, title }: DiagnosisExamsReportPr
                 <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary pointer-events-none" />
               </div>
 
-              {/* Export Button */}
-              <Button
-                onClick={handleDownloadCSV}
-                className="rounded-2xl font-bold bg-[#5f2ea8] hover:bg-[#4d238c] text-white flex items-center gap-1.5 shadow-sm px-4 py-2 h-[38px]"
-              >
-                <Download className="w-4 h-4" />
-                <span>Download Report (CSV)</span>
-              </Button>
+              {/* Export Button Dropdown */}
+              <div className="relative shrink-0">
+                <Button
+                  onClick={() => setDownloadMenuOpen(!downloadMenuOpen)}
+                  className="rounded-2xl font-bold bg-[#5f2ea8] hover:bg-[#4d238c] text-white flex items-center gap-1.5 shadow-sm px-4 py-2 h-[38px] w-full"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Download Report</span>
+                  <ChevronDown className="w-4 h-4 ml-0.5" />
+                </Button>
+                {downloadMenuOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setDownloadMenuOpen(false)}
+                    />
+                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#0E1526] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-lg py-2 z-20 animate-in fade-in slide-in-from-top-2 duration-150">
+                      <button
+                        onClick={() => {
+                          setDownloadMenuOpen(false);
+                          handleDownloadExcel();
+                        }}
+                        className="w-full text-left px-4 py-2.5 text-xs font-bold text-text-primary hover:bg-slate-50 dark:hover:bg-slate-900/50 flex items-center gap-2 cursor-pointer"
+                      >
+                        <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                        Excel Document (.xlsx)
+                      </button>
+                      <button
+                        onClick={() => {
+                          setDownloadMenuOpen(false);
+                          handleDownloadPDF();
+                        }}
+                        className="w-full text-left px-4 py-2.5 text-xs font-bold text-text-primary hover:bg-slate-50 dark:hover:bg-slate-900/50 flex items-center gap-2 cursor-pointer"
+                      >
+                        <span className="w-2 h-2 rounded-full bg-red-500" />
+                        PDF Document (.pdf)
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 

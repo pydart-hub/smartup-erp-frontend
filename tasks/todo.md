@@ -1,5 +1,13 @@
 # SmartUp ERP — Task Tracker
 
+## Current: PDF and Excel Report Downloads (2026-07-01)
+
+- [/] Plan and analyze PDF and Excel export libraries
+- [ ] Implement Excel generation and cell styling in `DiagnosisExamsReport.tsx`
+- [ ] Implement PDF generation and auto-table styling in `DiagnosisExamsReport.tsx`
+- [ ] Replace CSV button with a dropdown selecting Excel/PDF
+- [ ] Verify build correctness and deploy to production
+
 ## Current: Diagnosis Exam Report Enhancements (2026-07-01)
 
 - [x] Plan and analyze branch filtering and level score extraction
