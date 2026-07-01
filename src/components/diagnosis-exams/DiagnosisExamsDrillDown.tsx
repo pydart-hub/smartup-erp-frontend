@@ -104,6 +104,56 @@ export function DiagnosisExamsDrillDown({
     }
   };
 
+  const renderScoreBadge = (attempt: AttemptWithPublishing) => {
+    if (!attempt) return <span className="text-text-tertiary">—</span>;
+    const isSubmitted = attempt.status === "submitted" || attempt.status === "auto_submitted";
+
+    if (isSubmitted) {
+      return (
+        <span
+          className={`rounded-lg px-2 py-0.5 text-[11px] font-bold ${
+            attempt.percentage >= 80
+              ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600"
+              : attempt.percentage >= 50
+              ? "bg-amber-50 dark:bg-amber-500/10 text-amber-600"
+              : "bg-rose-50 dark:bg-rose-500/10 text-rose-600"
+          }`}
+        >
+          {attempt.scoreObtained} / {attempt.totalMarks} ({attempt.percentage}%)
+        </span>
+      );
+    }
+
+    // In-progress live score calculation
+    try {
+      const questions: any[] = typeof attempt.paperSnapshotJson === "string"
+        ? JSON.parse(attempt.paperSnapshotJson)
+        : attempt.paperSnapshotJson;
+      const answers = attempt.answers || [];
+      const answerMap = new Map(answers.map((a: any) => [a.questionId, a.selectedOption]));
+
+      let score = 0;
+      questions.forEach((q: any) => {
+        const ans = answerMap.get(q.id);
+        if (ans && ans === q.correctOption) {
+          score += q.marks || 1;
+        }
+      });
+      const pct = attempt.totalMarks > 0 ? Math.round((score / attempt.totalMarks) * 100) : 0;
+      return (
+        <span
+          className="rounded-lg px-2 py-0.5 text-[11px] bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 font-bold"
+          title="Live score of in-progress exam"
+        >
+          {score} / {attempt.totalMarks} ({pct}%)
+        </span>
+      );
+    } catch (e) {
+      console.error("Error rendering score badge:", e);
+      return <span className="text-text-tertiary">—</span>;
+    }
+  };
+
   const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [expandedStudentKeys, setExpandedStudentKeys] = useState<Record<string, boolean>>({});
@@ -514,6 +564,7 @@ export function DiagnosisExamsDrillDown({
                       <th className="py-4 px-6">Phone</th>
                       <th className="py-4 px-6 text-center">Attempts</th>
                       <th className="py-4 px-6">Subjects</th>
+                      <th className="py-4 px-6 text-center">Latest Score</th>
                       <th className="py-4 px-6">Last Attempt</th>
                       <th className="py-4 px-6 text-center">Actions</th>
                     </tr>
@@ -573,6 +624,9 @@ export function DiagnosisExamsDrillDown({
                                 </span>
                               </div>
                             </td>
+                            <td className="py-4 px-6 text-center">
+                              {renderScoreBadge(latestAttempt)}
+                            </td>
                             <td className="py-4 px-6 text-xs text-text-tertiary">
                               {latestAttempt ? (
                                 <div className="flex items-center gap-1">
@@ -599,7 +653,7 @@ export function DiagnosisExamsDrillDown({
                           {/* Expanded Attempt History Details */}
                           {isExpanded && (
                             <tr className="bg-slate-50/40 dark:bg-slate-900/10">
-                              <td colSpan={7} className="py-4 px-8 border-t border-b border-slate-100 dark:border-slate-800">
+                              <td colSpan={8} className="py-4 px-8 border-t border-b border-slate-100 dark:border-slate-800">
                                 <div className="rounded-2xl border border-slate-200/50 dark:border-slate-800/80 bg-white dark:bg-slate-950/30 p-4 space-y-3 shadow-inner">
                                   <p className="text-xs font-bold text-text-tertiary uppercase tracking-wider flex items-center gap-1.5">
                                     <Activity className="w-3.5 h-3.5 text-[#5f2ea8]" />
@@ -626,30 +680,6 @@ export function DiagnosisExamsDrillDown({
                                             (attempt.resultSnapshotJson && (typeof attempt.resultSnapshotJson === "object" ? (attempt.resultSnapshotJson as any).diagnosedLevel : JSON.parse(attempt.resultSnapshotJson).diagnosedLevel)) ||
                                             calculateDiagnosedLevel(attempt.classLevel, attempt.paperSnapshotJson, attempt.resultSnapshotJson)
                                           ) : null;
-
-                                          let inProgressScore = 0;
-                                          let inProgressPercentage = 0;
-                                          if (!isSubmitted) {
-                                            try {
-                                              const questions: any[] = typeof attempt.paperSnapshotJson === "string"
-                                                ? JSON.parse(attempt.paperSnapshotJson)
-                                                : attempt.paperSnapshotJson;
-                                              const answers = attempt.answers || [];
-                                              const answerMap = new Map(answers.map((a: any) => [a.questionId, a.selectedOption]));
-
-                                              questions.forEach((q: any) => {
-                                                const ans = answerMap.get(q.id);
-                                                if (ans && ans === q.correctOption) {
-                                                  inProgressScore += q.marks || 1;
-                                                }
-                                              });
-                                              inProgressPercentage = attempt.totalMarks > 0
-                                                ? Math.round((inProgressScore / attempt.totalMarks) * 100)
-                                                : 0;
-                                            } catch (e) {
-                                              console.error("Error calculating live score:", e);
-                                            }
-                                          }
 
                                           return (
                                             <tr key={attempt.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20">
@@ -678,26 +708,7 @@ export function DiagnosisExamsDrillDown({
                                                 </span>
                                               </td>
                                               <td className="py-3 px-4 text-center font-bold text-text-primary">
-                                                {isSubmitted ? (
-                                                  <span
-                                                    className={`rounded-lg px-2 py-0.5 text-[11px] ${
-                                                      attempt.percentage >= 80
-                                                        ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600"
-                                                        : attempt.percentage >= 50
-                                                        ? "bg-amber-50 dark:bg-amber-500/10 text-amber-600"
-                                                        : "bg-rose-50 dark:bg-rose-500/10 text-rose-600"
-                                                    }`}
-                                                  >
-                                                    {attempt.scoreObtained} / {attempt.totalMarks} ({attempt.percentage}%)
-                                                  </span>
-                                                ) : (
-                                                  <span
-                                                    className="rounded-lg px-2 py-0.5 text-[11px] bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400"
-                                                    title="Live score of in-progress exam"
-                                                  >
-                                                    {inProgressScore} / {attempt.totalMarks} ({inProgressPercentage}%)
-                                                  </span>
-                                                )}
+                                                {renderScoreBadge(attempt)}
                                               </td>
                                               <td className="py-3 px-4 text-center font-bold text-text-primary">
                                                 {isSubmitted ? (
