@@ -25,9 +25,10 @@ import {
 interface DiagnosisExamsReportProps {
   attempts: AttemptWithPublishing[];
   title: string;
+  restrictToBranch?: string;
 }
 
-export function DiagnosisExamsReport({ attempts, title }: DiagnosisExamsReportProps) {
+export function DiagnosisExamsReport({ attempts, title, restrictToBranch }: DiagnosisExamsReportProps) {
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedBranch, setSelectedBranch] = useState<string>("all");
@@ -342,21 +343,23 @@ export function DiagnosisExamsReport({ attempts, title }: DiagnosisExamsReportPr
               </div>
 
               {/* Branch Filter */}
-              <div className="relative shrink-0">
-                <select
-                  value={selectedBranch}
-                  onChange={(e) => setSelectedBranch(e.target.value)}
-                  className="w-full sm:w-auto pl-4 pr-10 py-2.5 rounded-2xl bg-white dark:bg-[#0E1526] border border-slate-200 dark:border-slate-800 text-xs font-semibold text-text-secondary focus:ring-1 focus:ring-[#5f2ea8] outline-none transition-all cursor-pointer appearance-none min-w-[150px] h-[38px] leading-tight"
-                >
-                  <option value="all">All Branches</option>
-                  {uniqueBranches.map((br) => (
-                    <option key={br} value={br}>
-                      {br.replace("Smart Up ", "").replace("SmartUp ", "")}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary pointer-events-none" />
-              </div>
+              {!restrictToBranch && (
+                <div className="relative shrink-0">
+                  <select
+                    value={selectedBranch}
+                    onChange={(e) => setSelectedBranch(e.target.value)}
+                    className="w-full sm:w-auto pl-4 pr-10 py-2.5 rounded-2xl bg-white dark:bg-[#0E1526] border border-slate-200 dark:border-slate-800 text-xs font-semibold text-text-secondary focus:ring-1 focus:ring-[#5f2ea8] outline-none transition-all cursor-pointer appearance-none min-w-[150px] h-[38px] leading-tight"
+                  >
+                    <option value="all">All Branches</option>
+                    {uniqueBranches.map((br) => (
+                      <option key={br} value={br}>
+                        {br.replace("Smart Up ", "").replace("SmartUp ", "")}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary pointer-events-none" />
+                </div>
+              )}
 
               {/* Export Button Dropdown */}
               <div className="relative shrink-0">

@@ -37,12 +37,14 @@ interface DiagnosisExamsDrillDownProps {
   attempts: AttemptWithPublishing[];
   detailUrlPrefix: string;
   title: string;
+  restrictToBranch?: string;
 }
 
 export function DiagnosisExamsDrillDown({
   attempts,
   detailUrlPrefix,
   title,
+  restrictToBranch,
 }: DiagnosisExamsDrillDownProps) {
   const router = useRouter();
   const [localAttempts, setLocalAttempts] = useState<AttemptWithPublishing[]>(attempts);
@@ -129,6 +131,14 @@ export function DiagnosisExamsDrillDown({
     );
   };
 
+  const resolvedBranch = React.useMemo(() => {
+    if (!restrictToBranch) return null;
+    const clean = (s: string) => s.replace(/[\s\-_]/g, "").toLowerCase();
+    const cleanedRestrict = clean(restrictToBranch);
+    const found = attempts.find((a) => clean(a.studentBranch || "") === cleanedRestrict);
+    return found?.studentBranch || restrictToBranch;
+  }, [attempts, restrictToBranch]);
+
   const [selectedStudentForSummary, setSelectedStudentForSummary] = useState<{
     key: string;
     studentName: string;
@@ -138,7 +148,14 @@ export function DiagnosisExamsDrillDown({
     attempts: AttemptWithPublishing[];
   } | null>(null);
 
-  const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
+  const [selectedBranch, setSelectedBranch] = useState<string | null>(resolvedBranch);
+
+  React.useEffect(() => {
+    if (resolvedBranch) {
+      setSelectedBranch(resolvedBranch);
+    }
+  }, [resolvedBranch]);
+
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [expandedStudentKeys, setExpandedStudentKeys] = useState<Record<string, boolean>>({});
 
@@ -369,15 +386,21 @@ export function DiagnosisExamsDrillDown({
 
       {/* Breadcrumb Navigation */}
       <div className="flex items-center flex-wrap gap-2 text-sm font-semibold text-text-secondary bg-white/60 dark:bg-[#0E1526]/60 border border-slate-200/50 rounded-2xl px-4 py-3 w-fit shadow-sm backdrop-blur">
-        <button
-          onClick={() => {
-            setSelectedBranch(null);
-            setSelectedClass(null);
-          }}
-          className={`hover:text-primary transition-colors ${!selectedBranch ? "text-primary font-bold" : ""}`}
-        >
-          All Branches
-        </button>
+        {!restrictToBranch ? (
+          <button
+            onClick={() => {
+              setSelectedBranch(null);
+              setSelectedClass(null);
+            }}
+            className={`hover:text-primary transition-colors ${!selectedBranch ? "text-primary font-bold" : ""}`}
+          >
+            All Branches
+          </button>
+        ) : (
+          <span className="text-text-secondary font-bold">
+            {resolvedBranch}
+          </span>
+        )}
 
         {selectedBranch && (
           <>
@@ -455,15 +478,17 @@ export function DiagnosisExamsDrillDown({
       {selectedBranch && !selectedClass && (
         <section className="space-y-4">
           <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setSelectedBranch(null)}
-              className="rounded-xl"
-            >
-              <ArrowLeft className="w-4 h-4 mr-1" />
-              <span>Back</span>
-            </Button>
+            {!restrictToBranch && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedBranch(null)}
+                className="rounded-xl"
+              >
+                <ArrowLeft className="w-4 h-4 mr-1" />
+                <span>Back</span>
+              </Button>
+            )}
             <h2 className="text-xl font-bold text-text-primary tracking-tight">
               Classes in {selectedBranch}
             </h2>

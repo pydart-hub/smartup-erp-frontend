@@ -119,7 +119,17 @@ export const BRANCH_MANAGER_NAV: NavItem[] = [
   { label: "Teachers", href: "/dashboard/branch-manager/teachers", icon: "UserCheck", emoji: "👨‍🏫" },
   { label: "Fees", href: "/dashboard/branch-manager/fees", icon: "IndianRupee", emoji: "💰" },
   { label: "Exams", href: "/dashboard/branch-manager/exams", icon: "ClipboardList", emoji: "📝" },
-  { label: "Diagnosis Exam", href: "/dashboard/branch-manager/level-exams", icon: "Microscope", emoji: "🔬" },
+  { label: "Level Exam", href: "/dashboard/branch-manager/level-exams", icon: "BookOpen", emoji: "📘" },
+  {
+    label: "Diagnosis Exam",
+    href: "/dashboard/branch-manager/diagnosis-exams",
+    icon: "Microscope",
+    emoji: "🔬",
+    children: [
+      { label: "Overview", href: "/dashboard/branch-manager/diagnosis-exams", icon: "LayoutDashboard", emoji: "📊" },
+      { label: "Report", href: "/dashboard/branch-manager/diagnosis-exams/report", icon: "FileSpreadsheet", emoji: "📄" },
+    ],
+  },
   {
     label: "Academics",
     href: "/dashboard/branch-manager/academics",
@@ -128,7 +138,7 @@ export const BRANCH_MANAGER_NAV: NavItem[] = [
     children: [
       { label: "Attendance Report", href: "/dashboard/branch-manager/attendance/report", icon: "ClipboardCheck", emoji: "✅" },
       { label: "Exam Analytics", href: "/dashboard/branch-manager/exams/analytics", icon: "Trophy", emoji: "🏆" },
-      { label: "Diagnosis Exam", href: "/dashboard/branch-manager/level-exams", icon: "Microscope", emoji: "🔬" },
+      { label: "Level Exam", href: "/dashboard/branch-manager/level-exams", icon: "BookOpen", emoji: "📘" },
       { label: "Student Performance", href: "/dashboard/branch-manager/student-performance", icon: "TrendingUp", emoji: "📊" },
     ],
   },
