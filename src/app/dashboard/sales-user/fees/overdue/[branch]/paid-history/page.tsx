@@ -172,7 +172,6 @@ export default function PaidHistoryPage() {
                       </div>
                     </div>
 
-                    {!(claim.latest_followup?.payment_received === 1 || claim.latest_followup?.call_status === "Already Paid") && (
                     <button
                       onClick={() => {
                         setDrawerStudent({ student_id: claim.student_id, student_name: claim.student_name, branch });
@@ -188,7 +187,6 @@ export default function PaidHistoryPage() {
                       <PhoneCall className="h-3 w-3" />
                       Claim Conversion
                     </button>
-                    )}
                   </div>
                 </CardContent>
               </Card>

@@ -117,6 +117,13 @@ model ExamAttempt {
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
   answers            AttemptAnswer[]
+
+  @@index([studentPhone])
+  @@index([publishingId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([publishingId, status])
+  @@index([studentPhone, createdAt])
 }
 
 // 8. Individual Question Answers (Atomic autosave database writes)

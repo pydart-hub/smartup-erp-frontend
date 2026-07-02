@@ -141,6 +141,10 @@ export async function GET(request: NextRequest) {
     let promised_count = 0;
     let converted_count = 0;
     let paid_amount = 0;
+    let branch_converted_count = 0;
+    let branch_paid_amount = 0;
+    let branch_conversions_breakdown: { branch: string; converted_count: number; paid_amount: number }[] = [];
+    let user_conversions_breakdown: { branch: string; converted_count: number; paid_amount: number }[] = [];
     let pending_followups = 0;
 
     const uniqueStudents = new Set<string>();
@@ -190,14 +194,11 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // ── Converted count + paid amount ──
-    // Fetch ALL payment_received=1 logs for this user (no date filter — all-time).
-    // This matches the Director's definition: payment_received field = 1 only.
-    // We deduplicate per student (one conversion per student, using the EARLIEST paid log
-    // so amount_received reflects the first collected payment, not a later re-call).
+    // ── Converted counts + paid amounts ──
+    // Fetch ALL payment_received=1 logs for the assigned branches (all-time).
+    // This allows us to calculate both Branch-wide conversions and User-specific conversions in one query.
     {
       const allTimeFilters: any[][] = [
-        ["Fee Follow Up", "called_by", "=", session.email],
         ["Fee Follow Up", "payment_received", "=", 1],
       ];
       // Scope to allowed branches (same branch scoping as main query)
@@ -211,10 +212,10 @@ export async function GET(request: NextRequest) {
 
       try {
         const paidQs = new URLSearchParams({
-          fields: JSON.stringify(["student", "amount_received", "call_date"]),
+          fields: JSON.stringify(["student", "amount_received", "call_date", "called_by", "branch"]),
           filters: JSON.stringify(allTimeFilters),
           limit_page_length: "1000",
-          order_by: "call_date asc",  // earliest first → first payment per student
+          order_by: "call_date asc",
         });
         const paidRes = await fetch(
           `${FRAPPE_URL}/api/resource/${encodeURIComponent("Fee Follow Up")}?${paidQs}`,
@@ -222,21 +223,65 @@ export async function GET(request: NextRequest) {
         );
         if (paidRes.ok) {
           const paidData = await paidRes.json();
-          const paidLogs: { student: string; amount_received?: number }[] = paidData.data ?? [];
-          // Deduplicate: first paid log per student (earliest call_date)
-          const firstPaidByStudent = new Map<string, number>();
+          const paidLogs: { student: string; amount_received?: number; called_by?: string; branch?: string }[] = paidData.data ?? [];
+
+          // Branch-wide calculations & breakdowns
+          const branchBreakdown = new Map<string, { branch: string; converted_count: number; paid_amount: number; students: Set<string> }>();
+          const userBreakdown = new Map<string, { branch: string; converted_count: number; paid_amount: number; students: Set<string> }>();
+
+          const branchPaidStudents = new Set<string>();
           for (const log of paidLogs) {
-            if (log.student && !firstPaidByStudent.has(log.student)) {
-              firstPaidByStudent.set(log.student, log.amount_received ?? 0);
+            if (log.student) {
+              branchPaidStudents.add(log.student);
+            }
+            branch_paid_amount += log.amount_received ?? 0;
+
+            const bName = log.branch || "Unknown Branch";
+            if (!branchBreakdown.has(bName)) {
+              branchBreakdown.set(bName, { branch: bName, converted_count: 0, paid_amount: 0, students: new Set() });
+            }
+            const bEntry = branchBreakdown.get(bName)!;
+            if (log.student) bEntry.students.add(log.student);
+            bEntry.paid_amount += log.amount_received ?? 0;
+          }
+          branch_converted_count = branchPaidStudents.size;
+
+          // User-specific calculations (for the current session email) & breakdowns
+          const userPaidStudents = new Set<string>();
+          for (const log of paidLogs) {
+            const isUser = log.called_by?.trim().toLowerCase() === session.email.trim().toLowerCase();
+            if (isUser) {
+              if (log.student) {
+                userPaidStudents.add(log.student);
+              }
+              paid_amount += log.amount_received ?? 0;
+
+              const bName = log.branch || "Unknown Branch";
+              if (!userBreakdown.has(bName)) {
+                userBreakdown.set(bName, { branch: bName, converted_count: 0, paid_amount: 0, students: new Set() });
+              }
+              const uEntry = userBreakdown.get(bName)!;
+              if (log.student) uEntry.students.add(log.student);
+              uEntry.paid_amount += log.amount_received ?? 0;
             }
           }
-          converted_count = firstPaidByStudent.size;
-          for (const amt of firstPaidByStudent.values()) {
-            paid_amount += amt;
-          }
+          converted_count = userPaidStudents.size;
+
+          // Format maps into arrays sorted by collection amount
+          branch_conversions_breakdown = Array.from(branchBreakdown.values()).map(e => ({
+            branch: e.branch,
+            converted_count: e.students.size,
+            paid_amount: e.paid_amount
+          })).sort((a, b) => b.paid_amount - a.paid_amount);
+
+          user_conversions_breakdown = Array.from(userBreakdown.values()).map(e => ({
+            branch: e.branch,
+            converted_count: e.students.size,
+            paid_amount: e.paid_amount
+          })).sort((a, b) => b.paid_amount - a.paid_amount);
         }
-      } catch {
-        // Leave converted_count=0, paid_amount=0 on failure
+      } catch (err) {
+        console.error("Error fetching all-time paid logs:", err);
       }
     }
 
@@ -257,6 +302,10 @@ export async function GET(request: NextRequest) {
         promised_count,
         converted_count,
         paid_amount,
+        branch_converted_count,
+        branch_paid_amount,
+        branch_conversions_breakdown,
+        user_conversions_breakdown,
         pending_followups,
       },
       by_branch: Array.from(byBranch.values()).sort((a, b) => b.calls - a.calls),

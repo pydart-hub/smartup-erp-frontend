@@ -27,6 +27,7 @@ import { formatCurrency } from "@/lib/utils/formatters";
 import { FollowUpDrawer } from "@/components/fees/FollowUpDrawer";
 import { FollowUpBadge } from "@/components/fees/FollowUpBadge";
 import { StudentTransactionHistory } from "@/components/fees/StudentTransactionHistory";
+import { StudentFollowUpHistory } from "@/components/fees/StudentFollowUpHistory";
 import { getBranchFollowUps } from "@/lib/api/followup";
 import type { FollowUpLog } from "@/lib/api/followup";
 import { useAuth } from "@/lib/hooks/useAuth";
@@ -456,6 +457,9 @@ export default function SalesOverdueStudentPage() {
                         <StudentTransactionHistory
                           studentId={student.student_id}
                           branch={branch}
+                        />
+                        <StudentFollowUpHistory
+                          studentId={student.student_id}
                         />
                       </div>
                     </div>

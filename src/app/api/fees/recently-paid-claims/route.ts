@@ -99,11 +99,7 @@ export async function GET(request: NextRequest) {
 
     const [followUpRes, overdueRes, paymentsRes, branchStudentsRes] = await Promise.all([
       frappeGet("resource/Fee Follow Up", {
-        filters: JSON.stringify(
-          roles.includes("Sales User") && session.email
-            ? [["branch", "=", branch], ["called_by", "=", session.email]]
-            : [["branch", "=", branch]]
-        ),
+        filters: JSON.stringify([["branch", "=", branch]]),
         fields: JSON.stringify([
           "name", "student", "student_name", "branch",
           "call_date", "called_by", "call_status",
@@ -235,9 +231,19 @@ export async function GET(request: NextRequest) {
         for (const log of logsForStudent) {
           if (usedLogNames.has(log.name)) continue;
           const logDate = log.call_date?.slice(0, 10) || "";
-          const isAfterPayment = !paymentDate || !logDate || logDate >= paymentDate;
           const isPaymentLog = log.payment_received === 1 || log.call_status === "Already Paid";
-          if (!isAfterPayment || !isPaymentLog) continue;
+          
+          let isDateValid = false;
+          if (!paymentDate || !logDate) {
+            isDateValid = true;
+          } else {
+            const pTime = new Date(paymentDate).getTime();
+            const lTime = new Date(logDate).getTime();
+            const diffDays = (pTime - lTime) / (1000 * 60 * 60 * 24);
+            isDateValid = lTime >= pTime || (diffDays >= 0 && diffDays <= 5);
+          }
+
+          if (!isDateValid || !isPaymentLog) continue;
 
           // Amount match: if log has amount_received, it must be within ₹1 of paid_amount
           const logAmt = log.amount_received ?? 0;
@@ -280,7 +286,20 @@ export async function GET(request: NextRequest) {
       return b.recent_payment.posting_date.localeCompare(a.recent_payment.posting_date);
     });
 
-    return NextResponse.json({ data: rows });
+    // Filter rows for Sales Users to prevent cross-user double-claiming:
+    // 1. Keep if claim_status === "awaiting_claim" (can be claimed by this user).
+    // 2. Keep if claim_status === "claimed" AND it was claimed by the current user (called_by matches session.email).
+    // 3. Exclude if claimed by another user.
+    let filteredRows = rows;
+    if (roles.includes("Sales User") && session.email) {
+      const emailLower = session.email.trim().toLowerCase();
+      filteredRows = rows.filter((row) => {
+        if (row.claim_status === "awaiting_claim") return true;
+        return row.claimed_by_log?.called_by?.trim().toLowerCase() === emailLower;
+      });
+    }
+
+    return NextResponse.json({ data: filteredRows });
   } catch (err) {
     console.error("[fees/recently-paid-claims] Error:", err);
     return NextResponse.json(

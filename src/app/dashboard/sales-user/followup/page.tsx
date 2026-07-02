@@ -96,7 +96,7 @@ export default function SalesUserFollowUpDashboardPage() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 xl:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
             <Card className="border-sky-200/70">
               <CardContent className="p-5">
                 <Phone className="h-5 w-5 text-sky-600 mb-3" />
@@ -106,10 +106,19 @@ export default function SalesUserFollowUpDashboardPage() {
               </CardContent>
             </Card>
 
+            <Card className="border-indigo-200/70">
+              <CardContent className="p-5">
+                <CheckCircle2 className="h-5 w-5 text-indigo-600 mb-3" />
+                <p className="text-xs uppercase tracking-wide text-text-tertiary">Branch Converted</p>
+                <p className="text-3xl font-bold text-text-primary mt-1">{summary.branch_converted_count ?? 0}</p>
+                <p className="text-xs text-indigo-700 mt-1">{formatCurrency(summary.branch_paid_amount ?? 0)} received</p>
+              </CardContent>
+            </Card>
+
             <Card className="border-emerald-200/70">
               <CardContent className="p-5">
                 <CheckCircle2 className="h-5 w-5 text-emerald-600 mb-3" />
-                <p className="text-xs uppercase tracking-wide text-text-tertiary">Converted</p>
+                <p className="text-xs uppercase tracking-wide text-text-tertiary">My Converted</p>
                 <p className="text-3xl font-bold text-text-primary mt-1">{summary.converted_count}</p>
                 <p className="text-xs text-emerald-700 mt-1">{formatCurrency(summary.paid_amount)} received</p>
               </CardContent>

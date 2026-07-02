@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "deploy": "ssh smartup-portal \"bash /var/www/smartup-erp/scripts/deploy.sh\""
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

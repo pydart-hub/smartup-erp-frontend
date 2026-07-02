@@ -45,3 +45,7 @@ next-env.d.ts
 *.tmp
 *.xlsx
 src/data/**/runtime.json.*.tmp
+
+# scratch files
+/scratch/
+

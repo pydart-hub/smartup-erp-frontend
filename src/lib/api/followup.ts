@@ -30,6 +30,12 @@ export interface CreateFollowUpPayload {
   invoice_ref?: string;
 }
 
+export interface BranchConversionBreakdown {
+  branch: string;
+  converted_count: number;
+  paid_amount: number;
+}
+
 export interface SalesUserFollowUpSummary {
   today_calls: number;
   week_calls: number;
@@ -40,6 +46,10 @@ export interface SalesUserFollowUpSummary {
   promised_count: number;
   converted_count: number;
   paid_amount: number;
+  branch_converted_count: number;
+  branch_paid_amount: number;
+  branch_conversions_breakdown: BranchConversionBreakdown[];
+  user_conversions_breakdown: BranchConversionBreakdown[];
   pending_followups: number;
 }
 
