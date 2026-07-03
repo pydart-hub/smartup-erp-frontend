@@ -82,19 +82,41 @@ export function calculateDiagnosedLevel(
 
     const correctMap = new Map(results.questions.map((q) => [q.questionId, q.isCorrect]));
 
-    // Group questions by class level and determine if all questions in that level are correct
-    const levels = Array.from(new Set(paperQuestions.map((q) => q.classLevel)))
+    // Calculate total marks and scored marks for each level
+    const levelStats = new Map<string, { scoredMarks: number; totalMarks: number }>();
+    
+    paperQuestions.forEach((q) => {
+      const lvl = q.classLevel;
+      const stats = levelStats.get(lvl) || { scoredMarks: 0, totalMarks: 0 };
+      stats.totalMarks += q.marks;
+      if (correctMap.get(q.id)) {
+        stats.scoredMarks += q.marks;
+      }
+      levelStats.set(lvl, stats);
+    });
+
+    const levels = Array.from(levelStats.keys())
       .map(lvl => parseInt(lvl, 10))
       .filter(lvl => !isNaN(lvl))
       .sort((a, b) => a - b);
 
+    let minPercentage = Infinity;
+    let diagnosedLvlStr: string | null = null;
+
     for (const lvl of levels) {
       const lvlStr = String(lvl);
-      const lvlQuestions = paperQuestions.filter((q) => q.classLevel === lvlStr);
-      const hasFailure = lvlQuestions.some((q) => !correctMap.get(q.id));
-      if (hasFailure) {
-        return getOrdinalSuffix(lvlStr);
+      const stats = levelStats.get(lvlStr);
+      if (stats && stats.totalMarks > 0) {
+        const pct = (stats.scoredMarks / stats.totalMarks) * 100;
+        if (pct < minPercentage) {
+          minPercentage = pct;
+          diagnosedLvlStr = lvlStr;
+        }
       }
+    }
+
+    if (diagnosedLvlStr !== null) {
+      return getOrdinalSuffix(diagnosedLvlStr);
     }
 
     return getOrdinalSuffix(attemptClassLevel);
@@ -195,21 +217,41 @@ export function gradeAttempt(
   let diagnosedLevel: string | undefined = undefined;
   if (targetClassLevel) {
     const correctMap = new Map(gradedQuestions.map((q) => [q.questionId, q.isCorrect]));
-    const levels = Array.from(new Set(questions.map((q) => q.classLevel)))
+    const levelStats = new Map<string, { scoredMarks: number; totalMarks: number }>();
+
+    questions.forEach((q) => {
+      const lvl = q.classLevel;
+      const stats = levelStats.get(lvl) || { scoredMarks: 0, totalMarks: 0 };
+      stats.totalMarks += q.marks;
+      if (correctMap.get(q.id)) {
+        stats.scoredMarks += q.marks;
+      }
+      levelStats.set(lvl, stats);
+    });
+
+    const levels = Array.from(levelStats.keys())
       .map(lvl => parseInt(lvl, 10))
       .filter(lvl => !isNaN(lvl))
       .sort((a, b) => a - b);
 
+    let minPercentage = Infinity;
+    let minLvlStr: string | null = null;
+
     for (const lvl of levels) {
       const lvlStr = String(lvl);
-      const lvlQuestions = questions.filter((q) => q.classLevel === lvlStr);
-      const hasFailure = lvlQuestions.some((q) => !correctMap.get(q.id));
-      if (hasFailure) {
-        diagnosedLevel = getOrdinalSuffix(lvlStr);
-        break;
+      const stats = levelStats.get(lvlStr);
+      if (stats && stats.totalMarks > 0) {
+        const pct = (stats.scoredMarks / stats.totalMarks) * 100;
+        if (pct < minPercentage) {
+          minPercentage = pct;
+          minLvlStr = lvlStr;
+        }
       }
     }
-    if (!diagnosedLevel) {
+
+    if (minLvlStr !== null) {
+      diagnosedLevel = getOrdinalSuffix(minLvlStr);
+    } else {
       diagnosedLevel = getOrdinalSuffix(targetClassLevel);
     }
   }

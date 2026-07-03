@@ -91,6 +91,16 @@ export default function SalesUserStudentsPage() {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
+  const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
+  const [hasInitializedBranch, setHasInitializedBranch] = useState(false);
+
+  // Initialize selectedBranch to defaultCompany once it is available
+  useEffect(() => {
+    if (defaultCompany && !hasInitializedBranch) {
+      setSelectedBranch(defaultCompany);
+      setHasInitializedBranch(true);
+    }
+  }, [defaultCompany, hasInitializedBranch]);
 
   // Debounce search input
   useEffect(() => {
@@ -100,7 +110,7 @@ export default function SalesUserStudentsPage() {
 
   // ── Students list (active only, branch-scoped) ───────────
   const { data: studentsRes, isLoading, isError, error } = useQuery({
-    queryKey: ["sales-students", search, page, allowedCompanies],
+    queryKey: ["sales-students", search, page, allowedCompanies, selectedBranch],
     queryFn: () =>
       getStudents({
         search: search || undefined,
@@ -108,9 +118,11 @@ export default function SalesUserStudentsPage() {
         limit_start: page * PAGE_SIZE,
         limit_page_length: PAGE_SIZE,
         order_by: "creation desc",
-        extraFilters: allowedCompanies && allowedCompanies.length > 0
-          ? [["custom_branch", "in", allowedCompanies]]
-          : undefined,
+        extraFilters: selectedBranch
+          ? [["custom_branch", "=", selectedBranch]]
+          : (allowedCompanies && allowedCompanies.length > 0
+              ? [["custom_branch", "in", allowedCompanies]]
+              : undefined),
       }),
     staleTime: 30_000,
   });
@@ -172,6 +184,7 @@ export default function SalesUserStudentsPage() {
           {filteredBranches.map((branch, i) => {
             const count = branchCounts[i];
             const isOwn = branch.name === defaultCompany;
+            const isSelected = selectedBranch === branch.name;
             const shortName = branch.name.replace("Smart Up ", "").replace("Smart Up", "HQ");
             return (
               <motion.div
@@ -179,18 +192,38 @@ export default function SalesUserStudentsPage() {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.04 }}
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  setSelectedBranch((prev) => (prev === branch.name ? null : branch.name));
+                  setPage(0);
+                }}
+                className="cursor-pointer"
               >
-                <Card className={isOwn ? "ring-2 ring-primary ring-offset-1" : ""}>
+                <Card
+                  className={`transition-all duration-200 ${
+                    isSelected
+                      ? "ring-2 ring-primary ring-offset-1 bg-primary/5 border-primary/30"
+                      : "hover:border-primary/30 hover:shadow-md border-border-light"
+                  }`}
+                >
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <div className="w-8 h-8 rounded-[8px] bg-brand-wash flex items-center justify-center flex-shrink-0">
                         <Building2 className="h-4 w-4 text-primary" />
                       </div>
-                      {isOwn && (
-                        <span className="text-[10px] font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full leading-none">
-                          Mine
-                        </span>
-                      )}
+                      <div className="flex gap-1.5 flex-wrap items-center">
+                        {isOwn && (
+                          <span className="text-[10px] font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full leading-none">
+                            Mine
+                          </span>
+                        )}
+                        {isSelected && (
+                          <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded-full leading-none">
+                            Active
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <p className="text-xl font-bold text-text-primary tabular-nums">
                       {count == null ? <Loader2 className="h-4 w-4 animate-spin text-text-tertiary" /> : count}

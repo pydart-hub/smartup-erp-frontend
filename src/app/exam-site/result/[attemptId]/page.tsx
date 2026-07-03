@@ -267,7 +267,7 @@ export default async function ResultPage({ params }: PageProps) {
     return <div className="min-h-screen bg-app-bg flex items-center justify-center text-text-secondary">Results processing error. Please contact your coordinator.</div>;
   }
 
-  const diagnosedLevel = results.diagnosedLevel || calculateDiagnosedLevel(hydratedAttempt.classLevel, hydratedAttempt.paperSnapshotJson, hydratedAttempt.resultSnapshotJson);
+  const diagnosedLevel = calculateDiagnosedLevel(hydratedAttempt.classLevel, hydratedAttempt.paperSnapshotJson, hydratedAttempt.resultSnapshotJson) || results.diagnosedLevel;
 
   const insight = buildInsight({
     studentName: hydratedAttempt.studentName,

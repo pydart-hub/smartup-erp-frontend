@@ -65,6 +65,9 @@ export interface StudentsBranchRow {
   male: number;
   female: number;
   newThisMonth: number;
+  basic: number;
+  intermediate: number;
+  advanced: number;
 }
 
 export interface StudentsClassRow {
@@ -76,6 +79,9 @@ export interface StudentsClassRow {
   male: number;
   female: number;
   newThisMonth: number;
+  basic: number;
+  intermediate: number;
+  advanced: number;
 }
 
 export interface StudentsBranchDetailRow {

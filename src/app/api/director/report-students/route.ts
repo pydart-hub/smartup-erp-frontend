@@ -88,6 +88,31 @@ async function getAllBranchesSummary() {
     [],
   );
 
+  // Fetch program enrollments to resolve student plan types
+  const enrollments = await frappeGet(
+    "Program Enrollment",
+    ["student", "custom_plan", "docstatus", "enrollment_date"],
+    [],
+    "enrollment_date desc",
+  );
+
+  enrollments.sort((a, b) => {
+    const statusA = Number(a.docstatus ?? 0);
+    const statusB = Number(b.docstatus ?? 0);
+    const prio = (status: number) => (status === 1 ? 0 : status === 0 ? 1 : 2);
+    if (prio(statusA) !== prio(statusB)) return prio(statusA) - prio(statusB);
+    return String(b.enrollment_date ?? "").localeCompare(String(a.enrollment_date ?? ""));
+  });
+
+  const studentPlanMap = new Map<string, string>();
+  for (const e of enrollments) {
+    const student = String(e.student);
+    const plan = String(e.custom_plan ?? "").trim();
+    if (student && plan && !studentPlanMap.has(student)) {
+      studentPlanMap.set(student, plan);
+    }
+  }
+
   const monthStart = thisMonthStart();
 
   return branches.map((branch) => {
@@ -98,6 +123,18 @@ async function getAllBranchesSummary() {
     const female = bs.filter((s) => String(s.gender).toLowerCase() === "female").length;
     const newThisMonth = bs.filter((s) => String(s.joining_date ?? "") >= monthStart).length;
 
+    // Count plan types for ACTIVE students in this branch
+    const activeStudentsInBranch = bs.filter((s) => Number(s.enabled) === 1);
+    let basic = 0;
+    let intermediate = 0;
+    let advanced = 0;
+    for (const s of activeStudentsInBranch) {
+      const plan = studentPlanMap.get(String(s.name)) ?? "";
+      if (plan.toLowerCase() === "basic") basic++;
+      else if (plan.toLowerCase() === "intermediate") intermediate++;
+      else if (plan.toLowerCase() === "advanced") advanced++;
+    }
+
     return {
       branch,
       totalStudents: bs.length,
@@ -107,6 +144,9 @@ async function getAllBranchesSummary() {
       male,
       female,
       newThisMonth,
+      basic,
+      intermediate,
+      advanced,
     };
   });
 }
@@ -127,11 +167,21 @@ async function getBranchDetail(branch: string) {
   if (studentNames.length > 0) {
     allEnrollments = await frappeGet(
       "Program Enrollment",
-      ["student", "program"],
-      [["docstatus", "!=", 2]],
+      ["student", "program", "docstatus", "enrollment_date"],
+      [],
       "enrollment_date desc",
     );
   }
+
+  // Sort enrollments: active (1) first, draft (0) second, canceled (2) third
+  allEnrollments.sort((a, b) => {
+    const statusA = Number(a.docstatus ?? 0);
+    const statusB = Number(b.docstatus ?? 0);
+    const prio = (status: number) => (status === 1 ? 0 : status === 0 ? 1 : 2);
+    if (prio(statusA) !== prio(statusB)) return prio(statusA) - prio(statusB);
+    return String(b.enrollment_date ?? "").localeCompare(String(a.enrollment_date ?? ""));
+  });
+
   const enrollments = allEnrollments.filter((e) => studentSet.has(String(e.student)));
 
   const studentProgram = new Map<string, string>();
@@ -188,16 +238,26 @@ async function getAllClassesSummary() {
   if (studentNames.length > 0) {
     enrollments = await frappeGet(
       "Program Enrollment",
-      ["student", "program"],
-      [["docstatus", "!=", 2]],
+      ["student", "program", "custom_plan", "docstatus", "enrollment_date"],
+      [],
       "enrollment_date desc",
     );
   }
 
+  enrollments.sort((a, b) => {
+    const statusA = Number(a.docstatus ?? 0);
+    const statusB = Number(b.docstatus ?? 0);
+    const prio = (status: number) => (status === 1 ? 0 : status === 0 ? 1 : 2);
+    if (prio(statusA) !== prio(statusB)) return prio(statusA) - prio(statusB);
+    return String(b.enrollment_date ?? "").localeCompare(String(a.enrollment_date ?? ""));
+  });
+
   const studentProgram = new Map<string, string>();
+  const studentPlan = new Map<string, string>();
   for (const e of enrollments) {
     const sid = String(e.student);
     if (!studentProgram.has(sid)) studentProgram.set(sid, String(e.program));
+    if (!studentPlan.has(sid)) studentPlan.set(sid, String(e.custom_plan ?? ""));
   }
 
   const monthStart = thisMonthStart();
@@ -219,6 +279,18 @@ async function getAllClassesSummary() {
       const female = studs.filter((s) => String(s.gender).toLowerCase() === "female").length;
       const newThisMonth = studs.filter((s) => String(s.joining_date ?? "") >= monthStart).length;
 
+      // Count plan types for ACTIVE students in this program (class)
+      const activeStudentsInClass = studs.filter((s) => Number(s.enabled) === 1);
+      let basic = 0;
+      let intermediate = 0;
+      let advanced = 0;
+      for (const s of activeStudentsInClass) {
+        const plan = studentPlan.get(String(s.name)) ?? "";
+        if (plan.toLowerCase() === "basic") basic++;
+        else if (plan.toLowerCase() === "intermediate") intermediate++;
+        else if (plan.toLowerCase() === "advanced") advanced++;
+      }
+
       return {
         program,
         totalStudents: studs.length,
@@ -228,6 +300,9 @@ async function getAllClassesSummary() {
         male,
         female,
         newThisMonth,
+        basic,
+        intermediate,
+        advanced,
       };
     })
     .sort((a, b) => b.totalStudents - a.totalStudents);
@@ -247,11 +322,19 @@ async function getClassDetail(program: string) {
   if (studentNames.length > 0) {
     enrollments = await frappeGet(
       "Program Enrollment",
-      ["student", "program"],
-      [["docstatus", "!=", 2]],
+      ["student", "program", "docstatus", "enrollment_date"],
+      [],
       "enrollment_date desc",
     );
   }
+
+  enrollments.sort((a, b) => {
+    const statusA = Number(a.docstatus ?? 0);
+    const statusB = Number(b.docstatus ?? 0);
+    const prio = (status: number) => (status === 1 ? 0 : status === 0 ? 1 : 2);
+    if (prio(statusA) !== prio(statusB)) return prio(statusA) - prio(statusB);
+    return String(b.enrollment_date ?? "").localeCompare(String(a.enrollment_date ?? ""));
+  });
 
   const studentProgram = new Map<string, string>();
   for (const e of enrollments) {

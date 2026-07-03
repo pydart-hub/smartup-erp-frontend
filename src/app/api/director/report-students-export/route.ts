@@ -32,6 +32,9 @@ const branchSummaryCols: ReportColumn[] = [
   { key: "totalStudents", header: "Total", width: 12 },
   { key: "active", header: "Active", width: 12 },
   { key: "discontinued", header: "Discontinued", width: 14 },
+  { key: "basic", header: "Basic", width: 12 },
+  { key: "intermediate", header: "Intermediate", width: 16 },
+  { key: "advanced", header: "Advanced", width: 12 },
   { key: "male", header: "Male", width: 10 },
   { key: "female", header: "Female", width: 10 },
   { key: "newThisMonth", header: "New This Month", width: 16 },
@@ -42,7 +45,9 @@ const classSummaryCols: ReportColumn[] = [
   { key: "totalStudents", header: "Total", width: 12 },
   { key: "active", header: "Active", width: 12 },
   { key: "discontinued", header: "Discontinued", width: 14 },
-  { key: "branchCount", header: "Branches", width: 12 },
+  { key: "basic", header: "Basic", width: 12 },
+  { key: "intermediate", header: "Intermediate", width: 16 },
+  { key: "advanced", header: "Advanced", width: 12 },
   { key: "male", header: "Male", width: 10 },
   { key: "female", header: "Female", width: 10 },
   { key: "newThisMonth", header: "New This Month", width: 16 },
@@ -107,7 +112,7 @@ export async function POST(request: NextRequest) {
       rows = addTotalRow(
         data as Record<string, unknown>[],
         "branch",
-        ["totalStudents", "active", "discontinued", "male", "female", "newThisMonth"],
+        ["totalStudents", "active", "discontinued", "basic", "intermediate", "advanced", "male", "female", "newThisMonth"],
       );
       label = "All_Branches";
     } else if (mode === "branch" && detail) {
@@ -120,7 +125,7 @@ export async function POST(request: NextRequest) {
       rows = addTotalRow(
         data as Record<string, unknown>[],
         "program",
-        ["totalStudents", "active", "discontinued", "male", "female", "newThisMonth"],
+        ["totalStudents", "active", "discontinued", "basic", "intermediate", "advanced", "male", "female", "newThisMonth"],
       );
       label = "All_Classes";
     } else if (mode === "class" && detail) {

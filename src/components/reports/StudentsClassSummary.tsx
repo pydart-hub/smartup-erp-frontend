@@ -46,11 +46,14 @@ export function StudentsClassSummary({ onSelect }: Props) {
       totalStudents: acc.totalStudents + r.totalStudents,
       active: acc.active + r.active,
       discontinued: acc.discontinued + r.discontinued,
+      basic: acc.basic + r.basic,
+      intermediate: acc.intermediate + r.intermediate,
+      advanced: acc.advanced + r.advanced,
       male: acc.male + r.male,
       female: acc.female + r.female,
       newThisMonth: acc.newThisMonth + r.newThisMonth,
     }),
-    { totalStudents: 0, active: 0, discontinued: 0, male: 0, female: 0, newThisMonth: 0 },
+    { totalStudents: 0, active: 0, discontinued: 0, basic: 0, intermediate: 0, advanced: 0, male: 0, female: 0, newThisMonth: 0 },
   );
 
   const handleExport = async (format: "xlsx" | "csv") => {
@@ -111,7 +114,9 @@ export function StudentsClassSummary({ onSelect }: Props) {
               <th className="px-3 py-2.5 text-right text-xs font-semibold text-text-secondary uppercase tracking-wider">Total</th>
               <th className="px-3 py-2.5 text-right text-xs font-semibold text-text-secondary uppercase tracking-wider">Active</th>
               <th className="px-3 py-2.5 text-right text-xs font-semibold text-text-secondary uppercase tracking-wider">Discontinued</th>
-              <th className="px-3 py-2.5 text-right text-xs font-semibold text-text-secondary uppercase tracking-wider">Branches</th>
+              <th className="px-3 py-2.5 text-right text-xs font-semibold text-text-secondary uppercase tracking-wider">Basic</th>
+              <th className="px-3 py-2.5 text-right text-xs font-semibold text-text-secondary uppercase tracking-wider">Intermediate</th>
+              <th className="px-3 py-2.5 text-right text-xs font-semibold text-text-secondary uppercase tracking-wider">Advanced</th>
               <th className="px-3 py-2.5 text-right text-xs font-semibold text-text-secondary uppercase tracking-wider">Male</th>
               <th className="px-3 py-2.5 text-right text-xs font-semibold text-text-secondary uppercase tracking-wider">Female</th>
               <th className="px-3 py-2.5 text-right text-xs font-semibold text-text-secondary uppercase tracking-wider">New This Month</th>
@@ -125,7 +130,9 @@ export function StudentsClassSummary({ onSelect }: Props) {
                 <td className="px-3 py-2 text-right text-text-primary">{row.totalStudents}</td>
                 <td className="px-3 py-2 text-right text-success">{row.active}</td>
                 <td className="px-3 py-2 text-right text-error">{row.discontinued}</td>
-                <td className="px-3 py-2 text-right text-text-primary">{row.branchCount}</td>
+                <td className="px-3 py-2 text-right text-text-primary">{row.basic}</td>
+                <td className="px-3 py-2 text-right text-text-primary">{row.intermediate}</td>
+                <td className="px-3 py-2 text-right text-text-primary">{row.advanced}</td>
                 <td className="px-3 py-2 text-right text-text-primary">{row.male}</td>
                 <td className="px-3 py-2 text-right text-text-primary">{row.female}</td>
                 <td className="px-3 py-2 text-right text-info">{row.newThisMonth}</td>
@@ -140,7 +147,9 @@ export function StudentsClassSummary({ onSelect }: Props) {
                 <td className="px-3 py-2.5 text-right text-text-primary">{totals.totalStudents}</td>
                 <td className="px-3 py-2.5 text-right text-success">{totals.active}</td>
                 <td className="px-3 py-2.5 text-right text-error">{totals.discontinued}</td>
-                <td className="px-3 py-2.5 text-right text-text-primary">—</td>
+                <td className="px-3 py-2.5 text-right text-text-primary">{totals.basic}</td>
+                <td className="px-3 py-2.5 text-right text-text-primary">{totals.intermediate}</td>
+                <td className="px-3 py-2.5 text-right text-text-primary">{totals.advanced}</td>
                 <td className="px-3 py-2.5 text-right text-text-primary">{totals.male}</td>
                 <td className="px-3 py-2.5 text-right text-text-primary">{totals.female}</td>
                 <td className="px-3 py-2.5 text-right text-info">{totals.newThisMonth}</td>

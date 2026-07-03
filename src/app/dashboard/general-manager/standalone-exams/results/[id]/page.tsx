@@ -53,7 +53,7 @@ export default async function StudentResultDetailPage({ params }: PageProps) {
 
   const { aiSummary } = results;
 
-  const diagnosedLevel = results.diagnosedLevel || calculateDiagnosedLevel(attempt.classLevel, attempt.paperSnapshotJson, attempt.resultSnapshotJson);
+  const diagnosedLevel = calculateDiagnosedLevel(attempt.classLevel, attempt.paperSnapshotJson, attempt.resultSnapshotJson) || results.diagnosedLevel;
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6 text-slate-800">

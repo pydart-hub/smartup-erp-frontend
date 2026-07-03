@@ -19,6 +19,8 @@
 - [x] Plan and analyze branch filtering and level score extraction
 - [x] Modify `diagnostics.ts` helper to extract correct/total questions count per level
 - [x] Implement branch filter dropdown, unattempted state, and scores under badge in `DiagnosisExamsReport.tsx`
+- [x] Update attempt breakdown in `src/lib/public-exam/diagnostics.ts`
+- [x] Update `getAttemptLevelBreakdown` to group questions, compute marks-based percentages, and mark the level with the minimum percentage as the diagnosed level.
 - [x] Verify build correctness via typescript compilation
 
 ### Review

@@ -67,13 +67,17 @@ export function getAttemptLevelBreakdown(attempt: AttemptWithPublishing) {
     }
 
     // Group questions by classLevel
-    const levelsMap = new Map<string, { correct: number; total: number }>();
+    // Group questions by classLevel
+    const levelsMap = new Map<string, { correct: number; total: number; scoredMarks: number; totalMarks: number }>();
     questions.forEach((q) => {
       const lvl = q.classLevel;
-      const stats = levelsMap.get(lvl) || { correct: 0, total: 0 };
+      const stats = levelsMap.get(lvl) || { correct: 0, total: 0, scoredMarks: 0, totalMarks: 0 };
+      const qMarks = q.marks ?? 1;
       stats.total += 1;
+      stats.totalMarks += qMarks;
       if (correctMap.get(q.id)) {
         stats.correct += 1;
+        stats.scoredMarks += qMarks;
       }
       levelsMap.set(lvl, stats);
     });
@@ -83,19 +87,24 @@ export function getAttemptLevelBreakdown(attempt: AttemptWithPublishing) {
       .filter((lvl) => !isNaN(lvl))
       .sort((a, b) => a - b);
 
-    let firstFailedLvlStr: string | null = null;
+    let minPercentage = Infinity;
+    let leastPctLvlStr: string | null = null;
+
     const breakdown = levelCodes.map((lvl) => {
       const lvlStr = String(lvl);
       const stats = levelsMap.get(lvlStr)!;
-      const isPassed = stats.correct === stats.total;
-      if (!isPassed && firstFailedLvlStr === null) {
-        firstFailedLvlStr = lvlStr;
+      const pct = stats.totalMarks > 0 ? (stats.scoredMarks / stats.totalMarks) * 100 : 0;
+
+      if (pct < minPercentage) {
+        minPercentage = pct;
+        leastPctLvlStr = lvlStr;
       }
+
       return {
         level: lvlStr,
         correctCount: stats.correct,
         totalCount: stats.total,
-        isPassed,
+        isPassed: stats.correct === stats.total,
         isDiagnosedLevel: false,
       };
     });
@@ -104,10 +113,10 @@ export function getAttemptLevelBreakdown(attempt: AttemptWithPublishing) {
     let diagnosedLevelStr: string | null = null;
     let diagnosedCorrect: number | null = null;
     let diagnosedTotal: number | null = null;
-    if (firstFailedLvlStr !== null) {
-      diagnosedLevelStr = getOrdinalSuffix(firstFailedLvlStr);
+    if (leastPctLvlStr !== null) {
+      diagnosedLevelStr = getOrdinalSuffix(leastPctLvlStr);
       breakdown.forEach((item) => {
-        if (item.level === firstFailedLvlStr) {
+        if (item.level === leastPctLvlStr) {
           item.isDiagnosedLevel = true;
           diagnosedCorrect = item.correctCount;
           diagnosedTotal = item.totalCount;

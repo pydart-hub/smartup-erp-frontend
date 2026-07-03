@@ -103,8 +103,8 @@ export default async function ResultsDashboardPage() {
                 {attempts.map((item) => {
                   const isSubmitted = item.status === "submitted" || item.status === "auto_submitted";
                   const diagnosedLevel = isSubmitted ? (
-                    (item.resultSnapshotJson && (typeof item.resultSnapshotJson === "object" ? (item.resultSnapshotJson as any).diagnosedLevel : JSON.parse(item.resultSnapshotJson as string).diagnosedLevel)) ||
-                    calculateDiagnosedLevel(item.classLevel, item.paperSnapshotJson, item.resultSnapshotJson)
+                    calculateDiagnosedLevel(item.classLevel, item.paperSnapshotJson, item.resultSnapshotJson) ||
+                    (item.resultSnapshotJson && (typeof item.resultSnapshotJson === "object" ? (item.resultSnapshotJson as any).diagnosedLevel : JSON.parse(item.resultSnapshotJson as string).diagnosedLevel))
                   ) : null;
                   return (
                     <tr key={item.id} className="hover:bg-slate-50/80 transition-colors duration-150">

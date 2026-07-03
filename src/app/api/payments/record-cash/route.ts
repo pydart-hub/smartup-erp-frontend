@@ -79,9 +79,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const userApiKey = authResult.api_key;
+    const userApiSecret = authResult.api_secret;
+    const useUserToken = !!(userApiKey && userApiSecret);
+
     const headers = {
       "Content-Type": "application/json",
-      Authorization: `token ${API_KEY}:${API_SECRET}`,
+      Authorization: useUserToken
+        ? `token ${userApiKey}:${userApiSecret}`
+        : `token ${API_KEY}:${API_SECRET}`,
     };
 
     // ── Check if student is discontinued ──

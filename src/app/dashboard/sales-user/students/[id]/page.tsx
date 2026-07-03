@@ -1,18 +1,21 @@
 "use client";
 
-import React from "react";
+import React, { useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, User, School, Users, Phone, Mail,
   Calendar, Hash, Building2, AlertCircle, Loader2, IndianRupee, FileText,
-  Clock, CreditCard, MapPin, GraduationCap,
+  Clock, CreditCard, MapPin, GraduationCap, Banknote, X,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { toast } from "sonner";
 import { getStudent } from "@/lib/api/students";
 import apiClient from "@/lib/api/client";
 import { selectPrimarySalesOrder, sortSalesOrdersForDisplay } from "@/lib/utils/salesOrderSelection";
@@ -56,6 +59,7 @@ export default function SalesUserStudentDetailPage() {
   const { id: rawId } = useParams<{ id: string }>();
   const id = decodeURIComponent(rawId);
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   // ── Student data ──────────────────────────────────────────
   const { data: studentRes, isLoading, isError } = useQuery({
@@ -64,6 +68,66 @@ export default function SalesUserStudentDetailPage() {
     staleTime: 60_000,
   });
   const student = studentRes?.data;
+ 
+   // ── Payment states ─────────────────────────────────────────
+   const [paymentInvoice, setPaymentInvoice] = useState<any | null>(null);
+   const [payAmount, setPayAmount] = useState<string>("");
+   const [payMode, setPayMode] = useState<"Cash" | "UPI" | "Bank Transfer" | "Cheque">("Cash");
+   const [payRef, setPayRef] = useState<string>("");
+ 
+   const todayDate = useMemo(() => {
+     const d = new Date();
+     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+   }, []);
+   const yesterdayDate = useMemo(() => {
+     const d = new Date();
+     d.setDate(d.getDate() - 1);
+     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+   }, []);
+   const [payDate, setPayDate] = useState<string>(todayDate);
+ 
+   const openPaymentModal = (inv: any) => {
+     setPaymentInvoice(inv);
+     setPayAmount(String(inv.outstanding_amount));
+     setPayMode("Cash");
+     setPayRef("");
+     setPayDate(todayDate);
+   };
+ 
+   const closePaymentModal = () => {
+     setPaymentInvoice(null);
+   };
+ 
+   const paymentMutation = useMutation({
+     mutationFn: async () => {
+       if (!paymentInvoice) throw new Error("No invoice selected");
+       const res = await fetch("/api/payments/record-cash", {
+         method: "POST",
+         headers: { "Content-Type": "application/json" },
+         body: JSON.stringify({
+           invoice_id: paymentInvoice.name,
+           amount: Number(payAmount),
+           mode_of_payment: payMode,
+           posting_date: payDate,
+           reference_no: payRef || undefined,
+         }),
+       });
+       if (!res.ok) {
+         const err = await res.json().catch(() => ({}));
+         throw new Error(err.error || "Failed to record payment");
+       }
+       return res.json();
+     },
+     onSuccess: (data: any) => {
+       toast.success(`Payment recorded: ${data.payment_entry}`);
+       closePaymentModal();
+       queryClient.invalidateQueries({ queryKey: ["student-invoices", student?.customer] });
+       queryClient.invalidateQueries({ queryKey: ["student-sales-orders", student?.customer] });
+     },
+     onError: (err: any) => {
+       toast.error(err.message);
+     },
+   });
 
   // ── Latest program enrollment ─────────────────────────────
   const { data: enrollmentRes } = useQuery({
@@ -379,6 +443,7 @@ export default function SalesUserStudentDetailPage() {
                       <th className="text-right pb-2 font-semibold text-text-secondary text-xs">Amount</th>
                       <th className="text-right pb-2 font-semibold text-text-secondary text-xs">Outstanding</th>
                       <th className="text-right pb-2 font-semibold text-text-secondary text-xs">Status</th>
+                      <th className="text-right pb-2 font-semibold text-text-secondary text-xs pr-2">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -409,6 +474,18 @@ export default function SalesUserStudentDetailPage() {
                             <Badge variant={isPaid ? "success" : isOverdue ? "error" : "warning"}>
                               {isPaid ? "Paid" : isOverdue ? "Overdue" : "Pending"}
                             </Badge>
+                          </td>
+                          <td className="py-2 text-right">
+                            {!isPaid && !isDiscontinued && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openPaymentModal(inv)}
+                                className="h-7 px-2 text-xs ml-auto flex items-center gap-1"
+                              >
+                                <Banknote className="h-3.5 w-3.5" /> Pay
+                              </Button>
+                            )}
                           </td>
                         </tr>
                       );
@@ -453,6 +530,110 @@ export default function SalesUserStudentDetailPage() {
             </div>
           </CardContent>
         </Card>
+      )}
+      {/* Record Payment Dialog */}
+      {paymentInvoice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="w-full max-w-md bg-surface rounded-2xl border border-border-light shadow-2xl p-6 relative overflow-hidden"
+          >
+            <button
+              onClick={closePaymentModal}
+              className="absolute top-4 right-4 text-text-tertiary hover:text-text-secondary transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="flex items-center gap-2 mb-4">
+              <span className="p-2 rounded-lg bg-primary-light text-primary">
+                <Banknote className="h-5 w-5" />
+              </span>
+              <h3 className="text-lg font-semibold text-text-primary">Record Offline Payment</h3>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <p className="text-xs text-text-tertiary">Invoice ID</p>
+                <p className="text-sm font-mono font-semibold text-text-primary">{paymentInvoice.name}</p>
+              </div>
+
+              <Input
+                label="Amount to Pay (INR)"
+                type="number"
+                value={payAmount}
+                onChange={(e) => setPayAmount(e.target.value)}
+                min={1}
+                max={paymentInvoice.outstanding_amount}
+                step="0.01"
+              />
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-text-secondary">Payment Method</label>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {(["Cash", "UPI", "Bank Transfer", "Cheque"] as const).map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => { setPayMode(m); if (m === "Cash") setPayRef(""); }}
+                      className={`px-2 py-2.5 text-xs font-medium rounded-xl border transition-all ${
+                        payMode === m
+                          ? "border-primary bg-primary/5 text-primary"
+                          : "border-border-light bg-surface text-text-secondary hover:border-primary/40"
+                      }`}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Input
+                  label={payMode === "Cash" ? "Receipt number (optional)" : payMode === "UPI" ? "UTR Number" : payMode === "Cheque" ? "Cheque Number" : "Transaction Reference"}
+                  placeholder={payMode === "Cash" ? "Receipt number (optional)" : payMode === "UPI" ? "UTR Number" : payMode === "Cheque" ? "Cheque Number" : "Transaction Reference"}
+                  value={payRef}
+                  onChange={(e) => setPayRef(e.target.value)}
+                />
+                {payMode !== "Cash" && !payRef.trim() && (
+                  <p className="text-xs text-error">Required for {payMode} payments</p>
+                )}
+              </div>
+
+              <Input
+                label="Payment Date"
+                type="date"
+                value={payDate}
+                onChange={(e) => setPayDate(e.target.value)}
+                min={yesterdayDate}
+                max={todayDate}
+              />
+              <p className="text-xs text-text-tertiary">
+                Only today and yesterday are allowed.
+              </p>
+
+              <div className="flex gap-3 mt-2">
+                <Button variant="outline" size="md" onClick={closePaymentModal} className="flex-1">
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  size="md"
+                  className="flex-1"
+                  disabled={paymentMutation.isPending || !payAmount || Number(payAmount) <= 0 || Number(payAmount) > paymentInvoice.outstanding_amount || (payMode !== "Cash" && !payRef.trim())}
+                  onClick={() => paymentMutation.mutate()}
+                >
+                  {paymentMutation.isPending ? (
+                    <><Loader2 className="h-4 w-4 animate-spin" /> Recording...</>
+                  ) : (
+                    <><Banknote className="h-4 w-4" /> Record ₹{Number(payAmount || 0).toLocaleString("en-IN")}</>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
       )}
     </motion.div>
   );
