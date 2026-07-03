@@ -79,15 +79,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const userApiKey = authResult.api_key;
-    const userApiSecret = authResult.api_secret;
-    const useUserToken = !!(userApiKey && userApiSecret);
-
     const headers = {
       "Content-Type": "application/json",
-      Authorization: useUserToken
-        ? `token ${userApiKey}:${userApiSecret}`
-        : `token ${API_KEY}:${API_SECRET}`,
+      Authorization: `token ${API_KEY}:${API_SECRET}`,
     };
 
     // ── Check if student is discontinued ──
@@ -168,6 +162,9 @@ export async function POST(request: NextRequest) {
     mappedPE.received_amount = amount;
     mappedPE.remarks = `${mode_of_payment} payment recorded by ${email} on ${posting_date}.${reference_no ? ` Ref: ${reference_no}` : ""}`;
 
+    mappedPE.owner = email;
+    mappedPE.modified_by = email;
+
     // ── Resolve correct "Account Paid To" from Mode of Payment mapping ──
     if (company) {
       const resolved = await resolveAccountPaidTo(mode_of_payment, company, FRAPPE_URL!, `token ${API_KEY}:${API_SECRET}`);
@@ -206,6 +203,26 @@ export async function POST(request: NextRequest) {
 
     const insertData = await insertRes.json();
     const paymentEntryName = insertData.data?.name;
+
+    // Post comment documenting who marked this payment
+    if (paymentEntryName) {
+      try {
+        await fetch(`${FRAPPE_URL}/api/resource/Comment`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            comment_type: "Comment",
+            reference_doctype: "Payment Entry",
+            reference_name: paymentEntryName,
+            content: `Payment recorded via SmartUp portal by ${email}`,
+            comment_email: email,
+            comment_by: email,
+          }),
+        });
+      } catch (commentErr) {
+        console.error("[record-cash] Failed to post comment on Payment Entry:", commentErr);
+      }
+    }
 
     // 4. Submit the Payment Entry
     if (paymentEntryName) {
