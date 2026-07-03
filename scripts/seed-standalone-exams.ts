@@ -46,6 +46,12 @@ async function main() {
       create: { code: item.code, name: item.name },
     });
 
+    // Deactivate all existing questions for this subject before seeding the new list
+    await prisma.question.updateMany({
+      where: { subjectCode: item.code },
+      data: { isActive: false },
+    });
+
     const raw = fs.readFileSync(filePath, "utf8");
     const doc = JSON.parse(raw);
 
