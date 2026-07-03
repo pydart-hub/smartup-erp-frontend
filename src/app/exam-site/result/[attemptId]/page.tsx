@@ -4,6 +4,7 @@ import Link from "next/link";
 import { db } from "@/lib/public-exam/db";
 import { finalizeExpiredAttemptIfNeeded } from "@/lib/public-exam/attempts";
 import {
+  Activity,
   ArrowRight,
   Award,
   BookOpen,
@@ -19,6 +20,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { GradeResult, QuestionSnapshot, calculateDiagnosedLevel } from "@/lib/public-exam/grading";
+import { getAttemptLevelBreakdown } from "@/lib/public-exam/diagnostics";
 import { PrintButton } from "@/components/public-exam/PrintButton";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { NextExamButton } from "@/components/public-exam/NextExamButton";
@@ -223,7 +225,11 @@ export default async function ResultPage({ params }: PageProps) {
   const hydratedAttempt = await db.examAttempt.findUnique({
     where: { id: attemptId },
     include: {
-      publishing: { select: { title: true } },
+      publishing: {
+        include: {
+          subject: true,
+        },
+      },
       answers: true,
     },
   });
@@ -268,6 +274,8 @@ export default async function ResultPage({ params }: PageProps) {
   }
 
   const diagnosedLevel = calculateDiagnosedLevel(hydratedAttempt.classLevel, hydratedAttempt.paperSnapshotJson, hydratedAttempt.resultSnapshotJson) || results.diagnosedLevel;
+
+  const { breakdown } = getAttemptLevelBreakdown(hydratedAttempt as any);
 
   const insight = buildInsight({
     studentName: hydratedAttempt.studentName,
@@ -314,23 +322,90 @@ export default async function ResultPage({ params }: PageProps) {
         <section className="no-print mb-5 grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
           <div className="rounded-[28px] border border-border-light bg-surface p-4 shadow-card sm:p-5">
             <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_230px]">
-              <div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/8 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.22em] text-primary">
-                  <Brain className="h-3.5 w-3.5" />
-                  Question Based Insight
+              <div className="flex flex-col justify-between">
+                <div>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/8 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.22em] text-primary">
+                    <Brain className="h-3.5 w-3.5" />
+                    Question Based Insight
+                  </div>
+                  <h2 className="mt-4 max-w-3xl text-3xl font-black leading-tight text-text-primary">{insight.headline}</h2>
+                  <p className="mt-4 max-w-2xl text-sm leading-7 text-text-secondary">{insight.overview}</p>
                 </div>
-                <h2 className="mt-4 max-w-3xl text-3xl font-black leading-tight text-text-primary">{insight.headline}</h2>
-                <p className="mt-4 max-w-2xl text-sm leading-7 text-text-secondary">{insight.overview}</p>
+
+                {/* Level-wise MCQ Analysis */}
+                <div className="mt-6 border-t border-border-light pt-5">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-text-tertiary mb-3 flex items-center gap-1.5">
+                    <Activity className="w-4 h-4 text-primary" />
+                    <span>Level-wise MCQ Analysis</span>
+                  </h3>
+                  {breakdown.length === 0 ? (
+                    <p className="text-xs text-text-tertiary italic">
+                      Diagnostics unavailable.
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {breakdown.map((item) => {
+                        let badgeColorClass = "bg-slate-50 text-slate-700 border border-slate-200/50 dark:bg-slate-900/10 dark:text-slate-400 dark:border-slate-800";
+                        let suffix = "";
+
+                        if (item.isPassed) {
+                          badgeColorClass = "bg-success-light text-success border border-success/15";
+                          suffix = " (Passed) ✅";
+                        } else if (item.isDiagnosedLevel) {
+                          badgeColorClass = "bg-violet-50 dark:bg-violet-500/10 text-[#5f2ea8] border border-[#5f2ea8]/20 font-black shadow-sm shadow-[#5f2ea8]/5 ring-1 ring-[#5f2ea8]/20";
+                          suffix = " (Diagnosed Level) 🎯";
+                        } else {
+                          badgeColorClass = "bg-error-light text-error border border-error/15";
+                          suffix = " (Failed) ❌";
+                        }
+
+                        return (
+                          <div
+                            key={item.level}
+                            className={`p-2.5 rounded-xl text-center flex flex-col justify-center items-center gap-1 text-xs font-semibold ${badgeColorClass}`}
+                          >
+                            <span className="text-[9px] uppercase font-bold tracking-wider opacity-70">
+                              Class {item.level} Questions
+                            </span>
+                            <span className="text-sm font-black">
+                              {item.correctCount} / {item.totalCount}
+                            </span>
+                            <span className="text-[8px] font-black opacity-80 uppercase tracking-widest leading-none">
+                              {suffix}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <div className="grid gap-3 grid-cols-2 sm:grid-cols-5 xl:grid-cols-2">
+              <div className="grid gap-3 grid-cols-2 sm:grid-cols-4 xl:grid-cols-2">
                 <MetricCard icon={<Sparkles className="h-4 w-4 text-primary" />} label="Score" value={`${results.percentage}%`} helper={`${results.scoreObtained} / ${results.totalMarks} marks`} />
                 {diagnosedLevel && (
                   <MetricCard icon={<Brain className="h-4 w-4 text-[#5f2ea8]" />} label="Student Level" value={diagnosedLevel} helper="Diagnosed capability level" />
                 )}
-                <MetricCard icon={<Target className="h-4 w-4 text-warning" />} label="Priority" value={shortenText(insight.priorityTopic ?? "General revision", 26)} helper="Primary revision area" />
-                <MetricCard icon={<CheckCircle2 className="h-4 w-4 text-success" />} label="Correct" value={String(hydratedAttempt.correctCount)} helper="Strong answers" />
-                <MetricCard icon={<XCircle className="h-4 w-4 text-error" />} label="Incorrect" value={String(hydratedAttempt.wrongCount)} helper="Needs review" />
+                
+                {/* Correct card (smaller) */}
+                <div className="rounded-2xl border border-border-light bg-app-bg p-3.5 flex flex-col justify-between col-span-1">
+                  <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.2em] text-text-tertiary">
+                    <CheckCircle2 className="h-4 w-4 text-success" />
+                    <span>Correct</span>
+                  </div>
+                  <div className="mt-2 text-2xl font-black text-success leading-none">{hydratedAttempt.correctCount}</div>
+                  <div className="mt-1.5 text-[10px] text-text-secondary leading-none">Strong answers</div>
+                </div>
+
+                {/* Incorrect card (smaller) */}
+                <div className="rounded-2xl border border-border-light bg-app-bg p-3.5 flex flex-col justify-between col-span-1">
+                  <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.2em] text-text-tertiary">
+                    <XCircle className="h-4 w-4 text-error" />
+                    <span>Incorrect</span>
+                  </div>
+                  <div className="mt-2 text-2xl font-black text-error leading-none">{hydratedAttempt.wrongCount}</div>
+                  <div className="mt-1.5 text-[10px] text-text-secondary leading-none font-medium">Needs review</div>
+                </div>
               </div>
             </div>
           </div>
@@ -505,6 +580,36 @@ export default async function ResultPage({ params }: PageProps) {
                 <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Headline</div>
                 <p className="mt-2 text-base font-bold leading-7">{insight.headline}</p>
                 <p className="mt-2 text-sm leading-6 text-slate-600">{insight.overview}</p>
+              </div>
+
+              {/* Level-wise MCQ Analysis (Print Friendly) */}
+              <div className="mt-4 rounded-[16px] border border-slate-300 p-4">
+                <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Level-wise MCQ Analysis</div>
+                <div className="mt-3 grid grid-cols-3 gap-2">
+                  {breakdown.map((item) => {
+                    let badgeColorClass = "bg-slate-50 text-slate-700 border border-slate-200";
+                    let suffix = "";
+
+                    if (item.isPassed) {
+                      badgeColorClass = "bg-emerald-50 text-emerald-800 border border-emerald-200";
+                      suffix = " (Passed) ✅";
+                    } else if (item.isDiagnosedLevel) {
+                      badgeColorClass = "bg-violet-50 text-[#5f2ea8] border border-[#5f2ea8]/30 font-bold";
+                      suffix = " (Diagnosed Level) 🎯";
+                    } else {
+                      badgeColorClass = "bg-rose-50 text-rose-800 border border-rose-200";
+                      suffix = " (Failed) ❌";
+                    }
+
+                    return (
+                      <div key={item.level} className={`p-2 rounded-[10px] text-center flex flex-col justify-center items-center gap-0.5 text-xs font-semibold ${badgeColorClass}`}>
+                        <span className="text-[8px] uppercase font-bold tracking-wider opacity-85">Class {item.level} Questions</span>
+                        <span className="text-sm font-black">{item.correctCount} / {item.totalCount}</span>
+                        <span className="text-[8px] font-bold uppercase tracking-wider">{suffix}</span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
 
               <div className="mt-4 grid gap-4 grid-cols-2">
