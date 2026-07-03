@@ -99,6 +99,11 @@ async function main() {
           },
         });
 
+        // Clear existing options for this question to prevent stale options
+        await prisma.questionOption.deleteMany({
+          where: { questionId: qRecord.id },
+        });
+
         // Upsert Options
         for (let i = 0; i < options.length; i++) {
           const option = options[i];
