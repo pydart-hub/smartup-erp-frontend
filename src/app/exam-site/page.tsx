@@ -304,7 +304,7 @@ export default function ExamSiteLandingPage() {
         </section>
 
         <section className="order-2 lg:order-2 [perspective:1800px] space-y-4">
-          <div className="relative mx-auto max-w-[620px] overflow-hidden rounded-[28px] border border-[#eee4ff] bg-white/88 p-4 shadow-[0_16px_42px_rgba(93,53,213,0.08)] backdrop-blur-2xl transition duration-500 hover:-translate-y-1 hover:[transform:rotateX(1.5deg)_rotateY(-2deg)_translateY(-4px)] hover:shadow-[0_24px_58px_rgba(93,53,213,0.12)] dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.04))] dark:shadow-[0_22px_56px_rgba(0,0,0,0.3)] sm:p-5 lg:ml-auto lg:p-6 [transform-style:preserve-3d]">
+          <div className="relative mx-auto max-w-[620px] overflow-hidden rounded-[28px] border border-[#eee4ff] bg-white/88 p-4 shadow-[0_16px_42px_rgba(93,53,213,0.08)] backdrop-blur-2xl transition duration-500 hover:-translate-y-1 hover:[transform:rotateX(1.5deg)_rotateY(-2deg)_translateY(-4px)] hover:shadow-[0_24px_58px_rgba(93,53,213,0.12)] dark:border-white/[0.12] dark:bg-[#1a1530] dark:shadow-[0_22px_56px_rgba(0,0,0,0.5)] sm:p-5 lg:ml-auto lg:p-6 [transform-style:preserve-3d]">
             <div className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-[radial-gradient(circle_at_top,rgba(103,58,183,0.12),transparent_72%)] dark:bg-[radial-gradient(circle_at_top,rgba(126,87,194,0.16),transparent_72%)]" />
             <div className="pointer-events-none absolute -right-10 top-10 h-28 w-28 rounded-full bg-[radial-gradient(circle,rgba(103,58,183,0.14),transparent_70%)] blur-2xl animate-[pulseGlow_6s_ease-in-out_infinite]" />
 
@@ -321,7 +321,7 @@ export default function ExamSiteLandingPage() {
 
             <form onSubmit={handleStartExam} className="relative space-y-4">
               {hasSavedDetails ? (
-                <div className="relative overflow-hidden rounded-[20px] border border-primary/20 bg-primary/5 p-4 text-sm backdrop-blur dark:border-white/10 dark:bg-white/[0.04]">
+                <div className="relative overflow-hidden rounded-[20px] border border-primary/20 bg-primary/5 p-4 text-sm backdrop-blur dark:border-[#7e57c2]/40 dark:bg-[#2a2445]">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#673ab7] dark:text-[#9575cd]">Registered Student</div>
@@ -342,15 +342,15 @@ export default function ExamSiteLandingPage() {
               ) : (
                 <>
                   <InputField icon={<User className="h-[18px] w-[18px]" />}>
-                    <input type="text" required value={studentName} onChange={(e) => setStudentName(e.target.value)} placeholder="Full Name" className="h-13 w-full rounded-[18px] border border-[#e9deff] bg-white/92 px-12 pr-4 text-[15px] text-slate-900 outline-none transition duration-300 placeholder:text-slate-400 hover:border-[#d7c5ff] focus:border-[#673ab7] focus:shadow-[0_0_0_4px_rgba(103,58,183,0.08),0_14px_24px_rgba(103,58,183,0.08)] dark:border-white/10 dark:bg-white/[0.05] dark:text-white dark:placeholder:text-slate-500 dark:hover:border-white/15" />
+                    <input type="text" required value={studentName} onChange={(e) => setStudentName(e.target.value)} placeholder="Full Name" className="h-13 w-full rounded-[18px] border border-[#e9deff] bg-white/92 px-12 pr-4 text-[15px] text-slate-900 outline-none transition duration-300 placeholder:text-slate-400 hover:border-[#d7c5ff] focus:border-[#673ab7] focus:shadow-[0_0_0_4px_rgba(103,58,183,0.08),0_14px_24px_rgba(103,58,183,0.08)] dark:border-white/[0.12] dark:bg-[#221d38] dark:text-white dark:placeholder:text-slate-500 dark:hover:border-white/25 dark:focus:border-[#7e57c2]" />
                   </InputField>
 
                   <InputField icon={<WalletCards className="h-[18px] w-[18px]" />}>
-                    <select required value={studentBranch} onChange={(e) => setStudentBranch(e.target.value)} className="h-13 w-full appearance-none rounded-[18px] border border-[#e9deff] bg-white/92 px-12 pr-12 text-[15px] text-slate-900 outline-none transition duration-300 hover:border-[#d7c5ff] focus:border-[#673ab7] focus:shadow-[0_0_0_4px_rgba(103,58,183,0.08),0_14px_24px_rgba(103,58,183,0.08)] dark:border-white/10 dark:bg-white/[0.05] dark:text-white dark:hover:border-white/15">
-                      <option value="" disabled>Select Your Branch</option>
-                      {BRANCHES.map((branch) => <option key={branch} value={branch}>{branch}</option>)}
+                    <select required value={studentBranch} onChange={(e) => setStudentBranch(e.target.value)} className="h-13 w-full appearance-none rounded-[18px] border border-[#e9deff] bg-white/92 px-12 pr-12 text-[15px] text-slate-900 outline-none transition duration-300 hover:border-[#d7c5ff] focus:border-[#673ab7] focus:shadow-[0_0_0_4px_rgba(103,58,183,0.08),0_14px_24px_rgba(103,58,183,0.08)] dark:border-white/[0.12] dark:bg-[#221d38] dark:text-white dark:hover:border-white/25 dark:focus:border-[#7e57c2] [&>option]:dark:bg-[#1e1a30] [&>option]:dark:text-white">
+                      <option value="" disabled className="dark:bg-[#1e1a30] dark:text-slate-400">Select Your Branch</option>
+                      {BRANCHES.map((branch) => <option key={branch} value={branch} className="dark:bg-[#1e1a30] dark:text-white">{branch}</option>)}
                     </select>
-                    <ChevronDown className="pointer-events-none absolute right-5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8d79b4] dark:text-slate-500" />
+                    <ChevronDown className="pointer-events-none absolute right-5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8d79b4] dark:text-slate-400" />
                   </InputField>
 
                   <InputField icon={<Phone className="h-[18px] w-[18px]" />}>
@@ -362,30 +362,30 @@ export default function ExamSiteLandingPage() {
                       placeholder="Phone Number"
                       inputMode="numeric"
                       maxLength={10}
-                      className="h-13 w-full rounded-[18px] border border-[#e9deff] bg-white/92 px-12 pr-4 text-[15px] text-slate-900 outline-none transition duration-300 placeholder:text-slate-400 hover:border-[#d7c5ff] focus:border-[#673ab7] focus:shadow-[0_0_0_4px_rgba(103,58,183,0.08),0_14px_24px_rgba(103,58,183,0.08)] dark:border-white/10 dark:bg-white/[0.05] dark:text-white dark:placeholder:text-slate-500 dark:hover:border-white/15"
+                      className="h-13 w-full rounded-[18px] border border-[#e9deff] bg-white/92 px-12 pr-4 text-[15px] text-slate-900 outline-none transition duration-300 placeholder:text-slate-400 hover:border-[#d7c5ff] focus:border-[#673ab7] focus:shadow-[0_0_0_4px_rgba(103,58,183,0.08),0_14px_24px_rgba(103,58,183,0.08)] dark:border-white/[0.12] dark:bg-[#221d38] dark:text-white dark:placeholder:text-slate-500 dark:hover:border-white/25 dark:focus:border-[#7e57c2]"
                     />
                   </InputField>
                 </>
               )}
 
               {normalizedPhone.length === 10 ? (
-                <div className="rounded-[20px] border border-[#eee4ff] bg-[#fbf8ff]/92 p-3.5 dark:border-white/10 dark:bg-white/[0.04]">
+                <div className="rounded-[20px] border border-[#eee4ff] bg-[#fbf8ff]/92 p-3.5 dark:border-white/[0.12] dark:bg-[#221d38]">
                   <div className="mb-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.22em] text-[#7e6a9f] dark:text-slate-400">
                     <History className="h-3.5 w-3.5 text-[#673ab7]" />
                     Previous History
                   </div>
                   {fetchingHistory ? (
-                    <div className="rounded-[16px] border border-[#e9deff] bg-white px-4 py-4 text-sm text-slate-500 dark:border-white/10 dark:bg-white/[0.05] dark:text-slate-400">
+                    <div className="rounded-[16px] border border-[#e9deff] bg-white px-4 py-4 text-sm text-slate-500 dark:border-white/[0.12] dark:bg-[#2a2445] dark:text-slate-300">
                       Checking previous attempts...
                     </div>
                   ) : historyItems.length === 0 ? (
-                    <div className="rounded-[16px] border border-[#e9deff] bg-white px-4 py-4 text-sm text-slate-500 dark:border-white/10 dark:bg-white/[0.05] dark:text-slate-400">
+                    <div className="rounded-[16px] border border-[#e9deff] bg-white px-4 py-4 text-sm text-slate-500 dark:border-white/[0.12] dark:bg-[#2a2445] dark:text-slate-300">
                       No previous diagnosis history found for this mobile number.
                     </div>
                   ) : (
                     <div className="space-y-3">
                       {historyItems.map((item) => (
-                        <div key={item.id} className="rounded-[18px] border border-[#e9deff] bg-white p-3.5 dark:border-white/10 dark:bg-white/[0.05]">
+                        <div key={item.id} className="rounded-[18px] border border-[#e9deff] bg-white p-3.5 dark:border-white/[0.12] dark:bg-[#2a2445]">
                           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                             <div>
                               <div className="text-sm font-semibold text-slate-950 dark:text-white">{item.examTitle}</div>
@@ -430,9 +430,9 @@ export default function ExamSiteLandingPage() {
                     {LEVEL_OPTIONS.map((level) => {
                       const active = classLevel === level.value;
                       return (
-                        <button key={level.value} type="button" onClick={() => setClassLevel(level.value)} className={`relative rounded-[20px] border px-3 py-4 text-center transition duration-300 [transform-style:preserve-3d] hover:-translate-y-1 hover:[transform:translateY(-4px)_rotateX(2deg)] ${active ? "border-[#673ab7] bg-[linear-gradient(180deg,rgba(103,58,183,0.08),rgba(103,58,183,0.02))] shadow-[0_14px_24px_rgba(103,58,183,0.1)]" : "border-[#e9deff] bg-white hover:border-[#d7c5ff] hover:shadow-[0_14px_22px_rgba(93,53,213,0.06)] dark:border-white/10 dark:bg-white/[0.05]"}`}>
+                        <button key={level.value} type="button" onClick={() => setClassLevel(level.value)} className={`relative rounded-[20px] border px-3 py-4 text-center transition duration-300 [transform-style:preserve-3d] hover:-translate-y-1 hover:[transform:translateY(-4px)_rotateX(2deg)] ${active ? "border-[#673ab7] bg-[linear-gradient(180deg,rgba(103,58,183,0.18),rgba(103,58,183,0.08))] shadow-[0_14px_24px_rgba(103,58,183,0.2)] dark:border-[#7e57c2] dark:bg-[linear-gradient(180deg,rgba(126,87,194,0.25),rgba(103,58,183,0.15))] dark:shadow-[0_14px_24px_rgba(126,87,194,0.2)]" : "border-[#e9deff] bg-white hover:border-[#d7c5ff] hover:shadow-[0_14px_22px_rgba(93,53,213,0.06)] dark:border-white/[0.12] dark:bg-[#221d38] dark:hover:border-white/25 dark:hover:bg-[#2a2445]"}`}>
                           {active ? <div className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-[#673ab7] text-white shadow-[0_12px_20px_rgba(103,58,183,0.28)] animate-[pulseGlow_4s_ease-in-out_infinite]"><span className="text-xs">?</span></div> : null}
-                          <div className={`mx-auto flex h-10 w-10 items-center justify-center rounded-full ${active ? "bg-[#efe8ff] text-[#673ab7]" : "bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-300"}`}><GraduationCap className="h-5 w-5" /></div>
+                          <div className={`mx-auto flex h-10 w-10 items-center justify-center rounded-full ${active ? "bg-[#efe8ff] text-[#673ab7] dark:bg-[#3d2d80] dark:text-[#c5b0ff]" : "bg-slate-100 text-slate-500 dark:bg-white/[0.08] dark:text-slate-300"}`}><GraduationCap className="h-5 w-5" /></div>
                           <div className="mt-3 text-[15px] font-semibold text-slate-950 dark:text-white">{level.label}</div>
                         </button>
                       );
@@ -442,14 +442,14 @@ export default function ExamSiteLandingPage() {
               )}
 
               {classLevel && (
-                <div className="rounded-[20px] border border-[#eee4ff] bg-[#fbf8ff]/92 p-3.5 dark:border-white/10 dark:bg-white/[0.04]">
-                  <div className="mb-3 text-[11px] font-bold uppercase tracking-[0.22em] text-[#7e6a9f] dark:text-slate-400">Diagnosis Sequence Status</div>
+                <div className="rounded-[20px] border border-[#eee4ff] bg-[#fbf8ff]/92 p-3.5 dark:border-white/[0.12] dark:bg-[#221d38]">
+                  <div className="mb-3 text-[11px] font-bold uppercase tracking-[0.22em] text-[#7e6a9f] dark:text-slate-300">Diagnosis Sequence Status</div>
                   {fetchingExams ? (
-                    <div className="rounded-[16px] border border-[#e9deff] bg-white px-4 py-4 text-center text-sm text-slate-500 dark:border-white/10 dark:bg-white/[0.05] dark:text-slate-400">Checking active exams...</div>
+                    <div className="rounded-[16px] border border-[#e9deff] bg-white px-4 py-4 text-center text-sm text-slate-500 dark:border-white/[0.12] dark:bg-[#2a2445] dark:text-slate-300">Checking active exams...</div>
                   ) : exams.length === 0 ? (
                     <div className="flex gap-3 rounded-[16px] border border-amber-300/40 bg-amber-50 px-4 py-4 text-sm text-amber-700 dark:border-amber-400/20 dark:bg-amber-500/10 dark:text-amber-300"><AlertCircle className="mt-0.5 h-5 w-5 shrink-0" /><span>No active diagnosis exams are available for {LEVEL_OPTIONS.find((item) => item.value === classLevel)?.label} right now.</span></div>
                   ) : nextUnattemptedExam ? (
-                    <div className="rounded-[18px] border border-primary/20 bg-primary/5 p-4 dark:border-white/10 dark:bg-white/[0.04]">
+                    <div className="rounded-[18px] border border-primary/20 bg-primary/5 p-4 dark:border-[#7e57c2]/40 dark:bg-[#2a2445]">
                       <div className="text-xs font-bold uppercase text-[#673ab7] tracking-wider dark:text-[#9575cd]">Up Next</div>
                       <div className="mt-2 text-base font-bold text-slate-950 dark:text-white">{nextUnattemptedExam.subjectName}</div>
                       <div className="mt-1 text-xs leading-6 text-slate-500 dark:text-slate-400">
@@ -460,7 +460,7 @@ export default function ExamSiteLandingPage() {
                       </p>
                     </div>
                   ) : (
-                    <div className="flex gap-3 rounded-[18px] border border-emerald-300/40 bg-emerald-50 px-4 py-4 text-sm text-emerald-700 dark:border-white/10 dark:bg-white/[0.04] dark:text-emerald-300">
+                    <div className="flex gap-3 rounded-[18px] border border-emerald-300/40 bg-emerald-50 px-4 py-4 text-sm text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-300">
                       <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
                       <div>
                         <span className="block font-bold text-emerald-800 dark:text-emerald-400">All Exams Completed!</span>
@@ -472,7 +472,7 @@ export default function ExamSiteLandingPage() {
               )}
 
               {resumeMessage ? (
-                <div className="flex items-start gap-3 rounded-[16px] border border-primary/20 bg-primary/5 px-4 py-3.5 text-sm text-primary dark:border-white/10 dark:bg-white/[0.04] dark:text-[#c8b6ff]">
+                <div className="flex items-start gap-3 rounded-[16px] border border-primary/20 bg-primary/5 px-4 py-3.5 text-sm text-primary dark:border-[#7e57c2]/40 dark:bg-[#2a2445] dark:text-[#c8b6ff]">
                   <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
                   <span>{resumeMessage}</span>
                 </div>
