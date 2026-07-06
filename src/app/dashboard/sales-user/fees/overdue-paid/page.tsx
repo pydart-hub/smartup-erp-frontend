@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
-import { getDuesTodayByBranch, getRecentlyPaidClaims } from "@/lib/api/director";
+import { getRecentlyPaidClaims } from "@/lib/api/director";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { useAuth } from "@/lib/hooks/useAuth";
 
@@ -41,28 +41,41 @@ export default function SalesOverduePaidOverviewPage() {
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["sales-overdue-paid-overview", allowedCompanies],
+    enabled: !!allowedCompanies && allowedCompanies.length > 0,
     queryFn: async (): Promise<BranchPaidHistoryRow[]> => {
-      const branches = await getDuesTodayByBranch();
-      const filtered = branches.filter((b) =>
-        allowedCompanies && allowedCompanies.length > 0 ? allowedCompanies.includes(b.branch) : true
-      );
+      // FIX: Do NOT depend on getDuesTodayByBranch() as the branch source.
+      // That call only returns branches with *currently* overdue students.
+      // A student who paid their dues is no longer in that list — their branch
+      // might not appear at all, so getRecentlyPaidClaims would never be called.
+      //
+      // Instead: call getRecentlyPaidClaims directly for each of the user's
+      // allowed branches. The API handles auth/filtering server-side.
+      const branchList = allowedCompanies ?? [];
+
       const rows = await Promise.all(
-        filtered.map(async (branch) => {
-          const claims = await getRecentlyPaidClaims(branch.branch);
-          const awaitingClaims = claims.filter((claim) => claim.claim_status === "awaiting_claim");
-          return {
-            branch: branch.branch,
-            shortName: branch.branch.replace("Smart Up ", "").replace("Smart Up", "HQ"),
-            overdueStudents: branch.student_count,
-            overdueAmount: branch.total_dues,
-            paidStudentCount: awaitingClaims.length,
-            recentPaidAmount: awaitingClaims.reduce((sum, claim) => sum + (claim.recent_payment.paid_amount || 0), 0),
-          };
+        branchList.map(async (branchName) => {
+          try {
+            const claims = await getRecentlyPaidClaims(branchName);
+            const awaitingClaims = claims.filter((claim) => claim.claim_status === "awaiting_claim");
+            return {
+              branch: branchName,
+              shortName: branchName.replace("Smart Up ", "").replace("Smart Up", "HQ"),
+              overdueStudents: 0,   // enrichment-only; not needed for display
+              overdueAmount: 0,
+              paidStudentCount: awaitingClaims.length,
+              recentPaidAmount: awaitingClaims.reduce(
+                (sum, claim) => sum + (claim.recent_payment.paid_amount || 0),
+                0,
+              ),
+            };
+          } catch {
+            // If one branch fails, don't crash the whole page
+            return null;
+          }
         }),
       );
 
-      return rows
-        .filter((row) => row.paidStudentCount > 0)
+      return (rows.filter((row): row is BranchPaidHistoryRow => row !== null && row.paidStudentCount > 0))
         .sort((a, b) => {
           if (b.paidStudentCount !== a.paidStudentCount) return b.paidStudentCount - a.paidStudentCount;
           return b.recentPaidAmount - a.recentPaidAmount;
