@@ -64,9 +64,11 @@ async function frappeGet(path: string, params: Record<string, string>) {
 }
 
 function isoDaysAgo(days: number): string {
+  // Use IST (UTC+5:30) so payments near midnight aren't missed
   const d = new Date();
-  d.setDate(d.getDate() - days);
-  return d.toISOString().slice(0, 10);
+  const ist = new Date(d.getTime() + 5.5 * 60 * 60 * 1000);
+  ist.setDate(ist.getDate() - days);
+  return ist.toISOString().slice(0, 10);
 }
 
 export async function GET(request: NextRequest) {
@@ -168,15 +170,18 @@ export async function GET(request: NextRequest) {
     // ── Build all payments per student (not just the latest) ──
     // Key: studentId → PaymentEntryRow[]  (sorted desc by posting_date already)
     const allPaymentsByStudent = new Map<string, PaymentEntryRow[]>();
+    let unmatchedPayments = 0;
     for (const pe of (paymentsRes.data ?? []) as PaymentEntryRow[]) {
       const customer = pe.party?.trim();
       if (!customer) continue;
       const student = customerToStudent.get(customer);
       const studentId = student?.name?.trim();
-      if (!studentId) continue;
+      if (!studentId) { unmatchedPayments++; continue; }
       if (!allPaymentsByStudent.has(studentId)) allPaymentsByStudent.set(studentId, []);
       allPaymentsByStudent.get(studentId)!.push(pe);
     }
+    console.log(`[recently-paid-claims] branch=${branch} | paymentEntries=${(paymentsRes.data ?? []).length} | unmatchedCustomers=${unmatchedPayments} | studentsWithPayments=${allPaymentsByStudent.size} | studentMapSize=${customerToStudent.size} | overdueStudents=${overdueStudentMap.size}`);
+
 
     // ── Emit one row per payment entry (handle multiple payments per student) ──
     // A payment is "claimed" if there is a follow-up log that:
@@ -208,9 +213,12 @@ export async function GET(request: NextRequest) {
       const logsForStudent = allLogsByStudent.get(studentId) ?? [];
       const latestLog = latestLogByStudent.get(studentId) ?? null;
 
-      // Only show if student has overdue context (is/was overdue) or has a follow-up log
-      const hasOverdueContext = overdueStudentMap.has(studentId) || logsForStudent.length > 0;
-      if (!hasOverdueContext) continue;
+      // BUG FIX: Removed hasOverdueContext gate.
+      // Previously this blocked students who:
+      //   (a) paid their dues (so no longer in overdueStudentMap), AND
+      //   (b) were never called (logsForStudent.length === 0)
+      // That's exactly the students this page is meant to show.
+      // We now show ANY student with a recent payment entry for this branch.
 
       // Track which payments have already been claimed by a log
       // to prevent the same payment from being shown twice
