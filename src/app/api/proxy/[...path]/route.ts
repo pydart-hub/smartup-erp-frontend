@@ -618,6 +618,14 @@ async function proxyRequest(request: NextRequest, method: string) {
       (proxyPath.startsWith("resource/Program%20Enrollment") ||
         proxyPath.startsWith("resource/Program Enrollment"));
 
+    // GM Video Subject / Chapter reads and writes — newly created custom doctypes
+    // might not have explicit permissions configured in Frappe for roles like General Manager.
+    // Use admin token to bypass permission constraints.
+    const decodedPath = decodeURIComponent(proxyPath);
+    const isGMVideoReadOrWrite =
+      decodedPath.startsWith("resource/GM Video Subject") ||
+      decodedPath.startsWith("resource/GM Video Chapter");
+
     const useAdminToken =
       ((isBranchManager || isHRManager) && !isAdmin) ||
       allowInstructorTopicCoverageWrite ||
@@ -628,7 +636,10 @@ async function proxyRequest(request: NextRequest, method: string) {
       isAssessmentRead ||
       isCourseScheduleRead ||
       isStudentRead ||
-      isProgramEnrollmentRead;
+      isProgramEnrollmentRead ||
+      isGMVideoReadOrWrite;
+
+    console.log(`[PROXY DEBUG] path: "${proxyPath}", decoded: "${decodedPath}", isGMVideo: ${isGMVideoReadOrWrite}, useAdminToken: ${useAdminToken}, hasAdminKey: ${!!process.env.FRAPPE_API_KEY}`);
     if (!useAdminToken && hasUserToken) {
       headers["Authorization"] = `token ${sessionData.api_key}:${sessionData.api_secret}`;
     } else {

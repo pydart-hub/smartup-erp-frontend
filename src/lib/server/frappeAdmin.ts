@@ -58,3 +58,15 @@ export async function frappeAdminPut(path: string, body: unknown) {
   });
   return parseResponse(res);
 }
+
+export async function frappeAdminDelete(path: string) {
+  const res = await fetch(`${getBaseUrl()}/api/${path}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: getAuthHeader(),
+      Accept: "application/json",
+    },
+    cache: "no-store",
+  });
+  return parseResponse(res);
+}

@@ -16,8 +16,8 @@ export async function GET(request: NextRequest) {
 
     const data = await fetchMentorFeedback({
       student,
-      branch: auth.roles?.includes("Mentor") && !auth.roles?.includes("Branch Manager") ? auth.default_company : branch,
-      mentorUser: auth.roles?.includes("Mentor") && !auth.roles?.includes("Branch Manager") ? auth.email : mentorUser,
+      branch: auth.roles?.includes("Mentor") ? undefined : branch,
+      mentorUser: auth.roles?.includes("Mentor") ? auth.email : mentorUser,
     });
 
     return NextResponse.json({ data });
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     if (!assignment) {
       return NextResponse.json({ error: "Student is not assigned to a mentor" }, { status: 404 });
     }
-    if (auth.roles?.includes("Mentor") && !auth.roles?.includes("Branch Manager") && assignment.mentor_user !== auth.email) {
+    if (auth.roles?.includes("Mentor") && assignment.mentor_user !== auth.email) {
       return NextResponse.json({ error: "You can only log feedback for your assigned students" }, { status: 403 });
     }
 

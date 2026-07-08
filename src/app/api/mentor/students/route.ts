@@ -8,9 +8,8 @@ export async function GET(request: NextRequest) {
 
   try {
     const assignments = await fetchMentorAssignments({
-      mentorUser: auth.roles?.includes("Mentor") && !auth.roles?.includes("Branch Manager") ? auth.email : undefined,
+      mentorUser: auth.roles?.includes("Mentor") ? auth.email : undefined,
       status: "Active",
-      branch: auth.roles?.includes("Mentor") && !auth.roles?.includes("Branch Manager") ? auth.default_company : undefined,
     });
     const data = await buildMentorStudentSummaries(assignments);
     return NextResponse.json({ data });

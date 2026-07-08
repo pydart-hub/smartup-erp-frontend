@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
-import { Video, BookOpen } from "lucide-react";
+import { Video, BookOpen, ListVideo } from "lucide-react";
 import { ThreeDCard } from "@/components/learning-hub/ThreeDCard";
 import { motion } from "framer-motion";
 
@@ -41,7 +41,7 @@ export default function ParentLearningHub() {
         className="flex flex-wrap gap-8 justify-start items-center mt-4"
       >
         <ThreeDCard
-          title="Video Classes"
+          title="Topic wise video classes"
           description="High-definition online video lectures and recorded classroom sessions to learn subjects at your own pace."
           icon={<Video className="h-6 w-6" />}
           gradientFrom="from-blue-600"
@@ -51,11 +51,21 @@ export default function ParentLearningHub() {
         />
 
         <ThreeDCard
+          title="Chapter wise Video classes"
+          description="Subject and chapter-wise video lessons curated by your child's class group. Browse by subject and chapter."
+          icon={<ListVideo className="h-6 w-6" />}
+          gradientFrom="from-violet-600"
+          gradientTo="to-purple-600"
+          badge="New"
+          onClick={() => router.push("/dashboard/parent/group-video-classes")}
+        />
+
+        <ThreeDCard
           title="Study Material"
           description="Comprehensive textbooks, syllabus guides, reference worksheets, and past exam questions to excel academically."
           icon={<BookOpen className="h-6 w-6" />}
-          gradientFrom="from-violet-600"
-          gradientTo="to-purple-600"
+          gradientFrom="from-emerald-600"
+          gradientTo="to-teal-600"
           badge="Curated"
           onClick={handleCardClick}
         />

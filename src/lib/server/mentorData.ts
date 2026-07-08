@@ -282,116 +282,176 @@ export async function fetchMentorAssignments(params?: {
     })(),
   }));
 }
-
 export async function fetchMentorFeedback(params?: {
   branch?: string;
   mentorUser?: string;
   student?: string;
+  students?: string[];
 }): Promise<MentorFeedback[]> {
-  const filters: unknown[] = [];
-  if (params?.branch) filters.push(["branch", "=", params.branch]);
-  if (params?.mentorUser) filters.push(["mentor_user", "=", params.mentorUser]);
-  if (params?.student) filters.push(["student", "=", params.student]);
-  const res = await frappeAdminGet("resource/Mentor Feedback", {
-    fields: JSON.stringify([
-      "name",
-      "student",
-      "mentor_profile",
-      "mentor_user",
-      "branch",
-      "contact_person",
-      "contact_number",
-      "call_datetime",
-      "call_status",
-      "discussion_category",
-      "academic_notes",
-      "fee_notes",
-      "contact_notes",
-      "overall_feedback",
-      "next_followup_date",
-      "priority",
-      "action_required",
-      "creation",
-    ]),
-    filters: JSON.stringify(filters),
-    limit_page_length: "1000",
-    order_by: "call_datetime desc, creation desc",
-  });
+  const feedbackList: MentorFeedback[] = [];
+  const chunkSize = 50;
+  const studentsToQuery = params?.students || [];
 
-  const feedbackList = (res.data ?? []) as MentorFeedback[];
+  if (studentsToQuery.length > 0) {
+    for (let i = 0; i < studentsToQuery.length; i += chunkSize) {
+      const chunk = studentsToQuery.slice(i, i + chunkSize);
+      const filters: unknown[] = [];
+      if (params?.branch) filters.push(["branch", "=", params.branch]);
+      if (params?.mentorUser) filters.push(["mentor_user", "=", params.mentorUser]);
+      filters.push(["student", "in", chunk]);
+
+      const res = await frappeAdminGet("resource/Mentor Feedback", {
+        fields: JSON.stringify([
+          "name",
+          "student",
+          "mentor_profile",
+          "mentor_user",
+          "branch",
+          "contact_person",
+          "contact_number",
+          "call_datetime",
+          "call_status",
+          "discussion_category",
+          "academic_notes",
+          "fee_notes",
+          "contact_notes",
+          "overall_feedback",
+          "next_followup_date",
+          "priority",
+          "action_required",
+          "creation",
+        ]),
+        filters: JSON.stringify(filters),
+        limit_page_length: "1000",
+        order_by: "call_datetime desc, creation desc",
+      });
+      feedbackList.push(...((res.data ?? []) as MentorFeedback[]));
+    }
+  } else {
+    const filters: unknown[] = [];
+    if (params?.branch) filters.push(["branch", "=", params.branch]);
+    if (params?.mentorUser) filters.push(["mentor_user", "=", params.mentorUser]);
+    if (params?.student) filters.push(["student", "=", params.student]);
+
+    const res = await frappeAdminGet("resource/Mentor Feedback", {
+      fields: JSON.stringify([
+        "name",
+        "student",
+        "mentor_profile",
+        "mentor_user",
+        "branch",
+        "contact_person",
+        "contact_number",
+        "call_datetime",
+        "call_status",
+        "discussion_category",
+        "academic_notes",
+        "fee_notes",
+        "contact_notes",
+        "overall_feedback",
+        "next_followup_date",
+        "priority",
+        "action_required",
+        "creation",
+      ]),
+      filters: JSON.stringify(filters),
+      limit_page_length: "1000",
+      order_by: "call_datetime desc, creation desc",
+    });
+    feedbackList.push(...((res.data ?? []) as MentorFeedback[]));
+  }
+
   if (!feedbackList.length) return [];
 
   const studentIds = [...new Set(feedbackList.map((f) => f.student).filter(Boolean))];
   const mentorProfileIds = [...new Set(feedbackList.map((f) => f.mentor_profile).filter(Boolean))];
-  const studentRes = await frappeAdminGet("resource/Student", {
-    fields: JSON.stringify(["name", "student_name", "custom_student_type"]),
-    filters: JSON.stringify([["name", "in", studentIds]]),
-    limit_page_length: String(studentIds.length + 10),
-  });
-  const students = (studentRes.data ?? []) as Array<{ name: string; student_name: string; custom_student_type?: string }>;
+
+  // Chunk Student queries
+  const students: Array<{ name: string; student_name: string; custom_student_type?: string }> = [];
+  for (let i = 0; i < studentIds.length; i += chunkSize) {
+    const chunk = studentIds.slice(i, i + chunkSize);
+    const studentRes = await frappeAdminGet("resource/Student", {
+      fields: JSON.stringify(["name", "student_name", "custom_student_type"]),
+      filters: JSON.stringify([["name", "in", chunk]]),
+      limit_page_length: String(chunk.length + 10),
+    });
+    students.push(...((studentRes.data ?? []) as Array<{ name: string; student_name: string; custom_student_type?: string }>));
+  }
   const studentMap = new Map(students.map((s) => [s.name, s]));
 
-  const mentorProfileMap = new Map<string, { mentor_name?: string; user_id?: string }>();
-  if (mentorProfileIds.length) {
+  // Chunk Mentor Profile queries
+  const mentorProfiles: Array<{ name: string; mentor_name?: string; user_id?: string }> = [];
+  for (let i = 0; i < mentorProfileIds.length; i += chunkSize) {
+    const chunk = mentorProfileIds.slice(i, i + chunkSize);
     const mentorRes = await frappeAdminGet("resource/Mentor Profile", {
       fields: JSON.stringify(["name", "mentor_name", "user_id"]),
-      filters: JSON.stringify([["name", "in", mentorProfileIds]]),
-      limit_page_length: String(mentorProfileIds.length + 10),
+      filters: JSON.stringify([["name", "in", chunk]]),
+      limit_page_length: String(chunk.length + 10),
     });
-
-    for (const row of (mentorRes.data ?? []) as Array<{ name: string; mentor_name?: string; user_id?: string }>) {
-      if (row.name) {
-        mentorProfileMap.set(row.name, row);
-      }
-    }
+    mentorProfiles.push(...((mentorRes.data ?? []) as Array<{ name: string; mentor_name?: string; user_id?: string }>));
   }
+  const mentorProfileMap = new Map(mentorProfiles.map((m) => [m.name, m]));
 
-  const programRes = await frappeAdminGet("resource/Program Enrollment", {
-    fields: JSON.stringify(["student", "program", "custom_plan"]),
-    filters: JSON.stringify([["docstatus", "=", 1], ["student", "in", studentIds]]),
-    limit_page_length: String(studentIds.length * 3),
-    order_by: "enrollment_date desc, creation desc",
-  });
+  // Chunk Program Enrollment queries
+  const programEnrollments: Array<{ student: string; program?: string; custom_plan?: string }> = [];
+  for (let i = 0; i < studentIds.length; i += chunkSize) {
+    const chunk = studentIds.slice(i, i + chunkSize);
+    const programRes = await frappeAdminGet("resource/Program Enrollment", {
+      fields: JSON.stringify(["student", "program", "custom_plan"]),
+      filters: JSON.stringify([["docstatus", "=", 1], ["student", "in", chunk]]),
+      limit_page_length: String(chunk.length * 3),
+      order_by: "enrollment_date desc, creation desc",
+    });
+    programEnrollments.push(...((programRes.data ?? []) as Array<{ student: string; program?: string; custom_plan?: string }>));
+  }
   const programMap = new Map<string, { program?: string; custom_plan?: string }>();
-  for (const row of (programRes.data ?? []) as Array<{ student: string; program?: string; custom_plan?: string }>) {
+  for (const row of programEnrollments) {
     if (row.student && !programMap.has(row.student)) {
       programMap.set(row.student, row);
     }
   }
 
+  // Chunk Student Attendance queries
   const studentAttendanceMap = new Map<string, { present: number; total: number }>();
   if (studentIds.length > 0) {
-    const attendanceRes = await frappeAdminGet("resource/Student Attendance", {
-      fields: JSON.stringify(["student", "status"]),
-      filters: JSON.stringify([["docstatus", "=", 1], ["student", "in", studentIds]]),
-      limit_page_length: String(studentIds.length * 100),
-    });
+    for (let i = 0; i < studentIds.length; i += chunkSize) {
+      const chunk = studentIds.slice(i, i + chunkSize);
+      const attendanceRes = await frappeAdminGet("resource/Student Attendance", {
+        fields: JSON.stringify(["student", "status"]),
+        filters: JSON.stringify([["docstatus", "=", 1], ["student", "in", chunk]]),
+        limit_page_length: String(chunk.length * 100),
+      });
 
-    for (const row of (attendanceRes.data ?? []) as Array<{ student: string; status: string }>) {
-      if (!row.student) continue;
-      const stats = studentAttendanceMap.get(row.student) ?? { present: 0, total: 0 };
-      stats.total++;
-      if (row.status === "Present" || row.status === "Late") {
-        stats.present++;
+      for (const row of (attendanceRes.data ?? []) as Array<{ student: string; status: string }>) {
+        if (!row.student) continue;
+        const stats = studentAttendanceMap.get(row.student) ?? { present: 0, total: 0 };
+        stats.total++;
+        if (row.status === "Present" || row.status === "Late") {
+          stats.present++;
+        }
+        studentAttendanceMap.set(row.student, stats);
       }
-      studentAttendanceMap.set(row.student, stats);
     }
   }
 
+  // Chunk Assessment Result queries
   const studentScoreMap = new Map<string, { totalScore: number; totalMax: number }>();
   if (studentIds.length > 0) {
-    const assessmentRes = await frappeAdminGet("resource/Assessment Result", {
-      fields: JSON.stringify(["student", "total_score", "maximum_score"]),
-      filters: JSON.stringify([["docstatus", "=", 1], ["student", "in", studentIds]]),
-      limit_page_length: String(studentIds.length * 100),
-    });
+    for (let i = 0; i < studentIds.length; i += chunkSize) {
+      const chunk = studentIds.slice(i, i + chunkSize);
+      const assessmentRes = await frappeAdminGet("resource/Assessment Result", {
+        fields: JSON.stringify(["student", "total_score", "maximum_score"]),
+        filters: JSON.stringify([["docstatus", "=", 1], ["student", "in", chunk]]),
+        limit_page_length: String(chunk.length * 100),
+      });
 
-    for (const row of (assessmentRes.data ?? []) as Array<{ student: string; total_score: number; maximum_score: number }>) {
-      if (!row.student) continue;
-      const stats = studentScoreMap.get(row.student) ?? { totalScore: 0, totalMax: 0 };
-      stats.totalScore += Number(row.total_score || 0);
-      stats.totalMax += Number(row.maximum_score || 0);
-      studentScoreMap.set(row.student, stats);
+      for (const row of (assessmentRes.data ?? []) as Array<{ student: string; total_score: number; maximum_score: number }>) {
+        if (!row.student) continue;
+        const stats = studentScoreMap.get(row.student) ?? { totalScore: 0, totalMax: 0 };
+        stats.totalScore += Number(row.total_score || 0);
+        stats.totalMax += Number(row.maximum_score || 0);
+        studentScoreMap.set(row.student, stats);
+      }
     }
   }
 
@@ -499,7 +559,7 @@ export async function buildMentorStudentSummaries(
     }
   }
 
-  const feedback = await fetchMentorFeedback({});
+  const feedback = await fetchMentorFeedback({ students: studentIds });
   const latestFeedbackMap = new Map<string, MentorFeedback>();
   for (const row of feedback) {
     if (row.student && !latestFeedbackMap.has(row.student)) {

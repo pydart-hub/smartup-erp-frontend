@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
-import { Video, BookOpen, Link2 } from "lucide-react";
+import { Video, BookOpen, Link2, ListVideo } from "lucide-react";
 import { ThreeDCard } from "@/components/learning-hub/ThreeDCard";
 import { motion } from "framer-motion";
 
@@ -41,7 +41,7 @@ export default function GMLearningHub() {
         className="flex flex-wrap gap-8 justify-start items-center mt-4"
       >
         <ThreeDCard
-          title="Video Classes Link Assign"
+          title="Topic wise video classes"
           description="Map virtual meeting links, recorded lecture feeds, and online video playlists to specific courses and batches."
           icon={
             <div className="relative">
@@ -53,6 +53,16 @@ export default function GMLearningHub() {
           gradientTo="to-blue-600"
           badge="Assign Link"
           onClick={() => router.push("/dashboard/general-manager/topic-coverage/manage")}
+        />
+
+        <ThreeDCard
+          title="Chapter wise Video classes"
+          description="Upload subject and chapter-wise video links for each student group (10th State, 10th CBSE, etc.). Parents browse by their child's class."
+          icon={<ListVideo className="h-6 w-6" />}
+          gradientFrom="from-violet-600"
+          gradientTo="to-indigo-600"
+          badge="Manage"
+          onClick={() => router.push("/dashboard/general-manager/group-video-classes")}
         />
 
         <ThreeDCard
