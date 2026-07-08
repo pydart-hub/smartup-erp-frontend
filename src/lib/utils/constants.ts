@@ -254,7 +254,6 @@ export const PARENT_NAV: NavItem[] = [
   { label: "Children", href: "/dashboard/parent/children", icon: "Baby", emoji: "👶" },
   { label: "Diagnosis Exam", href: "/dashboard/parent/level-exams", icon: "ClipboardList", emoji: "📝" },
   { label: "Learning Hub", href: "/dashboard/parent/learning-hub", icon: "BookOpen", emoji: "✨" },
-  { label: "Group Videos", href: "/dashboard/parent/group-video-classes", icon: "PlayCircle", emoji: "🎬" },
   { label: "Attendance", href: "/dashboard/parent/attendance", icon: "ClipboardCheck", emoji: "✅" },
   { label: "Schedule", href: "/dashboard/parent/schedule", icon: "CalendarDays", emoji: "📅" },
   { label: "Performance", href: "/dashboard/parent/performance", icon: "Trophy", emoji: "🏆" },

@@ -39,6 +39,20 @@ const OPTIONS = [
       { title: "All Time", href: "/dashboard/director/leaderboard/instructor?period=all", icon: Users },
     ]
   },
+  {
+    id: "mentor",
+    type: "single",
+    title: "Mentor Leaderboard",
+    description: "Track mentor load, feedback reports, and student follow-up metrics.",
+    href: "/dashboard/director/leaderboard/mentor",
+    icon: Users,
+    gradient: "from-[#0D9488] via-[#0F766E] to-[#115E59]",
+    glow: "rgba(20,184,166,0.28)",
+    glowHover: "rgba(20,184,166,0.52)",
+    badgeColor: "from-[#0D9488] to-[#115E59]",
+    particleColor: "#14B8A6",
+    rank: "3rd",
+  },
 ];
 
 // Floating particle component
@@ -355,7 +369,7 @@ export default function DirectorLeaderboardIndexPage() {
         </div>
 
         {/* Cards grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 items-stretch mt-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 items-stretch mt-8">
           {OPTIONS.map((option, index) => (
             <TiltCard key={option.id} option={option} index={index} />
           ))}

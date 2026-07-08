@@ -1,5 +1,21 @@
 # SmartUp ERP — Task Tracker
 
+## Current: Director and General Manager Mentor Leaderboards (2026-07-08)
+
+- [x] Restructure GM leaderboards behind sub-routes
+- [x] Build and integrate active Mentor Leaderboard for General Manager
+- [x] Add points reduction feature for non-contacted students (deduct 5 pts per student)
+- [x] Integrate Mentor Leaderboard card to Director selector and adjust layout to a 3-column grid
+- [x] Create active Director Mentor Leaderboard routing to `getDirectorMentorSummary` API
+- [x] Verify type checking (`npx tsc --noEmit`) and UI navigation in browser
+
+### Review
+- Moved GM instructor leaderboard to sub-routes and created selector dashboard at `/dashboard/general-manager/leaderboard`.
+- Built the active Mentor Leaderboard for GM at `/dashboard/general-manager/leaderboard/mentor` using a 50/50 split of Activity Rate and Load Utilization, penalizing -5 points for every non-contacted student.
+- Added a third card for "Mentor Leaderboard" in the Director index page `/dashboard/director/leaderboard` and adjusted the card grid to a 3-column layout.
+- Created Director Mentor Leaderboard at `/dashboard/director/leaderboard/mentor` using `getDirectorMentorSummary` API.
+- Verified zero errors via `npx tsc --noEmit` and confirmed visual and functional correctness via browser subagents.
+
 ## Current: PDF and Excel Report Downloads (2026-07-01)
 
 - [x] Plan and analyze PDF and Excel export libraries

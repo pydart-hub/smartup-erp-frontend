@@ -869,26 +869,34 @@ export async function buildMentorSummary(branch?: string): Promise<SystemMentorS
   }));
 
   const mentorLoadComparison = activeMentors.map((m) => {
-    const mAssignments = assignments.filter((a) => a.mentor_profile === m.name).length;
+    const mAssignments = assignments.filter((a) => a.mentor_profile === m.name);
     const mFeedbackCount = feedback.filter((f) => f.mentor_profile === m.name).length;
     let mPending = 0;
+    let mNonContacted = 0;
     
-    // Calculate pending followups for this specific mentor
-    const mStudents = assignments.filter((a) => a.mentor_profile === m.name).map((a) => a.student);
-    for (const sid of mStudents) {
-      const fb = assignmentFeedbackMap.get(sid);
-      if (fb && fb.mentor_profile === m.name && fb.next_followup_date && fb.next_followup_date <= nowStr) {
-        mPending++;
+    // Calculate pending followups and non-contacted students for this specific mentor
+    for (const a of mAssignments) {
+      const fb = assignmentFeedbackMap.get(a.student);
+      if (!fb) {
+        mNonContacted++;
+      } else {
+        if (fb.call_datetime < thirtyDaysAgoStr) {
+          mNonContacted++;
+        }
+        if (fb.mentor_profile === m.name && fb.next_followup_date && fb.next_followup_date <= nowStr) {
+          mPending++;
+        }
       }
     }
 
     return {
       mentorName: m.mentor_name,
       branch: m.branch,
-      assignedStudents: mAssignments,
+      assignedStudents: mAssignments.length,
       capacity: m.max_student_limit || 100,
       pendingFollowUps: mPending,
       feedbackCount: mFeedbackCount,
+      nonContactedStudents: mNonContacted,
     };
   });
 

@@ -158,6 +158,7 @@ export interface SystemMentorSummary {
     capacity: number;
     pendingFollowUps: number;
     feedbackCount: number;
+    nonContactedStudents: number;
   }>;
 }
 
