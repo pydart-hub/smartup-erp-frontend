@@ -127,11 +127,15 @@ export async function GET(request: NextRequest) {
     const logs: FollowUpLog[] = data.data ?? [];
 
     const now = new Date();
-    const todayStr = now.toISOString().slice(0, 10);
-    const dayOfWeek = now.getDay();
+    // Use IST timezone (UTC+5:30) so dates match user's local day
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const istDate = new Date(now.getTime() + istOffset);
+    const todayStr = istDate.toISOString().slice(0, 10);
+
+    const dayOfWeek = istDate.getDay();
     const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-    const weekStart = new Date(now);
-    weekStart.setDate(now.getDate() - daysFromMonday);
+    const weekStart = new Date(istDate.getTime());
+    weekStart.setDate(istDate.getDate() - daysFromMonday);
     const weekStartStr = weekStart.toISOString().slice(0, 10);
 
     let today_calls = 0;
@@ -146,6 +150,8 @@ export async function GET(request: NextRequest) {
     let branch_conversions_breakdown: { branch: string; converted_count: number; paid_amount: number }[] = [];
     let user_conversions_breakdown: { branch: string; converted_count: number; paid_amount: number }[] = [];
     let pending_followups = 0;
+    let today_collected = 0;
+    const today_calls_details: { student_name: string; call_status: string; amount_collected: number; call_time: string }[] = [];
 
     const uniqueStudents = new Set<string>();
     const latestByStudent = new Map<string, FollowUpLog>();
@@ -155,7 +161,25 @@ export async function GET(request: NextRequest) {
     for (const log of logs) {
       const logDate = toLocalDate(log.call_date);
       uniqueStudents.add(log.student);
-      if (logDate === todayStr) today_calls++;
+      if (logDate === todayStr) {
+        today_calls++;
+        const amt = log.amount_received ?? 0;
+        if (log.payment_received === 1 || log.call_status === "Already Paid") {
+          today_collected += amt;
+        }
+
+        let callTime = "";
+        if (log.call_date && log.call_date.includes(" ")) {
+          callTime = log.call_date.split(" ")[1].slice(0, 5); // "HH:MM"
+        }
+
+        today_calls_details.push({
+          student_name: log.student_name || log.student,
+          call_status: log.call_status,
+          amount_collected: amt,
+          call_time: callTime
+        });
+      }
       if (logDate >= weekStartStr) week_calls++;
       if (!NO_ANSWER_STATUSES.includes(log.call_status)) answered_count++;
       if (NO_ANSWER_STATUSES.includes(log.call_status)) no_answer_count++;
@@ -208,6 +232,13 @@ export async function GET(request: NextRequest) {
         }
       } else if (branch) {
         allTimeFilters.push(["Fee Follow Up", "branch", "=", branch]);
+      }
+
+      if (from) {
+        allTimeFilters.push(["Fee Follow Up", "call_date", ">=", `${from} 00:00:00`]);
+      }
+      if (to) {
+        allTimeFilters.push(["Fee Follow Up", "call_date", "<=", `${to} 23:59:59`]);
       }
 
       try {
@@ -307,6 +338,8 @@ export async function GET(request: NextRequest) {
         branch_conversions_breakdown,
         user_conversions_breakdown,
         pending_followups,
+        today_collected,
+        today_calls_details,
       },
       by_branch: Array.from(byBranch.values()).sort((a, b) => b.calls - a.calls),
       by_status: Array.from(byStatus.entries()).map(([status, count]) => ({ status, count })).sort((a, b) => b.count - a.count),

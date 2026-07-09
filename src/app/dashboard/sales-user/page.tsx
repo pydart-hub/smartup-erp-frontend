@@ -58,17 +58,17 @@ function KpiCard({ title, value, sub, icon, iconBg, accent, href, onClick, warn,
       }`}
     >
       <div className={`absolute top-0 inset-x-0 h-[3px] ${accent}`} />
-      <div className="p-5 pt-6">
-        <div className={`inline-flex items-center justify-center w-9 h-9 rounded-xl ${iconBg} mb-3`}>
+      <div className="p-3.5 pt-4 sm:p-5 sm:pt-6">
+        <div className={`inline-flex items-center justify-center w-7 h-7 sm:w-9 sm:h-9 rounded-xl ${iconBg} mb-2 sm:mb-3 [&>svg]:w-3.5 [&>svg]:h-3.5 sm:[&>svg]:w-4 sm:[&>svg]:h-4`}>
           {icon}
         </div>
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-1">{title}</p>
-        <div className="text-[1.9rem] font-extrabold text-gray-900 leading-tight">
-          {loading ? <span className="block w-20 h-7 bg-gray-100 rounded-lg animate-pulse" /> : value}
+        <p className="text-[9px] sm:text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-0.5 sm:mb-1">{title}</p>
+        <div className="text-xl sm:text-[1.9rem] font-extrabold text-gray-900 leading-tight">
+          {loading ? <span className="block w-16 sm:w-20 h-5 sm:h-7 bg-gray-100 rounded-lg animate-pulse" /> : value}
         </div>
-        {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
+        {sub && <p className="text-[11px] sm:text-xs text-gray-400 mt-0.5 sm:mt-1">{sub}</p>}
         {href && (
-          <div className="flex items-center gap-1 mt-3 text-[10px] font-semibold text-gray-400 group-hover:text-gray-600 transition-colors">
+          <div className="flex items-center gap-1 mt-1.5 sm:mt-3 text-[10px] font-semibold text-gray-400 group-hover:text-gray-600 transition-colors">
             <span>View details</span>
             <ArrowUpRight className="h-3 w-3" />
           </div>
@@ -231,6 +231,101 @@ function BreakdownModal({ isOpen, onClose, title, data, totalAmount }: Breakdown
   );
 }
 
+interface TodayCallsModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  callsDone: number;
+  collected: number;
+  callsList: { student_name: string; call_status: string; amount_collected: number; call_time: string }[];
+}
+
+function TodayCallsModal({ isOpen, onClose, callsDone, collected, callsList }: TodayCallsModalProps) {
+  if (!isOpen) return null;
+
+  return (
+    <AnimatePresence>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        {/* Backdrop */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"
+        />
+
+        {/* Modal Content */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 16 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 16 }}
+          transition={{ type: "spring", duration: 0.5 }}
+          className="relative w-full max-w-lg overflow-hidden rounded-2xl bg-white border border-gray-100 shadow-2xl z-10"
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4 bg-gray-50/50">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-50 text-teal-600">
+                <Phone className="h-4 w-4" />
+              </div>
+              <div>
+                <h2 className="text-md font-bold text-gray-800">Today's Call Details</h2>
+                <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Activity summary</p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          {/* KPI Summary Block */}
+          <div className="grid grid-cols-2 gap-4 p-6 bg-slate-50/50 border-b border-gray-100">
+            <div className="p-4 rounded-xl bg-white border border-gray-100 shadow-sm text-center">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Calls Done</span>
+              <p className="text-2xl font-black text-gray-800 mt-1">{callsDone}</p>
+            </div>
+            <div className="p-4 rounded-xl bg-white border border-gray-100 shadow-sm text-center">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Collected Today</span>
+              <p className="text-2xl font-black text-emerald-600 mt-1">{formatCurrency(collected)}</p>
+            </div>
+          </div>
+
+          {/* List of Calls */}
+          <div className="max-h-[250px] overflow-y-auto p-6 space-y-4">
+            {!callsList || callsList.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-sm text-gray-400">No calls logged today yet.</p>
+              </div>
+            ) : (
+              callsList.map((item, index) => (
+                <div key={index} className="flex items-center justify-between border-b border-gray-50 pb-3 last:border-0 last:pb-0">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-gray-800 text-sm truncate">{item.student_name}</p>
+                    <p className="text-[10px] text-gray-400 font-medium mt-0.5">{item.call_time || "N/A"}</p>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0 ml-4">
+                    {statusBadge(item.call_status)}
+                    {item.amount_collected > 0 ? (
+                      <span className="text-xs font-bold text-emerald-600">
+                        +{formatCurrency(item.amount_collected)}
+                      </span>
+                    ) : (
+                      <span className="text-xs font-medium text-gray-300">—</span>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </motion.div>
+      </div>
+    </AnimatePresence>
+  );
+}
+
 /* ═══════════════════════════════════════════════════════ */
 export default function SalesUserDashboard() {
   const { user } = useAuth();
@@ -238,6 +333,9 @@ export default function SalesUserDashboard() {
   const [modalTitle, setModalTitle] = React.useState("");
   const [modalData, setModalData] = React.useState<{ branch: string; converted_count: number; paid_amount: number }[]>([]);
   const [modalTotal, setModalTotal] = React.useState(0);
+  const [todayCallsModalOpen, setTodayCallsModalOpen] = React.useState(false);
+  const [fromDate, setFromDate] = React.useState("");
+  const [toDate, setToDate] = React.useState("");
 
   const { data: overdueData, isLoading: loadingOverdue } = useQuery({
     queryKey: ["su-overdue"],
@@ -247,8 +345,8 @@ export default function SalesUserDashboard() {
   });
 
   const { data: followUpData, isLoading: loadingFollowUp } = useQuery({
-    queryKey: ["su-followup-dashboard"],
-    queryFn: () => getSalesUserFollowUpDashboard(),
+    queryKey: ["su-followup-dashboard", fromDate, toDate],
+    queryFn: () => getSalesUserFollowUpDashboard({ from: fromDate, to: toDate }),
     staleTime: 60_000,
     refetchInterval: 120_000,
   });
@@ -279,6 +377,47 @@ export default function SalesUserDashboard() {
         </Link>
       </motion.div>
 
+      {/* ── Date Filters Row ── */}
+      <motion.div
+        variants={fadeUp}
+        className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm space-y-3 md:space-y-0 md:flex md:items-center md:justify-between md:gap-4"
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Filter by Date</span>
+        </div>
+        <div className="grid grid-cols-2 sm:flex sm:items-center gap-3 w-full md:w-auto">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 text-xs text-text-secondary">
+            <span className="text-[10px] font-semibold uppercase text-gray-400 sm:text-xs sm:normal-case">From</span>
+            <input
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              className="w-full sm:w-auto px-2.5 py-1.5 rounded-xl border border-gray-200 text-xs font-medium text-gray-700 focus:outline-none focus:ring-1 focus:ring-teal-500 bg-gray-50/50"
+            />
+          </div>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 text-xs text-text-secondary">
+            <span className="text-[10px] font-semibold uppercase text-gray-400 sm:text-xs sm:normal-case">To</span>
+            <input
+              type="date"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+              className="w-full sm:w-auto px-2.5 py-1.5 rounded-xl border border-gray-200 text-xs font-medium text-gray-700 focus:outline-none focus:ring-1 focus:ring-teal-500 bg-gray-50/50"
+            />
+          </div>
+          {(fromDate || toDate) && (
+            <button
+              onClick={() => {
+                setFromDate("");
+                setToDate("");
+              }}
+              className="col-span-2 sm:col-auto px-3 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors border border-rose-100 text-center"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+      </motion.div>
+
       {/* ── 5 KPI cards ── */}
       <motion.div variants={fadeUp} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <KpiCard
@@ -300,6 +439,7 @@ export default function SalesUserDashboard() {
           iconBg="bg-emerald-50"
           accent="bg-emerald-500"
           loading={loadingFollowUp}
+          onClick={() => setTodayCallsModalOpen(true)}
         />
         <KpiCard
           title="Branch Converted"
@@ -455,6 +595,15 @@ export default function SalesUserDashboard() {
         title={modalTitle}
         data={modalData}
         totalAmount={modalTotal}
+      />
+
+      {/* Today Calls Modal */}
+      <TodayCallsModal
+        isOpen={todayCallsModalOpen}
+        onClose={() => setTodayCallsModalOpen(false)}
+        callsDone={followUpData?.summary.today_calls ?? 0}
+        collected={followUpData?.summary.today_collected ?? 0}
+        callsList={followUpData?.summary.today_calls_details ?? []}
       />
     </motion.div>
   );

@@ -51,6 +51,13 @@ export interface SalesUserFollowUpSummary {
   branch_conversions_breakdown: BranchConversionBreakdown[];
   user_conversions_breakdown: BranchConversionBreakdown[];
   pending_followups: number;
+  today_collected?: number;
+  today_calls_details?: {
+    student_name: string;
+    call_status: string;
+    amount_collected: number;
+    call_time: string;
+  }[];
 }
 
 export interface SalesUserFollowUpBranchRow {
