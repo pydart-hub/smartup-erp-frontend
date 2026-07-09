@@ -33,6 +33,10 @@ interface FollowUpDrawerProps {
   initialPaymentReceived?: boolean;
   initialAmountReceived?: number;
   initialPaymentMode?: string;
+  /** Payment Entry docname — set ONLY when opening from paid-history claim flow.
+   *  Saved as invoice_ref on the Fee Follow Up record so the claiming algorithm
+   *  can unambiguously distinguish this from an overdue-call log. */
+  initialInvoiceRef?: string;
 }
 
 export function FollowUpDrawer({
@@ -44,6 +48,7 @@ export function FollowUpDrawer({
   initialPaymentReceived = false,
   initialAmountReceived,
   initialPaymentMode = "",
+  initialInvoiceRef = "",
 }: FollowUpDrawerProps) {
   const qc = useQueryClient();
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -54,6 +59,8 @@ export function FollowUpDrawer({
   const [paymentMode, setPaymentMode] = useState(initialPaymentMode);
   const [remarks, setRemarks] = useState("");
   const [nextDate, setNextDate] = useState("");
+  // Locked invoice_ref — only set when opened from the paid-history claim flow
+  const invoiceRef = initialInvoiceRef;
 
   // Close on Escape
   useEffect(() => {
@@ -76,6 +83,8 @@ export function FollowUpDrawer({
         payment_mode: paymentReceived && paymentMode ? paymentMode : undefined,
         remarks: remarks.trim() || undefined,
         next_followup_date: nextDate || undefined,
+        // Only passed from the paid-history claim flow — links this log to the specific PE
+        invoice_ref: invoiceRef || undefined,
       }),
     onSuccess: () => {
       toast.success("Follow-up logged");

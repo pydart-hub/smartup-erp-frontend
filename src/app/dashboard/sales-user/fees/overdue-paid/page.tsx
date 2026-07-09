@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
-import { getRecentlyPaidClaims } from "@/lib/api/director";
+import { getRecentlyPaidClaims, getDuesTodayByBranch } from "@/lib/api/director";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { useAuth } from "@/lib/hooks/useAuth";
 
@@ -32,8 +32,10 @@ type BranchPaidHistoryRow = {
   shortName: string;
   overdueStudents: number;
   overdueAmount: number;
-  paidStudentCount: number;
-  recentPaidAmount: number;
+  paidStudentCount: number;      // awaiting claim count
+  recentPaidAmount: number;      // awaiting claim amount
+  totalRecentPaidCount: number;  // total recently paid count (awaiting + claimed)
+  totalRecentPaidAmount: number; // total recently paid amount
 };
 
 export default function SalesOverduePaidOverviewPage() {
@@ -52,18 +54,38 @@ export default function SalesOverduePaidOverviewPage() {
       // allowed branches. The API handles auth/filtering server-side.
       const branchList = allowedCompanies ?? [];
 
+      // Fetch currently overdue summary for all branches to enrich the cards
+      let overdueMap = new Map<string, { student_count: number; total_dues: number }>();
+      try {
+        const overdueBranches = await getDuesTodayByBranch();
+        for (const ob of overdueBranches) {
+          overdueMap.set(ob.branch, {
+            student_count: ob.student_count,
+            total_dues: ob.total_dues,
+          });
+        }
+      } catch (err) {
+        console.error("Failed to fetch overdue branch summaries:", err);
+      }
+
       const rows = await Promise.all(
         branchList.map(async (branchName) => {
           try {
             const claims = await getRecentlyPaidClaims(branchName);
             const awaitingClaims = claims.filter((claim) => claim.claim_status === "awaiting_claim");
+            const overdueInfo = overdueMap.get(branchName) ?? { student_count: 0, total_dues: 0 };
             return {
               branch: branchName,
               shortName: branchName.replace("Smart Up ", "").replace("Smart Up", "HQ"),
-              overdueStudents: 0,   // enrichment-only; not needed for display
-              overdueAmount: 0,
+              overdueStudents: overdueInfo.student_count,
+              overdueAmount: overdueInfo.total_dues,
               paidStudentCount: awaitingClaims.length,
               recentPaidAmount: awaitingClaims.reduce(
+                (sum, claim) => sum + (claim.recent_payment.paid_amount || 0),
+                0,
+              ),
+              totalRecentPaidCount: claims.length,
+              totalRecentPaidAmount: claims.reduce(
                 (sum, claim) => sum + (claim.recent_payment.paid_amount || 0),
                 0,
               ),
@@ -75,18 +97,19 @@ export default function SalesOverduePaidOverviewPage() {
         }),
       );
 
-      return (rows.filter((row): row is BranchPaidHistoryRow => row !== null && row.paidStudentCount > 0))
+      return (rows.filter((row): row is BranchPaidHistoryRow => row !== null && row.totalRecentPaidAmount > 0))
         .sort((a, b) => {
           if (b.paidStudentCount !== a.paidStudentCount) return b.paidStudentCount - a.paidStudentCount;
-          return b.recentPaidAmount - a.recentPaidAmount;
+          return b.totalRecentPaidAmount - a.totalRecentPaidAmount;
         });
     },
     staleTime: 60_000,
     refetchInterval: 120_000,
   });
 
-  const totalPaidStudents = (data ?? []).reduce((sum, row) => sum + row.paidStudentCount, 0);
-  const totalPaidAmount = (data ?? []).reduce((sum, row) => sum + row.recentPaidAmount, 0);
+  const totalAwaitingStudents = (data ?? []).reduce((sum, row) => sum + (row.paidStudentCount ?? 0), 0);
+  const totalRecentPaidStudents = (data ?? []).reduce((sum, row) => sum + (row.totalRecentPaidCount ?? 0), 0);
+  const totalPaidAmount = (data ?? []).reduce((sum, row) => sum + (row.totalRecentPaidAmount ?? 0), 0);
 
   return (
     <motion.div
@@ -117,10 +140,15 @@ export default function SalesOverduePaidOverviewPage() {
               </p>
             </div>
             <div className="ml-auto text-right">
-              <p className="text-sm text-text-secondary">Students</p>
+              <p className="text-sm text-text-secondary">Students Paid</p>
               <p className="text-xl font-bold text-text-primary">
-                {isLoading ? "..." : totalPaidStudents}
+                {isLoading ? "..." : totalRecentPaidStudents}
               </p>
+              {!isLoading && totalAwaitingStudents > 0 && (
+                <p className="text-xs text-error font-medium mt-0.5">
+                  {totalAwaitingStudents} awaiting claim
+                </p>
+              )}
             </div>
             <div className="text-right">
               <p className="text-sm text-text-secondary">Recent Paid Amount</p>
@@ -161,12 +189,17 @@ export default function SalesOverduePaidOverviewPage() {
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold text-text-primary">{branch.shortName}</p>
                     <p className="text-xs text-text-tertiary mt-0.5">
-                      {branch.paidStudentCount} overdue paid student{branch.paidStudentCount !== 1 ? "s" : ""} awaiting claim
+                      {branch.totalRecentPaidCount} student{branch.totalRecentPaidCount !== 1 ? "s" : ""} paid recently
+                      {branch.paidStudentCount > 0 && (
+                        <span className="ml-1.5 text-amber-600 font-medium">
+                          • {branch.paidStudentCount} awaiting claim
+                        </span>
+                      )}
                     </p>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-sm font-bold text-emerald-700">{formatCurrency(branch.recentPaidAmount)}</p>
-                    <p className="text-[10px] text-text-tertiary">
+                    <p className="text-sm font-bold text-emerald-700">{formatCurrency(branch.totalRecentPaidAmount)}</p>
+                    <p className="text-[10px] text-text-tertiary mt-0.5">
                       Recent paid • {branch.overdueStudents} overdue • {formatCurrency(branch.overdueAmount)} due
                     </p>
                   </div>

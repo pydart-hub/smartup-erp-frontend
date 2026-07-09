@@ -217,52 +217,26 @@ export async function GET(request: NextRequest) {
       // Previously this blocked students who:
       //   (a) paid their dues (so no longer in overdueStudentMap), AND
       //   (b) were never called (logsForStudent.length === 0)
-      // That's exactly the students this page is meant to show.
+      // That’s exactly the students this page is meant to show.
       // We now show ANY student with a recent payment entry for this branch.
 
-      // Track which payments have already been claimed by a log
-      // to prevent the same payment from being shown twice
-      const claimedPaymentNames = new Set<string>();
-
-      // Match each payment to a claiming log
-      // A log can only claim one payment; a payment can only be claimed once.
-      // We go through payments (desc by date) and find the closest matching log.
-      const usedLogNames = new Set<string>();
-
       for (const payment of payments) {
-        const paymentDate = payment.posting_date || "";
         const paidAmt = payment.paid_amount ?? 0;
 
-        // Find a claiming log: must be on/after payment date, payment_received=1 or Already Paid
-        // and not already used to claim another payment
-        let claimingLog: FollowUpLog | null = null;
-        for (const log of logsForStudent) {
-          if (usedLogNames.has(log.name)) continue;
-          const logDate = log.call_date?.slice(0, 10) || "";
-          const isPaymentLog = log.payment_received === 1 || log.call_status === "Already Paid";
-          
-          let isDateValid = false;
-          if (!paymentDate || !logDate) {
-            isDateValid = true;
-          } else {
-            const pTime = new Date(paymentDate).getTime();
-            const lTime = new Date(logDate).getTime();
-            const diffDays = (pTime - lTime) / (1000 * 60 * 60 * 24);
-            isDateValid = lTime >= pTime || (diffDays >= 0 && diffDays <= 5);
-          }
-
-          if (!isDateValid || !isPaymentLog) continue;
-
-          // Amount match: if log has amount_received, it must be within ₹1 of paid_amount
-          const logAmt = log.amount_received ?? 0;
-          const amountMatches = logAmt === 0 || Math.abs(logAmt - paidAmt) <= 1;
-          if (!amountMatches) continue;
-
-          claimingLog = log;
-          usedLogNames.add(log.name);
-          claimedPaymentNames.add(payment.name);
-          break;
-        }
+        // FIX: A payment is "claimed" ONLY if there is a follow-up log whose
+        // invoice_ref exactly matches this Payment Entry's docname.
+        //
+        // Previously we used a fuzzy date + amount_received heuristic which
+        // caused follow-up logs from the Fee Overdue section (where a sales user
+        // marks "Payment Received" during a call) to accidentally claim payment
+        // entries in the Overdue Paid section.
+        //
+        // Now, the Overdue Paid → "Claim Conversion" button explicitly sets
+        // invoice_ref = payment.name when saving the follow-up log, making the
+        // link unambiguous. Overdue-call logs never have a matching invoice_ref.
+        const claimingLog = logsForStudent.find(
+          (log) => log.invoice_ref && log.invoice_ref.trim() === payment.name?.trim()
+        ) ?? null;
 
         const isClaimed = claimingLog !== null;
 
