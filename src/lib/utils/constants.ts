@@ -347,3 +347,25 @@ export function getSalesUserBranches(email?: string): string[] {
   return SALES_USER_BRANCH_MAP[email.toLowerCase().trim()] || [];
 }
 
+export function getCanonicalBranchName(name: any): string {
+  if (typeof name !== "string") {
+    return "Unknown Branch";
+  }
+  const clean = name.replace(/[\s\-_]/g, "").toLowerCase();
+  switch (clean) {
+    case "smartupkadavanthara": return "Smart Up Kadavanthara";
+    case "smartupedappally": return "Smart Up Edappally";
+    case "smartupvennala": return "Smart Up Vennala";
+    case "smartuperaveli": return "Smart Up Eraveli";
+    case "smartupfortkochi": return "Smart Up Fortkochi";
+    case "smartupchullickal":
+    case "smartupchullikal": return "Smart Up Chullickal";
+    case "smartuppalluruthy": return "Smart Up Palluruthy";
+    case "smartupthopumpadi":
+    case "smartupthoppumpady": return "Smart Up Thopumpadi";
+    case "smartupmoolamkuzhi": return "Smart Up Moolamkuzhi";
+    default: return name.trim();
+  }
+}
+
+

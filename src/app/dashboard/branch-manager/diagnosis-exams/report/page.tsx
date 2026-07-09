@@ -3,16 +3,14 @@ import { db } from "@/lib/public-exam/db";
 import { DiagnosisExamsReport } from "@/components/diagnosis-exams/DiagnosisExamsReport";
 import { DatabaseErrorCard } from "@/components/diagnosis-exams/DatabaseErrorCard";
 import { getBranchManagerDefaultCompany } from "@/lib/server/branchManagerSession";
+import { getCanonicalBranchName } from "@/lib/utils/constants";
 
 export const dynamic = "force-dynamic";
 
 export default async function BranchManagerDiagnosisExamsReportPage() {
   try {
     const branchName = await getBranchManagerDefaultCompany();
-    
-    // Normalize function to clean the branch name
-    const cleanBranch = (name: string) => name.replace(/[\s\-_]/g, "").toLowerCase();
-    const cleanedBranchName = cleanBranch(branchName);
+    const canonicalBranch = getCanonicalBranchName(branchName);
 
     const allAttempts = await db.examAttempt.findMany({
       include: {
@@ -31,9 +29,12 @@ export default async function BranchManagerDiagnosisExamsReportPage() {
       orderBy: { startedAt: "desc" },
     });
 
-    const attempts = allAttempts.filter(
-      (attempt) => cleanBranch(attempt.studentBranch || "") === cleanedBranchName
-    );
+    const attempts = allAttempts
+      .filter((attempt) => getCanonicalBranchName(attempt.studentBranch) === canonicalBranch)
+      .map((attempt) => ({
+        ...attempt,
+        studentBranch: getCanonicalBranchName(attempt.studentBranch),
+      }));
 
     return (
       <div className="p-4 lg:p-6 max-w-7xl mx-auto">

@@ -32,6 +32,7 @@ import {
   getOrdinalSuffix,
   getAttemptLevelBreakdown,
 } from "@/lib/public-exam/diagnostics";
+import { getCanonicalBranchName } from "@/lib/utils/constants";
 
 interface DiagnosisExamsDrillDownProps {
   attempts: AttemptWithPublishing[];
@@ -133,9 +134,8 @@ export function DiagnosisExamsDrillDown({
 
   const resolvedBranch = React.useMemo(() => {
     if (!restrictToBranch) return null;
-    const clean = (s: string) => s.replace(/[\s\-_]/g, "").toLowerCase();
-    const cleanedRestrict = clean(restrictToBranch);
-    const found = attempts.find((a) => clean(a.studentBranch || "") === cleanedRestrict);
+    const canonicalRestrict = getCanonicalBranchName(restrictToBranch);
+    const found = attempts.find((a) => getCanonicalBranchName(a.studentBranch) === canonicalRestrict);
     return found?.studentBranch || restrictToBranch;
   }, [attempts, restrictToBranch]);
 
@@ -198,7 +198,7 @@ export function DiagnosisExamsDrillDown({
 
   // 2. Filter attempts based on current drill-down selection
   const filteredAttempts = localAttempts.filter((attempt) => {
-    const branchMatch = !selectedBranch || attempt.studentBranch === selectedBranch;
+    const branchMatch = !selectedBranch || getCanonicalBranchName(attempt.studentBranch) === getCanonicalBranchName(selectedBranch);
     const classMatch = !selectedClass || attempt.classLevel === selectedClass;
     return branchMatch && classMatch;
   });
@@ -253,7 +253,7 @@ export function DiagnosisExamsDrillDown({
   const getBranchSummaries = () => {
     const branchMap = new Map<string, AttemptWithPublishing[]>();
     localAttempts.forEach((a) => {
-      const branchKey = a.studentBranch || "Unknown Branch";
+      const branchKey = getCanonicalBranchName(a.studentBranch);
       const list = branchMap.get(branchKey) || [];
       list.push(a);
       branchMap.set(branchKey, list);
@@ -287,7 +287,7 @@ export function DiagnosisExamsDrillDown({
   const getClassSummaries = (branch: string) => {
     const classMap = new Map<string, AttemptWithPublishing[]>();
     localAttempts
-      .filter((a) => (a.studentBranch || "Unknown Branch") === branch)
+      .filter((a) => getCanonicalBranchName(a.studentBranch) === getCanonicalBranchName(branch))
       .forEach((a) => {
         const classKey = a.classLevel;
         const list = classMap.get(classKey) || [];

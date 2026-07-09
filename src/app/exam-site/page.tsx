@@ -50,15 +50,15 @@ type AttemptHistoryItem = {
 };
 
 const BRANCHES = [
-  "SmartUp KADAVANTHARA",
-  "SmartUp Edappally",
-  "SmartUp VENNALA",
-  "SmartUp ERAVELI",
-  "SmartUp FORTKOCHI",
-  "SmartUp CHULLIKAL",
-  "SmartUp PALLURUTHY",
-  "SmartUp THOPPUMPADY",
-  "SmartUp MOOLAMKUZHI",
+  "Smart Up Kadavanthara",
+  "Smart Up Edappally",
+  "Smart Up Vennala",
+  "Smart Up Eraveli",
+  "Smart Up Fortkochi",
+  "Smart Up Chullickal",
+  "Smart Up Palluruthy",
+  "Smart Up Thopumpadi",
+  "Smart Up Moolamkuzhi",
 ];
 
 const LEVEL_OPTIONS = [

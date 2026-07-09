@@ -5,6 +5,7 @@ import { db } from "@/lib/public-exam/db";
 import { GradeResult, calculateDiagnosedLevel } from "@/lib/public-exam/grading";
 import { DatabaseErrorCard } from "@/components/diagnosis-exams/DatabaseErrorCard";
 import { getBranchManagerDefaultCompany } from "@/lib/server/branchManagerSession";
+import { getCanonicalBranchName } from "@/lib/utils/constants";
 import {
   ArrowLeft,
   User,
@@ -30,8 +31,7 @@ export default async function BranchManagerStudentResultDetailPage({ params }: P
 
   try {
     const branchName = await getBranchManagerDefaultCompany();
-    const cleanBranch = (name: string) => name.replace(/[\s\-_]/g, "").toLowerCase();
-    const cleanedBranchName = cleanBranch(branchName);
+    const canonicalBranch = getCanonicalBranchName(branchName);
 
     const attempt = await db.examAttempt.findUnique({
       where: { id },
@@ -49,7 +49,7 @@ export default async function BranchManagerStudentResultDetailPage({ params }: P
     }
 
     // Verify branch manager owns this student attempt
-    if (cleanBranch(attempt.studentBranch || "") !== cleanedBranchName) {
+    if (getCanonicalBranchName(attempt.studentBranch) !== canonicalBranch) {
       return notFound();
     }
 

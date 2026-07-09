@@ -3,12 +3,14 @@ import { db } from "@/lib/public-exam/db";
 import { DiagnosisExamsDrillDown } from "@/components/diagnosis-exams/DiagnosisExamsDrillDown";
 import { DatabaseErrorCard } from "@/components/diagnosis-exams/DatabaseErrorCard";
 
+import { getCanonicalBranchName } from "@/lib/utils/constants";
+
 export const dynamic = "force-dynamic";
 
 export default async function DirectorDiagnosisExamsPage() {
   try {
     // Query all student attempts from the standalone Postgres database
-    const attempts = await db.examAttempt.findMany({
+    const rawAttempts = await db.examAttempt.findMany({
       include: {
         publishing: {
           include: {
@@ -24,6 +26,11 @@ export default async function DirectorDiagnosisExamsPage() {
       },
       orderBy: { startedAt: "desc" },
     });
+
+    const attempts = rawAttempts.map((attempt) => ({
+      ...attempt,
+      studentBranch: getCanonicalBranchName(attempt.studentBranch),
+    }));
 
     return (
       <div className="p-4 lg:p-6 max-w-7xl mx-auto">
