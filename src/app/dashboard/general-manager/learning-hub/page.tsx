@@ -77,7 +77,7 @@ export default function GMLearningHub() {
           gradientFrom="from-pink-600"
           gradientTo="to-rose-600"
           badge="Assign Material"
-          onClick={handleCardClick}
+          onClick={() => router.push("/dashboard/general-manager/study-materials")}
         />
       </motion.div>
     </div>

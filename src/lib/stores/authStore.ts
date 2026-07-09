@@ -1,4 +1,4 @@
-﻿import { create } from "zustand";
+import { create } from "zustand";
 import type { User } from "@/lib/types/user";
 
 /**
@@ -20,6 +20,7 @@ const APP_ROLE_PRIORITY = [
   "Batch Coordinator",
   "Teacher",
   "Sales User",
+  "Content Admin",
   "Accounts User",
   "Parent",
 ];
@@ -35,6 +36,7 @@ const SWITCHABLE_ROLES = [
   "Sales User",
   "Class Incharge",
   "Instructor",
+  "Content Admin",
   "Parent",
 ] as const;
 

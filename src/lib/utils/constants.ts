@@ -80,6 +80,7 @@ export const ROLE_DASHBOARD_MAP: Record<string, string> = {
   Instructor: "/dashboard/instructor",
   "Sales User": "/dashboard/sales-user",
   Parent: "/dashboard/parent",
+  "Content Admin": "/dashboard/content-admin",
 };
 
 export interface NavItem {
@@ -327,6 +328,12 @@ export const MENTOR_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard/mentor", icon: "LayoutDashboard", emoji: "📊" },
   { label: "Assigned Students", href: "/dashboard/mentor/students", icon: "GraduationCap", emoji: "👨‍🎓" },
   { label: "Feedback Logs", href: "/dashboard/mentor/feedback", icon: "ClipboardList", emoji: "📝" },
+];
+
+export const CONTENT_ADMIN_NAV: NavItem[] = [
+  { label: "Dashboard", href: "/dashboard/content-admin", icon: "LayoutDashboard", emoji: "📊" },
+  { label: "Video Classes", href: "/dashboard/content-admin/video-classes", icon: "Video", emoji: "🎬" },
+  { label: "Study Materials", href: "/dashboard/content-admin/study-materials", icon: "BookOpen", emoji: "📚" },
 ];
 
 export const SALES_USER_BRANCH_MAP: Record<string, string[]> = {

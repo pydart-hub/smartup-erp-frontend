@@ -624,7 +624,9 @@ async function proxyRequest(request: NextRequest, method: string) {
     const decodedPath = decodeURIComponent(proxyPath);
     const isGMVideoReadOrWrite =
       decodedPath.startsWith("resource/GM Video Subject") ||
-      decodedPath.startsWith("resource/GM Video Chapter");
+      decodedPath.startsWith("resource/GM Video Chapter") ||
+      decodedPath.startsWith("resource/GM Study Material Subject") ||
+      decodedPath.startsWith("resource/GM Study Material Link");
 
     const useAdminToken =
       ((isBranchManager || isHRManager) && !isAdmin) ||

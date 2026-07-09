@@ -6,7 +6,7 @@ import { Topbar } from "@/components/layout/Topbar";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import { useAuthStore } from "@/lib/stores/authStore";
-import { PARENT_NAV, INSTRUCTOR_NAV, DIRECTOR_NAV, HR_MANAGER_NAV, SALES_USER_NAV, GENERAL_MANAGER_NAV, CLASS_INCHARGE_NAV, MENTOR_NAV } from "@/lib/utils/constants";
+import { PARENT_NAV, INSTRUCTOR_NAV, DIRECTOR_NAV, HR_MANAGER_NAV, SALES_USER_NAV, GENERAL_MANAGER_NAV, CLASS_INCHARGE_NAV, MENTOR_NAV, CONTENT_ADMIN_NAV } from "@/lib/utils/constants";
 import { NavigationLoader } from "@/components/NavigationLoader";
 
 function makeQueryClient() {
@@ -38,8 +38,9 @@ export default function DashboardLayout({
   const isBranchManager = activeRole === "Branch Manager";
   const isMentor = activeRole === "Mentor";
   const isClassIncharge = activeRole === "Class Incharge";
+  const isContentAdmin = activeRole === "Content Admin";
 
-  // Determine sidebar nav items based on role
+  // Determine sidebar nav items based on role.
   // Branch Manager takes priority over Instructor — a user who is both
   // should see the full Branch Manager sidebar, not the limited Instructor one.
   const sidebarNav = isDirector
@@ -48,19 +49,21 @@ export default function DashboardLayout({
       ? GENERAL_MANAGER_NAV
       : isMentor
         ? MENTOR_NAV
-      : isHRManager
-        ? HR_MANAGER_NAV
-        : isBranchManager
-          ? undefined  // falls through to default BRANCH_MANAGER_NAV in Sidebar
-          : isClassIncharge
-            ? CLASS_INCHARGE_NAV
-            : isSalesUser
-              ? SALES_USER_NAV
-              : isParent
-                ? PARENT_NAV
-                : isInstructor
-                  ? INSTRUCTOR_NAV
-                  : undefined;
+        : isHRManager
+          ? HR_MANAGER_NAV
+          : isBranchManager
+            ? undefined // falls through to default BRANCH_MANAGER_NAV in Sidebar
+            : isClassIncharge
+              ? CLASS_INCHARGE_NAV
+              : isSalesUser
+                ? SALES_USER_NAV
+                : isContentAdmin
+                  ? CONTENT_ADMIN_NAV
+                  : isParent
+                    ? PARENT_NAV
+                    : isInstructor
+                      ? INSTRUCTOR_NAV
+                      : undefined;
 
   return (
     <QueryClientProvider client={queryClient}>

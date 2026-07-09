@@ -1,8 +1,8 @@
-﻿"use client";
+"use client";
 
 import React from "react";
 import { usePathname } from "next/navigation";
-import { Menu, Search, LogOut, ChevronDown, GraduationCap, Building2, Globe, School } from "lucide-react";
+import { Menu, Search, LogOut, ChevronDown, GraduationCap, Building2, Globe, School, Video } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useUIStore } from "@/lib/stores/uiStore";
@@ -23,6 +23,7 @@ const ROLE_ICONS: Record<string, React.ReactNode> = {
   Mentor: <School className="h-3.5 w-3.5" />,
   "HR Manager": <Building2 className="h-3.5 w-3.5" />,
   "Sales User": <Building2 className="h-3.5 w-3.5" />,
+  "Content Admin": <Video className="h-3.5 w-3.5" />,
 };
 
 const ROLE_LABELS: Record<string, string> = {
@@ -36,6 +37,7 @@ const ROLE_LABELS: Record<string, string> = {
   Mentor: "Mentor",
   "HR Manager": "HR Manager",
   "Sales User": "Sales User",
+  "Content Admin": "Content Admin",
 };
 
 const DASHBOARD_ROLE_PREFIXES: Array<{ prefix: string; role: string }> = [
@@ -48,6 +50,7 @@ const DASHBOARD_ROLE_PREFIXES: Array<{ prefix: string; role: string }> = [
   { prefix: "/dashboard/class-incharge", role: "Class Incharge" },
   { prefix: "/dashboard/instructor", role: "Instructor" },
   { prefix: "/dashboard/parent", role: "Parent" },
+  { prefix: "/dashboard/content-admin", role: "Content Admin" },
 ];
 
 export function Topbar() {

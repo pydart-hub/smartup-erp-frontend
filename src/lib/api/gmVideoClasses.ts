@@ -146,3 +146,14 @@ export async function updateGMChapter(
 export async function deleteGMChapter(name: string): Promise<void> {
   await apiClient.delete(`/resource/GM%20Video%20Chapter/${encodeURIComponent(name)}`);
 }
+
+/** Fetch total count of active video classes */
+export async function getGMVideoCount(): Promise<number> {
+  const q = new URLSearchParams({
+    filters: JSON.stringify([["video_url", "!=", ""]]),
+    fields: JSON.stringify(["name"]),
+    limit_page_length: "1000",
+  });
+  const { data } = await apiClient.get(`/resource/GM%20Video%20Chapter?${q}`);
+  return (data.data ?? []).length;
+}

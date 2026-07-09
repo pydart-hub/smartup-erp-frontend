@@ -38,6 +38,8 @@ import {
   Video,
   UserX,
   Microscope,
+  Upload,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useUIStore } from "@/lib/stores/uiStore";
@@ -73,6 +75,8 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Video,
   UserX,
   Microscope,
+  Upload,
+  FileText,
 };
 
 interface SidebarProps {

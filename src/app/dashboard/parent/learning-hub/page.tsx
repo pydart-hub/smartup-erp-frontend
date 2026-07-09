@@ -131,7 +131,7 @@ export default function ParentLearningHub() {
           gradientFrom="from-emerald-600"
           gradientTo="to-teal-600"
           badge="Curated"
-          onClick={() => handleCardClick("/dashboard/under-development")}
+          onClick={() => handleCardClick("/dashboard/parent/study-materials")}
         />
       </motion.div>
 
