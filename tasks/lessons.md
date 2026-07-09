@@ -1,5 +1,11 @@
 # Lessons Learned
 
+## Next.js Turbopack Dev Overlay Bug: frame.join is not a function
+- **Date**: 2026-07-09
+- **Issue**: A runtime TypeError `frame.join is not a function` is displayed in the dev overlay. This is an internal Next.js/Turbopack stack trace parser bug triggered by *any* client-side uncaught exception or server-side rendering error in development.
+- **Correction**: Look at the terminal console output instead of the browser overlay to locate the actual error (e.g. database unreachable, schema mismatch, etc.), and resolve the real underlying crash.
+- **Rule**: If `frame.join is not a function` appears in the dev overlay under Next.js 16/Turbopack, immediately inspect the terminal server logs for the real runtime exception.
+
 ## Branch vs Global N/A Must Share Counting Logic
 - **Date**: 2026-05-07
 - **Issue**: Branch-level fallback used batch-scoped student lists while global totals used active branch students, causing inflated branch N/A despite low global N/A.
