@@ -223,20 +223,34 @@ export async function GET(request: NextRequest) {
       for (const payment of payments) {
         const paidAmt = payment.paid_amount ?? 0;
 
-        // FIX: A payment is "claimed" ONLY if there is a follow-up log whose
+        // PRIMARY: A payment is "claimed" if there is a follow-up log whose
         // invoice_ref exactly matches this Payment Entry's docname.
-        //
-        // Previously we used a fuzzy date + amount_received heuristic which
-        // caused follow-up logs from the Fee Overdue section (where a sales user
-        // marks "Payment Received" during a call) to accidentally claim payment
-        // entries in the Overdue Paid section.
-        //
-        // Now, the Overdue Paid → "Claim Conversion" button explicitly sets
-        // invoice_ref = payment.name when saving the follow-up log, making the
-        // link unambiguous. Overdue-call logs never have a matching invoice_ref.
-        const claimingLog = logsForStudent.find(
+        // The "Claim Conversion" button explicitly sets invoice_ref = payment.name
+        // so this link is unambiguous for all new claims.
+        let claimingLog = logsForStudent.find(
           (log) => log.invoice_ref && log.invoice_ref.trim() === payment.name?.trim()
         ) ?? null;
+
+        // FALLBACK (legacy claims): Before the invoice_ref system was introduced,
+        // sales users claimed payments by marking "Payment Received" in the Fee
+        // Overdue section. Those logs have no invoice_ref but can be identified by:
+        //   1. payment_received = 1 (or call_status = "Already Paid")
+        //   2. call_date >= payment posting_date (claimed on or after payment)
+        //   3. amount_received roughly matches paid_amount (within ₹1, or 0/null)
+        if (!claimingLog) {
+          claimingLog = logsForStudent.find((log) => {
+            const isPaymentLog =
+              log.payment_received === 1 || log.call_status === "Already Paid";
+            if (!isPaymentLog) return false;
+            const logDate = log.call_date || log.creation?.slice(0, 10) || "";
+            const paymentDate = payment.posting_date || "";
+            if (logDate < paymentDate) return false; // must be on or after payment
+            const amtReceived = log.amount_received ?? 0;
+            const amtMatches =
+              amtReceived === 0 || Math.abs(amtReceived - paidAmt) <= 1;
+            return amtMatches;
+          }) ?? null;
+        }
 
         const isClaimed = claimingLog !== null;
 
