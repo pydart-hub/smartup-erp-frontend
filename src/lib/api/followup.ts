@@ -58,6 +58,12 @@ export interface SalesUserFollowUpSummary {
     amount_collected: number;
     call_time: string;
   }[];
+  period_calls_details?: {
+    student_name: string;
+    call_status: string;
+    amount_collected: number;
+    call_time: string;
+  }[];
 }
 
 export interface SalesUserFollowUpBranchRow {

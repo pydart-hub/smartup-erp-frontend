@@ -40,6 +40,7 @@ import { Input } from "@/components/ui/Input";
 import { Card, CardContent } from "@/components/ui/Card";
 import { studentSchema, type StudentFormValues } from "@/lib/validators/student";
 import { admitStudent, getAcademicYears, getBranches, getStudentGroups, getNextSrrId } from "@/lib/api/enrollment";
+import { getBatchStudentCounts } from "@/lib/api/batches";
 import { getFeeStructures } from "@/lib/api/fees";
 import type { FeeConfigEntry, PaymentOptionSummary } from "@/lib/types/fee";
 import { getAllPaymentOptions } from "@/lib/utils/feeSchedule";
@@ -212,6 +213,15 @@ function NewStudentPage() {
   const groupOptions = useMemo(() => {
     return studentGroups.filter((g) => g.name);
   }, [studentGroups]);
+
+  const batchNames = useMemo(() => groupOptions.map((g) => g.name!).filter(Boolean), [groupOptions]);
+
+  const { data: batchCounts = {} } = useQuery({
+    queryKey: ["batch-student-counts", batchNames],
+    queryFn: () => getBatchStudentCounts(batchNames),
+    enabled: batchNames.length > 0,
+    staleTime: 30_000,
+  });
 
   // Auto-select batch when only one option is available
   useEffect(() => {
@@ -880,12 +890,13 @@ function NewStudentPage() {
                     <SelectField label="Batch" required error={errors.student_batch_name?.message}>
                       <select className={selectCls} {...register("student_batch_name")}>
                         <option value="">Select a batch</option>
-                        {groupOptions.map((g) => {
-                          const count = g.students?.length ?? "—";
+                         {groupOptions.map((g) => {
+                          const count = g.name ? (batchCounts[g.name] ?? "—") : "—";
                           const max = g.max_strength ?? 60;
+                          const isFull = typeof count === "number" && count >= max;
                           return (
-                            <option key={g.name} value={g.name}>
-                              {g.name} ({count}/{max} students)
+                            <option key={g.name} value={g.name} disabled={isFull}>
+                              {g.name} ({count}/{max} students){isFull ? " - [Full]" : ""}
                             </option>
                           );
                         })}

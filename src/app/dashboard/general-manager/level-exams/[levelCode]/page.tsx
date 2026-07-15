@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight, Building2, GraduationCap, Percent, Trophy, Users
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { getLevelExamClassDetail } from "@/lib/server/levelExamDashboard";
+import { FrappeCpuOverloadWarning } from "@/components/level-exams/FrappeCpuOverloadWarning";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -13,6 +14,8 @@ type PageProps = {
 };
 
 export default async function GMLevelExamClassDetailPage({ params }: PageProps) {
+  return <FrappeCpuOverloadWarning redirectUrl="/dashboard/general-manager/diagnosis-exams" />;
+
   const { levelCode } = await params;
 
   if (!["8", "9", "10"].includes(levelCode)) {
@@ -20,6 +23,7 @@ export default async function GMLevelExamClassDetailPage({ params }: PageProps) 
   }
 
   const data = await getLevelExamClassDetail(levelCode as "8" | "9" | "10");
+
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">

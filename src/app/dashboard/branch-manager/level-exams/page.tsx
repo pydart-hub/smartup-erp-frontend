@@ -3,13 +3,17 @@ import { ArrowRight, Microscope, Sparkles, Target, Trophy, Users } from "lucide-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { getGradeTone, getLevelExamDashboardDataForBranch } from "@/lib/server/levelExamDashboard";
 import { getBranchManagerDefaultCompany } from "@/lib/server/branchManagerSession";
+import { FrappeCpuOverloadWarning } from "@/components/level-exams/FrappeCpuOverloadWarning";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function BranchManagerLevelExamsPage() {
+  return <FrappeCpuOverloadWarning redirectUrl="/dashboard/branch-manager/diagnosis-exams" />;
+  
   const branchName = await getBranchManagerDefaultCompany();
   const data = await getLevelExamDashboardDataForBranch(branchName);
+
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">

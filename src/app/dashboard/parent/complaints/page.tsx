@@ -351,45 +351,157 @@ export default function ParentComplaintsPage() {
                         animate={{ opacity: 1 }}
                         className="mt-4 space-y-3"
                       >
-                        <div>
-                          <p className="text-xs font-medium text-text-secondary uppercase tracking-wider mb-1">Description</p>
-                          <p className="text-sm text-text-primary whitespace-pre-wrap">
-                            {complaint.description}
-                          </p>
-                        </div>
-
-                        {/* Resolution (if resolved/closed) */}
-                        {complaint.resolution_notes && (
-                          <div className="border-t border-border-light pt-3">
-                            <div className="flex items-center gap-2 mb-1">
-                              <CheckCircle2 className="h-4 w-4 text-success" />
-                              <p className="text-xs font-medium text-success uppercase tracking-wider">Resolution</p>
-                            </div>
-                            <p className="text-sm text-text-primary whitespace-pre-wrap">
-                              {complaint.resolution_notes}
-                            </p>
-                            {complaint.resolved_by && (
-                              <p className="text-xs text-text-tertiary mt-1">
-                                Resolved by {complaint.resolved_by}
-                                {complaint.resolved_date && ` on ${formatDate(complaint.resolved_date)}`}
+                        {/* Side-by-side Grid */}
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                          
+                          {/* Left Column (2/3): Core Details */}
+                          <div className="lg:col-span-2 space-y-5">
+                            {/* Description */}
+                            <div className="bg-app-bg/40 rounded-[12px] p-4 border border-border-light">
+                              <p className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider mb-2">
+                                Description
                               </p>
+                              <p className="text-sm text-text-primary whitespace-pre-wrap leading-relaxed">
+                                {complaint.description}
+                              </p>
+                            </div>
+
+                            {/* Resolution Notes (Show premium display card if exists) */}
+                            {complaint.resolution_notes && (
+                              <div className="bg-emerald-500/[0.04] border border-emerald-500/10 rounded-[12px] p-4">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                                  <p className="text-[10px] font-semibold text-emerald-800 uppercase tracking-wider">
+                                    Resolution Notes
+                                  </p>
+                                </div>
+                                <p className="text-sm text-text-primary whitespace-pre-wrap leading-relaxed">
+                                  {complaint.resolution_notes}
+                                </p>
+                              </div>
+                            )}
+
+                            {/* Status indicator for non-resolved */}
+                            {!complaint.resolution_notes && complaint.status === "Open" && (
+                              <div className="flex items-center gap-2 text-sm text-text-tertiary">
+                                <Clock className="h-4 w-4" />
+                                Waiting for review
+                              </div>
+                            )}
+                            {!complaint.resolution_notes && complaint.status === "In Review" && (
+                              <div className="flex items-center gap-2 text-sm text-info">
+                                <Eye className="h-4 w-4" />
+                                Under review by management
+                              </div>
                             )}
                           </div>
-                        )}
 
-                        {/* Status indicator for non-resolved */}
-                        {!complaint.resolution_notes && complaint.status === "Open" && (
-                          <div className="flex items-center gap-2 text-sm text-text-tertiary">
-                            <Clock className="h-4 w-4" />
-                            Waiting for review
+                          {/* Right Column (1/3): Meta Info & Activity Timeline */}
+                          <div className="space-y-6 bg-app-bg/20 rounded-[12px] p-4 border border-border-light">
+                            {/* Meta details */}
+                            <div className="space-y-3">
+                              <p className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">
+                                Complaint Details
+                              </p>
+                              <div className="space-y-2.5 text-xs">
+                                <div className="flex justify-between items-center py-1 border-b border-border-light">
+                                  <span className="text-text-tertiary">Filed On</span>
+                                  <span className="font-medium text-text-primary">{formatDate(complaint.creation)}</span>
+                                </div>
+                                <div className="flex justify-between items-center py-1 border-b border-border-light">
+                                  <span className="text-text-tertiary">Student</span>
+                                  <span className="font-medium text-text-primary text-right">{complaint.student_name}</span>
+                                </div>
+                                <div className="flex justify-between items-center py-1">
+                                  <span className="text-text-tertiary">Branch</span>
+                                  <span className="font-medium text-text-primary">{complaint.branch_abbr || complaint.branch}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Activity Log / Timeline */}
+                            <div className="space-y-4 pt-4 border-t border-border-light">
+                              <p className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">
+                                Activity Timeline
+                              </p>
+                              
+                              <motion.div 
+                                initial="hidden"
+                                animate="visible"
+                                variants={{
+                                  visible: {
+                                    transition: {
+                                      staggerChildren: 0.1
+                                    }
+                                  }
+                                }}
+                                className="relative pl-6 space-y-4 before:absolute before:left-[9px] before:top-2 before:bottom-2 before:w-[2px] before:bg-border-light/70"
+                              >
+                                {/* 1. Filed State (Always present) */}
+                                <motion.div 
+                                  variants={{
+                                    hidden: { opacity: 0, x: -10 },
+                                    visible: { opacity: 1, x: 0 }
+                                  }}
+                                  className="relative"
+                                >
+                                  <div className="absolute -left-[22px] top-[2px] flex items-center justify-center w-5 h-5 rounded-full bg-surface border border-border-light text-text-secondary shadow-sm ring-4 ring-surface">
+                                    <Clock className="h-3 w-3" />
+                                  </div>
+                                  <div className="bg-surface/50 border border-border-light/40 rounded-[8px] p-2.5 hover:bg-surface/90 transition-all shadow-2xs">
+                                    <p className="text-xs font-semibold text-text-primary">Complaint Filed</p>
+                                    <p className="text-[10px] text-text-tertiary mt-0.5">
+                                      Filed by {complaint.guardian_name || "Parent"} on {formatDate(complaint.creation)}
+                                    </p>
+                                  </div>
+                                </motion.div>
+
+                                {/* 2. Reviewed State */}
+                                {complaint.reviewed_by && (
+                                  <motion.div 
+                                    variants={{
+                                      hidden: { opacity: 0, x: -10 },
+                                      visible: { opacity: 1, x: 0 }
+                                    }}
+                                    className="relative"
+                                  >
+                                    <div className="absolute -left-[22px] top-[2px] flex items-center justify-center w-5 h-5 rounded-full bg-amber-50 border border-amber-200 text-amber-600 shadow-sm ring-4 ring-surface">
+                                      <Eye className="h-3 w-3" />
+                                    </div>
+                                    <div className="bg-amber-500/[0.02] border border-amber-500/10 rounded-[8px] p-2.5 hover:bg-amber-500/[0.04] transition-all shadow-2xs">
+                                      <p className="text-xs font-semibold text-amber-800">Under Review</p>
+                                      <p className="text-[10px] text-amber-700/80 mt-0.5">
+                                        By {complaint.reviewed_by} on {formatDate(complaint.reviewed_date || "")}
+                                      </p>
+                                    </div>
+                                  </motion.div>
+                                )}
+
+                                {/* 3. Resolved State */}
+                                {complaint.resolved_by && (
+                                  <motion.div 
+                                    variants={{
+                                      hidden: { opacity: 0, x: -10 },
+                                      visible: { opacity: 1, x: 0 }
+                                    }}
+                                    className="relative"
+                                  >
+                                    <div className="absolute -left-[22px] top-[2px] flex items-center justify-center w-5 h-5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 shadow-sm ring-4 ring-surface">
+                                      <CheckCircle2 className="h-3 w-3" />
+                                    </div>
+                                    <div className="bg-emerald-500/[0.02] border border-emerald-500/10 rounded-[8px] p-2.5 hover:bg-emerald-500/[0.04] transition-all shadow-2xs">
+                                      <p className="text-xs font-semibold text-emerald-850">Resolved</p>
+                                      <p className="text-[10px] text-emerald-800/80 mt-0.5">
+                                        By {complaint.resolved_by} on {formatDate(complaint.resolved_date || "")}
+                                      </p>
+                                    </div>
+                                  </motion.div>
+                                )}
+                              </motion.div>
+                            </div>
                           </div>
-                        )}
-                        {!complaint.resolution_notes && complaint.status === "In Review" && (
-                          <div className="flex items-center gap-2 text-sm text-info">
-                            <Eye className="h-4 w-4" />
-                            Under review by management
-                          </div>
-                        )}
+
+                        </div>
                       </motion.div>
                     )}
                   </div>

@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
     const to = normalizeDateParam(searchParams.get("to") || "");
     let branch = searchParams.get("branch");
 
-    const filters: any[][] = [
+    const baseFilters: any[][] = [
       ["Fee Follow Up", "called_by", "=", session.email],
     ];
 
@@ -84,18 +84,20 @@ export async function GET(request: NextRequest) {
         if (!allowedCompanies.includes(branch)) {
           return NextResponse.json({ error: "Access denied to this branch" }, { status: 403 });
         }
-        filters.push(["Fee Follow Up", "branch", "=", branch]);
+        baseFilters.push(["Fee Follow Up", "branch", "=", branch]);
       } else {
         if (allowedCompanies.length > 0) {
-          filters.push(["Fee Follow Up", "branch", "in", allowedCompanies]);
+          baseFilters.push(["Fee Follow Up", "branch", "in", allowedCompanies]);
         }
       }
     } else {
       branch = branch || defaultCompany || "";
       if (branch) {
-        filters.push(["Fee Follow Up", "branch", "=", branch]);
+        baseFilters.push(["Fee Follow Up", "branch", "=", branch]);
       }
     }
+
+    const filters = [...baseFilters];
     if (from) filters.push(["Fee Follow Up", "call_date", ">=", `${from} 00:00:00`]);
     if (to) filters.push(["Fee Follow Up", "call_date", "<=", `${to} 23:59:59`]);
 
@@ -109,7 +111,7 @@ export async function GET(request: NextRequest) {
     const qs = new URLSearchParams({
       fields: JSON.stringify(fields),
       filters: JSON.stringify(filters),
-      limit_page_length: "1000",
+      limit_page_length: "2000",
       order_by: "call_date desc",
     });
 
@@ -138,6 +140,27 @@ export async function GET(request: NextRequest) {
     weekStart.setDate(istDate.getDate() - daysFromMonday);
     const weekStartStr = weekStart.toISOString().slice(0, 10);
 
+    // Fetch live logs without date constraints for live metrics (Today/Week Calls, Pending Followups)
+    let liveLogs: FollowUpLog[] = [];
+    try {
+      const liveQs = new URLSearchParams({
+        fields: JSON.stringify(fields),
+        filters: JSON.stringify(baseFilters),
+        limit_page_length: "2000",
+        order_by: "call_date desc",
+      });
+      const liveRes = await fetch(`${FRAPPE_URL}/api/resource/${encodeURIComponent("Fee Follow Up")}?${liveQs}`, {
+        headers: { Authorization: ADMIN_AUTH, Accept: "application/json" },
+        cache: "no-store",
+      });
+      if (liveRes.ok) {
+        const liveData = await liveRes.json();
+        liveLogs = liveData.data ?? [];
+      }
+    } catch (err) {
+      console.error("Error fetching live logs for dashboard stats:", err);
+    }
+
     let today_calls = 0;
     let week_calls = 0;
     let answered_count = 0;
@@ -158,9 +181,9 @@ export async function GET(request: NextRequest) {
     const byBranch = new Map<string, { branch: string; calls: number; converted: number; promised: number; pending: number }>();
     const byStatus = new Map<string, number>();
 
-    for (const log of logs) {
+    // Calculate live metrics from unfiltered liveLogs
+    for (const log of liveLogs) {
       const logDate = toLocalDate(log.call_date);
-      uniqueStudents.add(log.student);
       if (logDate === todayStr) {
         today_calls++;
         const amt = log.amount_received ?? 0;
@@ -181,9 +204,6 @@ export async function GET(request: NextRequest) {
         });
       }
       if (logDate >= weekStartStr) week_calls++;
-      if (!NO_ANSWER_STATUSES.includes(log.call_status)) answered_count++;
-      if (NO_ANSWER_STATUSES.includes(log.call_status)) no_answer_count++;
-      if (PROMISED_STATUSES.includes(log.call_status)) promised_count++;
       if (
         !(log.payment_received || log.call_status === "Already Paid") &&
         ACTIONABLE_STATUSES.includes(log.call_status) &&
@@ -191,6 +211,27 @@ export async function GET(request: NextRequest) {
       ) {
         pending_followups++;
       }
+    }
+
+    // Calculate date-filtered metrics from logs
+    const period_calls_details = logs.map(log => {
+      let callTime = "";
+      if (log.call_date && log.call_date.includes(" ")) {
+        callTime = log.call_date.split(" ")[1].slice(0, 5); // "HH:MM"
+      }
+      return {
+        student_name: log.student_name || log.student,
+        call_status: log.call_status,
+        amount_collected: log.amount_received ?? 0,
+        call_time: callTime,
+      };
+    });
+
+    for (const log of logs) {
+      uniqueStudents.add(log.student);
+      if (!NO_ANSWER_STATUSES.includes(log.call_status)) answered_count++;
+      if (NO_ANSWER_STATUSES.includes(log.call_status)) no_answer_count++;
+      if (PROMISED_STATUSES.includes(log.call_status)) promised_count++;
       
       byStatus.set(log.call_status, (byStatus.get(log.call_status) ?? 0) + 1);
 
@@ -245,7 +286,7 @@ export async function GET(request: NextRequest) {
         const paidQs = new URLSearchParams({
           fields: JSON.stringify(["student", "amount_received", "call_date", "called_by", "branch"]),
           filters: JSON.stringify(allTimeFilters),
-          limit_page_length: "1000",
+          limit_page_length: "2000",
           order_by: "call_date asc",
         });
         const paidRes = await fetch(
@@ -340,6 +381,7 @@ export async function GET(request: NextRequest) {
         pending_followups,
         today_collected,
         today_calls_details,
+        period_calls_details,
       },
       by_branch: Array.from(byBranch.values()).sort((a, b) => b.calls - a.calls),
       by_status: Array.from(byStatus.entries()).map(([status, count]) => ({ status, count })).sort((a, b) => b.count - a.count),

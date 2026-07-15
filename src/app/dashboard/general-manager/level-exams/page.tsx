@@ -16,12 +16,16 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { getGradeTone, getLevelExamDashboardData } from "@/lib/server/levelExamDashboard";
+import { FrappeCpuOverloadWarning } from "@/components/level-exams/FrappeCpuOverloadWarning";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function GMLevelExamsPage() {
+  return <FrappeCpuOverloadWarning redirectUrl="/dashboard/general-manager/diagnosis-exams" />;
+
   const data = await getLevelExamDashboardData();
+
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">

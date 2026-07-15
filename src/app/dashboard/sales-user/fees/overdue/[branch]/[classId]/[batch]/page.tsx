@@ -88,7 +88,8 @@ export default function SalesOverdueStudentPage() {
   const [planFilter, setPlanFilter] = useState("all");
   const [frequencyFilter, setFrequencyFilter] = useState("all");
   const [notCalledOnly, setNotCalledOnly] = useState(false);
-  const [sortOrder, setSortOrder] = useState<"desc" | "asc" | "none">("none");
+  const [sortField, setSortField] = useState<"due" | "installments" | "none">("none");
+  const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [drawerStudent, setDrawerStudent] = useState<{ student_id: string; student_name: string; branch: string } | null>(null);
 
@@ -157,13 +158,19 @@ export default function SalesOverdueStudentPage() {
       if (notCalledOnly && allLogs && allLogs[s.student_id]) return false;
       return true;
     });
-    if (sortOrder === "desc") {
-      result = [...result].sort((a, b) => b.total_dues - a.total_dues);
-    } else if (sortOrder === "asc") {
-      result = [...result].sort((a, b) => a.total_dues - b.total_dues);
+    if (sortField === "due") {
+      result = [...result].sort((a, b) =>
+        sortOrder === "desc" ? b.total_dues - a.total_dues : a.total_dues - b.total_dues
+      );
+    } else if (sortField === "installments") {
+      result = [...result].sort((a, b) => {
+        const countA = a.overdue_invoices?.length ?? 0;
+        const countB = b.overdue_invoices?.length ?? 0;
+        return sortOrder === "desc" ? countB - countA : countA - countB;
+      });
     }
     return result;
-  }, [students, planFilter, frequencyFilter, notCalledOnly, sortOrder, allLogs]);
+  }, [students, planFilter, frequencyFilter, notCalledOnly, sortField, sortOrder, allLogs]);
 
   const notCalledCount = useMemo(() => {
     if (!students || !allLogs) return null;
@@ -171,7 +178,7 @@ export default function SalesOverdueStudentPage() {
   }, [students, allLogs]);
 
   const totalDues = filteredStudents.reduce((s, st) => s + st.total_dues, 0);
-  const hasActiveFilters = planFilter !== "all" || frequencyFilter !== "all" || notCalledOnly || sortOrder !== "none";
+  const hasActiveFilters = planFilter !== "all" || frequencyFilter !== "all" || notCalledOnly || sortField !== "none";
 
   return (
     <motion.div
@@ -224,7 +231,11 @@ export default function SalesOverdueStudentPage() {
 
       {/* Filters */}
       {!isLoading && students && students.length > 0 && (
-        <motion.div variants={itemVariants}>
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
           <div className="flex items-center gap-2.5 flex-wrap">
             <div className="flex items-center gap-1.5 text-sm text-text-secondary shrink-0">
               <Filter className="h-4 w-4" />
@@ -281,27 +292,62 @@ export default function SalesOverdueStudentPage() {
 
             {/* Sort by due amount */}
             <button
-              onClick={() =>
-                setSortOrder((prev) =>
-                  prev === "none" ? "desc" : prev === "desc" ? "asc" : "none"
-                )
-              }
+              onClick={() => {
+                if (sortField !== "due") {
+                  setSortField("due");
+                  setSortOrder("desc");
+                } else if (sortOrder === "desc") {
+                  setSortOrder("asc");
+                } else {
+                  setSortField("none");
+                }
+              }}
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium transition-all shrink-0 ${
-                sortOrder !== "none"
+                sortField === "due"
                   ? "bg-amber-500 border-amber-500 text-white shadow-sm"
                   : "bg-surface border-border-input text-text-secondary hover:border-amber-400 hover:text-amber-600"
               }`}
             >
-              {sortOrder === "asc" ? (
+              {sortField === "due" && sortOrder === "asc" ? (
                 <ChevronUp className="h-3.5 w-3.5" />
               ) : (
                 <ChevronDown className="h-3.5 w-3.5" />
               )}
-              {sortOrder === "asc"
-                ? "Due: Low to High"
-                : sortOrder === "desc"
-                ? "Due: High to Low"
+              {sortField === "due"
+                ? sortOrder === "asc"
+                  ? "Due: Low to High"
+                  : "Due: High to Low"
                 : "Sort by Due"}
+            </button>
+
+            {/* Sort by installments number */}
+            <button
+              onClick={() => {
+                if (sortField !== "installments") {
+                  setSortField("installments");
+                  setSortOrder("desc");
+                } else if (sortOrder === "desc") {
+                  setSortOrder("asc");
+                } else {
+                  setSortField("none");
+                }
+              }}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium transition-all shrink-0 ${
+                sortField === "installments"
+                  ? "bg-indigo-600 border-indigo-600 text-white shadow-sm"
+                  : "bg-surface border-border-input text-text-secondary hover:border-indigo-400 hover:text-indigo-600"
+              }`}
+            >
+              {sortField === "installments" && sortOrder === "asc" ? (
+                <ChevronUp className="h-3.5 w-3.5" />
+              ) : (
+                <ChevronDown className="h-3.5 w-3.5" />
+              )}
+              {sortField === "installments"
+                ? sortOrder === "asc"
+                  ? "Installments: Low to High"
+                  : "Installments: High to Low"
+                : "Sort by Installments"}
             </button>
 
             {hasActiveFilters && (
@@ -310,7 +356,8 @@ export default function SalesOverdueStudentPage() {
                   setPlanFilter("all");
                   setFrequencyFilter("all");
                   setNotCalledOnly(false);
-                  setSortOrder("none");
+                  setSortField("none");
+                  setSortOrder("desc");
                 }}
                 className="text-xs text-primary hover:text-primary/80 underline underline-offset-2 shrink-0"
               >
@@ -349,118 +396,136 @@ export default function SalesOverdueStudentPage() {
 
             return (
               <motion.div key={student.student_id} variants={itemVariants}>
-                <div className="rounded-[12px] border border-border-light bg-surface overflow-hidden">
+                <div className="rounded-[16px] border border-border-light bg-surface shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
                   {/* ── Student Header ── */}
-                  <div className="p-4">
-                    <div className="flex items-start gap-3">
-                      {/* Avatar */}
-                      <div className="w-9 h-9 rounded-lg bg-brand-wash flex items-center justify-center shrink-0 mt-0.5">
-                        <GraduationCap className="h-4 w-4 text-primary" />
+                  <div className="p-4 md:p-5">
+                    {/* Top Row: Name and Dues */}
+                    <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
+                      {/* Name / Badges */}
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-brand-wash flex items-center justify-center shrink-0 mt-0.5 border border-primary/10">
+                          <GraduationCap className="h-5 w-5 text-primary" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-base font-bold text-text-primary">
+                              <span className="text-text-tertiary mr-1.5 font-normal text-sm">#{idx + 1}</span>
+                              {student.student_name}
+                            </p>
+                          </div>
+                          
+                          {/* Badges row */}
+                          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                            {student.overdue_invoices && student.overdue_invoices.length > 1 && (
+                              <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-100 shadow-sm animate-pulse shrink-0">
+                                <AlertCircle className="h-2.5 w-2.5 text-rose-600 animate-bounce" />
+                                {student.overdue_invoices.length} Overdue
+                              </span>
+                            )}
+                            {student.plan && (
+                              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold border ${planColor.bg} ${planColor.text} ${planColor.border}`}>
+                                {student.plan}
+                              </span>
+                            )}
+                            {frequencyLabel && (
+                              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium bg-gray-100 text-gray-600 border border-gray-200">
+                                {frequencyLabel}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
 
-                      {/* Main info */}
-                      <div className="flex-1 min-w-0">
-                        {/* Name row */}
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-sm font-semibold text-text-primary">
-                            <span className="text-text-tertiary mr-1.5 font-normal">#{idx + 1}</span>
-                            {student.student_name}
+                      {/* Overdue Total Highlight Box */}
+                      <div className="w-full sm:w-auto p-3 sm:py-2 sm:px-4 rounded-2xl bg-orange-50/50 border border-orange-100 flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 shrink-0">
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-orange-600/80 sm:hidden">Overdue amount</span>
+                        <div className="text-right">
+                          <p className="text-xl font-black text-orange-600 tracking-tight">
+                            {formatCurrency(student.total_dues)}
                           </p>
-                          {student.plan && (
-                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold border ${planColor.bg} ${planColor.text} ${planColor.border}`}>
-                              {student.plan}
-                            </span>
-                          )}
-                          {frequencyLabel && (
-                            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium bg-gray-100 text-gray-600 border border-gray-200">
-                              {frequencyLabel}
-                            </span>
-                          )}
+                          <p className="text-[9px] font-bold uppercase tracking-wider text-orange-600/80 hidden sm:block">overdue</p>
                         </div>
+                      </div>
+                    </div>
 
-                        {/* ID + Class */}
-                        <div className="flex items-center gap-3 mt-1 flex-wrap">
-                          <p className="text-xs text-text-tertiary font-mono">{student.student_id}</p>
-                          <span className="text-text-tertiary/40 text-xs">·</span>
-                          <p className="text-xs text-text-tertiary">{displayClass}</p>
-                        </div>
-
-                        {/* Admission date */}
-                        {student.joining_date && (
-                          <div className="flex items-center gap-1.5 mt-1.5 text-xs text-text-secondary">
-                            <CalendarDays className="h-3 w-3 text-text-tertiary shrink-0" />
-                            <span>Admitted: {formatDate(student.joining_date)}</span>
-                          </div>
+                    {/* Metadata Section - Structured Grid */}
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 p-3.5 bg-gray-50/70 rounded-xl border border-gray-100 mb-4 text-xs">
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-text-tertiary block mb-0.5">Student ID</span>
+                        <p className="font-mono font-medium text-text-primary truncate">{student.student_id}</p>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-text-tertiary block mb-0.5">Admission Date</span>
+                        <p className="font-medium text-text-primary truncate">
+                          {student.joining_date ? formatDate(student.joining_date) : "N/A"}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-text-tertiary block mb-0.5">Parent / Guardian</span>
+                        <p className="font-medium text-text-primary truncate">{student.guardian_name || "N/A"}</p>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-text-tertiary block mb-0.5">Contact</span>
+                        {student.guardian_phone ? (
+                          <a
+                            href={`tel:${student.guardian_phone}`}
+                            className="inline-flex items-center gap-1 font-semibold text-primary hover:text-primary-dark transition-colors truncate"
+                          >
+                            <Phone className="h-3 w-3" />
+                            <span>{student.guardian_phone}</span>
+                          </a>
+                        ) : (
+                          <p className="text-text-tertiary">N/A</p>
                         )}
+                      </div>
+                    </div>
 
-                        {/* Parent info */}
-                        {(student.guardian_name || student.guardian_phone) && (
-                          <div className="flex items-center gap-3 mt-2 flex-wrap">
-                            {student.guardian_name && (
-                              <div className="flex items-center gap-1.5 text-xs text-text-secondary">
-                                <User className="h-3 w-3 text-text-tertiary" />
-                                <span>{student.guardian_name}</span>
-                              </div>
-                            )}
-                            {student.guardian_phone && (
-                              <a
-                                href={`tel:${student.guardian_phone}`}
-                                className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors"
-                              >
-                                <Phone className="h-3 w-3" />
-                                <span>{student.guardian_phone}</span>
-                              </a>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Follow-up badge or Mark Called button */}
-                        <div className="mt-2.5 flex items-center gap-2 flex-wrap">
-                          {lastLog ? (
-                            <>
-                              <FollowUpBadge log={lastLog} />
-                              <button
-                                onClick={() => setDrawerStudent({ student_id: student.student_id, student_name: student.student_name, branch })}
-                                className="inline-flex items-center gap-1 text-[10px] text-primary hover:text-primary/80 underline underline-offset-2"
-                              >
-                                Log Again
-                              </button>
-                            </>
-                          ) : (
+                    {/* Footer Actions Row */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+                      {/* Left: Call follow-up status */}
+                      <div className="flex items-center gap-2 flex-wrap min-h-[28px]">
+                        {lastLog ? (
+                          <>
+                            <FollowUpBadge log={lastLog} />
                             <button
                               onClick={() => setDrawerStudent({ student_id: student.student_id, student_name: student.student_name, branch })}
-                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-primary/30 bg-primary/5 text-[10px] font-medium text-primary hover:bg-primary/10 transition-colors"
+                              className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:text-primary/80 transition-colors uppercase tracking-wider"
                             >
-                              <PhoneCall className="h-2.5 w-2.5" />
-                              Mark Called
+                              Log Again
                             </button>
-                          )}
-                        </div>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => setDrawerStudent({ student_id: student.student_id, student_name: student.student_name, branch })}
+                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-primary/20 bg-primary/5 text-[11px] font-bold text-primary hover:bg-primary/10 transition-colors uppercase tracking-wider"
+                          >
+                            <PhoneCall className="h-3 w-3" />
+                            Mark Called
+                          </button>
+                        )}
                       </div>
 
-                      {/* Overdue total + expand toggle */}
-                      <div className="text-right shrink-0 flex flex-col items-end gap-1">
-                        <p className="text-lg font-bold text-orange-600">
-                          {formatCurrency(student.total_dues)}
-                        </p>
-                        <p className="text-[10px] text-text-tertiary">overdue</p>
-                        <button
-                          onClick={() => toggleExpand(student.student_id)}
-                          className="mt-1 flex items-center gap-1 text-[11px] text-primary hover:text-primary/80 transition-colors"
-                        >
-                          {isExpanded ? (
-                            <>Hide <ChevronUp className="h-3 w-3" /></>
-                          ) : (
-                            <>{student.overdue_invoices.length} instalment{student.overdue_invoices.length !== 1 ? "s" : ""} <ChevronDown className="h-3 w-3" /></>
-                          )}
-                        </button>
+                      {/* Right: History modals and Expansion triggers */}
+                      <div className="flex items-center gap-3.5 flex-wrap sm:justify-end text-xs font-semibold">
                         <StudentTransactionHistory
                           studentId={student.student_id}
                           branch={branch}
                         />
+                        <span className="text-gray-200 hidden xs:inline">|</span>
                         <StudentFollowUpHistory
                           studentId={student.student_id}
                         />
+                        <span className="text-gray-200 hidden xs:inline">|</span>
+                        <button
+                          onClick={() => toggleExpand(student.student_id)}
+                          className="flex items-center gap-1 text-[11px] font-bold text-primary hover:text-primary/80 transition-colors uppercase tracking-wider"
+                        >
+                          {isExpanded ? (
+                            <>Hide Detail <ChevronUp className="h-3 w-3" /></>
+                          ) : (
+                            <>{student.overdue_invoices.length} instalment{student.overdue_invoices.length !== 1 ? "s" : ""} <ChevronDown className="h-3 w-3" /></>
+                          )}
+                        </button>
                       </div>
                     </div>
                   </div>

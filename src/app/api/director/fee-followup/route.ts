@@ -99,11 +99,13 @@ async function frappeGet(path: string, params: Record<string, string>) {
 
 function summarizeLogs(logs: FollowUpLog[]) {
   const now = new Date();
-  const todayStr = now.toISOString().slice(0, 10);
-  const dayOfWeek = now.getDay();
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const istDate = new Date(now.getTime() + istOffset);
+  const todayStr = istDate.toISOString().slice(0, 10);
+  const dayOfWeek = istDate.getDay();
   const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-  const weekStart = new Date(now);
-  weekStart.setDate(now.getDate() - daysFromMonday);
+  const weekStart = new Date(istDate.getTime());
+  weekStart.setDate(istDate.getDate() - daysFromMonday);
   const weekStartStr = weekStart.toISOString().slice(0, 10);
 
   let total_today = 0;
@@ -142,10 +144,11 @@ function summarizeLogs(logs: FollowUpLog[]) {
   }>();
 
   for (const log of logs) {
-    const key = `${log.called_by}||${log.branch}`;
+    const normalizedEmail = log.called_by?.trim().toLowerCase() || "unknown";
+    const key = `${normalizedEmail}||${log.branch}`;
     if (!userMap.has(key)) {
       userMap.set(key, {
-        called_by: log.called_by,
+        called_by: normalizedEmail,
         branch: log.branch,
         calls: 0,
         answered: 0,
@@ -417,7 +420,10 @@ export async function GET(request: NextRequest) {
     const statusFilter = searchParams.get("status") || "";
     const kind = searchParams.get("kind") || "";
 
-    const todayDate = to || new Date().toISOString().slice(0, 10);
+    const currentNow = new Date();
+    const offsetIST = 5.5 * 60 * 60 * 1000;
+    const dateIST = new Date(currentNow.getTime() + offsetIST);
+    const todayDate = to || dateIST.toISOString().slice(0, 10);
     const pendingDuesMap = await getPendingOverdueByBranch(todayDate);
 
     if (kind === "collected") {
@@ -444,7 +450,7 @@ export async function GET(request: NextRequest) {
     const qs = new URLSearchParams({
       fields: JSON.stringify(fields),
       filters: JSON.stringify(filters),
-      limit_page_length: "500",
+      limit_page_length: "2000",
       order_by: "call_date desc",
     });
 

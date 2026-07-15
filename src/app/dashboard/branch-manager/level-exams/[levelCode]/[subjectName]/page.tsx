@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { getGradeTone, getLevelExamSubjectDetailForBranch } from "@/lib/server/levelExamDashboard";
 import { getBranchManagerDefaultCompany } from "@/lib/server/branchManagerSession";
+import { FrappeCpuOverloadWarning } from "@/components/level-exams/FrappeCpuOverloadWarning";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -12,12 +13,15 @@ export const revalidate = 0;
 type PageProps = { params: Promise<{ levelCode: string; subjectName: string }> };
 
 export default async function BranchManagerDiagnosisSubjectPage({ params }: PageProps) {
+  return <FrappeCpuOverloadWarning redirectUrl="/dashboard/branch-manager/diagnosis-exams" />;
+
   const { levelCode, subjectName } = await params;
   if (!["8", "9", "10"].includes(levelCode)) notFound();
 
   const decodedSubject = decodeURIComponent(subjectName);
   const branchName = await getBranchManagerDefaultCompany();
   const data = await getLevelExamSubjectDetailForBranch(levelCode as "8" | "9" | "10", decodedSubject, branchName);
+
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">

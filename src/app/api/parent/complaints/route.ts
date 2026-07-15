@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
     const adminAuth = `token ${FRAPPE_API_KEY}:${FRAPPE_API_SECRET}`;
     const headers = { Authorization: adminAuth, "Content-Type": "application/json" };
 
-    const complaints = await safeFetch<Complaint>(
+    let complaints = await safeFetch<Complaint>(
       frappeListUrl(
         "Complaint",
         [["guardian_email", "=", session.email]],
@@ -75,12 +75,32 @@ export async function GET(request: NextRequest) {
           "description", "student", "student_name", "branch", "branch_abbr",
           "guardian", "guardian_name", "guardian_email",
           "resolution_notes", "resolved_by", "resolved_date",
+          "reviewed_by", "reviewed_date",
           "creation", "modified",
         ],
         { limit: 100, orderBy: "creation desc" }
       ),
       headers
     );
+
+    if (complaints.length === 0) {
+      console.warn("[parent/complaints] First fetch returned 0 records, trying fallback fields...");
+      complaints = await safeFetch<Complaint>(
+        frappeListUrl(
+          "Complaint",
+          [["guardian_email", "=", session.email]],
+          [
+            "name", "subject", "category", "priority", "status",
+            "description", "student", "student_name", "branch", "branch_abbr",
+            "guardian", "guardian_name", "guardian_email",
+            "resolution_notes", "resolved_by", "resolved_date",
+            "creation", "modified",
+          ],
+          { limit: 100, orderBy: "creation desc" }
+        ),
+        headers
+      );
+    }
 
     return NextResponse.json({ complaints });
   } catch (error: unknown) {

@@ -15,6 +15,8 @@ export interface Complaint {
   resolution_notes?: string;
   resolved_by?: string;
   resolved_date?: string;
+  reviewed_by?: string;
+  reviewed_date?: string;
   creation: string;         // ISO datetime
   modified: string;
 }

@@ -135,6 +135,7 @@ async function getGuardianFromStudent(
 async function resolveReceiptContext(
   invoiceId: string,
   overrideEmail?: string,
+  overridePhone?: string,
 ): Promise<ReceiptContext | null> {
   // 1. Fetch invoice
   const inv = (await safeFetchDoc(
@@ -149,22 +150,27 @@ async function resolveReceiptContext(
   // 2. Resolve guardian (3-path fallback)
   let guardianEmail = overrideEmail || "";
   let guardianName = "Parent";
-  let guardianPhone: string | undefined;
+  let guardianPhone = overridePhone || undefined;
   let studentName = (inv.student_name as string) || (inv.customer_name as string) || "";
 
-  if (!guardianEmail) {
+  // Always resolve default details if any target details are missing
+  if (!guardianEmail || !guardianPhone || guardianName === "Parent") {
+    let resolvedEmail = "";
+    let resolvedName = "";
+    let resolvedPhone: string | undefined;
+
     // Path A: Invoice.student → Student → Guardian
     if (inv.student) {
       const g = await getGuardianFromStudent(inv.student);
       if (g) {
-        guardianEmail = g.email;
-        guardianName = g.name;
-        guardianPhone = g.phone;
+        resolvedEmail = g.email;
+        resolvedName = g.name;
+        resolvedPhone = g.phone;
       }
     }
 
     // Path B: Invoice → SO → Student → Guardian
-    if (!guardianEmail) {
+    if (!resolvedEmail) {
       const soName = inv.items?.[0]?.sales_order;
       if (soName) {
         const so = await safeFetchDoc(
@@ -173,9 +179,9 @@ async function resolveReceiptContext(
         if (so?.student) {
           const g = await getGuardianFromStudent(so.student as string);
           if (g) {
-            guardianEmail = g.email;
-            guardianName = g.name;
-            guardianPhone = g.phone;
+            resolvedEmail = g.email;
+            resolvedName = g.name;
+            resolvedPhone = g.phone;
           }
           if (!studentName) studentName = (so.student_name as string) || "";
         }
@@ -183,7 +189,7 @@ async function resolveReceiptContext(
     }
 
     // Path C: Invoice → Customer → find Student → Guardian
-    if (!guardianEmail && inv.customer) {
+    if (!resolvedEmail && inv.customer) {
       const params = new URLSearchParams({
         filters: JSON.stringify([["customer", "=", inv.customer]]),
         fields: JSON.stringify(["name"]),
@@ -195,12 +201,16 @@ async function resolveReceiptContext(
       if (students[0]?.name) {
         const g = await getGuardianFromStudent(students[0].name as string);
         if (g) {
-          guardianEmail = g.email;
-          guardianName = g.name;
-          guardianPhone = g.phone;
+          resolvedEmail = g.email;
+          resolvedName = g.name;
+          resolvedPhone = g.phone;
         }
       }
     }
+
+    if (!guardianEmail) guardianEmail = resolvedEmail;
+    if (guardianName === "Parent" && resolvedName) guardianName = resolvedName;
+    if (!guardianPhone) guardianPhone = resolvedPhone;
   }
 
   if (!guardianEmail) return null;
@@ -460,9 +470,10 @@ export async function POST(request: NextRequest) {
     if (authResult instanceof NextResponse) return authResult;
 
     const body = await request.json();
-    const { invoice_id, email: overrideEmail } = body as {
+    const { invoice_id, email: overrideEmail, phone: overridePhone } = body as {
       invoice_id: string;
       email?: string;
+      phone?: string;
     };
 
     if (!invoice_id) {
@@ -470,7 +481,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Resolve all context for the receipt
-    const ctx = await resolveReceiptContext(invoice_id, overrideEmail);
+    const ctx = await resolveReceiptContext(invoice_id, overrideEmail, overridePhone);
     if (!ctx) {
       return NextResponse.json(
         { error: "Could not determine recipient email" },

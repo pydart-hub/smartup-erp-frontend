@@ -23,28 +23,28 @@ export const PAYMENT_MODES = ["Cash", "Bank Transfer", "UPI", "Cheque", "Razorpa
 
 export const INSTALMENT_DUE_DATES = {
   quarterly: [
-    { month: 3, day: 15 },
     { month: 6, day: 15 },
-    { month: 9, day: 15 },
-    { month: 0, day: 15 },
+    { month: 8, day: 15 },
+    { month: 11, day: 15 },
+    { month: 2, day: 15 },
   ],
   inst6: [
-    { month: 3, day: 15 },
-    { month: 5, day: 15 },
-    { month: 7, day: 15 },
-    { month: 9, day: 15 },
-    { month: 11, day: 15 },
-    { month: 1, day: 15 },
-  ],
-  inst8: [
-    { month: 3, day: 15 },
-    { month: 4, day: 15 },
-    { month: 5, day: 15 },
     { month: 6, day: 15 },
     { month: 7, day: 15 },
     { month: 8, day: 15 },
     { month: 9, day: 15 },
     { month: 10, day: 15 },
+    { month: 11, day: 15 },
+  ],
+  inst8: [
+    { month: 6, day: 15 },
+    { month: 7, day: 15 },
+    { month: 8, day: 15 },
+    { month: 9, day: 15 },
+    { month: 10, day: 15 },
+    { month: 11, day: 15 },
+    { month: 0, day: 15 },
+    { month: 1, day: 15 },
   ],
 } as const;
 
@@ -93,8 +93,8 @@ export interface NavItem {
 }
 
 export const BRANCH_MANAGER_NAV: NavItem[] = [
-  { label: "My Assignments", href: "/dashboard/branch-manager/my-assignments", icon: "ClipboardList", emoji: "🗂️" },
   { label: "Dashboard", href: "/dashboard/branch-manager", icon: "LayoutDashboard", emoji: "📊" },
+  { label: "My Assignments", href: "/dashboard/branch-manager/my-assignments", icon: "ClipboardList", emoji: "🗂️" },
   { label: "New Admission", href: "/dashboard/branch-manager/new-admission", icon: "UserPlus", emoji: "🎓" },
   {
     label: "Students",

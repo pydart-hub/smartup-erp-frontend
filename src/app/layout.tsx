@@ -1,18 +1,11 @@
 import type { Metadata } from "next";
-import { Inter, Nunito_Sans } from "next/font/google";
+import { DM_Sans } from "next/font/google";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-geist-sans",
+const dmSans = DM_Sans({
+  variable: "--font-sans-main",
   subsets: ["latin"],
-  display: "swap",
-});
-
-const nunitoSans = Nunito_Sans({
-  variable: "--font-montserrat",
-  subsets: ["latin"],
-  weight: ["900"],
   display: "swap",
 });
 
@@ -28,7 +21,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${nunitoSans.variable} antialiased`}>
+      <body className={`${dmSans.variable} antialiased`}>
         <ThemeProvider>
           {children}
         </ThemeProvider>

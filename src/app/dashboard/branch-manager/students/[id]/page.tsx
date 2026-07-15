@@ -23,6 +23,7 @@ import apiClient from "@/lib/api/client";
 import { DiscontinueStudentModal } from "@/components/students/DiscontinueStudentModal";
 import { ConvertDemoModal } from "@/components/students/ConvertDemoModal";
 import { StudentTransactionHistory } from "@/components/fees/StudentTransactionHistory";
+import { SendReceiptModal } from "@/components/fees/SendReceiptModal";
 import { resolveO2OHourlyRate } from "@/lib/utils/o2oFeeRates";
 import { extractO2ORateFromRecord } from "@/lib/utils/o2oRateField";
 import { formatBillingMonthLabel, getBillingMonthKey, resolveBilledScheduleNames } from "@/lib/utils/o2oBillingMetadata";
@@ -161,6 +162,9 @@ export default function StudentViewPage() {
   // ── Convert Demo modal state ──────────────────────────────
   const [showConvertDemo, setShowConvertDemo] = useState(false);
 
+  // ── Send Receipt modal state ──────────────────────────────
+  const [showSendReceipt, setShowSendReceipt] = useState(false);
+
   // ── Parent login password state ───────────────────────────
   const [parentPassword, setParentPassword] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -278,6 +282,14 @@ export default function StudentViewPage() {
     staleTime: 60_000,
   });
   const salesInvoices = salesInvoicesRes ?? [];
+
+  const latestPaidInvoice = [...salesInvoices]
+    .filter((inv) => inv.outstanding_amount <= 0 || inv.status === "Paid")
+    .sort((a, b) => {
+      const aDate = Date.parse(a.posting_date ?? a.due_date ?? "");
+      const bDate = Date.parse(b.posting_date ?? b.due_date ?? "");
+      return (bDate || 0) - (aDate || 0);
+    })[0] ?? null;
 
   const { data: salesOrderDiscountMeta } = useQuery({
     queryKey: ["student-so-discount-meta", primarySalesOrderName],
@@ -914,14 +926,27 @@ export default function StudentViewPage() {
                 <span className="text-primary"><CreditCard className="h-4 w-4" /></span>
                 <h3 className="font-semibold text-text-primary">Fee & Payments</h3>
               </div>
-              {primarySalesOrderName && (
-                <Link href={`/dashboard/branch-manager/sales-orders/${encodeURIComponent(primarySalesOrderName)}`}>
-                  <Button variant="outline" size="sm">
-                    <ExternalLink className="h-3.5 w-3.5" />
-                    View Latest Order
+              <div className="flex items-center gap-2">
+                {latestPaidInvoice && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowSendReceipt(true)}
+                    className="!border-success/40 !text-success hover:!bg-success/5 gap-1.5"
+                  >
+                    <Mail className="h-3.5 w-3.5" />
+                    Send Receipt
                   </Button>
-                </Link>
-              )}
+                )}
+                {primarySalesOrderName && (
+                  <Link href={`/dashboard/branch-manager/sales-orders/${encodeURIComponent(primarySalesOrderName)}`}>
+                    <Button variant="outline" size="sm">
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      View Latest Order
+                    </Button>
+                  </Link>
+                )}
+              </div>
             </div>
 
             {/* SO summary */}
@@ -1161,6 +1186,17 @@ export default function StudentViewPage() {
             queryClient.invalidateQueries({ queryKey: ["student-invoices", customerName] });
             queryClient.invalidateQueries({ queryKey: ["student-sales-orders", customerName] });
           }}
+        />
+      )}
+
+      {/* Send Receipt Modal */}
+      {showSendReceipt && latestPaidInvoice && (
+        <SendReceiptModal
+          isOpen={showSendReceipt}
+          onClose={() => setShowSendReceipt(false)}
+          invoice={latestPaidInvoice}
+          defaultEmail={guardian?.email_address || ""}
+          defaultPhone={guardian?.mobile_number || ""}
         />
       )}
     </motion.div>

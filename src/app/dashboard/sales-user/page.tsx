@@ -237,9 +237,23 @@ interface TodayCallsModalProps {
   callsDone: number;
   collected: number;
   callsList: { student_name: string; call_status: string; amount_collected: number; call_time: string }[];
+  title?: string;
+  subTitle?: string;
+  collectedLabel?: string;
+  emptyLabel?: string;
 }
 
-function TodayCallsModal({ isOpen, onClose, callsDone, collected, callsList }: TodayCallsModalProps) {
+function TodayCallsModal({
+  isOpen,
+  onClose,
+  callsDone,
+  collected,
+  callsList,
+  title = "Today's Call Details",
+  subTitle = "Activity summary",
+  collectedLabel = "Collected Today",
+  emptyLabel = "No calls logged today yet.",
+}: TodayCallsModalProps) {
   if (!isOpen) return null;
 
   return (
@@ -269,8 +283,8 @@ function TodayCallsModal({ isOpen, onClose, callsDone, collected, callsList }: T
                 <Phone className="h-4 w-4" />
               </div>
               <div>
-                <h2 className="text-md font-bold text-gray-800">Today's Call Details</h2>
-                <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Activity summary</p>
+                <h2 className="text-md font-bold text-gray-800">{title}</h2>
+                <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">{subTitle}</p>
               </div>
             </div>
             <button
@@ -288,7 +302,7 @@ function TodayCallsModal({ isOpen, onClose, callsDone, collected, callsList }: T
               <p className="text-2xl font-black text-gray-800 mt-1">{callsDone}</p>
             </div>
             <div className="p-4 rounded-xl bg-white border border-gray-100 shadow-sm text-center">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Collected Today</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">{collectedLabel}</span>
               <p className="text-2xl font-black text-emerald-600 mt-1">{formatCurrency(collected)}</p>
             </div>
           </div>
@@ -297,7 +311,7 @@ function TodayCallsModal({ isOpen, onClose, callsDone, collected, callsList }: T
           <div className="max-h-[250px] overflow-y-auto p-6 space-y-4">
             {!callsList || callsList.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-sm text-gray-400">No calls logged today yet.</p>
+                <p className="text-sm text-gray-400">{emptyLabel}</p>
               </div>
             ) : (
               callsList.map((item, index) => (
@@ -432,9 +446,21 @@ export default function SalesUserDashboard() {
           loading={loadingOverdue}
         />
         <KpiCard
-          title="Today Calls"
-          value={<AnimatedNumber value={followUpData?.summary.today_calls ?? 0} />}
-          sub={`${followUpData?.summary.week_calls ?? 0} this week`}
+          title={fromDate || toDate ? "Period Calls" : "Today Calls"}
+          value={
+            <AnimatedNumber
+              value={
+                fromDate || toDate
+                  ? followUpData?.summary.total_calls ?? 0
+                  : followUpData?.summary.today_calls ?? 0
+              }
+            />
+          }
+          sub={
+            fromDate || toDate
+              ? "in selected period"
+              : `${followUpData?.summary.week_calls ?? 0} this week`
+          }
           icon={<Phone className="h-4 w-4 text-emerald-600" />}
           iconBg="bg-emerald-50"
           accent="bg-emerald-500"
@@ -597,13 +623,29 @@ export default function SalesUserDashboard() {
         totalAmount={modalTotal}
       />
 
-      {/* Today Calls Modal */}
+      {/* Today Calls / Period Calls Modal */}
       <TodayCallsModal
         isOpen={todayCallsModalOpen}
         onClose={() => setTodayCallsModalOpen(false)}
-        callsDone={followUpData?.summary.today_calls ?? 0}
-        collected={followUpData?.summary.today_collected ?? 0}
-        callsList={followUpData?.summary.today_calls_details ?? []}
+        callsDone={
+          fromDate || toDate
+            ? followUpData?.summary.total_calls ?? 0
+            : followUpData?.summary.today_calls ?? 0
+        }
+        collected={
+          fromDate || toDate
+            ? followUpData?.summary.paid_amount ?? 0
+            : followUpData?.summary.today_collected ?? 0
+        }
+        callsList={
+          fromDate || toDate
+            ? followUpData?.summary.period_calls_details ?? []
+            : followUpData?.summary.today_calls_details ?? []
+        }
+        title={fromDate || toDate ? "Period Call Details" : "Today's Call Details"}
+        subTitle={fromDate || toDate ? "Filtered activity summary" : "Activity summary"}
+        collectedLabel={fromDate || toDate ? "Collected in Period" : "Collected Today"}
+        emptyLabel={fromDate || toDate ? "No calls logged in selected period." : "No calls logged today yet."}
       />
     </motion.div>
   );

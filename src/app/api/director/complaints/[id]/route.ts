@@ -68,6 +68,11 @@ export async function PATCH(
     if (body.status) updateData.status = body.status;
     if (body.resolution_notes !== undefined) updateData.resolution_notes = body.resolution_notes;
 
+    if (body.status === "In Review") {
+      updateData.reviewed_by = session.full_name || session.email;
+      updateData.reviewed_date = new Date().toISOString().split("T")[0];
+    }
+
     // Auto-set resolved_by and resolved_date when resolving
     if (body.status === "Resolved") {
       updateData.resolved_by = session.full_name || session.email;

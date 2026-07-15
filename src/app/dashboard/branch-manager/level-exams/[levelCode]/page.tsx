@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { getGradeTone, getLevelExamClassDetailForBranch } from "@/lib/server/levelExamDashboard";
 import { getBranchManagerDefaultCompany } from "@/lib/server/branchManagerSession";
+import { FrappeCpuOverloadWarning } from "@/components/level-exams/FrappeCpuOverloadWarning";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -13,11 +14,14 @@ export const revalidate = 0;
 type PageProps = { params: Promise<{ levelCode: string }> };
 
 export default async function BranchManagerDiagnosisLevelPage({ params }: PageProps) {
+  return <FrappeCpuOverloadWarning redirectUrl="/dashboard/branch-manager/diagnosis-exams" />;
+
   const { levelCode } = await params;
   if (!["8", "9", "10"].includes(levelCode)) notFound();
 
   const branchName = await getBranchManagerDefaultCompany();
   const data = await getLevelExamClassDetailForBranch(levelCode as "8" | "9" | "10", branchName);
+
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">

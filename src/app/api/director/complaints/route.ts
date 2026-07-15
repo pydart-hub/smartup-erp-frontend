@@ -58,6 +58,7 @@ export async function GET(request: NextRequest) {
       "description", "student", "student_name", "branch", "branch_abbr",
       "guardian", "guardian_name", "guardian_email",
       "resolution_notes", "resolved_by", "resolved_date",
+      "reviewed_by", "reviewed_date",
       "creation", "modified",
     ];
 
@@ -68,10 +69,25 @@ export async function GET(request: NextRequest) {
       order_by: "creation desc",
     });
 
-    const res = await fetch(
+    let res = await fetch(
       `${FRAPPE_URL}/api/resource/Complaint?${params}`,
       { headers, cache: "no-store" }
     );
+
+    if (!res.ok) {
+      console.warn("[director/complaints] First fetch failed, retrying without review logs...");
+      const fallbackFields = fields.filter((f) => f !== "reviewed_by" && f !== "reviewed_date");
+      const fallbackParams = new URLSearchParams({
+        filters: JSON.stringify(filters),
+        fields: JSON.stringify(fallbackFields),
+        limit_page_length: String(limit),
+        order_by: "creation desc",
+      });
+      res = await fetch(
+        `${FRAPPE_URL}/api/resource/Complaint?${fallbackParams}`,
+        { headers, cache: "no-store" }
+      );
+    }
 
     if (!res.ok) {
       console.error("[director/complaints] Frappe error:", res.status);
