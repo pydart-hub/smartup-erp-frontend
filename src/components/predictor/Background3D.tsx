@@ -12,13 +12,14 @@ export default function Background3D() {
       {/* SmartUp Brand Alpha WebM Video - Positioned specifically on the left half */}
       <div className="absolute left-0 top-0 w-full md:w-1/2 h-full flex items-center justify-center opacity-80 p-8">
         <video
-          src="/logo-look.webm"
           autoPlay
           loop
           muted
           playsInline
           className="w-full max-w-[480px] aspect-square object-contain"
-        />
+        >
+          <source src="/logo-look.webm" type="video/webm" />
+        </video>
       </div>
     </div>
   );
