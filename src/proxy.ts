@@ -29,6 +29,8 @@ export function proxy(request: NextRequest) {
   const host = request.headers.get("host") || "";
   const url = request.nextUrl.clone();
 
+  console.log(`[MIDDLEWARE DEBUG] host: "${host}", pathname: "${pathname}"`);
+
   // Handle predictor subdomain rewrites
   if (host.toLowerCase().startsWith("predictor.")) {
     const isInternal =
@@ -36,16 +38,21 @@ export function proxy(request: NextRequest) {
       pathname.startsWith("/_next") ||
       pathname.includes("."); // e.g. favicon.ico, images
 
+    console.log(`[MIDDLEWARE DEBUG] Subdomain detected. isInternal: ${isInternal}, pathname: "${pathname}"`);
+
     if (!isInternal && !pathname.startsWith("/plus-two-predictor")) {
       url.pathname = `/plus-two-predictor${pathname === "/" ? "" : pathname}`;
+      console.log(`[MIDDLEWARE DEBUG] Rewriting predictor subdomain request to: "${url.pathname}"`);
       return NextResponse.rewrite(url);
     }
   }
 
   if (PUBLIC_PATHS.some((path) => pathname.startsWith(path))) {
+    console.log(`[MIDDLEWARE DEBUG] Public path matched: "${pathname}". Proceeding next.`);
     return NextResponse.next();
   }
 
+  console.log(`[MIDDLEWARE DEBUG] Non-public path: "${pathname}". Checking session cookie.`);
   const sessionCookie = request.cookies.get("smartup_session");
 
   if (!sessionCookie) {
