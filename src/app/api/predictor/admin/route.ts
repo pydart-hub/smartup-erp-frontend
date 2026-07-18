@@ -37,20 +37,46 @@ export async function GET(req: NextRequest) {
       orderBy: { submittedAt: "desc" },
     });
 
-    const seen = new Set<string>();
-    const deduplicatedSubmissions: typeof allSubmissions = [];
+    const groups: Record<string, typeof allSubmissions> = {};
+    const order: string[] = [];
+
     for (const sub of allSubmissions) {
       const key = `${sub.name.trim().toLowerCase()}|${sub.phone.trim()}|${sub.district.trim().toLowerCase()}`;
-      if (!seen.has(key)) {
-        seen.add(key);
-        deduplicatedSubmissions.push(sub);
+      if (!groups[key]) {
+        groups[key] = [];
+        order.push(key);
+      }
+      groups[key].push(sub);
+    }
+
+    const groupedSubmissions = order.map((key) => {
+      const history = groups[key];
+      const primary = history[0];
+      return {
+        ...primary,
+        history,
+      };
+    });
+
+    let totalMultipleEntriesCount = 0;
+    for (const key of order) {
+      if (groups[key].length > 1) {
+        totalMultipleEntriesCount++;
       }
     }
 
-    const total = deduplicatedSubmissions.length;
-    const submissions = deduplicatedSubmissions.slice((page - 1) * limit, page * limit);
+    const totalUnique = groupedSubmissions.length;
+    const totalSubmissions = allSubmissions.length;
+    const submissions = groupedSubmissions.slice((page - 1) * limit, page * limit);
 
-    return NextResponse.json({ submissions, total, page, limit });
+    return NextResponse.json({
+      submissions,
+      total: totalUnique,
+      totalSubmissions,
+      totalMultipleEntriesCount,
+      page,
+      limit,
+    });
   } catch (error) {
     console.error("[predictor/admin] Error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

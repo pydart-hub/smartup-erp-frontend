@@ -19,6 +19,7 @@ interface Submission {
   stream: string;
   marksJson: Record<string, { p1te: number; p1ce: number }>;
   submittedAt: string;
+  history?: Submission[];
 }
 
 const KERALA_DISTRICTS = [
@@ -174,6 +175,9 @@ function LoginForm({ onLogin }: { onLogin: () => void }) {
 function Dashboard({ onLogout }: { onLogout: () => void }) {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [total, setTotal] = useState(0);
+  const [totalSubmissions, setTotalSubmissions] = useState(0);
+  const [totalMultipleEntriesCount, setTotalMultipleEntriesCount] = useState(0);
+  const [selectedEntryIdMap, setSelectedEntryIdMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [district, setDistrict] = useState("");
@@ -193,6 +197,8 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
       const data = await res.json();
       setSubmissions(data.submissions || []);
       setTotal(data.total || 0);
+      setTotalSubmissions(data.totalSubmissions || 0);
+      setTotalMultipleEntriesCount(data.totalMultipleEntriesCount || 0);
     } catch {
       // silent
     } finally {
@@ -242,10 +248,18 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
         </div>
 
         {/* Stats Banner */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
-            <div className="text-2xl font-black text-purple-700">{total}</div>
+            <div className="text-2xl font-black text-purple-700">{totalSubmissions}</div>
             <div className="text-xs font-semibold text-slate-400 mt-0.5">Total Submissions</div>
+          </div>
+          <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
+            <div className="text-2xl font-black text-indigo-700">{total}</div>
+            <div className="text-xs font-semibold text-slate-400 mt-0.5">Unique Students</div>
+          </div>
+          <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
+            <div className="text-2xl font-black text-rose-600">{totalMultipleEntriesCount}</div>
+            <div className="text-xs font-semibold text-slate-400 mt-0.5">Multiple Submissions</div>
           </div>
           <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
             <div className="text-2xl font-black text-emerald-700">
@@ -253,13 +267,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
             </div>
             <div className="text-xs font-semibold text-slate-400 mt-0.5">Districts Covered</div>
           </div>
-          <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
-            <div className="text-2xl font-black text-indigo-700">
-              {new Set(submissions.map((s) => s.phone)).size}
-            </div>
-            <div className="text-xs font-semibold text-slate-400 mt-0.5">Unique Students</div>
-          </div>
-          <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
+          <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm col-span-2 md:col-span-1">
             <div className="text-2xl font-black text-amber-600">
               {submissions.length > 0
                 ? formatDate(submissions[0].submittedAt).split(",")[0]
@@ -324,63 +332,92 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                  {submissions.map((sub, idx) => (
-                    <React.Fragment key={sub.id}>
-                      <tr className="hover:bg-slate-50/50 transition-colors">
-                        <td className="px-4 py-3 text-slate-400 text-xs font-bold">
-                          {(page - 1) * limit + idx + 1}
-                        </td>
-                        <td className="px-4 py-3 font-bold text-slate-800">{sub.name}</td>
-                        <td className="px-4 py-3 text-slate-600 font-mono text-xs">{sub.phone}</td>
-                        <td className="px-4 py-3">
-                          <span className="px-2 py-0.5 bg-purple-50 text-purple-700 rounded-full text-[11px] font-bold border border-purple-100">
-                            {sub.district}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-slate-600 text-xs font-semibold">{sub.stream}</td>
-                        <td className="px-4 py-3 text-slate-500 text-xs">{formatDate(sub.submittedAt)}</td>
-                        <td className="px-4 py-3">
-                          <button
-                            onClick={() => setExpandedId(expandedId === sub.id ? null : sub.id)}
-                            className="text-[11px] font-bold text-violet-600 hover:text-violet-800 underline underline-offset-2 cursor-pointer"
-                          >
-                            {expandedId === sub.id ? "Hide" : "View marks"}
-                          </button>
-                        </td>
-                      </tr>
-                      <AnimatePresence>
-                        {expandedId === sub.id && (
-                          <motion.tr
-                            key={`${sub.id}-expanded`}
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                          >
-                            <td colSpan={7} className="px-4 py-4 bg-purple-50/20">
-                              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-                                {SUBJECT_CODES.map((code) => {
-                                  const m = sub.marksJson?.[code];
-                                  return (
-                                    <div key={code} className="bg-white border border-purple-100 rounded-xl p-3 text-center shadow-sm">
-                                      <div className="text-[10px] font-bold text-purple-600 uppercase tracking-wider mb-1">
-                                        {SUBJECT_LABELS[code]}
+                  {submissions.map((sub, idx) => {
+                    const activeEntryId = selectedEntryIdMap[sub.id] || sub.id;
+                    const activeEntry = sub.history?.find(h => h.id === activeEntryId) || sub;
+                    return (
+                      <React.Fragment key={sub.id}>
+                        <tr className="hover:bg-slate-50/50 transition-colors">
+                          <td className="px-4 py-3 text-slate-400 text-xs font-bold">
+                            {(page - 1) * limit + idx + 1}
+                          </td>
+                          <td className="px-4 py-3 font-bold text-slate-800">
+                            <div className="flex items-center gap-2">
+                              <span>{sub.name}</span>
+                              {sub.history && sub.history.length > 1 && (
+                                <span className="px-1.5 py-0.5 bg-amber-50 text-amber-700 rounded-md text-[9px] font-extrabold border border-amber-200 uppercase tracking-wider">
+                                  {sub.history.length} Entries
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-slate-600 font-mono text-xs">{sub.phone}</td>
+                          <td className="px-4 py-3">
+                            <span className="px-2 py-0.5 bg-purple-50 text-purple-700 rounded-full text-[11px] font-bold border border-purple-100">
+                              {sub.district}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-slate-600 text-xs font-semibold">{sub.stream}</td>
+                          <td className="px-4 py-3 text-slate-500 text-xs">{formatDate(sub.submittedAt)}</td>
+                          <td className="px-4 py-3">
+                            <button
+                              onClick={() => setExpandedId(expandedId === sub.id ? null : sub.id)}
+                              className="text-[11px] font-bold text-violet-600 hover:text-violet-800 underline underline-offset-2 cursor-pointer"
+                            >
+                              {expandedId === sub.id ? "Hide" : "View marks"}
+                            </button>
+                          </td>
+                        </tr>
+                        <AnimatePresence>
+                          {expandedId === sub.id && (
+                            <motion.tr
+                              key={`${sub.id}-expanded`}
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                            >
+                              <td colSpan={7} className="px-4 py-4 bg-purple-50/20">
+                                {sub.history && sub.history.length > 1 && (
+                                  <div className="flex items-center gap-2 mb-3 bg-white p-2 border border-purple-100 rounded-xl max-w-sm shadow-sm">
+                                    <span className="text-xs font-bold text-slate-500 ml-1">Submission History:</span>
+                                    <select
+                                      value={activeEntryId}
+                                      onChange={(e) => setSelectedEntryIdMap({ ...selectedEntryIdMap, [sub.id]: e.target.value })}
+                                      className="flex-1 p-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:outline-none focus:ring-1 focus:ring-violet-500 cursor-pointer"
+                                    >
+                                      {sub.history.map((h, i) => (
+                                        <option key={h.id} value={h.id}>
+                                          {formatDate(h.submittedAt)} {i === 0 ? "(Latest)" : ""}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                )}
+                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                                  {SUBJECT_CODES.map((code) => {
+                                    const m = activeEntry.marksJson?.[code];
+                                    return (
+                                      <div key={code} className="bg-white border border-purple-100 rounded-xl p-3 text-center shadow-sm">
+                                        <div className="text-[10px] font-bold text-purple-600 uppercase tracking-wider mb-1">
+                                          {SUBJECT_LABELS[code]}
+                                        </div>
+                                        <div className="text-slate-700 font-black text-sm">
+                                          {m ? `${m.p1te + m.p1ce}` : "—"}
+                                        </div>
+                                        <div className="text-[10px] text-slate-400">
+                                          {m ? `TE: ${m.p1te} · CE: ${m.p1ce}` : "No data"}
+                                        </div>
                                       </div>
-                                      <div className="text-slate-700 font-black text-sm">
-                                        {m ? `${m.p1te + m.p1ce}` : "—"}
-                                      </div>
-                                      <div className="text-[10px] text-slate-400">
-                                        {m ? `TE: ${m.p1te} · CE: ${m.p1ce}` : "No data"}
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </td>
-                          </motion.tr>
-                        )}
-                      </AnimatePresence>
-                    </React.Fragment>
-                  ))}
+                                    );
+                                  })}
+                                </div>
+                              </td>
+                            </motion.tr>
+                          )}
+                        </AnimatePresence>
+                      </React.Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
