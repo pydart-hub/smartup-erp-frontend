@@ -32,15 +32,23 @@ export async function GET(req: NextRequest) {
       where.district = district;
     }
 
-    const [submissions, total] = await Promise.all([
-      db.plusTwoPredictorSubmission.findMany({
-        where,
-        orderBy: { submittedAt: "desc" },
-        skip: (page - 1) * limit,
-        take: limit,
-      }),
-      db.plusTwoPredictorSubmission.count({ where }),
-    ]);
+    const allSubmissions = await db.plusTwoPredictorSubmission.findMany({
+      where,
+      orderBy: { submittedAt: "desc" },
+    });
+
+    const seen = new Set<string>();
+    const deduplicatedSubmissions: typeof allSubmissions = [];
+    for (const sub of allSubmissions) {
+      const key = `${sub.name.trim().toLowerCase()}|${sub.phone.trim()}|${sub.district.trim().toLowerCase()}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        deduplicatedSubmissions.push(sub);
+      }
+    }
+
+    const total = deduplicatedSubmissions.length;
+    const submissions = deduplicatedSubmissions.slice((page - 1) * limit, page * limit);
 
     return NextResponse.json({ submissions, total, page, limit });
   } catch (error) {
