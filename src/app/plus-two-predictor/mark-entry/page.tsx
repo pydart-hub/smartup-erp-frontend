@@ -125,15 +125,15 @@ function PlusTwoPredictorMarkEntryContent() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-3">
               {marks.map((sub) => (
-                <div key={sub.code} className="p-4 bg-white/50 backdrop-blur-sm border border-slate-100 rounded-2xl flex flex-col justify-between space-y-3">
-                  <div className="font-bold text-sm text-slate-700">{sub.name}</div>
+                <div key={sub.code} className="p-4 bg-white/55 backdrop-blur-sm border border-slate-100 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="font-extrabold text-sm text-slate-700 sm:w-1/3">{sub.name}</div>
                   
-                  <div className="flex gap-3">
+                  <div className="flex gap-4 sm:w-2/3">
                     {/* Continuous Evaluation */}
                     <div className="flex-1 space-y-1">
-                      <label className="text-[10px] uppercase tracking-wider font-semibold text-slate-400">CE (Max {sub.maxCe})</label>
+                      <label className="text-[10px] uppercase tracking-wider font-bold text-slate-400 block">CE (Max {sub.maxCe})</label>
                       <input
                         type="number"
                         min="0"
@@ -148,7 +148,7 @@ function PlusTwoPredictorMarkEntryContent() {
 
                     {/* Theory Exam */}
                     <div className="flex-1 space-y-1">
-                      <label className="text-[10px] uppercase tracking-wider font-semibold text-slate-400">Theory (Max {sub.maxTe})</label>
+                      <label className="text-[10px] uppercase tracking-wider font-bold text-slate-400 block">Theory (Max {sub.maxTe})</label>
                       <input
                         type="number"
                         min="0"
