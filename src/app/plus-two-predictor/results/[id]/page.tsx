@@ -201,21 +201,7 @@ function PlusTwoPredictorResultsContent() {
           </div>
 
           {/* Action Buttons */}
-          <div className="mt-6 flex flex-col gap-3">
-            <button
-              onClick={() => {
-                setSubjects((prev) =>
-                  prev.map((sub) => ({
-                    ...sub,
-                    p2te: sub.isPractical ? 60 : 80,
-                  }))
-                );
-              }}
-              className="w-full py-3.5 bg-transparent border border-orange-200 hover:bg-orange-50/30 text-orange-600 font-extrabold rounded-2xl transition text-sm cursor-pointer"
-            >
-              Set all to maximum grade
-            </button>
-
+          <div className="mt-6">
             <button
               onClick={() => {
                 const randomId = Math.random().toString(36).substring(2, 10);
@@ -238,7 +224,7 @@ function PlusTwoPredictorResultsContent() {
 
                 router.push(`/plus-two-predictor/summary/${randomId}?${query.toString()}`);
               }}
-              className="w-full py-4 bg-[#e65c2b] hover:bg-[#d54c1c] text-white font-extrabold rounded-2xl transition shadow-lg shadow-orange-500/10 text-sm tracking-wider cursor-pointer text-center"
+              className="w-full py-4 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-extrabold rounded-2xl transition shadow-lg shadow-purple-500/15 text-sm tracking-wider cursor-pointer text-center"
             >
               Get personalized summary →
             </button>

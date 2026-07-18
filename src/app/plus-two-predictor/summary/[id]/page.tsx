@@ -117,11 +117,11 @@ function PlusTwoPredictorSummaryContent() {
           animate={{ opacity: 1, scale: 1 }}
           className="w-full max-w-lg bg-white border border-slate-100 p-8 rounded-3xl shadow-lg flex flex-col items-center justify-center text-center space-y-6"
         >
-          <div className="text-[11px] font-bold text-orange-500 uppercase tracking-widest leading-none bg-orange-50 px-3 py-1 rounded-full">
+          <div className="text-[11px] font-bold text-purple-600 uppercase tracking-widest leading-none bg-purple-50 px-3 py-1 rounded-full">
             powered by eduport
           </div>
 
-          <div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mt-4" />
+          <div className="w-16 h-16 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mt-4" />
 
           <div className="space-y-2 mt-4">
             <h3 className="text-lg font-black text-slate-800">
@@ -156,7 +156,7 @@ function PlusTwoPredictorSummaryContent() {
               SMART UP
             </span>
           </Link>
-          <div className="text-[11px] font-bold text-orange-500 uppercase tracking-widest leading-none bg-orange-50 px-3 py-1.5 rounded-full">
+          <div className="text-[11px] font-bold text-purple-600 uppercase tracking-widest leading-none bg-purple-50 px-3 py-1.5 rounded-full">
             powered by eduport
           </div>
         </div>
@@ -181,9 +181,9 @@ function PlusTwoPredictorSummaryContent() {
 
           {/* Stats Boxes */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="p-4 bg-amber-50/50 border border-amber-100 rounded-2xl">
-              <div className="text-2xl font-black text-amber-700">{totalAPlus}/6</div>
-              <div className="text-xs font-semibold text-amber-600/80">A+ on target</div>
+            <div className="p-4 bg-purple-50/40 border border-purple-100 rounded-2xl">
+              <div className="text-2xl font-black text-purple-700">{totalAPlus}/6</div>
+              <div className="text-xs font-semibold text-purple-600/80">A+ on target</div>
             </div>
             <div className="p-4 bg-emerald-50/50 border border-emerald-100 rounded-2xl">
               <div className="text-2xl font-black text-emerald-700">{doublePasses}/6</div>
@@ -214,12 +214,12 @@ function PlusTwoPredictorSummaryContent() {
           </div>
 
           {/* Bullet Point Summary Container */}
-          <div className="p-5 bg-orange-50/30 border border-orange-200/80 rounded-2xl space-y-4">
+          <div className="p-5 bg-purple-50/20 border border-purple-100 rounded-2xl space-y-4">
             <div className="flex justify-between items-center">
-              <div className="flex items-center gap-1.5 text-orange-700 font-extrabold text-sm">
+              <div className="flex items-center gap-1.5 text-purple-700 font-extrabold text-sm">
                 ✦ {userName.toUpperCase()}'S SUMMARY
               </div>
-              <span className="text-[10px] font-bold text-orange-500 uppercase tracking-widest leading-none bg-orange-50 px-2 py-1 rounded-full border border-orange-200">
+              <span className="text-[10px] font-bold text-purple-600 uppercase tracking-widest leading-none bg-purple-50 px-2 py-1 rounded-full border border-purple-100">
                 Science
               </span>
             </div>
@@ -236,7 +236,7 @@ function PlusTwoPredictorSummaryContent() {
                   <li key={sub.code}>
                     <span className="font-extrabold text-slate-700">{sub.name}</span>: Scored{" "}
                     <span className="font-bold text-slate-800">{sub.p1te}</span> in Plus One TE, hold{" "}
-                    <span className="font-bold text-orange-600">{sub.p2te}</span> in Plus Two TE to{" "}
+                    <span className="font-bold text-purple-600">{sub.p2te}</span> in Plus Two TE to{" "}
                     {grade === "A+" ? "keep" : "reach"} {grade}.
                   </li>
                 );
@@ -247,7 +247,7 @@ function PlusTwoPredictorSummaryContent() {
           {/* Help Button */}
           <button
             onClick={handleHelpWhatsApp}
-            className="w-full py-4 bg-[#e65c2b] hover:bg-[#d54c1c] text-white font-extrabold rounded-2xl transition shadow-lg shadow-orange-500/10 text-sm tracking-wide cursor-pointer text-center"
+            className="w-full py-4 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-extrabold rounded-2xl transition shadow-lg shadow-purple-500/15 text-sm tracking-wide cursor-pointer text-center"
           >
             I'd like help from Eduport to reach my Plus Two goals
           </button>
