@@ -118,10 +118,20 @@ function PlusTwoPredictorSummaryContent() {
           className="w-full max-w-lg bg-white border border-slate-100 p-8 rounded-3xl shadow-lg flex flex-col items-center justify-center text-center space-y-6"
         >
           <div className="text-[11px] font-bold text-purple-600 uppercase tracking-widest leading-none bg-purple-50 px-3 py-1 rounded-full">
-            powered by eduport
+            powered by smartup
           </div>
 
-          <div className="w-16 h-16 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mt-4" />
+          <div className="w-24 h-24 relative flex items-center justify-center mt-2">
+            <video
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-full h-full object-contain"
+            >
+              <source src="/logo-look.webm" type="video/webm" />
+            </video>
+          </div>
 
           <div className="space-y-2 mt-4">
             <h3 className="text-lg font-black text-slate-800">
@@ -157,7 +167,7 @@ function PlusTwoPredictorSummaryContent() {
             </span>
           </Link>
           <div className="text-[11px] font-bold text-purple-600 uppercase tracking-widest leading-none bg-purple-50 px-3 py-1.5 rounded-full">
-            powered by eduport
+            powered by smartup
           </div>
         </div>
 
@@ -243,14 +253,6 @@ function PlusTwoPredictorSummaryContent() {
               })}
             </ul>
           </div>
-
-          {/* Help Button */}
-          <button
-            onClick={handleHelpWhatsApp}
-            className="w-full py-4 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-extrabold rounded-2xl transition shadow-lg shadow-purple-500/15 text-sm tracking-wide cursor-pointer text-center"
-          >
-            I'd like help from Eduport to reach my Plus Two goals
-          </button>
 
           {/* Share Block */}
           <div className="pt-4 border-t border-slate-100 flex flex-col items-center gap-3">
