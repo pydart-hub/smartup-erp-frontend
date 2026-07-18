@@ -90,6 +90,20 @@ function PlusTwoPredictorSummaryContent() {
   const totalAPlus = subjects.filter((sub) => getGrade(getCombinedTotal(sub)) === "A+").length;
   const doublePasses = subjects.filter((sub) => getCombinedTotal(sub) >= 60).length; // combined pass (D+ or above)
 
+  // Calculate minimum Plus Two TE needed for A+
+  // Fixed marks = P1CE + P1TE + P2CE + P2PE (Lab)
+  // Min P2 TE for A+ = 180 - fixedTotal
+  const getAplusTarget = (sub: SubjectPrediction) => {
+    const maxTe = sub.isPractical ? 60 : 80;
+    const fixedTotal = sub.p1ce + sub.p1te + sub.p2ce + sub.p2pe;
+    const needed = 180 - fixedTotal;
+    if (needed <= 0) return { needed: 0, maxTe, status: "guaranteed" as const };
+    if (needed > maxTe) return { needed, maxTe, status: "impossible" as const };
+    if (needed === maxTe) return { needed, maxTe, status: "risk" as const };
+    if (needed >= maxTe * 0.85) return { needed, maxTe, status: "hard" as const };
+    return { needed, maxTe, status: "ok" as const };
+  };
+
   // Share functionality
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -211,12 +225,31 @@ function PlusTwoPredictorSummaryContent() {
               {subjects.map((sub) => {
                 const total = getCombinedTotal(sub);
                 const grade = getGrade(total);
+                const aplus = getAplusTarget(sub);
                 return (
-                  <div key={sub.code} className="flex justify-between items-center p-4 hover:bg-white/40 transition">
-                    <span className="font-extrabold text-sm text-slate-700">{sub.name}</span>
-                    <span className={`px-2.5 py-1 rounded-lg text-xs font-extrabold ${getGradeStyle(grade)}`}>
-                      {grade}
-                    </span>
+                  <div key={sub.code} className="flex justify-between items-center px-4 py-3 hover:bg-white/40 transition gap-3">
+                    <span className="font-extrabold text-sm text-slate-700 flex-shrink-0">{sub.name}</span>
+                    <div className="flex items-center gap-2 flex-wrap justify-end">
+                      {/* A+ target badge */}
+                      {aplus.status === "guaranteed" && (
+                        <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg">✓ A+ Secured</span>
+                      )}
+                      {aplus.status === "ok" && (
+                        <span className="text-[10px] font-bold text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-lg">Need {aplus.needed}/{aplus.maxTe} for A+</span>
+                      )}
+                      {aplus.status === "hard" && (
+                        <span className="text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-lg">⚡ Need {aplus.needed}/{aplus.maxTe}</span>
+                      )}
+                      {aplus.status === "risk" && (
+                        <span className="text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-lg">⚠ {aplus.needed}/{aplus.maxTe} — RISKY</span>
+                      )}
+                      {aplus.status === "impossible" && (
+                        <span className="text-[10px] font-bold text-slate-400 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-lg">✕ A+ not reachable</span>
+                      )}
+                      <span className={`px-2.5 py-1 rounded-lg text-xs font-extrabold ${getGradeStyle(grade)}`}>
+                        {grade}
+                      </span>
+                    </div>
                   </div>
                 );
               })}
