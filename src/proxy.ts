@@ -31,6 +31,11 @@ export function proxy(request: NextRequest) {
 
   console.log(`[MIDDLEWARE DEBUG] host: "${host}", pathname: "${pathname}"`);
 
+  // Bypass authentication for all static assets (files containing a dot) and Next.js internals
+  if (pathname.includes(".") || pathname.startsWith("/_next/")) {
+    return NextResponse.next();
+  }
+
   // Handle predictor subdomain rewrites
   if (host.toLowerCase().startsWith("predictor.")) {
     const isInternal =
