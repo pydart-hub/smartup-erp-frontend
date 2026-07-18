@@ -296,9 +296,14 @@ function PlusTwoPredictorResultsContent() {
                       className="hover:bg-slate-50/50 transition"
                     >
                       <td className="py-4 font-semibold text-slate-800">
-                        {sub.name}
-                        <div className="text-[10px] text-slate-400 font-normal mt-0.5">
-                          P1 TE: {sub.p1te} | P2 CE: {sub.p2ce} {sub.isPractical && `| PE: ${sub.p2pe}`}
+                        <div className="text-sm font-black text-slate-800">{sub.name}</div>
+                        <div className="flex flex-col gap-0.5 mt-1 font-normal text-[10px]">
+                          <div className="text-slate-500">
+                            <span className="font-semibold text-slate-600">Plus One:</span> TE {sub.p1te}/{sub.isPractical ? 60 : 80} · CE {sub.p1ce}/20
+                          </div>
+                          <div className="text-purple-600">
+                            <span className="font-semibold text-purple-700">Plus Two:</span> CE {sub.p2ce}/20 {sub.isPractical && `· Lab ${sub.p2pe}/40`} · Needed {aplus.status === "impossible" ? "—" : `${aplus.needed}/${maxTe}`}
+                          </div>
                         </div>
                       </td>
                       <td className="py-4">{sub.p2ce}</td>
