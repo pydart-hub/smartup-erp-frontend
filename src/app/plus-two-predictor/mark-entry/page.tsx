@@ -125,44 +125,52 @@ function PlusTwoPredictorMarkEntryContent() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-3">
-              {marks.map((sub) => (
-                <div key={sub.code} className="p-4 bg-white/55 backdrop-blur-sm border border-slate-100 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="font-extrabold text-sm text-slate-700 sm:w-1/3">{sub.name}</div>
-                  
-                  <div className="flex gap-4 sm:w-2/3">
-                    {/* Continuous Evaluation */}
-                    <div className="flex-1 space-y-1">
-                      <label className="text-[10px] uppercase tracking-wider font-bold text-slate-400 block">CE (Max {sub.maxCe})</label>
-                      <input
-                        type="number"
-                        min="0"
-                        max={sub.maxCe}
-                        value={sub.ce}
-                        onChange={(e) => handleMarkChange(sub.code, "ce", e.target.value)}
-                        placeholder="CE"
-                        className="w-full p-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5f2ea8] focus:border-transparent text-slate-800 text-sm shadow-sm"
-                        required
-                      />
-                    </div>
-
-                    {/* Theory Exam */}
-                    <div className="flex-1 space-y-1">
-                      <label className="text-[10px] uppercase tracking-wider font-bold text-slate-400 block">Theory (Max {sub.maxTe})</label>
-                      <input
-                        type="number"
-                        min="0"
-                        max={sub.maxTe}
-                        value={sub.te}
-                        onChange={(e) => handleMarkChange(sub.code, "te", e.target.value)}
-                        placeholder="TE"
-                        className="w-full p-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5f2ea8] focus:border-transparent text-slate-800 text-sm shadow-sm"
-                        required
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-100 text-[10px] uppercase tracking-wider font-bold text-slate-400">
+                    <th className="pb-2 w-1/3">Subject</th>
+                    <th className="pb-2 w-1/3 text-center">CE Mark</th>
+                    <th className="pb-2 w-1/3 text-center">Theory Mark</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {marks.map((sub) => (
+                    <tr key={sub.code} className="hover:bg-slate-50/40 transition-colors">
+                      <td className="py-2 font-bold text-sm text-slate-700">{sub.name}</td>
+                      <td className="py-2 text-center">
+                        <div className="inline-flex items-center gap-1.5 justify-center">
+                          <input
+                            type="number"
+                            min="0"
+                            max={sub.maxCe}
+                            value={sub.ce}
+                            onChange={(e) => handleMarkChange(sub.code, "ce", e.target.value)}
+                            className="w-14 p-1.5 bg-white border border-slate-200 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-[#5f2ea8] focus:border-transparent text-slate-800 text-sm shadow-sm font-semibold"
+                            required
+                          />
+                          <span className="text-xs text-slate-400">/ {sub.maxCe}</span>
+                        </div>
+                      </td>
+                      <td className="py-2 text-center">
+                        <div className="inline-flex items-center gap-1.5 justify-center">
+                          <input
+                            type="number"
+                            min="0"
+                            max={sub.maxTe}
+                            value={sub.te}
+                            onChange={(e) => handleMarkChange(sub.code, "te", e.target.value)}
+                            placeholder="TE"
+                            className="w-16 p-1.5 bg-white border border-slate-200 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-[#5f2ea8] focus:border-transparent text-slate-800 text-sm shadow-sm font-semibold"
+                            required
+                          />
+                          <span className="text-xs text-slate-400">/ {sub.maxTe}</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
 
             <motion.button
