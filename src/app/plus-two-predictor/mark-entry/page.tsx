@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
@@ -21,7 +21,7 @@ interface SubjectMarkInput {
   ce: string;
 }
 
-export default function PlusTwoPredictorMarkEntry() {
+function PlusTwoPredictorMarkEntryContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const name = searchParams.get("name") || "";
@@ -177,5 +177,17 @@ export default function PlusTwoPredictorMarkEntry() {
         </motion.div>
       </div>
     </div>
+  );
+}
+
+export default function PlusTwoPredictorMarkEntry() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 font-sans text-slate-400">
+        Loading mark form...
+      </div>
+    }>
+      <PlusTwoPredictorMarkEntryContent />
+    </Suspense>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
@@ -23,7 +23,7 @@ interface SubjectPrediction {
   p2te: number;
 }
 
-export default function PlusTwoPredictorResults() {
+function PlusTwoPredictorResultsContent() {
   const searchParams = useSearchParams();
   const userName = searchParams.get("name") || "Student";
 
@@ -201,5 +201,17 @@ export default function PlusTwoPredictorResults() {
         </motion.div>
       </div>
     </div>
+  );
+}
+
+export default function PlusTwoPredictorResults() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 font-sans text-slate-400">
+        Loading prediction results...
+      </div>
+    }>
+      <PlusTwoPredictorResultsContent />
+    </Suspense>
   );
 }

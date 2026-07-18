@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { motion } from "framer-motion";
@@ -12,7 +12,7 @@ const Background3D = dynamic(
   { ssr: false }
 );
 
-export default function PlusTwoPredictorLanding() {
+function PlusTwoPredictorLandingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [stream, setStream] = useState("Science");
@@ -228,5 +228,17 @@ export default function PlusTwoPredictorLanding() {
         </motion.div>
       </div>
     </div>
+  );
+}
+
+export default function PlusTwoPredictorLanding() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 font-sans text-slate-400">
+        Loading...
+      </div>
+    }>
+      <PlusTwoPredictorLandingContent />
+    </Suspense>
   );
 }
