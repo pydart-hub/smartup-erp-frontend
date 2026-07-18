@@ -118,6 +118,35 @@ function PlusTwoPredictorResultsContent() {
     return sub.p1ce + sub.p1te + sub.p2ce + sub.p2pe + sub.p2te;
   };
 
+  // Calculate the minimum Plus Two TE score a student needs to achieve A+
+  // Formula: 180 (A+ threshold) - (P1CE + P1TE + P2CE + P2PE)
+  // For practical: fixedTotal = 20 + p1te + 20 + 40 = p1te + 80
+  // For non-practical: fixedTotal = 20 + p1te + 20 + 0 = p1te + 40
+  const getAplusTarget = (sub: SubjectPrediction) => {
+    const maxTe = sub.isPractical ? 60 : 80;
+    const fixedTotal = sub.p1ce + sub.p1te + sub.p2ce + sub.p2pe;
+    const needed = 180 - fixedTotal;
+
+    if (needed <= 0) {
+      // Already guaranteed A+ even with 0 in P2 TE
+      return { needed: 0, maxTe, status: "guaranteed" as const };
+    }
+    if (needed > maxTe) {
+      // Cannot reach A+ even with full marks
+      return { needed, maxTe, status: "impossible" as const };
+    }
+    if (needed === maxTe) {
+      // Must score perfect — RISKY
+      return { needed, maxTe, status: "risk" as const };
+    }
+    if (needed >= maxTe * 0.85) {
+      // Needs 85%+ of max — CHALLENGING
+      return { needed, maxTe, status: "hard" as const };
+    }
+    // Comfortably achievable
+    return { needed, maxTe, status: "ok" as const };
+  };
+
   const getGrade = (total: number) => {
     if (total >= 180) return { label: "A+", color: "bg-emerald-50 text-emerald-700 border border-emerald-200" };
     if (total >= 160) return { label: "A", color: "bg-green-50 text-green-700 border border-green-200" };
@@ -199,6 +228,7 @@ function PlusTwoPredictorResultsContent() {
                   <th className="py-4">TE (Predict)</th>
                   <th className="py-4">Total</th>
                   <th className="py-4 text-center">Grade</th>
+                  <th className="py-4 text-center">A+ Target</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -206,6 +236,56 @@ function PlusTwoPredictorResultsContent() {
                   const total = getCombinedTotal(sub);
                   const grade = getGrade(total);
                   const maxTe = sub.isPractical ? 60 : 80;
+                  const aplus = getAplusTarget(sub);
+
+                  const aPlusTargetBadge = () => {
+                    switch (aplus.status) {
+                      case "guaranteed":
+                        return (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            ✓ A+ Secured
+                          </span>
+                        );
+                      case "ok":
+                        return (
+                          <div className="space-y-0.5">
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-extrabold bg-blue-50 text-blue-700 border border-blue-100">
+                              Need {aplus.needed}/{aplus.maxTe}
+                            </span>
+                            <div className="text-[9px] text-slate-400 text-center">for A+</div>
+                          </div>
+                        );
+                      case "hard":
+                        return (
+                          <div className="space-y-0.5">
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-extrabold bg-amber-50 text-amber-700 border border-amber-200">
+                              ⚡ {aplus.needed}/{aplus.maxTe}
+                            </span>
+                            <div className="text-[9px] text-amber-500 text-center font-semibold">Challenging</div>
+                          </div>
+                        );
+                      case "risk":
+                        return (
+                          <div className="space-y-0.5">
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-extrabold bg-red-50 text-red-700 border border-red-200">
+                              ⚠ {aplus.needed}/{aplus.maxTe}
+                            </span>
+                            <div className="text-[9px] text-red-500 text-center font-bold">RISKY — Full marks!</div>
+                          </div>
+                        );
+                      case "impossible":
+                        return (
+                          <div className="space-y-0.5">
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-extrabold bg-slate-100 text-slate-500 border border-slate-200">
+                              ✕ Not possible
+                            </span>
+                            <div className="text-[9px] text-slate-400 text-center">A+ not reachable</div>
+                          </div>
+                        );
+                      default:
+                        return null;
+                    }
+                  };
 
                   return (
                     <motion.tr
@@ -241,6 +321,9 @@ function PlusTwoPredictorResultsContent() {
                         <span className={`px-3 py-1 rounded-full text-xs font-bold ${grade.color}`}>
                           {grade.label}
                         </span>
+                      </td>
+                      <td className="py-4 text-center">
+                        {aPlusTargetBadge()}
                       </td>
                     </motion.tr>
                   );
