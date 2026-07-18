@@ -178,12 +178,21 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
   const [totalSubmissions, setTotalSubmissions] = useState(0);
   const [totalMultipleEntriesCount, setTotalMultipleEntriesCount] = useState(0);
   const [selectedEntryIdMap, setSelectedEntryIdMap] = useState<Record<string, string>>({});
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [district, setDistrict] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const limit = 50;
+
+  useEffect(() => {
+    const handleOutsideClick = () => {
+      setOpenDropdownId(null);
+    };
+    window.addEventListener("click", handleOutsideClick);
+    return () => window.removeEventListener("click", handleOutsideClick);
+  }, []);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -342,12 +351,46 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
                             {(page - 1) * limit + idx + 1}
                           </td>
                           <td className="px-4 py-3 font-bold text-slate-800">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 relative">
                               <span>{sub.name}</span>
                               {sub.history && sub.history.length > 1 && (
-                                <span className="px-1.5 py-0.5 bg-amber-50 text-amber-700 rounded-md text-[9px] font-extrabold border border-amber-200 uppercase tracking-wider">
-                                  {sub.history.length} Entries
-                                </span>
+                                <>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setOpenDropdownId(openDropdownId === sub.id ? null : sub.id);
+                                    }}
+                                    className="px-1.5 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-md text-[9px] font-extrabold border border-amber-200 uppercase tracking-wider cursor-pointer transition flex items-center gap-1 select-none"
+                                  >
+                                    {sub.history.length} Entries ▾
+                                  </button>
+                                  {openDropdownId === sub.id && (
+                                    <div
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="absolute left-0 mt-6 top-0 z-50 bg-white border border-slate-200 rounded-xl shadow-xl p-1 min-w-[200px]"
+                                    >
+                                      <div className="text-[10px] font-bold text-slate-400 px-2.5 py-1 border-b border-slate-100 uppercase tracking-wider">
+                                        Submissions
+                                      </div>
+                                      <div className="max-h-[180px] overflow-y-auto">
+                                        {sub.history.map((h, i) => (
+                                          <button
+                                            key={h.id}
+                                            onClick={() => {
+                                              setSelectedEntryIdMap({ ...selectedEntryIdMap, [sub.id]: h.id });
+                                              setExpandedId(sub.id);
+                                              setOpenDropdownId(null);
+                                            }}
+                                            className={`w-full text-left px-2.5 py-1.5 text-xs font-semibold rounded-lg hover:bg-slate-50 transition cursor-pointer flex justify-between items-center ${activeEntryId === h.id ? 'bg-purple-50 text-purple-700 font-bold' : 'text-slate-600'}`}
+                                          >
+                                            <span>{formatDate(h.submittedAt)}</span>
+                                            {i === 0 && <span className="text-[8px] bg-purple-100 text-purple-700 px-1 rounded-sm uppercase tracking-wide font-extrabold">Latest</span>}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </>
                               )}
                             </div>
                           </td>
