@@ -271,16 +271,24 @@ function PlusTwoPredictorSummaryContent() {
               {userName}: Staying on Top of Your Plus Two Science Aspirations
             </div>
 
-            <ul className="space-y-2 text-xs text-slate-600 list-disc pl-4 leading-relaxed">
+            <ul className="space-y-2.5 text-xs text-slate-600 list-disc pl-4 leading-relaxed">
               {subjects.map((sub) => {
-                const total = getCombinedTotal(sub);
-                const grade = getGrade(total);
+                const aplus = getAplusTarget(sub);
+                let message = "";
+                
+                if (aplus.status === "guaranteed") {
+                  message = `Scored ${sub.p1te} in Plus One TE (with 20 CE). You have already secured A+!`;
+                } else if (aplus.status === "impossible") {
+                  message = `Scored ${sub.p1te} in Plus One TE (with 20 CE). A+ is not reachable for this subject.`;
+                } else {
+                  const labText = sub.isPractical ? "40 Lab and " : "";
+                  const riskText = aplus.status === "risk" ? " It is risky!" : "";
+                  message = `Scored ${sub.p1te} in Plus One TE (with 20 CE). With ${labText}20 CE in Plus Two, you need to get ${aplus.needed} marks in Plus Two TE to get A+.${riskText}`;
+                }
+
                 return (
                   <li key={sub.code}>
-                    <span className="font-extrabold text-slate-700">{sub.name}</span>: Scored{" "}
-                    <span className="font-bold text-slate-800">{sub.p1te}</span> in Plus One TE, hold{" "}
-                    <span className="font-bold text-purple-600">{sub.p2te}</span> in Plus Two TE to{" "}
-                    {grade === "A+" ? "keep" : "reach"} {grade}.
+                    <span className="font-extrabold text-slate-700">{sub.name}</span>: {message}
                   </li>
                 );
               })}
