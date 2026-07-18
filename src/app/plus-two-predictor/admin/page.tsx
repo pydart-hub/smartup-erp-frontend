@@ -178,6 +178,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
   const [totalSubmissions, setTotalSubmissions] = useState(0);
   const [totalMultipleEntriesCount, setTotalMultipleEntriesCount] = useState(0);
   const [selectedEntryIdMap, setSelectedEntryIdMap] = useState<Record<string, string>>({});
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [district, setDistrict] = useState("");
@@ -217,6 +218,12 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
   return (
     <div className="min-h-screen relative py-8 px-4 sm:px-6 lg:px-8 font-sans text-slate-800 overflow-x-hidden">
       <Background3D />
+      {openDropdownId && (
+        <div
+          onClick={() => setOpenDropdownId(null)}
+          className="fixed inset-0 z-40 bg-transparent cursor-default"
+        />
+      )}
       <div className="max-w-7xl mx-auto space-y-6 relative z-10">
 
         {/* Header */}
@@ -341,15 +348,62 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
                             {(page - 1) * limit + idx + 1}
                           </td>
                           <td
-                            onClick={() => setExpandedId(expandedId === sub.id ? null : sub.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenDropdownId(openDropdownId === sub.id ? null : sub.id);
+                            }}
                             className="px-4 py-3 font-bold text-slate-800 cursor-pointer hover:text-violet-700 transition"
                           >
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 relative">
                               <span>{sub.name}</span>
                               {sub.history && sub.history.length > 1 && (
                                 <span className="px-1.5 py-0.5 bg-amber-50 text-amber-700 rounded-md text-[9px] font-extrabold border border-amber-200 uppercase tracking-wider">
-                                  {sub.history.length} Entries
+                                  {sub.history.length} Entries ▾
                                 </span>
+                              )}
+                              
+                              {openDropdownId === sub.id && (
+                                <div
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="absolute left-0 mt-8 top-0 z-50 bg-white border border-slate-200 rounded-2xl shadow-2xl p-2 min-w-[320px] max-h-[300px] overflow-y-auto"
+                                >
+                                  <div className="text-[10px] font-bold text-slate-400 px-2.5 py-1 border-b border-slate-100 uppercase tracking-wider mb-1">
+                                    Submissions
+                                  </div>
+                                  <div className="space-y-1.5">
+                                    {(sub.history || [sub]).map((h, i) => {
+                                      return (
+                                        <div
+                                          key={h.id}
+                                          onClick={() => {
+                                            setSelectedEntryIdMap({ ...selectedEntryIdMap, [sub.id]: h.id });
+                                            setExpandedId(sub.id);
+                                            setOpenDropdownId(null);
+                                          }}
+                                          className={`text-left p-2.5 rounded-xl border hover:bg-slate-50 transition cursor-pointer flex flex-col gap-1 ${activeEntryId === h.id ? 'bg-purple-50/50 border-purple-200' : 'border-slate-100'}`}
+                                        >
+                                          <div className="flex justify-between items-center text-xs">
+                                            <span className="font-extrabold text-slate-700">{formatDate(h.submittedAt)}</span>
+                                            <div className="flex gap-1">
+                                              {i === 0 && <span className="text-[8px] bg-purple-100 text-purple-700 px-1 rounded-sm uppercase tracking-wide font-black">Latest</span>}
+                                              <span className="text-[8px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-bold uppercase">{h.stream}</span>
+                                            </div>
+                                          </div>
+                                          <div className="text-[10px] text-slate-500 space-y-0.5 font-medium leading-relaxed">
+                                            <div><span className="text-slate-400 font-semibold">Name:</span> {h.name}</div>
+                                            <div><span className="text-slate-400 font-semibold">Phone:</span> {h.phone} · <span className="text-slate-400 font-semibold">District:</span> {h.district}</div>
+                                            <div className="font-bold text-purple-700 mt-1 border-t border-slate-100/50 pt-1">
+                                              Marks: {SUBJECT_CODES.map(code => {
+                                                const m = h.marksJson?.[code];
+                                                return `${code}: ${m ? (m.p1te + m.p1ce) : '—'}`;
+                                              }).join(' · ')}
+                                            </div>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
                               )}
                             </div>
                           </td>
