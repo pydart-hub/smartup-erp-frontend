@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
 import Image from "next/image";
@@ -24,6 +24,7 @@ interface SubjectPrediction {
 }
 
 function PlusTwoPredictorResultsContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const userName = searchParams.get("name") || "Student";
 
@@ -197,6 +198,50 @@ function PlusTwoPredictorResultsContent() {
                 })}
               </tbody>
             </table>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="mt-6 flex flex-col gap-3">
+            <button
+              onClick={() => {
+                setSubjects((prev) =>
+                  prev.map((sub) => ({
+                    ...sub,
+                    p2te: sub.isPractical ? 60 : 80,
+                  }))
+                );
+              }}
+              className="w-full py-3.5 bg-transparent border border-orange-200 hover:bg-orange-50/30 text-orange-600 font-extrabold rounded-2xl transition text-sm cursor-pointer"
+            >
+              Set all to maximum grade
+            </button>
+
+            <button
+              onClick={() => {
+                const randomId = Math.random().toString(36).substring(2, 10);
+                const query = new URLSearchParams();
+                query.set("name", userName);
+                
+                // Copy existing parameters
+                searchParams.forEach((val, key) => {
+                  if (!key.startsWith("p1_") && key !== "name") {
+                    query.set(key, val);
+                  }
+                });
+
+                // Set actual state marks (both P1 and predicted P2)
+                subjects.forEach((sub) => {
+                  query.set(`p1_${sub.code}_te`, sub.p1te.toString());
+                  query.set(`p1_${sub.code}_ce`, sub.p1ce.toString());
+                  query.set(`p2_${sub.code}_te`, sub.p2te.toString());
+                });
+
+                router.push(`/plus-two-predictor/summary/${randomId}?${query.toString()}`);
+              }}
+              className="w-full py-4 bg-[#e65c2b] hover:bg-[#d54c1c] text-white font-extrabold rounded-2xl transition shadow-lg shadow-orange-500/10 text-sm tracking-wider cursor-pointer text-center"
+            >
+              Get personalized summary →
+            </button>
           </div>
         </motion.div>
       </div>
