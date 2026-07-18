@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
-const ADMIN_USERNAME = "admin";
-const ADMIN_PASSWORD = "admin@SmartUp";
+const ADMIN_USERNAME = "admin@SmartUp";
+const ADMIN_PASSWORD = "admin@SmartUp!";
 const SESSION_COOKIE = "predictor-admin-session";
 const SESSION_VALUE = "smartup-predictor-admin-2024";
 
