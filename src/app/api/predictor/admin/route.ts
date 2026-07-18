@@ -59,9 +59,16 @@ export async function GET(req: NextRequest) {
     });
 
     let totalMultipleEntriesCount = 0;
+    let totalSubmissionsWithMultiple = 0;
+    let totalSubmissionsWithoutMultiple = 0;
+
     for (const key of order) {
-      if (groups[key].length > 1) {
+      const count = groups[key].length;
+      if (count > 1) {
         totalMultipleEntriesCount++;
+        totalSubmissionsWithMultiple += count;
+      } else {
+        totalSubmissionsWithoutMultiple += count;
       }
     }
 
@@ -74,6 +81,8 @@ export async function GET(req: NextRequest) {
       total: totalUnique,
       totalSubmissions,
       totalMultipleEntriesCount,
+      totalSubmissionsWithMultiple,
+      totalSubmissionsWithoutMultiple,
       page,
       limit,
     });

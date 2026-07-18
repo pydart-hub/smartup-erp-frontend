@@ -177,6 +177,8 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
   const [total, setTotal] = useState(0);
   const [totalSubmissions, setTotalSubmissions] = useState(0);
   const [totalMultipleEntriesCount, setTotalMultipleEntriesCount] = useState(0);
+  const [totalSubmissionsWithMultiple, setTotalSubmissionsWithMultiple] = useState(0);
+  const [totalSubmissionsWithoutMultiple, setTotalSubmissionsWithoutMultiple] = useState(0);
   const [selectedEntryIdMap, setSelectedEntryIdMap] = useState<Record<string, string>>({});
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -201,6 +203,8 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
       setTotal(data.total || 0);
       setTotalSubmissions(data.totalSubmissions || 0);
       setTotalMultipleEntriesCount(data.totalMultipleEntriesCount || 0);
+      setTotalSubmissionsWithMultiple(data.totalSubmissionsWithMultiple || 0);
+      setTotalSubmissionsWithoutMultiple(data.totalSubmissionsWithoutMultiple || 0);
     } catch {
       // silent
     } finally {
@@ -262,26 +266,24 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
             <div className="text-xs font-semibold text-slate-400 mt-0.5">Total Submissions</div>
           </div>
           <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
-            <div className="text-2xl font-black text-indigo-700">{total}</div>
-            <div className="text-xs font-semibold text-slate-400 mt-0.5">Unique Students</div>
+            <div className="text-2xl font-black text-indigo-700">{totalSubmissionsWithMultiple}</div>
+            <div className="text-xs font-semibold text-slate-400 mt-0.5">With Multiple Entries</div>
+          </div>
+          <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
+            <div className="text-2xl font-black text-emerald-700">{totalSubmissionsWithoutMultiple}</div>
+            <div className="text-xs font-semibold text-slate-400 mt-0.5">Without Multiple Entries</div>
           </div>
           <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
             <div className="text-2xl font-black text-rose-600">{totalMultipleEntriesCount}</div>
-            <div className="text-xs font-semibold text-slate-400 mt-0.5">Multiple Submissions</div>
-          </div>
-          <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
-            <div className="text-2xl font-black text-emerald-700">
-              {new Set(submissions.map((s) => s.district)).size}
-            </div>
-            <div className="text-xs font-semibold text-slate-400 mt-0.5">Districts Covered</div>
+            <div className="text-xs font-semibold text-slate-400 mt-0.5">Multiple Entries</div>
           </div>
           <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm col-span-2 md:col-span-1">
-            <div className="text-2xl font-black text-amber-600">
+            <div className="text-sm font-bold text-amber-600 leading-tight min-h-[32px] flex items-center">
               {submissions.length > 0
-                ? formatDate(submissions[0].submittedAt).split(",")[0]
+                ? formatDate(submissions[0].submittedAt)
                 : "—"}
             </div>
-            <div className="text-xs font-semibold text-slate-400 mt-0.5">Latest Submission</div>
+            <div className="text-xs font-semibold text-slate-400 mt-2">Latest Submission</div>
           </div>
         </div>
 
