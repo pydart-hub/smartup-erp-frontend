@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams, useRouter, useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
 import Image from "next/image";
@@ -25,8 +25,10 @@ interface SubjectPrediction {
 
 function PlusTwoPredictorResultsContent() {
   const router = useRouter();
+  const params = useParams();
   const searchParams = useSearchParams();
   const userName = searchParams.get("name") || "Student";
+  const [savedToDb, setSavedToDb] = useState(false);
 
   const [subjects, setSubjects] = useState<SubjectPrediction[]>([
     { code: "ENG", name: "English", isPractical: false, p1ce: 20, p1te: 45, p2ce: 20, p2pe: 0, p2te: 80 },
@@ -51,6 +53,53 @@ function PlusTwoPredictorResultsContent() {
       })
     );
   }, [searchParams]);
+
+  // Auto-save submission once per unique result page visit
+  useEffect(() => {
+    const pageId = Array.isArray(params?.id) ? params.id[0] : params?.id;
+    if (!pageId) return;
+
+    const sessionKey = `predictor_saved_${pageId}`;
+    if (typeof window !== "undefined" && sessionStorage.getItem(sessionKey)) return;
+    if (savedToDb) return;
+
+    const name = searchParams.get("name") || "";
+    const phone = searchParams.get("phone") || "";
+    const district = searchParams.get("district") || "";
+    const stream = searchParams.get("stream") || "Science";
+
+    // Only save if we have real student data (not just default values)
+    if (!name || !phone) return;
+
+    const marks: Record<string, { p1te: number; p1ce: number }> = {};
+    const codes = ["ENG", "MAL", "PHY", "CHE", "MAT", "CSC"];
+    for (const code of codes) {
+      const te = searchParams.get(`p1_${code}_te`);
+      const ce = searchParams.get(`p1_${code}_ce`);
+      if (te !== null && ce !== null) {
+        marks[code] = { p1te: parseInt(te), p1ce: parseInt(ce) };
+      }
+    }
+
+    if (Object.keys(marks).length === 0) return;
+
+    setSavedToDb(true);
+    fetch("/api/predictor/submit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, phone, district, stream, marks }),
+    })
+      .then((res) => {
+        if (res.ok && typeof window !== "undefined") {
+          sessionStorage.setItem(sessionKey, "1");
+        }
+      })
+      .catch(() => {
+        // Silent fail — non-critical
+        setSavedToDb(false);
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleP2TeChange = (code: string, value: number) => {
     setSubjects((prev) =>

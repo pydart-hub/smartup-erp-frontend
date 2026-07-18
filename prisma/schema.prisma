@@ -137,3 +137,17 @@ model AttemptAnswer {
 
   @@unique([attemptId, questionId])
 }
+
+// 9. Plus Two Grade Predictor Submissions
+model PlusTwoPredictorSubmission {
+  id          String   @id @default(uuid())
+  name        String
+  phone       String
+  district    String
+  stream      String   @default("Science")
+  marksJson   Json     // { ENG: { p1te, p1ce }, MAL: { p1te, p1ce }, ... }
+  submittedAt DateTime @default(now())
+
+  @@index([phone])
+  @@index([submittedAt])
+}
