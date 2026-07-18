@@ -177,10 +177,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
   const [total, setTotal] = useState(0);
   const [totalSubmissions, setTotalSubmissions] = useState(0);
   const [totalMultipleEntriesCount, setTotalMultipleEntriesCount] = useState(0);
-  const [totalSubmissionsWithMultiple, setTotalSubmissionsWithMultiple] = useState(0);
-  const [totalSubmissionsWithoutMultiple, setTotalSubmissionsWithoutMultiple] = useState(0);
   const [selectedEntryIdMap, setSelectedEntryIdMap] = useState<Record<string, string>>({});
-  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [district, setDistrict] = useState("");
@@ -203,8 +200,6 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
       setTotal(data.total || 0);
       setTotalSubmissions(data.totalSubmissions || 0);
       setTotalMultipleEntriesCount(data.totalMultipleEntriesCount || 0);
-      setTotalSubmissionsWithMultiple(data.totalSubmissionsWithMultiple || 0);
-      setTotalSubmissionsWithoutMultiple(data.totalSubmissionsWithoutMultiple || 0);
     } catch {
       // silent
     } finally {
@@ -222,12 +217,6 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
   return (
     <div className="min-h-screen relative py-8 px-4 sm:px-6 lg:px-8 font-sans text-slate-800 overflow-x-hidden">
       <Background3D />
-      {openDropdownId && (
-        <div
-          onClick={() => setOpenDropdownId(null)}
-          className="fixed inset-0 z-40 bg-transparent cursor-default"
-        />
-      )}
       <div className="max-w-7xl mx-auto space-y-6 relative z-10">
 
         {/* Header */}
@@ -266,16 +255,16 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
             <div className="text-xs font-semibold text-slate-400 mt-0.5">Total Submissions</div>
           </div>
           <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
-            <div className="text-2xl font-black text-indigo-700">{totalSubmissionsWithMultiple}</div>
+            <div className="text-2xl font-black text-indigo-700">{totalMultipleEntriesCount}</div>
             <div className="text-xs font-semibold text-slate-400 mt-0.5">With Multiple Entries</div>
           </div>
           <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
-            <div className="text-2xl font-black text-emerald-700">{totalSubmissionsWithoutMultiple}</div>
+            <div className="text-2xl font-black text-emerald-700">{total - totalMultipleEntriesCount}</div>
             <div className="text-xs font-semibold text-slate-400 mt-0.5">Without Multiple Entries</div>
           </div>
           <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
-            <div className="text-2xl font-black text-rose-600">{totalMultipleEntriesCount}</div>
-            <div className="text-xs font-semibold text-slate-400 mt-0.5">Multiple Entries</div>
+            <div className="text-2xl font-black text-rose-600">{total}</div>
+            <div className="text-xs font-semibold text-slate-400 mt-0.5">Unique Students</div>
           </div>
           <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm col-span-2 md:col-span-1">
             <div className="text-sm font-bold text-amber-600 leading-tight min-h-[32px] flex items-center">
@@ -351,47 +340,16 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
                           <td className="px-4 py-3 text-slate-400 text-xs font-bold">
                             {(page - 1) * limit + idx + 1}
                           </td>
-                          <td className="px-4 py-3 font-bold text-slate-800">
-                            <div className="flex items-center gap-2 relative">
+                          <td
+                            onClick={() => setExpandedId(expandedId === sub.id ? null : sub.id)}
+                            className="px-4 py-3 font-bold text-slate-800 cursor-pointer hover:text-violet-700 transition"
+                          >
+                            <div className="flex items-center gap-2">
                               <span>{sub.name}</span>
                               {sub.history && sub.history.length > 1 && (
-                                <>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setOpenDropdownId(openDropdownId === sub.id ? null : sub.id);
-                                    }}
-                                    className="px-1.5 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-md text-[9px] font-extrabold border border-amber-200 uppercase tracking-wider cursor-pointer transition flex items-center gap-1 select-none"
-                                  >
-                                    {sub.history.length} Entries ▾
-                                  </button>
-                                  {openDropdownId === sub.id && (
-                                    <div
-                                      onClick={(e) => e.stopPropagation()}
-                                      className="absolute left-0 mt-6 top-0 z-50 bg-white border border-slate-200 rounded-xl shadow-xl p-1 min-w-[200px]"
-                                    >
-                                      <div className="text-[10px] font-bold text-slate-400 px-2.5 py-1 border-b border-slate-100 uppercase tracking-wider">
-                                        Submissions
-                                      </div>
-                                      <div className="max-h-[180px] overflow-y-auto">
-                                        {sub.history.map((h, i) => (
-                                          <button
-                                            key={h.id}
-                                            onClick={() => {
-                                              setSelectedEntryIdMap({ ...selectedEntryIdMap, [sub.id]: h.id });
-                                              setExpandedId(sub.id);
-                                              setOpenDropdownId(null);
-                                            }}
-                                            className={`w-full text-left px-2.5 py-1.5 text-xs font-semibold rounded-lg hover:bg-slate-50 transition cursor-pointer flex justify-between items-center ${activeEntryId === h.id ? 'bg-purple-50 text-purple-700 font-bold' : 'text-slate-600'}`}
-                                          >
-                                            <span>{formatDate(h.submittedAt)}</span>
-                                            {i === 0 && <span className="text-[8px] bg-purple-100 text-purple-700 px-1 rounded-sm uppercase tracking-wide font-extrabold">Latest</span>}
-                                          </button>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-                                </>
+                                <span className="px-1.5 py-0.5 bg-amber-50 text-amber-700 rounded-md text-[9px] font-extrabold border border-amber-200 uppercase tracking-wider">
+                                  {sub.history.length} Entries
+                                </span>
                               )}
                             </div>
                           </td>
