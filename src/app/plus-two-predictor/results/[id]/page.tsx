@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
@@ -29,12 +29,27 @@ export default function PlusTwoPredictorResults() {
 
   const [subjects, setSubjects] = useState<SubjectPrediction[]>([
     { code: "ENG", name: "English", isPractical: false, p1ce: 20, p1te: 45, p2ce: 20, p2pe: 0, p2te: 80 },
-    { code: "MAL", name: "Malayalam", isPractical: false, p1ce: 20, p1te: 65, p2ce: 20, p2pe: 0, p2te: 75 },
+    { code: "MAL", name: "Malayalam / Language", isPractical: false, p1ce: 20, p1te: 65, p2ce: 20, p2pe: 0, p2te: 75 },
     { code: "PHY", name: "Physics", isPractical: true, p1ce: 20, p1te: 25, p2ce: 20, p2pe: 40, p2te: 60 },
     { code: "CHE", name: "Chemistry", isPractical: true, p1ce: 20, p1te: 45, p2ce: 20, p2pe: 40, p2te: 55 },
     { code: "MAT", name: "Mathematics", isPractical: true, p1ce: 20, p1te: 45, p2ce: 20, p2pe: 40, p2te: 55 },
-    { code: "CSC", name: "Computer Science", isPractical: true, p1ce: 20, p1te: 45, p2ce: 20, p2pe: 40, p2te: 55 },
+    { code: "CSC", name: "Computer Science / Bio", isPractical: true, p1ce: 20, p1te: 45, p2ce: 20, p2pe: 40, p2te: 55 },
   ]);
+
+  // Load marks from query params on mount
+  useEffect(() => {
+    setSubjects((prev) =>
+      prev.map((sub) => {
+        const queryTe = searchParams.get(`p1_${sub.code}_te`);
+        const queryCe = searchParams.get(`p1_${sub.code}_ce`);
+        return {
+          ...sub,
+          p1te: queryTe ? parseInt(queryTe) : sub.p1te,
+          p1ce: queryCe ? parseInt(queryCe) : sub.p1ce,
+        };
+      })
+    );
+  }, [searchParams]);
 
   const handleP2TeChange = (code: string, value: number) => {
     setSubjects((prev) =>

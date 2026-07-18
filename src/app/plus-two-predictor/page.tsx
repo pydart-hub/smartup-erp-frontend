@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
@@ -14,11 +14,25 @@ const Background3D = dynamic(
 
 export default function PlusTwoPredictorLanding() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [stream, setStream] = useState("Science");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [district, setDistrict] = useState("");
   const [agree, setAgree] = useState(false);
+
+  // Pre-fill fields if user came back from the mark entry page
+  useEffect(() => {
+    const pName = searchParams.get("name");
+    const pPhone = searchParams.get("phone");
+    const pDistrict = searchParams.get("district");
+    const pStream = searchParams.get("stream");
+
+    if (pName) setName(pName);
+    if (pPhone) setPhone(pPhone);
+    if (pDistrict) setDistrict(pDistrict);
+    if (pStream) setStream(pStream);
+  }, [searchParams]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,8 +40,14 @@ export default function PlusTwoPredictorLanding() {
       alert("Please fill in all details and agree to terms.");
       return;
     }
-    const randomId = Math.random().toString(36).substring(2, 10);
-    router.push(`/plus-two-predictor/results/${randomId}?name=${encodeURIComponent(name)}`);
+    
+    const query = new URLSearchParams();
+    query.set("name", name);
+    query.set("phone", phone);
+    query.set("district", district);
+    query.set("stream", stream);
+
+    router.push(`/plus-two-predictor/mark-entry?${query.toString()}`);
   };
 
   return (
