@@ -186,13 +186,6 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
   const [page, setPage] = useState(1);
   const limit = 50;
 
-  useEffect(() => {
-    const handleOutsideClick = () => {
-      setOpenDropdownId(null);
-    };
-    window.addEventListener("click", handleOutsideClick);
-    return () => window.removeEventListener("click", handleOutsideClick);
-  }, []);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -225,6 +218,12 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
   return (
     <div className="min-h-screen relative py-8 px-4 sm:px-6 lg:px-8 font-sans text-slate-800 overflow-x-hidden">
       <Background3D />
+      {openDropdownId && (
+        <div
+          onClick={() => setOpenDropdownId(null)}
+          className="fixed inset-0 z-40 bg-transparent cursor-default"
+        />
+      )}
       <div className="max-w-7xl mx-auto space-y-6 relative z-10">
 
         {/* Header */}
