@@ -102,7 +102,7 @@ function PlusTwoPredictorSummaryContent() {
   };
 
   const handleHelpWhatsApp = () => {
-    const text = `Hi Eduport! I am ${userName}. I completed the SmartUp Plus Two Grade Predictor. My target is ${totalAPlus}/6 A+. I'd like help from Eduport to reach my goals!`;
+    const text = `Hi SmartUp! I am ${userName}. I completed the SmartUp Plus Two Grade Predictor. My target is ${totalAPlus}/6 A+. I'd like help from SmartUp to reach my goals!`;
     window.open(`https://wa.me/919656885566?text=${encodeURIComponent(text)}`, "_blank");
   };
 
