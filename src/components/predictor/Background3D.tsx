@@ -9,14 +9,14 @@ export default function Background3D() {
       <div className="absolute -top-12 -left-12 w-[400px] h-[400px] bg-purple-300/20 rounded-full blur-[120px]" />
       <div className="absolute -bottom-12 -right-12 w-[500px] h-[500px] bg-indigo-300/15 rounded-full blur-[150px]" />
       
-      {/* SmartUp Brand Alpha WebM Video - Positioned specifically on the left half */}
-      <div className="absolute left-0 top-0 w-full md:w-1/2 h-full flex items-center justify-center opacity-80 p-8">
+      {/* SmartUp Brand Alpha WebM Video - Positioned as a subtle watermark between text and card */}
+      <div className="absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 md:left-[35%] md:translate-x-0 w-full max-w-[450px] md:max-w-[500px] aspect-square flex items-center justify-center opacity-25 md:opacity-35 pointer-events-none select-none p-4">
         <video
           autoPlay
           loop
           muted
           playsInline
-          className="w-full max-w-[480px] aspect-square object-contain"
+          className="w-full h-full object-contain"
         >
           <source src="/logo-look.webm" type="video/webm" />
         </video>
