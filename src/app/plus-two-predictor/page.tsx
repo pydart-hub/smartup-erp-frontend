@@ -121,8 +121,6 @@ export default function PlusTwoPredictorLanding() {
                   className="w-full p-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5f2ea8] focus:border-transparent text-slate-800 cursor-pointer transition shadow-sm"
                 >
                   <option value="Science">Science</option>
-                  <option value="Commerce">Commerce</option>
-                  <option value="Humanities">Humanities</option>
                 </select>
               </div>
 
