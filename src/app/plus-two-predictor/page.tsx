@@ -3,6 +3,7 @@
 import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
 
@@ -61,18 +62,19 @@ function PlusTwoPredictorLandingContent() {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="flex items-center gap-3"
         >
-          <Image
-            src="/smartup-logo-v2.png"
-            alt="SmartUp"
-            width={38}
-            height={38}
-            className="object-contain block flex-shrink-0 drop-shadow-sm"
-          />
-          <span className="text-slate-800 text-xl tracking-[0.15em] uppercase leading-none font-black drop-shadow-sm">
-            SMART UP
-          </span>
+          <Link href="/plus-two-predictor/admin" className="flex items-center gap-3 hover:opacity-85 transition cursor-pointer select-none">
+            <Image
+              src="/smartup-logo-v2.png"
+              alt="SmartUp"
+              width={38}
+              height={38}
+              className="object-contain block flex-shrink-0 drop-shadow-sm"
+            />
+            <span className="text-slate-800 text-xl tracking-[0.15em] uppercase leading-none font-black drop-shadow-sm">
+              SMART UP
+            </span>
+          </Link>
         </motion.div>
         
         <div className="my-auto space-y-8 max-w-lg pt-12 md:pt-0">
