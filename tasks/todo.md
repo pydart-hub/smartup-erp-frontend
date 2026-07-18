@@ -1,5 +1,12 @@
 # SmartUp ERP — Task Tracker
 
+## Current: Plus Two Grade Predictor Subdomain & Demo Pages (2026-07-18)
+
+- [x] Create Next.js Middleware (`src/middleware.ts`) to handle subdomain routing
+- [x] Create Plus Two Predictor demo entry page (`src/app/plus-two-predictor/page.tsx`)
+- [x] Create Plus Two Predictor results page (`src/app/plus-two-predictor/results/[id]/page.tsx`)
+- [x] Verify TypeScript and build sanity
+
 ## Current: Director and General Manager Mentor Leaderboards (2026-07-08)
 
 - [x] Restructure GM leaderboards behind sub-routes

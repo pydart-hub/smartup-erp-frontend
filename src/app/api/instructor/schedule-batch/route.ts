@@ -79,9 +79,6 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Schedule batch not found" }, { status: 404 });
     }
 
-    if (schedule.custom_event_type) {
-      return NextResponse.json({ error: "Events do not have attendance batches" }, { status: 422 });
-    }
 
     if (String(schedule.instructor || "").trim() !== instructorName) {
       return NextResponse.json({ error: "Access denied for this schedule" }, { status: 403 });

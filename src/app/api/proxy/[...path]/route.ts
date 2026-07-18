@@ -251,7 +251,7 @@ async function proxyRequest(request: NextRequest, method: string) {
         };
 
         const schedule = guardJson.data;
-        if (!schedule || schedule.custom_event_type) return { ok: false };
+        if (!schedule) return { ok: false };
 
         const scheduleBranch = schedule.custom_branch || "";
         const inAllowedBranch =

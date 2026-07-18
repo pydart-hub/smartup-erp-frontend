@@ -124,9 +124,6 @@ export async function POST(req: NextRequest) {
     if (!schedule?.name || !schedule.student_group) {
       return NextResponse.json({ error: "Schedule not found" }, { status: 404 });
     }
-    if (schedule.custom_event_type) {
-      return NextResponse.json({ error: "Cannot mark attendance for event schedules" }, { status: 422 });
-    }
     if (String(schedule.instructor || "").trim() !== instructorName) {
       return NextResponse.json({ error: "Access denied for this schedule" }, { status: 403 });
     }

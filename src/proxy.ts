@@ -17,7 +17,7 @@ const ROLE_DASHBOARD_MAP: Record<string, string> = {
   Parent: "/dashboard/parent",
 };
 
-const PUBLIC_PATHS = ["/auth/login", "/auth/forgot-password", "/api/", "/pay/", "/demo", "/exam-site"];
+const PUBLIC_PATHS = ["/auth/login", "/auth/forgot-password", "/api/", "/pay/", "/demo", "/exam-site", "/plus-two-predictor"];
 const APP_ROLES = Object.keys(ROLE_DASHBOARD_MAP);
 
 function hasAlternateDashboardRole(roles: string[], currentRole: string) {
@@ -26,6 +26,21 @@ function hasAlternateDashboardRole(roles: string[], currentRole: string) {
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const host = request.headers.get("host") || "";
+  const url = request.nextUrl.clone();
+
+  // Handle predictor subdomain rewrites
+  if (host.toLowerCase().startsWith("predictor.")) {
+    const isInternal =
+      pathname.startsWith("/api") ||
+      pathname.startsWith("/_next") ||
+      pathname.includes("."); // e.g. favicon.ico, images
+
+    if (!isInternal && !pathname.startsWith("/plus-two-predictor")) {
+      url.pathname = `/plus-two-predictor${pathname === "/" ? "" : pathname}`;
+      return NextResponse.rewrite(url);
+    }
+  }
 
   if (PUBLIC_PATHS.some((path) => pathname.startsWith(path))) {
     return NextResponse.next();

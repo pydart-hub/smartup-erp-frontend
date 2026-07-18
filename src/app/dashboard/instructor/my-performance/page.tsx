@@ -133,9 +133,9 @@ export default function InstructorPerformancePage() {
           Batch-wise Performance
         </h2>
         <motion.div variants={container} initial="hidden" animate="show" className="space-y-3">
-          {myData.batches.map((batch) => (
+          {myData.batches.map((batch, index) => (
             <motion.div
-              key={batch.student_group}
+              key={`${batch.student_group}-${batch.course}-${index}`}
               variants={item}
               className="bg-surface rounded-[12px] border border-border-light p-4"
             >

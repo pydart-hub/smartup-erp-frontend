@@ -53,7 +53,44 @@ export async function getAssessmentGroups(): Promise<AssessmentGroup[]> {
       },
     },
   );
-  return data.data;
+
+  const desiredOrder = [
+    "Annual Exam",
+    "Half Yearly Exam",
+    "Quarterly Exam",
+    "Test",
+    "Unit Test 1",
+    "CWC Exam 1",
+    "CWC Exam 2",
+    "CWC Exam 3",
+    "Other",
+  ];
+
+  const displayNameMap: Record<string, string> = {
+    "Annual Exam": "Annual Exam",
+    "Half Yearly Exam": "Half Yearly",
+    "Quarterly Exam": "Quarterly",
+    "Test": "Test",
+    "Unit Test 1": "Unit Test",
+    "CWC Exam 1": "CWC exam 1",
+    "CWC Exam 2": "CWC exam 2",
+    "CWC Exam 3": "CWC exam 3",
+    "Other": "Other",
+  };
+
+  const raw = data.data ?? [];
+  const processed = raw
+    .filter((g) => desiredOrder.includes(g.name))
+    .map((g) => ({
+      ...g,
+      assessment_group_name: displayNameMap[g.name] || g.assessment_group_name,
+    }));
+
+  return processed.sort((a, b) => {
+    const idxA = desiredOrder.indexOf(a.name);
+    const idxB = desiredOrder.indexOf(b.name);
+    return idxA - idxB;
+  });
 }
 
 /** List assessment plans with filters */
