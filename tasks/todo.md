@@ -1,5 +1,17 @@
 # SmartUp ERP — Task Tracker
 
+## Current: Plus Two Predictor Export Full CSV (2026-07-20)
+
+- [x] Support `all=true` query parameter in `/api/predictor/admin` to retrieve all grouped submissions without pagination
+- [x] Modify "Export CSV" button in `/plus-two-predictor/admin` page to fetch all submissions and download them
+- [x] Run type check (`npx tsc --noEmit`) to verify correctness
+
+### Review
+- Added support for the `all=true` query parameter to the `/api/predictor/admin` route to retrieve the entire list of unique (grouped) student submissions without pagination slicing.
+- Updated the "Export CSV" button in the admin page (`src/app/plus-two-predictor/admin/page.tsx`) to fetch the full set of submissions (while preserving any active filter settings like search text or district selection) and download it using the local CSV helper.
+- Added a simple visual state so the button displays "Exporting..." and is disabled while fetching the complete data.
+- Verified TypeScript compilation successfully via `npx tsc --noEmit`.
+
 ## Current: Plus Two Grade Predictor Subdomain & Demo Pages (2026-07-18)
 
 - [x] Create Next.js Middleware (`src/middleware.ts`) to handle subdomain routing

@@ -185,6 +185,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const limit = 50;
+  const [exporting, setExporting] = useState(false);
 
 
   const fetchData = useCallback(async () => {
@@ -209,6 +210,26 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
   }, [page, search, district, onLogout]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  const handleExportCSV = async () => {
+    setExporting(true);
+    try {
+      const params = new URLSearchParams({ all: "true" });
+      if (search) params.set("search", search);
+      if (district) params.set("district", district);
+
+      const res = await fetch(`/api/predictor/admin?${params.toString()}`);
+      if (res.status === 401) { onLogout(); return; }
+      const data = await res.json();
+      if (data.submissions) {
+        downloadCSV(data.submissions);
+      }
+    } catch (err) {
+      console.error("Failed to export CSV:", err);
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const handleLogout = async () => {
     await fetch("/api/predictor/admin/logout", { method: "POST" });
@@ -240,11 +261,11 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
           </div>
           <div className="flex gap-2">
             <button
-              onClick={() => downloadCSV(submissions)}
-              disabled={submissions.length === 0}
+              onClick={handleExportCSV}
+              disabled={submissions.length === 0 || exporting}
               className="px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded-xl text-xs transition border border-emerald-200 cursor-pointer disabled:opacity-40"
             >
-              ↓ Export CSV
+              {exporting ? "Exporting..." : "↓ Export CSV"}
             </button>
             <button
               onClick={handleLogout}

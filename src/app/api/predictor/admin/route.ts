@@ -72,9 +72,11 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    const all = searchParams.get("all") === "true";
+
     const totalUnique = groupedSubmissions.length;
     const totalSubmissions = allSubmissions.length;
-    const submissions = groupedSubmissions.slice((page - 1) * limit, page * limit);
+    const submissions = all ? groupedSubmissions : groupedSubmissions.slice((page - 1) * limit, page * limit);
 
     return NextResponse.json({
       submissions,
