@@ -387,12 +387,12 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
                               {openDropdownId === sub.id && (
                                 <div
                                   onClick={(e) => e.stopPropagation()}
-                                  className={`absolute left-0 z-50 bg-white border border-slate-200 rounded-2xl shadow-2xl p-2 min-w-[320px] max-h-[300px] overflow-y-auto ${isNearBottom ? 'bottom-full mb-2' : 'mt-8 top-0'}`}
+                                  className={`absolute left-0 z-50 bg-white border border-slate-200 rounded-2xl shadow-2xl p-2 min-w-[320px] flex flex-col ${isNearBottom ? 'bottom-full mb-2' : 'mt-8 top-0'}`}
                                 >
-                                  <div className="text-[10px] font-bold text-slate-400 px-2.5 py-1 border-b border-slate-100 uppercase tracking-wider mb-1">
+                                  <div className="text-[10px] font-bold text-slate-400 px-2.5 py-1 border-b border-slate-100 uppercase tracking-wider mb-2 shrink-0">
                                     Submissions
                                   </div>
-                                  <div className="space-y-1.5">
+                                  <div className="space-y-1.5 overflow-y-auto max-h-[260px] overscroll-contain pr-1" onWheel={(e) => e.stopPropagation()} onTouchMove={(e) => e.stopPropagation()}>
                                     {(sub.history || [sub]).map((h, i) => {
                                       return (
                                         <div
