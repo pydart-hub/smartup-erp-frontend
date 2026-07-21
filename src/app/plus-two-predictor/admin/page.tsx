@@ -424,7 +424,8 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
                                       );
                                     })}
                                   </div>
-                                </>
+                                </div>
+                              </>
                               )}
                             </div>
                           </td>
