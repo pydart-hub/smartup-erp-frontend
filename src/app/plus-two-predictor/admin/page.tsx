@@ -239,12 +239,6 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
   return (
     <div className="min-h-screen relative py-8 px-4 sm:px-6 lg:px-8 font-sans text-slate-800 overflow-x-hidden">
       <Background3D />
-      {openDropdownId && (
-        <div
-          onClick={() => setOpenDropdownId(null)}
-          className="fixed inset-0 z-40 bg-transparent cursor-default"
-        />
-      )}
       <div className="max-w-7xl mx-auto space-y-6 relative z-10">
 
         {/* Header */}
@@ -385,10 +379,15 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
                               )}
                               
                               {openDropdownId === sub.id && (
-                                <div
-                                  onClick={(e) => e.stopPropagation()}
-                                  className={`absolute left-0 z-50 bg-white border border-slate-200 rounded-2xl shadow-2xl p-2 min-w-[320px] flex flex-col ${isNearBottom ? 'bottom-full mb-2' : 'mt-8 top-0'}`}
-                                >
+                                <>
+                                  <div
+                                    onClick={(e) => { e.stopPropagation(); setOpenDropdownId(null); }}
+                                    className="fixed inset-0 z-40 bg-transparent cursor-default"
+                                  />
+                                  <div
+                                    onClick={(e) => e.stopPropagation()}
+                                    className={`absolute left-0 z-50 bg-white border border-slate-200 rounded-2xl shadow-2xl p-2 min-w-[320px] flex flex-col ${isNearBottom ? 'bottom-full mb-2' : 'mt-8 top-0'}`}
+                                  >
                                   <div className="text-[10px] font-bold text-slate-400 px-2.5 py-1 border-b border-slate-100 uppercase tracking-wider mb-2 shrink-0">
                                     Submissions
                                   </div>
@@ -425,7 +424,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
                                       );
                                     })}
                                   </div>
-                                </div>
+                                </>
                               )}
                             </div>
                           </td>
