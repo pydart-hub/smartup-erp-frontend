@@ -69,8 +69,9 @@ async function fetchTodaysAdmissions(): Promise<TodayAdmission[]> {
   return json.data ?? [];
 }
 
-async function fetchTodaysCollectedEntries(): Promise<TodayCollectedEntry[]> {
-  const res = await fetch("/api/director/today-collected", {
+async function fetchTodaysCollectedEntries(date?: string): Promise<TodayCollectedEntry[]> {
+  const url = date ? `/api/director/today-collected?date=${encodeURIComponent(date)}` : "/api/director/today-collected";
+  const res = await fetch(url, {
     credentials: "include",
   });
   if (!res.ok) throw new Error(`Failed: ${res.status}`);
@@ -80,6 +81,7 @@ async function fetchTodaysCollectedEntries(): Promise<TodayCollectedEntry[]> {
 
 export default function TodayAdmissionsPage() {
   const [activePanel, setActivePanel] = useState<"admissions" | "collected">("admissions");
+  const [selectedDate, setSelectedDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
 
   const { data: admissions, isLoading, isError } = useQuery({
     queryKey: ["director-today-admissions-detail"],
@@ -93,8 +95,8 @@ export default function TodayAdmissionsPage() {
     isLoading: isCollectedLoading,
     isError: isCollectedError,
   } = useQuery({
-    queryKey: ["director-today-collected-detail"],
-    queryFn: fetchTodaysCollectedEntries,
+    queryKey: ["director-today-collected-detail", selectedDate],
+    queryFn: () => fetchTodaysCollectedEntries(selectedDate),
     staleTime: 30_000,
     refetchInterval: 30_000,
   });
@@ -133,7 +135,7 @@ export default function TodayAdmissionsPage() {
           <div>
             <h1 className="text-2xl font-bold text-text-primary flex items-center gap-2">
               <UserPlus className="h-6 w-6 text-emerald-500" />
-              Today&apos;s Admissions
+              Today&apos;s Admissions & Collections
             </h1>
             <p className="text-text-secondary text-sm mt-0.5">{today}</p>
           </div>
@@ -183,7 +185,9 @@ export default function TodayAdmissionsPage() {
             <p className="text-2xl font-bold text-green-600">
               {isCollectedLoading ? "..." : formatCurrency(totalPaid)}
             </p>
-            <p className="text-xs text-text-tertiary">Today Collected Fees</p>
+            <p className="text-xs text-text-tertiary">
+              {selectedDate === new Date().toISOString().slice(0, 10) ? "Today" : selectedDate} Collected Fees
+            </p>
           </CardContent>
         </Card>
         <Card className="border-red-500/20">
@@ -197,29 +201,56 @@ export default function TodayAdmissionsPage() {
         </Card>
       </motion.div>
 
-      <motion.div variants={itemVariants} className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() => setActivePanel("admissions")}
-          className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-            activePanel === "admissions"
-              ? "bg-emerald-500 text-white"
-              : "border border-border-light text-text-secondary hover:border-emerald-300"
-          }`}
-        >
-          Admission List
-        </button>
-        <button
-          type="button"
-          onClick={() => setActivePanel("collected")}
-          className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-            activePanel === "collected"
-              ? "bg-green-500 text-white"
-              : "border border-border-light text-text-secondary hover:border-green-300"
-          }`}
-        >
-          Collection List
-        </button>
+      <motion.div variants={itemVariants} className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setActivePanel("admissions")}
+            className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
+              activePanel === "admissions"
+                ? "bg-emerald-500 text-white shadow-sm"
+                : "border border-border-light text-text-secondary hover:border-emerald-300"
+            }`}
+          >
+            Admission List
+          </button>
+          <button
+            type="button"
+            onClick={() => setActivePanel("collected")}
+            className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
+              activePanel === "collected"
+                ? "bg-green-500 text-white shadow-sm"
+                : "border border-border-light text-text-secondary hover:border-green-300"
+            }`}
+          >
+            Collection List
+          </button>
+        </div>
+
+        {activePanel === "collected" && (
+          <div className="flex items-center gap-2">
+            <label htmlFor="collection-date-filter" className="text-xs font-medium text-text-secondary flex items-center gap-1.5">
+              <Clock className="h-3.5 w-3.5 text-text-tertiary" />
+              Filter by Date:
+            </label>
+            <input
+              id="collection-date-filter"
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="px-2.5 py-1 text-xs rounded-md border border-border-light bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-green-500"
+            />
+            {selectedDate !== new Date().toISOString().slice(0, 10) && (
+              <button
+                type="button"
+                onClick={() => setSelectedDate(new Date().toISOString().slice(0, 10))}
+                className="text-[11px] text-green-600 hover:underline font-medium ml-1"
+              >
+                Reset to Today
+              </button>
+            )}
+          </div>
+        )}
       </motion.div>
 
       {/* Detail list */}
@@ -359,17 +390,19 @@ export default function TodayAdmissionsPage() {
         ) : isCollectedError ? (
           <div className="flex flex-col items-center justify-center h-48 gap-3">
             <AlertCircle className="h-8 w-8 text-error" />
-            <p className="text-sm text-error">Failed to load today&apos;s collections</p>
+            <p className="text-sm text-error">Failed to load collections</p>
           </div>
         ) : payments.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 gap-3">
             <Receipt className="h-8 w-8 text-text-tertiary" />
-            <p className="text-sm text-text-tertiary">No collections recorded today</p>
+            <p className="text-sm text-text-tertiary">No collections recorded for {selectedDate}</p>
           </div>
         ) : (
           <>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold text-text-primary">Today&apos;s Collection List</h2>
+              <h2 className="text-sm font-semibold text-text-primary">
+                Collection List ({selectedDate})
+              </h2>
               <Badge variant="outline" className="text-[11px] border-green-500/30 text-green-700">
                 {payments.length} entries
               </Badge>

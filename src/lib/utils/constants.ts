@@ -95,7 +95,16 @@ export interface NavItem {
 export const BRANCH_MANAGER_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard/branch-manager", icon: "LayoutDashboard", emoji: "📊" },
   { label: "My Assignments", href: "/dashboard/branch-manager/my-assignments", icon: "ClipboardList", emoji: "🗂️" },
-  { label: "New Admission", href: "/dashboard/branch-manager/new-admission", icon: "UserPlus", emoji: "🎓" },
+  {
+    label: "Admissions",
+    href: "/dashboard/branch-manager/admissions",
+    icon: "UserPlus",
+    emoji: "🎓",
+    children: [
+      { label: "New Student Admission", href: "/dashboard/branch-manager/admissions/new", icon: "UserPlus", emoji: "🎓" },
+      { label: "Sales Admission Entries", href: "/dashboard/branch-manager/admissions/sales-entries", icon: "ClipboardList", emoji: "📝" },
+    ],
+  },
   {
     label: "Students",
     href: "/dashboard/branch-manager/students",
@@ -119,16 +128,15 @@ export const BRANCH_MANAGER_NAV: NavItem[] = [
   { label: "Course Schedule", href: "/dashboard/branch-manager/course-schedule", icon: "CalendarDays", emoji: "📅" },
   { label: "Teachers", href: "/dashboard/branch-manager/teachers", icon: "UserCheck", emoji: "👨‍🏫" },
   { label: "Fees", href: "/dashboard/branch-manager/fees", icon: "IndianRupee", emoji: "💰" },
-  { label: "Exams", href: "/dashboard/branch-manager/exams", icon: "ClipboardList", emoji: "📝" },
-  { label: "Level Exam", href: "/dashboard/branch-manager/level-exams", icon: "BookOpen", emoji: "📘" },
   {
-    label: "Diagnosis Exam",
-    href: "/dashboard/branch-manager/diagnosis-exams",
-    icon: "Microscope",
-    emoji: "🔬",
+    label: "Exams",
+    href: "/dashboard/branch-manager/exams",
+    icon: "ClipboardList",
+    emoji: "📝",
     children: [
-      { label: "Overview", href: "/dashboard/branch-manager/diagnosis-exams", icon: "LayoutDashboard", emoji: "📊" },
-      { label: "Report", href: "/dashboard/branch-manager/diagnosis-exams/report", icon: "FileSpreadsheet", emoji: "📄" },
+      { label: "Regular Exam", href: "/dashboard/branch-manager/exams/regular", icon: "FileText", emoji: "📝" },
+      { label: "Level Exam", href: "/dashboard/branch-manager/level-exams", icon: "BookOpen", emoji: "📘" },
+      { label: "Diagnosis Exam", href: "/dashboard/branch-manager/diagnosis-exams", icon: "Microscope", emoji: "🔬" },
     ],
   },
   {
@@ -196,15 +204,15 @@ export const DIRECTOR_NAV: NavItem[] = [
       { label: "Budget", href: "/dashboard/director/accounts/budget", icon: "Target", emoji: "🎯" },
     ],
   },
-  { label: "Exams", href: "/dashboard/director/exams", icon: "ClipboardList", emoji: "📝" },
   {
-    label: "Diagnosis Exam",
-    href: "/dashboard/director/diagnosis-exams",
-    icon: "Microscope",
-    emoji: "🔬",
+    label: "Exams",
+    href: "/dashboard/director/exams",
+    icon: "ClipboardList",
+    emoji: "📝",
     children: [
-      { label: "Overview", href: "/dashboard/director/diagnosis-exams", icon: "LayoutDashboard", emoji: "📊" },
-      { label: "Report", href: "/dashboard/director/diagnosis-exams/report", icon: "FileSpreadsheet", emoji: "📄" },
+      { label: "Regular Exam", href: "/dashboard/director/exams/regular", icon: "FileText", emoji: "📝" },
+      { label: "Level Exam", href: "/dashboard/director/level-exams", icon: "BookOpen", emoji: "📘" },
+      { label: "Diagnosis Exam", href: "/dashboard/director/diagnosis-exams", icon: "Microscope", emoji: "🔬" },
     ],
   },
   {
@@ -271,12 +279,21 @@ export const HR_MANAGER_NAV: NavItem[] = [
 
 export const SALES_USER_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard/sales-user", icon: "LayoutDashboard", emoji: "📊" },
-  { label: "New Admission", href: "/dashboard/sales-user/new-admission", icon: "UserPlus", emoji: "🎓" },
+  {
+    label: "Admissions",
+    href: "/dashboard/sales-user/admissions-entry",
+    icon: "UserPlus",
+    emoji: "🎓",
+    children: [
+      { label: "New Student Admission", href: "/dashboard/sales-user/new-admission", icon: "UserPlus", emoji: "🎓" },
+      { label: "Sales Admission Entries", href: "/dashboard/sales-user/admissions-entry", icon: "ClipboardList", emoji: "📝" },
+    ],
+  },
   { label: "Students", href: "/dashboard/sales-user/students", icon: "GraduationCap", emoji: "👨‍🎓" },
-  { label: "Discontinued", href: "/dashboard/sales-user/discontinued", icon: "UserX", emoji: "?" },
+  { label: "Discontinued", href: "/dashboard/sales-user/discontinued", icon: "UserX", emoji: "❌" },
   { label: "Fee Overdue", href: "/dashboard/sales-user/fees/overdue", icon: "CalendarClock", emoji: "⏰" },
-  { label: "Overdue Paid", href: "/dashboard/sales-user/fees/overdue-paid", icon: "CalendarCheck2", emoji: "âœ…" },
-  { label: "Follow-Up", href: "/dashboard/sales-user/followup", icon: "Phone", emoji: "ðŸ“ž" },
+  { label: "Overdue Paid", href: "/dashboard/sales-user/fees/overdue-paid", icon: "CalendarCheck2", emoji: "✅" },
+  { label: "Follow-Up", href: "/dashboard/sales-user/followup", icon: "Phone", emoji: "📞" },
 ];
 
 export const GENERAL_MANAGER_NAV: NavItem[] = [
@@ -296,25 +313,15 @@ export const GENERAL_MANAGER_NAV: NavItem[] = [
   { label: "Academics", href: "/dashboard/general-manager/academics", icon: "BarChart3", emoji: "📈" },
   { label: "Attendance", href: "/dashboard/general-manager/attendance", icon: "ClipboardCheck", emoji: "✅" },
   { label: "Actions Needed", href: "/dashboard/general-manager/actions-needed", icon: "MessageSquareWarning", emoji: "⚠️" },
-  { label: "Exams", href: "/dashboard/general-manager/exams", icon: "ClipboardList", emoji: "📝" },
   {
-    label: "Level Exam",
-    href: "/dashboard/general-manager/level-exams",
-    icon: "BookOpen",
-    emoji: "📘",
+    label: "Exams",
+    href: "/dashboard/general-manager/exams",
+    icon: "ClipboardList",
+    emoji: "📝",
     children: [
-      { label: "Overview", href: "/dashboard/general-manager/level-exams", icon: "LayoutDashboard", emoji: "📊" },
-      { label: "Publish Level Exam", href: "/dashboard/general-manager/level-exams/assign", icon: "UserPlus", emoji: "📤" },
-    ],
-  },
-  {
-    label: "Diagnosis Exam",
-    href: "/dashboard/general-manager/diagnosis-exams",
-    icon: "Microscope",
-    emoji: "🔬",
-    children: [
-      { label: "Overview", href: "/dashboard/general-manager/diagnosis-exams", icon: "LayoutDashboard", emoji: "📊" },
-      { label: "Report", href: "/dashboard/general-manager/diagnosis-exams/report", icon: "FileSpreadsheet", emoji: "📄" },
+      { label: "Regular Exam", href: "/dashboard/general-manager/exams/regular", icon: "FileText", emoji: "📝" },
+      { label: "Level Exam", href: "/dashboard/general-manager/level-exams", icon: "BookOpen", emoji: "📘" },
+      { label: "Diagnosis Exam", href: "/dashboard/general-manager/diagnosis-exams", icon: "Microscope", emoji: "🔬" },
     ],
   },
   { label: "Course Schedule", href: "/dashboard/general-manager/course-schedule", icon: "CalendarDays", emoji: "📅" },

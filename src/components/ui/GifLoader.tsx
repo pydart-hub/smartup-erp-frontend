@@ -30,7 +30,7 @@ export function GifLoader({ className, size = "md" }: { className?: string; size
         playsInline
         className={`${gifSize} object-contain shrink-0`}
       >
-        <source src="/Logo%20Icon%20LOOK%20ALPHA.webm" type="video/webm" />
+        <source src="/logo-look.webm" type="video/webm" />
       </video>
       <p className="-mt-6 text-[10px] font-black uppercase tracking-[0.22em] text-primary">
         CRAFTING THE FUTURE

@@ -1169,7 +1169,7 @@ function LeaderboardContent() {
               <div className="flex flex-col items-center gap-4 max-w-sm w-full">
                 {/* Logo Video */}
                 <video
-                  src="/Logo%20Icon%20LOOK%20ALPHA.webm" autoPlay loop muted playsInline
+                  src="/logo-look.webm" autoPlay loop muted playsInline
                   className="w-32 h-32 object-contain"
                   style={{ imageRendering: "pixelated" }}
                 />

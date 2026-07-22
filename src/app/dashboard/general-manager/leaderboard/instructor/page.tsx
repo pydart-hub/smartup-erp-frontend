@@ -832,7 +832,7 @@ export default function GMLeaderboardPage() {
               <div className="flex flex-col items-center gap-2">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <video
-                  src="/Logo%20Icon%20LOOK%20ALPHA.webm" autoPlay loop muted playsInline
+                  src="/logo-look.webm" autoPlay loop muted playsInline
                   className="w-48 h-48 object-contain"
                   style={{ imageRendering: "pixelated" }}
                 />

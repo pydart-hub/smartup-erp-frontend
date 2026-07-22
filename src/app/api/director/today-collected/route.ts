@@ -31,7 +31,10 @@ export async function GET(request: NextRequest) {
   const adminAuth = `token ${FRAPPE_API_KEY}:${FRAPPE_API_SECRET}`;
 
   try {
-    const today = new Date().toISOString().slice(0, 10);
+    const { searchParams } = new URL(request.url);
+    const dateParam = searchParams.get("date");
+    const targetDate = dateParam || new Date().toISOString().slice(0, 10);
+
     const params = new URLSearchParams({
       fields: JSON.stringify([
         "name",
@@ -46,11 +49,10 @@ export async function GET(request: NextRequest) {
       filters: JSON.stringify([
         ["docstatus", "=", 1],
         ["payment_type", "=", "Receive"],
-        ["creation", ">=", `${today} 00:00:00`],
-        ["creation", "<=", `${today} 23:59:59`],
+        ["posting_date", "=", targetDate],
       ]),
       order_by: "creation desc",
-      limit_page_length: "200",
+      limit_page_length: "500",
     });
 
     const res = await fetch(`${FRAPPE_URL}/api/resource/Payment Entry?${params.toString()}`, {

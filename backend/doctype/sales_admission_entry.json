@@ -1,0 +1,98 @@
+{
+  "doctype": "DocType",
+  "name": "Sales Admission Entry",
+  "module": "Custom",
+  "custom": 1,
+  "autoname": "format:SAE-.YYYY.-.#####.",
+  "document_type": "Document",
+  "engine": "InnoDB",
+  "field_order": [
+    "student_name",
+    "class_name",
+    "plan",
+    "branch",
+    "admission_date",
+    "column_break_1",
+    "sales_user",
+    "sales_user_name",
+    "status",
+    "remarks"
+  ],
+  "fields": [
+    {
+      "fieldname": "student_name",
+      "fieldtype": "Data",
+      "label": "Student Name",
+      "reqd": 1
+    },
+    {
+      "fieldname": "class_name",
+      "fieldtype": "Data",
+      "label": "Class / Program",
+      "reqd": 1
+    },
+    {
+      "fieldname": "plan",
+      "fieldtype": "Select",
+      "label": "Plan",
+      "options": "Basic\nIntermediate\nAdvanced",
+      "reqd": 1
+    },
+    {
+      "fieldname": "branch",
+      "fieldtype": "Data",
+      "label": "Branch",
+      "reqd": 1
+    },
+    {
+      "fieldname": "admission_date",
+      "fieldtype": "Date",
+      "label": "Admission Took Date",
+      "reqd": 1
+    },
+    {
+      "fieldname": "column_break_1",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "sales_user",
+      "fieldtype": "Data",
+      "label": "Sales User ID",
+      "reqd": 1
+    },
+    {
+      "fieldname": "sales_user_name",
+      "fieldtype": "Data",
+      "label": "Sales User Name"
+    },
+    {
+      "fieldname": "status",
+      "fieldtype": "Select",
+      "label": "Status",
+      "options": "Submitted\nVerified\nEnrolled\nCancelled",
+      "default": "Submitted",
+      "reqd": 1
+    },
+    {
+      "fieldname": "remarks",
+      "fieldtype": "Small Text",
+      "label": "Remarks"
+    }
+  ],
+  "permissions": [
+    {
+      "role": "System Manager",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1
+    },
+    {
+      "role": "Sales User",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 0
+    }
+  ]
+}

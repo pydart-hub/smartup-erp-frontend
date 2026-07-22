@@ -14,6 +14,7 @@ import {
   ArrowUpRight,
   X,
   Building2,
+  UserPlus,
 } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
@@ -382,13 +383,22 @@ export default function SalesUserDashboard() {
           </h1>
           <p className="text-xs text-text-secondary mt-0.5">Fee follow-up dashboard</p>
         </div>
-        <Link
-          href="/dashboard/sales-user/fees/overdue"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-orange-200 bg-orange-50 text-sm font-semibold text-orange-700 hover:bg-orange-100 transition-colors"
-        >
-          <AlertTriangle className="h-4 w-4" />
-          Overdue Fees
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/dashboard/sales-user/admissions-entry"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm"
+          >
+            <UserPlus className="h-4 w-4 text-indigo-100" />
+            Admissions Entry
+          </Link>
+          <Link
+            href="/dashboard/sales-user/fees/overdue"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-orange-200 bg-orange-50 text-sm font-semibold text-orange-700 hover:bg-orange-100 transition-colors"
+          >
+            <AlertTriangle className="h-4 w-4" />
+            Overdue Fees
+          </Link>
+        </div>
       </motion.div>
 
       {/* ── Date Filters Row ── */}

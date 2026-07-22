@@ -152,7 +152,7 @@ async function resolveTuitionItem(program: string): Promise<{ item_code: string;
   return (likeJson.data?.[0] as { item_code: string; item_name?: string } | undefined) ?? null;
 }
 
-async function createAndSubmitInvoice(salesOrderName: string, amount: number, label: string): Promise<string> {
+async function createAndSubmitInvoice(salesOrderName: string, amount: number, label: string, dueDate?: string): Promise<string> {
   const headers = authHeaders();
   const soRes = await fetchRetry(
     `${FRAPPE_URL}/api/resource/Sales Order/${encodeURIComponent(salesOrderName)}`,
@@ -171,12 +171,13 @@ async function createAndSubmitInvoice(salesOrderName: string, amount: number, la
 
   const academicYear = (soData.custom_academic_year as string | undefined) || await resolveAcademicYear(soData.student);
   const today = new Date().toISOString().split("T")[0];
+  const finalDueDate = dueDate || today;
   const invoicePayload = {
     doctype: "Sales Invoice",
     customer: soData.customer,
     company: soData.company,
     posting_date: today,
-    due_date: today,
+    due_date: finalDueDate,
     student: soData.student,
     custom_academic_year: academicYear,
     items: [
@@ -237,6 +238,7 @@ export async function POST(request: NextRequest) {
     const billingMonth = String(body.billingMonth ?? "").trim();
     const salesOrderNameFromBody = String(body.salesOrderName ?? "").trim();
     const explicitRate = Number(body.rate ?? 0);
+    const dueDate = String(body.dueDate ?? "").trim();
 
     if (!studentId || !["sales-order", "sales-invoice"].includes(action)) {
       return NextResponse.json({ error: "studentId and valid action are required" }, { status: 400 });
@@ -312,203 +314,79 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "One-to-One group program is missing." }, { status: 400 });
     }
 
-    const scheduleFilters = encodeURIComponent(JSON.stringify([["student_group", "=", group.name]]));
-    const scheduleFields = encodeURIComponent(JSON.stringify(["name", "schedule_date", "from_time", "to_time"]));
-    const scheduleRes = await fetchRetry(
-      `${FRAPPE_URL}/api/resource/Course Schedule?filters=${scheduleFilters}&fields=${scheduleFields}&order_by=schedule_date asc, from_time asc&limit_page_length=500`,
-      { headers, cache: "no-store" },
-    );
-    if (!scheduleRes.ok) {
-      return NextResponse.json({ error: `Failed to fetch scheduled courses: ${await readErrorText(scheduleRes)}` }, { status: 502 });
+    const manualHours = Number(body.hours ?? 0);
+    const ratePerHour = Number(body.rate ?? 0);
+    const monthKey = String(body.billingMonth ?? "").trim();
+
+    if (!monthKey) {
+      return NextResponse.json({ error: "Billing month is required." }, { status: 400 });
     }
-    const schedules = ((await scheduleRes.json()).data ?? []) as ScheduleRow[];
-    if (schedules.length === 0) {
-      return NextResponse.json({ error: "No scheduled courses found for this One-to-One student." }, { status: 400 });
+    if (!Number.isFinite(manualHours) || manualHours <= 0) {
+      return NextResponse.json({ error: "Please enter a valid number of hours." }, { status: 400 });
+    }
+    if (!Number.isFinite(ratePerHour) || ratePerHour <= 0) {
+      return NextResponse.json({ error: "Please enter a valid hourly rate." }, { status: 400 });
     }
 
-    const ratePerHour =
-      Number.isFinite(explicitRate) && explicitRate > 0
-        ? explicitRate
-        : await resolveStoredO2ORate(
-            studentId,
-            group.program,
-            group.name,
-            null,
-          );
+    const totalAmount = Number((manualHours * ratePerHour).toFixed(2));
     const academicYear = await resolveAcademicYear(studentId);
 
-    const soFields = encodeURIComponent(JSON.stringify(["name", "docstatus", "grand_total", "creation", "transaction_date"]));
-    const soFilters = encodeURIComponent(JSON.stringify([["customer", "=", student.customer], ["docstatus", "!=", 2]]));
-    const soRes = await fetchRetry(
-      `${FRAPPE_URL}/api/resource/Sales Order?filters=${soFilters}&fields=${soFields}&order_by=creation desc&limit_page_length=100`,
-      { headers, cache: "no-store" },
-    );
-    if (!soRes.ok) {
-      return NextResponse.json({ error: `Failed to check Sales Orders: ${await readErrorText(soRes)}` }, { status: 502 });
-    }
-    const salesOrders = ((await soRes.json()).data ?? []) as Array<{
-      name: string;
-      docstatus: number;
-      grand_total?: number;
-    }>;
-    const submittedSOs = salesOrders.filter((row) => row.docstatus === 1);
-
-    const detailedSalesOrders: Array<{
-      name: string;
-      transaction_date?: string;
-      creation?: string;
-      items?: Array<{ description?: string | null }>;
-    }> = [];
-    for (const so of submittedSOs) {
-      const soDetailRes = await fetchRetry(
-        `${FRAPPE_URL}/api/resource/Sales Order/${encodeURIComponent(so.name)}`,
-        { headers, cache: "no-store" },
-      );
-      if (!soDetailRes.ok) continue;
-      const soDetail = (await soDetailRes.json()).data as {
-        name?: string;
-        transaction_date?: string;
-        creation?: string;
-        items?: Array<{ description?: string | null }>;
-      };
-      detailedSalesOrders.push({
-        name: so.name,
-        transaction_date: soDetail.transaction_date,
-        creation: soDetail.creation,
-        items: soDetail.items ?? [],
-      });
-    }
-    const billedScheduleNames = resolveBilledScheduleNames({
-      schedules,
-      salesOrders: detailedSalesOrders,
-    });
-
-    const availableMonths = uniqueStrings(schedules.map((row) => getBillingMonthKey(row.schedule_date))).sort();
-    const monthKey = billingMonth || availableMonths.slice(-1)[0];
-    if (!monthKey) {
-      return NextResponse.json({ error: "Could not determine a billing month from scheduled courses." }, { status: 400 });
+    const tuitionItem = await resolveTuitionItem(group.program);
+    if (!tuitionItem) {
+      return NextResponse.json({ error: `No tuition fee item found for program "${group.program}".` }, { status: 400 });
     }
 
-    const monthSchedules = schedules.filter((row) => getBillingMonthKey(row.schedule_date) === monthKey);
-    const unbilledMonthSchedules = monthSchedules.filter((row) => !billedScheduleNames.has(row.name));
-
-    if (unbilledMonthSchedules.length === 0) {
-      return NextResponse.json({ error: `No unbilled One-to-One schedules found for ${monthKey}.` }, { status: 409 });
-    }
-
-    const totalHours = Number(
-      unbilledMonthSchedules.reduce((sum, row) => sum + hoursBetween(row.from_time, row.to_time), 0).toFixed(2),
-    );
-    if (totalHours <= 0) {
-      return NextResponse.json({ error: "Unbilled schedules in this month do not have a valid duration." }, { status: 400 });
-    }
-
-    const totalAmount = Number((totalHours * ratePerHour).toFixed(2));
-
-    if (action === "sales-order") {
-      const tuitionItem = await resolveTuitionItem(group.program);
-      if (!tuitionItem) {
-        return NextResponse.json({ error: `No tuition fee item found for program "${group.program}".` }, { status: 400 });
-      }
-
-      const today = new Date().toISOString().split("T")[0];
-      const soPayload = {
-        doctype: "Sales Order",
-        customer: student.customer,
-        company: student.custom_branch,
-        transaction_date: today,
-        delivery_date: today,
-        order_type: "Sales",
-        student: studentId,
-        custom_academic_year: academicYear,
-        items: [
-          {
-            item_code: tuitionItem.item_code,
-            qty: 1,
-            rate: totalAmount,
-            description: buildO2OBillingDescription({
-              sessionCount: unbilledMonthSchedules.length,
-              totalHours,
-              ratePerHour,
-              monthKey,
-              scheduleNames: unbilledMonthSchedules.map((row) => row.name),
-            }),
-          },
-        ],
-      };
-
-      const createSORes = await fetchRetry(`${FRAPPE_URL}/api/resource/Sales Order`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(soPayload),
-      });
-      if (!createSORes.ok) {
-        return NextResponse.json({ error: `Sales Order creation failed: ${await readErrorText(createSORes)}` }, { status: 502 });
-      }
-      const createdSO = (await createSORes.json()).data;
-      const salesOrderName = createdSO.name as string;
-
-      const submitSORes = await fetchRetry(
-        `${FRAPPE_URL}/api/resource/Sales Order/${encodeURIComponent(salesOrderName)}`,
+    const today = new Date().toISOString().split("T")[0];
+    const soPayload = {
+      doctype: "Sales Order",
+      customer: student.customer,
+      company: student.custom_branch,
+      transaction_date: today,
+      delivery_date: today,
+      order_type: "Sales",
+      student: studentId,
+      custom_academic_year: academicYear,
+      items: [
         {
-          method: "PUT",
-          headers,
-          body: JSON.stringify({ docstatus: 1 }),
+          item_code: tuitionItem.item_code,
+          qty: 1,
+          rate: totalAmount,
+          description: `One-to-One Tuition Fee for ${monthKey} - ${manualHours} hours @ ₹${ratePerHour}/hr`,
         },
-      );
-      if (!submitSORes.ok) {
-        return NextResponse.json({ error: `Sales Order submit failed: ${await readErrorText(submitSORes)}` }, { status: 502 });
-      }
+      ],
+    };
 
-      const invoiceName = await createAndSubmitInvoice(salesOrderName, totalAmount, "One-to-One Tuition");
-
-      return NextResponse.json({
-        salesOrderName,
-        invoices: [invoiceName],
-        amount: totalAmount,
-        hours: totalHours,
-        rate: ratePerHour,
-        scheduleCount: unbilledMonthSchedules.length,
-        billingMonth: monthKey,
-      });
+    const createSORes = await fetchRetry(`${FRAPPE_URL}/api/resource/Sales Order`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(soPayload),
+    });
+    if (!createSORes.ok) {
+      return NextResponse.json({ error: `Sales Order creation failed: ${await readErrorText(createSORes)}` }, { status: 502 });
     }
+    const createdSO = (await createSORes.json()).data;
+    const salesOrderName = createdSO.name as string;
 
-    const targetSalesOrderName = salesOrderNameFromBody || submittedSOs[0]?.name;
-    if (!targetSalesOrderName) {
-      return NextResponse.json({ error: "No submitted Sales Order found. Generate Sales Order first." }, { status: 400 });
-    }
-
-    const invFilters = encodeURIComponent(JSON.stringify([
-      ["Sales Invoice Item", "sales_order", "=", targetSalesOrderName],
-      ["docstatus", "=", 1],
-    ]));
-    const invFields = encodeURIComponent(JSON.stringify(["name"]));
-    const invRes = await fetchRetry(
-      `${FRAPPE_URL}/api/resource/Sales Invoice?filters=${invFilters}&fields=${invFields}&limit_page_length=20`,
-      { headers, cache: "no-store" },
+    const submitSORes = await fetchRetry(
+      `${FRAPPE_URL}/api/resource/Sales Order/${encodeURIComponent(salesOrderName)}`,
+      {
+        method: "PUT",
+        headers,
+        body: JSON.stringify({ docstatus: 1 }),
+      },
     );
-    if (!invRes.ok) {
-      return NextResponse.json({ error: `Failed to check Sales Invoices: ${await readErrorText(invRes)}` }, { status: 502 });
-    }
-    const existingInvoices = ((await invRes.json()).data ?? []) as Array<{ name: string }>;
-    if (existingInvoices.length > 0) {
-      return NextResponse.json(
-        { error: `Sales Invoice already exists: ${existingInvoices[0].name}`, invoices: existingInvoices.map((row) => row.name) },
-        { status: 409 },
-      );
+    if (!submitSORes.ok) {
+      return NextResponse.json({ error: `Sales Order submit failed: ${await readErrorText(submitSORes)}` }, { status: 502 });
     }
 
-    const targetSO = submittedSOs.find((row) => row.name === targetSalesOrderName);
-    const invoiceAmount = targetSO?.grand_total && targetSO.grand_total > 0 ? targetSO.grand_total : totalAmount;
-    const invoiceName = await createAndSubmitInvoice(targetSalesOrderName, invoiceAmount, "One-to-One Tuition");
+    const invoiceName = await createAndSubmitInvoice(salesOrderName, totalAmount, `One-to-One Tuition for ${monthKey}`, dueDate);
 
     return NextResponse.json({
-      salesOrderName: targetSalesOrderName,
+      salesOrderName,
       invoices: [invoiceName],
-      amount: invoiceAmount,
-      hours: totalHours,
+      amount: totalAmount,
+      hours: manualHours,
       rate: ratePerHour,
-      scheduleCount: unbilledMonthSchedules.length,
       billingMonth: monthKey,
     });
   } catch (error: unknown) {
