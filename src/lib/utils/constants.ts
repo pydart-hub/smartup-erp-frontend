@@ -94,6 +94,7 @@ export interface NavItem {
 
 export const BRANCH_MANAGER_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard/branch-manager", icon: "LayoutDashboard", emoji: "📊" },
+  { label: "Daily Checklists", href: "/dashboard/branch-manager/checklists", icon: "ClipboardCheck", emoji: "📋" },
   { label: "My Assignments", href: "/dashboard/branch-manager/my-assignments", icon: "ClipboardList", emoji: "🗂️" },
   {
     label: "Admissions",
@@ -169,6 +170,7 @@ export const BRANCH_MANAGER_NAV: NavItem[] = [
 
 export const DIRECTOR_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard/director", icon: "LayoutDashboard", emoji: "📊" },
+  { label: "Branch Checklists", href: "/dashboard/director/branch-checklists", icon: "ClipboardCheck", emoji: "📋" },
   {
     label: "Students",
     href: "/dashboard/director/students",
@@ -241,6 +243,7 @@ export const DIRECTOR_NAV: NavItem[] = [
 
 export const CLASS_INCHARGE_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard/class-incharge", icon: "LayoutDashboard", emoji: "📊" },
+  { label: "Daily Checklist", href: "/dashboard/class-incharge/checklist", icon: "ClipboardList", emoji: "📋" },
   { label: "Attendance", href: "/dashboard/class-incharge/attendance", icon: "ClipboardCheck", emoji: "✅" },
   { label: "Absent Details", href: "/dashboard/class-incharge/absent", icon: "UserX", emoji: "🚫" },
   { label: "Students", href: "/dashboard/class-incharge/students", icon: "GraduationCap", emoji: "👨‍🎓" },
@@ -298,6 +301,7 @@ export const SALES_USER_NAV: NavItem[] = [
 
 export const GENERAL_MANAGER_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard/general-manager", icon: "LayoutDashboard", emoji: "📊" },
+  { label: "Branch Checklists", href: "/dashboard/general-manager/branch-checklists", icon: "ClipboardCheck", emoji: "📋" },
   { label: "Leaderboard", href: "/dashboard/general-manager/leaderboard", icon: "Trophy", emoji: "🏆" },
   { label: "Work Assignments", href: "/dashboard/general-manager/work-assignments", icon: "ClipboardList", emoji: "🗂️" },
   {

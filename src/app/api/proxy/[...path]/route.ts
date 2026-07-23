@@ -583,6 +583,15 @@ async function proxyRequest(request: NextRequest, method: string) {
       (proxyPath.startsWith("resource/Student%20Attendance") ||
         proxyPath.startsWith("resource/Student Attendance"));
 
+    // Employee Attendance reads — Director/personal tokens may lack read access
+    // on the HR module's Attendance doctype in Frappe.
+    // Use admin token for all GET requests; branch scoping is enforced above
+    // via the COMPANY_SCOPED_DOCTYPES company filter injection.
+    const isEmployeeAttendanceRead =
+      method === "GET" &&
+      (proxyPath.startsWith("resource/Attendance") ||
+        proxyPath.startsWith("resource/Attendance/"));
+
     // Assessment Plan / Result reads — Education module doctypes that may not
     // be accessible via a Director's personal Frappe token. Admin token ensures
     // data loads; branch scoping is still enforced via COMPANY_SCOPED_DOCTYPES.
@@ -635,6 +644,7 @@ async function proxyRequest(request: NextRequest, method: string) {
       isOwnInstructorDocRead ||
       isWorkAssignmentRead ||
       isStudentAttendanceRead ||
+      isEmployeeAttendanceRead ||
       isAssessmentRead ||
       isCourseScheduleRead ||
       isStudentRead ||

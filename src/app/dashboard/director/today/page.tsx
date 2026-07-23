@@ -69,8 +69,8 @@ async function fetchTodaysAdmissions(): Promise<TodayAdmission[]> {
   return json.data ?? [];
 }
 
-async function fetchTodaysCollectedEntries(date?: string): Promise<TodayCollectedEntry[]> {
-  const url = date ? `/api/director/today-collected?date=${encodeURIComponent(date)}` : "/api/director/today-collected";
+async function fetchTodaysCollectedEntries(fromDate: string, toDate: string): Promise<TodayCollectedEntry[]> {
+  const url = `/api/director/today-collected?from_date=${encodeURIComponent(fromDate)}&to_date=${encodeURIComponent(toDate)}`;
   const res = await fetch(url, {
     credentials: "include",
   });
@@ -81,7 +81,8 @@ async function fetchTodaysCollectedEntries(date?: string): Promise<TodayCollecte
 
 export default function TodayAdmissionsPage() {
   const [activePanel, setActivePanel] = useState<"admissions" | "collected">("admissions");
-  const [selectedDate, setSelectedDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [fromDate, setFromDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [toDate, setToDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
 
   const { data: admissions, isLoading, isError } = useQuery({
     queryKey: ["director-today-admissions-detail"],
@@ -95,8 +96,8 @@ export default function TodayAdmissionsPage() {
     isLoading: isCollectedLoading,
     isError: isCollectedError,
   } = useQuery({
-    queryKey: ["director-today-collected-detail", selectedDate],
-    queryFn: () => fetchTodaysCollectedEntries(selectedDate),
+    queryKey: ["director-today-collected-detail", fromDate, toDate],
+    queryFn: () => fetchTodaysCollectedEntries(fromDate, toDate),
     staleTime: 30_000,
     refetchInterval: 30_000,
   });
@@ -113,6 +114,10 @@ export default function TodayAdmissionsPage() {
     month: "short",
     year: "numeric",
   });
+
+  const dateRangeLabel = fromDate === toDate
+    ? (fromDate === new Date().toISOString().slice(0, 10) ? "Today" : fromDate)
+    : `${fromDate} to ${toDate}`;
 
   return (
     <motion.div
@@ -186,7 +191,7 @@ export default function TodayAdmissionsPage() {
               {isCollectedLoading ? "..." : formatCurrency(totalPaid)}
             </p>
             <p className="text-xs text-text-tertiary">
-              {selectedDate === new Date().toISOString().slice(0, 10) ? "Today" : selectedDate} Collected Fees
+              {dateRangeLabel} Collected Fees
             </p>
           </CardContent>
         </Card>
@@ -228,22 +233,43 @@ export default function TodayAdmissionsPage() {
         </div>
 
         {activePanel === "collected" && (
-          <div className="flex items-center gap-2">
-            <label htmlFor="collection-date-filter" className="text-xs font-medium text-text-secondary flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-xs font-medium text-text-secondary flex items-center gap-1.5">
               <Clock className="h-3.5 w-3.5 text-text-tertiary" />
-              Filter by Date:
-            </label>
-            <input
-              id="collection-date-filter"
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="px-2.5 py-1 text-xs rounded-md border border-border-light bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-green-500"
-            />
-            {selectedDate !== new Date().toISOString().slice(0, 10) && (
+              Filter by Date Range:
+            </span>
+            <div className="flex items-center gap-1.5">
+              <label htmlFor="collection-from-date" className="text-[10px] font-medium text-text-tertiary">
+                From
+              </label>
+              <input
+                id="collection-from-date"
+                type="date"
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+                className="px-2.5 py-1 text-xs rounded-md border border-border-light bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-green-500"
+              />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <label htmlFor="collection-to-date" className="text-[10px] font-medium text-text-tertiary">
+                To
+              </label>
+              <input
+                id="collection-to-date"
+                type="date"
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+                className="px-2.5 py-1 text-xs rounded-md border border-border-light bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-green-500"
+              />
+            </div>
+            {(fromDate !== new Date().toISOString().slice(0, 10) || toDate !== new Date().toISOString().slice(0, 10)) && (
               <button
                 type="button"
-                onClick={() => setSelectedDate(new Date().toISOString().slice(0, 10))}
+                onClick={() => {
+                  const todayStr = new Date().toISOString().slice(0, 10);
+                  setFromDate(todayStr);
+                  setToDate(todayStr);
+                }}
                 className="text-[11px] text-green-600 hover:underline font-medium ml-1"
               >
                 Reset to Today
@@ -395,13 +421,13 @@ export default function TodayAdmissionsPage() {
         ) : payments.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 gap-3">
             <Receipt className="h-8 w-8 text-text-tertiary" />
-            <p className="text-sm text-text-tertiary">No collections recorded for {selectedDate}</p>
+            <p className="text-sm text-text-tertiary">No collections recorded for {dateRangeLabel}</p>
           </div>
         ) : (
           <>
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-semibold text-text-primary">
-                Collection List ({selectedDate})
+                Collection List ({dateRangeLabel})
               </h2>
               <Badge variant="outline" className="text-[11px] border-green-500/30 text-green-700">
                 {payments.length} entries

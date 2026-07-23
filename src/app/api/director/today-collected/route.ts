@@ -33,7 +33,8 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const dateParam = searchParams.get("date");
-    const targetDate = dateParam || new Date().toISOString().slice(0, 10);
+    const fromDate = searchParams.get("from_date") || dateParam || new Date().toISOString().slice(0, 10);
+    const toDate = searchParams.get("to_date") || dateParam || new Date().toISOString().slice(0, 10);
 
     const params = new URLSearchParams({
       fields: JSON.stringify([
@@ -49,7 +50,8 @@ export async function GET(request: NextRequest) {
       filters: JSON.stringify([
         ["docstatus", "=", 1],
         ["payment_type", "=", "Receive"],
-        ["posting_date", "=", targetDate],
+        ["posting_date", ">=", fromDate],
+        ["posting_date", "<=", toDate],
       ]),
       order_by: "creation desc",
       limit_page_length: "500",

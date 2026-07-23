@@ -9,14 +9,17 @@ import {
   Users,
   School,
   ArrowRight,
+  AlertCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useAcademicYearStore } from "@/lib/stores/academicYearStore";
 import { getBatches } from "@/lib/api/batches";
 import { getAttendance } from "@/lib/api/attendance";
+import { getChecklists } from "@/lib/api/checklists";
 import type { Batch } from "@/lib/types/batch";
 
 const today = new Date().toISOString().split("T")[0];
@@ -46,6 +49,13 @@ export default function ClassInchargeDashboard() {
     enabled: !!defaultCompany,
   });
   const records = attendanceRes?.data ?? [];
+
+  const { data: checklists = [] } = useQuery({
+    queryKey: ["my-checklists", user?.name],
+    queryFn: () => getChecklists({ employee: user?.name || undefined }),
+    enabled: !!user?.name,
+  });
+  const hasTodayChecklist = checklists.some((c) => c.date === today);
 
   const present = records.filter((r) => r.status === "Present").length;
   const absent = records.filter((r) => r.status === "Absent").length;
@@ -90,6 +100,31 @@ export default function ClassInchargeDashboard() {
           {defaultCompany} — {new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}
         </p>
       </div>
+
+      {!hasTodayChecklist && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 backdrop-blur-md"
+        >
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-600 flex items-center justify-center shrink-0">
+              <AlertCircle className="h-5 w-5 animate-pulse" />
+            </div>
+            <div>
+              <h4 className="font-semibold text-sm text-text-primary">Daily Checklist Reminder</h4>
+              <p className="text-xs text-text-secondary mt-0.5">
+                You haven't submitted your checklist for today yet. Please submit it before the end of the day.
+              </p>
+            </div>
+          </div>
+          <Link href="/dashboard/class-incharge/checklist">
+            <Button className="bg-amber-600 hover:bg-amber-700 text-white hover:shadow-md rounded-xl text-xs px-4 py-2 shrink-0 self-start sm:self-center">
+              Complete Checklist Now
+            </Button>
+          </Link>
+        </motion.div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
