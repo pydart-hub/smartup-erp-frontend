@@ -1,7 +1,7 @@
 "use client";
 
 import { GifLoader } from "@/components/ui/GifLoader";
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, Suspense } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
@@ -88,7 +88,7 @@ function getPassRateStyles(passRate: number | null) {
   };
 }
 
-export default function DirectorCwcExamsListPage() {
+function CwcExamsListContent() {
   const searchParams = useSearchParams();
   const groupFilter = searchParams.get("group") || "all";
   const [searchQuery, setSearchQuery] = useState("");
@@ -798,6 +798,15 @@ export default function DirectorCwcExamsListPage() {
     </div>
   );
 }
+
+export default function DirectorCwcExamsListPage() {
+  return (
+    <Suspense fallback={<GifLoader />}>
+      <CwcExamsListContent />
+    </Suspense>
+  );
+}
+
 
 import { getAssessmentPlans, getExamPlanResults } from "@/lib/api/assessment";
 import { getAllBranches } from "@/lib/api/director";
