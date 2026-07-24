@@ -201,6 +201,7 @@ export const DIRECTOR_NAV: NavItem[] = [
     icon: "Coins",
     emoji: "🪙",
     children: [
+      { label: "Daily", href: "/dashboard/director/accounts/daily", icon: "CalendarRange", emoji: "📅" },
       { label: "Collection", href: "/dashboard/director/accounts/collection", icon: "Landmark", emoji: "🏦" },
       { label: "Expense", href: "/dashboard/director/accounts/expense", icon: "Receipt", emoji: "🧾" },
       { label: "Budget", href: "/dashboard/director/accounts/budget", icon: "Target", emoji: "🎯" },

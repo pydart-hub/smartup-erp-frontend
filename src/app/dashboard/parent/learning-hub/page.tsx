@@ -30,15 +30,25 @@ export default function ParentLearningHub() {
     return enrollment?.custom_plan || "Basic";
   };
 
-  // Check if selected child has access (Intermediate or Advanced plan)
+  // Helper: detect Plus One (11th) or Plus Two (12th) by program name
+  const isHigherSecondary = (childId: string) => {
+    const enrollment = data?.enrollments?.[childId]?.[0];
+    const prog = enrollment?.program ?? "";
+    return prog.startsWith("11th") || prog.startsWith("12th");
+  };
+
+  // Access rule:
+  //   - Plus One / Plus Two students (11th & 12th) → ALL plans get access
+  //   - All other students            → only Advanced or Intermediate
   const isAccessAllowed = () => {
     if (selectedChild === "all") {
-      // If "all" is selected, allow if at least one child has access
       return children.some((c) => {
+        if (isHigherSecondary(c.name)) return true;
         const plan = getChildPlan(c.name);
         return plan === "Advanced" || plan === "Intermediate";
       });
     }
+    if (isHigherSecondary(selectedChild)) return true;
     const plan = getChildPlan(selectedChild);
     return plan === "Advanced" || plan === "Intermediate";
   };
@@ -175,7 +185,7 @@ export default function ParentLearningHub() {
                 Plan Upgrade Required
               </h2>
               <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed mb-6">
-                Its only available for Advanced plan students only. Your child is currently subscribed to the <span className="font-semibold text-indigo-600 dark:text-indigo-400">{selectedChildPlan || "Basic"} plan</span>.
+                Learning Hub is available for Advanced &amp; Intermediate plan students. For Plus One &amp; Plus Two students, all plans have access. Your child is currently enrolled in the <span className="font-semibold text-indigo-600 dark:text-indigo-400">{selectedChildPlan || "Basic"} plan</span>.
               </p>
 
               {/* Action Button */}

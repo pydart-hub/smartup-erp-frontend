@@ -17,6 +17,7 @@ import {
   FileSpreadsheet,
   ChevronDown,
   CreditCard,
+  CalendarRange,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import {
@@ -315,7 +316,27 @@ export default function AccountsDashboardPage() {
       </div>
 
       {/* Quick links */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <Link href="/dashboard/director/accounts/daily">
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            whileHover={{ y: -2 }}
+            className="rounded-xl border border-border-light bg-surface p-4 hover:border-primary/30 hover:shadow-md transition-all cursor-pointer group flex items-center justify-between"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                <CalendarRange className="h-4.5 w-4.5 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-text-primary">Daily</p>
+                <p className="text-[11px] text-text-tertiary">Collection & expense</p>
+              </div>
+            </div>
+            <ChevronRight className="h-4 w-4 text-text-tertiary group-hover:text-primary transition-colors" />
+          </motion.div>
+        </Link>
         <Link href="/dashboard/director/accounts/collection">
           <motion.div
             initial={{ opacity: 0, y: 8 }}
