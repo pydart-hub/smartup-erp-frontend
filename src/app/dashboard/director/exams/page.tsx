@@ -32,8 +32,8 @@ const examModes = [
 export default function DirectorExamsLandingPage() {
   return (
     <div className="mx-auto max-w-6xl space-y-6 p-4 sm:p-6">
-      <section className="rounded-[24px] border border-primary/10 bg-[linear-gradient(135deg,rgba(10,159,140,0.12),rgba(255,255,255,0.98)_45%,rgba(21,94,239,0.08))] p-6 shadow-card sm:p-8">
-        <div className="max-w-3xl space-y-3">
+      <section className="relative overflow-hidden rounded-[24px] border border-primary/10 bg-[linear-gradient(135deg,rgba(10,159,140,0.12),rgba(255,255,255,0.98)_45%,rgba(21,94,239,0.08))] p-6 shadow-card sm:p-8">
+        <div className="max-w-3xl space-y-3 pr-24 md:pr-40 relative z-10">
           <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
             <Sparkles className="h-3.5 w-3.5" />
             Director Exam Center
@@ -45,6 +45,14 @@ export default function DirectorExamsLandingPage() {
             Keep regular exam analytics separate from diagnosis and level exam analytics, so each workflow is easier to navigate and monitor.
           </p>
         </div>
+        <video
+          src="/Logo Icon LOOK ALPHA.webm"
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute right-4 top-1/2 -translate-y-1/2 w-32 h-32 md:w-40 md:h-40 pointer-events-none opacity-70 object-contain"
+        />
       </section>
 
       <section className="grid gap-6 lg:grid-cols-3">
