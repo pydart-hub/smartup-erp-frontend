@@ -327,6 +327,7 @@ export const GENERAL_MANAGER_NAV: NavItem[] = [
       { label: "Regular Exam", href: "/dashboard/general-manager/exams/regular", icon: "FileText", emoji: "📝" },
       { label: "Level Exam", href: "/dashboard/general-manager/level-exams", icon: "BookOpen", emoji: "📘" },
       { label: "Diagnosis Exam", href: "/dashboard/general-manager/diagnosis-exams", icon: "Microscope", emoji: "🔬" },
+      { label: "CWC Corner", href: "/dashboard/general-manager/exams/cwc", icon: "Coffee", emoji: "☕" },
     ],
   },
   { label: "Course Schedule", href: "/dashboard/general-manager/course-schedule", icon: "CalendarDays", emoji: "📅" },

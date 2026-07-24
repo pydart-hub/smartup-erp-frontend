@@ -1,176 +1,76 @@
-"use client";
+import Link from "next/link";
+import { ArrowRight, ClipboardList, Microscope, Sparkles, Coffee } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { getBranchAcademics } from "@/lib/api/analytics";
-import { BranchDrillDown, safeNum, pctColor, pctBadgeColor } from "@/components/academics/BranchDrillDown";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  Building2, Trophy, BarChart3,
-  ChevronRight, ClipboardList,
-} from "lucide-react";
+const examModes = [
+  {
+    title: "Regular Exams",
+    description:
+      "Open the current general manager exam analytics for scheduled branch exams, branch drilldown, and exam-wise marks.",
+    href: "/dashboard/general-manager/exams/regular",
+    icon: ClipboardList,
+    tone: "from-primary/15 via-white to-primary/5",
+  },
+  {
+    title: "Diagnosis Exams",
+    description:
+      "Track level exam performance across all students with class-wise, subject-wise, branch-wise, and student-wise drilldown.",
+    href: "/dashboard/general-manager/exams/diagnosis",
+    icon: Microscope,
+    tone: "from-info/15 via-white to-success/10",
+  },
+  {
+    title: "CWC Corner",
+    description:
+      "Review Coffee With Chairman exam results. Track elite student benchmarking and progress reports across all branches.",
+    href: "/dashboard/general-manager/exams/cwc",
+    icon: Coffee,
+    tone: "from-amber-500/15 via-white to-amber-500/5",
+  },
+];
 
-const container = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.06 } } };
-const item = { hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } };
-
-export default function GMExamsPage() {
-  const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
-
-  const { data, isLoading } = useQuery({
-    queryKey: ["branch-academics"],
-    queryFn: getBranchAcademics,
-    staleTime: 120_000,
-  });
-
-  if (isLoading) {
-    return (
-      <div className="p-4 sm:p-6 space-y-4">
-        <div className="h-8 w-64 bg-surface rounded animate-pulse" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-36 bg-surface rounded-[12px] animate-pulse" />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  const branches = data?.branches ?? [];
-  const sorted = [...branches].sort((a, b) => b.avg_exam_score_pct - a.avg_exam_score_pct);
-
-  const overallAvgScore = branches.length
-    ? Math.round(branches.reduce((a, b) => a + safeNum(b.avg_exam_score_pct), 0) / branches.length)
-    : 0;
-  const overallPassRate = branches.length
-    ? Math.round(branches.reduce((a, b) => a + safeNum(b.pass_rate), 0) / branches.length)
-    : 0;
-  const totalExams = branches.reduce((a, b) => a + safeNum(b.total_exams_conducted), 0);
-
+export default function GMExamsLandingPage() {
   return (
-    <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto">
-      <AnimatePresence mode="wait">
-        {selectedBranch ? (
-          <BranchDrillDown
-            key={selectedBranch}
-            branch={selectedBranch}
-            onBack={() => setSelectedBranch(null)}
-            defaultTab="exams"
-          />
-        ) : (
-          <motion.div key="overview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
-            <div>
-              <h1 className="text-2xl font-bold text-primary">Exams Overview</h1>
-              <p className="text-sm text-text-tertiary mt-0.5">Cross-branch exam performance</p>
-            </div>
+    <div className="mx-auto max-w-6xl space-y-6 p-4 sm:p-6">
+      <section className="rounded-[24px] border border-primary/10 bg-[linear-gradient(135deg,rgba(10,159,140,0.12),rgba(255,255,255,0.98)_45%,rgba(21,94,239,0.08))] p-6 shadow-card sm:p-8">
+        <div className="max-w-3xl space-y-3">
+          <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+            <Sparkles className="h-3.5 w-3.5" />
+            General Manager Exam Center
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight text-text-primary sm:text-4xl">
+            Choose the exam system you want to review.
+          </h1>
+          <p className="text-sm leading-6 text-text-secondary sm:text-base">
+            Keep regular exam analytics separate from diagnosis and level exam analytics, so each workflow is easier to navigate and monitor.
+          </p>
+        </div>
+      </section>
 
-            <motion.div variants={container} initial="hidden" animate="show" className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <motion.div variants={item} className="bg-surface rounded-[12px] p-4 border border-border-light">
-                <div className="flex items-center gap-2 mb-2">
-                  <Building2 className="w-4 h-4 text-text-tertiary" />
-                  <span className="text-xs text-text-tertiary font-medium">Branches</span>
-                </div>
-                <p className="text-2xl font-bold text-primary">{branches.length}</p>
-              </motion.div>
-              <motion.div variants={item} className="bg-surface rounded-[12px] p-4 border border-border-light">
-                <div className="flex items-center gap-2 mb-2">
-                  <ClipboardList className="w-4 h-4 text-text-tertiary" />
-                  <span className="text-xs text-text-tertiary font-medium">Total Exams</span>
-                </div>
-                <p className="text-2xl font-bold text-primary">{totalExams}</p>
-              </motion.div>
-              <motion.div variants={item} className="bg-surface rounded-[12px] p-4 border border-border-light">
-                <div className="flex items-center gap-2 mb-2">
-                  <BarChart3 className="w-4 h-4 text-text-tertiary" />
-                  <span className="text-xs text-text-tertiary font-medium">Avg Score</span>
-                </div>
-                <p className={`text-2xl font-bold ${pctColor(overallAvgScore, 60, 40)}`}>{overallAvgScore}%</p>
-              </motion.div>
-              <motion.div variants={item} className="bg-surface rounded-[12px] p-4 border border-border-light">
-                <div className="flex items-center gap-2 mb-2">
-                  <Trophy className="w-4 h-4 text-warning" />
-                  <span className="text-xs text-text-tertiary font-medium">Pass Rate</span>
-                </div>
-                <p className={`text-2xl font-bold ${pctColor(overallPassRate)}`}>{overallPassRate}%</p>
-              </motion.div>
-            </motion.div>
-
-            <motion.div variants={container} initial="hidden" animate="show" className="space-y-2">
-              {sorted.map((b) => (
-                <motion.button
-                  key={b.branch}
-                  variants={item}
-                  onClick={() => setSelectedBranch(b.branch)}
-                  className="w-full text-left bg-surface rounded-[12px] border border-border-light p-4 hover:border-primary/30 hover:shadow-md transition-all group flex items-center justify-between gap-4"
-                >
-                  <div className="flex items-center gap-4 min-w-0">
-                    <div className={`w-12 h-12 rounded-[10px] flex items-center justify-center text-sm font-bold shrink-0 ${pctBadgeColor(safeNum(b.avg_exam_score_pct), 60, 40)}`}>
-                      {safeNum(b.avg_exam_score_pct)}%
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-primary truncate">{b.branch.replace("Smart Up ", "")}</p>
-                      <p className="text-xs text-text-tertiary">
-                        {safeNum(b.total_exams_conducted)} exams · Pass rate: {safeNum(b.pass_rate)}%
-                      </p>
-                    </div>
+      <section className="grid gap-6 lg:grid-cols-3">
+        {examModes.map((mode) => (
+          <Link key={mode.title} href={mode.href} className="block">
+            <Card hover className={`h-full overflow-hidden border-border-light/80 bg-[linear-gradient(135deg,var(--tw-gradient-stops))] ${mode.tone}`}>
+              <CardHeader>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="rounded-2xl bg-white/90 p-3 text-primary shadow-sm">
+                    <mode.icon className="h-6 w-6" />
                   </div>
-
-                  <div className="flex items-center gap-4 shrink-0">
-                    <div className="text-right hidden sm:block">
-                      <p className="text-xs text-text-tertiary">Pass Rate</p>
-                      <p className={`text-sm font-bold ${pctColor(safeNum(b.pass_rate))}`}>{safeNum(b.pass_rate)}%</p>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-text-tertiary group-hover:text-primary transition-colors" />
-                  </div>
-                </motion.button>
-              ))}
-            </motion.div>
-
-            {branches.length > 1 && (
-              <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-                <h2 className="text-lg font-semibold text-primary mb-3">Branch Comparison</h2>
-                <div className="bg-surface rounded-[12px] border border-border-light overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="bg-app-bg border-b border-border-light">
-                          <th className="text-left p-3 font-medium text-text-secondary">Branch</th>
-                          <th className="text-center p-3 font-medium text-text-secondary">Exams</th>
-                          <th className="text-center p-3 font-medium text-text-secondary">Avg Score</th>
-                          <th className="text-center p-3 font-medium text-text-secondary">Pass Rate</th>
-                          <th className="text-center p-3 font-medium text-text-secondary">Students</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {sorted.map((b) => (
-                          <tr
-                            key={b.branch}
-                            onClick={() => setSelectedBranch(b.branch)}
-                            className="border-b border-border-light last:border-0 hover:bg-app-bg transition-colors cursor-pointer"
-                          >
-                            <td className="p-3 font-medium text-primary">{b.branch.replace("Smart Up ", "")}</td>
-                            <td className="p-3 text-center text-text-secondary">{safeNum(b.total_exams_conducted)}</td>
-                            <td className="p-3 text-center">
-                              <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-bold ${pctBadgeColor(safeNum(b.avg_exam_score_pct), 60, 40)}`}>
-                                {safeNum(b.avg_exam_score_pct)}%
-                              </span>
-                            </td>
-                            <td className="p-3 text-center">
-                              <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-bold ${pctBadgeColor(safeNum(b.pass_rate))}`}>
-                                {safeNum(b.pass_rate)}%
-                              </span>
-                            </td>
-                            <td className="p-3 text-center text-text-secondary">{b.total_students}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  <ArrowRight className="h-5 w-5 text-text-tertiary" />
                 </div>
-              </motion.div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+                <CardTitle className="mt-6 text-2xl">{mode.title}</CardTitle>
+                <CardDescription className="max-w-xl text-sm leading-6">{mode.description}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/85 px-3 py-2 text-sm font-medium text-text-primary">
+                  Open {mode.title}
+                  <ArrowRight className="h-4 w-4" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        ))}
+      </section>
     </div>
   );
 }
