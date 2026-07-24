@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { Suspense, useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -28,7 +28,7 @@ interface DailyCollectionItem {
   reference_no: string;
 }
 
-export default function DailyCollectionDetails() {
+function DailyCollectionDetailsInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialFromDate = searchParams.get("from_date") || searchParams.get("date") || new Date().toISOString().slice(0, 10);
@@ -262,5 +262,13 @@ export default function DailyCollectionDetails() {
         </div>
       )}
     </motion.div>
+  );
+}
+
+export default function DailyCollectionDetails() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" /></div>}>
+      <DailyCollectionDetailsInner />
+    </Suspense>
   );
 }

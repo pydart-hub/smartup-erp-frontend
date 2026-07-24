@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { Suspense, useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -29,7 +29,7 @@ interface DailyExpenseItem {
   company: string;
 }
 
-export default function DailyExpenseDetails() {
+function DailyExpenseDetailsInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialFromDate = searchParams.get("from_date") || searchParams.get("date") || new Date().toISOString().slice(0, 10);
@@ -261,5 +261,13 @@ export default function DailyExpenseDetails() {
         </div>
       )}
     </motion.div>
+  );
+}
+
+export default function DailyExpenseDetails() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" /></div>}>
+      <DailyExpenseDetailsInner />
+    </Suspense>
   );
 }

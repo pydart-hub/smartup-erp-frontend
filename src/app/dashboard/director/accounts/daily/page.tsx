@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { Suspense, useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
@@ -111,7 +111,7 @@ function BreakdownRow({
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
-export default function DailyAccountsDashboard() {
+function DailyAccountsDashboardInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const today = new Date().toISOString().slice(0, 10);
@@ -380,5 +380,13 @@ export default function DailyAccountsDashboard() {
         </div>
       )}
     </motion.div>
+  );
+}
+
+export default function DailyAccountsDashboard() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" /></div>}>
+      <DailyAccountsDashboardInner />
+    </Suspense>
   );
 }
