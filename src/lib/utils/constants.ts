@@ -215,6 +215,7 @@ export const DIRECTOR_NAV: NavItem[] = [
       { label: "Regular Exam", href: "/dashboard/director/exams/regular", icon: "FileText", emoji: "📝" },
       { label: "Level Exam", href: "/dashboard/director/level-exams", icon: "BookOpen", emoji: "📘" },
       { label: "Diagnosis Exam", href: "/dashboard/director/diagnosis-exams", icon: "Microscope", emoji: "🔬" },
+      { label: "CWC Corner", href: "/dashboard/director/exams/cwc", icon: "Coffee", emoji: "☕" },
     ],
   },
   {

@@ -1,6 +1,7 @@
 export const MANUAL_DISCOUNT_COMPANIES = [
   "Smart Up Kadavanthara",
   "Smart Up Edappally",
+  "Smart Up Vennala",
 ] as const;
 
 export function canApplyManualDiscount(company?: string | null): boolean {

@@ -80,7 +80,11 @@ function assertConfigured(): void {
 
 /** Normalise an Indian mobile to E.164 (91XXXXXXXXXX). */
 export function normalisePhone(raw: string): string {
-  const digits = raw.replace(/\D/g, "");
+  let digits = raw.replace(/\D/g, "");
+  // Strip leading zero commonly used in Indian mobile inputs (e.g. 09846660166)
+  if (digits.startsWith("0")) {
+    digits = digits.slice(1);
+  }
   if (digits.startsWith("91") && digits.length === 12) return digits;
   if (digits.length === 10) return `91${digits}`;
   return digits; // already international or non-IN

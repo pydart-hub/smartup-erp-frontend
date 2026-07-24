@@ -22,6 +22,7 @@ interface InstalmentTimelineProps {
   customer: string;
   parentName?: string;
   parentEmail?: string;
+  parentPhone?: string;
   onPaymentSuccess: () => void;
   disabled?: boolean;
 }
@@ -102,6 +103,7 @@ export default function InstalmentTimeline({
   customer,
   parentName,
   parentEmail,
+  parentPhone,
   onPaymentSuccess,
   disabled,
 }: InstalmentTimelineProps) {
@@ -115,7 +117,11 @@ export default function InstalmentTimeline({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ invoice_id: invoiceId }),
+        body: JSON.stringify({
+          invoice_id: invoiceId,
+          email: parentEmail || undefined,
+          phone: parentPhone || undefined,
+        }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -127,7 +133,7 @@ export default function InstalmentTimeline({
       // non-blocking
     }
     onPaymentSuccess();
-  }, [onPaymentSuccess]);
+  }, [parentEmail, parentPhone, onPaymentSuccess]);
 
   if (instalments.length === 0) return null;
 

@@ -137,6 +137,7 @@ function SubjectAdmitPageContent() {
   const [advanceAmount, setAdvanceAmount] = useState<number | null>(null);
   const [manualDiscountAmount, setManualDiscountAmount] = useState<number | null>(null);
   const [manualDiscountRemark, setManualDiscountRemark] = useState("");
+  const [isExistingStudentForDiscount, setIsExistingStudentForDiscount] = useState(false);
   const [vennalaDiscountEnabled, setVennalaDiscountEnabled] = useState(false);
   const [vennalaDiscountPercent, setVennalaDiscountPercent] = useState<number | "">("");
 
@@ -392,17 +393,16 @@ function SubjectAdmitPageContent() {
     }
   }, [levelPrograms, selectedProgram, setValue]);
 
-  // ── Student groups for selected branch+program+subject (subject-wise only) ──
+  // ── Student groups for selected branch+program ──
   const { data: studentGroupsRes } = useQuery({
-    queryKey: ["student-groups", selectedBranch, selectedProgram, selectedSubject],
+    queryKey: ["student-groups", selectedBranch, selectedProgram],
     queryFn: () =>
       getStudentGroups({
         custom_branch: selectedBranch,
         program: selectedProgram,
-        custom_subject: selectedSubject,
         limit_page_length: 20,
       }),
-    enabled: !!(selectedBranch && selectedProgram && selectedSubject),
+    enabled: !!(selectedBranch && selectedProgram),
     staleTime: 30_000,
   });
 
@@ -1518,25 +1518,46 @@ function SubjectAdmitPageContent() {
                       <label className="text-sm font-medium text-text-secondary">Admission Discount</label>
                       <div className="bg-amber-50 rounded-[12px] border border-amber-200 p-4 space-y-3">
                         <p className="text-xs text-amber-800">
-                          Available only for Kadavanthara and Edappally. The discount is deducted from the last invoice first, then the previous invoice if needed.
+                          The discount is deducted from the last invoice first, then the previous invoice if needed.
                         </p>
-                        <Input
-                          type="number"
-                          min={0}
-                          placeholder="Discount amount in rupees"
-                          value={manualDiscountAmount ?? ""}
-                          onChange={(e) => {
-                            const value = e.target.value ? Number(e.target.value) : null;
-                            setManualDiscountAmount(value !== null && value > 0 ? value : null);
-                          }}
-                        />
-                        <textarea
-                          value={manualDiscountRemark}
-                          onChange={(e) => setManualDiscountRemark(e.target.value)}
-                          rows={2}
-                          placeholder="Reason for discount"
-                          className="w-full rounded-[10px] border border-border-input bg-surface px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
-                        />
+                        <label className="flex items-center gap-3 cursor-pointer select-none text-sm text-amber-900 font-medium pb-1">
+                          <div
+                            onClick={() => {
+                              setIsExistingStudentForDiscount((prev) => !prev);
+                              if (isExistingStudentForDiscount) {
+                                setManualDiscountAmount(null);
+                                setManualDiscountRemark("");
+                              }
+                            }}
+                            className={`relative w-10 h-6 rounded-full transition-colors ${isExistingStudentForDiscount ? "bg-amber-600" : "bg-border-input"}`}
+                          >
+                            <span
+                              className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${isExistingStudentForDiscount ? "translate-x-4" : "translate-x-0"}`}
+                            />
+                          </div>
+                          Is this an existing student?
+                        </label>
+                        {isExistingStudentForDiscount && (
+                          <>
+                            <Input
+                              type="number"
+                              min={0}
+                              placeholder="Discount amount in rupees"
+                              value={manualDiscountAmount ?? ""}
+                              onChange={(e) => {
+                                const value = e.target.value ? Number(e.target.value) : null;
+                                setManualDiscountAmount(value !== null && value > 0 ? value : null);
+                              }}
+                            />
+                            <textarea
+                              value={manualDiscountRemark}
+                              onChange={(e) => setManualDiscountRemark(e.target.value)}
+                              rows={2}
+                              placeholder="Reason for discount"
+                              className="w-full rounded-[10px] border border-border-input bg-surface px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
+                            />
+                          </>
+                        )}
                       </div>
                     </div>
                   )}

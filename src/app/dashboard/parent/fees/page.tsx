@@ -322,6 +322,7 @@ function ChildFeeCard({
               customer={child.customer}
               parentName={user?.full_name}
               parentEmail={user?.email}
+              parentPhone={data?.guardian?.mobile_number || undefined}
               onPaymentSuccess={onPaymentSuccess}
               disabled={child.enabled === 0}
             />

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, ClipboardList, Microscope, Sparkles } from "lucide-react";
+import { ArrowRight, ClipboardList, Microscope, Sparkles, Coffee } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 
 const examModes = [
@@ -18,6 +18,14 @@ const examModes = [
     href: "/dashboard/director/exams/diagnosis",
     icon: Microscope,
     tone: "from-info/15 via-white to-success/10",
+  },
+  {
+    title: "CWC Corner",
+    description:
+      "Review Coffee With Chairman exam results. Track elite student benchmarking and progress reports across all branches.",
+    href: "/dashboard/director/exams/cwc",
+    icon: Coffee,
+    tone: "from-amber-500/15 via-white to-amber-500/5",
   },
 ];
 
@@ -39,7 +47,7 @@ export default function DirectorExamsLandingPage() {
         </div>
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-2">
+      <section className="grid gap-6 lg:grid-cols-3">
         {examModes.map((mode) => (
           <Link key={mode.title} href={mode.href} className="block">
             <Card hover className={`h-full overflow-hidden border-border-light/80 bg-[linear-gradient(135deg,var(--tw-gradient-stops))] ${mode.tone}`}>

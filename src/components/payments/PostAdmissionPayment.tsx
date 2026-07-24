@@ -227,7 +227,11 @@ export default function PostAdmissionPayment({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ invoice_id: invoiceId }),
+        body: JSON.stringify({
+          invoice_id: invoiceId,
+          email: guardianEmail || undefined,
+          phone: guardianPhone || undefined,
+        }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -239,7 +243,7 @@ export default function PostAdmissionPayment({
     } catch {
       console.warn("Receipt email request failed");
     }
-  }, []);
+  }, [guardianEmail, guardianPhone]);
 
   // Determine the effective amount for the 1st invoice
   const firstInvoice = invoices[0];
