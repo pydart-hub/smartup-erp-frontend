@@ -15,7 +15,7 @@ const examModes = [
     title: "Diagnosis Exams",
     description:
       "Track level exam performance across all students with class-wise, subject-wise, branch-wise, and student-wise drilldown.",
-    href: "/dashboard/general-manager/exams/diagnosis",
+    href: "/dashboard/general-manager/diagnosis-exams",
     icon: Microscope,
     tone: "from-info/15 via-white to-success/10",
   },

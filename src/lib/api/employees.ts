@@ -50,6 +50,11 @@ export interface EmployeeAttendance {
   company: string;
   department?: string;
   leave_type?: string;
+  in_time?: string;
+  out_time?: string;
+  custom_check_in?: string;
+  custom_check_out?: string;
+  working_hours?: number;
   late_entry?: number;
   early_exit?: number;
 }
@@ -77,6 +82,8 @@ const EMPLOYEE_FIELDS = JSON.stringify([
 const EMPLOYEE_ATTENDANCE_FIELDS = JSON.stringify([
   "name", "employee", "employee_name", "attendance_date",
   "status", "company", "department", "leave_type",
+  "in_time", "out_time", "working_hours",
+  "custom_check_in", "custom_check_out",
   "late_entry", "early_exit",
 ]);
 
@@ -404,6 +411,19 @@ export async function getInstructorsWithCourses(branch: string): Promise<Instruc
 // Create / Update Employee Attendance
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** Helper to post Employee Checkin doc into Frappe */
+async function postEmployeeCheckin(employee: string, time: string, logType: "IN" | "OUT") {
+  try {
+    await apiClient.post("/resource/Employee Checkin", {
+      employee,
+      time,
+      log_type: logType,
+    });
+  } catch (err) {
+    console.warn(`Failed to create Employee Checkin (${logType}) for ${employee}:`, err);
+  }
+}
+
 /** Create a new Attendance record */
 export async function createEmployeeAttendance(payload: {
   employee: string;
@@ -411,12 +431,30 @@ export async function createEmployeeAttendance(payload: {
   attendance_date: string;
   status: string;
   company: string;
+  in_time?: string;
+  out_time?: string;
 }): Promise<{ data: EmployeeAttendance }> {
   try {
     const { data } = await apiClient.post("/resource/Attendance", {
-      ...payload,
+      employee: payload.employee,
+      employee_name: payload.employee_name,
+      attendance_date: payload.attendance_date,
+      status: payload.status,
+      company: payload.company,
+      in_time: payload.in_time || undefined,
+      out_time: payload.out_time || undefined,
+      custom_check_in: payload.in_time ? payload.in_time.split(" ")[1] || payload.in_time : undefined,
+      custom_check_out: payload.out_time ? payload.out_time.split(" ")[1] || payload.out_time : undefined,
       docstatus: 1,
     });
+
+    if (payload.in_time) {
+      await postEmployeeCheckin(payload.employee, payload.in_time, "IN");
+    }
+    if (payload.out_time) {
+      await postEmployeeCheckin(payload.employee, payload.out_time, "OUT");
+    }
+
     return data;
   } catch (error: unknown) {
     const err = error as {
@@ -451,6 +489,8 @@ export async function updateEmployeeAttendance(
     attendance_date: string;
     status: string;
     company: string;
+    in_time?: string;
+    out_time?: string;
   }
 ): Promise<void> {
   // Read current docstatus to pick a safe update path.
@@ -459,24 +499,40 @@ export async function updateEmployeeAttendance(
   );
   const docstatus = Number(existingRes?.data?.docstatus ?? 0);
 
+  const attBody = {
+    employee: payload.employee,
+    employee_name: payload.employee_name,
+    attendance_date: payload.attendance_date,
+    status: payload.status,
+    company: payload.company,
+    in_time: payload.in_time || undefined,
+    out_time: payload.out_time || undefined,
+    custom_check_in: payload.in_time ? payload.in_time.split(" ")[1] || payload.in_time : undefined,
+    custom_check_out: payload.out_time ? payload.out_time.split(" ")[1] || payload.out_time : undefined,
+  };
+
   if (docstatus === 0) {
     // Draft can be updated in place.
-    await apiClient.put(`/resource/Attendance/${encodeURIComponent(existingName)}`, {
-      ...payload,
+    await apiClient.put(`/resource/Attendance/${encodeURIComponent(existingName)}`, attBody);
+  } else {
+    // Submitted record: cancel then create replacement.
+    await apiClient.post("/method/frappe.client.cancel", {
+      doctype: "Attendance",
+      name: existingName,
     });
-    return;
+
+    await apiClient.post("/resource/Attendance", {
+      ...attBody,
+      docstatus: 1,
+    });
   }
 
-  // Submitted record: cancel then create replacement.
-  await apiClient.post("/method/frappe.client.cancel", {
-    doctype: "Attendance",
-    name: existingName,
-  });
-
-  await apiClient.post("/resource/Attendance", {
-    ...payload,
-    docstatus: 1,
-  });
+  if (payload.in_time) {
+    await postEmployeeCheckin(payload.employee, payload.in_time, "IN");
+  }
+  if (payload.out_time) {
+    await postEmployeeCheckin(payload.employee, payload.out_time, "OUT");
+  }
 }
 
 /** Get Fee Schedules for a company (used later for class-wise filters) */

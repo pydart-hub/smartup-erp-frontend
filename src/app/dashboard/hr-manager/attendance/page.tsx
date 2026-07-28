@@ -3,13 +3,13 @@
 import { GifLoader } from "@/components/ui/GifLoader";
 import React, { useState, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ClipboardCheck, Search, Save, Check, X, Clock, Coffee, Home,
-  Loader2, AlertCircle,
+  Loader2, AlertCircle, LogIn, LogOut,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
+import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -19,7 +19,6 @@ import {
   getEmployeeAttendance,
   createEmployeeAttendance,
   updateEmployeeAttendance,
-  type Employee,
   type EmployeeAttendance,
 } from "@/lib/api/hr";
 import { useDebounce } from "@/lib/hooks/useDebounce";
@@ -28,6 +27,12 @@ import { toast } from "sonner";
 
 type AttendanceStatus = "Present" | "Absent" | "Half Day" | "On Leave" | "Work From Home";
 
+interface AttendanceFormEntry {
+  status: AttendanceStatus;
+  in_time?: string;
+  out_time?: string;
+}
+
 const STATUSES: { value: AttendanceStatus; icon: React.ComponentType<{ className?: string }>; color: string; bg: string }[] = [
   { value: "Present", icon: Check, color: "text-success", bg: "bg-success" },
   { value: "Absent", icon: X, color: "text-error", bg: "bg-error" },
@@ -35,6 +40,23 @@ const STATUSES: { value: AttendanceStatus; icon: React.ComponentType<{ className
   { value: "On Leave", icon: Coffee, color: "text-info", bg: "bg-info" },
   { value: "Work From Home", icon: Home, color: "text-secondary", bg: "bg-secondary" },
 ];
+
+const DEFAULT_IN_TIME = "09:00";
+const DEFAULT_OUT_TIME = "17:30";
+const DEFAULT_HALF_DAY_OUT_TIME = "13:00";
+
+function formatTimeForInput(val?: string | null): string {
+  if (!val) return "";
+  if (val.includes("T")) {
+    const timePart = val.split("T")[1];
+    return timePart ? timePart.slice(0, 5) : "";
+  }
+  if (val.includes(" ")) {
+    const timePart = val.split(" ")[1];
+    return timePart ? timePart.slice(0, 5) : "";
+  }
+  return val.slice(0, 5);
+}
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -54,7 +76,7 @@ export default function HRAttendancePage() {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
   const [pendingChanges, setPendingChanges] = useState<
-    Record<string, AttendanceStatus>
+    Record<string, AttendanceFormEntry>
   >({});
   const [saving, setSaving] = useState(false);
 
@@ -100,13 +122,28 @@ export default function HRAttendancePage() {
     );
   }, [employees, debouncedSearch]);
 
+  const getEffectiveEntry = useCallback(
+    (employeeId: string): AttendanceFormEntry | null => {
+      if (employeeId in pendingChanges) return pendingChanges[employeeId];
+      const existing = attendanceMap.get(employeeId);
+      if (existing) {
+        return {
+          status: existing.status as AttendanceStatus,
+          in_time: formatTimeForInput(existing.in_time),
+          out_time: formatTimeForInput(existing.out_time),
+        };
+      }
+      return null;
+    },
+    [attendanceMap, pendingChanges]
+  );
+
   // Summary counts
   const summary = useMemo(() => {
     const counts = { Present: 0, Absent: 0, "Half Day": 0, "On Leave": 0, "Work From Home": 0, "Not Marked": 0 };
     employees.forEach((emp) => {
-      const pending = pendingChanges[emp.name];
-      const existing = attendanceMap.get(emp.name);
-      const status = pending ?? existing?.status;
+      const entry = getEffectiveEntry(emp.name);
+      const status = entry?.status;
       if (status && status in counts) {
         counts[status as keyof typeof counts]++;
       } else {
@@ -114,24 +151,45 @@ export default function HRAttendancePage() {
       }
     });
     return counts;
-  }, [employees, attendanceMap, pendingChanges]);
+  }, [employees, getEffectiveEntry]);
 
   const handleStatusClick = useCallback(
     (employeeId: string, status: AttendanceStatus) => {
       setPendingChanges((prev) => {
         const existing = attendanceMap.get(employeeId);
-        // If clicking same status as current (and not already pending), remove pending
-        if (existing?.status === status && !prev[employeeId]) return prev;
-        // If clicking same status as pending, remove it
-        if (prev[employeeId] === status) {
-          const { [employeeId]: _, ...rest } = prev;
-          return rest;
+        let in_time = prev[employeeId]?.in_time ?? formatTimeForInput(existing?.in_time);
+        let out_time = prev[employeeId]?.out_time ?? formatTimeForInput(existing?.out_time);
+
+        if (status === "Present") {
+          if (!in_time) in_time = DEFAULT_IN_TIME;
+          if (!out_time) out_time = DEFAULT_OUT_TIME;
+        } else if (status === "Half Day") {
+          if (!in_time) in_time = DEFAULT_IN_TIME;
+          if (!out_time) out_time = DEFAULT_HALF_DAY_OUT_TIME;
+        } else if (status === "Absent" || status === "On Leave" || status === "Work From Home") {
+          in_time = "";
+          out_time = "";
         }
-        return { ...prev, [employeeId]: status };
+
+        return { ...prev, [employeeId]: { status, in_time, out_time } };
       });
     },
     [attendanceMap]
   );
+
+  const handleInTimeChange = useCallback((employeeId: string, in_time: string) => {
+    setPendingChanges((prev) => {
+      const current = prev[employeeId] ?? { status: "Present" };
+      return { ...prev, [employeeId]: { ...current, in_time } };
+    });
+  }, []);
+
+  const handleOutTimeChange = useCallback((employeeId: string, out_time: string) => {
+    setPendingChanges((prev) => {
+      const current = prev[employeeId] ?? { status: "Present" };
+      return { ...prev, [employeeId]: { ...current, out_time } };
+    });
+  }, []);
 
   // ── Save attendance ──
   const handleSave = async () => {
@@ -140,15 +198,17 @@ export default function HRAttendancePage() {
     let successCount = 0;
     let errorCount = 0;
 
-    for (const [empId, status] of Object.entries(pendingChanges)) {
+    for (const [empId, entry] of Object.entries(pendingChanges)) {
       const existing = attendanceMap.get(empId);
       const emp = employees.find((e) => e.name === empId);
       const payload = {
         employee: empId,
         employee_name: emp?.employee_name ?? "",
         attendance_date: selectedDate,
-        status,
+        status: entry.status,
         company: defaultCompany || emp?.company || "",
+        in_time: entry.in_time ? `${selectedDate} ${entry.in_time}:00` : undefined,
+        out_time: entry.out_time ? `${selectedDate} ${entry.out_time}:00` : undefined,
       };
       try {
         if (existing) {
@@ -200,7 +260,7 @@ export default function HRAttendancePage() {
                   Employee Attendance
                 </h1>
                 <p className="text-text-secondary text-sm mt-1.5 max-w-xl">
-                  Mark and track daily employee attendance with a clear branch-ready view.
+                  Mark and track daily employee attendance with check-in and check-out timings.
                 </p>
               </div>
 
@@ -283,8 +343,8 @@ export default function HRAttendancePage() {
       ) : (
         <div className="space-y-3">
           {filtered.map((emp) => {
-            const existing = attendanceMap.get(emp.name);
-            const currentStatus = pendingChanges[emp.name] ?? existing?.status ?? null;
+            const entry = getEffectiveEntry(emp.name);
+            const currentStatus = entry?.status ?? null;
             const isPending = emp.name in pendingChanges;
 
             return (
@@ -339,24 +399,52 @@ export default function HRAttendancePage() {
                       </div>
                     </div>
 
-                    <div className="mt-4 pt-3 border-t border-border-light/70 flex flex-wrap gap-2">
-                      {STATUSES.map(({ value, icon: Icon, color, bg }) => {
-                        const isActive = currentStatus === value;
-                        return (
-                          <button
-                            key={value}
-                            onClick={() => handleStatusClick(emp.name, value)}
-                            className={`flex items-center gap-1.5 px-3 py-2 rounded-[10px] text-xs font-medium transition-all border ${
-                              isActive
-                                ? `${bg} text-white border-transparent shadow-sm`
-                                : `bg-surface ${color} border-border-light hover:bg-app-bg`
-                            }`}
-                          >
-                            <Icon className="h-3.5 w-3.5" />
-                            <span>{value}</span>
-                          </button>
-                        );
-                      })}
+                    <div className="mt-4 pt-3 border-t border-border-light/70 flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex flex-wrap gap-2">
+                        {STATUSES.map(({ value, icon: Icon, color, bg }) => {
+                          const isActive = currentStatus === value;
+                          return (
+                            <button
+                              key={value}
+                              onClick={() => handleStatusClick(emp.name, value)}
+                              className={`flex items-center gap-1.5 px-3 py-2 rounded-[10px] text-xs font-medium transition-all border ${
+                                isActive
+                                  ? `${bg} text-white border-transparent shadow-sm`
+                                  : `bg-surface ${color} border-border-light hover:bg-app-bg`
+                              }`}
+                            >
+                              <Icon className="h-3.5 w-3.5" />
+                              <span>{value}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Timings */}
+                      {currentStatus && currentStatus !== "Absent" && currentStatus !== "On Leave" && currentStatus !== "Work From Home" && (
+                        <div className="flex items-center gap-4 text-xs font-medium text-text-secondary bg-app-bg/50 px-3 py-1.5 rounded-[10px] border border-border-light">
+                          <div className="flex items-center gap-1.5">
+                            <LogIn className="h-3.5 w-3.5 text-success" />
+                            <span>In:</span>
+                            <input
+                              type="time"
+                              value={entry?.in_time || ""}
+                              onChange={(e) => handleInTimeChange(emp.name, e.target.value)}
+                              className="h-7 px-2 border border-border-light rounded-[6px] bg-surface text-text-primary text-xs"
+                            />
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <LogOut className="h-3.5 w-3.5 text-error" />
+                            <span>Out:</span>
+                            <input
+                              type="time"
+                              value={entry?.out_time || ""}
+                              onChange={(e) => handleOutTimeChange(emp.name, e.target.value)}
+                              className="h-7 px-2 border border-border-light rounded-[6px] bg-surface text-text-primary text-xs"
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

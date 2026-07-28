@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ClipboardCheck, Calendar, Search, Users, CheckCircle,
-  XCircle, Clock, Loader2, UserX, Save, ArrowLeft, Building2,
+  XCircle, Clock, Loader2, UserX, Save, ArrowLeft, Building2, LogIn, LogOut,
 } from "lucide-react";
 import Link from "next/link";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
@@ -28,7 +28,30 @@ import { getCourseSchedules } from "@/lib/api/courseSchedule";
 
 type StaffStatus = "Present" | "Absent" | "Half Day" | "On Leave" | "Work From Home";
 
+interface StaffAttendanceChange {
+  status: StaffStatus;
+  in_time?: string;
+  out_time?: string;
+}
+
 const STATUS_OPTIONS: StaffStatus[] = ["Present", "Absent", "Half Day", "On Leave", "Work From Home"];
+
+const DEFAULT_IN_TIME = "09:00";
+const DEFAULT_OUT_TIME = "17:30";
+const DEFAULT_HALF_DAY_OUT_TIME = "13:00";
+
+function formatTimeForInput(val?: string | null): string {
+  if (!val) return "";
+  if (val.includes("T")) {
+    const timePart = val.split("T")[1];
+    return timePart ? timePart.slice(0, 5) : "";
+  }
+  if (val.includes(" ")) {
+    const timePart = val.split(" ")[1];
+    return timePart ? timePart.slice(0, 5) : "";
+  }
+  return val.slice(0, 5);
+}
 
 const statusConfig: Record<string, { color: string; bg: string; icon: React.ComponentType<{ className?: string }>; variant: "success" | "error" | "warning" | "default" }> = {
   Present: { color: "text-success", bg: "bg-success-light", icon: CheckCircle, variant: "success" },
@@ -48,7 +71,7 @@ export default function StaffAttendancePage() {
   );
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
-  const [pendingChanges, setPendingChanges] = useState<Record<string, StaffStatus>>({});
+  const [pendingChanges, setPendingChanges] = useState<Record<string, StaffAttendanceChange>>({});
   const [saving, setSaving] = useState(false);
 
   const employeeAttendanceQueryKey = ["employee-attendance", defaultCompany, selectedDate] as const;
@@ -181,12 +204,23 @@ export default function StaffAttendancePage() {
     )
     .map((emp) => {
       const att = attMap.get(emp.name);
-      const pendingStatus = pendingChanges[emp.name];
+      const pending = pendingChanges[emp.name];
+      const status = pending?.status ?? (att?.status as StaffStatus | undefined) ?? "Not Marked";
+      const in_time = pending?.in_time ?? formatTimeForInput(att?.in_time);
+      const out_time = pending?.out_time ?? formatTimeForInput(att?.out_time);
+      const hasChange = pending !== undefined && (
+        pending.status !== (att?.status ?? "Not Marked") ||
+        pending.in_time !== formatTimeForInput(att?.in_time) ||
+        pending.out_time !== formatTimeForInput(att?.out_time)
+      );
+
       return {
         ...emp,
-        attendance_status: (pendingStatus ?? att?.status ?? "Not Marked") as string,
+        attendance_status: status as string,
+        in_time,
+        out_time,
         attendance_name: att?.name,
-        hasChange: pendingStatus !== undefined && pendingStatus !== (att?.status ?? "Not Marked"),
+        hasChange,
       };
     });
 
@@ -199,50 +233,89 @@ export default function StaffAttendancePage() {
   const pendingCount = Object.keys(pendingChanges).length;
 
   // Cycle through statuses on click
-  function cycleStatus(employeeId: string, currentStatus: string) {
+  function cycleStatus(employeeId: string, currentStatus: string, isVisiting = false) {
+    const key = isVisiting ? `visiting_${employeeId}` : employeeId;
+    const existingAtt = isVisiting ? visitingAttMap.get(employeeId) : attMap.get(employeeId);
     const currentIndex = STATUS_OPTIONS.indexOf(currentStatus as StaffStatus);
     const nextIndex = currentStatus === "Not Marked" ? 0 : (currentIndex + 1) % STATUS_OPTIONS.length;
     const nextStatus = STATUS_OPTIONS[nextIndex];
 
-    // Check if the new status matches the original (no change needed)
-    const original = attMap.get(employeeId)?.status ?? "Not Marked";
-    if (nextStatus === original) {
-      setPendingChanges((prev) => {
-        const next = { ...prev };
-        delete next[employeeId];
-        return next;
-      });
-    } else {
-      setPendingChanges((prev) => ({ ...prev, [employeeId]: nextStatus }));
+    let in_time = pendingChanges[key]?.in_time ?? formatTimeForInput(existingAtt?.in_time);
+    let out_time = pendingChanges[key]?.out_time ?? formatTimeForInput(existingAtt?.out_time);
+
+    if (nextStatus === "Present") {
+      if (!in_time) in_time = DEFAULT_IN_TIME;
+      if (!out_time) out_time = DEFAULT_OUT_TIME;
+    } else if (nextStatus === "Half Day") {
+      if (!in_time) in_time = DEFAULT_IN_TIME;
+      if (!out_time) out_time = DEFAULT_HALF_DAY_OUT_TIME;
+    } else if (nextStatus === "Absent" || nextStatus === "On Leave" || nextStatus === "Work From Home") {
+      in_time = "";
+      out_time = "";
     }
+
+    setPendingChanges((prev) => ({
+      ...prev,
+      [key]: { status: nextStatus, in_time, out_time },
+    }));
+  }
+
+  function handleInTimeChange(employeeId: string, in_time: string, isVisiting = false) {
+    const key = isVisiting ? `visiting_${employeeId}` : employeeId;
+    const existingAtt = isVisiting ? visitingAttMap.get(employeeId) : attMap.get(employeeId);
+    setPendingChanges((prev) => {
+      const current = prev[key] ?? {
+        status: (existingAtt?.status as StaffStatus) ?? "Present",
+        out_time: formatTimeForInput(existingAtt?.out_time),
+      };
+      return { ...prev, [key]: { ...current, in_time } };
+    });
+  }
+
+  function handleOutTimeChange(employeeId: string, out_time: string, isVisiting = false) {
+    const key = isVisiting ? `visiting_${employeeId}` : employeeId;
+    const existingAtt = isVisiting ? visitingAttMap.get(employeeId) : attMap.get(employeeId);
+    setPendingChanges((prev) => {
+      const current = prev[key] ?? {
+        status: (existingAtt?.status as StaffStatus) ?? "Present",
+        in_time: formatTimeForInput(existingAtt?.in_time),
+      };
+      return { ...prev, [key]: { ...current, out_time } };
+    });
   }
 
   // Mark all present
   function markAllPresent() {
-    const changes: Record<string, StaffStatus> = {};
+    const changes: Record<string, StaffAttendanceChange> = {};
     for (const emp of employees) {
-      const original = attMap.get(emp.name)?.status;
-      if (original !== "Present") {
-        changes[emp.name] = "Present";
-      }
+      const original = attMap.get(emp.name);
+      changes[emp.name] = {
+        status: "Present",
+        in_time: formatTimeForInput(original?.in_time) || DEFAULT_IN_TIME,
+        out_time: formatTimeForInput(original?.out_time) || DEFAULT_OUT_TIME,
+      };
     }
     for (const v of visitingInstructors) {
-      const original = visitingAttMap.get(v.employee)?.status;
-      if (original !== "Present") {
-        changes[`visiting_${v.employee}`] = "Present";
-      }
+      const original = visitingAttMap.get(v.employee);
+      changes[`visiting_${v.employee}`] = {
+        status: "Present",
+        in_time: formatTimeForInput(original?.in_time) || DEFAULT_IN_TIME,
+        out_time: formatTimeForInput(original?.out_time) || DEFAULT_OUT_TIME,
+      };
     }
     setPendingChanges(changes);
   }
-
   // Save attendance
   const saveAttendance = useCallback(async () => {
     if (pendingCount === 0) return;
     setSaving(true);
     try {
-      type SaveResult = { key: string; employee: string; status: StaffStatus; kind: "employee" | "visiting" };
+      type SaveResult = { key: string; employee: string; status: StaffStatus; in_time?: string; out_time?: string; kind: "employee" | "visiting" };
       const entries = Object.entries(pendingChanges);
-      const promises = entries.map(async ([key, status]) => {
+      const promises = entries.map(async ([key, change]) => {
+        const inTimeISO = change.in_time ? `${selectedDate} ${change.in_time}:00` : undefined;
+        const outTimeISO = change.out_time ? `${selectedDate} ${change.out_time}:00` : undefined;
+
         // Visiting instructor key: "visiting_{employeeId}"
         if (key.startsWith("visiting_")) {
           const empId = key.replace("visiting_", "");
@@ -253,15 +326,17 @@ export default function StaffAttendancePage() {
             employee: empId,
             employee_name: v.instructor_name,
             attendance_date: selectedDate,
-            status,
+            status: change.status,
             company: v.custom_company || defaultCompany || "",
+            in_time: inTimeISO,
+            out_time: outTimeISO,
           };
           if (existing) {
             await updateEmployeeAttendance(existing.name, payload);
           } else {
             await createEmployeeAttendance(payload);
           }
-          return { key, employee: empId, status, kind: "visiting" } as SaveResult;
+          return { key, employee: empId, status: change.status, in_time: inTimeISO, out_time: outTimeISO, kind: "visiting" } as SaveResult;
         }
 
         // Regular branch employee
@@ -273,30 +348,30 @@ export default function StaffAttendancePage() {
           employee: empId,
           employee_name: emp.employee_name,
           attendance_date: selectedDate,
-          status,
+          status: change.status,
           company: defaultCompany || "",
+          in_time: inTimeISO,
+          out_time: outTimeISO,
         };
 
         if (existing) {
-          // Cancel old → create new submitted record
           await updateEmployeeAttendance(existing.name, payload);
         } else {
-          // Create new submitted record
           await createEmployeeAttendance(payload);
         }
-        return { key, employee: empId, status, kind: "employee" } as SaveResult;
+        return { key, employee: empId, status: change.status, in_time: inTimeISO, out_time: outTimeISO, kind: "employee" } as SaveResult;
       });
 
       const results = await Promise.allSettled(promises);
       const failed: Array<{ key: string; reason: unknown }> = [];
       const succeeded: SaveResult[] = [];
-      const nextPending: Record<string, StaffStatus> = {};
+      const nextPending: Record<string, StaffAttendanceChange> = {};
       for (let i = 0; i < results.length; i += 1) {
         const result = results[i];
-        const [key, status] = entries[i];
+        const [key, change] = entries[i];
         if (result.status === "rejected") {
           failed.push({ key, reason: result.reason });
-          nextPending[key] = status;
+          nextPending[key] = change;
         } else if (result.value) {
           succeeded.push(result.value);
         }
@@ -317,7 +392,13 @@ export default function StaffAttendancePage() {
               attendance_date: selectedDate,
               company: defaultCompany || "",
             };
-            byEmployee.set(row.employee, { ...existing, status: row.status, attendance_date: selectedDate });
+            byEmployee.set(row.employee, {
+              ...existing,
+              status: row.status,
+              in_time: row.in_time,
+              out_time: row.out_time,
+              attendance_date: selectedDate,
+            });
           }
           return { data: Array.from(byEmployee.values()) };
         });
@@ -334,7 +415,13 @@ export default function StaffAttendancePage() {
               attendance_date: selectedDate,
               company: v?.custom_company || defaultCompany || "",
             };
-            byEmployee.set(row.employee, { ...existing, status: row.status, attendance_date: selectedDate });
+            byEmployee.set(row.employee, {
+              ...existing,
+              status: row.status,
+              in_time: row.in_time,
+              out_time: row.out_time,
+              attendance_date: selectedDate,
+            });
           }
           return { data: Array.from(byEmployee.values()) };
         });
@@ -517,58 +604,89 @@ export default function StaffAttendancePage() {
               {merged.map((emp, index) => {
                 const cfg = statusConfig[emp.attendance_status] ?? statusConfig["Not Marked"];
                 const Icon = cfg.icon as React.ComponentType<{ className?: string }>;
+                const showTimings = emp.attendance_status && emp.attendance_status !== "Absent" && emp.attendance_status !== "On Leave" && emp.attendance_status !== "Work From Home" && emp.attendance_status !== "Not Marked";
 
                 return (
-                  <motion.button
+                  <motion.div
                     key={emp.name}
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: index * 0.02 }}
-                    whileTap={{ scale: 0.97 }}
-                    onClick={() => cycleStatus(emp.name, emp.attendance_status)}
-                    className={`flex items-center gap-3 p-3 rounded-[10px] border-2 transition-all cursor-pointer text-left ${cfg.bg} ${
+                    className={`flex flex-col gap-2 p-3 rounded-[10px] border-2 transition-all ${cfg.bg} ${
                       emp.hasChange ? "ring-2 ring-primary/30 border-primary/20" : "border-transparent"
                     }`}
                   >
-                    {/* Avatar */}
-                    <div className="w-10 h-10 rounded-full bg-brand-wash flex items-center justify-center overflow-hidden flex-shrink-0">
-                      {emp.image ? (
-                        <img
-                          src={`${process.env.NEXT_PUBLIC_FRAPPE_URL}${emp.image}`}
-                          alt={emp.employee_name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <span className="text-sm font-semibold text-primary">
-                          {emp.employee_name?.charAt(0)?.toUpperCase() || "?"}
-                        </span>
-                      )}
+                    <div
+                      onClick={() => cycleStatus(emp.name, emp.attendance_status)}
+                      className="flex items-center gap-3 cursor-pointer text-left"
+                    >
+                      {/* Avatar */}
+                      <div className="w-10 h-10 rounded-full bg-brand-wash flex items-center justify-center overflow-hidden flex-shrink-0">
+                        {emp.image ? (
+                          <img
+                            src={`${process.env.NEXT_PUBLIC_FRAPPE_URL}${emp.image}`}
+                            alt={emp.employee_name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-sm font-semibold text-primary">
+                            {emp.employee_name?.charAt(0)?.toUpperCase() || "?"}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-text-primary truncate">
+                          {emp.employee_name}
+                        </p>
+                        <p className="text-xs text-text-tertiary truncate">
+                          {emp.designation || emp.department || emp.name}
+                        </p>
+                      </div>
+
+                      {/* Status */}
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <Icon className={`h-4 w-4 ${cfg.color}`} />
+                        <Badge variant={cfg.variant} className="text-[10px]">
+                          {emp.attendance_status}
+                        </Badge>
+                      </div>
                     </div>
 
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-text-primary truncate">
-                        {emp.employee_name}
-                      </p>
-                      <p className="text-xs text-text-tertiary truncate">
-                        {emp.designation || emp.department || emp.name}
-                      </p>
-                    </div>
+                    {/* Check-In and Check-Out Time Controls */}
+                    {showTimings && (
+                      <div className="pt-2 border-t border-border-light/60 flex items-center justify-between gap-2 text-xs">
+                        <div className="flex items-center gap-1.5 bg-surface/80 px-2 py-1 rounded-[6px] border border-border-light">
+                          <LogIn className="h-3 w-3 text-success flex-shrink-0" />
+                          <span className="text-[11px] text-text-secondary font-medium">In:</span>
+                          <input
+                            type="time"
+                            value={emp.in_time || ""}
+                            onChange={(e) => handleInTimeChange(emp.name, e.target.value)}
+                            className="h-6 px-1.5 border border-border-input rounded bg-surface text-text-primary text-[11px]"
+                          />
+                        </div>
 
-                    {/* Status */}
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <Icon className={`h-4 w-4 ${cfg.color}`} />
-                      <Badge variant={cfg.variant} className="text-[10px]">
-                        {emp.attendance_status}
-                      </Badge>
-                    </div>
-                  </motion.button>
+                        <div className="flex items-center gap-1.5 bg-surface/80 px-2 py-1 rounded-[6px] border border-border-light">
+                          <LogOut className="h-3 w-3 text-error flex-shrink-0" />
+                          <span className="text-[11px] text-text-secondary font-medium">Out:</span>
+                          <input
+                            type="time"
+                            value={emp.out_time || ""}
+                            onChange={(e) => handleOutTimeChange(emp.name, e.target.value)}
+                            className="h-6 px-1.5 border border-border-input rounded bg-surface text-text-primary text-[11px]"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </motion.div>
                 );
               })}
             </div>
 
             <p className="text-xs text-text-tertiary mt-4 text-center">
-              Click on an employee card to cycle through: Present → Absent → Half Day → On Leave → Work From Home
+              Click on an employee card header to cycle status. Set In & Out times directly below.
             </p>
           </CardContent>
         </Card>
@@ -596,72 +714,98 @@ export default function StaffAttendancePage() {
                   !search || v.instructor_name.toLowerCase().includes(search.toLowerCase())
                 )
                 .map((v, index) => {
-                  const pendingStatus = pendingChanges[`visiting_${v.employee}`];
+                  const pending = pendingChanges[`visiting_${v.employee}`];
                   const existingAtt = visitingAttMap.get(v.employee);
-                  const currentStatus = (pendingStatus ?? existingAtt?.status ?? "Not Marked") as string;
-                  const hasChange = pendingStatus !== undefined && pendingStatus !== (existingAtt?.status ?? "Not Marked");
+                  const currentStatus = (pending?.status ?? existingAtt?.status ?? "Not Marked") as string;
+                  const in_time = pending?.in_time ?? formatTimeForInput(existingAtt?.in_time);
+                  const out_time = pending?.out_time ?? formatTimeForInput(existingAtt?.out_time);
+                  const hasChange = pending !== undefined && (
+                    pending.status !== (existingAtt?.status ?? "Not Marked") ||
+                    pending.in_time !== formatTimeForInput(existingAtt?.in_time) ||
+                    pending.out_time !== formatTimeForInput(existingAtt?.out_time)
+                  );
                   const cfg = statusConfig[currentStatus] ?? statusConfig["Not Marked"];
                   const Icon = cfg.icon as React.ComponentType<{ className?: string }>;
+                  const showTimings = currentStatus && currentStatus !== "Absent" && currentStatus !== "On Leave" && currentStatus !== "Work From Home" && currentStatus !== "Not Marked";
 
                   return (
-                    <motion.button
+                    <motion.div
                       key={v.employee}
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: index * 0.03 }}
-                      whileTap={{ scale: 0.97 }}
-                      onClick={() => {
-                        const key = `visiting_${v.employee}`;
-                        const currentIndex = STATUS_OPTIONS.indexOf(currentStatus as StaffStatus);
-                        const nextIndex = currentStatus === "Not Marked" ? 0 : (currentIndex + 1) % STATUS_OPTIONS.length;
-                        const nextStatus = STATUS_OPTIONS[nextIndex];
-                        const original = existingAtt?.status ?? "Not Marked";
-                        if (nextStatus === original) {
-                          setPendingChanges((prev) => { const next = { ...prev }; delete next[key]; return next; });
-                        } else {
-                          setPendingChanges((prev) => ({ ...prev, [key]: nextStatus }));
-                        }
-                      }}
-                      className={`flex items-center gap-3 p-3 rounded-[10px] border-2 transition-all cursor-pointer text-left ${cfg.bg} ${
+                      className={`flex flex-col gap-2 p-3 rounded-[10px] border-2 transition-all ${cfg.bg} ${
                         hasChange ? "ring-2 ring-primary/30 border-primary/20" : "border-transparent"
                       }`}
                     >
-                      {/* Avatar */}
-                      <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center overflow-hidden flex-shrink-0">
-                        {v.image ? (
-                          <img
-                            src={`${process.env.NEXT_PUBLIC_FRAPPE_URL}${v.image}`}
-                            alt={v.instructor_name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <span className="text-sm font-semibold text-amber-700">
-                            {v.instructor_name?.charAt(0)?.toUpperCase() || "?"}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <p className="text-sm font-medium text-text-primary truncate">{v.instructor_name}</p>
-                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
-                            Visiting
-                          </span>
+                      <div
+                        onClick={() => cycleStatus(v.employee, currentStatus, true)}
+                        className="flex items-center gap-3 cursor-pointer text-left"
+                      >
+                        {/* Avatar */}
+                        <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                          {v.image ? (
+                            <img
+                              src={`${process.env.NEXT_PUBLIC_FRAPPE_URL}${v.image}`}
+                              alt={v.instructor_name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-sm font-semibold text-amber-700">
+                              {v.instructor_name?.charAt(0)?.toUpperCase() || "?"}
+                            </span>
+                          )}
                         </div>
-                        <p className="text-xs text-text-tertiary truncate">
-                          {v.custom_company ?? v.employee} · {v.schedules.length} class{v.schedules.length !== 1 ? "es" : ""}
-                        </p>
+
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="text-sm font-medium text-text-primary truncate">{v.instructor_name}</p>
+                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
+                              Visiting
+                            </span>
+                          </div>
+                          <p className="text-xs text-text-tertiary truncate">
+                            {v.custom_company ?? v.employee} · {v.schedules.length} class{v.schedules.length !== 1 ? "es" : ""}
+                          </p>
+                        </div>
+
+                        {/* Status */}
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          <Icon className={`h-4 w-4 ${cfg.color}`} />
+                          <Badge variant={cfg.variant} className="text-[10px]">
+                            {currentStatus}
+                          </Badge>
+                        </div>
                       </div>
 
-                      {/* Status */}
-                      <div className="flex items-center gap-1.5 flex-shrink-0">
-                        <Icon className={`h-4 w-4 ${cfg.color}`} />
-                        <Badge variant={cfg.variant} className="text-[10px]">
-                          {currentStatus}
-                        </Badge>
-                      </div>
-                    </motion.button>
+                      {/* Check-In and Check-Out Time Controls */}
+                      {showTimings && (
+                        <div className="pt-2 border-t border-border-light/60 flex items-center justify-between gap-2 text-xs">
+                          <div className="flex items-center gap-1.5 bg-surface/80 px-2 py-1 rounded-[6px] border border-border-light">
+                            <LogIn className="h-3 w-3 text-success flex-shrink-0" />
+                            <span className="text-[11px] text-text-secondary font-medium">In:</span>
+                            <input
+                              type="time"
+                              value={in_time || ""}
+                              onChange={(e) => handleInTimeChange(v.employee, e.target.value, true)}
+                              className="h-6 px-1.5 border border-border-input rounded bg-surface text-text-primary text-[11px]"
+                            />
+                          </div>
+
+                          <div className="flex items-center gap-1.5 bg-surface/80 px-2 py-1 rounded-[6px] border border-border-light">
+                            <LogOut className="h-3 w-3 text-error flex-shrink-0" />
+                            <span className="text-[11px] text-text-secondary font-medium">Out:</span>
+                            <input
+                              type="time"
+                              value={out_time || ""}
+                              onChange={(e) => handleOutTimeChange(v.employee, e.target.value, true)}
+                              className="h-6 px-1.5 border border-border-input rounded bg-surface text-text-primary text-[11px]"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </motion.div>
                   );
                 })}
             </div>

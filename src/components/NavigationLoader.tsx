@@ -17,7 +17,7 @@ function NavProgress() {
     return () => clearInterval(interval);
   }, []);
   return (
-    <div className="flex flex-col items-center gap-2 w-48">
+    <div className="flex flex-col items-center gap-2 w-72">
       <p className="text-[10px] font-black uppercase tracking-[0.22em] text-primary">
         CRAFTING THE FUTURE
       </p>
@@ -114,7 +114,7 @@ export function NavigationLoader() {
                 loop
                 muted
                 playsInline
-                className="w-48 h-48 object-contain"
+                className="w-96 h-96 object-contain"
               />
               <NavProgress />
             </div>

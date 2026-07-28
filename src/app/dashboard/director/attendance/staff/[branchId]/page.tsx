@@ -15,6 +15,9 @@ import {
   XCircle,
   Clock,
   Users,
+  FileText,
+  LogIn,
+  LogOut,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
@@ -37,6 +40,17 @@ const statusConfig: Record<
   "Work From Home": { color: "text-primary", bg: "bg-brand-wash", icon: Users, variant: "default" },
   "Not Marked": { color: "text-text-tertiary", bg: "bg-app-bg", icon: Clock, variant: "default" },
 };
+
+function formatDisplayTime(val?: string | null): string {
+  if (!val) return "";
+  let raw = val;
+  if (raw.includes("T")) {
+    raw = raw.split("T")[1] || "";
+  } else if (raw.includes(" ")) {
+    raw = raw.split(" ")[1] || "";
+  }
+  return raw.slice(0, 5);
+}
 
 export default function DirectorStaffBranchAttendancePage() {
   const params = useParams();
@@ -78,12 +92,14 @@ export default function DirectorStaffBranchAttendancePage() {
   // Build lookup: employee name → attendance record
   const attMap = new Map(attendanceRecords.map((r) => [r.employee, r]));
 
-  // Merge employees with their attendance status
+  // Merge employees with their attendance status & timings
   const merged = employees.map((emp) => {
     const att = attMap.get(emp.name);
     return {
       ...emp,
       attendance_status: (att?.status ?? "Not Marked") as string,
+      in_time: formatDisplayTime(att?.in_time || att?.custom_check_in),
+      out_time: formatDisplayTime(att?.out_time || att?.custom_check_out),
     };
   });
 
@@ -100,20 +116,28 @@ export default function DirectorStaffBranchAttendancePage() {
     >
       <BreadcrumbNav />
 
-      <div className="flex items-center gap-3">
-        <Link href="/dashboard/director/attendance/staff">
-          <Button variant="ghost" size="sm" className="gap-1">
-            <ArrowLeft className="h-4 w-4" /> Back
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Link href="/dashboard/director/attendance/staff">
+            <Button variant="ghost" size="sm" className="gap-1">
+              <ArrowLeft className="h-4 w-4" /> Back
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-text-primary">
+              Staff Attendance — {shortName}
+            </h1>
+            <p className="text-sm text-text-secondary mt-0.5">
+              {merged.length} employees
+            </p>
+          </div>
+        </div>
+        <Link href={`/dashboard/director/attendance/staff/${params.branchId}/report`}>
+          <Button variant="outline" className="gap-2">
+            <FileText className="h-4 w-4" />
+            Monthly Report
           </Button>
         </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-text-primary">
-            Staff Attendance — {shortName}
-          </h1>
-          <p className="text-sm text-text-secondary mt-0.5">
-            {merged.length} employees
-          </p>
-        </div>
       </div>
 
       {/* Date picker */}
@@ -190,44 +214,65 @@ export default function DirectorStaffBranchAttendancePage() {
                   statusConfig[emp.attendance_status] ??
                   statusConfig["Not Marked"];
                 const Icon = cfg.icon;
+                const showTimings = emp.attendance_status && emp.attendance_status !== "Absent" && emp.attendance_status !== "On Leave" && emp.attendance_status !== "Work From Home" && emp.attendance_status !== "Not Marked";
 
                 return (
                   <div
                     key={emp.name}
-                    className={`flex items-center gap-3 p-3 rounded-[10px] border border-transparent ${cfg.bg}`}
+                    className={`flex flex-col gap-2 p-3 rounded-[10px] border border-transparent ${cfg.bg}`}
                   >
-                    {/* Avatar */}
-                    <div className="w-10 h-10 rounded-full bg-brand-wash flex items-center justify-center overflow-hidden flex-shrink-0">
-                      {emp.image ? (
-                        <img
-                          src={`${process.env.NEXT_PUBLIC_FRAPPE_URL}${emp.image}`}
-                          alt={emp.employee_name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <span className="text-sm font-semibold text-primary">
-                          {emp.employee_name?.charAt(0)?.toUpperCase() || "?"}
-                        </span>
-                      )}
+                    <div className="flex items-center gap-3">
+                      {/* Avatar */}
+                      <div className="w-10 h-10 rounded-full bg-brand-wash flex items-center justify-center overflow-hidden flex-shrink-0">
+                        {emp.image ? (
+                          <img
+                            src={`${process.env.NEXT_PUBLIC_FRAPPE_URL}${emp.image}`}
+                            alt={emp.employee_name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-sm font-semibold text-primary">
+                            {emp.employee_name?.charAt(0)?.toUpperCase() || "?"}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-text-primary truncate">
+                          {emp.employee_name}
+                        </p>
+                        <p className="text-xs text-text-tertiary truncate">
+                          {emp.designation || emp.department || emp.name}
+                        </p>
+                      </div>
+
+                      {/* Status */}
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <Icon className={`h-4 w-4 ${cfg.color}`} />
+                        <Badge variant={cfg.variant} className="text-[10px]">
+                          {emp.attendance_status}
+                        </Badge>
+                      </div>
                     </div>
 
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-text-primary truncate">
-                        {emp.employee_name}
-                      </p>
-                      <p className="text-xs text-text-tertiary truncate">
-                        {emp.designation || emp.department || emp.name}
-                      </p>
-                    </div>
-
-                    {/* Status */}
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <Icon className={`h-4 w-4 ${cfg.color}`} />
-                      <Badge variant={cfg.variant} className="text-[10px]">
-                        {emp.attendance_status}
-                      </Badge>
-                    </div>
+                    {/* Check-In and Check-Out Time Display */}
+                    {showTimings && (emp.in_time || emp.out_time) && (
+                      <div className="pt-2 border-t border-border-light/60 flex items-center justify-between gap-2 text-xs font-medium text-text-secondary">
+                        {emp.in_time && (
+                          <div className="flex items-center gap-1 bg-surface/80 px-2 py-1 rounded-[6px] border border-border-light">
+                            <LogIn className="h-3 w-3 text-success flex-shrink-0" />
+                            <span>In: {emp.in_time}</span>
+                          </div>
+                        )}
+                        {emp.out_time && (
+                          <div className="flex items-center gap-1 bg-surface/80 px-2 py-1 rounded-[6px] border border-border-light">
+                            <LogOut className="h-3 w-3 text-error flex-shrink-0" />
+                            <span>Out: {emp.out_time}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}

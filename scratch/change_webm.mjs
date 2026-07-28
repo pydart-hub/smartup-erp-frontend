@@ -15,15 +15,12 @@ function walk(dir) {
   });
   return results;
 }
-
 const files = walk('./src');
 let changedCount = 0;
-
 for (const file of files) {
   let content = fs.readFileSync(file, 'utf8');
   let newContent = content.replace(/\/loading\.mp4/g, '/loading.webm');
   newContent = newContent.replace(/type="video\/mp4"/g, 'type="video/webm"');
-
   if (newContent !== content) {
     fs.writeFileSync(file, newContent);
     changedCount++;

@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 
 export function GifLoader({ className, size = "md" }: { className?: string; size?: "sm" | "md" | "lg" }) {
-  const gifSize = size === "lg" ? "w-48 h-48" : size === "sm" ? "w-16 h-16" : "w-32 h-32";
-  const containerH = size === "lg" ? "h-[300px]" : size === "sm" ? "h-24" : "h-64";
-  const barW = size === "sm" ? "w-24" : "w-48";
+  const gifSize = size === "lg" ? "w-96 h-96" : size === "sm" ? "w-28 h-28" : "w-72 h-72";
+  const containerH = size === "lg" ? "h-[460px]" : size === "sm" ? "h-40" : "h-[360px]";
+  const barW = size === "sm" ? "w-36" : size === "lg" ? "w-96" : "w-72";
 
   const [progress, setProgress] = useState(0);
 

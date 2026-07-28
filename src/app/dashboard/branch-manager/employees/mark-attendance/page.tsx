@@ -13,6 +13,8 @@ import {
   Users,
   Save,
   RefreshCw,
+  LogIn,
+  LogOut,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Badge } from "@/components/ui/Badge";
@@ -31,6 +33,12 @@ import {
 
 type AttStatus = "Present" | "Absent" | "Half Day" | "On Leave" | "Work From Home";
 
+interface AttendanceFormEntry {
+  status: AttStatus;
+  in_time?: string;
+  out_time?: string;
+}
+
 const STATUS_OPTIONS: { value: AttStatus; label: string; icon: React.ComponentType<{ className?: string }>; variant: "success" | "error" | "warning" | "default" }[] = [
   { value: "Present",          label: "Present",  icon: CheckCircle, variant: "success" },
   { value: "Absent",           label: "Absent",   icon: XCircle,     variant: "error"   },
@@ -38,6 +46,24 @@ const STATUS_OPTIONS: { value: AttStatus; label: string; icon: React.ComponentTy
   { value: "On Leave",         label: "On Leave", icon: UserX,       variant: "default" },
   { value: "Work From Home",   label: "WFH",      icon: Users,       variant: "default" },
 ];
+
+const DEFAULT_IN_TIME = "09:00";
+const DEFAULT_OUT_TIME = "17:30";
+const DEFAULT_HALF_DAY_OUT_TIME = "13:00";
+
+// Helper to normalize "HH:mm:ss" or ISO string from backend into "HH:mm" for <input type="time" />
+function formatTimeForInput(val?: string | null): string {
+  if (!val) return "";
+  if (val.includes("T")) {
+    const timePart = val.split("T")[1];
+    return timePart ? timePart.slice(0, 5) : "";
+  }
+  if (val.includes(" ")) {
+    const timePart = val.split(" ")[1];
+    return timePart ? timePart.slice(0, 5) : "";
+  }
+  return val.slice(0, 5);
+}
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -48,8 +74,8 @@ export default function MarkAttendancePage() {
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().split("T")[0]
   );
-  // Map: employee name → chosen status (only modified entries)
-  const [changes, setChanges] = useState<Record<string, AttStatus>>({});
+  // Map: employee name → chosen entry (status, in_time, out_time)
+  const [changes, setChanges] = useState<Record<string, AttendanceFormEntry>>({});
   const [saveResult, setSaveResult] = useState<{ saved: number; failed: string[] } | null>(null);
 
   // ── Queries ──────────────────────────────────────────────────────────────────
@@ -71,11 +97,19 @@ export default function MarkAttendancePage() {
   });
 
   const employees = empRes?.data ?? [];
-  // Map employee → { name (doc id), status, docstatus } from existing attendance
+  // Map employee → { docId, status, in_time, out_time } from existing attendance
   const existingMap = useMemo(
     () =>
       new Map(
-        (attRes?.data ?? []).map((r) => [r.employee, { docId: r.name, status: r.status as AttStatus }])
+        (attRes?.data ?? []).map((r) => [
+          r.employee,
+          {
+            docId: r.name,
+            status: r.status as AttStatus,
+            in_time: formatTimeForInput(r.in_time),
+            out_time: formatTimeForInput(r.out_time),
+          },
+        ])
       ),
     [attRes]
   );
@@ -89,18 +123,73 @@ export default function MarkAttendancePage() {
 
   const setStatus = (empName: string, status: AttStatus) => {
     setSaveResult(null);
-    setChanges((prev) => ({ ...prev, [empName]: status }));
+    const existing = existingMap.get(empName);
+    let in_time = changes[empName]?.in_time ?? existing?.in_time ?? "";
+    let out_time = changes[empName]?.out_time ?? existing?.out_time ?? "";
+
+    if (status === "Present") {
+      if (!in_time) in_time = DEFAULT_IN_TIME;
+      if (!out_time) out_time = DEFAULT_OUT_TIME;
+    } else if (status === "Half Day") {
+      if (!in_time) in_time = DEFAULT_IN_TIME;
+      if (!out_time) out_time = DEFAULT_HALF_DAY_OUT_TIME;
+    } else if (status === "Absent" || status === "On Leave" || status === "Work From Home") {
+      in_time = "";
+      out_time = "";
+    }
+
+    setChanges((prev) => ({
+      ...prev,
+      [empName]: { status, in_time, out_time },
+    }));
   };
 
-  const getEffectiveStatus = (empName: string): AttStatus | null =>
-    changes[empName] ?? existingMap.get(empName)?.status ?? null;
+  const setInTime = (empName: string, in_time: string) => {
+    setSaveResult(null);
+    const current = getEffectiveEntry(empName);
+    setChanges((prev) => ({
+      ...prev,
+      [empName]: {
+        status: current?.status ?? "Present",
+        in_time,
+        out_time: current?.out_time ?? "",
+      },
+    }));
+  };
+
+  const setOutTime = (empName: string, out_time: string) => {
+    setSaveResult(null);
+    const current = getEffectiveEntry(empName);
+    setChanges((prev) => ({
+      ...prev,
+      [empName]: {
+        status: current?.status ?? "Present",
+        in_time: current?.in_time ?? "",
+        out_time,
+      },
+    }));
+  };
+
+  const getEffectiveEntry = (empName: string): AttendanceFormEntry | null => {
+    if (empName in changes) return changes[empName];
+    const existing = existingMap.get(empName);
+    if (existing) {
+      return {
+        status: existing.status,
+        in_time: existing.in_time,
+        out_time: existing.out_time,
+      };
+    }
+    return null;
+  };
 
   // ── Summary counts ────────────────────────────────────────────────────────────
 
   const summary = useMemo(() => {
     let present = 0, absent = 0, halfDay = 0, onLeave = 0, wfh = 0, unmarked = 0;
     employees.forEach((e) => {
-      const s = getEffectiveStatus(e.name);
+      const entry = getEffectiveEntry(e.name);
+      const s = entry?.status;
       if (!s) unmarked++;
       else if (s === "Present") present++;
       else if (s === "Absent") absent++;
@@ -122,7 +211,7 @@ export default function MarkAttendancePage() {
       const failed: string[] = [];
       let saved = 0;
 
-      for (const [empName, status] of pending) {
+      for (const [empName, entry] of pending) {
         const emp = employees.find((e) => e.name === empName);
         if (!emp) continue;
         const existing = existingMap.get(empName);
@@ -130,8 +219,10 @@ export default function MarkAttendancePage() {
           employee: emp.name,
           employee_name: emp.employee_name,
           attendance_date: selectedDate,
-          status,
+          status: entry.status,
           company: emp.company,
+          in_time: entry.in_time ? `${selectedDate} ${entry.in_time}:00` : undefined,
+          out_time: entry.out_time ? `${selectedDate} ${entry.out_time}:00` : undefined,
         };
 
         try {
@@ -238,7 +329,7 @@ export default function MarkAttendancePage() {
         <>
           <div className="space-y-2">
             {employees.map((emp, index) => {
-              const effective = getEffectiveStatus(emp.name);
+              const effective = getEffectiveEntry(emp.name);
               const isPending = emp.name in changes;
               const existing = existingMap.get(emp.name);
 
@@ -251,61 +342,89 @@ export default function MarkAttendancePage() {
                 >
                   <Card className={`transition-all ${isPending ? "ring-1 ring-primary/40" : ""}`}>
                     <CardContent className="p-3 sm:p-4">
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                        {/* Employee Info */}
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className="w-10 h-10 rounded-full bg-brand-wash flex items-center justify-center overflow-hidden flex-shrink-0">
-                            {emp.image ? (
-                              <img
-                                src={`${process.env.NEXT_PUBLIC_FRAPPE_URL}${emp.image}`}
-                                alt={emp.employee_name}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <span className="text-sm font-bold text-primary">
-                                {emp.employee_name?.charAt(0)?.toUpperCase() || "?"}
-                              </span>
+                      <div className="flex flex-col gap-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                          {/* Employee Info */}
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className="w-10 h-10 rounded-full bg-brand-wash flex items-center justify-center overflow-hidden flex-shrink-0">
+                              {emp.image ? (
+                                <img
+                                  src={`${process.env.NEXT_PUBLIC_FRAPPE_URL}${emp.image}`}
+                                  alt={emp.employee_name}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <span className="text-sm font-bold text-primary">
+                                  {emp.employee_name?.charAt(0)?.toUpperCase() || "?"}
+                                </span>
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-semibold text-sm text-text-primary truncate">
+                                {emp.employee_name}
+                              </p>
+                              <p className="text-[11px] text-text-tertiary truncate">
+                                {emp.designation || emp.department || emp.name}
+                              </p>
+                            </div>
+                            {existing && !isPending && (
+                              <Badge variant="default" className="text-[10px] flex-shrink-0">Saved</Badge>
+                            )}
+                            {isPending && (
+                              <Badge variant="warning" className="text-[10px] flex-shrink-0">Pending</Badge>
                             )}
                           </div>
-                          <div className="min-w-0">
-                            <p className="font-semibold text-sm text-text-primary truncate">
-                              {emp.employee_name}
-                            </p>
-                            <p className="text-[11px] text-text-tertiary truncate">
-                              {emp.designation || emp.department || emp.name}
-                            </p>
+
+                          {/* Status Buttons */}
+                          <div className="flex gap-1.5 flex-wrap">
+                            {STATUS_OPTIONS.map(({ value, label, icon: Icon }) => {
+                              const isSelected = effective?.status === value;
+                              return (
+                                <button
+                                  key={value}
+                                  onClick={() => setStatus(emp.name, value)}
+                                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-[8px] text-xs font-medium transition-all border ${
+                                    isSelected
+                                      ? value === "Present" ? "bg-success text-white border-success"
+                                      : value === "Absent"  ? "bg-error text-white border-error"
+                                      : value === "Half Day" ? "bg-warning text-white border-warning"
+                                      : "bg-primary text-white border-primary"
+                                      : "bg-app-bg text-text-secondary border-border-input hover:bg-brand-wash"
+                                  }`}
+                                >
+                                  <Icon className="h-3 w-3" />
+                                  {label}
+                                </button>
+                              );
+                            })}
                           </div>
-                          {existing && !isPending && (
-                            <Badge variant="default" className="text-[10px] flex-shrink-0">Saved</Badge>
-                          )}
-                          {isPending && (
-                            <Badge variant="warning" className="text-[10px] flex-shrink-0">Pending</Badge>
-                          )}
                         </div>
 
-                        {/* Status Buttons */}
-                        <div className="flex gap-1.5 flex-wrap">
-                          {STATUS_OPTIONS.map(({ value, label, icon: Icon, variant }) => {
-                            const isSelected = effective === value;
-                            return (
-                              <button
-                                key={value}
-                                onClick={() => setStatus(emp.name, value)}
-                                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-[8px] text-xs font-medium transition-all border ${
-                                  isSelected
-                                    ? value === "Present" ? "bg-success text-white border-success"
-                                    : value === "Absent"  ? "bg-error text-white border-error"
-                                    : value === "Half Day" ? "bg-warning text-white border-warning"
-                                    : "bg-primary text-white border-primary"
-                                    : "bg-app-bg text-text-secondary border-border-input hover:bg-brand-wash"
-                                }`}
-                              >
-                                <Icon className="h-3 w-3" />
-                                {label}
-                              </button>
-                            );
-                          })}
-                        </div>
+                        {/* Check-In and Check-Out Time Inputs */}
+                        {effective?.status && effective.status !== "Absent" && effective.status !== "On Leave" && effective.status !== "Work From Home" && (
+                          <div className="pt-2 border-t border-border-light flex flex-wrap items-center gap-4 text-xs">
+                            <div className="flex items-center gap-1.5">
+                              <LogIn className="h-3.5 w-3.5 text-success" />
+                              <span className="text-text-secondary font-medium">Check-In:</span>
+                              <input
+                                type="time"
+                                value={effective.in_time || ""}
+                                onChange={(e) => setInTime(emp.name, e.target.value)}
+                                className="h-8 px-2 border border-border-input rounded-[6px] bg-surface text-text-primary text-xs"
+                              />
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <LogOut className="h-3.5 w-3.5 text-error" />
+                              <span className="text-text-secondary font-medium">Check-Out:</span>
+                              <input
+                                type="time"
+                                value={effective.out_time || ""}
+                                onChange={(e) => setOutTime(emp.name, e.target.value)}
+                                className="h-8 px-2 border border-border-input rounded-[6px] bg-surface text-text-primary text-xs"
+                              />
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -343,3 +462,4 @@ export default function MarkAttendancePage() {
     </motion.div>
   );
 }
+
