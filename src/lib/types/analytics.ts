@@ -414,6 +414,8 @@ export interface InstructorLeaderboardEntry {
   exams_total: number;
   student_att_present: number;
   student_att_total: number;
+  tte_avg_score?: number;
+  tte_evals_count?: number;
   // Score breakdown
   score_hr: number;
   score_classes: number;
@@ -422,6 +424,7 @@ export interface InstructorLeaderboardEntry {
   score_exams: number;
   score_students: number;
   score_ontime: number;
+  score_tte?: number;
   total_score: number;
   grade: string;
   badges: InstructorLeaderboardBadge[];
@@ -441,6 +444,7 @@ export interface InstructorLeaderboardResponse {
     avg_hr_attendance_pct: number;
     avg_student_pass_rate: number;
     avg_student_attendance_pct: number;
+    avg_tte_score?: number;
     from_date: string | null;
     to_date: string;
     period: string;

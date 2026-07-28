@@ -23,15 +23,17 @@ async function api(method, path, body) {
   return json.data ?? json.message ?? json;
 }
 
-async function main() {
-  const peName = "PEN-12sc state-Palluruthy 26-27-150";
-  const pe = await api("GET", `/api/resource/Program Enrollment/${encodeURIComponent(peName)}`);
-  console.log("Program Enrollment Detail:", JSON.stringify(pe, null, 2));
+const get = (path) => api("GET", path);
 
-  const ces = await api("GET", `/api/resource/Course Enrollment?filters=${encodeURIComponent(JSON.stringify([
-    ["program_enrollment", "=", peName]
-  ]))}&fields=${encodeURIComponent(JSON.stringify(["name", "course", "custom_batch_name", "docstatus"]))}`);
-  console.log("Course Enrollments:", JSON.stringify(ces, null, 2));
+async function main() {
+  const fsName = "SU CHL-12th Science State-Basic-8";
+  console.log(`Checking Fee Structure: ${fsName}`);
+  try {
+    const fs = await get(`/api/resource/Fee Structure/${encodeURIComponent(fsName)}`);
+    console.log("FOUND Fee Structure:", JSON.stringify(fs, null, 2));
+  } catch (err) {
+    console.error("ERROR Fetching Fee Structure:", err.message);
+  }
 }
 
 main().catch(console.error);

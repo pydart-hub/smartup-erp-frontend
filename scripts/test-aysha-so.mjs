@@ -23,15 +23,33 @@ async function api(method, path, body) {
   return json.data ?? json.message ?? json;
 }
 
-async function main() {
-  const peName = "PEN-12sc state-Palluruthy 26-27-150";
-  const pe = await api("GET", `/api/resource/Program Enrollment/${encodeURIComponent(peName)}`);
-  console.log("Program Enrollment Detail:", JSON.stringify(pe, null, 2));
+const get = (path) => api("GET", path);
 
-  const ces = await api("GET", `/api/resource/Course Enrollment?filters=${encodeURIComponent(JSON.stringify([
-    ["program_enrollment", "=", peName]
-  ]))}&fields=${encodeURIComponent(JSON.stringify(["name", "course", "custom_batch_name", "docstatus"]))}`);
-  console.log("Course Enrollments:", JSON.stringify(ces, null, 2));
+async function main() {
+  const studentId = "STU-SU CHL-26-275";
+  console.log("Checking Item lookup for '12th Science State'...");
+  
+  const itemFields = JSON.stringify([
+    "name", "item_code", "item_name", "item_group", "standard_rate", "stock_uom",
+  ]);
+
+  const exactCode = "12th Science State Tuition Fee";
+  const exactParams = new URLSearchParams({
+    fields: itemFields,
+    filters: JSON.stringify([
+      ["item_code", "=", exactCode],
+      ["is_sales_item", "=", 1],
+      ["disabled", "=", 0],
+    ]),
+    limit_page_length: "1",
+  });
+  
+  try {
+    const res = await get(`/api/resource/Item?${exactParams}`);
+    console.log("Item query result:", JSON.stringify(res, null, 2));
+  } catch (err) {
+    console.error("Item query error:", err.message);
+  }
 }
 
 main().catch(console.error);

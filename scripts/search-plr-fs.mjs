@@ -24,14 +24,8 @@ async function api(method, path, body) {
 }
 
 async function main() {
-  const peName = "PEN-12sc state-Palluruthy 26-27-150";
-  const pe = await api("GET", `/api/resource/Program Enrollment/${encodeURIComponent(peName)}`);
-  console.log("Program Enrollment Detail:", JSON.stringify(pe, null, 2));
-
-  const ces = await api("GET", `/api/resource/Course Enrollment?filters=${encodeURIComponent(JSON.stringify([
-    ["program_enrollment", "=", peName]
-  ]))}&fields=${encodeURIComponent(JSON.stringify(["name", "course", "custom_batch_name", "docstatus"]))}`);
-  console.log("Course Enrollments:", JSON.stringify(ces, null, 2));
+  const fs = await api("GET", `/api/resource/Fee Structure/SU%20PLR-12th%20Science%20State-Basic-4`);
+  console.log(JSON.stringify(fs, null, 2));
 }
 
 main().catch(console.error);

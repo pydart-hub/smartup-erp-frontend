@@ -24,6 +24,7 @@ import {
   Building2,
   Check,
   Calendar,
+  Award,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { getInstructorLeaderboard } from "@/lib/api/analytics";
@@ -33,8 +34,7 @@ import { format, parseISO, isValid, startOfMonth, endOfMonth, eachDayOfInterval,
 
 // -- Types ------------------------------------------------------------------
 
-type Period = "month" | "quarter" | "year" | "all";
-type Tab = "overall" | "hr" | "classes" | "topics" | "work" | "exams" | "students";
+type Tab = "overall" | "hr" | "classes" | "topics" | "work" | "exams" | "students" | "tte";
 
 
 
@@ -46,16 +46,18 @@ const TABS: { value: Tab; label: string; icon: React.ComponentType<{ className?:
   { value: "work",     label: "Work Assign.",   icon: ClipboardList},
   { value: "exams",    label: "Exam Results",   icon: GraduationCap},
   { value: "students", label: "Student Att.",   icon: Users        },
+  { value: "tte",      label: "Training Eval.", icon: Award        },
 ];
 
 const SCORE_COMPONENTS = [
-  { key: "score_hr"       as const, label: "HR Attendance",    weight: 20, color: "bg-violet-500",  bar: "from-violet-400 to-violet-600",  pctKey: "hr_attendance_pct"      as const },
-  { key: "score_classes"  as const, label: "Classes",          weight: 20, color: "bg-blue-500",    bar: "from-blue-400 to-blue-600",      pctKey: "classes_conducted_pct"  as const },
+  { key: "score_hr"       as const, label: "HR Attendance",    weight: 15, color: "bg-violet-500",  bar: "from-violet-400 to-violet-600",  pctKey: "hr_attendance_pct"      as const },
+  { key: "score_classes"  as const, label: "Classes",          weight: 15, color: "bg-blue-500",    bar: "from-blue-400 to-blue-600",      pctKey: "classes_conducted_pct"  as const },
   { key: "score_topics"   as const, label: "Topic Coverage",   weight: 20, color: "bg-emerald-500", bar: "from-emerald-400 to-emerald-600",pctKey: "topic_coverage_pct"     as const },
   { key: "score_wa"       as const, label: "Work Assignments", weight: 15, color: "bg-amber-500",   bar: "from-amber-400 to-amber-600",    pctKey: "wa_completion_pct"      as const },
   { key: "score_exams"    as const, label: "Student Exams",    weight: 10, color: "bg-rose-500",    bar: "from-rose-400 to-rose-600",      pctKey: "student_pass_rate"      as const },
   { key: "score_students" as const, label: "Student Att.",     weight: 10, color: "bg-sky-500",     bar: "from-sky-400 to-sky-600",        pctKey: "student_attendance_pct" as const },
   { key: "score_ontime"   as const, label: "On-Time Submit",   weight:  5, color: "bg-orange-500",  bar: "from-orange-400 to-orange-600",  pctKey: "wa_on_time_pct"         as const },
+  { key: "score_tte"      as const, label: "Training Eval.",   weight: 10, color: "bg-fuchsia-500", bar: "from-fuchsia-400 to-fuchsia-600",pctKey: "tte_avg_score"          as const },
 ];
 
 const TAB_PRIMARY: Record<Tab, (typeof SCORE_COMPONENTS)[number]["pctKey"] | "total_score"> = {
@@ -66,6 +68,7 @@ const TAB_PRIMARY: Record<Tab, (typeof SCORE_COMPONENTS)[number]["pctKey"] | "to
   work:     "wa_completion_pct",
   exams:    "student_pass_rate",
   students: "student_attendance_pct",
+  tte:      "tte_avg_score",
 };
 
 const BADGE_CONFIG: Record<string, { label: string; color: string; icon: React.ComponentType<{ className?: string }> }> = {

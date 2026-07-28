@@ -2,13 +2,15 @@
 
 import React, { useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import {
-  BookOpen, Search, Users, Building2, GraduationCap, Phone, Mail, Calendar, Briefcase, UserCircle,
+  BookOpen, Search, Users, Building2, GraduationCap, Phone, Mail, Calendar, Briefcase, UserCircle, Award,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/lib/hooks/useAuth";
@@ -104,14 +106,24 @@ export default function TeachersPage() {
       <BreadcrumbNav />
 
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-text-primary flex items-center gap-2">
-          <BookOpen className="h-6 w-6 text-primary" />
-          Teachers
-        </h1>
-        <p className="text-sm text-text-secondary mt-0.5">
-          {isLoading ? "Loading…" : `${teachers.length} instructor${teachers.length !== 1 ? "s" : ""} at this branch`}
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-text-primary flex items-center gap-2">
+            <BookOpen className="h-6 w-6 text-primary" />
+            Teachers
+          </h1>
+          <p className="text-sm text-text-secondary mt-0.5">
+            {isLoading ? "Loading…" : `${teachers.length} instructor${teachers.length !== 1 ? "s" : ""} at this branch`}
+          </p>
+        </div>
+        {!isLoading && (
+          <Link href="/dashboard/branch-manager/teachers/training-evaluation">
+            <Button className="rounded-xl flex items-center gap-2 bg-primary text-white shadow-sm hover:shadow-md transition-all">
+              <Award className="h-4.5 w-4.5" />
+              Training Evaluation
+            </Button>
+          </Link>
+        )}
       </div>
 
       {/* Search */}
@@ -263,9 +275,9 @@ export default function TeachersPage() {
                           </div>
                         )}
 
-                        {/* Subjects */}
-                        {(coursesMap.get(teacher.name) ?? []).length > 0 && (
-                          <div className="flex flex-wrap gap-1.5 pt-2 mt-1 border-t border-border-light">
+                        {/* Subjects & Actions Footer */}
+                        <div className="flex justify-between items-end pt-3 mt-3 border-t border-border-light">
+                          <div className="flex flex-wrap gap-1.5 flex-1 mr-2">
                             {(coursesMap.get(teacher.name) ?? []).map((course) => (
                               <span
                                 key={course}
@@ -275,7 +287,13 @@ export default function TeachersPage() {
                               </span>
                             ))}
                           </div>
-                        )}
+                          <Link href={`/dashboard/branch-manager/teachers/training-evaluation?teacher=${encodeURIComponent(teacher.name)}`}>
+                            <Button size="sm" variant="outline" className="rounded-lg h-7 text-[11px] px-2.5 flex items-center gap-1 hover:bg-primary hover:text-white hover:border-primary transition-all">
+                              <Award className="h-3.5 w-3.5" />
+                              Evaluate
+                            </Button>
+                          </Link>
+                        </div>
                       </div>
                     </div>
                   </div>

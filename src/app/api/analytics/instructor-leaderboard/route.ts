@@ -110,7 +110,8 @@ type LeaderboardMetricKey =
   | "work"
   | "exams"
   | "students"
-  | "ontime";
+  | "ontime"
+  | "tte";
 
 type LeaderboardSignal = {
   metric: LeaderboardMetricKey;
@@ -371,6 +372,31 @@ export async function GET(request: NextRequest) {
       examResults = rawResults as typeof examResults;
     }
 
+    // ── 8b. Fetch Training Evaluations ───────────────────────────────────────
+    const tteFilters: (string | number | null)[][] = from
+      ? [["evaluation_date", ">=", from], ["evaluation_date", "<=", to]]
+      : [["evaluation_date", "<=", to]];
+    if (branch) {
+      tteFilters.push(["branch", "=", branch]);
+    }
+    const tteRecords = await frappeList(
+      "SU Teacher Training Evaluation",
+      ["name", "teacher_name", "total_score"],
+      tteFilters,
+    );
+
+    // Map teacher_name (Instructor ID) -> list of scores
+    const tteScoresMap = new Map<string, number[]>();
+    for (const r of tteRecords) {
+      const teacher = String(r.teacher_name ?? "");
+      const score = Number(r.total_score ?? 0);
+      if (!teacher) continue;
+      if (!tteScoresMap.has(teacher)) {
+        tteScoresMap.set(teacher, []);
+      }
+      tteScoresMap.get(teacher)!.push(score);
+    }
+
     const planMetrics = new Map<string, { passRate: number }>();
     for (const plan of assessmentPlans) {
       const planName = String(plan.name ?? "");
@@ -491,17 +517,23 @@ export async function GET(request: NextRequest) {
       }
       const studentAttendancePct = pct(totalStudentPresent, totalStudentSessions);
 
+      // PDP Training Evaluation Score
+      const tteScores = tteScoresMap.get(acc.instructor) || [];
+      const tteAvg = tteScores.length > 0 ? tteScores.reduce((a, b) => a + b, 0) / tteScores.length : 0;
+      const ttePct = Math.round(tteAvg * 10) / 10;
+
       // ── Scores ──────────────────────────────────────────────────────────
-      const score1_hr        = weightedScore(hrAttendancePct, 20);
-      const score2_classes   = weightedScore(classesConductedPct, 20);
+      const score1_hr        = weightedScore(hrAttendancePct, 15);
+      const score2_classes   = weightedScore(classesConductedPct, 15);
       const score3_topics    = weightedScore(topicCoveragePct, 20);
       const score4_wa        = weightedScore(waCompletionPct, 15);
       const score5_exams     = weightedScore(studentPassRate, 10);
       const score6_students  = weightedScore(studentAttendancePct, 10);
       const score7_ontime    = weightedScore(waOnTimePct, 5);
+      const score8_tte       = weightedScore(ttePct, 10);
 
       const totalScore = Math.round(
-        (score1_hr + score2_classes + score3_topics + score4_wa + score5_exams + score6_students + score7_ontime) * 10,
+        (score1_hr + score2_classes + score3_topics + score4_wa + score5_exams + score6_students + score7_ontime + score8_tte) * 10,
       ) / 10;
 
       const strengths: LeaderboardSignal[] = [];
@@ -535,7 +567,7 @@ export async function GET(request: NextRequest) {
                 ? "Attendance consistency, late entries, or early exits reduced HR points."
                 : "Missed attendance days reduced HR attendance points.",
             earned_points: score1_hr,
-            max_points: 20,
+            max_points: 15,
             pct: hrAttendancePct,
             raw_facts: hrFacts,
           });
@@ -545,7 +577,7 @@ export async function GET(request: NextRequest) {
             title: "HR Attendance",
             reason: "Maintained full HR attendance without point loss.",
             earned_points: score1_hr,
-            max_points: 20,
+            max_points: 15,
             pct: hrAttendancePct,
           });
         }
@@ -558,7 +590,7 @@ export async function GET(request: NextRequest) {
             title: "Classes Conducted",
             reason: "Not all scheduled classes were conducted or marked through attendance.",
             earned_points: score2_classes,
-            max_points: 20,
+            max_points: 15,
             pct: classesConductedPct,
             raw_facts: [`${acc.classes_conducted}/${acc.classes_scheduled} scheduled classes counted as conducted`],
           });
@@ -568,7 +600,7 @@ export async function GET(request: NextRequest) {
             title: "Classes Conducted",
             reason: "All scheduled classes were conducted or properly marked.",
             earned_points: score2_classes,
-            max_points: 20,
+            max_points: 15,
             pct: classesConductedPct,
           });
         }
@@ -692,6 +724,29 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      if (tteScores.length > 0) {
+        if (ttePct < 100) {
+          pushWeakness({
+            metric: "tte",
+            title: "Training Evaluation",
+            reason: "Instructor training evaluations score fell below 100%.",
+            earned_points: score8_tte,
+            max_points: 10,
+            pct: ttePct,
+            raw_facts: [`Average score of ${ttePct}/100 across ${tteScores.length} evaluations`],
+          });
+        } else {
+          pushStrength({
+            metric: "tte",
+            title: "Training Evaluation",
+            reason: "Maintained perfect training evaluation scores.",
+            earned_points: score8_tte,
+            max_points: 10,
+            pct: ttePct,
+          });
+        }
+      }
+
       strengths.sort((a, b) => b.earned_points - a.earned_points || b.pct - a.pct);
       weaknesses.sort((a, b) => {
         const lostDiff = (b.lost_points ?? 0) - (a.lost_points ?? 0);
@@ -739,6 +794,8 @@ export async function GET(request: NextRequest) {
         exams_total: examsTotal,
         student_att_present: totalStudentPresent,
         student_att_total: totalStudentSessions,
+        tte_avg_score: ttePct,
+        tte_evals_count: tteScores.length,
         // Score breakdown
         score_hr: score1_hr,
         score_classes: score2_classes,
@@ -747,6 +804,7 @@ export async function GET(request: NextRequest) {
         score_exams: score5_exams,
         score_students: score6_students,
         score_ontime: score7_ontime,
+        score_tte: score8_tte,
         total_score: totalScore,
         grade: getGrade(totalScore),
         badges,
@@ -780,6 +838,7 @@ export async function GET(request: NextRequest) {
         avg_hr_attendance_pct: avg("hr_attendance_pct"),
         avg_student_pass_rate: avg("student_pass_rate"),
         avg_student_attendance_pct: avg("student_attendance_pct"),
+        avg_tte_score: avg("tte_avg_score"),
         from_date: from,
         to_date: to,
         period,
