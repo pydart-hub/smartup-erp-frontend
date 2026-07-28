@@ -121,6 +121,53 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // ── DEDUPLICATION GUARD ──
+    // 1. If invoice_ref is provided, check if a claim for this payment already exists
+    if (invoice_ref && typeof invoice_ref === "string" && invoice_ref.trim()) {
+      try {
+        const existingClaimRes = await frappeGet("resource/Fee Follow Up", {
+          filters: JSON.stringify([["invoice_ref", "=", invoice_ref.trim()]]),
+          fields: JSON.stringify(["name"]),
+          limit_page_length: "1",
+        });
+        const existing = existingClaimRes?.data?.[0];
+        if (existing?.name) {
+          console.log(`[fees/follow-up POST] Duplicate claim prevented for invoice_ref=${invoice_ref}, returning existing name=${existing.name}`);
+          return NextResponse.json({ success: true, name: existing.name, deduplicated: true });
+        }
+      } catch (checkErr) {
+        console.warn("[fees/follow-up POST] Error checking existing invoice_ref claim:", checkErr);
+      }
+    }
+
+    // 2. If student + call_status + branch was logged within the last 60 seconds by the same user, prevent duplicate double-click creation
+    try {
+      const todayDate = new Date().toISOString().slice(0, 10);
+      const recentLogsRes = await frappeGet("resource/Fee Follow Up", {
+        filters: JSON.stringify([
+          ["student", "=", student],
+          ["called_by", "=", session.email],
+          ["call_status", "=", call_status],
+          ["branch", "=", branch],
+          ["creation", ">=", `${todayDate} 00:00:00`],
+        ]),
+        fields: JSON.stringify(["name", "creation"]),
+        order_by: "creation desc",
+        limit_page_length: "1",
+      });
+      const recentLog = recentLogsRes?.data?.[0];
+      if (recentLog?.creation) {
+        const logTime = new Date(recentLog.creation).getTime();
+        const nowTime = Date.now();
+        if (nowTime - logTime < 60_000) {
+          console.log(`[fees/follow-up POST] Rapid duplicate follow-up log prevented for student=${student} within 60s, returning existing name=${recentLog.name}`);
+          return NextResponse.json({ success: true, name: recentLog.name, deduplicated: true });
+        }
+      }
+    } catch (checkErr) {
+      console.warn("[fees/follow-up POST] Error checking recent follow-up log creation:", checkErr);
+    }
+
     // Build the Frappe document
     const now = new Date();
     const callDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:00`;

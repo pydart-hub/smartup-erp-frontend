@@ -263,6 +263,7 @@ export async function GET(request: NextRequest) {
     // Fetch ALL payment_received=1 logs for the assigned branches (all-time).
     // This allows us to calculate both Branch-wide conversions and User-specific conversions in one query.
     {
+      // Fetch logs that represent payment claims: either payment_received = 1 OR call_status = "Already Paid"
       const allTimeFilters: any[][] = [
         ["Fee Follow Up", "payment_received", "=", 1],
       ];
@@ -284,7 +285,7 @@ export async function GET(request: NextRequest) {
 
       try {
         const paidQs = new URLSearchParams({
-          fields: JSON.stringify(["student", "amount_received", "call_date", "called_by", "branch"]),
+          fields: JSON.stringify(["name", "student", "amount_received", "call_date", "called_by", "branch"]),
           filters: JSON.stringify(allTimeFilters),
           limit_page_length: "2000",
           order_by: "call_date asc",
@@ -295,60 +296,56 @@ export async function GET(request: NextRequest) {
         );
         if (paidRes.ok) {
           const paidData = await paidRes.json();
-          const paidLogs: { student: string; amount_received?: number; called_by?: string; branch?: string }[] = paidData.data ?? [];
+          const paidLogs: { name: string; student: string; amount_received?: number; called_by?: string; branch?: string }[] = paidData.data ?? [];
 
           // Branch-wide calculations & breakdowns
-          const branchBreakdown = new Map<string, { branch: string; converted_count: number; paid_amount: number; students: Set<string> }>();
-          const userBreakdown = new Map<string, { branch: string; converted_count: number; paid_amount: number; students: Set<string> }>();
+          const branchBreakdown = new Map<string, { branch: string; converted_count: number; paid_amount: number }>();
+          const userBreakdown = new Map<string, { branch: string; converted_count: number; paid_amount: number }>();
 
-          const branchPaidStudents = new Set<string>();
+          let totalBranchClaimedCount = 0;
           for (const log of paidLogs) {
-            if (log.student) {
-              branchPaidStudents.add(log.student);
-            }
+            totalBranchClaimedCount++;
             branch_paid_amount += log.amount_received ?? 0;
 
             const bName = log.branch || "Unknown Branch";
             if (!branchBreakdown.has(bName)) {
-              branchBreakdown.set(bName, { branch: bName, converted_count: 0, paid_amount: 0, students: new Set() });
+              branchBreakdown.set(bName, { branch: bName, converted_count: 0, paid_amount: 0 });
             }
             const bEntry = branchBreakdown.get(bName)!;
-            if (log.student) bEntry.students.add(log.student);
+            bEntry.converted_count++;
             bEntry.paid_amount += log.amount_received ?? 0;
           }
-          branch_converted_count = branchPaidStudents.size;
+          branch_converted_count = totalBranchClaimedCount;
 
           // User-specific calculations (for the current session email) & breakdowns
-          const userPaidStudents = new Set<string>();
+          let totalUserClaimedCount = 0;
           for (const log of paidLogs) {
             const isUser = log.called_by?.trim().toLowerCase() === session.email.trim().toLowerCase();
             if (isUser) {
-              if (log.student) {
-                userPaidStudents.add(log.student);
-              }
+              totalUserClaimedCount++;
               paid_amount += log.amount_received ?? 0;
 
               const bName = log.branch || "Unknown Branch";
               if (!userBreakdown.has(bName)) {
-                userBreakdown.set(bName, { branch: bName, converted_count: 0, paid_amount: 0, students: new Set() });
+                userBreakdown.set(bName, { branch: bName, converted_count: 0, paid_amount: 0 });
               }
               const uEntry = userBreakdown.get(bName)!;
-              if (log.student) uEntry.students.add(log.student);
+              uEntry.converted_count++;
               uEntry.paid_amount += log.amount_received ?? 0;
             }
           }
-          converted_count = userPaidStudents.size;
+          converted_count = totalUserClaimedCount;
 
           // Format maps into arrays sorted by collection amount
           branch_conversions_breakdown = Array.from(branchBreakdown.values()).map(e => ({
             branch: e.branch,
-            converted_count: e.students.size,
+            converted_count: e.converted_count,
             paid_amount: e.paid_amount
           })).sort((a, b) => b.paid_amount - a.paid_amount);
 
           user_conversions_breakdown = Array.from(userBreakdown.values()).map(e => ({
             branch: e.branch,
-            converted_count: e.students.size,
+            converted_count: e.converted_count,
             paid_amount: e.paid_amount
           })).sort((a, b) => b.paid_amount - a.paid_amount);
         }
