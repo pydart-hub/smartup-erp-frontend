@@ -73,6 +73,7 @@ export default function StaffAttendancePage() {
   const [search, setSearch] = useState("");
   const [pendingChanges, setPendingChanges] = useState<Record<string, StaffAttendanceChange>>({});
   const [saving, setSaving] = useState(false);
+  const [classTime, setClassTime] = useState("09:00");
 
   const employeeAttendanceQueryKey = ["employee-attendance", defaultCompany, selectedDate] as const;
 
@@ -121,6 +122,18 @@ export default function StaffAttendancePage() {
     staleTime: 30_000,
     enabled: !!defaultCompany,
   });
+
+  // Pre-fill classTime when attendance records are loaded for the selected date
+  useEffect(() => {
+    if (attRes?.data && attRes.data.length > 0) {
+      const recordWithClassTime = attRes.data.find((r) => r.custom_class_time);
+      if (recordWithClassTime?.custom_class_time) {
+        setClassTime(recordWithClassTime.custom_class_time.slice(0, 5));
+        return;
+      }
+    }
+    setClassTime("09:00");
+  }, [attRes, selectedDate]);
 
   const employees = empRes?.data ?? [];
   const attendanceRecords = attRes?.data ?? [];
@@ -232,6 +245,27 @@ export default function StaffAttendancePage() {
 
   const pendingCount = Object.keys(pendingChanges).length;
 
+  const savedClassTime = React.useMemo(() => {
+    if (attRes?.data && attRes.data.length > 0) {
+      const record = attRes.data.find((r) => r.custom_class_time);
+      return record?.custom_class_time ? record.custom_class_time.slice(0, 5) : "";
+    }
+    return "";
+  }, [attRes]);
+
+  const isClassTimeChanged = classTime !== savedClassTime;
+  const hasUnsavedChanges = pendingCount > 0 || (isClassTimeChanged && (attendanceRecords.length > 0 || visitingAttMap.size > 0));
+
+  function getLateMinutes(inTime?: string, cTime?: string): number {
+    if (!inTime || !cTime) return 0;
+    const [inH, inM] = inTime.split(":").map(Number);
+    const [classH, classM] = cTime.split(":").map(Number);
+    if (isNaN(inH) || isNaN(inM) || isNaN(classH) || isNaN(classM)) return 0;
+    const inTotal = inH * 60 + inM;
+    const classTotal = classH * 60 + classM;
+    return inTotal > classTotal ? inTotal - classTotal : 0;
+  }
+
   // Cycle through statuses on click
   function cycleStatus(employeeId: string, currentStatus: string, isVisiting = false) {
     const key = isVisiting ? `visiting_${employeeId}` : employeeId;
@@ -307,11 +341,43 @@ export default function StaffAttendancePage() {
   }
   // Save attendance
   const saveAttendance = useCallback(async () => {
-    if (pendingCount === 0) return;
+    const currentSavedClassTime = (attRes?.data || []).find((r) => r.custom_class_time)?.custom_class_time?.slice(0, 5) || "";
+    const isCTChanged = classTime !== currentSavedClassTime;
+
+    if (pendingCount === 0 && !isCTChanged) return;
     setSaving(true);
     try {
       type SaveResult = { key: string; employee: string; status: StaffStatus; in_time?: string; out_time?: string; kind: "employee" | "visiting" };
-      const entries = Object.entries(pendingChanges);
+      
+      const allChanges = { ...pendingChanges };
+      if (isCTChanged) {
+        for (const existing of attendanceRecords) {
+          if (!allChanges[existing.employee]) {
+            allChanges[existing.employee] = {
+              status: existing.status as StaffStatus,
+              in_time: formatTimeForInput(existing.in_time),
+              out_time: formatTimeForInput(existing.out_time),
+            };
+          }
+        }
+        for (const [empId, existing] of Array.from(visitingAttMap.entries())) {
+          const key = `visiting_${empId}`;
+          if (!allChanges[key]) {
+            allChanges[key] = {
+              status: existing.status as StaffStatus,
+              in_time: formatTimeForInput(existing.in_time),
+              out_time: formatTimeForInput(existing.out_time),
+            };
+          }
+        }
+      }
+
+      const entries = Object.entries(allChanges);
+      if (entries.length === 0) {
+        toast.error("Please mark at least one employee to save the class time.");
+        setSaving(false);
+        return;
+      }
       const promises = entries.map(async ([key, change]) => {
         const inTimeISO = change.in_time ? `${selectedDate} ${change.in_time}:00` : undefined;
         const outTimeISO = change.out_time ? `${selectedDate} ${change.out_time}:00` : undefined;
@@ -330,6 +396,7 @@ export default function StaffAttendancePage() {
             company: v.custom_company || defaultCompany || "",
             in_time: inTimeISO,
             out_time: outTimeISO,
+            custom_class_time: classTime || undefined,
           };
           if (existing) {
             await updateEmployeeAttendance(existing.name, payload);
@@ -352,6 +419,7 @@ export default function StaffAttendancePage() {
           company: defaultCompany || "",
           in_time: inTimeISO,
           out_time: outTimeISO,
+          custom_class_time: classTime || undefined,
         };
 
         if (existing) {
@@ -462,6 +530,9 @@ export default function StaffAttendancePage() {
   }, [
     pendingChanges,
     pendingCount,
+    classTime,
+    attendanceRecords,
+    attRes,
     attMap,
     employees,
     selectedDate,
@@ -504,7 +575,7 @@ export default function StaffAttendancePage() {
             variant="primary"
             size="md"
             onClick={saveAttendance}
-            disabled={saving || pendingCount === 0}
+            disabled={saving || !hasUnsavedChanges}
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Save {pendingCount > 0 && `(${pendingCount})`}
@@ -560,6 +631,17 @@ export default function StaffAttendancePage() {
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
+                className="h-10 rounded-[10px] border border-border-input bg-surface px-3 text-sm"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-text-secondary flex items-center gap-1">
+                <Clock className="h-3 w-3" /> Class Time
+              </label>
+              <input
+                type="time"
+                value={classTime}
+                onChange={(e) => setClassTime(e.target.value)}
                 className="h-10 rounded-[10px] border border-border-input bg-surface px-3 text-sm"
               />
             </div>
@@ -655,31 +737,42 @@ export default function StaffAttendancePage() {
                     </div>
 
                     {/* Check-In and Check-Out Time Controls */}
-                    {showTimings && (
-                      <div className="pt-2 border-t border-border-light/60 flex items-center justify-between gap-2 text-xs">
-                        <div className="flex items-center gap-1.5 bg-surface/80 px-2 py-1 rounded-[6px] border border-border-light">
-                          <LogIn className="h-3 w-3 text-success flex-shrink-0" />
-                          <span className="text-[11px] text-text-secondary font-medium">In:</span>
-                          <input
-                            type="time"
-                            value={emp.in_time || ""}
-                            onChange={(e) => handleInTimeChange(emp.name, e.target.value)}
-                            className="h-6 px-1.5 border border-border-input rounded bg-surface text-text-primary text-[11px]"
-                          />
-                        </div>
+                    {showTimings && (() => {
+                      const lateMins = getLateMinutes(emp.in_time, classTime);
+                      return (
+                        <div className="pt-2 border-t border-border-light/60 flex flex-col gap-2">
+                          <div className="flex items-center justify-between gap-2 text-xs">
+                            <div className="flex items-center gap-1.5 bg-surface/80 px-2 py-1 rounded-[6px] border border-border-light flex-1">
+                              <LogIn className="h-3 w-3 text-success flex-shrink-0" />
+                              <span className="text-[11px] text-text-secondary font-medium">In:</span>
+                              <input
+                                type="time"
+                                value={emp.in_time || ""}
+                                onChange={(e) => handleInTimeChange(emp.name, e.target.value)}
+                                className="h-6 px-1.5 border border-border-input rounded bg-surface text-text-primary text-[11px] flex-1 min-w-[50px]"
+                              />
+                            </div>
 
-                        <div className="flex items-center gap-1.5 bg-surface/80 px-2 py-1 rounded-[6px] border border-border-light">
-                          <LogOut className="h-3 w-3 text-error flex-shrink-0" />
-                          <span className="text-[11px] text-text-secondary font-medium">Out:</span>
-                          <input
-                            type="time"
-                            value={emp.out_time || ""}
-                            onChange={(e) => handleOutTimeChange(emp.name, e.target.value)}
-                            className="h-6 px-1.5 border border-border-input rounded bg-surface text-text-primary text-[11px]"
-                          />
+                            <div className="flex items-center gap-1.5 bg-surface/80 px-2 py-1 rounded-[6px] border border-border-light flex-1">
+                              <LogOut className="h-3 w-3 text-error flex-shrink-0" />
+                              <span className="text-[11px] text-text-secondary font-medium">Out:</span>
+                              <input
+                                type="time"
+                                value={emp.out_time || ""}
+                                onChange={(e) => handleOutTimeChange(emp.name, e.target.value)}
+                                className="h-6 px-1.5 border border-border-input rounded bg-surface text-text-primary text-[11px] flex-1 min-w-[50px]"
+                              />
+                            </div>
+                          </div>
+                          {lateMins > 0 && (
+                            <div className="text-[10px] text-error font-medium flex items-center gap-1 bg-error-light/50 px-2 py-0.5 rounded-[4px] border border-error/10 w-fit">
+                              <Clock className="h-2.5 w-2.5" />
+                              {lateMins} min late
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    )}
+                      );
+                    })()}
                   </motion.div>
                 );
               })}
@@ -780,31 +873,42 @@ export default function StaffAttendancePage() {
                       </div>
 
                       {/* Check-In and Check-Out Time Controls */}
-                      {showTimings && (
-                        <div className="pt-2 border-t border-border-light/60 flex items-center justify-between gap-2 text-xs">
-                          <div className="flex items-center gap-1.5 bg-surface/80 px-2 py-1 rounded-[6px] border border-border-light">
-                            <LogIn className="h-3 w-3 text-success flex-shrink-0" />
-                            <span className="text-[11px] text-text-secondary font-medium">In:</span>
-                            <input
-                              type="time"
-                              value={in_time || ""}
-                              onChange={(e) => handleInTimeChange(v.employee, e.target.value, true)}
-                              className="h-6 px-1.5 border border-border-input rounded bg-surface text-text-primary text-[11px]"
-                            />
-                          </div>
+                      {showTimings && (() => {
+                        const lateMins = getLateMinutes(in_time, classTime);
+                        return (
+                          <div className="pt-2 border-t border-border-light/60 flex flex-col gap-2">
+                            <div className="flex items-center justify-between gap-2 text-xs">
+                              <div className="flex items-center gap-1.5 bg-surface/80 px-2 py-1 rounded-[6px] border border-border-light flex-1">
+                                <LogIn className="h-3 w-3 text-success flex-shrink-0" />
+                                <span className="text-[11px] text-text-secondary font-medium">In:</span>
+                                <input
+                                  type="time"
+                                  value={in_time || ""}
+                                  onChange={(e) => handleInTimeChange(v.employee, e.target.value, true)}
+                                  className="h-6 px-1.5 border border-border-input rounded bg-surface text-text-primary text-[11px] flex-1 min-w-[50px]"
+                                />
+                              </div>
 
-                          <div className="flex items-center gap-1.5 bg-surface/80 px-2 py-1 rounded-[6px] border border-border-light">
-                            <LogOut className="h-3 w-3 text-error flex-shrink-0" />
-                            <span className="text-[11px] text-text-secondary font-medium">Out:</span>
-                            <input
-                              type="time"
-                              value={out_time || ""}
-                              onChange={(e) => handleOutTimeChange(v.employee, e.target.value, true)}
-                              className="h-6 px-1.5 border border-border-input rounded bg-surface text-text-primary text-[11px]"
-                            />
+                              <div className="flex items-center gap-1.5 bg-surface/80 px-2 py-1 rounded-[6px] border border-border-light flex-1">
+                                <LogOut className="h-3 w-3 text-error flex-shrink-0" />
+                                <span className="text-[11px] text-text-secondary font-medium">Out:</span>
+                                <input
+                                  type="time"
+                                  value={out_time || ""}
+                                  onChange={(e) => handleOutTimeChange(v.employee, e.target.value, true)}
+                                  className="h-6 px-1.5 border border-border-input rounded bg-surface text-text-primary text-[11px] flex-1 min-w-[50px]"
+                                />
+                              </div>
+                            </div>
+                            {lateMins > 0 && (
+                              <div className="text-[10px] text-error font-medium flex items-center gap-1 bg-error-light/50 px-2 py-0.5 rounded-[4px] border border-error/10 w-fit">
+                                <Clock className="h-2.5 w-2.5" />
+                                {lateMins} min late
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      )}
+                        );
+                      })()}
                     </motion.div>
                   );
                 })}

@@ -3,7 +3,7 @@
 import { GifLoader } from "@/components/ui/GifLoader";
 import React from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -98,6 +98,10 @@ function ProgramStudentCount({ batchNames, branchName }: { batchNames: string[];
 
 export default function BranchStudentsPage() {
   const params = useParams();
+  const pathname = usePathname();
+  const isGeneralManager = pathname.startsWith("/dashboard/general-manager");
+  const basePath = isGeneralManager ? "/dashboard/general-manager" : "/dashboard/director";
+
   const branchName = decodeURIComponent(params.id as string);
   const shortName = branchName.replace("Smart Up ", "").replace("Smart Up", "HQ");
   const encodedBranch = encodeURIComponent(branchName);
@@ -194,7 +198,7 @@ export default function BranchStudentsPage() {
       {/* Back */}
       <motion.div variants={itemVariants}>
         <Link
-          href={`/dashboard/director/branches/${encodedBranch}`}
+          href={`${basePath}/branches/${encodedBranch}`}
           className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
@@ -220,7 +224,7 @@ export default function BranchStudentsPage() {
               </p>
             )}
           </div>
-          <Link href={`/dashboard/director/branches/${encodedBranch}/students/all`}>
+          <Link href={`${basePath}/branches/${encodedBranch}/students/all`}>
             <Button variant="outline" size="sm" className="gap-1.5">
               <List className="h-3.5 w-3.5" />
               View All Students
@@ -347,7 +351,7 @@ export default function BranchStudentsPage() {
             {programs.map(([program, groups]) => (
               <Link
                 key={program}
-                href={`/dashboard/director/branches/${encodedBranch}/students/${encodeURIComponent(program)}`}
+                href={`${basePath}/branches/${encodedBranch}/students/${encodeURIComponent(program)}`}
               >
                 <motion.div
                   initial={{ opacity: 0, y: 12 }}

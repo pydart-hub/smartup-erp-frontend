@@ -72,6 +72,7 @@ interface DayAttendanceRecord {
   in_time?: string;
   out_time?: string;
   working_hours?: string;
+  custom_class_time?: string;
 }
 
 export default function StaffMonthlyReportPage() {
@@ -131,6 +132,7 @@ export default function StaffMonthlyReportPage() {
         in_time: inTime,
         out_time: outTime,
         working_hours: workHrs,
+        custom_class_time: att.custom_class_time ? att.custom_class_time.slice(0, 5) : undefined,
       };
     });
 
@@ -200,7 +202,19 @@ export default function StaffMonthlyReportPage() {
             const inT = rec.in_time || "--:--";
             const outT = rec.out_time || "--:--";
             const hrs = rec.working_hours ? ` (${rec.working_hours})` : "";
-            return `${fullWord}\n${inT} - ${outT}${hrs}`;
+            let lateStr = "";
+            const classTimeVal = rec.custom_class_time || "09:00";
+            if (rec.in_time && classTimeVal) {
+              const [inH, inM] = rec.in_time.split(":").map(Number);
+              const [classH, classM] = classTimeVal.split(":").map(Number);
+              if (!isNaN(inH) && !isNaN(inM) && !isNaN(classH) && !isNaN(classM)) {
+                const diff = (inH * 60 + inM) - (classH * 60 + classM);
+                if (diff > 0) {
+                  lateStr = `\n(${diff}m late)`;
+                }
+              }
+            }
+            return `${fullWord}\n${inT} - ${outT}${hrs}${lateStr}`;
           }
           return fullWord;
         }),
@@ -291,7 +305,19 @@ export default function StaffMonthlyReportPage() {
         const fullWord = statusMap[rec.status] || "-";
         if ((rec.status === "Present" || rec.status === "Half Day") && (rec.in_time || rec.out_time)) {
           const hrs = rec.working_hours ? ` (${rec.working_hours})` : "";
-          rowData[dateStr] = `${fullWord} [${rec.in_time || "--"} - ${rec.out_time || "--"}]${hrs}`;
+          let lateStr = "";
+          const classTimeVal = rec.custom_class_time || "09:00";
+          if (rec.in_time && classTimeVal) {
+            const [inH, inM] = rec.in_time.split(":").map(Number);
+            const [classH, classM] = classTimeVal.split(":").map(Number);
+            if (!isNaN(inH) && !isNaN(inM) && !isNaN(classH) && !isNaN(classM)) {
+              const diff = (inH * 60 + inM) - (classH * 60 + classM);
+              if (diff > 0) {
+                lateStr = ` (${diff}m late)`;
+              }
+            }
+          }
+          rowData[dateStr] = `${fullWord} [${rec.in_time || "--"} - ${rec.out_time || "--"}]${hrs}${lateStr}`;
         } else {
           rowData[dateStr] = fullWord;
         }
@@ -437,6 +463,18 @@ export default function StaffMonthlyReportPage() {
                         const fullWord = statusMap[status] || "-";
                         const colorClass = statusColors[status] || "text-text-tertiary border-transparent";
                         const showTimings = (status === "Present" || status === "Half Day") && (rec.in_time || rec.out_time);
+                        let lateMins = 0;
+                        const classTimeVal = rec.custom_class_time || "09:00";
+                        if (showTimings && rec.in_time && classTimeVal) {
+                          const [inH, inM] = rec.in_time.split(":").map(Number);
+                          const [classH, classM] = classTimeVal.split(":").map(Number);
+                          if (!isNaN(inH) && !isNaN(inM) && !isNaN(classH) && !isNaN(classM)) {
+                            const diff = (inH * 60 + inM) - (classH * 60 + classM);
+                            if (diff > 0) {
+                              lateMins = diff;
+                            }
+                          }
+                        }
 
                         return (
                           <td key={dateStr} className="px-1.5 py-2.5 text-center border-r border-border-light/30 vertical-top">
@@ -453,6 +491,11 @@ export default function StaffMonthlyReportPage() {
                                   {rec.working_hours && (
                                     <span className="text-[9px] text-primary font-bold mt-0.5">
                                       ⏱ {rec.working_hours}
+                                    </span>
+                                  )}
+                                  {lateMins > 0 && (
+                                    <span className="text-[9px] text-error font-bold mt-0.5">
+                                      ⚠️ {lateMins}m late
                                     </span>
                                   )}
                                 </div>

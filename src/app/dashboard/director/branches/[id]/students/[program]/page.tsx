@@ -3,7 +3,7 @@
 import { GifLoader } from "@/components/ui/GifLoader";
 import React from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -39,6 +39,10 @@ function BatchCard({
   encodedBranch: string;
   branchName: string;
 }) {
+  const pathname = usePathname();
+  const isGeneralManager = pathname.startsWith("/dashboard/general-manager");
+  const basePath = isGeneralManager ? "/dashboard/general-manager" : "/dashboard/director";
+
   const { data: batchRes, isLoading } = useQuery({
     queryKey: ["director-batch-students", batch.name],
     queryFn: () => getBatchStudents(batch.name, branchName),
@@ -63,7 +67,7 @@ function BatchCard({
 
   return (
     <Link
-      href={`/dashboard/director/branches/${encodedBranch}/batches/${encodeURIComponent(batch.name)}`}
+      href={`${basePath}/branches/${encodedBranch}/batches/${encodeURIComponent(batch.name)}`}
     >
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: "easeOut" }} whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }}>
         <Card className="h-full hover:shadow-md transition-shadow cursor-pointer border-border-light hover:border-primary/30">
@@ -156,6 +160,10 @@ function BatchCard({
 
 export default function ProgramStudentsPage() {
   const params = useParams();
+  const pathname = usePathname();
+  const isGeneralManager = pathname.startsWith("/dashboard/general-manager");
+  const basePath = isGeneralManager ? "/dashboard/general-manager" : "/dashboard/director";
+
   const branchName = decodeURIComponent(params.id as string);
   const programName = decodeURIComponent(params.program as string);
   const shortBranch = branchName.replace("Smart Up ", "").replace("Smart Up", "HQ");
@@ -199,7 +207,7 @@ export default function ProgramStudentsPage() {
       {/* Back */}
       <motion.div variants={itemVariants}>
         <Link
-          href={`/dashboard/director/branches/${encodedBranch}/students`}
+          href={`${basePath}/branches/${encodedBranch}/students`}
           className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
         >
           <ArrowLeft className="h-3.5 w-3.5" />

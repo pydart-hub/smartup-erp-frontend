@@ -3,7 +3,7 @@
 import { GifLoader } from "@/components/ui/GifLoader";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -29,6 +29,10 @@ type StatusFilter = "all" | "active" | "inactive";
 
 export default function BranchAllStudentsPage() {
   const params = useParams();
+  const pathname = usePathname();
+  const isGeneralManager = pathname.startsWith("/dashboard/general-manager");
+  const basePath = isGeneralManager ? "/dashboard/general-manager" : "/dashboard/director";
+
   const branchName = decodeURIComponent(params.id as string);
   const shortName = branchName.replace("Smart Up ", "").replace("Smart Up", "HQ");
   const encodedBranch = encodeURIComponent(branchName);
@@ -164,7 +168,7 @@ export default function BranchAllStudentsPage() {
 
       {/* Back */}
       <Link
-        href={`/dashboard/director/branches/${encodedBranch}/students`}
+        href={`${basePath}/branches/${encodedBranch}/students`}
         className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
       >
         <ArrowLeft className="h-3.5 w-3.5" />

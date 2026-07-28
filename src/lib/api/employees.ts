@@ -57,6 +57,7 @@ export interface EmployeeAttendance {
   working_hours?: number;
   late_entry?: number;
   early_exit?: number;
+  custom_class_time?: string;
 }
 
 export interface Instructor {
@@ -84,7 +85,7 @@ const EMPLOYEE_ATTENDANCE_FIELDS = JSON.stringify([
   "status", "company", "department", "leave_type",
   "in_time", "out_time", "working_hours",
   "custom_check_in", "custom_check_out",
-  "late_entry", "early_exit",
+  "late_entry", "early_exit", "custom_class_time",
 ]);
 
 const INSTRUCTOR_FIELDS = JSON.stringify([
@@ -277,8 +278,24 @@ export async function getEmployeeAttendance(params?: {
     order_by: "attendance_date desc, employee_name asc",
     ...(filters.length ? { filters: JSON.stringify(filters) } : {}),
   });
-  const { data } = await apiClient.get(`/resource/Attendance?${query}`);
-  return data;
+  try {
+    const { data } = await apiClient.get(`/resource/Attendance?${query}`);
+    return data;
+  } catch (err) {
+    const fieldsArr = JSON.parse(EMPLOYEE_ATTENDANCE_FIELDS);
+    if (fieldsArr.includes("custom_class_time")) {
+      const cleanFields = JSON.stringify(fieldsArr.filter((f: string) => f !== "custom_class_time"));
+      const fallbackQuery = new URLSearchParams(query);
+      fallbackQuery.set("fields", cleanFields);
+      try {
+        const { data } = await apiClient.get(`/resource/Attendance?${fallbackQuery}`);
+        return data;
+      } catch {
+        throw err;
+      }
+    }
+    throw err;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -433,20 +450,24 @@ export async function createEmployeeAttendance(payload: {
   company: string;
   in_time?: string;
   out_time?: string;
+  custom_class_time?: string;
 }): Promise<{ data: EmployeeAttendance }> {
+  const postBody = {
+    employee: payload.employee,
+    employee_name: payload.employee_name,
+    attendance_date: payload.attendance_date,
+    status: payload.status,
+    company: payload.company,
+    in_time: payload.in_time || undefined,
+    out_time: payload.out_time || undefined,
+    custom_check_in: payload.in_time ? payload.in_time.split(" ")[1] || payload.in_time : undefined,
+    custom_check_out: payload.out_time ? payload.out_time.split(" ")[1] || payload.out_time : undefined,
+    custom_class_time: payload.custom_class_time || undefined,
+    docstatus: 1,
+  };
+
   try {
-    const { data } = await apiClient.post("/resource/Attendance", {
-      employee: payload.employee,
-      employee_name: payload.employee_name,
-      attendance_date: payload.attendance_date,
-      status: payload.status,
-      company: payload.company,
-      in_time: payload.in_time || undefined,
-      out_time: payload.out_time || undefined,
-      custom_check_in: payload.in_time ? payload.in_time.split(" ")[1] || payload.in_time : undefined,
-      custom_check_out: payload.out_time ? payload.out_time.split(" ")[1] || payload.out_time : undefined,
-      docstatus: 1,
-    });
+    const { data } = await apiClient.post("/resource/Attendance", postBody);
 
     if (payload.in_time) {
       await postEmployeeCheckin(payload.employee, payload.in_time, "IN");
@@ -466,6 +487,23 @@ export async function createEmployeeAttendance(payload: {
       err?.response?.data?.exception ||
       ""
     );
+
+    // If it fails because of missing custom_class_time field, try without it
+    if (payload.custom_class_time && (text.includes("custom_class_time") || text.toLowerCase().includes("linkvalidationerror") || text.toLowerCase().includes("field"))) {
+      const { custom_class_time, ...strippedBody } = postBody;
+      try {
+        const { data } = await apiClient.post("/resource/Attendance", strippedBody);
+        if (payload.in_time) {
+          await postEmployeeCheckin(payload.employee, payload.in_time, "IN");
+        }
+        if (payload.out_time) {
+          await postEmployeeCheckin(payload.employee, payload.out_time, "OUT");
+        }
+        return data;
+      } catch (secondErr) {
+        throw secondErr;
+      }
+    }
 
     // Frappe duplicate-error payload often includes an existing attendance ID like HR-ATT-2026-00187.
     if (text.toLowerCase().includes("duplicateattendanceerror") || text.toLowerCase().includes("already marked")) {
@@ -491,6 +529,7 @@ export async function updateEmployeeAttendance(
     company: string;
     in_time?: string;
     out_time?: string;
+    custom_class_time?: string;
   }
 ): Promise<void> {
   // Read current docstatus to pick a safe update path.
@@ -509,22 +548,42 @@ export async function updateEmployeeAttendance(
     out_time: payload.out_time || undefined,
     custom_check_in: payload.in_time ? payload.in_time.split(" ")[1] || payload.in_time : undefined,
     custom_check_out: payload.out_time ? payload.out_time.split(" ")[1] || payload.out_time : undefined,
+    custom_class_time: payload.custom_class_time || undefined,
   };
 
-  if (docstatus === 0) {
-    // Draft can be updated in place.
-    await apiClient.put(`/resource/Attendance/${encodeURIComponent(existingName)}`, attBody);
-  } else {
-    // Submitted record: cancel then create replacement.
-    await apiClient.post("/method/frappe.client.cancel", {
-      doctype: "Attendance",
-      name: existingName,
-    });
+  const trySave = async (body: any) => {
+    if (docstatus === 0) {
+      // Draft can be updated in place.
+      await apiClient.put(`/resource/Attendance/${encodeURIComponent(existingName)}`, body);
+    } else {
+      // Submitted record: cancel then create replacement.
+      await apiClient.post("/method/frappe.client.cancel", {
+        doctype: "Attendance",
+        name: existingName,
+      });
 
-    await apiClient.post("/resource/Attendance", {
-      ...attBody,
-      docstatus: 1,
-    });
+      await apiClient.post("/resource/Attendance", {
+        ...body,
+        docstatus: 1,
+      });
+    }
+  };
+
+  try {
+    await trySave(attBody);
+  } catch (error: any) {
+    const text = String(
+      error?.response?.data?._error_message ||
+      error?.response?.data?.message ||
+      error?.response?.data?.exception ||
+      ""
+    );
+    if (payload.custom_class_time && (text.includes("custom_class_time") || text.toLowerCase().includes("linkvalidationerror") || text.toLowerCase().includes("field"))) {
+      const { custom_class_time, ...strippedBody } = attBody;
+      await trySave(strippedBody);
+    } else {
+      throw error;
+    }
   }
 
   if (payload.in_time) {
