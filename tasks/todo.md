@@ -1,5 +1,16 @@
 # SmartUp ERP — Task Tracker
 
+## Current: Curriculum Dept LMS Modification (2026-07-29)
+
+- [x] Setup Curriculum Dept Dashboard Routes & Layout
+- [x] Implement Mark Entry Module
+- [ ] Implement Class Performance Dashboard
+- [ ] Implement Subject Performance Dashboard
+- [ ] Implement Teacher Performance Dashboard
+- [ ] Implement Student Dashboard
+- [ ] Implement Consolidated Dashboard
+- [ ] Setup backend API integrations
+
 ## Current: Plus Two Predictor Export Full CSV (2026-07-20)
 
 - [x] Support `all=true` query parameter in `/api/predictor/admin` to retrieve all grouped submissions without pagination

@@ -10,6 +10,7 @@ import type { User } from "@/lib/types/user";
 const APP_ROLE_PRIORITY = [
   "Director",
   "Management",
+  "Curriculum Dept",
   "General Manager",
   "Branch Manager",
   "Mentor",
@@ -29,6 +30,7 @@ const APP_ROLE_PRIORITY = [
 const SWITCHABLE_ROLES = [
   "Director",
   "Management",
+  "Curriculum Dept",
   "General Manager",
   "Branch Manager",
   "Mentor",

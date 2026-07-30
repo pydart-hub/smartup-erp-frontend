@@ -41,6 +41,7 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 const DASHBOARD_ROLE_PREFIXES: Array<{ prefix: string; role: string }> = [
+  { prefix: "/dashboard/curriculum-dept", role: "Curriculum Dept" },
   { prefix: "/dashboard/director", role: "Director" },
   { prefix: "/dashboard/general-manager", role: "General Manager" },
   { prefix: "/dashboard/branch-manager", role: "Branch Manager" },

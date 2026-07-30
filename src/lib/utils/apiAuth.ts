@@ -71,6 +71,7 @@ export function requireRole(
 export const STAFF_ROLES = [
   "Administrator",
   "Branch Manager",
+  "Curriculum Dept",
   "Director",
   "General Manager",
   "System Manager",

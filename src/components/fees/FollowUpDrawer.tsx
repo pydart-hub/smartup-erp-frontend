@@ -62,6 +62,18 @@ export function FollowUpDrawer({
   // Locked invoice_ref — only set when opened from the paid-history claim flow
   const invoiceRef = initialInvoiceRef;
 
+  // Sync state whenever props change (or when drawer opens with new student/defaults)
+  useEffect(() => {
+    if (open) {
+      setCallStatus(initialCallStatus);
+      setPaymentReceived(initialPaymentReceived);
+      setAmountReceived(initialAmountReceived ? String(initialAmountReceived) : "");
+      setPaymentMode(initialPaymentMode);
+      setRemarks("");
+      setNextDate("");
+    }
+  }, [open, student.student_id, initialCallStatus, initialPaymentReceived, initialAmountReceived, initialPaymentMode, initialInvoiceRef]);
+
   // Close on Escape
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {

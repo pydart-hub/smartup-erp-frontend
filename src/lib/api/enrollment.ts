@@ -450,7 +450,7 @@ export async function getBranches(): Promise<{ name: string; abbr: string }[]> {
   const { data } = await apiClient.get(
     `/resource/Company?fields=["name","abbr"]&limit=50&order_by=name`
   );
-  return data.data;
+  return (data.data || []).filter((branch: any) => branch.name !== "Smart Up");
 }
 
 /**

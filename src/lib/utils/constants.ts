@@ -57,6 +57,7 @@ export const PAYMENT_OPTION_LABELS: Record<string, string> = {
 
 export const ROLES = {
   GENERAL_MANAGER: "General Manager",
+  CURRICULUM_DEPT: "Curriculum Dept",
   BRANCH_MANAGER: "Branch Manager",
   MENTOR: "Mentor",
   BATCH_COORDINATOR: "Batch Coordinator",
@@ -69,6 +70,7 @@ export const ROLES = {
 export const ROLE_DASHBOARD_MAP: Record<string, string> = {
   Director: "/dashboard/director",
   Management: "/dashboard/director",
+  "Curriculum Dept": "/dashboard/curriculum-dept",
   "General Manager": "/dashboard/general-manager",
   "Branch Manager": "/dashboard/branch-manager",
   Mentor: "/dashboard/mentor",
@@ -91,6 +93,16 @@ export interface NavItem {
   badge?: string;
   children?: NavItem[];
 }
+
+export const CURRICULUM_DEPT_NAV: NavItem[] = [
+  { label: "Dashboard", href: "/dashboard/curriculum-dept", icon: "LayoutDashboard", emoji: "📊" },
+  { label: "Marks Entry", href: "/dashboard/curriculum-dept/marks-entry", icon: "Edit3", emoji: "📝" },
+  { label: "Class Performance", href: "/dashboard/curriculum-dept/class-performance", icon: "Users", emoji: "👥" },
+  { label: "Teacher Ranking", href: "/dashboard/curriculum-dept/subject-performance", icon: "BookOpen", emoji: "📖" },
+  { label: "Teacher Performance", href: "/dashboard/curriculum-dept/teacher-performance", icon: "UserCheck", emoji: "👨‍🏫" },
+  { label: "Branch Wise Performance", href: "/dashboard/curriculum-dept/consolidated-dashboard", icon: "FileBarChart", emoji: "📈" },
+  { label: "Consolidated Report", href: "/dashboard/curriculum-dept/consolidated-report", icon: "Award", emoji: "🏆" },
+];
 
 export const BRANCH_MANAGER_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard/branch-manager", icon: "LayoutDashboard", emoji: "📊" },
@@ -271,6 +283,7 @@ export const PARENT_NAV: NavItem[] = [
   { label: "Attendance", href: "/dashboard/parent/attendance", icon: "ClipboardCheck", emoji: "✅" },
   { label: "Schedule", href: "/dashboard/parent/schedule", icon: "CalendarDays", emoji: "📅" },
   { label: "Performance", href: "/dashboard/parent/performance", icon: "Trophy", emoji: "🏆" },
+  { label: "Consolidated Report", href: "/dashboard/parent/consolidated-report", icon: "FileText", emoji: "📋" },
   { label: "Fees", href: "/dashboard/parent/fees", icon: "IndianRupee", emoji: "💰" },
   { label: "Complaints", href: "/dashboard/parent/complaints", icon: "MessageSquareWarning", emoji: "⚠️" },
 ];

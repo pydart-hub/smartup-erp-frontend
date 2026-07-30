@@ -1,0 +1,126 @@
+﻿title|Data|reqd=0|opt=|def={customer_name}
+naming_series|Select|reqd=1|opt=SAL-ORD-.YYYY.-|def=
+customer|Link|reqd=1|opt=Customer|def=
+customer_name|Data|reqd=0|opt=|def=
+tax_id|Data|reqd=0|opt=|def=
+order_type|Select|reqd=1|opt=
+Sales
+Maintenance
+Shopping Cart|def=Sales
+transaction_date|Date|reqd=1|opt=|def=Today
+delivery_date|Date|reqd=0|opt=|def=
+po_no|Data|reqd=0|opt=|def=
+po_date|Date|reqd=0|opt=|def=
+company|Link|reqd=1|opt=Company|def=
+skip_delivery_note|Check|reqd=0|opt=|def=0
+has_unit_price_items|Check|reqd=0|opt=|def=0
+amended_from|Link|reqd=0|opt=Sales Order|def=
+cost_center|Link|reqd=0|opt=Cost Center|def=
+project|Link|reqd=0|opt=Project|def=
+currency|Link|reqd=1|opt=Currency|def=
+conversion_rate|Float|reqd=1|opt=|def=
+selling_price_list|Link|reqd=1|opt=Price List|def=
+price_list_currency|Link|reqd=1|opt=Currency|def=
+plc_conversion_rate|Float|reqd=1|opt=|def=
+ignore_pricing_rule|Check|reqd=0|opt=|def=0
+scan_barcode|Data|reqd=0|opt=Barcode|def=
+last_scanned_warehouse|Data|reqd=0|opt=|def=
+set_warehouse|Link|reqd=0|opt=Warehouse|def=
+reserve_stock|Check|reqd=0|opt=|def=0
+items|Table|reqd=1|opt=Sales Order Item|def=
+total_qty|Float|reqd=0|opt=|def=
+total_net_weight|Float|reqd=0|opt=|def=
+base_total|Currency|reqd=0|opt=Company:company:default_currency|def=
+base_net_total|Currency|reqd=0|opt=Company:company:default_currency|def=
+total|Currency|reqd=0|opt=currency|def=
+net_total|Currency|reqd=0|opt=currency|def=
+tax_category|Link|reqd=0|opt=Tax Category|def=
+taxes_and_charges|Link|reqd=0|opt=Sales Taxes and Charges Template|def=
+shipping_rule|Link|reqd=0|opt=Shipping Rule|def=
+incoterm|Link|reqd=0|opt=Incoterm|def=
+named_place|Data|reqd=0|opt=|def=
+taxes|Table|reqd=0|opt=Sales Taxes and Charges|def=
+base_total_taxes_and_charges|Currency|reqd=0|opt=Company:company:default_currency|def=
+total_taxes_and_charges|Currency|reqd=0|opt=currency|def=
+base_grand_total|Currency|reqd=0|opt=Company:company:default_currency|def=
+base_rounding_adjustment|Currency|reqd=0|opt=Company:company:default_currency|def=
+base_rounded_total|Currency|reqd=0|opt=Company:company:default_currency|def=
+base_in_words|Data|reqd=0|opt=|def=
+grand_total|Currency|reqd=0|opt=currency|def=
+rounding_adjustment|Currency|reqd=0|opt=currency|def=
+rounded_total|Currency|reqd=0|opt=currency|def=
+in_words|Data|reqd=0|opt=|def=
+advance_paid|Currency|reqd=0|opt=party_account_currency|def=
+disable_rounded_total|Check|reqd=0|opt=|def=0
+apply_discount_on|Select|reqd=0|opt=
+Grand Total
+Net Total|def=Grand Total
+base_discount_amount|Currency|reqd=0|opt=Company:company:default_currency|def=
+coupon_code|Link|reqd=0|opt=Coupon Code|def=
+additional_discount_percentage|Float|reqd=0|opt=|def=
+discount_amount|Currency|reqd=0|opt=currency|def=
+other_charges_calculation|Text Editor|reqd=0|opt=|def=
+packed_items|Table|reqd=0|opt=Packed Item|def=
+pricing_rules|Table|reqd=0|opt=Pricing Rule Detail|def=
+customer_address|Link|reqd=0|opt=Address|def=
+address_display|Small Text|reqd=0|opt=|def=
+customer_group|Link|reqd=0|opt=Customer Group|def=
+territory|Link|reqd=0|opt=Territory|def=
+contact_person|Link|reqd=0|opt=Contact|def=
+contact_display|Small Text|reqd=0|opt=|def=
+contact_phone|Data|reqd=0|opt=Phone|def=
+contact_mobile|Small Text|reqd=0|opt=Phone|def=
+contact_email|Data|reqd=0|opt=Email|def=
+shipping_address_name|Link|reqd=0|opt=Address|def=
+shipping_address|Small Text|reqd=0|opt=|def=
+dispatch_address_name|Link|reqd=0|opt=Address|def=
+dispatch_address|Small Text|reqd=0|opt=|def=
+company_address|Link|reqd=0|opt=Address|def=
+company_address_display|Small Text|reqd=0|opt=|def=
+company_contact_person|Link|reqd=0|opt=Contact|def=
+payment_terms_template|Link|reqd=0|opt=Payment Terms Template|def=
+payment_schedule|Table|reqd=0|opt=Payment Schedule|def=
+tc_name|Link|reqd=0|opt=Terms and Conditions|def=
+terms|Text Editor|reqd=0|opt=|def=
+status|Select|reqd=1|opt=
+Draft
+On Hold
+To Deliver and Bill
+To Bill
+To Deliver
+Completed
+Cancelled
+Closed|def=Draft
+delivery_status|Select|reqd=0|opt=Not Delivered
+Fully Delivered
+Partly Delivered
+Closed
+Not Applicable|def=
+per_delivered|Percent|reqd=0|opt=|def=
+per_billed|Percent|reqd=0|opt=|def=
+per_picked|Percent|reqd=0|opt=|def=
+billing_status|Select|reqd=0|opt=Not Billed
+Fully Billed
+Partly Billed
+Closed|def=
+sales_partner|Link|reqd=0|opt=Sales Partner|def=
+amount_eligible_for_commission|Currency|reqd=0|opt=|def=
+commission_rate|Float|reqd=0|opt=|def=
+total_commission|Currency|reqd=0|opt=Company:company:default_currency|def=
+sales_team|Table|reqd=0|opt=Sales Team|def=
+loyalty_points|Int|reqd=0|opt=|def=
+loyalty_amount|Currency|reqd=0|opt=|def=
+from_date|Date|reqd=0|opt=|def=
+to_date|Date|reqd=0|opt=|def=
+auto_repeat|Link|reqd=0|opt=Auto Repeat|def=
+update_auto_repeat_reference|Button|reqd=0|opt=|def=
+letter_head|Link|reqd=0|opt=Letter Head|def=
+group_same_items|Check|reqd=0|opt=|def=0
+select_print_heading|Link|reqd=0|opt=Print Heading|def=
+language|Data|reqd=0|opt=|def=
+is_internal_customer|Check|reqd=0|opt=|def=0
+represents_company|Link|reqd=0|opt=Company|def=
+source|Link|reqd=0|opt=Lead Source|def=
+inter_company_order_reference|Link|reqd=0|opt=Purchase Order|def=
+campaign|Link|reqd=0|opt=Campaign|def=
+party_account_currency|Link|reqd=0|opt=Currency|def=

@@ -20,6 +20,7 @@ import { useAuth } from "@/lib/hooks/useAuth";
 import { useInstructorBatches } from "@/lib/hooks/useInstructorBatches";
 import { getAttendance } from "@/lib/api/attendance";
 import Link from "next/link";
+import { TeacherRankingCard } from "@/components/dashboard/TeacherRankingCard";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -35,7 +36,7 @@ const itemVariants = {
 };
 
 export default function InstructorDashboard() {
-  const { user, instructorDisplayName, allowedBatches, defaultCompany } = useAuth();
+  const { user, instructorName, instructorDisplayName, allowedBatches, defaultCompany } = useAuth();
   const { activeBatches, totalStudents, isLoading: loadingBatches, batches } = useInstructorBatches();
   const today = new Date().toISOString().split("T")[0];
 

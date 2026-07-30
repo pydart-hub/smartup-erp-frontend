@@ -6,7 +6,7 @@ import { Topbar } from "@/components/layout/Topbar";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import { useAuthStore } from "@/lib/stores/authStore";
-import { PARENT_NAV, INSTRUCTOR_NAV, DIRECTOR_NAV, HR_MANAGER_NAV, SALES_USER_NAV, GENERAL_MANAGER_NAV, CLASS_INCHARGE_NAV, MENTOR_NAV, CONTENT_ADMIN_NAV } from "@/lib/utils/constants";
+import { PARENT_NAV, INSTRUCTOR_NAV, DIRECTOR_NAV, HR_MANAGER_NAV, SALES_USER_NAV, GENERAL_MANAGER_NAV, CLASS_INCHARGE_NAV, MENTOR_NAV, CONTENT_ADMIN_NAV, CURRICULUM_DEPT_NAV } from "@/lib/utils/constants";
 import { NavigationLoader } from "@/components/NavigationLoader";
 
 function makeQueryClient() {
@@ -39,14 +39,17 @@ export default function DashboardLayout({
   const isMentor = activeRole === "Mentor";
   const isClassIncharge = activeRole === "Class Incharge";
   const isContentAdmin = activeRole === "Content Admin";
+  const isCurriculumDept = activeRole === "Curriculum Dept";
 
   // Determine sidebar nav items based on role.
   // Branch Manager takes priority over Instructor — a user who is both
   // should see the full Branch Manager sidebar, not the limited Instructor one.
   const sidebarNav = isDirector
     ? DIRECTOR_NAV
-    : isGeneralManager
-      ? GENERAL_MANAGER_NAV
+    : isCurriculumDept
+      ? CURRICULUM_DEPT_NAV
+      : isGeneralManager
+        ? GENERAL_MANAGER_NAV
       : isMentor
         ? MENTOR_NAV
         : isHRManager
