@@ -31,16 +31,25 @@ export async function GET(request: NextRequest) {
 
     const auth = `token ${FRAPPE_API_KEY}:${FRAPPE_API_SECRET}`;
 
-    // Fetch all Assessment Plans for this batch + exam group
+    // Build plan filter: if assessmentGroup starts with CWC, match by assessment_group OR assessment_name pattern
+    const isCwc = assessmentGroup.toLowerCase().includes("cwc");
+    const planFilters: any[] = [
+      ["student_group", "=", studentGroup],
+      ["docstatus", "=", 1],
+    ];
+
+    if (isCwc) {
+      // In Frappe API filter, we query all docstatus=1 for student_group and filter by CWC group/name in JS if needed
+    } else {
+      planFilters.push(["assessment_group", "=", assessmentGroup]);
+    }
+
+    // Fetch all Assessment Plans for this batch
     const plansRes = await fetch(
       `${FRAPPE_URL}/api/resource/Assessment%20Plan?${new URLSearchParams({
-        filters: JSON.stringify([
-          ["student_group", "=", studentGroup],
-          ["assessment_group", "=", assessmentGroup],
-          ["docstatus", "=", 1],
-        ]),
-        fields: JSON.stringify(["name", "course", "maximum_assessment_score"]),
-        limit_page_length: "100",
+        filters: JSON.stringify(planFilters),
+        fields: JSON.stringify(["name", "course", "maximum_assessment_score", "assessment_group", "assessment_name"]),
+        limit_page_length: "200",
       })}`,
       { headers: { Authorization: auth }, cache: "no-store" },
     );
@@ -49,8 +58,26 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Failed to fetch plans" }, { status: plansRes.status });
     }
 
-    const plans: { name: string; course: string; maximum_assessment_score: number }[] =
+    let plans: { name: string; course: string; maximum_assessment_score: number; assessment_group?: string; assessment_name?: string }[] =
       (await plansRes.json()).data ?? [];
+
+    if (isCwc) {
+      // Extract specific CWC index/number from assessmentGroup (e.g., "cwc 1", "cwc exam 1", "cwc 2")
+      const match = assessmentGroup.toLowerCase().match(/cwc\s*(?:exam\s*)?(\d+)/);
+      const cwcNum = match ? match[1] : "";
+
+      plans = plans.filter((p) => {
+        const ag = (p.assessment_group || "").toLowerCase();
+        const an = (p.assessment_name || "").toLowerCase();
+        
+        if (cwcNum) {
+          // Strict check: must match cwc + specific number (e.g., "cwc 1" or "cwc exam 1")
+          const targetRegex = new RegExp(`cwc\\s*(?:exam\\s*)?${cwcNum}\\b`, "i");
+          return targetRegex.test(ag) || targetRegex.test(an);
+        }
+        return ag.includes("cwc") || an.includes("cwc");
+      });
+    }
 
     if (plans.length === 0) {
       return NextResponse.json({ data: [], summary: { total_students: 0, pass_count: 0, pass_rate: 0, average_percentage: 0, highest_percentage: 0, lowest_percentage: 0 } });

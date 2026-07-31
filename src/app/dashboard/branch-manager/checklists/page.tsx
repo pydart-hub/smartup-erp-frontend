@@ -362,7 +362,11 @@ export default function UnifiedChecklistsPage() {
     <div className="space-y-6">
       {/* Title Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <BreadcrumbNav />
+        <div>
+          <BreadcrumbNav />
+          <h1 className="text-xl font-bold text-text-primary mt-1">Branch Manager Checklist Portal</h1>
+          <p className="text-xs text-text-secondary">Log daily operations for management review or verify class incharge checklists.</p>
+        </div>
         <div>
           <Badge variant="outline" className="px-3 py-1 bg-white/50 backdrop-blur-sm flex items-center gap-1.5 border-primary/10">
             <Building className="h-3.5 w-3.5 text-primary" />
@@ -843,15 +847,17 @@ export default function UnifiedChecklistsPage() {
                                     </Badge>
                                   </td>
                                   <td className="px-4 py-3 text-xs text-right whitespace-nowrap">
-                                    {c.status !== "Verified" && (
+                                    {c.status !== "Verified" ? (
                                       <Button
                                         type="button"
                                         variant="ghost"
                                         onClick={() => handleStartBmEdit(c)}
-                                        className="text-primary hover:text-primary-hover p-1 h-auto text-xs font-bold rounded-lg ml-auto"
+                                        className="text-primary hover:text-primary-hover p-1 h-auto text-xs font-bold rounded-lg ml-auto hover:bg-slate-100 dark:hover:bg-slate-800"
                                       >
                                         Edit
                                       </Button>
+                                    ) : (
+                                      <span className="text-text-tertiary text-xs italic pr-2">None</span>
                                     )}
                                   </td>
                                 </tr>
@@ -1025,18 +1031,20 @@ export default function UnifiedChecklistsPage() {
                                   <div
                                     key={item.id}
                                     className={`p-3.5 rounded-xl border flex items-center justify-between gap-3 bg-white dark:bg-dark-card ${
-                                      isChecked ? "border-emerald-500/20" : "border-slate-100"
+                                      isChecked 
+                                        ? "border-emerald-500/30 bg-emerald-500/[0.04] dark:bg-emerald-500/[0.02]" 
+                                        : "border-rose-500/30 bg-rose-500/[0.04] dark:bg-rose-500/[0.02]"
                                     }`}
                                   >
                                     <span className="text-xs font-semibold text-text-primary">{item.label}</span>
                                     <div className="shrink-0">
                                       {isChecked ? (
-                                        <div className="w-5.5 h-5.5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                                        <div className="w-5.5 h-5.5 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-sm">
                                           <Check className="h-3.5 w-3.5 stroke-[3]" />
                                         </div>
                                       ) : (
-                                        <div className="w-5.5 h-5.5 rounded-full bg-slate-100 text-text-tertiary flex items-center justify-center">
-                                          <X className="h-3 w-3" />
+                                        <div className="w-5.5 h-5.5 rounded-full bg-rose-500 text-white flex items-center justify-center shadow-sm">
+                                          <X className="h-3 w-3 stroke-[3]" />
                                         </div>
                                       )}
                                     </div>

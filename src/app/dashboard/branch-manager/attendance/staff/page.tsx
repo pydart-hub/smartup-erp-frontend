@@ -34,7 +34,7 @@ interface StaffAttendanceChange {
   out_time?: string;
 }
 
-const STATUS_OPTIONS: StaffStatus[] = ["Present", "Absent", "Half Day", "On Leave", "Work From Home"];
+const STATUS_OPTIONS: StaffStatus[] = ["Present", "Absent", "Half Day", "Work From Home"];
 
 const DEFAULT_IN_TIME = "09:00";
 const DEFAULT_OUT_TIME = "17:30";
@@ -73,7 +73,7 @@ export default function StaffAttendancePage() {
   const [search, setSearch] = useState("");
   const [pendingChanges, setPendingChanges] = useState<Record<string, StaffAttendanceChange>>({});
   const [saving, setSaving] = useState(false);
-  const [classTime, setClassTime] = useState("09:00");
+  const [classTime, setClassTime] = useState("17:00");
 
   const employeeAttendanceQueryKey = ["employee-attendance", defaultCompany, selectedDate] as const;
 
@@ -132,7 +132,7 @@ export default function StaffAttendancePage() {
         return;
       }
     }
-    setClassTime("09:00");
+    setClassTime("17:00");
   }, [attRes, selectedDate]);
 
   const employees = empRes?.data ?? [];

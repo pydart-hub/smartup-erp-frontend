@@ -624,19 +624,21 @@ export default function ClassInchargeChecklistPage() {
                                   {c.status}
                                 </Badge>
                               </td>
-                              <td className="px-3 py-3 text-xs text-text-secondary max-w-[120px] truncate" title={c.remarks}>
-                                {c.remarks || <span className="text-text-tertiary italic">-</span>}
+                              <td className="px-3 py-3 text-xs text-text-secondary max-w-[150px] truncate" title={c.remarks}>
+                                {c.remarks || <span className="text-text-tertiary/60 italic">-</span>}
                               </td>
                               <td className="px-3 py-3 text-xs text-right whitespace-nowrap">
-                                {c.status !== "Verified" && (
+                                {c.status !== "Verified" ? (
                                   <Button
                                     type="button"
                                     variant="ghost"
                                     onClick={() => handleStartEdit(c)}
-                                    className="text-primary hover:text-primary-hover p-1 h-auto text-xs font-bold rounded-lg ml-auto"
+                                    className="text-primary hover:text-primary-hover p-1 h-auto text-xs font-bold rounded-lg ml-auto hover:bg-slate-100 dark:hover:bg-slate-800"
                                   >
                                     Edit
                                   </Button>
+                                ) : (
+                                  <span className="text-text-tertiary text-xs italic pr-2">None</span>
                                 )}
                               </td>
                             </tr>

@@ -37,7 +37,6 @@ const STATUSES: { value: AttendanceStatus; icon: React.ComponentType<{ className
   { value: "Present", icon: Check, color: "text-success", bg: "bg-success" },
   { value: "Absent", icon: X, color: "text-error", bg: "bg-error" },
   { value: "Half Day", icon: Clock, color: "text-warning", bg: "bg-warning" },
-  { value: "On Leave", icon: Coffee, color: "text-info", bg: "bg-info" },
   { value: "Work From Home", icon: Home, color: "text-secondary", bg: "bg-secondary" },
 ];
 

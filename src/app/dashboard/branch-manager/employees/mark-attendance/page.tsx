@@ -43,7 +43,6 @@ const STATUS_OPTIONS: { value: AttStatus; label: string; icon: React.ComponentTy
   { value: "Present",          label: "Present",  icon: CheckCircle, variant: "success" },
   { value: "Absent",           label: "Absent",   icon: XCircle,     variant: "error"   },
   { value: "Half Day",         label: "Half Day", icon: Clock,       variant: "warning" },
-  { value: "On Leave",         label: "On Leave", icon: UserX,       variant: "default" },
   { value: "Work From Home",   label: "WFH",      icon: Users,       variant: "default" },
 ];
 

@@ -57,7 +57,7 @@ async function getBranchInstructorsData(
 ): Promise<BranchInstructor[]> {
   // Step 1: Fetch active employees for this branch
   const empData = await frappeGet("resource/Employee", {
-    fields: JSON.stringify(["name", "employee_name", "designation"]),
+    fields: JSON.stringify(["name", "employee_name", "designation", "user_id"]),
     filters: JSON.stringify([
       ["company", "=", branch],
       ["status", "=", "Active"],
@@ -65,12 +65,15 @@ async function getBranchInstructorsData(
     limit_page_length: "500",
   });
 
-  const employees: { name: string; employee_name: string; designation?: string }[] =
+  const employees: { name: string; employee_name: string; designation?: string; user_id?: string }[] =
     empData.data ?? [];
   if (!employees.length) return [];
 
   const empDesignationMap = new Map(
     employees.map((e) => [e.name, e.designation ?? ""])
+  );
+  const empUserIdMap = new Map(
+    employees.map((e) => [e.name, e.user_id ?? ""])
   );
 
   // Step 2: Fetch instructors linked to those employees
@@ -81,7 +84,6 @@ async function getBranchInstructorsData(
       "instructor_name",
       "employee",
       "department",
-      "user_id",
     ]),
     filters: JSON.stringify([["employee", "in", empNames]]),
     limit_page_length: "500",
@@ -145,6 +147,7 @@ async function getBranchInstructorsData(
     ];
     return {
       ...i,
+      user_id: empUserIdMap.get(i.employee) || undefined,
       designation: empDesignationMap.get(i.employee) || "Instructor",
       subjects,
     };

@@ -98,10 +98,20 @@ export const CURRICULUM_DEPT_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard/curriculum-dept", icon: "LayoutDashboard", emoji: "📊" },
   { label: "Marks Entry", href: "/dashboard/curriculum-dept/marks-entry", icon: "Edit3", emoji: "📝" },
   { label: "Class Performance", href: "/dashboard/curriculum-dept/class-performance", icon: "Users", emoji: "👥" },
+  {
+    label: "CWC Corner",
+    href: "/dashboard/curriculum-dept/cwc-corner",
+    icon: "Award",
+    emoji: "🎯",
+    children: [
+      { label: "Branch Wise Ranking", href: "/dashboard/curriculum-dept/cwc-corner/branch-ranking", icon: "School", emoji: "🏫" },
+      { label: "SmartUp Ranking", href: "/dashboard/curriculum-dept/cwc-corner/smartup-ranking", icon: "Trophy", emoji: "🏆" },
+    ],
+  },
   { label: "Teacher Ranking", href: "/dashboard/curriculum-dept/subject-performance", icon: "BookOpen", emoji: "📖" },
   { label: "Teacher Performance", href: "/dashboard/curriculum-dept/teacher-performance", icon: "UserCheck", emoji: "👨‍🏫" },
   { label: "Branch Wise Performance", href: "/dashboard/curriculum-dept/consolidated-dashboard", icon: "FileBarChart", emoji: "📈" },
-  { label: "Consolidated Report", href: "/dashboard/curriculum-dept/consolidated-report", icon: "Award", emoji: "🏆" },
+  { label: "Consolidated Report", href: "/dashboard/curriculum-dept/consolidated-report", icon: "Award", emoji: "🎖️" },
 ];
 
 export const BRANCH_MANAGER_NAV: NavItem[] = [

@@ -48,7 +48,6 @@ const ATT_OPTIONS: {
   { value: "Present",        label: "Present",  icon: CheckCircle, active: "bg-success text-white border-success" },
   { value: "Absent",         label: "Absent",   icon: XCircle,     active: "bg-error text-white border-error" },
   { value: "Half Day",       label: "Half Day", icon: Clock,       active: "bg-warning text-white border-warning" },
-  { value: "On Leave",       label: "On Leave", icon: UserX,       active: "bg-info text-white border-info" },
   { value: "Work From Home", label: "WFH",      icon: Users,       active: "bg-primary text-white border-primary" },
 ];
 

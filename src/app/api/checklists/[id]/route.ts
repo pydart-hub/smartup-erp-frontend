@@ -18,6 +18,28 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
 
     // Map checked fields if they are sent in body
     const payload: any = { ...body };
+    
+    // Resolve email to employee ID (like HR-EMP-XXXXX) if necessary
+    if (payload.employee && payload.employee.includes("@")) {
+      const filters = JSON.stringify([["user_id", "=", payload.employee]]);
+      const fields = JSON.stringify(["name", "employee_name"]);
+      const empQueryUrl = `${FRAPPE_URL}/api/resource/Employee?filters=${encodeURIComponent(filters)}&fields=${encodeURIComponent(fields)}&limit_page_length=1`;
+      
+      const empRes = await fetch(empQueryUrl, {
+        headers: { Authorization: ADMIN_AUTH },
+      });
+      
+      if (empRes.ok) {
+        const empData = await empRes.json();
+        if (empData.data && empData.data.length > 0) {
+          payload.employee = empData.data[0].name;
+          if (!payload.employee_name) {
+            payload.employee_name = empData.data[0].employee_name;
+          }
+        }
+      }
+    }
+
     const checkFields = [
       "attendance_updated_in_lms",
       "absentees_verified_parents_informed",
