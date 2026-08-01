@@ -44,11 +44,12 @@ function getEnabledParam(f: StatusFilter): 0 | 1 | undefined {
   return undefined;
 }
 
-function getExtraFilters(f: StatusFilter, typeFilter: TypeFilter, dateFrom?: string): string[][] {
+function getExtraFilters(f: StatusFilter, typeFilter: TypeFilter, dateFrom?: string, dateTo?: string): string[][] {
   const filters: string[][] = [];
   if (f === "discontinued") filters.push(["custom_discontinuation_date", "is", "set"]);
   if (typeFilter !== "all") filters.push(["custom_student_type", "=", typeFilter]);
-  if (dateFrom) filters.push(["joining_date", "=", dateFrom]);
+  if (dateFrom) filters.push(["joining_date", ">=", dateFrom]);
+  if (dateTo) filters.push(["joining_date", "<=", dateTo]);
   return filters;
 }
 
@@ -166,6 +167,7 @@ export default function DirectorAllStudentsPage() {
   const [branchFilter, setBranchFilter] = useState<string>("");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
   const [page, setPage] = useState(0);
   const [exportOpen, setExportOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -177,7 +179,7 @@ export default function DirectorAllStudentsPage() {
     return () => clearTimeout(t);
   }, [searchInput]);
 
-  useEffect(() => { setPage(0); }, [statusFilter, branchFilter, typeFilter, dateFrom]);
+  useEffect(() => { setPage(0); }, [statusFilter, branchFilter, typeFilter, dateFrom, dateTo]);
 
   // Total count
   const { data: totalCount } = useQuery({
@@ -187,15 +189,15 @@ export default function DirectorAllStudentsPage() {
   });
 
   // Filtered count (when date or other filters are active)
-  const hasFilters = !!(dateFrom || branchFilter || typeFilter !== "all" || statusFilter !== "all");
+  const hasFilters = !!(dateFrom || dateTo || branchFilter || typeFilter !== "all" || statusFilter !== "all");
   const { data: filteredCount } = useQuery({
-    queryKey: ["director-filtered-student-count", statusFilter, branchFilter, typeFilter, dateFrom],
+    queryKey: ["director-filtered-student-count", statusFilter, branchFilter, typeFilter, dateFrom, dateTo],
     queryFn: () => {
       const filters: string[][] = [];
       const enabled = getEnabledParam(statusFilter);
       if (enabled !== undefined) filters.push(["enabled", "=", String(enabled)]);
       if (branchFilter) filters.push(["custom_branch", "=", branchFilter]);
-      filters.push(...getExtraFilters(statusFilter, typeFilter, dateFrom));
+      filters.push(...getExtraFilters(statusFilter, typeFilter, dateFrom, dateTo));
       return getStudentCount(filters.length ? filters : undefined);
     },
     enabled: hasFilters,
@@ -212,12 +214,12 @@ export default function DirectorAllStudentsPage() {
 
   // Students query
   const { data: studentsRes, isLoading, isError, error } = useQuery({
-    queryKey: ["director-all-students", search, statusFilter, branchFilter, typeFilter, dateFrom, page],
+    queryKey: ["director-all-students", search, statusFilter, branchFilter, typeFilter, dateFrom, dateTo, page],
     queryFn: () =>
       getStudents({
         search: search || undefined,
         enabled: getEnabledParam(statusFilter),
-        extraFilters: getExtraFilters(statusFilter, typeFilter, dateFrom),
+        extraFilters: getExtraFilters(statusFilter, typeFilter, dateFrom, dateTo),
         custom_branch: branchFilter || undefined,
         limit_start: page * PAGE_SIZE,
         limit_page_length: PAGE_SIZE,
@@ -283,7 +285,7 @@ export default function DirectorAllStudentsPage() {
       const res = await getStudents({
         search: search || undefined,
         enabled: getEnabledParam(statusFilter),
-        extraFilters: getExtraFilters(statusFilter, typeFilter, dateFrom),
+        extraFilters: getExtraFilters(statusFilter, typeFilter, dateFrom, dateTo),
         custom_branch: branchFilter || undefined,
         limit_start: offset,
         limit_page_length: batchSize,
@@ -302,7 +304,7 @@ export default function DirectorAllStudentsPage() {
     // Fetch guardian info for all
     const gInfo = ids.length ? await fetchGuardianMap(ids) : {} as Record<string, { parentName: string; parentMobile: string }>;
     return { students: allStudents, enrollments: enrMap, fees, guardianInfo: gInfo };
-  }, [search, statusFilter, branchFilter, typeFilter, dateFrom]);
+  }, [search, statusFilter, branchFilter, typeFilter, dateFrom, dateTo]);
 
   const handleExportExcel = useCallback(async () => {
     setExporting(true);
@@ -436,7 +438,15 @@ export default function DirectorAllStudentsPage() {
           <p className="text-sm text-text-secondary mt-0.5">
             {hasFilters
               ? filteredCount !== undefined
-                ? `${filteredCount} student${filteredCount !== 1 ? "s" : ""} found${dateFrom ? ` admitted on ${new Date(dateFrom + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}` : ""}${branchFilter ? ` in ${branchFilter.replace("Smart Up ", "")}` : ""}`
+                ? `${filteredCount} student${filteredCount !== 1 ? "s" : ""} found${
+                    dateFrom && dateTo
+                      ? ` admitted between ${new Date(dateFrom + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })} and ${new Date(dateTo + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}`
+                      : dateFrom
+                      ? ` admitted on or after ${new Date(dateFrom + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}`
+                      : dateTo
+                      ? ` admitted on or before ${new Date(dateTo + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}`
+                      : ""
+                  }${branchFilter ? ` in ${branchFilter.replace("Smart Up ", "")}` : ""}`
                 : "Counting…"
               : totalCount !== undefined
                 ? `${totalCount} active students across all branches`
@@ -523,7 +533,7 @@ export default function DirectorAllStudentsPage() {
               <option value="Existing">Existing</option>
               <option value="Rejoining">Rejoining</option>
             </select>
-            {/* Date from filter */}
+            {/* Date range filter */}
             <div className="flex items-center gap-1.5">
               <Calendar className="h-4 w-4 text-text-tertiary flex-shrink-0" />
               <input
@@ -534,10 +544,22 @@ export default function DirectorAllStudentsPage() {
                   focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary w-[140px]"
                 title="Joined from"
               />
-              {dateFrom && (
+              <span className="text-xs text-text-tertiary">to</span>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="h-10 px-2.5 rounded-[8px] border border-border-input bg-surface text-sm text-text-primary
+                  focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary w-[140px]"
+                title="Joined to"
+              />
+              {(dateFrom || dateTo) && (
                 <button
-                  onClick={() => setDateFrom("")}
-                  className="text-xs text-primary hover:underline"
+                  onClick={() => {
+                    setDateFrom("");
+                    setDateTo("");
+                  }}
+                  className="text-xs text-primary hover:underline ml-1"
                 >
                   Clear
                 </button>
