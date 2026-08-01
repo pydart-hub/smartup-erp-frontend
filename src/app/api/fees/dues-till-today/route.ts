@@ -355,6 +355,14 @@ function parseSession(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  const res = await handleGet(request);
+  res.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.headers.set("Pragma", "no-cache");
+  res.headers.set("Expires", "0");
+  return res;
+}
+
+async function handleGet(request: NextRequest) {
   try {
     const session = parseSession(request);
     if (!session) {

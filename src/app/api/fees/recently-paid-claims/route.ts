@@ -295,7 +295,16 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({ data: filteredRows });
+    return NextResponse.json(
+      { data: filteredRows },
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          "Pragma": "no-cache",
+          "Expires": "0",
+        },
+      }
+    );
   } catch (err) {
     console.error("[fees/recently-paid-claims] Error:", err);
     return NextResponse.json(

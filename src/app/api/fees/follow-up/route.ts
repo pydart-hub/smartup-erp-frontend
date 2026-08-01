@@ -85,7 +85,16 @@ export async function GET(request: NextRequest) {
       limit_page_length: branch && !student ? "500" : "20",
     });
 
-    return NextResponse.json({ data: res.data ?? [] });
+    return NextResponse.json(
+      { data: res.data ?? [] },
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          "Pragma": "no-cache",
+          "Expires": "0",
+        },
+      }
+    );
   } catch (err) {
     console.error("[fees/follow-up GET]", err);
     return NextResponse.json({ error: "Failed to fetch follow-up logs" }, { status: 500 });
