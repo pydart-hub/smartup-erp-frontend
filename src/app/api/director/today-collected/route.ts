@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
         ["posting_date", "<=", toDate],
       ]),
       order_by: "creation desc",
-      limit_page_length: "500",
+      limit_page_length: "0",
     });
 
     const res = await fetch(`${FRAPPE_URL}/api/resource/Payment Entry?${params.toString()}`, {

@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
         ["is_group", "=", 0],
       ]),
       fields: JSON.stringify(["name", "company", "account_name", "parent_account"]),
-      limit_page_length: "500",
+      limit_page_length: "0",
     });
 
     const expenseAccountMap = new Map(expenseAccounts.map((a) => [a.name, a.account_name]));
@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
         "company",
       ]),
       order_by: "creation desc",
-      limit_page_length: "1000",
+      limit_page_length: "0",
     });
 
     // Filter to only expense entries and format

@@ -69,7 +69,7 @@ cd smartup-erp
 ```
 
 **Install path:** `/var/www/smartup-erp`  
-**Branch:** `master`
+**Branch:** `main`
 
 ---
 
@@ -323,10 +323,10 @@ ssh smartup-portal
 ssh smartup-portal
 
 # Deploy ERP frontend update
-ssh smartup-portal "cd /var/www/smartup-erp && git pull origin master && npm run build && pm2 restart smartup-erp"
+ssh smartup-portal "cd /var/www/smartup-erp && git pull origin main && npm run build && pm2 restart smartup-erp"
 
 # Deploy portal update (same as before)
-ssh smartup-portal "cd /var/www/smartup-portal && git pull origin master && npm run build && pm2 restart smartup-portal"
+ssh smartup-portal "cd /var/www/smartup-portal && git pull origin main && npm run build && pm2 restart smartup-portal"
 
 # Check both apps
 pm2 list
