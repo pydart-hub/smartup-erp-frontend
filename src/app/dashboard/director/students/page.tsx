@@ -18,6 +18,7 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { ReportButton } from "@/components/layout/ReportButton";
 import { DiscontinuedStudentsModal } from "@/components/dashboard/DiscontinuedStudentsModal";
 import {
   getAllBranches,
@@ -311,15 +312,18 @@ export default function DirectorStudentsPage() {
           <h1 className="text-2xl font-black text-text-primary tracking-tight">Students</h1>
           <p className="text-sm text-text-secondary mt-0.5">Overview across all branches</p>
         </div>
-        <Link href="/dashboard/director/students/all">
-          <Button variant="primary" size="md" className="gap-2 shadow-md shadow-primary/20 dark:shadow-cyan-400/25">
-            <Users className="h-4 w-4" />
-            All Students
-            {totalActive !== undefined && (
-              <span className="ml-1 px-2 py-0.5 rounded-full bg-white/20 text-xs font-semibold">{totalAll}</span>
-            )}
-          </Button>
-        </Link>
+        <div className="flex items-center gap-3 self-end sm:self-center">
+          <ReportButton />
+          <Link href="/dashboard/director/students/all">
+            <Button variant="primary" size="md" className="gap-2 shadow-md shadow-primary/20 dark:shadow-cyan-400/25">
+              <Users className="h-4 w-4" />
+              All Students
+              {totalActive !== undefined && (
+                <span className="ml-1 px-2 py-0.5 rounded-full bg-white/20 text-xs font-semibold">{totalAll}</span>
+              )}
+            </Button>
+          </Link>
+        </div>
       </motion.div>
 
       {/* Summary strip — 3 sections */}

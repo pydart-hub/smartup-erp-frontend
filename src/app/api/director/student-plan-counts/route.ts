@@ -29,10 +29,19 @@ export async function GET(request: NextRequest) {
   const adminAuth = `token ${FRAPPE_API_KEY}:${FRAPPE_API_SECRET}`;
 
   try {
+    const { searchParams } = new URL(request.url);
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
+
     // ── Step 1: fetch ALL active student IDs ─────────────────────────────
+    const studentFilters: any[] = [["enabled", "=", 1]];
+    if (startDate && endDate) {
+      studentFilters.push(["joining_date", ">=", startDate]);
+      studentFilters.push(["joining_date", "<=", endDate]);
+    }
     const studentParams = new URLSearchParams({
       fields: JSON.stringify(["name"]),
-      filters: JSON.stringify([["enabled", "=", 1]]),
+      filters: JSON.stringify(studentFilters),
       limit_page_length: "10000",
     });
     const studentRes = await fetch(

@@ -90,15 +90,33 @@ export async function getStudentCountForBranch(
 }
 
 export async function getActiveStudentCountForBranch(
-  branch: string
+  branch: string,
+  startDate?: string | any,
+  endDate?: string
 ): Promise<number> {
-  return getCount("Student", { custom_branch: branch, enabled: "1" });
+  const actualStart = typeof startDate === "string" ? startDate : undefined;
+  const actualEnd = typeof endDate === "string" ? endDate : undefined;
+  const filters: any[] = [["custom_branch", "=", branch], ["enabled", "=", "1"]];
+  if (actualStart && actualEnd) {
+    filters.push(["joining_date", ">=", actualStart]);
+    filters.push(["joining_date", "<=", actualEnd]);
+  }
+  return getCount("Student", filters);
 }
 
 export async function getDiscontinuedStudentCountForBranch(
-  branch: string
+  branch: string,
+  startDate?: string | any,
+  endDate?: string
 ): Promise<number> {
-  return getCount("Student", { custom_branch: branch, enabled: "0" });
+  const actualStart = typeof startDate === "string" ? startDate : undefined;
+  const actualEnd = typeof endDate === "string" ? endDate : undefined;
+  const filters: any[] = [["custom_branch", "=", branch], ["enabled", "=", "0"]];
+  if (actualStart && actualEnd) {
+    filters.push(["joining_date", ">=", actualStart]);
+    filters.push(["joining_date", "<=", actualEnd]);
+  }
+  return getCount("Student", filters);
 }
 
 export async function getBatchCountForBranch(
@@ -143,12 +161,26 @@ export async function getTotalStudentCount(): Promise<number> {
   return getCount("Student");
 }
 
-export async function getActiveStudentCount(): Promise<number> {
-  return getCount("Student", { enabled: "1" });
+export async function getActiveStudentCount(startDate?: string | any, endDate?: string): Promise<number> {
+  const actualStart = typeof startDate === "string" ? startDate : undefined;
+  const actualEnd = typeof endDate === "string" ? endDate : undefined;
+  const filters: any[] = [["enabled", "=", "1"]];
+  if (actualStart && actualEnd) {
+    filters.push(["joining_date", ">=", actualStart]);
+    filters.push(["joining_date", "<=", actualEnd]);
+  }
+  return getCount("Student", filters);
 }
 
-export async function getDiscontinuedStudentCount(): Promise<number> {
-  return getCount("Student", { enabled: "0" });
+export async function getDiscontinuedStudentCount(startDate?: string | any, endDate?: string): Promise<number> {
+  const actualStart = typeof startDate === "string" ? startDate : undefined;
+  const actualEnd = typeof endDate === "string" ? endDate : undefined;
+  const filters: any[] = [["enabled", "=", "0"]];
+  if (actualStart && actualEnd) {
+    filters.push(["joining_date", ">=", actualStart]);
+    filters.push(["joining_date", "<=", actualEnd]);
+  }
+  return getCount("Student", filters);
 }
 
 export async function getTotalStaffCount(): Promise<number> {
@@ -269,16 +301,23 @@ export async function getDiscontinuedStudents(params?: {
 }
 
 /** Get student count grouped by type (Fresher / Existing / Rejoining) — all branches */
-export async function getStudentCountByType(): Promise<{
+export async function getStudentCountByType(startDate?: string | any, endDate?: string): Promise<{
   fresher: number;
   existing: number;
   rejoining: number;
   unenrolled: number;
 }> {
+  const actualStart = typeof startDate === "string" ? startDate : undefined;
+  const actualEnd = typeof endDate === "string" ? endDate : undefined;
+  const filters: any[] = [["enabled", "=", 1]];
+  if (actualStart && actualEnd) {
+    filters.push(["joining_date", ">=", actualStart]);
+    filters.push(["joining_date", "<=", actualEnd]);
+  }
   const { data } = await apiClient.get("/resource/Student", {
     params: {
       fields: JSON.stringify(["custom_student_type", "name"]),
-      filters: JSON.stringify([["enabled", "=", 1]]),
+      filters: JSON.stringify(filters),
       limit_page_length: 10000,
     },
   });
@@ -295,7 +334,7 @@ export async function getStudentCountByType(): Promise<{
 }
 
 /** Get student count grouped by plan (Advanced / Intermediate / Basic) from Program Enrollment */
-export async function getStudentCountByPlan(): Promise<{
+export async function getStudentCountByPlan(startDate?: string | any, endDate?: string): Promise<{
   advanced: number;
   intermediate: number;
   basic: number;
@@ -303,26 +342,43 @@ export async function getStudentCountByPlan(): Promise<{
   demo: number;
   na: number;
 }> {
+  const actualStart = typeof startDate === "string" ? startDate : undefined;
+  const actualEnd = typeof endDate === "string" ? endDate : undefined;
   // Uses a server-side route with admin credentials to ensure cross-branch
   // Program Enrollment data is accessible regardless of the logged-in user's
   // Frappe role permissions.
-  const res = await fetch("/api/director/student-plan-counts", { credentials: "include" });
+  let url = "/api/director/student-plan-counts";
+  if (actualStart && actualEnd) {
+    url += `?startDate=${actualStart}&endDate=${actualEnd}`;
+  }
+  const res = await fetch(url, { credentials: "include" });
   if (!res.ok) return { advanced: 0, intermediate: 0, basic: 0, freeAccess: 0, demo: 0, na: 0 };
   const data = await res.json();
   return data ?? { advanced: 0, intermediate: 0, basic: 0, freeAccess: 0, demo: 0, na: 0 };
 }
 
 /** Get student count grouped by plan for a specific branch */
-export async function getStudentCountByTypeForBranch(branch: string): Promise<{
+export async function getStudentCountByTypeForBranch(
+  branch: string,
+  startDate?: string | any,
+  endDate?: string
+): Promise<{
   fresher: number;
   existing: number;
   rejoining: number;
 }> {
+  const actualStart = typeof startDate === "string" ? startDate : undefined;
+  const actualEnd = typeof endDate === "string" ? endDate : undefined;
   const result = { fresher: 0, existing: 0, rejoining: 0 };
+  const filters: any[] = [["custom_branch", "=", branch], ["enabled", "=", 1]];
+  if (actualStart && actualEnd) {
+    filters.push(["joining_date", ">=", actualStart]);
+    filters.push(["joining_date", "<=", actualEnd]);
+  }
   const { data } = await apiClient.get("/resource/Student", {
     params: {
       fields: JSON.stringify(["custom_student_type"]),
-      filters: JSON.stringify([["custom_branch", "=", branch], ["enabled", "=", 1]]),
+      filters: JSON.stringify(filters),
       limit_page_length: 500,
     },
   });
@@ -335,7 +391,11 @@ export async function getStudentCountByTypeForBranch(branch: string): Promise<{
   return result;
 }
 
-export async function getStudentCountByPlanForBranch(branch: string): Promise<{
+export async function getStudentCountByPlanForBranch(
+  branch: string,
+  startDate?: string | any,
+  endDate?: string
+): Promise<{
   advanced: number;
   intermediate: number;
   basic: number;
@@ -343,6 +403,8 @@ export async function getStudentCountByPlanForBranch(branch: string): Promise<{
   demo: number;
   na: number;
 }> {
+  const actualStart = typeof startDate === "string" ? startDate : undefined;
+  const actualEnd = typeof endDate === "string" ? endDate : undefined;
   const result = { advanced: 0, intermediate: 0, basic: 0, freeAccess: 0, demo: 0, na: 0 };
 
   if (noProgramEnrollmentReadPermission) {
@@ -354,10 +416,15 @@ export async function getStudentCountByPlanForBranch(branch: string): Promise<{
   }
 
   // Step 1: get active student IDs for this branch
+  const filters: any[] = [["custom_branch", "=", branch], ["enabled", "=", 1]];
+  if (startDate && endDate) {
+    filters.push(["joining_date", ">=", startDate]);
+    filters.push(["joining_date", "<=", endDate]);
+  }
   const studentsRes = await apiClient.get("/resource/Student", {
     params: {
       fields: JSON.stringify(["name"]),
-      filters: JSON.stringify([["custom_branch", "=", branch], ["enabled", "=", 1]]),
+      filters: JSON.stringify(filters),
       limit_page_length: 500,
     },
   });
@@ -1934,7 +2001,7 @@ export async function getDemoStudentCountForBranch(branch: string): Promise<numb
  * Detection: submitted PE has student_category="Demo" but Student.custom_student_type != "Demo".
  * All branches.
  */
-export async function getConvertedDemoStudentCount(): Promise<number> {
+export async function getConvertedDemoStudentCount(startDate?: any, endDate?: string): Promise<number> {
   // Step 1: All submitted PEs with student_category = Demo
   const { data: peData } = await apiClient.get("/resource/Program Enrollment", {
     params: {
@@ -1949,10 +2016,17 @@ export async function getConvertedDemoStudentCount(): Promise<number> {
   if (!peStudentIds.length) return 0;
 
   // Step 2: Fetch Student records for those IDs and count non-Demo ones
+  const filters: any[] = [["name", "in", peStudentIds]];
+  const actualStart = typeof startDate === "string" ? startDate : undefined;
+  const actualEnd = typeof endDate === "string" ? endDate : undefined;
+  if (actualStart && actualEnd) {
+    filters.push(["joining_date", ">=", actualStart]);
+    filters.push(["joining_date", "<=", actualEnd]);
+  }
   const { data: studentData } = await apiClient.get("/resource/Student", {
     params: {
       fields: JSON.stringify(["name", "custom_student_type"]),
-      filters: JSON.stringify([["name", "in", peStudentIds]]),
+      filters: JSON.stringify(filters),
       limit_page_length: peStudentIds.length + 10,
     },
   });
@@ -1965,12 +2039,21 @@ export async function getConvertedDemoStudentCount(): Promise<number> {
  * Detection: student in branch whose latest submitted PE has student_category="Demo"
  * but Student.custom_student_type is no longer "Demo".
  */
-export async function getConvertedDemoStudentCountForBranch(branch: string): Promise<number> {
+export async function getConvertedDemoStudentCountForBranch(
+  branch: string,
+  startDate?: string,
+  endDate?: string
+): Promise<number> {
   // Step 1: All branch students (enabled) with their current type
+  const filters: any[] = [["custom_branch", "=", branch], ["enabled", "=", 1]];
+  if (startDate && endDate) {
+    filters.push(["joining_date", ">=", startDate]);
+    filters.push(["joining_date", "<=", endDate]);
+  }
   const { data: studentsData } = await apiClient.get("/resource/Student", {
     params: {
       fields: JSON.stringify(["name", "custom_student_type"]),
-      filters: JSON.stringify([["custom_branch", "=", branch], ["enabled", "=", 1]]),
+      filters: JSON.stringify(filters),
       limit_page_length: 500,
     },
   });
