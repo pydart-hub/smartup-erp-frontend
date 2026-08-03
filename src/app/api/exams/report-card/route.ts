@@ -146,17 +146,29 @@ export async function GET(request: NextRequest) {
       studentRank = r;
     }
 
-    // Build this student's subjects
+    // Build this student's subjects (grouped/aggregated by course)
     const myResults = allResults.filter((r) => r.student === student);
-    const subjects = myResults.map((r) => {
-      const maxScore = r.maximum_score || 0;
-      const pct = maxScore > 0 ? Math.round((r.total_score / maxScore) * 100 * 10) / 10 : 0;
-      return {
+    const courseMap = new Map<string, { course: string; score: number; maximum_score: number }>();
+    
+    for (const r of myResults) {
+      const prev = courseMap.get(r.course) ?? {
         course: r.course,
-        score: r.total_score,
-        maximum_score: maxScore,
+        score: 0,
+        maximum_score: 0,
+      };
+      prev.score += r.total_score || 0;
+      prev.maximum_score += r.maximum_score || 0;
+      courseMap.set(r.course, prev);
+    }
+
+    const subjects = Array.from(courseMap.values()).map((c) => {
+      const pct = c.maximum_score > 0 ? Math.round((c.score / c.maximum_score) * 100 * 10) / 10 : 0;
+      return {
+        course: c.course,
+        score: c.score,
+        maximum_score: c.maximum_score,
         percentage: pct,
-        grade: r.grade || getGrade(pct),
+        grade: getGrade(pct),
         passed: pct >= 33,
       };
     });

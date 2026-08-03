@@ -300,9 +300,7 @@ export const PARENT_NAV: NavItem[] = [
 
 export const HR_MANAGER_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard/hr-manager", icon: "LayoutDashboard", emoji: "📊" },
-  { label: "Staff", href: "/dashboard/hr-manager/salary/staff", icon: "Users", emoji: "👥" },
-  { label: "Salary", href: "/dashboard/hr-manager/salary", icon: "Coins", emoji: "💰" },
-  { label: "Payroll", href: "/dashboard/hr-manager/payroll", icon: "IndianRupee", emoji: "💵" },
+  { label: "Report", href: "/dashboard/hr-manager/report", icon: "FileBarChart", emoji: "📈" },
 ];
 
 export const SALES_USER_NAV: NavItem[] = [

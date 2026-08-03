@@ -74,11 +74,19 @@ export function proxy(request: NextRequest) {
     );
     const roles: string[] = sessionData.roles || [];
 
-    let primaryRoute = "/dashboard/branch-manager";
+    let hasValidRole = false;
+    let primaryRoute = "/auth/unauthorized";
     for (const [role, route] of Object.entries(ROLE_DASHBOARD_MAP)) {
       if (roles.includes(role)) {
         primaryRoute = route;
+        hasValidRole = true;
         break;
+      }
+    }
+
+    if (!hasValidRole) {
+      if (pathname.startsWith("/dashboard") && pathname !== "/auth/unauthorized") {
+        return NextResponse.redirect(new URL("/auth/unauthorized", request.url));
       }
     }
 

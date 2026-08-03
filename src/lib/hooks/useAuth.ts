@@ -42,7 +42,7 @@ export function useAuth() {
     // Redirect to role-specific dashboard — pick the best app role, not just roles[0]
     const APP_ROLES = ["Director", "Management", "Curriculum Dept", "General Manager", "Branch Manager", "Mentor", "HR Manager", "Administrator", "Instructor", "Batch Coordinator", "Teacher", "Sales User", "Content Admin", "Accounts User", "Parent"];
     const primaryRole = APP_ROLES.find((r) => loggedUser.roles?.includes(r)) || loggedUser.role_profile_name || "";
-    const dashboardRoute = ROLE_DASHBOARD_MAP[primaryRole] || "/dashboard/branch-manager";
+    const dashboardRoute = ROLE_DASHBOARD_MAP[primaryRole] || "/auth/unauthorized";
     router.push(dashboardRoute);
     return loggedUser;
   }
@@ -56,12 +56,12 @@ export function useAuth() {
   /** Switch to a different role and navigate to its dashboard */
   function switchRole(newRole: string) {
     storeSetActiveRole(newRole);
-    const route = ROLE_DASHBOARD_MAP[newRole] || "/dashboard/branch-manager";
+    const route = ROLE_DASHBOARD_MAP[newRole] || "/auth/unauthorized";
     router.push(route);
   }
 
   function getDashboardRoute(): string {
-    return role ? ROLE_DASHBOARD_MAP[role] || "/dashboard/branch-manager" : "/auth/login";
+    return role ? ROLE_DASHBOARD_MAP[role] || "/auth/unauthorized" : "/auth/login";
   }
 
   return {

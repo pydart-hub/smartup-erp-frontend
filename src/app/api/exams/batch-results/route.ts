@@ -125,11 +125,11 @@ export async function GET(request: NextRequest) {
       return intervals[intervals.length - 1]?.grade_code ?? "";
     }
 
-    // Group results by student
+    // Group results by student, and within student by course to handle multiple plans of the same course
     const studentMap = new Map<string, {
       student: string;
       student_name: string;
-      subjects: { course: string; score: number; maximum_score: number; percentage: number; grade: string; passed: boolean }[];
+      courseMap: Map<string, { course: string; score: number; maximum_score: number }>;
     }>();
 
     for (const r of results) {
@@ -137,33 +137,44 @@ export async function GET(request: NextRequest) {
         studentMap.set(r.student, {
           student: r.student,
           student_name: r.student_name || r.student,
-          subjects: [],
+          courseMap: new Map(),
         });
       }
       const entry = studentMap.get(r.student)!;
-      const maxScore = r.maximum_score || 0;
-      const percentage = maxScore > 0 ? Math.round((r.total_score / maxScore) * 100 * 10) / 10 : 0;
-      entry.subjects.push({
+      const prevCourse = entry.courseMap.get(r.course) ?? {
         course: r.course,
-        score: r.total_score,
-        maximum_score: maxScore,
-        percentage,
-        grade: r.grade || getGrade(percentage),
-        passed: percentage >= 33,
-      });
+        score: 0,
+        maximum_score: 0,
+      };
+
+      prevCourse.score += r.total_score || 0;
+      prevCourse.maximum_score += r.maximum_score || 0;
+      entry.courseMap.set(r.course, prevCourse);
     }
 
     // Compute aggregated results
     const aggregated = Array.from(studentMap.values()).map((s) => {
-      const totalScore = s.subjects.reduce((sum, sub) => sum + sub.score, 0);
-      const totalMax = s.subjects.reduce((sum, sub) => sum + sub.maximum_score, 0);
+      const subjects = Array.from(s.courseMap.values()).map((c) => {
+        const percentage = c.maximum_score > 0 ? Math.round((c.score / c.maximum_score) * 100 * 10) / 10 : 0;
+        return {
+          course: c.course,
+          score: c.score,
+          maximum_score: c.maximum_score,
+          percentage,
+          grade: getGrade(percentage),
+          passed: percentage >= 33,
+        };
+      });
+
+      const totalScore = subjects.reduce((sum, sub) => sum + sub.score, 0);
+      const totalMax = subjects.reduce((sum, sub) => sum + sub.maximum_score, 0);
       const overallPct = totalMax > 0 ? Math.round((totalScore / totalMax) * 100 * 10) / 10 : 0;
-      const passed = s.subjects.every((sub) => sub.passed);
+      const passed = subjects.every((sub) => sub.passed);
 
       return {
         student: s.student,
         student_name: s.student_name,
-        subjects: s.subjects,
+        subjects,
         total_score: totalScore,
         total_maximum: totalMax,
         overall_percentage: overallPct,
