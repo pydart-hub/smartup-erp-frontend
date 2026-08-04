@@ -452,6 +452,19 @@ export async function createEmployeeAttendance(payload: {
   out_time?: string;
   custom_class_time?: string;
 }): Promise<{ data: EmployeeAttendance }> {
+  // "At Head Office" is not a valid Frappe HRMS status — use a custom Server Script
+  // that calls frappe.db.set_value to bypass the Python validate() hook.
+  if (payload.status === "At Head Office") {
+    const { data } = await apiClient.post("/method/set_attendance_status", {
+      employee: payload.employee,
+      employee_name: payload.employee_name,
+      attendance_date: payload.attendance_date,
+      status: "At Head Office",
+      company: payload.company,
+    });
+    return { data: data as EmployeeAttendance };
+  }
+
   const postBody = {
     employee: payload.employee,
     employee_name: payload.employee_name,
@@ -532,6 +545,19 @@ export async function updateEmployeeAttendance(
     custom_class_time?: string;
   }
 ): Promise<void> {
+  // "At Head Office" bypasses Python validator via custom Server Script
+  if (payload.status === "At Head Office") {
+    await apiClient.post("/method/set_attendance_status", {
+      existing_name: existingName,
+      employee: payload.employee,
+      employee_name: payload.employee_name,
+      attendance_date: payload.attendance_date,
+      status: "At Head Office",
+      company: payload.company,
+    });
+    return;
+  }
+
   // Read current docstatus to pick a safe update path.
   const { data: existingRes } = await apiClient.get<{ data?: { docstatus?: number } }>(
     `/resource/Attendance/${encodeURIComponent(existingName)}`

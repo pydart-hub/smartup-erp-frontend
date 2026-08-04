@@ -220,6 +220,9 @@ export async function GET(request: NextRequest) {
       // That’s exactly the students this page is meant to show.
       // We now show ANY student with a recent payment entry for this branch.
 
+      // Track which logs have already been matched to a payment for this student
+      const usedLogNames = new Set<string>();
+
       for (const payment of payments) {
         const paidAmt = payment.paid_amount ?? 0;
 
@@ -231,25 +234,10 @@ export async function GET(request: NextRequest) {
           (log) => log.invoice_ref && log.invoice_ref.trim() === payment.name?.trim()
         ) ?? null;
 
-        // FALLBACK (legacy claims): Before the invoice_ref system was introduced,
-        // sales users claimed payments by marking "Payment Received" in the Fee
-        // Overdue section. Those logs have no invoice_ref but can be identified by:
-        //   1. payment_received = 1 (or call_status = "Already Paid")
-        //   2. call_date >= payment posting_date (claimed on or after payment)
-        //   3. amount_received roughly matches paid_amount (within ₹1, or 0/null)
-        if (!claimingLog) {
-          claimingLog = logsForStudent.find((log) => {
-            const isPaymentLog =
-              log.payment_received === 1 || log.call_status === "Already Paid";
-            if (!isPaymentLog) return false;
-            const logDate = log.call_date || log.creation?.slice(0, 10) || "";
-            const paymentDate = payment.posting_date || "";
-            if (logDate < paymentDate) return false; // must be on or after payment
-            const amtReceived = log.amount_received ?? 0;
-            const amtMatches =
-              amtReceived === 0 || Math.abs(amtReceived - paidAmt) <= 1;
-            return amtMatches;
-          }) ?? null;
+        // No fallback guessing allowed. It must have an explicit invoice_ref.
+
+        if (claimingLog) {
+          usedLogNames.add(claimingLog.name);
         }
 
         const isClaimed = claimingLog !== null;

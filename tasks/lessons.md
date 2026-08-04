@@ -268,5 +268,14 @@
 - **Correction**: When reuse of a global/cross-branch dashboard is requested for a branch-restricted role, implement a branch-locked prop configuration on the shared component to hide multi-branch coverage stats and input filters, and secure the data request on the server using the user's default company session attribute.
 - **Rule**: Always lock shared summary tables/reports to the user's default branch company when accessed via the Branch Manager role. Hide search inputs or cross-branch comparison cards that leak external data, and automatically expand the main data table to fill the empty layout columns.
 
+## At Head Office Attendance Status — Frappe Select Validation Mapping
+- **Date**: 2026-08-04
+- **Issue**: Attempting to save a custom status `"At Head Office"` directly to Frappe's `status` field on the `Attendance` doctype fails validation on the backend (throwing `frappe.exceptions.ValidationError: Status must be one of 'Present', 'Absent', 'On Leave', 'Half Day' or 'Work From Home'`).
+- **Correction**: Map `"At Head Office"` to `"Present"` with empty/cleared timings (`""`) when saving to the database, and reverse-map it back to `"At Head Office"` when loading from the backend.
+- **Rule**: If a frontend feature requires a custom attendance status that is not supported by the backend doctype's validation choices, map it to `"Present"` with unique/null timings when saving, and reconstruct the status on load.
 
-
+## Optimistic UI Cache IDs vs Backend Updates — TS404 Avoidance
+- **Date**: 2026-08-04
+- **Issue**: Saving attendance again throws `404 Not Found` when trying to update a record whose ID in the query cache starts with `"LOCAL-"` (which is optimistically inserted in the UI list).
+- **Correction**: Skip calling update endpoints and use create endpoints instead when the record ID begins with `"LOCAL-"`.
+- **Rule**: When resolving existing records to update via API resources, always ensure that optimistically generated/mock cache IDs (e.g. starting with `"LOCAL-"`) are treated as new documents rather than existing backend entries.

@@ -283,7 +283,7 @@ export async function GET(request: NextRequest) {
       if (!hrAttMap.has(emp)) hrAttMap.set(emp, { present: 0, total: 0, late: 0, earlyExit: 0 });
       const rec = hrAttMap.get(emp)!;
       rec.total++;
-      if (a.status === "Present" || a.status === "Half Day" || a.status === "Work From Home") rec.present++;
+      if (a.status === "Present" || a.status === "Half Day" || a.status === "Work From Home" || a.status === "At Head Office") rec.present++;
       if (a.late_entry) rec.late++;
       if (a.early_exit) rec.earlyExit++;
     }

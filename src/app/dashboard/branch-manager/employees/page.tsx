@@ -37,7 +37,14 @@ import {
 
 //  Attendance status options 
 
-type AttStatus = "Present" | "Absent" | "Half Day" | "On Leave" | "Work From Home";
+function formatTimeForInput(val?: string | null): string {
+  if (!val) return "";
+  const parts = val.split(" ");
+  const timePart = parts[1] || parts[0];
+  return timePart.slice(0, 5); // HH:MM
+}
+
+type AttStatus = "Present" | "Absent" | "Half Day" | "On Leave" | "Work From Home" | "At Head Office";
 
 const ATT_OPTIONS: {
   value: AttStatus;
@@ -49,6 +56,7 @@ const ATT_OPTIONS: {
   { value: "Absent",         label: "Absent",   icon: XCircle,     active: "bg-error text-white border-error" },
   { value: "Half Day",       label: "Half Day", icon: Clock,       active: "bg-warning text-white border-warning" },
   { value: "Work From Home", label: "WFH",      icon: Users,       active: "bg-primary text-white border-primary" },
+  { value: "At Head Office", label: "At HO",    icon: Building2,   active: "bg-indigo-600 text-white border-indigo-600" },
 ];
 
 const ATT_VIEW_CONFIG: Record<
@@ -60,6 +68,7 @@ const ATT_VIEW_CONFIG: Record<
   "Half Day":       { variant: "warning", icon: Clock,       color: "text-warning" },
   "On Leave":       { variant: "default", icon: UserX,       color: "text-info" },
   "Work From Home": { variant: "default", icon: Users,       color: "text-primary" },
+  "At Head Office": { variant: "default", icon: Building2,   color: "text-indigo-600" },
 };
 
 //  Page 
@@ -107,7 +116,6 @@ export default function EmployeesPage() {
 
   const employees = empRes?.data ?? [];
 
-  // existingMap: employee name  { docId, status }
   const existingMap = useMemo(
     () =>
       new Map(

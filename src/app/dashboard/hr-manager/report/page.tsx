@@ -44,6 +44,7 @@ const statusMap: Record<string, string> = {
   "Half Day": "Half Day",
   "On Leave": "Leave",
   "Work From Home": "Work From Home",
+  "At Head Office": "At Head Office",
   "Not Marked": "-",
 };
 
@@ -53,6 +54,7 @@ const statusColors: Record<string, string> = {
   "Half Day": "text-amber-700 bg-amber-50 border-amber-200",
   "On Leave": "text-sky-700 bg-sky-50 border-sky-200",
   "Work From Home": "text-indigo-700 bg-indigo-50 border-indigo-200",
+  "At Head Office": "text-indigo-700 bg-indigo-50 border-indigo-200",
   "Not Marked": "text-gray-400 bg-gray-50/50 border-gray-100",
 };
 
@@ -316,6 +318,9 @@ export default function HRMonthlyReportDashboard() {
               data.cell.styles.fillColor = [240, 249, 255];
               data.cell.styles.textColor = [3, 105, 161];
             } else if (raw.startsWith("Work From Home")) {
+              data.cell.styles.fillColor = [238, 242, 255];
+              data.cell.styles.textColor = [67, 56, 202];
+            } else if (raw.startsWith("At Head Office")) {
               data.cell.styles.fillColor = [238, 242, 255];
               data.cell.styles.textColor = [67, 56, 202];
             } else if (raw === "-") {

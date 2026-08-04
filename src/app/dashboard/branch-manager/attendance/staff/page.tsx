@@ -26,7 +26,7 @@ import {
 } from "@/lib/api/employees";
 import { getCourseSchedules } from "@/lib/api/courseSchedule";
 
-type StaffStatus = "Present" | "Absent" | "Half Day" | "On Leave" | "Work From Home";
+type StaffStatus = "Present" | "Absent" | "Half Day" | "On Leave" | "Work From Home" | "At Head Office";
 
 interface StaffAttendanceChange {
   status: StaffStatus;
@@ -34,7 +34,7 @@ interface StaffAttendanceChange {
   out_time?: string;
 }
 
-const STATUS_OPTIONS: StaffStatus[] = ["Present", "Absent", "Half Day", "Work From Home"];
+const STATUS_OPTIONS: StaffStatus[] = ["Present", "Absent", "Half Day", "Work From Home", "At Head Office"];
 
 const DEFAULT_IN_TIME = "09:00";
 const DEFAULT_OUT_TIME = "17:30";
@@ -59,6 +59,7 @@ const statusConfig: Record<string, { color: string; bg: string; icon: React.Comp
   "Half Day": { color: "text-warning", bg: "bg-warning-light", icon: Clock, variant: "warning" },
   "On Leave": { color: "text-info", bg: "bg-info/10", icon: UserX, variant: "default" },
   "Work From Home": { color: "text-primary", bg: "bg-brand-wash", icon: Users, variant: "default" },
+  "At Head Office": { color: "text-indigo-600", bg: "bg-indigo-50", icon: Building2, variant: "default" },
   "Not Marked": { color: "text-text-tertiary", bg: "bg-app-bg", icon: Clock, variant: "default" },
 };
 
@@ -283,7 +284,7 @@ export default function StaffAttendancePage() {
     } else if (nextStatus === "Half Day") {
       if (!in_time) in_time = DEFAULT_IN_TIME;
       if (!out_time) out_time = DEFAULT_HALF_DAY_OUT_TIME;
-    } else if (nextStatus === "Absent" || nextStatus === "On Leave" || nextStatus === "Work From Home") {
+    } else if (nextStatus === "Absent" || nextStatus === "On Leave" || nextStatus === "Work From Home" || nextStatus === "At Head Office") {
       in_time = "";
       out_time = "";
     }
@@ -394,11 +395,11 @@ export default function StaffAttendancePage() {
             attendance_date: selectedDate,
             status: change.status,
             company: v.custom_company || defaultCompany || "",
-            in_time: inTimeISO,
-            out_time: outTimeISO,
+            in_time: change.status === "At Head Office" ? undefined : inTimeISO,
+            out_time: change.status === "At Head Office" ? undefined : outTimeISO,
             custom_class_time: classTime || undefined,
           };
-          if (existing) {
+          if (existing && !existing.name.startsWith("LOCAL-")) {
             await updateEmployeeAttendance(existing.name, payload);
           } else {
             await createEmployeeAttendance(payload);
@@ -417,12 +418,12 @@ export default function StaffAttendancePage() {
           attendance_date: selectedDate,
           status: change.status,
           company: defaultCompany || "",
-          in_time: inTimeISO,
-          out_time: outTimeISO,
+          in_time: change.status === "At Head Office" ? undefined : inTimeISO,
+          out_time: change.status === "At Head Office" ? undefined : outTimeISO,
           custom_class_time: classTime || undefined,
         };
 
-        if (existing) {
+        if (existing && !existing.name.startsWith("LOCAL-")) {
           await updateEmployeeAttendance(existing.name, payload);
         } else {
           await createEmployeeAttendance(payload);
@@ -686,7 +687,7 @@ export default function StaffAttendancePage() {
               {merged.map((emp, index) => {
                 const cfg = statusConfig[emp.attendance_status] ?? statusConfig["Not Marked"];
                 const Icon = cfg.icon as React.ComponentType<{ className?: string }>;
-                const showTimings = emp.attendance_status && emp.attendance_status !== "Absent" && emp.attendance_status !== "On Leave" && emp.attendance_status !== "Work From Home" && emp.attendance_status !== "Not Marked";
+                const showTimings = emp.attendance_status && emp.attendance_status !== "Absent" && emp.attendance_status !== "On Leave" && emp.attendance_status !== "Work From Home" && emp.attendance_status !== "At Head Office" && emp.attendance_status !== "Not Marked";
 
                 return (
                   <motion.div
@@ -819,7 +820,7 @@ export default function StaffAttendancePage() {
                   );
                   const cfg = statusConfig[currentStatus] ?? statusConfig["Not Marked"];
                   const Icon = cfg.icon as React.ComponentType<{ className?: string }>;
-                  const showTimings = currentStatus && currentStatus !== "Absent" && currentStatus !== "On Leave" && currentStatus !== "Work From Home" && currentStatus !== "Not Marked";
+                  const showTimings = currentStatus && currentStatus !== "Absent" && currentStatus !== "On Leave" && currentStatus !== "Work From Home" && currentStatus !== "At Head Office" && currentStatus !== "Not Marked";
 
                   return (
                     <motion.div

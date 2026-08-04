@@ -28,6 +28,7 @@ type FollowUpLog = {
   remarks?: string;
   next_followup_date?: string;
   invoice_ref?: string;
+  creation?: string;
 };
 
 function hasAllowedRole(roles: string[]): boolean {
@@ -118,7 +119,7 @@ export async function GET(request: NextRequest) {
       "name", "student", "student_name", "branch",
       "call_date", "called_by", "call_status",
       "payment_received", "amount_received", "payment_mode",
-      "remarks", "next_followup_date", "invoice_ref",
+      "remarks", "next_followup_date", "invoice_ref", "creation"
     ];
 
     const qs = new URLSearchParams({
@@ -243,9 +244,26 @@ export async function GET(request: NextRequest) {
       if (isPaymentLog && log.student) {
         const logAmt = log.amount_received ?? 0;
         const studentPayments = paymentsByStudent.get(log.student) ?? [];
-        const matchingPayment = studentPayments.find(
-          (p) => !matchedPaymentNamesLogs.has(p.name) && Math.abs((p.paid_amount ?? 0) - logAmt) <= 2
-        );
+        
+        let matchingPayment: any = undefined;
+
+        // 1. Explicit invoice_ref match
+        if (log.invoice_ref) {
+          matchingPayment = studentPayments.find(
+            (p) => !matchedPaymentNamesLogs.has(p.name) && p.name.trim() === log.invoice_ref?.trim()
+          );
+        }
+
+        // 2. Legacy fallback
+        if (!matchingPayment && !log.invoice_ref) {
+          const creationDate = log.creation?.slice(0, 10) || "";
+          if (creationDate < "2026-08-01") {
+            matchingPayment = studentPayments.find(
+              (p) => !matchedPaymentNamesLogs.has(p.name) && Math.abs((p.paid_amount ?? 0) - logAmt) <= 2
+            );
+          }
+        }
+
         if (matchingPayment) {
           matchedPaymentNamesLogs.add(matchingPayment.name);
           log.payment_received = 1;
@@ -414,7 +432,7 @@ export async function GET(request: NextRequest) {
 
       try {
         const paidQs = new URLSearchParams({
-          fields: JSON.stringify(["name", "student", "amount_received", "call_date", "called_by", "branch"]),
+          fields: JSON.stringify(["name", "student", "amount_received", "call_date", "called_by", "branch", "invoice_ref", "creation"]),
           filters: JSON.stringify(allTimeFilters),
           limit_page_length: "2000",
           order_by: "call_date asc",
@@ -425,7 +443,7 @@ export async function GET(request: NextRequest) {
         );
         if (paidRes.ok) {
           const paidData = await paidRes.json();
-          const paidLogs: { name: string; student: string; amount_received?: number; called_by?: string; branch?: string }[] = paidData.data ?? [];
+          const paidLogs: { name: string; student: string; amount_received?: number; called_by?: string; branch?: string; invoice_ref?: string; creation?: string }[] = paidData.data ?? [];
 
           // Branch-wide calculations & breakdowns
           const branchBreakdown = new Map<string, { branch: string; converted_count: number; paid_amount: number }>();
@@ -435,9 +453,26 @@ export async function GET(request: NextRequest) {
           const verifiedPaidLogs = paidLogs.map(log => {
             const logAmt = log.amount_received ?? 0;
             const studentPayments = log.student ? (paymentsByStudent.get(log.student) ?? []) : [];
-            const matchingPayment = studentPayments.find(
-              (p) => !matchedPaymentNamesPaidLogs.has(p.name) && Math.abs((p.paid_amount ?? 0) - logAmt) <= 2
-            );
+            
+            let matchingPayment: any = undefined;
+
+            // 1. Explicit match
+            if (log.invoice_ref) {
+              matchingPayment = studentPayments.find(
+                (p) => !matchedPaymentNamesPaidLogs.has(p.name) && p.name.trim() === log.invoice_ref?.trim()
+              );
+            }
+
+            // 2. Legacy match
+            if (!matchingPayment && !log.invoice_ref) {
+              const creationDate = log.creation?.slice(0, 10) || "";
+              if (creationDate < "2026-08-01") {
+                matchingPayment = studentPayments.find(
+                  (p) => !matchedPaymentNamesPaidLogs.has(p.name) && Math.abs((p.paid_amount ?? 0) - logAmt) <= 2
+                );
+              }
+            }
+
             if (matchingPayment) {
               matchedPaymentNamesPaidLogs.add(matchingPayment.name);
               return {

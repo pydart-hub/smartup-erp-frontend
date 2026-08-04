@@ -61,6 +61,7 @@ export function FollowUpDrawer({
   const [nextDate, setNextDate] = useState("");
   // Locked invoice_ref — only set when opened from the paid-history claim flow
   const invoiceRef = initialInvoiceRef;
+  const submitLock = useRef(false);
 
   // Sync state whenever props change (or when drawer opens with new student/defaults)
   useEffect(() => {
@@ -99,6 +100,7 @@ export function FollowUpDrawer({
         invoice_ref: invoiceRef || undefined,
       }),
     onSuccess: () => {
+      submitLock.current = false;
       toast.success("Follow-up logged");
       // Invalidate follow-up queries for this student
       qc.invalidateQueries({ queryKey: ["followup", student.student_id] });
@@ -108,11 +110,18 @@ export function FollowUpDrawer({
       onClose();
     },
     onError: (err: Error) => {
+      submitLock.current = false;
       toast.error(err.message || "Failed to save follow-up");
     },
   });
 
   const canSubmit = callStatus.length > 0 && !mutation.isPending;
+
+  const handleSave = () => {
+    if (submitLock.current || !canSubmit) return;
+    submitLock.current = true;
+    mutation.mutate();
+  };
 
   const selectedColor = callStatus ? getStatusColor(callStatus) : null;
 

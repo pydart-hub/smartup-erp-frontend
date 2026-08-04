@@ -36,6 +36,7 @@ const statusConfig: Record<
   "Half Day": { color: "text-amber-500 dark:text-amber-400", bg: "bg-amber-500/10", icon: Clock },
   "On Leave": { color: "text-blue-500 dark:text-blue-400", bg: "bg-blue-500/10", icon: Clock },
   "Work From Home": { color: "text-violet-500 dark:text-violet-400", bg: "bg-violet-500/10", icon: Users },
+  "At Head Office": { color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-500/10", icon: Building2 },
   "Not Marked": { color: "text-slate-500 dark:text-slate-400", bg: "bg-slate-500/10", icon: Clock },
 };
 
@@ -100,6 +101,7 @@ export default function HRBranchAttendanceDashboard() {
       let halfDay = 0;
       let onLeave = 0;
       let wfh = 0;
+      let atHeadOffice = 0;
       let notMarked = 0;
 
       const employeeDetails = branchEmployees.map((emp) => {
@@ -111,6 +113,7 @@ export default function HRBranchAttendanceDashboard() {
         else if (status === "Half Day") halfDay++;
         else if (status === "On Leave") onLeave++;
         else if (status === "Work From Home") wfh++;
+        else if (status === "At Head Office") atHeadOffice++;
         else notMarked++;
 
         return {
@@ -122,7 +125,7 @@ export default function HRBranchAttendanceDashboard() {
       });
 
       const total = branchEmployees.length;
-      const rate = total > 0 ? Math.round(((present + wfh + halfDay * 0.5) / total) * 100) : 0;
+      const rate = total > 0 ? Math.round(((present + wfh + atHeadOffice + halfDay * 0.5) / total) * 100) : 0;
 
       return {
         branchName: branch.name,
@@ -130,7 +133,7 @@ export default function HRBranchAttendanceDashboard() {
         employees: employeeDetails,
         total,
         rate,
-        stats: { present, absent, halfDay, onLeave, wfh, notMarked },
+        stats: { present, absent, halfDay, onLeave, wfh, atHeadOffice, notMarked },
       };
     });
   }, [branches, allEmployees, allAttendance]);
@@ -142,6 +145,7 @@ export default function HRBranchAttendanceDashboard() {
     let totalAbsent = 0;
     let totalOnLeave = 0;
     let totalWfh = 0;
+    let totalAtHeadOffice = 0;
 
     branchData.forEach((b) => {
       totalEmployees += b.total;
@@ -149,10 +153,11 @@ export default function HRBranchAttendanceDashboard() {
       totalAbsent += b.stats.absent;
       totalOnLeave += b.stats.onLeave + b.stats.halfDay; // count half day here or separate
       totalWfh += b.stats.wfh;
+      totalAtHeadOffice += b.stats.atHeadOffice || 0;
     });
 
     const attendanceRate = totalEmployees > 0 
-      ? Math.round(((totalPresent + totalWfh) / totalEmployees) * 100) 
+      ? Math.round(((totalPresent + totalWfh + totalAtHeadOffice) / totalEmployees) * 100) 
       : 0;
 
     return {
@@ -162,6 +167,7 @@ export default function HRBranchAttendanceDashboard() {
       totalAbsent,
       totalOnLeave,
       totalWfh,
+      totalAtHeadOffice,
     };
   }, [branchData]);
 
@@ -439,7 +445,7 @@ export default function HRBranchAttendanceDashboard() {
 
                 {/* Status Quick Filter Tabs */}
                 <div className="flex flex-wrap gap-1.5">
-                  {["All", "Present", "Absent", "Half Day", "On Leave", "Work From Home", "Not Marked"].map((status) => {
+                  {["All", "Present", "Absent", "Half Day", "On Leave", "Work From Home", "At Head Office", "Not Marked"].map((status) => {
                     const count = status === "All" 
                       ? currentBranchDetail.total 
                       : status === "Present" 
@@ -452,7 +458,9 @@ export default function HRBranchAttendanceDashboard() {
                               ? currentBranchDetail.stats.onLeave 
                               : status === "Work From Home" 
                                 ? currentBranchDetail.stats.wfh 
-                                : currentBranchDetail.stats.notMarked;
+                                : status === "At Head Office"
+                                  ? currentBranchDetail.stats.atHeadOffice
+                                  : currentBranchDetail.stats.notMarked;
 
                     return (
                       <button

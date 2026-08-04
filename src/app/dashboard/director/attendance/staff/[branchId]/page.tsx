@@ -18,6 +18,7 @@ import {
   FileText,
   LogIn,
   LogOut,
+  Building2,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
@@ -38,6 +39,7 @@ const statusConfig: Record<
   "Half Day": { color: "text-warning", bg: "bg-warning/5", icon: Clock, variant: "warning" },
   "On Leave": { color: "text-info", bg: "bg-info/10", icon: Clock, variant: "default" },
   "Work From Home": { color: "text-primary", bg: "bg-brand-wash", icon: Users, variant: "default" },
+  "At Head Office": { color: "text-indigo-600", bg: "bg-indigo-50", icon: Building2, variant: "default" },
   "Not Marked": { color: "text-text-tertiary", bg: "bg-app-bg", icon: Clock, variant: "default" },
 };
 
@@ -95,9 +97,10 @@ export default function DirectorStaffBranchAttendancePage() {
   // Merge employees with their attendance status & timings
   const merged = employees.map((emp) => {
     const att = attMap.get(emp.name);
+    const attendance_status = (att?.status ?? "Not Marked") as string;
     return {
       ...emp,
-      attendance_status: (att?.status ?? "Not Marked") as string,
+      attendance_status,
       in_time: formatDisplayTime(att?.in_time || att?.custom_check_in),
       out_time: formatDisplayTime(att?.out_time || att?.custom_check_out),
     };
@@ -214,7 +217,7 @@ export default function DirectorStaffBranchAttendancePage() {
                   statusConfig[emp.attendance_status] ??
                   statusConfig["Not Marked"];
                 const Icon = cfg.icon;
-                const showTimings = emp.attendance_status && emp.attendance_status !== "Absent" && emp.attendance_status !== "On Leave" && emp.attendance_status !== "Work From Home" && emp.attendance_status !== "Not Marked";
+                const showTimings = emp.attendance_status && emp.attendance_status !== "Absent" && emp.attendance_status !== "On Leave" && emp.attendance_status !== "Work From Home" && emp.attendance_status !== "At Head Office" && emp.attendance_status !== "Not Marked";
 
                 return (
                   <div

@@ -15,6 +15,7 @@ import {
   RefreshCw,
   LogIn,
   LogOut,
+  Building2,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Badge } from "@/components/ui/Badge";
@@ -31,7 +32,7 @@ import {
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type AttStatus = "Present" | "Absent" | "Half Day" | "On Leave" | "Work From Home";
+type AttStatus = "Present" | "Absent" | "Half Day" | "On Leave" | "Work From Home" | "At Head Office";
 
 interface AttendanceFormEntry {
   status: AttStatus;
@@ -44,6 +45,7 @@ const STATUS_OPTIONS: { value: AttStatus; label: string; icon: React.ComponentTy
   { value: "Absent",           label: "Absent",   icon: XCircle,     variant: "error"   },
   { value: "Half Day",         label: "Half Day", icon: Clock,       variant: "warning" },
   { value: "Work From Home",   label: "WFH",      icon: Users,       variant: "default" },
+  { value: "At Head Office",   label: "At HO",    icon: Building2,   variant: "default" },
 ];
 
 const DEFAULT_IN_TIME = "09:00";
@@ -132,7 +134,7 @@ export default function MarkAttendancePage() {
     } else if (status === "Half Day") {
       if (!in_time) in_time = DEFAULT_IN_TIME;
       if (!out_time) out_time = DEFAULT_HALF_DAY_OUT_TIME;
-    } else if (status === "Absent" || status === "On Leave" || status === "Work From Home") {
+    } else if (status === "Absent" || status === "On Leave" || status === "Work From Home" || status === "At Head Office") {
       in_time = "";
       out_time = "";
     }
@@ -220,8 +222,8 @@ export default function MarkAttendancePage() {
           attendance_date: selectedDate,
           status: entry.status,
           company: emp.company,
-          in_time: entry.in_time ? `${selectedDate} ${entry.in_time}:00` : undefined,
-          out_time: entry.out_time ? `${selectedDate} ${entry.out_time}:00` : undefined,
+          in_time: entry.status === "At Head Office" ? undefined : (entry.in_time ? `${selectedDate} ${entry.in_time}:00` : undefined),
+          out_time: entry.status === "At Head Office" ? undefined : (entry.out_time ? `${selectedDate} ${entry.out_time}:00` : undefined),
         };
 
         try {
@@ -400,7 +402,7 @@ export default function MarkAttendancePage() {
                         </div>
 
                         {/* Check-In and Check-Out Time Inputs */}
-                        {effective?.status && effective.status !== "Absent" && effective.status !== "On Leave" && effective.status !== "Work From Home" && (
+                        {effective?.status && effective.status !== "Absent" && effective.status !== "On Leave" && effective.status !== "Work From Home" && effective.status !== "At Head Office" && (
                           <div className="pt-2 border-t border-border-light flex flex-wrap items-center gap-4 text-xs">
                             <div className="flex items-center gap-1.5">
                               <LogIn className="h-3.5 w-3.5 text-success" />

@@ -42,6 +42,7 @@ type FollowUpLog = {
   remarks?: string;
   next_followup_date?: string;
   invoice_ref?: string;
+  creation?: string;
 };
 
 type PaymentEntryRow = {
@@ -211,7 +212,7 @@ async function getCollectedLogs(params: {
         "name", "student", "student_name", "branch",
         "call_date", "called_by", "call_status",
         "payment_received", "amount_received", "payment_mode",
-        "remarks", "next_followup_date", "invoice_ref",
+        "remarks", "next_followup_date", "invoice_ref", "creation",
       ]),
       order_by: "call_date desc, creation desc",
       limit_page_length: "5000",
@@ -282,20 +283,37 @@ async function getCollectedLogs(params: {
     const logsForStudent = logsByStudent.get(studentId) ?? [];
 
     let claimingLog: FollowUpLog | null = null;
+    
+    // 1. Explicit invoice_ref match
     for (const log of logsForStudent) {
-      if (usedLogNames.has(log.name)) continue;
-      const logDate = log.call_date?.slice(0, 10) || "";
-      const isAfterPayment = !paymentDate || !logDate || logDate >= paymentDate;
-      const isPaymentLog = log.payment_received === 1 || PAYMENT_STATUSES.includes(log.call_status);
-      if (!isPaymentLog || !isAfterPayment) continue;
+      if (log.invoice_ref && log.invoice_ref.trim() === payment.name?.trim()) {
+        claimingLog = log;
+        usedLogNames.add(log.name);
+        break;
+      }
+    }
 
-      const logAmt = log.amount_received ?? 0;
-      const amountMatches = logAmt === 0 || Math.abs(logAmt - paidAmt) <= 1;
-      if (!amountMatches) continue;
+    // 2. Legacy fallback (only for logs created before August 2026 to preserve history)
+    if (!claimingLog) {
+      for (const log of logsForStudent) {
+        if (usedLogNames.has(log.name)) continue;
+        if (log.invoice_ref) continue; // explicitly tied to another payment
+        const creationDate = log.creation?.slice(0, 10) || "";
+        if (creationDate >= "2026-08-01") continue; // New logs MUST have invoice_ref
 
-      claimingLog = log;
-      usedLogNames.add(log.name);
-      break;
+        const logDate = log.call_date?.slice(0, 10) || "";
+        const isAfterPayment = !paymentDate || !logDate || logDate >= paymentDate;
+        const isPaymentLog = log.payment_received === 1 || PAYMENT_STATUSES.includes(log.call_status);
+        if (!isPaymentLog || !isAfterPayment) continue;
+
+        const logAmt = log.amount_received ?? 0;
+        const amountMatches = logAmt === 0 || Math.abs(logAmt - paidAmt) <= 1;
+        if (!amountMatches) continue;
+
+        claimingLog = log;
+        usedLogNames.add(log.name);
+        break;
+      }
     }
 
     if (!claimingLog) continue;
@@ -583,9 +601,24 @@ export async function GET(request: NextRequest) {
       const logAmt = log.amount_received ?? 0;
       const studentPayments = paymentsByStudent.get(log.student) ?? [];
 
-      const matchingPayment = studentPayments.find(
-        (p) => !matchedPaymentNames.has(p.name) && Math.abs((p.paid_amount ?? 0) - logAmt) <= 2
-      );
+      let matchingPayment: PaymentEntryRow | undefined;
+
+      // 1. Explicit invoice_ref match
+      if (log.invoice_ref) {
+        matchingPayment = studentPayments.find(
+          (p) => !matchedPaymentNames.has(p.name) && p.name.trim() === log.invoice_ref?.trim()
+        );
+      }
+
+      // 2. Legacy fallback
+      if (!matchingPayment && !log.invoice_ref) {
+        const creationDate = log.creation?.slice(0, 10) || "";
+        if (creationDate < "2026-08-01") {
+          matchingPayment = studentPayments.find(
+            (p) => !matchedPaymentNames.has(p.name) && Math.abs((p.paid_amount ?? 0) - logAmt) <= 2
+          );
+        }
+      }
 
       if (matchingPayment) {
         matchedPaymentNames.add(matchingPayment.name);
