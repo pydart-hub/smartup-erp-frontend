@@ -46,6 +46,19 @@ function toLocalDate(isoDatetime: string): string {
   return isoDatetime.slice(0, 10);
 }
 
+async function frappeGet(path: string, params: Record<string, string>) {
+  const qs = new URLSearchParams(params).toString();
+  const res = await fetch(`${FRAPPE_URL}/api/${path}?${qs}`, {
+    headers: { Authorization: ADMIN_AUTH, Accept: "application/json" },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Frappe GET ${path} ${res.status}: ${text.slice(0, 300)}`);
+  }
+  return res.json();
+}
+
 export async function GET(request: NextRequest) {
   try {
     const session = parseSession(request);
@@ -125,8 +138,124 @@ export async function GET(request: NextRequest) {
       throw new Error(`Frappe ${res.status}: ${text.slice(0, 300)}`);
     }
 
-    const data = await res.json();
+        const data = await res.json();
     const logs: FollowUpLog[] = data.data ?? [];
+
+    // Match and verify follow-up logs claiming payments against actual Payment Entries in the date range
+    const paymentFilters: any[][] = [
+      ["Payment Entry", "payment_type", "=", "Receive"],
+      ["Payment Entry", "docstatus", "=", 1],
+      ["Payment Entry", "party_type", "=", "Customer"],
+    ];
+    if (roles.includes("Sales User")) {
+      if (branch) {
+        paymentFilters.push(["Payment Entry", "company", "=", branch]);
+      } else if (allowedCompanies.length > 0) {
+        paymentFilters.push(["Payment Entry", "company", "in", allowedCompanies]);
+      }
+    } else {
+      const activeBranch = branch || defaultCompany || "";
+      if (activeBranch) {
+        paymentFilters.push(["Payment Entry", "company", "=", activeBranch]);
+      }
+    }
+    if (from) paymentFilters.push(["Payment Entry", "posting_date", ">=", from]);
+    if (to) paymentFilters.push(["Payment Entry", "posting_date", "<=", to]);
+
+    let payments: any[] = [];
+    const customerToStudent = new Map<string, any>();
+
+    try {
+      const paymentsJson = await frappeGet("resource/Payment Entry", {
+        filters: JSON.stringify(paymentFilters),
+        fields: JSON.stringify(["name", "party", "party_name", "company", "paid_amount", "posting_date"]),
+        limit_page_length: "5000",
+      });
+      payments = paymentsJson.data ?? [];
+
+      const customerIds = Array.from(new Set(payments.map((p) => p.party).filter(Boolean))) as string[];
+      if (customerIds.length > 0) {
+        const chunkSize = 150;
+        const chunks: string[][] = [];
+        for (let i = 0; i < customerIds.length; i += chunkSize) {
+          chunks.push(customerIds.slice(i, i + chunkSize));
+        }
+        
+        const studentsPromises = chunks.map((chunk) => {
+          const chunkFilters: any[] = [["Student", "customer", "in", chunk]];
+          if (roles.includes("Sales User")) {
+            if (branch) {
+              chunkFilters.push(["Student", "custom_branch", "=", branch]);
+            } else if (allowedCompanies.length > 0) {
+              chunkFilters.push(["Student", "custom_branch", "in", allowedCompanies]);
+            }
+          } else {
+            const activeBranch = branch || defaultCompany || "";
+            if (activeBranch) {
+              chunkFilters.push(["Student", "custom_branch", "=", activeBranch]);
+            }
+          }
+          
+          return frappeGet("resource/Student", {
+            filters: JSON.stringify(chunkFilters),
+            fields: JSON.stringify(["name", "customer", "student_name"]),
+            limit_page_length: "5000",
+          });
+        });
+        
+        const studentsResponses = await Promise.all(studentsPromises);
+        const students: any[] = [];
+        for (const res of studentsResponses) {
+          if (res.data) {
+            students.push(...res.data);
+          }
+        }
+
+        for (const student of students) {
+          const customer = student.customer?.trim();
+          if (customer && !customerToStudent.has(customer)) {
+            customerToStudent.set(customer, student);
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching payment entries for validation:", err);
+    }
+
+    // Group payments by student ID
+    const paymentsByStudent = new Map<string, any[]>();
+    for (const p of payments) {
+      const customer = p.party?.trim();
+      const studentRow = customer ? customerToStudent.get(customer) : undefined;
+      const studentId = studentRow?.name?.trim();
+      if (studentId) {
+        if (!paymentsByStudent.has(studentId)) {
+          paymentsByStudent.set(studentId, []);
+        }
+        paymentsByStudent.get(studentId)!.push(p);
+      }
+    }
+
+    // Match logs
+    const matchedPaymentNamesLogs = new Set<string>();
+    for (const log of logs) {
+      const isPaymentLog = log.payment_received === 1 || log.call_status === "Already Paid";
+      if (isPaymentLog && log.student) {
+        const logAmt = log.amount_received ?? 0;
+        const studentPayments = paymentsByStudent.get(log.student) ?? [];
+        const matchingPayment = studentPayments.find(
+          (p) => !matchedPaymentNamesLogs.has(p.name) && Math.abs((p.paid_amount ?? 0) - logAmt) <= 2
+        );
+        if (matchingPayment) {
+          matchedPaymentNamesLogs.add(matchingPayment.name);
+          log.payment_received = 1;
+          log.amount_received = matchingPayment.paid_amount ?? 0;
+        } else {
+          log.payment_received = 0;
+          log.amount_received = 0;
+        }
+      }
+    }
 
     const now = new Date();
     // Use IST timezone (UTC+5:30) so dates match user's local day
@@ -302,36 +431,63 @@ export async function GET(request: NextRequest) {
           const branchBreakdown = new Map<string, { branch: string; converted_count: number; paid_amount: number }>();
           const userBreakdown = new Map<string, { branch: string; converted_count: number; paid_amount: number }>();
 
-          let totalBranchClaimedCount = 0;
-          for (const log of paidLogs) {
-            totalBranchClaimedCount++;
-            branch_paid_amount += log.amount_received ?? 0;
-
-            const bName = log.branch || "Unknown Branch";
-            if (!branchBreakdown.has(bName)) {
-              branchBreakdown.set(bName, { branch: bName, converted_count: 0, paid_amount: 0 });
+          const matchedPaymentNamesPaidLogs = new Set<string>();
+          const verifiedPaidLogs = paidLogs.map(log => {
+            const logAmt = log.amount_received ?? 0;
+            const studentPayments = log.student ? (paymentsByStudent.get(log.student) ?? []) : [];
+            const matchingPayment = studentPayments.find(
+              (p) => !matchedPaymentNamesPaidLogs.has(p.name) && Math.abs((p.paid_amount ?? 0) - logAmt) <= 2
+            );
+            if (matchingPayment) {
+              matchedPaymentNamesPaidLogs.add(matchingPayment.name);
+              return {
+                ...log,
+                payment_received: 1,
+                amount_received: matchingPayment.paid_amount ?? 0
+              };
+            } else {
+              return {
+                ...log,
+                payment_received: 0,
+                amount_received: 0
+              };
             }
-            const bEntry = branchBreakdown.get(bName)!;
-            bEntry.converted_count++;
-            bEntry.paid_amount += log.amount_received ?? 0;
+          });
+
+          let totalBranchClaimedCount = 0;
+          for (const log of verifiedPaidLogs) {
+            if (log.payment_received === 1) {
+              totalBranchClaimedCount++;
+              branch_paid_amount += log.amount_received ?? 0;
+
+              const bName = log.branch || "Unknown Branch";
+              if (!branchBreakdown.has(bName)) {
+                branchBreakdown.set(bName, { branch: bName, converted_count: 0, paid_amount: 0 });
+              }
+              const bEntry = branchBreakdown.get(bName)!;
+              bEntry.converted_count++;
+              bEntry.paid_amount += log.amount_received ?? 0;
+            }
           }
           branch_converted_count = totalBranchClaimedCount;
 
           // User-specific calculations (for the current session email) & breakdowns
           let totalUserClaimedCount = 0;
-          for (const log of paidLogs) {
-            const isUser = log.called_by?.trim().toLowerCase() === session.email.trim().toLowerCase();
-            if (isUser) {
-              totalUserClaimedCount++;
-              paid_amount += log.amount_received ?? 0;
+          for (const log of verifiedPaidLogs) {
+            if (log.payment_received === 1) {
+              const isUser = log.called_by?.trim().toLowerCase() === session.email.trim().toLowerCase();
+              if (isUser) {
+                totalUserClaimedCount++;
+                paid_amount += log.amount_received ?? 0;
 
-              const bName = log.branch || "Unknown Branch";
-              if (!userBreakdown.has(bName)) {
-                userBreakdown.set(bName, { branch: bName, converted_count: 0, paid_amount: 0 });
+                const bName = log.branch || "Unknown Branch";
+                if (!userBreakdown.has(bName)) {
+                  userBreakdown.set(bName, { branch: bName, converted_count: 0, paid_amount: 0 });
+                }
+                const uEntry = userBreakdown.get(bName)!;
+                uEntry.converted_count++;
+                uEntry.paid_amount += log.amount_received ?? 0;
               }
-              const uEntry = userBreakdown.get(bName)!;
-              uEntry.converted_count++;
-              uEntry.paid_amount += log.amount_received ?? 0;
             }
           }
           converted_count = totalUserClaimedCount;
