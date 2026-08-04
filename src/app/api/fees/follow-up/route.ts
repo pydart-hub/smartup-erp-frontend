@@ -131,18 +131,22 @@ export async function POST(request: NextRequest) {
     }
 
     // ── DEDUPLICATION GUARD ──
-    // 1. If invoice_ref is provided, check if a claim for this payment already exists
+    // 1. If invoice_ref is provided, check if a claim for this payment already exists with the same amount
     if (invoice_ref && typeof invoice_ref === "string" && invoice_ref.trim()) {
       try {
         const existingClaimRes = await frappeGet("resource/Fee Follow Up", {
           filters: JSON.stringify([["invoice_ref", "=", invoice_ref.trim()]]),
-          fields: JSON.stringify(["name"]),
+          fields: JSON.stringify(["name", "amount_received"]),
           limit_page_length: "1",
         });
         const existing = existingClaimRes?.data?.[0];
         if (existing?.name) {
-          console.log(`[fees/follow-up POST] Duplicate claim prevented for invoice_ref=${invoice_ref}, returning existing name=${existing.name}`);
-          return NextResponse.json({ success: true, name: existing.name, deduplicated: true });
+          const isSameAmount = (!amount_received && !existing.amount_received) ||
+                               (Number(amount_received) === Number(existing.amount_received));
+          if (isSameAmount) {
+            console.log(`[fees/follow-up POST] Duplicate claim prevented for invoice_ref=${invoice_ref} with same amount, returning existing name=${existing.name}`);
+            return NextResponse.json({ success: true, name: existing.name, deduplicated: true });
+          }
         }
       } catch (checkErr) {
         console.warn("[fees/follow-up POST] Error checking existing invoice_ref claim:", checkErr);
@@ -160,7 +164,7 @@ export async function POST(request: NextRequest) {
           ["branch", "=", branch],
           ["creation", ">=", `${todayDate} 00:00:00`],
         ]),
-        fields: JSON.stringify(["name", "creation"]),
+        fields: JSON.stringify(["name", "creation", "invoice_ref", "amount_received"]),
         order_by: "creation desc",
         limit_page_length: "1",
       });
@@ -169,8 +173,17 @@ export async function POST(request: NextRequest) {
         const logTime = new Date(recentLog.creation).getTime();
         const nowTime = Date.now();
         if (nowTime - logTime < 60_000) {
-          console.log(`[fees/follow-up POST] Rapid duplicate follow-up log prevented for student=${student} within 60s, returning existing name=${recentLog.name}`);
-          return NextResponse.json({ success: true, name: recentLog.name, deduplicated: true });
+          // Only block deduplication if the payment reference ID and amount are both identical
+          const isSameInvoice = (!invoice_ref && !recentLog.invoice_ref) || 
+                                (invoice_ref && recentLog.invoice_ref && invoice_ref.trim() === recentLog.invoice_ref.trim());
+          
+          const isSameAmount = (!amount_received && !recentLog.amount_received) ||
+                               (Number(amount_received) === Number(recentLog.amount_received));
+
+          if (isSameInvoice && isSameAmount) {
+            console.log(`[fees/follow-up POST] Rapid duplicate follow-up log prevented for student=${student} within 60s, returning existing name=${recentLog.name}`);
+            return NextResponse.json({ success: true, name: recentLog.name, deduplicated: true });
+          }
         }
       }
     } catch (checkErr) {
@@ -197,7 +210,7 @@ export async function POST(request: NextRequest) {
       doc.amount_received = Number(amount_received);
     }
     if (payment_received && payment_mode) {
-      doc.payment_mode = payment_mode;
+      doc.payment_mode = payment_mode === "Razorpay" ? "Bank Transfer" : payment_mode;
     }
     if (remarks) doc.remarks = String(remarks).slice(0, 500);
     if (next_followup_date) doc.next_followup_date = next_followup_date;

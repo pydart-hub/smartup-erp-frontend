@@ -265,6 +265,7 @@ export function FollowUpDrawer({
                           <option>UPI</option>
                           <option>Bank Transfer</option>
                           <option>Cheque</option>
+                          <option>Razorpay</option>
                         </select>
                       </div>
                     </div>

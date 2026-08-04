@@ -204,7 +204,7 @@ async function getCollectedLogs(params: {
       filters: JSON.stringify(paymentFilters),
       fields: JSON.stringify(["name", "party", "party_name", "company", "paid_amount", "mode_of_payment", "posting_date"]),
       order_by: "posting_date desc, creation desc",
-      limit_page_length: "5000",
+      limit_page_length: "0",
     }),
     frappeGet("resource/Fee Follow Up", {
       filters: JSON.stringify(params.branch ? [["Fee Follow Up", "branch", "=", params.branch]] : []),
@@ -215,7 +215,7 @@ async function getCollectedLogs(params: {
         "remarks", "next_followup_date", "invoice_ref", "creation",
       ]),
       order_by: "call_date desc, creation desc",
-      limit_page_length: "5000",
+      limit_page_length: "0",
     }),
   ]);
 
@@ -238,7 +238,7 @@ async function getCollectedLogs(params: {
       return frappeGet("resource/Student", {
         filters: JSON.stringify(chunkFilters),
         fields: JSON.stringify(["name", "student_name", "customer", "custom_branch"]),
-        limit_page_length: "5000",
+        limit_page_length: "0",
       });
     });
     
@@ -293,13 +293,11 @@ async function getCollectedLogs(params: {
       }
     }
 
-    // 2. Legacy fallback (only for logs created before August 2026 to preserve history)
+    // 2. Legacy fallback
     if (!claimingLog) {
       for (const log of logsForStudent) {
         if (usedLogNames.has(log.name)) continue;
         if (log.invoice_ref) continue; // explicitly tied to another payment
-        const creationDate = log.creation?.slice(0, 10) || "";
-        if (creationDate >= "2026-08-01") continue; // New logs MUST have invoice_ref
 
         const logDate = log.call_date?.slice(0, 10) || "";
         const isAfterPayment = !paymentDate || !logDate || logDate >= paymentDate;
@@ -507,7 +505,7 @@ export async function GET(request: NextRequest) {
     const qs = new URLSearchParams({
       fields: JSON.stringify(fields),
       filters: JSON.stringify(filters),
-      limit_page_length: "2000",
+      limit_page_length: "0",
       order_by: "call_date desc",
     });
 
@@ -537,7 +535,7 @@ export async function GET(request: NextRequest) {
     const paymentsJson = await frappeGet("resource/Payment Entry", {
       filters: JSON.stringify(paymentFilters),
       fields: JSON.stringify(["name", "party", "party_name", "company", "paid_amount", "posting_date"]),
-      limit_page_length: "5000",
+      limit_page_length: "0",
     });
 
     const payments = (paymentsJson.data ?? []) as PaymentEntryRow[];
@@ -558,7 +556,7 @@ export async function GET(request: NextRequest) {
         return frappeGet("resource/Student", {
           filters: JSON.stringify(chunkFilters),
           fields: JSON.stringify(["name", "customer", "student_name"]),
-          limit_page_length: "5000",
+          limit_page_length: "0",
         });
       });
       
@@ -593,45 +591,83 @@ export async function GET(request: NextRequest) {
     }
 
     const matchedPaymentNames = new Set<string>();
+    const matchedLogs = new Map<string, { payment_received: number; amount_received: number }>();
 
+    // Pass 1: Match logs with explicit invoice_ref or explicit amount > 0
     for (const log of logs) {
       const isPaymentLog = log.payment_received === 1 || PAYMENT_STATUSES.includes(log.call_status);
       if (!isPaymentLog || !log.student) continue;
 
       const logAmt = log.amount_received ?? 0;
       const studentPayments = paymentsByStudent.get(log.student) ?? [];
-
       let matchingPayment: PaymentEntryRow | undefined;
 
-      // 1. Explicit invoice_ref match
       if (log.invoice_ref) {
         matchingPayment = studentPayments.find(
           (p) => !matchedPaymentNames.has(p.name) && p.name.trim() === log.invoice_ref?.trim()
         );
       }
 
-      // 2. Legacy fallback
-      if (!matchingPayment && !log.invoice_ref) {
-        const creationDate = log.creation?.slice(0, 10) || "";
-        if (creationDate < "2026-08-01") {
-          matchingPayment = studentPayments.find(
-            (p) => !matchedPaymentNames.has(p.name) && Math.abs((p.paid_amount ?? 0) - logAmt) <= 2
-          );
-        }
+      if (!matchingPayment && logAmt > 0) {
+        matchingPayment = studentPayments.find(
+          (p) => !matchedPaymentNames.has(p.name) && Math.abs((p.paid_amount ?? 0) - logAmt) <= 2
+        );
       }
 
       if (matchingPayment) {
         matchedPaymentNames.add(matchingPayment.name);
-        log.payment_received = 1;
-        log.amount_received = matchingPayment.paid_amount ?? 0;
+        matchedLogs.set(log.name, {
+          payment_received: 1,
+          amount_received: matchingPayment.paid_amount ?? 0
+        });
+      }
+    }
+
+    // Pass 2: Match remaining logs where amount_received === 0
+    for (const log of logs) {
+      const isPaymentLog = log.payment_received === 1 || PAYMENT_STATUSES.includes(log.call_status);
+      if (!isPaymentLog || !log.student || matchedLogs.has(log.name)) continue;
+
+      const logAmt = log.amount_received ?? 0;
+      if (logAmt === 0) {
+        const studentPayments = paymentsByStudent.get(log.student) ?? [];
+        const matchingPayment = studentPayments.find(
+          (p) => !matchedPaymentNames.has(p.name)
+        );
+
+        if (matchingPayment) {
+          matchedPaymentNames.add(matchingPayment.name);
+          matchedLogs.set(log.name, {
+            payment_received: 1,
+            amount_received: matchingPayment.paid_amount ?? 0
+          });
+        }
+      }
+    }
+
+    // Apply matched results back to logs, defaulting unmatched payment logs to 0
+    for (const log of logs) {
+      const matched = matchedLogs.get(log.name);
+      if (matched) {
+        log.payment_received = matched.payment_received;
+        log.amount_received = matched.amount_received;
       } else {
-        log.payment_received = 0;
-        log.amount_received = 0;
+        const isPaymentLog = log.payment_received === 1 || PAYMENT_STATUSES.includes(log.call_status);
+        if (isPaymentLog) {
+          log.payment_received = 0;
+          log.amount_received = 0;
+        }
       }
     }
 
     const { summary, by_user } = summarizeLogs(logs);
     const by_branch = computeBranchBreakdown(logs, pendingDuesMap);
+
+    console.log("[director/fee-followup] GET params:", { branch, from, to, calledBy, statusFilter });
+    console.log("[director/fee-followup] Logs fetched:", logs.length);
+    console.log("[director/fee-followup] Payments fetched:", payments.length);
+    console.log("[director/fee-followup] Students mapped:", students.length);
+    console.log("[director/fee-followup] by_branch:", JSON.stringify(by_branch, null, 2));
 
     return NextResponse.json({ summary, by_user, by_branch, logs });
   } catch (err) {

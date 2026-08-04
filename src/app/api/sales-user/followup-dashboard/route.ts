@@ -160,8 +160,12 @@ export async function GET(request: NextRequest) {
         paymentFilters.push(["Payment Entry", "company", "=", activeBranch]);
       }
     }
-    if (from) paymentFilters.push(["Payment Entry", "posting_date", ">=", from]);
-    if (to) paymentFilters.push(["Payment Entry", "posting_date", "<=", to]);
+    // NOTE: Do NOT add date filters to paymentFilters here.
+    // The follow-up logs are already date-scoped (lines 115-116),
+    // so only date-matching logs will appear in the breakdown.
+    // Restricting Payment Entries by date causes invoice_ref matches to fail
+    // when the payment posting_date differs from the follow-up call_date range,
+    // silently dropping valid branches (e.g. Chullickal) from the breakdown.
 
     let payments: any[] = [];
     const customerToStudent = new Map<string, any>();
