@@ -198,19 +198,11 @@ async function getCollectedLogs(params: {
   if (params.from) paymentFilters.push(["Payment Entry", "posting_date", ">=", params.from]);
   if (params.to) paymentFilters.push(["Payment Entry", "posting_date", "<=", params.to]);
 
-  const studentFilters: [string, string, string, string][] = [["Student", "customer", "is", "set"]];
-  if (params.branch) studentFilters.push(["Student", "custom_branch", "=", params.branch]);
-
-  const [paymentsJson, studentsJson, followupsJson] = await Promise.all([
+  const [paymentsJson, followupsJson] = await Promise.all([
     frappeGet("resource/Payment Entry", {
       filters: JSON.stringify(paymentFilters),
       fields: JSON.stringify(["name", "party", "party_name", "company", "paid_amount", "mode_of_payment", "posting_date"]),
       order_by: "posting_date desc, creation desc",
-      limit_page_length: "5000",
-    }),
-    frappeGet("resource/Student", {
-      filters: JSON.stringify(studentFilters),
-      fields: JSON.stringify(["name", "student_name", "customer", "custom_branch"]),
       limit_page_length: "5000",
     }),
     frappeGet("resource/Fee Follow Up", {
@@ -227,8 +219,35 @@ async function getCollectedLogs(params: {
   ]);
 
   const payments = (paymentsJson.data ?? []) as PaymentEntryRow[];
-  const students = (studentsJson.data ?? []) as StudentCustomerRow[];
   const followups = (followupsJson.data ?? []) as FollowUpLog[];
+
+  const students: StudentCustomerRow[] = [];
+  const customerIds = Array.from(new Set(payments.map((p) => p.party).filter(Boolean))) as string[];
+  if (customerIds.length > 0) {
+    const chunkSize = 150;
+    const chunks: string[][] = [];
+    for (let i = 0; i < customerIds.length; i += chunkSize) {
+      chunks.push(customerIds.slice(i, i + chunkSize));
+    }
+    
+    const studentsPromises = chunks.map((chunk) => {
+      const chunkFilters: any[] = [["Student", "customer", "in", chunk]];
+      if (params.branch) chunkFilters.push(["Student", "custom_branch", "=", params.branch]);
+      
+      return frappeGet("resource/Student", {
+        filters: JSON.stringify(chunkFilters),
+        fields: JSON.stringify(["name", "student_name", "customer", "custom_branch"]),
+        limit_page_length: "5000",
+      });
+    });
+    
+    const studentsResponses = await Promise.all(studentsPromises);
+    for (const res of studentsResponses) {
+      if (res.data) {
+        students.push(...res.data);
+      }
+    }
+  }
 
   const customerToStudent = new Map<string, StudentCustomerRow>();
   for (const student of students) {
@@ -332,7 +351,9 @@ async function getPendingOverdueByBranch(todayDate: string): Promise<Record<stri
       ["due_date", "<=", todayDate],
     ];
     if (discCustomers.length > 0) {
-      filters.push(["customer", "not in", discCustomers]);
+      // Guard: Capped to 150 items to prevent 414 Request-URI Too Large errors
+      const cappedDisc = discCustomers.slice(0, 150);
+      filters.push(["customer", "not in", cappedDisc]);
     }
     const res = await frappeGet("resource/Sales Invoice", {
       filters: JSON.stringify(filters),
@@ -414,8 +435,8 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const branch = searchParams.get("branch") || "";
-    const from = normalizeDateParam(searchParams.get("from") || "");
-    const to = normalizeDateParam(searchParams.get("to") || "");
+    let from = normalizeDateParam(searchParams.get("from") || "");
+    let to = normalizeDateParam(searchParams.get("to") || "");
     const calledBy = searchParams.get("called_by") || "";
     const statusFilter = searchParams.get("status") || "";
     const kind = searchParams.get("kind") || "";
@@ -423,7 +444,25 @@ export async function GET(request: NextRequest) {
     const currentNow = new Date();
     const offsetIST = 5.5 * 60 * 60 * 1000;
     const dateIST = new Date(currentNow.getTime() + offsetIST);
-    const todayDate = to || dateIST.toISOString().slice(0, 10);
+
+    // Fallbacks to avoid fetching all records
+    if (!to) {
+      to = dateIST.toISOString().slice(0, 10);
+    }
+    if (!from) {
+      const fallbackDate = new Date(dateIST.getTime());
+      fallbackDate.setDate(fallbackDate.getDate() - 30);
+      from = fallbackDate.toISOString().slice(0, 10);
+    }
+
+    // Auto-swap if user supplied inverted dates (e.g., from > to)
+    if (from > to) {
+      const temp = from;
+      from = to;
+      to = temp;
+    }
+
+    const todayDate = to;
     const pendingDuesMap = await getPendingOverdueByBranch(todayDate);
 
     if (kind === "collected") {
@@ -466,6 +505,98 @@ export async function GET(request: NextRequest) {
 
     const data = await res.json();
     const logs: FollowUpLog[] = data.data ?? [];
+
+    // Match and verify follow-up logs claiming payments against actual Payment Entries in the date range
+    const paymentFilters: [string, string, string, string | number][] = [
+      ["Payment Entry", "payment_type", "=", "Receive"],
+      ["Payment Entry", "docstatus", "=", 1],
+      ["Payment Entry", "party_type", "=", "Customer"],
+    ];
+    if (branch) paymentFilters.push(["Payment Entry", "company", "=", branch]);
+    if (from) paymentFilters.push(["Payment Entry", "posting_date", ">=", from]);
+    if (to) paymentFilters.push(["Payment Entry", "posting_date", "<=", to]);
+
+    const paymentsJson = await frappeGet("resource/Payment Entry", {
+      filters: JSON.stringify(paymentFilters),
+      fields: JSON.stringify(["name", "party", "party_name", "company", "paid_amount", "posting_date"]),
+      limit_page_length: "5000",
+    });
+
+    const payments = (paymentsJson.data ?? []) as PaymentEntryRow[];
+
+    const students: StudentCustomerRow[] = [];
+    const customerIds = Array.from(new Set(payments.map((p) => p.party).filter(Boolean))) as string[];
+    if (customerIds.length > 0) {
+      const chunkSize = 150;
+      const chunks: string[][] = [];
+      for (let i = 0; i < customerIds.length; i += chunkSize) {
+        chunks.push(customerIds.slice(i, i + chunkSize));
+      }
+      
+      const studentsPromises = chunks.map((chunk) => {
+        const chunkFilters: any[] = [["Student", "customer", "in", chunk]];
+        if (branch) chunkFilters.push(["Student", "custom_branch", "=", branch]);
+        
+        return frappeGet("resource/Student", {
+          filters: JSON.stringify(chunkFilters),
+          fields: JSON.stringify(["name", "customer", "student_name"]),
+          limit_page_length: "5000",
+        });
+      });
+      
+      const studentsResponses = await Promise.all(studentsPromises);
+      for (const res of studentsResponses) {
+        if (res.data) {
+          students.push(...res.data);
+        }
+      }
+    }
+
+    const customerToStudent = new Map<string, StudentCustomerRow>();
+    for (const student of students) {
+      const customer = student.customer?.trim();
+      if (customer && !customerToStudent.has(customer)) {
+        customerToStudent.set(customer, student);
+      }
+    }
+
+    // Group payments by student ID
+    const paymentsByStudent = new Map<string, PaymentEntryRow[]>();
+    for (const p of payments) {
+      const customer = p.party?.trim();
+      const studentRow = customer ? customerToStudent.get(customer) : undefined;
+      const studentId = studentRow?.name?.trim();
+      if (studentId) {
+        if (!paymentsByStudent.has(studentId)) {
+          paymentsByStudent.set(studentId, []);
+        }
+        paymentsByStudent.get(studentId)!.push(p);
+      }
+    }
+
+    const matchedPaymentNames = new Set<string>();
+
+    for (const log of logs) {
+      const isPaymentLog = log.payment_received === 1 || PAYMENT_STATUSES.includes(log.call_status);
+      if (!isPaymentLog || !log.student) continue;
+
+      const logAmt = log.amount_received ?? 0;
+      const studentPayments = paymentsByStudent.get(log.student) ?? [];
+
+      const matchingPayment = studentPayments.find(
+        (p) => !matchedPaymentNames.has(p.name) && Math.abs((p.paid_amount ?? 0) - logAmt) <= 2
+      );
+
+      if (matchingPayment) {
+        matchedPaymentNames.add(matchingPayment.name);
+        log.payment_received = 1;
+        log.amount_received = matchingPayment.paid_amount ?? 0;
+      } else {
+        log.payment_received = 0;
+        log.amount_received = 0;
+      }
+    }
+
     const { summary, by_user } = summarizeLogs(logs);
     const by_branch = computeBranchBreakdown(logs, pendingDuesMap);
 

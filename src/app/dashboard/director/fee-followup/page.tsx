@@ -490,6 +490,7 @@ export default function FeeFollowUpDashboard() {
   const [leaderboardOpen, setLeaderboardOpen] = useState(true);
   const [expandedPodium, setExpandedPodium] = useState<Record<number, boolean>>({});
   const [expandedUserRows, setExpandedUserRows] = useState<Set<string>>(new Set());
+  const [visibleLogsCount, setVisibleLogsCount] = useState(25);
 
   function buildDetailHref(kind: "promised" | "collected") {
     const params = new URLSearchParams({ kind });
@@ -565,6 +566,11 @@ export default function FeeFollowUpDashboard() {
         (l.remarks ?? "").toLowerCase().includes(q)
     );
   }, [rawLogs, logSearch]);
+
+  // Reset pagination when data or filter query changes
+  useEffect(() => {
+    setVisibleLogsCount(25);
+  }, [rawLogs, logSearch, branch, from, to, calledBy, statusFilter]);
 
   return (
     <div className="min-h-screen pb-12 bg-app-bg">
@@ -1069,78 +1075,91 @@ export default function FeeFollowUpDashboard() {
                   <p className="text-sm">No call logs found for the selected filters.</p>
                 </div>
               ) : (
-                <motion.div variants={container} initial="hidden" animate="show" className="space-y-2">
-                  {filteredLogs.map((log) => {
-                    const sc = getStatusColor(log.call_status);
-                    return (
-                      <motion.div
-                        key={log.name}
-                        variants={item}
-                        whileHover={{ y: -3, boxShadow: "0 12px 40px rgba(0,0,0,0.09)" }}
-                        transition={{ duration: 0.18 }}
-                        className="rounded-lg border border-border-light bg-surface p-3.5 relative overflow-hidden pl-5"
-                      >
-                        {/* Left accent strip using brand/status color */}
-                        <div className={`absolute left-0 top-0 bottom-0 w-1 ${sc.dot}`} style={{ borderRadius: "8px 0 0 8px" }} />
-                        <div className="flex items-start justify-between gap-3">
-                          {/* Left info */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <p className="text-sm font-semibold text-text-primary">{log.student_name}</p>
-                              <span className="text-[10px] text-text-tertiary font-mono">{log.student}</span>
-                              {log.branch && (
-                                <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
-                                  {log.branch}
+                <div className="space-y-4">
+                  <motion.div variants={container} initial="hidden" animate="show" className="space-y-2">
+                    {filteredLogs.slice(0, visibleLogsCount).map((log) => {
+                      const sc = getStatusColor(log.call_status);
+                      return (
+                        <motion.div
+                          key={log.name}
+                          variants={item}
+                          whileHover={{ y: -3, boxShadow: "0 12px 40px rgba(0,0,0,0.09)" }}
+                          transition={{ duration: 0.18 }}
+                          className="rounded-lg border border-border-light bg-surface p-3.5 relative overflow-hidden pl-5"
+                        >
+                          {/* Left accent strip using brand/status color */}
+                          <div className={`absolute left-0 top-0 bottom-0 w-1 ${sc.dot}`} style={{ borderRadius: "8px 0 0 8px" }} />
+                          <div className="flex items-start justify-between gap-3">
+                            {/* Left info */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="text-sm font-semibold text-text-primary">{log.student_name}</p>
+                                <span className="text-[10px] text-text-tertiary font-mono">{log.student}</span>
+                                {log.branch && (
+                                  <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                    {log.branch}
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Status + meta */}
+                              <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                                <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold border ${sc.bg} ${sc.text} ${sc.border}`}>
+                                  <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`} />
+                                  {log.call_status}
                                 </span>
+                                <span className="text-xs text-text-tertiary">{formatDateTime(log.call_date)}</span>
+                                <span className="text-xs text-text-secondary">by <strong>{log.called_by.split("@")[0]}</strong></span>
+                              </div>
+
+                              {/* Remarks */}
+                              {log.remarks && (
+                                <p className="text-xs text-text-secondary mt-1.5 line-clamp-2">{log.remarks}</p>
+                              )}
+
+                              {/* Next follow-up */}
+                              {log.next_followup_date && (
+                                <div className="flex items-center gap-1 mt-1.5 text-[10px] text-teal-700">
+                                  <CalendarDays className="h-3 w-3" />
+                                  <span>Follow-up: {formatDate(log.next_followup_date)}</span>
+                                </div>
                               )}
                             </div>
 
-                            {/* Status + meta */}
-                            <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                              <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold border ${sc.bg} ${sc.text} ${sc.border}`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`} />
-                                {log.call_status}
-                              </span>
-                              <span className="text-xs text-text-tertiary">{formatDateTime(log.call_date)}</span>
-                              <span className="text-xs text-text-secondary">by <strong>{log.called_by.split("@")[0]}</strong></span>
-                            </div>
-
-                            {/* Remarks */}
-                            {log.remarks && (
-                              <p className="text-xs text-text-secondary mt-1.5 line-clamp-2">{log.remarks}</p>
-                            )}
-
-                            {/* Next follow-up */}
-                            {log.next_followup_date && (
-                              <div className="flex items-center gap-1 mt-1.5 text-[10px] text-teal-700">
-                                <CalendarDays className="h-3 w-3" />
-                                <span>Follow-up: {formatDate(log.next_followup_date)}</span>
+                            {/* Right: payment info */}
+                            {log.payment_received ? (
+                              <div className="shrink-0 text-right">
+                                <div className="flex items-center gap-1 justify-end text-emerald-700">
+                                  <CheckCircle2 className="h-3.5 w-3.5" />
+                                  <span className="text-[10px] font-semibold">Paid</span>
+                                </div>
+                                {log.amount_received ? (
+                                  <p className="text-sm font-bold text-emerald-700 mt-0.5">
+                                    {formatCurrency(log.amount_received)}
+                                  </p>
+                                ) : null}
+                                {log.payment_mode && (
+                                  <p className="text-[10px] text-text-tertiary">{log.payment_mode}</p>
+                                )}
                               </div>
-                            )}
+                            ) : null}
                           </div>
+                        </motion.div>
+                      );
+                    })}
+                  </motion.div>
 
-                          {/* Right: payment info */}
-                          {log.payment_received ? (
-                            <div className="shrink-0 text-right">
-                              <div className="flex items-center gap-1 justify-end text-emerald-700">
-                                <CheckCircle2 className="h-3.5 w-3.5" />
-                                <span className="text-[10px] font-semibold">Paid</span>
-                              </div>
-                              {log.amount_received ? (
-                                <p className="text-sm font-bold text-emerald-700 mt-0.5">
-                                  {formatCurrency(log.amount_received)}
-                                </p>
-                              ) : null}
-                              {log.payment_mode && (
-                                <p className="text-[10px] text-text-tertiary">{log.payment_mode}</p>
-                              )}
-                            </div>
-                          ) : null}
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </motion.div>
+                  {filteredLogs.length > visibleLogsCount && (
+                    <div className="flex justify-center pt-2">
+                      <button
+                        onClick={() => setVisibleLogsCount((c) => c + 50)}
+                        className="px-5 py-2 text-xs font-bold text-primary bg-primary-light hover:bg-primary-light/80 rounded-xl transition-all duration-200 border border-primary/20 shadow-sm"
+                      >
+                        Load More ({filteredLogs.length - visibleLogsCount} remaining)
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </>
