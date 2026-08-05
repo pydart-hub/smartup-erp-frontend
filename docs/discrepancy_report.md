@@ -6,22 +6,22 @@ This report outlines the discrepancies between the official **Payment Entries** 
 
 | Branch | Actual Payment Count | Actual Payments Total | Follow-up Logs Count | Follow-up Logs Total | Difference |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| **Chullickal** | 746 | ₹24,02,676 | 219 | ₹5,48,058 | **₹-18,54,618** |
-| **Edappally** | 56 | ₹2,69,599 | 20 | ₹70,500 | **₹-1,99,099** |
-| **Eraveli** | 589 | ₹10,91,035 | 204 | ₹3,42,900 | **₹-7,48,135** |
-| **Fortkochi** | 535 | ₹15,91,741 | 167 | ₹3,90,650 | **₹-12,01,091** |
-| **Kadavanthara** | 69 | ₹4,04,450 | 28 | ₹1,58,150 | **₹-2,46,300** |
-| **Moolamkuzhi** | 161 | ₹5,87,820 | 44 | ₹1,11,800 | **₹-4,76,020** |
-| **Palluruthy** | 561 | ₹13,88,945 | 247 | ₹5,76,800 | **₹-8,12,145** |
+| **Chullickal** | 748 | ₹24,07,176 | 222 | ₹5,53,708 | **₹-18,53,468** |
+| **Edappally** | 58 | ₹2,73,599 | 22 | ₹74,500 | **₹-1,99,099** |
+| **Eraveli** | 588 | ₹10,88,935 | 204 | ₹3,42,900 | **₹-7,46,035** |
+| **Fortkochi** | 541 | ₹16,07,441 | 174 | ₹4,06,650 | **₹-12,00,791** |
+| **Kadavanthara** | 70 | ₹4,25,150 | 29 | ₹1,78,850 | **₹-2,46,300** |
+| **Moolamkuzhi** | 161 | ₹5,87,820 | 47 | ₹1,19,100 | **₹-4,68,720** |
+| **Palluruthy** | 567 | ₹14,02,945 | 253 | ₹5,90,800 | **₹-8,12,145** |
 | **Thopumpadi** | 348 | ₹10,15,960 | 151 | ₹3,54,700 | **₹-6,61,260** |
 | **Vennala** | 164 | ₹10,04,597 | 80 | ₹3,82,267 | **₹-6,22,330** |
 
 ## Chullickal Branch Deep Dive
 
-* **Total Follow-up Logs claiming payments:** 219
+* **Total Follow-up Logs claiming payments:** 222
 * **Perfectly matching follow-ups:** 25
 * **Follow-ups with NO matching payment entries:** 1 (Total amount claimed: ₹2,400)
-* **Follow-ups with mismatched/duplicate amounts:** 193
+* **Follow-ups with mismatched/duplicate amounts:** 196
 
 ### 1. Follow-ups with NO matching payment entries in July
 These logs represent instances where a sales user claimed a payment was received, but no submitted Payment Entry exists for that student in July.
@@ -1801,4 +1801,29 @@ These logs show double-logging (multiple logs for the same student/payment) or s
   * Payment entry `ACC-PAY-2026-06022` on 2026-06-22: ₹2,000
   * Payment entry `ACC-PAY-2026-07155` on 2026-07-31: ₹500
   * Payment entry `ACC-PAY-2026-07156` on 2026-07-31: ₹2,000
+
+#### `FU-2026-03703` - ANSEL JITHIN KP
+- **Logged by:** sneha.smartup@gmail.com on 2026-08-04 15:54:00
+- **Claimed amount:** ₹2,600
+- **Actual payment entries in system:** ₹7,800
+  * Payment entry `ACC-PAY-2026-05852` on 2026-06-15: ₹2,600
+  * Payment entry `ACC-PAY-2026-06328` on 2026-07-01: ₹1,300
+  * Payment entry `ACC-PAY-2026-06329` on 2026-07-01: ₹1,300
+  * Payment entry `ACC-PAY-2026-07201-1` on 2026-08-01: ₹2,600
+
+#### `FU-2026-03704` - BAHA ANAS
+- **Logged by:** sneha.smartup@gmail.com on 2026-08-04 15:54:00
+- **Claimed amount:** ₹650
+- **Actual payment entries in system:** ₹2,700
+  * Payment entry `ACC-PAY-2026-05401` on 2026-06-02: ₹1,350
+  * Payment entry `ACC-PAY-2026-07231` on 2026-08-03: ₹650
+  * Payment entry `ACC-PAY-2026-07232` on 2026-08-03: ₹650
+  * Payment entry `ACC-PAY-2026-07233` on 2026-08-03: ₹50
+
+#### `FU-2026-03715` - MOHAMMED AMAL M A
+- **Logged by:** sneha.smartup@gmail.com on 2026-08-04 21:21:00
+- **Claimed amount:** ₹2,400
+- **Actual payment entries in system:** ₹4,800
+  * Payment entry `ACC-PAY-2026-05460` on 2026-06-03: ₹2,400
+  * Payment entry `ACC-PAY-2026-07260` on 2026-08-04: ₹2,400
 

@@ -606,6 +606,7 @@ export default function SalesOverdueStudentPage() {
         onClose={() => setDrawerStudent(null)}
         student={drawerStudent ?? { student_id: "", student_name: "", branch: "" }}
         invalidateKeys={[["followup-batch", branch]]}
+        hidePaymentReceived={true}
       />
     </motion.div>
   );

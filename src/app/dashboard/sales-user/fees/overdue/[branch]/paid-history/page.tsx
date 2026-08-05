@@ -52,6 +52,7 @@ export default function PaidHistoryPage() {
     amountReceived?: number;
     paymentMode?: string;
     invoiceRef?: string;
+    hidePaymentReceived?: boolean;
   } | null>(null);
 
   const { data: rows, isLoading, isError } = useQuery({
@@ -190,6 +191,7 @@ export default function PaidHistoryPage() {
                           // Link this claim log to the specific Payment Entry — this
                           // is what distinguishes a "claim" from a regular overdue call log
                           invoiceRef: claim.recent_payment.name,
+                          hidePaymentReceived: false,
                         });
                       }}
                       className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-emerald-300 bg-emerald-50 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors"
@@ -245,7 +247,7 @@ export default function PaidHistoryPage() {
       )}
 
       <FollowUpDrawer
-        key={`${drawerStudent ? "open" : "closed"}-${drawerStudent?.student_id ?? "none"}-${drawerDefaults?.callStatus ?? ""}-${drawerDefaults?.amountReceived ?? ""}-${drawerDefaults?.paymentMode ?? ""}-${drawerDefaults?.invoiceRef ?? ""}`}
+        key={`${drawerStudent ? "open" : "closed"}-${drawerStudent?.student_id ?? "none"}-${drawerDefaults?.callStatus ?? ""}-${drawerDefaults?.amountReceived ?? ""}-${drawerDefaults?.paymentMode ?? ""}-${drawerDefaults?.invoiceRef ?? ""}-${drawerDefaults?.hidePaymentReceived ?? ""}`}
         open={drawerStudent !== null}
         onClose={() => {
           setDrawerStudent(null);
@@ -258,6 +260,7 @@ export default function PaidHistoryPage() {
         initialAmountReceived={drawerDefaults?.amountReceived}
         initialPaymentMode={drawerDefaults?.paymentMode}
         initialInvoiceRef={drawerDefaults?.invoiceRef}
+        hidePaymentReceived={drawerDefaults?.hidePaymentReceived}
       />
     </motion.div>
   );

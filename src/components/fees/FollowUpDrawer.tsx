@@ -37,6 +37,7 @@ interface FollowUpDrawerProps {
    *  Saved as invoice_ref on the Fee Follow Up record so the claiming algorithm
    *  can unambiguously distinguish this from an overdue-call log. */
   initialInvoiceRef?: string;
+  hidePaymentReceived?: boolean;
 }
 
 export function FollowUpDrawer({
@@ -49,6 +50,7 @@ export function FollowUpDrawer({
   initialAmountReceived,
   initialPaymentMode = "",
   initialInvoiceRef = "",
+  hidePaymentReceived = false,
 }: FollowUpDrawerProps) {
   const qc = useQueryClient();
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -84,6 +86,9 @@ export function FollowUpDrawer({
     return () => document.removeEventListener("keydown", handler);
   }, [onClose]);
 
+  const showPaymentToggle = !hidePaymentReceived;
+  const effectivePaymentReceived = showPaymentToggle && paymentReceived;
+
   const mutation = useMutation({
     mutationFn: () =>
       createFollowUp({
@@ -91,9 +96,9 @@ export function FollowUpDrawer({
         student_name: student.student_name,
         branch: student.branch,
         call_status: callStatus,
-        payment_received: paymentReceived,
-        amount_received: paymentReceived && amountReceived ? Number(amountReceived) : undefined,
-        payment_mode: paymentReceived && paymentMode ? paymentMode : undefined,
+        payment_received: effectivePaymentReceived,
+        amount_received: effectivePaymentReceived && amountReceived ? Number(amountReceived) : undefined,
+        payment_mode: effectivePaymentReceived && paymentMode ? paymentMode : undefined,
         remarks: remarks.trim() || undefined,
         next_followup_date: nextDate || undefined,
         // Only passed from the paid-history claim flow — links this log to the specific PE
@@ -201,35 +206,37 @@ export function FollowUpDrawer({
               </div>
 
               {/* Payment received toggle */}
-              <div className="flex items-center justify-between p-3.5 rounded-xl border border-border-light bg-surface">
-                <div className="flex items-center gap-2.5">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${paymentReceived ? "bg-emerald-50" : "bg-border-light"}`}>
-                    <IndianRupee className={`h-4 w-4 ${paymentReceived ? "text-emerald-600" : "text-text-tertiary"}`} />
+              {showPaymentToggle && (
+                <div className="flex items-center justify-between p-3.5 rounded-xl border border-border-light bg-surface">
+                  <div className="flex items-center gap-2.5">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${paymentReceived ? "bg-emerald-50" : "bg-border-light"}`}>
+                      <IndianRupee className={`h-4 w-4 ${paymentReceived ? "text-emerald-600" : "text-text-tertiary"}`} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-text-primary">Payment Received</p>
+                      <p className="text-[11px] text-text-tertiary">Mark if student paid during this call</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-text-primary">Payment Received</p>
-                    <p className="text-[11px] text-text-tertiary">Mark if student paid during this call</p>
-                  </div>
+                  <button
+                    onClick={() => setPaymentReceived((v) => !v)}
+                    className={`relative w-10 h-5.5 rounded-full transition-colors ${
+                      paymentReceived ? "bg-emerald-500" : "bg-border-input"
+                    }`}
+                    style={{ minWidth: "2.5rem", height: "1.375rem" }}
+                  >
+                    <motion.span
+                      animate={{ x: paymentReceived ? 18 : 2 }}
+                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                      className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow"
+                      style={{ display: "block" }}
+                    />
+                  </button>
                 </div>
-                <button
-                  onClick={() => setPaymentReceived((v) => !v)}
-                  className={`relative w-10 h-5.5 rounded-full transition-colors ${
-                    paymentReceived ? "bg-emerald-500" : "bg-border-input"
-                  }`}
-                  style={{ minWidth: "2.5rem", height: "1.375rem" }}
-                >
-                  <motion.span
-                    animate={{ x: paymentReceived ? 18 : 2 }}
-                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                    className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow"
-                    style={{ display: "block" }}
-                  />
-                </button>
-              </div>
+              )}
 
               {/* Payment details — shown only when toggle on */}
               <AnimatePresence>
-                {paymentReceived && (
+                {effectivePaymentReceived && (
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
@@ -248,7 +255,8 @@ export function FollowUpDrawer({
                           placeholder="0"
                           value={amountReceived}
                           onChange={(e) => setAmountReceived(e.target.value)}
-                          className="w-full text-sm rounded-lg border border-border-input bg-surface px-3 py-2 text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-emerald-400/30 focus:border-emerald-400"
+                          disabled={initialAmountReceived !== undefined}
+                          className="w-full text-sm rounded-lg border border-border-input bg-surface px-3 py-2 text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-emerald-400/30 focus:border-emerald-400 disabled:opacity-70 disabled:bg-border-light/50 disabled:cursor-not-allowed"
                         />
                       </div>
                       <div className="space-y-1">

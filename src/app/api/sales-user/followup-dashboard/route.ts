@@ -160,12 +160,8 @@ export async function GET(request: NextRequest) {
         paymentFilters.push(["Payment Entry", "company", "=", activeBranch]);
       }
     }
-    // NOTE: Do NOT add date filters to paymentFilters here.
-    // The follow-up logs are already date-scoped (lines 115-116),
-    // so only date-matching logs will appear in the breakdown.
-    // Restricting Payment Entries by date causes invoice_ref matches to fail
-    // when the payment posting_date differs from the follow-up call_date range,
-    // silently dropping valid branches (e.g. Chullickal) from the breakdown.
+    if (from) paymentFilters.push(["Payment Entry", "posting_date", ">=", from]);
+    if (to) paymentFilters.push(["Payment Entry", "posting_date", "<=", to]);
 
     let payments: any[] = [];
     const customerToStudent = new Map<string, any>();
@@ -241,38 +237,71 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Match logs
+    // Match logs using identical two-pass matching logic
     const matchedPaymentNamesLogs = new Set<string>();
+    const matchedLogs = new Map<string, { payment_received: number; amount_received: number }>();
+
+    // Pass 1: Match logs with explicit invoice_ref or explicit amount > 0
     for (const log of logs) {
       const isPaymentLog = log.payment_received === 1 || log.call_status === "Already Paid";
-      if (isPaymentLog && log.student) {
-        const logAmt = log.amount_received ?? 0;
+      if (!isPaymentLog || !log.student) continue;
+
+      const logAmt = log.amount_received ?? 0;
+      const studentPayments = paymentsByStudent.get(log.student) ?? [];
+      let matchingPayment: any = undefined;
+
+      if (log.invoice_ref) {
+        matchingPayment = studentPayments.find(
+          (p) => !matchedPaymentNamesLogs.has(p.name) && p.name.trim() === log.invoice_ref?.trim()
+        );
+      }
+
+      if (!matchingPayment && logAmt > 0) {
+        matchingPayment = studentPayments.find(
+          (p) => !matchedPaymentNamesLogs.has(p.name) && Math.abs((p.paid_amount ?? 0) - logAmt) <= 2
+        );
+      }
+
+      if (matchingPayment) {
+        matchedPaymentNamesLogs.add(matchingPayment.name);
+        matchedLogs.set(log.name, {
+          payment_received: 1,
+          amount_received: matchingPayment.paid_amount ?? 0
+        });
+      }
+    }
+
+    // Pass 2: Match remaining logs where amount_received === 0
+    for (const log of logs) {
+      const isPaymentLog = log.payment_received === 1 || log.call_status === "Already Paid";
+      if (!isPaymentLog || !log.student || matchedLogs.has(log.name)) continue;
+
+      const logAmt = log.amount_received ?? 0;
+      if (logAmt === 0) {
         const studentPayments = paymentsByStudent.get(log.student) ?? [];
-        
-        let matchingPayment: any = undefined;
-
-        // 1. Explicit invoice_ref match
-        if (log.invoice_ref) {
-          matchingPayment = studentPayments.find(
-            (p) => !matchedPaymentNamesLogs.has(p.name) && p.name.trim() === log.invoice_ref?.trim()
-          );
-        }
-
-        // 2. Legacy fallback
-        if (!matchingPayment && !log.invoice_ref) {
-          const creationDate = log.creation?.slice(0, 10) || "";
-          if (creationDate < "2026-08-01") {
-            matchingPayment = studentPayments.find(
-              (p) => !matchedPaymentNamesLogs.has(p.name) && Math.abs((p.paid_amount ?? 0) - logAmt) <= 2
-            );
-          }
-        }
+        const matchingPayment = studentPayments.find(
+          (p) => !matchedPaymentNamesLogs.has(p.name)
+        );
 
         if (matchingPayment) {
           matchedPaymentNamesLogs.add(matchingPayment.name);
-          log.payment_received = 1;
-          log.amount_received = matchingPayment.paid_amount ?? 0;
-        } else {
+          matchedLogs.set(log.name, {
+            payment_received: 1,
+            amount_received: matchingPayment.paid_amount ?? 0
+          });
+        }
+      }
+    }
+
+    // Apply matched results back to logs
+    for (const log of logs) {
+      const matched = matchedLogs.get(log.name);
+      if (matched) {
+        log.payment_received = matched.payment_received;
+        log.amount_received = matched.amount_received;
+      } else {
+        const isPaymentLog = log.payment_received === 1 || log.call_status === "Already Paid";
+        if (isPaymentLog) {
           log.payment_received = 0;
           log.amount_received = 0;
         }
@@ -411,13 +440,9 @@ export async function GET(request: NextRequest) {
     }
 
     // ── Converted counts + paid amounts ──
-    // Fetch ALL payment_received=1 logs for the assigned branches (all-time).
-    // This allows us to calculate both Branch-wide conversions and User-specific conversions in one query.
+    // Fetch logs for the branch/assigned branches in the date range.
     {
-      // Fetch logs that represent payment claims: either payment_received = 1 OR call_status = "Already Paid"
-      const allTimeFilters: any[][] = [
-        ["Fee Follow Up", "payment_received", "=", 1],
-      ];
+      const allTimeFilters: any[][] = [];
       // Scope to allowed branches (same branch scoping as main query)
       if (roles.includes("Sales User")) {
         if (allowedCompanies.length > 0) {
@@ -436,7 +461,7 @@ export async function GET(request: NextRequest) {
 
       try {
         const paidQs = new URLSearchParams({
-          fields: JSON.stringify(["name", "student", "amount_received", "call_date", "called_by", "branch", "invoice_ref", "creation"]),
+          fields: JSON.stringify(["name", "student", "amount_received", "call_date", "called_by", "branch", "invoice_ref", "creation", "payment_received", "call_status"]),
           filters: JSON.stringify(allTimeFilters),
           limit_page_length: "2000",
           order_by: "call_date asc",
@@ -447,42 +472,74 @@ export async function GET(request: NextRequest) {
         );
         if (paidRes.ok) {
           const paidData = await paidRes.json();
-          const paidLogs: { name: string; student: string; amount_received?: number; called_by?: string; branch?: string; invoice_ref?: string; creation?: string }[] = paidData.data ?? [];
+          const paidLogs: any[] = paidData.data ?? [];
 
           // Branch-wide calculations & breakdowns
           const branchBreakdown = new Map<string, { branch: string; converted_count: number; paid_amount: number }>();
           const userBreakdown = new Map<string, { branch: string; converted_count: number; paid_amount: number }>();
 
           const matchedPaymentNamesPaidLogs = new Set<string>();
-          const verifiedPaidLogs = paidLogs.map(log => {
+          const matchedPaidLogsMap = new Map<string, { payment_received: number; amount_received: number }>();
+
+          // Pass 1: Match logs with explicit invoice_ref or explicit amount > 0
+          for (const log of paidLogs) {
+            const isPaymentLog = log.payment_received === 1 || log.call_status === "Already Paid";
+            if (!isPaymentLog || !log.student) continue;
+
             const logAmt = log.amount_received ?? 0;
-            const studentPayments = log.student ? (paymentsByStudent.get(log.student) ?? []) : [];
-            
+            const studentPayments = paymentsByStudent.get(log.student) ?? [];
             let matchingPayment: any = undefined;
 
-            // 1. Explicit match
             if (log.invoice_ref) {
               matchingPayment = studentPayments.find(
                 (p) => !matchedPaymentNamesPaidLogs.has(p.name) && p.name.trim() === log.invoice_ref?.trim()
               );
             }
 
-            // 2. Legacy match
-            if (!matchingPayment && !log.invoice_ref) {
-              const creationDate = log.creation?.slice(0, 10) || "";
-              if (creationDate < "2026-08-01") {
-                matchingPayment = studentPayments.find(
-                  (p) => !matchedPaymentNamesPaidLogs.has(p.name) && Math.abs((p.paid_amount ?? 0) - logAmt) <= 2
-                );
-              }
+            if (!matchingPayment && logAmt > 0) {
+              matchingPayment = studentPayments.find(
+                (p) => !matchedPaymentNamesPaidLogs.has(p.name) && Math.abs((p.paid_amount ?? 0) - logAmt) <= 2
+              );
             }
 
             if (matchingPayment) {
               matchedPaymentNamesPaidLogs.add(matchingPayment.name);
-              return {
-                ...log,
+              matchedPaidLogsMap.set(log.name, {
                 payment_received: 1,
                 amount_received: matchingPayment.paid_amount ?? 0
+              });
+            }
+          }
+
+          // Pass 2: Match remaining logs where amount_received === 0
+          for (const log of paidLogs) {
+            const isPaymentLog = log.payment_received === 1 || log.call_status === "Already Paid";
+            if (!isPaymentLog || !log.student || matchedPaidLogsMap.has(log.name)) continue;
+
+            const logAmt = log.amount_received ?? 0;
+            if (logAmt === 0) {
+              const studentPayments = paymentsByStudent.get(log.student) ?? [];
+              const matchingPayment = studentPayments.find(
+                (p) => !matchedPaymentNamesPaidLogs.has(p.name)
+              );
+
+              if (matchingPayment) {
+                matchedPaymentNamesPaidLogs.add(matchingPayment.name);
+                matchedPaidLogsMap.set(log.name, {
+                  payment_received: 1,
+                  amount_received: matchingPayment.paid_amount ?? 0
+                });
+              }
+            }
+          }
+
+          const verifiedPaidLogs = paidLogs.map(log => {
+            const matched = matchedPaidLogsMap.get(log.name);
+            if (matched) {
+              return {
+                ...log,
+                payment_received: matched.payment_received,
+                amount_received: matched.amount_received
               };
             } else {
               return {

@@ -88,6 +88,8 @@ export default function BranchAllStudentsPage() {
     paymentReceived?: boolean;
     amountReceived?: number;
     paymentMode?: string;
+    invoiceRef?: string;
+    hidePaymentReceived?: boolean;
   } | null>(null);
 
 
@@ -445,6 +447,8 @@ export default function BranchAllStudentsPage() {
                             paymentReceived: true,
                             amountReceived: claim.recent_payment.paid_amount,
                             paymentMode: claim.recent_payment.mode_of_payment,
+                            invoiceRef: claim.recent_payment.name,
+                            hidePaymentReceived: false,
                           });
                         }}
                         className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-emerald-300 bg-emerald-50 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors"
@@ -684,7 +688,9 @@ export default function BranchAllStudentsPage() {
                               <button
                                 onClick={() => {
                                   setDrawerStudent({ student_id: student.student_id, student_name: student.student_name, branch });
-                                  setDrawerDefaults(null);
+                                  setDrawerDefaults({
+                                    hidePaymentReceived: true,
+                                  });
                                 }}
                                 className="inline-flex items-center gap-1 text-[10px] text-primary hover:text-primary/80 underline underline-offset-2"
                               >
@@ -695,7 +701,9 @@ export default function BranchAllStudentsPage() {
                             <button
                               onClick={() => {
                                 setDrawerStudent({ student_id: student.student_id, student_name: student.student_name, branch });
-                                setDrawerDefaults(null);
+                                setDrawerDefaults({
+                                  hidePaymentReceived: true,
+                                });
                               }}
                               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-primary/30 bg-primary/5 text-[10px] font-medium text-primary hover:bg-primary/10 transition-colors"
                             >
@@ -811,6 +819,7 @@ export default function BranchAllStudentsPage() {
 
       {/* Follow-Up Drawer */}
       <FollowUpDrawer
+        key={`${drawerStudent ? "open" : "closed"}-${drawerStudent?.student_id ?? "none"}-${drawerDefaults?.callStatus ?? ""}-${drawerDefaults?.amountReceived ?? ""}-${drawerDefaults?.paymentMode ?? ""}-${drawerDefaults?.invoiceRef ?? ""}-${drawerDefaults?.hidePaymentReceived ?? ""}`}
         open={drawerStudent !== null}
         onClose={() => {
           setDrawerStudent(null);
@@ -822,6 +831,8 @@ export default function BranchAllStudentsPage() {
         initialPaymentReceived={drawerDefaults?.paymentReceived}
         initialAmountReceived={drawerDefaults?.amountReceived}
         initialPaymentMode={drawerDefaults?.paymentMode}
+        initialInvoiceRef={drawerDefaults?.invoiceRef}
+        hidePaymentReceived={drawerDefaults?.hidePaymentReceived}
       />
     </motion.div>
   );

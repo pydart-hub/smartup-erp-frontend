@@ -1,5 +1,14 @@
 # SmartUp ERP — Task Tracker
 
+## Current: Push and Deploy to Clustered Server (2026-08-05)
+
+- [/] Verify type checking and local project build
+- [ ] Stage and commit local modifications
+- [ ] Push local changes to GitHub repository
+- [ ] SSH to server and run clustered deployment commands
+- [ ] Verify all 4 instances (`smartup-erp-1` to `smartup-erp-4`) on the server
+- [ ] Verify Nginx load balancing upstream and SSL
+
 ## Current: Curriculum Dept LMS Modification (2026-07-29)
 
 - [x] Setup Curriculum Dept Dashboard Routes & Layout
