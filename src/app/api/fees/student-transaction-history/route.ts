@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/utils/apiAuth";
 import { getSalesUserBranches } from "@/lib/utils/constants";
 
@@ -129,7 +129,7 @@ async function fetchInvoicePaymentEntries(invoiceId: string): Promise<InvoicePay
       ["Payment Entry Reference", "reference_name", "=", invoiceId],
       ["Payment Entry", "docstatus", "=", 1],
     ],
-    order_by: "posting_date desc, creation desc",
+    order_by: `posting_date desc, ${bt}tabPayment Entry${bt}.creation desc`,
     limit_page_length: 100,
   };
 

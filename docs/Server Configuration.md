@@ -322,19 +322,19 @@ ssh smartup-portal
 # SSH to server
 ssh smartup-portal
 
-# Deploy ERP frontend update
-ssh smartup-portal "cd /var/www/smartup-erp && git pull origin main && npm run build && pm2 restart smartup-erp"
+# Deploy ERP frontend update (Clustered Safe Deployment)
+ssh smartup-portal "cd /var/www/smartup-erp && git fetch --all && git reset --hard origin/main && npm install && npx prisma generate && npm run build && pm2 reload ecosystem.config.js && pm2 save && nginx -t && systemctl reload nginx"
 
 # Deploy portal update (same as before)
 ssh smartup-portal "cd /var/www/smartup-portal && git pull origin main && npm run build && pm2 restart smartup-portal"
 
 # Check both apps
 pm2 list
-pm2 logs smartup-erp --lines 50
+pm2 logs /smartup-erp/ --lines 50
 pm2 logs smartup-portal --lines 50
 
-# Restart individual apps
-pm2 restart smartup-erp
+# Restart / Reload apps
+pm2 reload ecosystem.config.js   # Zero-downtime reload for ERP
 pm2 restart smartup-portal
 
 # Nginx
