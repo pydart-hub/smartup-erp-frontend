@@ -22,7 +22,7 @@ import { formatDate, formatCurrency } from "@/lib/utils/formatters";
 import { generateInstalmentDueDates } from "@/lib/utils/feeSchedule";
 import { toast } from "sonner";
 import type { SalesOrderStatus, SalesInvoice } from "@/lib/types/sales";
-import RazorpayPayButton from "@/components/payments/RazorpayPayButton";
+import CollectPaymentModal from "@/components/payments/CollectPaymentModal";
 import { StudentTransactionHistory } from "@/components/fees/StudentTransactionHistory";
 
 const STATUS_COLORS: Record<SalesOrderStatus, "default" | "success" | "warning" | "error" | "info"> = {
@@ -72,19 +72,9 @@ export default function SalesOrderDetailPage() {
 
   // ── Payment modal state ─────────────────────────────────────
   const [paymentInvoice, setPaymentInvoice] = useState<SalesInvoice | null>(null);
-  const [payTab, setPayTab] = useState<"online" | "cash">("online");
-  const [payAmount, setPayAmount] = useState("");
-  const [payMode, setPayMode] = useState("Cash");
-  const [payDate, setPayDate] = useState(todayDate);
-  const [payRef, setPayRef] = useState("");
 
   function openPaymentModal(inv: SalesInvoice) {
     setPaymentInvoice(inv);
-    setPayTab("online");
-    setPayAmount(String(inv.outstanding_amount));
-    setPayMode("Cash");
-    setPayDate(todayDate);
-    setPayRef("");
   }
 
   function closePaymentModal() {
@@ -109,36 +99,6 @@ export default function SalesOrderDetailPage() {
     queryClient.invalidateQueries({ queryKey: ["sales-order", decodedId] });
   }
 
-  const paymentMutation = useMutation({
-    mutationFn: async () => {
-      if (!paymentInvoice) throw new Error("No invoice selected");
-      const res = await fetch("/api/payments/record-cash", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          invoice_id: paymentInvoice.name,
-          amount: Number(payAmount),
-          mode_of_payment: payMode,
-          posting_date: payDate,
-          reference_no: payRef || undefined,
-        }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to record payment");
-      }
-      return res.json();
-    },
-    onSuccess: (data) => {
-      toast.success(`Payment recorded: ${data.payment_entry}`);
-      if (paymentInvoice) onPaymentDone(paymentInvoice.name);
-    },
-    onError: (err: Error) => {
-      toast.error(err.message);
-    },
-  });
-
   // ── SO data ───────────────────────────────────────────────
   const { data: soRes, isLoading, isError } = useQuery({
     queryKey: ["sales-order", decodedId],
@@ -150,11 +110,11 @@ export default function SalesOrderDetailPage() {
   // ── Linked invoices (filter by child table sales_order reference) ──
   const { data: invoicesRes } = useQuery({
     queryKey: ["so-invoices", decodedId],
-    queryFn: () => getSalesInvoices({ sales_order: decodedId, limit_page_length: 20 }),
+    queryFn: () => getSalesInvoices({ sales_order: decodedId, docstatus: 1, limit_page_length: 20 }),
     enabled: !!so,
     staleTime: 30_000,
   });
-  const salesOrderLinkedInvoices = (invoicesRes?.data ?? []).filter((inv) => inv.docstatus !== 2);
+  const salesOrderLinkedInvoices = (invoicesRes?.data ?? []).filter((inv) => inv.docstatus === 1);
 
   // Fallback query: some manually corrected invoices may no longer keep the sales_order child link
   // even though they belong to this same student/order schedule.
@@ -223,7 +183,7 @@ export default function SalesOrderDetailPage() {
 
   const linkedInvoices = useMemo(() => {
     const base = [...salesOrderLinkedInvoices];
-    const extraInvoices = (studentInvoicesRes?.data ?? []).filter((inv) => inv.docstatus !== 2);
+    const extraInvoices = (studentInvoicesRes?.data ?? []).filter((inv) => inv.docstatus === 1);
     const byName = new Set(base.map((inv) => inv.name));
 
     for (const expected of expectedSchedule) {
@@ -647,229 +607,114 @@ export default function SalesOrderDetailPage() {
               <p className="text-xs mt-1">Invoices are auto-created on admission.</p>
             </div>
           ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border-light text-text-secondary text-xs font-semibold">
-                  <th className="text-left pb-2 pr-3">#</th>
-                  <th className="text-left pb-2 pr-3">Invoice #</th>
-                  <th className="text-left pb-2 pr-3">Due Date</th>
-                  <th className="text-right pb-2 pr-3">Grand Total</th>
-                  <th className="text-right pb-2 pr-3">Outstanding</th>
-                  <th className="text-left pb-2 pr-3">Status</th>
-                  <th className="text-right pb-2">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border-light">
-                {sortedInvoices.map((inv, idx) => (
-                  <tr key={inv.name} className="hover:bg-app-bg transition-colors">
-                    <td className="py-2 pr-3 text-xs text-text-tertiary font-medium">
-                      {idx + 1}/{sortedInvoices.length}
-                    </td>
-                    <td className="py-2 pr-3">
-                      <Link
-                        href={`/dashboard/branch-manager/invoices/${encodeURIComponent(inv.name)}`}
-                        className="font-mono text-xs text-primary font-semibold hover:underline"
-                      >
-                        {inv.name}
-                      </Link>
-                    </td>
-                    <td className="py-2 pr-3 text-text-secondary">{inv.due_date ? formatDate(inv.due_date) : formatDate(inv.posting_date)}</td>
-                    <td className="py-2 pr-3 text-right font-semibold">{formatCurrency(inv.grand_total)}</td>
-                    <td className="py-2 pr-3 text-right text-warning font-semibold">{formatCurrency(inv.outstanding_amount)}</td>
-                    <td className="py-2 pr-3">
-                      <Badge variant={inv.outstanding_amount === 0 ? "success" : inv.due_date && inv.due_date < new Date().toISOString().split("T")[0] ? "error" : "warning"}>
-                        {inv.outstanding_amount === 0 ? "Paid" : inv.due_date && inv.due_date < new Date().toISOString().split("T")[0] ? "Overdue" : inv.status}
-                      </Badge>
-                    </td>
-                    <td className="py-2 text-right">
-                      {inv.outstanding_amount > 0 && !isDiscontinued && (
-                        <Button variant="outline" size="sm" onClick={() => openPaymentModal(inv)}>
-                          <Banknote className="h-3.5 w-3.5" /> Pay
-                        </Button>
-                      )}
-                    </td>
+            <div className="overflow-hidden border border-slate-100 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-950 shadow-sm">
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr className="bg-slate-50/50 dark:bg-slate-900/40 border-b border-slate-100 dark:border-slate-800 text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-wider">
+                    <th className="text-left py-3 px-4">#</th>
+                    <th className="text-left py-3 px-4">Invoice #</th>
+                    <th className="text-left py-3 px-4">Due Date</th>
+                    <th className="text-right py-3 px-4">Grand Total</th>
+                    <th className="text-right py-3 px-4">Outstanding</th>
+                    <th className="text-left py-3 px-4">Status</th>
+                    <th className="text-right py-3 px-4">Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-50 dark:divide-slate-900">
+                  {sortedInvoices.map((inv, idx) => {
+                    const isPaid = inv.outstanding_amount === 0;
+                    const isOverdue = inv.due_date && inv.due_date < new Date().toISOString().split("T")[0];
+                    return (
+                      <tr key={inv.name} className="hover:bg-slate-50/40 dark:hover:bg-slate-900/20 transition-colors duration-150">
+                        <td className="py-3 px-4 text-xs text-slate-400 dark:text-slate-500 font-medium">
+                          {idx + 1}/{sortedInvoices.length}
+                        </td>
+                        <td className="py-3 px-4">
+                          <Link
+                            href={`/dashboard/branch-manager/invoices/${encodeURIComponent(inv.name)}`}
+                            className="font-mono text-xs text-violet-600 dark:text-violet-400 font-semibold hover:underline"
+                          >
+                            {inv.name}
+                          </Link>
+                        </td>
+                        <td className="py-3 px-4 text-xs text-slate-500 dark:text-slate-400">
+                          {inv.due_date ? formatDate(inv.due_date) : formatDate(inv.posting_date)}
+                        </td>
+                        <td className="py-3 px-4 text-right text-xs font-semibold text-slate-700 dark:text-slate-300">
+                          {formatCurrency(inv.grand_total)}
+                        </td>
+                        <td className="py-3 px-4 text-right text-xs font-bold text-slate-700 dark:text-slate-300">
+                          {formatCurrency(inv.outstanding_amount)}
+                        </td>
+                        <td className="py-3 px-4">
+                          {(() => {
+                            const statusStr = inv.status || "";
+                            if (isPaid || statusStr === "Paid") {
+                              return (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400 border border-green-100 dark:border-green-900/60">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-green-600" />
+                                  Paid
+                                </span>
+                              );
+                            }
+                            if (statusStr === "Partly Paid") {
+                              return (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/60">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                                  Partly Paid
+                                </span>
+                              );
+                            }
+                            if (statusStr === "Unpaid" || statusStr === "Overdue" || isOverdue) {
+                              const label = statusStr === "Overdue" || isOverdue ? "Overdue" : "Unpaid";
+                              return (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/60">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                                  {label}
+                                </span>
+                              );
+                            }
+                            // Fallback
+                            return (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-50 dark:bg-slate-900/50 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800">
+                                <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                                {statusStr}
+                              </span>
+                            );
+                          })()}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          {inv.outstanding_amount > 0 && !isDiscontinued && (
+                            <button
+                              onClick={() => openPaymentModal(inv)}
+                              className="ml-auto flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-green-600 border border-green-200 bg-white hover:bg-green-600 hover:border-green-600 hover:text-white dark:border-green-800 dark:bg-slate-900 dark:text-green-400 dark:hover:bg-green-600 dark:hover:text-white shadow-sm transition-all duration-150 active:scale-95 cursor-pointer"
+                            >
+                              <Banknote className="h-3.5 w-3.5" /> Pay
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </CardContent>
       </Card>
 
       {/* ── Payment Modal (Online + Cash) ────────────────────── */}
       {paymentInvoice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/40" onClick={closePaymentModal} />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="relative bg-surface rounded-2xl shadow-2xl border border-border-light w-full max-w-md mx-4 p-6"
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between mb-5">
-              <div>
-                <h2 className="text-lg font-bold text-text-primary">Collect Payment</h2>
-                <p className="text-xs text-text-tertiary mt-0.5">
-                  {paymentInvoice.name}
-                  {sortedInvoices.length > 1 && (() => {
-                    const idx = sortedInvoices.findIndex(inv => inv.name === paymentInvoice.name);
-                    return idx >= 0 ? ` — Instalment ${idx + 1}/${sortedInvoices.length}` : "";
-                  })()}
-                </p>
-              </div>
-              <button onClick={closePaymentModal} className="text-text-tertiary hover:text-text-primary transition-colors">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            {/* Invoice summary */}
-            <div className="bg-app-bg rounded-xl p-4 mb-5">
-              <div className="flex justify-between text-sm">
-                <span className="text-text-tertiary">Invoice Total</span>
-                <span className="font-semibold">{formatCurrency(paymentInvoice.grand_total)}</span>
-              </div>
-              {paymentInvoice.grand_total !== paymentInvoice.outstanding_amount && (
-                <div className="flex justify-between text-sm mt-1">
-                  <span className="text-text-tertiary">Already Paid</span>
-                  <span className="font-medium text-success">{formatCurrency(paymentInvoice.grand_total - paymentInvoice.outstanding_amount)}</span>
-                </div>
-              )}
-              <div className="flex justify-between text-sm mt-1">
-                <span className="text-text-tertiary">Outstanding</span>
-                <span className="font-bold text-warning">{formatCurrency(paymentInvoice.outstanding_amount)}</span>
-              </div>
-              {paymentInvoice.due_date && (
-                <div className="flex justify-between text-sm mt-1">
-                  <span className="text-text-tertiary">Due Date</span>
-                  <span className="font-medium">{formatDate(paymentInvoice.due_date)}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Payment mode tabs */}
-            <div className="flex gap-1 p-1 bg-app-bg rounded-xl mb-5">
-              <button
-                onClick={() => setPayTab("online")}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium rounded-lg transition-all ${
-                  payTab === "online"
-                    ? "bg-surface text-primary shadow-sm"
-                    : "text-text-tertiary hover:text-text-secondary"
-                }`}
-              >
-                <CreditCard className="h-4 w-4" />
-                Online (Razorpay)
-              </button>
-              <button
-                onClick={() => setPayTab("cash")}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium rounded-lg transition-all ${
-                  payTab === "cash"
-                    ? "bg-surface text-primary shadow-sm"
-                    : "text-text-tertiary hover:text-text-secondary"
-                }`}
-              >
-                <Wallet className="h-4 w-4" />
-                Cash / Offline
-              </button>
-            </div>
-
-            {/* Online Tab */}
-            {payTab === "online" && (
-              <div className="space-y-4">
-                <p className="text-xs text-text-tertiary">
-                  Pay the full outstanding amount via Razorpay (Card, UPI, Net Banking).
-                </p>
-                <RazorpayPayButton
-                  amount={paymentInvoice.outstanding_amount}
-                  invoiceId={paymentInvoice.name}
-                  studentName={so?.student || so?.customer_name || ""}
-                  customer={so?.customer || ""}
-                  onSuccess={() => onPaymentDone(paymentInvoice.name)}
-                  onError={(err) => toast.error(err)}
-                  size="md"
-                  className="w-full"
-                />
-              </div>
-            )}
-
-            {/* Cash / Offline Tab */}
-            {payTab === "cash" && (
-              <div className="space-y-4">
-                <Input
-                  label="Amount (₹)"
-                  type="number"
-                  value={payAmount}
-                  onChange={(e) => setPayAmount(e.target.value)}
-                  min={1}
-                  max={paymentInvoice.outstanding_amount}
-                  step="0.01"
-                />
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-medium text-text-secondary">Payment Method</label>
-                  <div className="grid grid-cols-4 gap-1.5">
-                    {(["Cash", "UPI", "Bank Transfer", "Cheque"] as const).map((m) => (
-                      <button
-                        key={m}
-                        type="button"
-                        onClick={() => { setPayMode(m); if (m === "Cash") setPayRef(""); }}
-                        className={`px-2 py-2.5 text-xs font-medium rounded-xl border transition-all ${
-                          payMode === m
-                            ? "border-primary bg-primary/5 text-primary"
-                            : "border-border-light bg-surface text-text-secondary hover:border-primary/40"
-                        }`}
-                      >
-                        {m}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <Input
-                    label={payMode === "Cash" ? "Receipt number (optional)" : payMode === "UPI" ? "UTR Number" : payMode === "Cheque" ? "Cheque Number" : "Transaction Reference"}
-                    placeholder={payMode === "Cash" ? "Receipt number (optional)" : payMode === "UPI" ? "UTR Number" : payMode === "Cheque" ? "Cheque Number" : "Transaction Reference"}
-                    value={payRef}
-                    onChange={(e) => setPayRef(e.target.value)}
-                  />
-                  {payMode !== "Cash" && !payRef.trim() && (
-                    <p className="text-xs text-error">Required for {payMode} payments</p>
-                  )}
-                </div>
-
-                <Input
-                  label="Payment Date"
-                  type="date"
-                  value={payDate}
-                  onChange={(e) => setPayDate(e.target.value)}
-                  min={yesterdayDate}
-                  max={todayDate}
-                />
-                <p className="text-xs text-text-tertiary">
-                  Only today and yesterday are allowed.
-                </p>
-
-                <div className="flex gap-3 mt-2">
-                  <Button variant="outline" size="md" onClick={closePaymentModal} className="flex-1">
-                    Cancel
-                  </Button>
-                  <Button
-                    variant="primary"
-                    size="md"
-                    className="flex-1"
-                    disabled={paymentMutation.isPending || !payAmount || Number(payAmount) <= 0 || Number(payAmount) > paymentInvoice.outstanding_amount || (payMode !== "Cash" && !payRef.trim())}
-                    onClick={() => paymentMutation.mutate()}
-                  >
-                    {paymentMutation.isPending ? (
-                      <><Loader2 className="h-4 w-4 animate-spin" /> Recording...</>
-                    ) : (
-                      <><Banknote className="h-4 w-4" /> Record ₹{Number(payAmount || 0).toLocaleString("en-IN")}</>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            )}
-          </motion.div>
-        </div>
+        <CollectPaymentModal
+          isOpen={!!paymentInvoice}
+          onClose={closePaymentModal}
+          invoice={paymentInvoice}
+          studentName={so?.customer_name || (paymentInvoice as any)?.student_name || ""}
+          studentId={so?.student || (paymentInvoice as any)?.student || ""}
+          customer={so?.customer || ""}
+          onPaymentDone={onPaymentDone}
+          allowOffline={true}
+        />
       )}
     </motion.div>
   );

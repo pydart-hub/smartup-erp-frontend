@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { getRazorpayKeys, getInvoiceCompany } from "@/lib/utils/razorpay";
 import { resolveAccountPaidTo } from "@/lib/utils/accountMapping";
+import { getCofeeOrderStatus } from "@/lib/utils/cofee";
 
 const FRAPPE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL;
 const FRAPPE_API_KEY = process.env.FRAPPE_API_KEY;
@@ -51,30 +52,71 @@ export async function POST(request: NextRequest) {
       invoice_id,
       amount,
       student_name,
+      gateway,
+      order_id,
     } = body;
 
-    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
-      return NextResponse.json(
-        { error: "Missing Razorpay payment details" },
-        { status: 400 },
-      );
-    }
+    let payment_id: string;
+    let payment_order_id: string;
+    let modeOfPayment = "Razorpay";
 
     const adminAuth = `token ${FRAPPE_API_KEY}:${FRAPPE_API_SECRET}`;
     const company = await getInvoiceCompany(invoice_id, FRAPPE_URL!, adminAuth);
-    const { keySecret } = getRazorpayKeys(company || "");
 
-    const expectedSignature = crypto
-      .createHmac("sha256", keySecret)
-      .update(`${razorpay_order_id}|${razorpay_payment_id}`)
-      .digest("hex");
+    if (gateway === "cofee") {
+      if (!order_id) {
+        return NextResponse.json(
+          { error: "Missing CoFee order_id details" },
+          { status: 400 },
+        );
+      }
+      const cofeeStatus = await getCofeeOrderStatus(order_id);
+      if (cofeeStatus.status !== "SUCCESS" || !cofeeStatus.data) {
+        return NextResponse.json(
+          { error: "Failed to retrieve CoFee payment status" },
+          { status: 400 },
+        );
+      }
+      const orderData = cofeeStatus.data;
+      if (orderData.order_status !== "success") {
+        let displayError = `Payment not completed. Status: ${orderData.order_status}`;
+        if (orderData.order_status === "processing" || orderData.order_status === "pending") {
+          displayError = "Your payment is currently processing or pending. Please check back in a few minutes.";
+        } else if (orderData.order_status === "failed" || orderData.order_status === "cancelled") {
+          displayError = "The payment was cancelled or failed. Please try again.";
+        }
+        return NextResponse.json(
+          { error: displayError },
+          { status: 400 },
+        );
+      }
+      payment_id = order_id;
+      payment_order_id = order_id;
+      modeOfPayment = "CoFee";
+    } else {
+      if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+        return NextResponse.json(
+          { error: "Missing Razorpay payment details" },
+          { status: 400 },
+        );
+      }
 
-    if (expectedSignature !== razorpay_signature) {
-      console.error("[payments/verify] Signature mismatch");
-      return NextResponse.json(
-        { error: "Payment verification failed - signature mismatch" },
-        { status: 400 },
-      );
+      const { keySecret } = getRazorpayKeys(company || "");
+      const expectedSignature = crypto
+        .createHmac("sha256", keySecret)
+        .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+        .digest("hex");
+
+      if (expectedSignature !== razorpay_signature) {
+        console.error("[payments/verify] Signature mismatch");
+        return NextResponse.json(
+          { error: "Payment verification failed - signature mismatch" },
+          { status: 400 },
+        );
+      }
+      payment_id = razorpay_payment_id;
+      payment_order_id = razorpay_order_id;
+      modeOfPayment = "Razorpay";
     }
 
     const headers = {
@@ -118,15 +160,15 @@ export async function POST(request: NextRequest) {
 
     const existingPaymentEntry = await findPaymentEntryByReference(
       headers,
-      razorpay_payment_id,
+      payment_id,
     );
     if (existingPaymentEntry) {
       const invoiceState = await fetchInvoiceState(headers, actualInvoiceId);
       return NextResponse.json({
         success: true,
         message: "Payment was already recorded successfully",
-        payment_id: razorpay_payment_id,
-        order_id: razorpay_order_id,
+        payment_id,
+        order_id: payment_order_id,
         invoice_id: actualInvoiceId,
         payment_entry: existingPaymentEntry.name,
         invoice_outstanding_amount: invoiceState?.outstanding_amount ?? null,
@@ -157,18 +199,26 @@ export async function POST(request: NextRequest) {
       }
 
       const mappedPE = (await getPeRes.json()).message;
-      mappedPE.mode_of_payment = "Razorpay";
-      mappedPE.reference_no = razorpay_payment_id;
+      mappedPE.mode_of_payment = modeOfPayment;
+      mappedPE.reference_no = payment_id;
       mappedPE.reference_date = new Date().toISOString().split("T")[0];
-      mappedPE.remarks = `Online payment via Razorpay. Order: ${razorpay_order_id}, Payment: ${razorpay_payment_id}. Student: ${student_name || ""}. Parent email: ${email}`;
+      mappedPE.remarks = `Online payment via ${modeOfPayment}. Order: ${payment_order_id}, Payment: ${payment_id}. Student: ${student_name || ""}. Parent email: ${email}`;
 
       if (company) {
-        const resolved = await resolveAccountPaidTo("Razorpay", company, FRAPPE_URL!, adminAuth);
+        let resolved = await resolveAccountPaidTo(modeOfPayment, company, FRAPPE_URL!, adminAuth);
+        
+        // If "CoFee" doesn't exist or isn't mapped, fallback to "Razorpay" to ensure the entry goes through
+        if (!resolved && modeOfPayment === "CoFee") {
+          console.warn(`[payments/verify] No account mapping for CoFee, falling back to Razorpay for company=${company}`);
+          resolved = await resolveAccountPaidTo("Razorpay", company, FRAPPE_URL!, adminAuth);
+          mappedPE.mode_of_payment = "Razorpay";
+        }
+
         if (resolved) {
           mappedPE.paid_to = resolved.account;
           mappedPE.paid_to_account_type = resolved.accountType;
         } else {
-          console.warn(`[payments/verify] No account mapping for Razorpay, company=${company}`);
+          console.warn(`[payments/verify] No account mapping found for company=${company}`);
         }
       }
 
@@ -229,8 +279,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         message: "Payment verified and recorded successfully",
-        payment_id: razorpay_payment_id,
-        order_id: razorpay_order_id,
+        payment_id,
+        order_id: payment_order_id,
         invoice_id: actualInvoiceId,
         payment_entry: paymentEntryName,
         invoice_outstanding_amount: invoiceAfterSubmit.outstanding_amount,
@@ -242,10 +292,11 @@ export async function POST(request: NextRequest) {
         headers,
         referenceDoctype,
         actualInvoiceId,
-        razorpay_payment_id,
-        razorpay_order_id,
+        payment_id,
+        payment_order_id,
         amount,
         email,
+        modeOfPayment,
         student_name,
       );
 
@@ -253,8 +304,8 @@ export async function POST(request: NextRequest) {
         {
           error: "Payment was received but ERP recording failed. No Payment Entry was confirmed.",
           code: "PAYMENT_NOT_RECORDED",
-          payment_id: razorpay_payment_id,
-          order_id: razorpay_order_id,
+          payment_id,
+          order_id: payment_order_id,
           invoice_id: actualInvoiceId,
           payment_entry: paymentEntryName,
         },
@@ -318,14 +369,15 @@ async function addPaymentComment(
   orderId: string,
   amount: number,
   parentEmail: string,
+  modeOfPayment: string,
   studentName?: string,
 ) {
   try {
     const comment =
-      `Online Payment Received via Razorpay\n\n` +
+      `Online Payment Received via ${modeOfPayment}\n\n` +
       `Amount: Rs.${amount.toLocaleString("en-IN")}\n` +
-      `Razorpay Payment ID: ${paymentId}\n` +
-      `Razorpay Order ID: ${orderId}\n` +
+      `${modeOfPayment} Payment ID: ${paymentId}\n` +
+      `${modeOfPayment} Order ID: ${orderId}\n` +
       `Student: ${studentName || "N/A"}\n` +
       `Parent Email: ${parentEmail}\n` +
       `Date: ${new Date().toLocaleString("en-IN")}\n\n` +

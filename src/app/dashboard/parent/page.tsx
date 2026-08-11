@@ -268,13 +268,30 @@ export default function ParentDashboardPage() {
 
   const [expandedDashSubject, setExpandedDashSubject] = useState<string | null>(null);
 
-  // Next due invoice: earliest outstanding invoice across all children
+  // Next due invoice: earliest outstanding invoice/fee/order across all children
   const todayStr = new Date().toISOString().split("T")[0];
-  const nextDueInvoice = allInvoices
+  let nextDueInvoice: { name: string; due_date?: string; posting_date: string; outstanding_amount: number } | undefined = allInvoices
     .filter((inv) => inv.outstanding_amount > 0)
-    .sort((a, b) => (a.due_date ?? a.posting_date).localeCompare(b.due_date ?? b.posting_date))[0] as
-    | SalesInvoiceEntry
-    | undefined;
+    .sort((a, b) => (a.due_date ?? a.posting_date).localeCompare(b.due_date ?? b.posting_date))[0];
+
+  if (!nextDueInvoice && allFees.length > 0) {
+    nextDueInvoice = allFees
+      .filter((f) => f.outstanding_amount > 0)
+      .sort((a, b) => (a.due_date ?? a.posting_date).localeCompare(b.due_date ?? b.posting_date))[0];
+  }
+
+  if (!nextDueInvoice && allSOs.length > 0) {
+    nextDueInvoice = allSOs
+      .filter((so) => so.grand_total > 0 && so.status !== "Completed" && so.status !== "Cancelled")
+      .map((so) => ({
+        name: so.name,
+        posting_date: so.transaction_date,
+        due_date: undefined,
+        outstanding_amount: so.grand_total,
+      }))
+      .sort((a, b) => a.posting_date.localeCompare(b.posting_date))[0];
+  }
+
   const nextDueIsOverdue = nextDueInvoice?.due_date
     ? nextDueInvoice.due_date < todayStr
     : false;
@@ -331,7 +348,11 @@ export default function ParentDashboardPage() {
 
       {/* Next Payment Due */}
       {nextDueInvoice && !isLoading && (
-        <motion.div variants={item}>
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: "easeOut" }}
+        >
           <Link href="/dashboard/parent/fees" className="block">
             <div
               className={`rounded-[14px] border p-4 flex items-center justify-between gap-4 transition-colors hover:shadow-sm ${

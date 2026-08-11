@@ -75,6 +75,7 @@ interface DayAttendanceRecord {
   out_time?: string;
   working_hours?: string;
   custom_class_time?: string;
+  custom_visiting_branch?: string;
 }
 
 export default function StaffMonthlyReportPage() {
@@ -135,6 +136,7 @@ export default function StaffMonthlyReportPage() {
         out_time: outTime,
         working_hours: workHrs,
         custom_class_time: att.custom_class_time ? att.custom_class_time.slice(0, 5) : undefined,
+        custom_visiting_branch: att.custom_visiting_branch || undefined,
       };
     });
 
@@ -216,9 +218,11 @@ export default function StaffMonthlyReportPage() {
                 }
               }
             }
-            return `${fullWord}\n${inT} - ${outT}${hrs}${lateStr}`;
+            const visitingSuffix = rec.custom_visiting_branch ? `\n(Visiting: ${rec.custom_visiting_branch.replace("Smart Up ", "").replace("Smart Up", "HQ")})` : "";
+            return `${fullWord}\n${inT} - ${outT}${hrs}${lateStr}${visitingSuffix}`;
           }
-          return fullWord;
+          const visitingSuffix = rec.custom_visiting_branch ? `\n(Visiting: ${rec.custom_visiting_branch.replace("Smart Up ", "").replace("Smart Up", "HQ")})` : "";
+          return `${fullWord}${visitingSuffix}`;
         }),
       ]);
 
@@ -322,9 +326,11 @@ export default function StaffMonthlyReportPage() {
               }
             }
           }
-          rowData[dateStr] = `${fullWord} [${rec.in_time || "--"} - ${rec.out_time || "--"}]${hrs}${lateStr}`;
+          const visitingSuffix = rec.custom_visiting_branch ? ` (Visiting: ${rec.custom_visiting_branch.replace("Smart Up ", "").replace("Smart Up", "HQ")})` : "";
+          rowData[dateStr] = `${fullWord} [${rec.in_time || "--"} - ${rec.out_time || "--"}]${hrs}${lateStr}${visitingSuffix}`;
         } else {
-          rowData[dateStr] = fullWord;
+          const visitingSuffix = rec.custom_visiting_branch ? ` (Visiting: ${rec.custom_visiting_branch.replace("Smart Up ", "").replace("Smart Up", "HQ")})` : "";
+          rowData[dateStr] = `${fullWord}${visitingSuffix}`;
         }
       });
       sheet.addRow(rowData);
@@ -487,6 +493,12 @@ export default function StaffMonthlyReportPage() {
                               <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[11px] font-semibold border ${colorClass}`}>
                                 {fullWord}
                               </span>
+
+                              {rec.custom_visiting_branch && (
+                                <span className="text-[9px] text-blue-600 dark:text-blue-400 font-bold bg-blue-50 dark:bg-blue-950/30 px-1 py-0.5 rounded mt-0.5" title={`Visiting Branch: ${rec.custom_visiting_branch}`}>
+                                  📍 {rec.custom_visiting_branch.replace("Smart Up ", "").replace("Smart Up", "HQ")}
+                                </span>
+                              )}
 
                               {showTimings && (
                                 <div className="flex flex-col items-center text-[9.5px] leading-tight font-medium text-text-secondary bg-surface px-1.5 py-0.5 rounded border border-border-light/80 shadow-2xs">

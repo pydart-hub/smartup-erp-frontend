@@ -12,7 +12,7 @@ import {
   Send,
 } from "lucide-react";
 import { toast } from "sonner";
-import RazorpayPayButton from "@/components/payments/RazorpayPayButton";
+import UnifiedPaymentButton from "@/components/payments/UnifiedPaymentButton";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { PAYMENT_MODES } from "@/lib/utils/constants";
@@ -431,7 +431,7 @@ export default function PostAdmissionPayment({
                         </div>
                       ) : mode === "Online" ? (
                         idx === 0 ? (
-                          <RazorpayPayButton
+                          <UnifiedPaymentButton
                             amount={payableAmount}
                             invoiceId={inv.invoiceId}
                             studentName={studentName}

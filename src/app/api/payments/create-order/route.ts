@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createRazorpayInstance, getRazorpayKeys, getInvoiceCompany } from "@/lib/utils/razorpay";
+import { createCofeeOrder } from "@/lib/utils/cofee";
 
 const FRAPPE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL;
 const FRAPPE_API_KEY = process.env.FRAPPE_API_KEY;
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { amount, invoice_id, student_name, customer } = body;
+    const { amount, invoice_id, student_name, customer, gateway, redirect_to } = body;
 
     if (!amount || amount <= 0) {
       return NextResponse.json(
@@ -82,9 +83,44 @@ export async function POST(request: NextRequest) {
       // Non-blocking — proceed if lookup fails
     }
 
-    // ── Resolve branch Razorpay keys from invoice company ──
+    // ── Resolve branch details from invoice company ──
     const adminAuth = `token ${FRAPPE_API_KEY}:${FRAPPE_API_SECRET}`;
     const company = await getInvoiceCompany(invoice_id, FRAPPE_URL!, adminAuth);
+
+    if (gateway === "cofee") {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+      let redirectUrl = `${appUrl}/dashboard/parent/fees/callback?gateway=cofee&invoice_id=${encodeURIComponent(
+        invoice_id
+      )}&amount=${amount}&student_name=${encodeURIComponent(student_name || "")}&customer=${encodeURIComponent(customer || "")}`;
+
+      if (redirect_to) {
+        redirectUrl += `&redirect_to=${encodeURIComponent(redirect_to)}`;
+      }
+
+      const cofeeRes = await createCofeeOrder({
+        company: company || "",
+        amount,
+        invoiceId: invoice_id,
+        studentName: student_name || "",
+        customerName: customer || "",
+        parentEmail: email,
+        parentPhone: "",
+        redirectUrl,
+      });
+
+      if (cofeeRes.status !== "SUCCESS" || !cofeeRes.data) {
+        throw new Error(cofeeRes.message || "Failed to create CoFee payment order");
+      }
+
+      return NextResponse.json({
+        gateway: "cofee",
+        order_id: cofeeRes.data.order_id,
+        payment_link: cofeeRes.data.payment_link,
+        amount: cofeeRes.data.amount,
+      });
+    }
+
+    // Default to Razorpay
     const razorpay = createRazorpayInstance(company || "");
     const { keyId } = getRazorpayKeys(company || "");
 

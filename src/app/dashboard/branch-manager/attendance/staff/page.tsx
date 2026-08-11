@@ -211,12 +211,10 @@ export default function StaffAttendancePage() {
   // Build lookup: employee name → attendance record
   const attMap = new Map(attendanceRecords.map((r) => [r.employee, r]));
 
-  // Merge: show all employees with their attendance status
-  const merged = employees
-    .filter((emp) =>
-      !search || emp.employee_name.toLowerCase().includes(search.toLowerCase())
-    )
-    .map((emp) => {
+  // Merge regular employees and visiting instructors into a single unified list
+  const unifiedStaffList = React.useMemo(() => {
+    // 1. Regular employees
+    const regular = (employees || []).map((emp) => {
       const att = attMap.get(emp.name);
       const pending = pendingChanges[emp.name];
       const status = pending?.status ?? (att?.status as StaffStatus | undefined) ?? "Not Marked";
@@ -229,20 +227,61 @@ export default function StaffAttendancePage() {
       );
 
       return {
-        ...emp,
+        name: emp.name,
+        employee_name: emp.employee_name,
+        designation: emp.designation || emp.department || "-",
+        image: emp.image,
         attendance_status: status as string,
         in_time,
         out_time,
         attendance_name: att?.name,
         hasChange,
+        isVisiting: false,
+        homeBranch: undefined,
       };
     });
 
+    // 2. Visiting instructors
+    const visiting = (visitingInstructors || []).map((v) => {
+      const pending = pendingChanges[`visiting_${v.employee}`];
+      const existingAtt = visitingAttMap.get(v.employee);
+      const status = (pending?.status ?? existingAtt?.status ?? "Not Marked") as string;
+      const in_time = pending?.in_time ?? formatTimeForInput(existingAtt?.in_time);
+      const out_time = pending?.out_time ?? formatTimeForInput(existingAtt?.out_time);
+      const hasChange = pending !== undefined && (
+        pending.status !== (existingAtt?.status ?? "Not Marked") ||
+        pending.in_time !== formatTimeForInput(existingAtt?.in_time) ||
+        pending.out_time !== formatTimeForInput(existingAtt?.out_time)
+      );
+
+      return {
+        name: v.employee,
+        employee_name: v.instructor_name,
+        designation: v.custom_company ? `Visiting from ${v.custom_company.replace("Smart Up ", "").replace("Smart Up", "HQ")}` : "Visiting Instructor",
+        image: v.image,
+        attendance_status: status,
+        in_time,
+        out_time,
+        attendance_name: existingAtt?.name,
+        hasChange,
+        isVisiting: true,
+        homeBranch: v.custom_company,
+      };
+    });
+
+    // Combine and apply search
+    const combined = [...regular, ...visiting];
+    if (!search) return combined;
+    return combined.filter((s) =>
+      s.employee_name.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [employees, visitingInstructors, attMap, visitingAttMap, pendingChanges, search]);
+
   // Summary counts (including pending changes)
-  const presentCount = merged.filter((e) => e.attendance_status === "Present").length;
-  const absentCount = merged.filter((e) => e.attendance_status === "Absent").length;
-  const notMarkedCount = merged.filter((e) => e.attendance_status === "Not Marked").length;
-  const otherCount = merged.length - presentCount - absentCount - notMarkedCount;
+  const presentCount = unifiedStaffList.filter((e) => e.attendance_status === "Present").length;
+  const absentCount = unifiedStaffList.filter((e) => e.attendance_status === "Absent").length;
+  const notMarkedCount = unifiedStaffList.filter((e) => e.attendance_status === "Not Marked").length;
+  const otherCount = unifiedStaffList.length - presentCount - absentCount - notMarkedCount;
 
   const pendingCount = Object.keys(pendingChanges).length;
 
@@ -398,6 +437,7 @@ export default function StaffAttendancePage() {
             in_time: change.status === "At Head Office" ? undefined : inTimeISO,
             out_time: change.status === "At Head Office" ? undefined : outTimeISO,
             custom_class_time: classTime || undefined,
+            custom_visiting_branch: defaultCompany || undefined,
           };
           if (existing && !existing.name.startsWith("LOCAL-")) {
             await updateEmployeeAttendance(existing.name, payload);
@@ -667,9 +707,9 @@ export default function StaffAttendancePage() {
             </Card>
           ))}
         </div>
-      ) : merged.length === 0 ? (
+      ) : unifiedStaffList.length === 0 ? (
         <div className="text-center py-16 text-text-secondary text-sm">
-          No employees found for this branch.
+          No employees or visiting instructors found.
         </div>
       ) : (
         <Card>
@@ -677,14 +717,14 @@ export default function StaffAttendancePage() {
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <Users className="h-5 w-5 text-text-tertiary" />
-                Employees
+                Employees & Visiting Instructors
               </CardTitle>
-              <Badge variant="outline">{merged.length} total</Badge>
+              <Badge variant="outline">{unifiedStaffList.length} total</Badge>
             </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {merged.map((emp, index) => {
+              {unifiedStaffList.map((emp, index) => {
                 const cfg = statusConfig[emp.attendance_status] ?? statusConfig["Not Marked"];
                 const Icon = cfg.icon as React.ComponentType<{ className?: string }>;
                 const showTimings = emp.attendance_status && emp.attendance_status !== "Absent" && emp.attendance_status !== "On Leave" && emp.attendance_status !== "Work From Home" && emp.attendance_status !== "At Head Office" && emp.attendance_status !== "Not Marked";
@@ -697,14 +737,16 @@ export default function StaffAttendancePage() {
                     transition={{ delay: index * 0.02 }}
                     className={`flex flex-col gap-2 p-3 rounded-[10px] border-2 transition-all ${cfg.bg} ${
                       emp.hasChange ? "ring-2 ring-primary/30 border-primary/20" : "border-transparent"
-                    }`}
+                    } ${emp.isVisiting ? "border-amber-355/40" : ""}`}
                   >
                     <div
-                      onClick={() => cycleStatus(emp.name, emp.attendance_status)}
+                      onClick={() => cycleStatus(emp.name, emp.attendance_status, emp.isVisiting)}
                       className="flex items-center gap-3 cursor-pointer text-left"
                     >
                       {/* Avatar */}
-                      <div className="w-10 h-10 rounded-full bg-brand-wash flex items-center justify-center overflow-hidden flex-shrink-0">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0 ${
+                        emp.isVisiting ? "bg-amber-100 ring-2 ring-amber-400" : "bg-brand-wash"
+                      }`}>
                         {emp.image ? (
                           <img
                             src={`${process.env.NEXT_PUBLIC_FRAPPE_URL}${emp.image}`}
@@ -712,7 +754,7 @@ export default function StaffAttendancePage() {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <span className="text-sm font-semibold text-primary">
+                          <span className={`text-sm font-semibold ${emp.isVisiting ? "text-amber-700" : "text-primary"}`}>
                             {emp.employee_name?.charAt(0)?.toUpperCase() || "?"}
                           </span>
                         )}
@@ -720,11 +762,14 @@ export default function StaffAttendancePage() {
 
                       {/* Info */}
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-text-primary truncate">
-                          {emp.employee_name}
+                        <p className="text-sm font-medium text-text-primary truncate flex items-center gap-1.5">
+                          <span className="truncate">{emp.employee_name}</span>
+                          {emp.isVisiting && (
+                            <Badge variant="warning" className="text-[9px] px-1 py-0 h-4 bg-amber-100 text-amber-700 border-amber-200">Visiting</Badge>
+                          )}
                         </p>
                         <p className="text-xs text-text-tertiary truncate">
-                          {emp.designation || emp.department || emp.name}
+                          {emp.designation}
                         </p>
                       </div>
 
@@ -749,7 +794,7 @@ export default function StaffAttendancePage() {
                               <input
                                 type="time"
                                 value={emp.in_time || ""}
-                                onChange={(e) => handleInTimeChange(emp.name, e.target.value)}
+                                onChange={(e) => handleInTimeChange(emp.name, e.target.value, emp.isVisiting)}
                                 className="h-6 px-1.5 border border-border-input rounded bg-surface text-text-primary text-[11px] flex-1 min-w-[50px]"
                               />
                             </div>
@@ -760,7 +805,7 @@ export default function StaffAttendancePage() {
                               <input
                                 type="time"
                                 value={emp.out_time || ""}
-                                onChange={(e) => handleOutTimeChange(emp.name, e.target.value)}
+                                onChange={(e) => handleOutTimeChange(emp.name, e.target.value, emp.isVisiting)}
                                 className="h-6 px-1.5 border border-border-input rounded bg-surface text-text-primary text-[11px] flex-1 min-w-[50px]"
                               />
                             </div>
@@ -781,141 +826,6 @@ export default function StaffAttendancePage() {
 
             <p className="text-xs text-text-tertiary mt-4 text-center">
               Click on an employee card header to cycle status. Set In & Out times directly below.
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Visiting Instructors Section */}
-      {visitingInstructors.length > 0 && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <Building2 className="h-5 w-5 text-amber-500" />
-                Visiting Instructors
-              </CardTitle>
-              <Badge variant="outline">{visitingInstructors.length} scheduled today</Badge>
-            </div>
-            <p className="text-xs text-text-secondary mt-0.5">
-              Instructors from other branches with classes scheduled on {selectedDate}
-            </p>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {visitingInstructors
-                .filter((v) =>
-                  !search || v.instructor_name.toLowerCase().includes(search.toLowerCase())
-                )
-                .map((v, index) => {
-                  const pending = pendingChanges[`visiting_${v.employee}`];
-                  const existingAtt = visitingAttMap.get(v.employee);
-                  const currentStatus = (pending?.status ?? existingAtt?.status ?? "Not Marked") as string;
-                  const in_time = pending?.in_time ?? formatTimeForInput(existingAtt?.in_time);
-                  const out_time = pending?.out_time ?? formatTimeForInput(existingAtt?.out_time);
-                  const hasChange = pending !== undefined && (
-                    pending.status !== (existingAtt?.status ?? "Not Marked") ||
-                    pending.in_time !== formatTimeForInput(existingAtt?.in_time) ||
-                    pending.out_time !== formatTimeForInput(existingAtt?.out_time)
-                  );
-                  const cfg = statusConfig[currentStatus] ?? statusConfig["Not Marked"];
-                  const Icon = cfg.icon as React.ComponentType<{ className?: string }>;
-                  const showTimings = currentStatus && currentStatus !== "Absent" && currentStatus !== "On Leave" && currentStatus !== "Work From Home" && currentStatus !== "At Head Office" && currentStatus !== "Not Marked";
-
-                  return (
-                    <motion.div
-                      key={v.employee}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: index * 0.03 }}
-                      className={`flex flex-col gap-2 p-3 rounded-[10px] border-2 transition-all ${cfg.bg} ${
-                        hasChange ? "ring-2 ring-primary/30 border-primary/20" : "border-transparent"
-                      }`}
-                    >
-                      <div
-                        onClick={() => cycleStatus(v.employee, currentStatus, true)}
-                        className="flex items-center gap-3 cursor-pointer text-left"
-                      >
-                        {/* Avatar */}
-                        <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center overflow-hidden flex-shrink-0">
-                          {v.image ? (
-                            <img
-                              src={`${process.env.NEXT_PUBLIC_FRAPPE_URL}${v.image}`}
-                              alt={v.instructor_name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <span className="text-sm font-semibold text-amber-700">
-                              {v.instructor_name?.charAt(0)?.toUpperCase() || "?"}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Info */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <p className="text-sm font-medium text-text-primary truncate">{v.instructor_name}</p>
-                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
-                              Visiting
-                            </span>
-                          </div>
-                          <p className="text-xs text-text-tertiary truncate">
-                            {v.custom_company ?? v.employee} · {v.schedules.length} class{v.schedules.length !== 1 ? "es" : ""}
-                          </p>
-                        </div>
-
-                        {/* Status */}
-                        <div className="flex items-center gap-1.5 flex-shrink-0">
-                          <Icon className={`h-4 w-4 ${cfg.color}`} />
-                          <Badge variant={cfg.variant} className="text-[10px]">
-                            {currentStatus}
-                          </Badge>
-                        </div>
-                      </div>
-
-                      {/* Check-In and Check-Out Time Controls */}
-                      {showTimings && (() => {
-                        const lateMins = getLateMinutes(in_time, classTime);
-                        return (
-                          <div className="pt-2 border-t border-border-light/60 flex flex-col gap-2">
-                            <div className="flex items-center justify-between gap-2 text-xs">
-                              <div className="flex items-center gap-1.5 bg-surface/80 px-2 py-1 rounded-[6px] border border-border-light flex-1">
-                                <LogIn className="h-3 w-3 text-success flex-shrink-0" />
-                                <span className="text-[11px] text-text-secondary font-medium">In:</span>
-                                <input
-                                  type="time"
-                                  value={in_time || ""}
-                                  onChange={(e) => handleInTimeChange(v.employee, e.target.value, true)}
-                                  className="h-6 px-1.5 border border-border-input rounded bg-surface text-text-primary text-[11px] flex-1 min-w-[50px]"
-                                />
-                              </div>
-
-                              <div className="flex items-center gap-1.5 bg-surface/80 px-2 py-1 rounded-[6px] border border-border-light flex-1">
-                                <LogOut className="h-3 w-3 text-error flex-shrink-0" />
-                                <span className="text-[11px] text-text-secondary font-medium">Out:</span>
-                                <input
-                                  type="time"
-                                  value={out_time || ""}
-                                  onChange={(e) => handleOutTimeChange(v.employee, e.target.value, true)}
-                                  className="h-6 px-1.5 border border-border-input rounded bg-surface text-text-primary text-[11px] flex-1 min-w-[50px]"
-                                />
-                              </div>
-                            </div>
-                            {lateMins > 0 && (
-                              <div className="text-[10px] text-error font-medium flex items-center gap-1 bg-error-light/50 px-2 py-0.5 rounded-[4px] border border-error/10 w-fit">
-                                <Clock className="h-2.5 w-2.5" />
-                                {lateMins} min late
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })()}
-                    </motion.div>
-                  );
-                })}
-            </div>
-            <p className="text-xs text-text-tertiary mt-4 text-center">
-              Click on a card to cycle through attendance statuses
             </p>
           </CardContent>
         </Card>

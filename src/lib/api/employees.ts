@@ -58,6 +58,7 @@ export interface EmployeeAttendance {
   late_entry?: number;
   early_exit?: number;
   custom_class_time?: string;
+  custom_visiting_branch?: string;
 }
 
 export interface Instructor {
@@ -85,7 +86,7 @@ const EMPLOYEE_ATTENDANCE_FIELDS = JSON.stringify([
   "status", "company", "department", "leave_type",
   "in_time", "out_time", "working_hours",
   "custom_check_in", "custom_check_out",
-  "late_entry", "early_exit", "custom_class_time",
+  "late_entry", "early_exit", "custom_class_time", "custom_visiting_branch",
 ]);
 
 const INSTRUCTOR_FIELDS = JSON.stringify([
@@ -283,18 +284,17 @@ export async function getEmployeeAttendance(params?: {
     return data;
   } catch (err) {
     const fieldsArr = JSON.parse(EMPLOYEE_ATTENDANCE_FIELDS);
-    if (fieldsArr.includes("custom_class_time")) {
-      const cleanFields = JSON.stringify(fieldsArr.filter((f: string) => f !== "custom_class_time"));
-      const fallbackQuery = new URLSearchParams(query);
-      fallbackQuery.set("fields", cleanFields);
-      try {
-        const { data } = await apiClient.get(`/resource/Attendance?${fallbackQuery}`);
-        return data;
-      } catch {
-        throw err;
-      }
+    const cleanFields = JSON.stringify(
+      fieldsArr.filter((f: string) => f !== "custom_class_time" && f !== "custom_visiting_branch")
+    );
+    const fallbackQuery = new URLSearchParams(query);
+    fallbackQuery.set("fields", cleanFields);
+    try {
+      const { data } = await apiClient.get(`/resource/Attendance?${fallbackQuery}`);
+      return data;
+    } catch {
+      throw err;
     }
-    throw err;
   }
 }
 
@@ -451,6 +451,7 @@ export async function createEmployeeAttendance(payload: {
   in_time?: string;
   out_time?: string;
   custom_class_time?: string;
+  custom_visiting_branch?: string;
 }): Promise<{ data: EmployeeAttendance }> {
   // "At Head Office" is not a valid Frappe HRMS status — use a custom Server Script
   // that calls frappe.db.set_value to bypass the Python validate() hook.
@@ -476,6 +477,7 @@ export async function createEmployeeAttendance(payload: {
     custom_check_in: payload.in_time ? payload.in_time.split(" ")[1] || payload.in_time : undefined,
     custom_check_out: payload.out_time ? payload.out_time.split(" ")[1] || payload.out_time : undefined,
     custom_class_time: payload.custom_class_time || undefined,
+    custom_visiting_branch: payload.custom_visiting_branch || undefined,
     docstatus: 1,
   };
 
@@ -501,9 +503,13 @@ export async function createEmployeeAttendance(payload: {
       ""
     );
 
-    // If it fails because of missing custom_class_time field, try without it
-    if (payload.custom_class_time && (text.includes("custom_class_time") || text.toLowerCase().includes("linkvalidationerror") || text.toLowerCase().includes("field"))) {
-      const { custom_class_time, ...strippedBody } = postBody;
+    // If it fails because of missing custom_class_time / custom_visiting_branch field, try without it
+    const missingClassTime = payload.custom_class_time && (text.includes("custom_class_time") || text.toLowerCase().includes("linkvalidationerror") || text.toLowerCase().includes("field"));
+    const missingVisitingBranch = payload.custom_visiting_branch && (text.includes("custom_visiting_branch") || text.toLowerCase().includes("linkvalidationerror") || text.toLowerCase().includes("field"));
+    if (missingClassTime || missingVisitingBranch) {
+      const strippedBody = { ...postBody };
+      if (missingClassTime) delete (strippedBody as any).custom_class_time;
+      if (missingVisitingBranch) delete (strippedBody as any).custom_visiting_branch;
       try {
         const { data } = await apiClient.post("/resource/Attendance", strippedBody);
         if (payload.in_time) {
@@ -543,6 +549,7 @@ export async function updateEmployeeAttendance(
     in_time?: string;
     out_time?: string;
     custom_class_time?: string;
+    custom_visiting_branch?: string;
   }
 ): Promise<void> {
   // "At Head Office" bypasses Python validator via custom Server Script
@@ -575,6 +582,7 @@ export async function updateEmployeeAttendance(
     custom_check_in: payload.in_time ? payload.in_time.split(" ")[1] || payload.in_time : undefined,
     custom_check_out: payload.out_time ? payload.out_time.split(" ")[1] || payload.out_time : undefined,
     custom_class_time: payload.custom_class_time || undefined,
+    custom_visiting_branch: payload.custom_visiting_branch || undefined,
   };
 
   const trySave = async (body: any) => {
@@ -604,8 +612,12 @@ export async function updateEmployeeAttendance(
       error?.response?.data?.exception ||
       ""
     );
-    if (payload.custom_class_time && (text.includes("custom_class_time") || text.toLowerCase().includes("linkvalidationerror") || text.toLowerCase().includes("field"))) {
-      const { custom_class_time, ...strippedBody } = attBody;
+    const missingClassTime = payload.custom_class_time && (text.includes("custom_class_time") || text.toLowerCase().includes("linkvalidationerror") || text.toLowerCase().includes("field"));
+    const missingVisitingBranch = payload.custom_visiting_branch && (text.includes("custom_visiting_branch") || text.toLowerCase().includes("linkvalidationerror") || text.toLowerCase().includes("field"));
+    if (missingClassTime || missingVisitingBranch) {
+      const strippedBody = { ...attBody };
+      if (missingClassTime) delete (strippedBody as any).custom_class_time;
+      if (missingVisitingBranch) delete (strippedBody as any).custom_visiting_branch;
       await trySave(strippedBody);
     } else {
       throw error;

@@ -346,6 +346,31 @@ const attendanceReport: ReportDefinition = {
   },
 };
 
+const guardianDirectory: ReportDefinition = {
+  key: "guardians",
+  label: "Guardian Directory",
+  description: "All guardians with contact info (phone, email, name)",
+  icon: "Users",
+  filters: [],
+  columns: [
+    { key: "name", header: "Guardian ID", width: 22 },
+    { key: "guardian_name", header: "Guardian Name", width: 28 },
+    { key: "mobile_number", header: "Mobile Number", width: 18 },
+    { key: "email_address", header: "Email Address", width: 30 },
+  ],
+  buildFetch: () => {
+    return [{
+      doctype: "Guardian",
+      fields: [
+        "name", "guardian_name", "mobile_number", "email_address"
+      ],
+      filters: [],
+      orderBy: "guardian_name asc",
+      limit: 0,
+    }];
+  },
+};
+
 // ── Export all definitions ──
 export const REPORT_DEFINITIONS: ReportDefinition[] = [
   studentRoster,
@@ -355,8 +380,10 @@ export const REPORT_DEFINITIONS: ReportDefinition[] = [
   batchReport,
   discontinuedStudents,
   attendanceReport,
+  guardianDirectory,
 ];
 
 export function getReportDefinition(key: string): ReportDefinition | undefined {
   return REPORT_DEFINITIONS.find((r) => r.key === key);
 }
+

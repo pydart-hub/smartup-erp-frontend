@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 import { CheckCircle2, Clock, AlertCircle, CircleDot, Loader2, XCircle, IndianRupee, Lock, FileText } from "lucide-react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 // ── Razorpay types ──
@@ -110,11 +110,13 @@ export default function PayPage() {
   const params = useParams();
   const token = params.token as string;
 
+  const searchParams = useSearchParams();
   const [data, setData] = useState<PayData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [payingInvoice, setPayingInvoice] = useState<string | null>(null);
   const [paidInvoices, setPaidInvoices] = useState<Set<string>>(new Set());
+  const [verifyingCofee, setVerifyingCofee] = useState(false);
 
   const fetchInvoices = useCallback(async () => {
     try {
@@ -141,13 +143,75 @@ export default function PayPage() {
     if (token) fetchInvoices();
   }, [token, fetchInvoices]);
 
+  // ── CoFee Auto-Verification on Return ──
+  useEffect(() => {
+    async function verifyCofeePayment() {
+      const gateway = searchParams.get("gateway");
+      let orderId = searchParams.get("order_id");
+      const invoiceId = searchParams.get("invoice_id");
+      const amountStr = searchParams.get("amount");
+      const studentName = searchParams.get("student_name");
+      const customer = searchParams.get("customer");
+
+      if (gateway !== "cofee" || !invoiceId) return;
+
+      if (!orderId && typeof window !== "undefined") {
+        orderId = localStorage.getItem("cofee_pending_order_id");
+      }
+
+      if (!orderId) {
+        setError("Missing CoFee order details");
+        return;
+      }
+
+      try {
+        setVerifyingCofee(true);
+        const amount = amountStr ? parseFloat(amountStr) : 0;
+        const res = await fetch("/api/pay/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            token,
+            gateway: "cofee",
+            order_id: orderId,
+            invoice_id: invoiceId,
+            amount,
+            student_name: studentName ? decodeURIComponent(studentName) : "",
+            customer: customer ? decodeURIComponent(customer) : "",
+          }),
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || "Failed to verify payment");
+        }
+
+        setPaidInvoices(prev => new Set(prev).add(invoiceId));
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("cofee_pending_order_id");
+        }
+
+        // Clean query parameters from URL
+        window.history.replaceState({}, "", window.location.pathname);
+        fetchInvoices();
+      } catch (err) {
+        setError((err as Error).message || "Verification failed");
+      } finally {
+        setVerifyingCofee(false);
+      }
+    }
+
+    if (token) {
+      verifyCofeePayment();
+    }
+  }, [token, searchParams, fetchInvoices]);
+
   const handlePay = useCallback(async (inv: InvoiceData) => {
     if (!data) return;
     setPayingInvoice(inv.name);
 
     try {
-      const scriptLoaded = await loadRazorpayScript();
-      if (!scriptLoaded) throw new Error("Failed to load payment gateway");
+      const isRazorpayDisabled = process.env.NEXT_PUBLIC_DISABLE_RAZORPAY === "true";
 
       // Create order
       const orderRes = await fetch("/api/pay/create-order", {
@@ -159,6 +223,7 @@ export default function PayPage() {
           invoice_id: inv.name,
           student_name: data.studentName,
           customer: data.customer,
+          gateway: isRazorpayDisabled ? "cofee" : "razorpay",
         }),
       });
       if (!orderRes.ok) {
@@ -167,7 +232,19 @@ export default function PayPage() {
       }
       const orderData = await orderRes.json();
 
-      // Open Razorpay
+      // If CoFee, redirect to hosted payment page
+      if (orderData.gateway === "cofee" && orderData.payment_url) {
+        if (typeof window !== "undefined") {
+          localStorage.setItem("cofee_pending_order_id", orderData.order_id);
+          window.location.href = orderData.payment_url;
+        }
+        return;
+      }
+
+      // Fallback: Open Razorpay
+      const scriptLoaded = await loadRazorpayScript();
+      if (!scriptLoaded) throw new Error("Failed to load payment gateway");
+
       const rzp = new window.Razorpay({
         key: orderData.key_id,
         amount: orderData.amount,
@@ -178,7 +255,6 @@ export default function PayPage() {
         prefill: { name: data.guardianName },
         theme: { color: "#6366f1" },
         handler: async (response: RazorpayResponse) => {
-          // Verify payment
           try {
             const verifyRes = await fetch("/api/pay/verify", {
               method: "POST",
@@ -199,7 +275,6 @@ export default function PayPage() {
               throw new Error(errData.error || "Verification failed");
             }
             setPaidInvoices(prev => new Set(prev).add(inv.name));
-            // Refresh data after short delay to let Frappe update
             setTimeout(() => fetchInvoices(), 2000);
           } catch (err) {
             alert(`Payment may have been received but verification failed: ${(err as Error).message}. Please contact support.`);
@@ -223,13 +298,20 @@ export default function PayPage() {
     }
   }, [data, token, fetchInvoices]);
 
-  // ── Loading state ──
-  if (loading) {
+  // ── Loading & Verification state ──
+  if (loading || verifyingCofee) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600 mx-auto" />
-          <p className="mt-3 text-sm text-gray-600">Loading fee details...</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 max-w-md w-full text-center flex flex-col items-center gap-4 animate-in fade-in duration-300">
+          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+          <h2 className="text-lg font-semibold text-gray-900">
+            {verifyingCofee ? "Verifying Payment" : "Loading fee details..."}
+          </h2>
+          <p className="text-sm text-gray-600">
+            {verifyingCofee 
+              ? "We are verifying your CoFee payment. Please do not close or refresh this page."
+              : "Please wait while we fetch your invoice details."}
+          </p>
         </div>
       </div>
     );

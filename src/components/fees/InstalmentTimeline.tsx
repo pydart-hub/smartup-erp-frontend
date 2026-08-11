@@ -3,7 +3,7 @@
 import React, { useState, useCallback } from "react";
 import { CheckCircle2, Clock, AlertCircle, CircleDot, CircleDashed } from "lucide-react";
 import { toast } from "sonner";
-import RazorpayPayButton from "@/components/payments/RazorpayPayButton";
+import UnifiedPaymentButton from "@/components/payments/UnifiedPaymentButton";
 import PartialPaymentModal from "@/components/payments/PartialPaymentModal";
 
 export interface InstalmentItem {
@@ -255,7 +255,7 @@ export default function InstalmentTimeline({
 
                     {showPayButton && (
                       <div className="flex items-center gap-2 flex-wrap">
-                        <RazorpayPayButton
+                        <UnifiedPaymentButton
                           amount={inst.outstandingAmount}
                           invoiceId={inst.invoiceId}
                           studentName={studentName}

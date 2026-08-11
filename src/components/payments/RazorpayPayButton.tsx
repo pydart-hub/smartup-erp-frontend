@@ -229,32 +229,39 @@ export default function RazorpayPayButton({
       onClick={handlePayment}
       disabled={loading || amount <= 0}
       className={`
+        group relative overflow-hidden
         inline-flex items-center justify-center gap-1.5 font-medium
-        bg-primary text-white hover:bg-primary-hover
-        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50
+        bg-violet-600 text-white
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50
         disabled:pointer-events-none disabled:opacity-50
         transition-all duration-200 active:scale-[0.97]
         ${sizeClasses}
-        ${status === "error" ? "bg-error hover:bg-red-700" : ""}
+        ${status === "error" ? "bg-error" : ""}
         ${className}
       `}
     >
-      {loading ? (
-        <>
-          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          Processing…
-        </>
-      ) : status === "error" ? (
-        <>
-          <XCircle className="h-3.5 w-3.5" />
-          Retry
-        </>
-      ) : (
-        <>
-          <IndianRupee className="h-3.5 w-3.5" />
-          Pay ₹{amount.toLocaleString("en-IN")}
-        </>
-      )}
+      {/* Green sliding background */}
+      <span className="absolute inset-0 bg-green-600 -translate-x-full group-hover:translate-x-0 transition-transform duration-500 ease-out pointer-events-none" />
+
+      {/* Content wrapper */}
+      <span className="relative z-10 flex items-center justify-center gap-1.5 w-full h-full">
+        {loading ? (
+          <>
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            Processing…
+          </>
+        ) : status === "error" ? (
+          <>
+            <XCircle className="h-3.5 w-3.5" />
+            Retry
+          </>
+        ) : (
+          <>
+            <IndianRupee className="h-3.5 w-3.5" />
+            Pay ₹{amount.toLocaleString("en-IN")}
+          </>
+        )}
+      </span>
     </button>
   );
 }

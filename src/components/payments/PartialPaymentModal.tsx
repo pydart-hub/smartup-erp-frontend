@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { X } from "lucide-react";
-import RazorpayPayButton from "@/components/payments/RazorpayPayButton";
+import UnifiedPaymentButton from "@/components/payments/UnifiedPaymentButton";
 import type { InstalmentItem } from "@/components/fees/InstalmentTimeline";
 
 interface PartialPaymentModalProps {
@@ -128,7 +128,7 @@ export default function PartialPaymentModal({
           </button>
           {isValid && (
             <div className="flex-1">
-              <RazorpayPayButton
+              <UnifiedPaymentButton
                 amount={amount}
                 invoiceId={instalment.invoiceId}
                 studentName={studentName}

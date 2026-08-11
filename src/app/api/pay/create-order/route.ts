@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/lib/utils/invoiceToken";
 import { createRazorpayInstance, getRazorpayKeys, getSalesOrderCompany } from "@/lib/utils/razorpay";
+import { createCofeeOrder } from "@/lib/utils/cofee";
 
 const FRAPPE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL;
 const FRAPPE_API_KEY = process.env.FRAPPE_API_KEY;
@@ -9,16 +10,22 @@ const FRAPPE_API_SECRET = process.env.FRAPPE_API_SECRET;
 /**
  * POST /api/pay/create-order
  *
- * Token-authenticated Razorpay order creation.
+ * Token-authenticated Razorpay/CoFee order creation.
  * Mirrors /api/payments/create-order but uses the magic-link token
  * instead of a session cookie.
  *
- * Body: { token, amount, invoice_id, student_name, customer }
+ * Body: { token, amount, invoice_id, student_name, customer, gateway }
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { token, amount, invoice_id, student_name, customer } = body;
+    let gateway = body.gateway;
+
+    // Default to CoFee if Razorpay is disabled globally
+    if (process.env.NEXT_PUBLIC_DISABLE_RAZORPAY === "true") {
+      gateway = "cofee";
+    }
 
     // ── Token auth ──
     const payload = verifyToken(token);
@@ -62,8 +69,32 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // ── Resolve branch Razorpay keys from Sales Order company ──
+    // ── Resolve branch company from Sales Order company ──
     const company = await getSalesOrderCompany(payload.so, FRAPPE_URL!, adminAuth);
+
+    if (gateway === "cofee") {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+      const redirectUrl = `${appUrl}/pay/${token}?gateway=cofee&invoice_id=${encodeURIComponent(
+        invoice_id
+      )}&amount=${amount}&student_name=${encodeURIComponent(student_name || "")}&customer=${encodeURIComponent(customer || "")}`;
+
+      const cofeeRes = await createCofeeOrder({
+        amount,
+        invoiceId: invoice_id,
+        studentName: student_name || "",
+        customerName: customer || "",
+        company: company || "",
+        redirectUrl,
+      });
+
+      return NextResponse.json({
+        gateway: "cofee",
+        order_id: cofeeRes.data?.order_id,
+        payment_url: cofeeRes.data?.payment_link,
+      });
+    }
+
+    // ── Fallback: Razorpay keys ──
     const razorpay = createRazorpayInstance(company || "");
     const { keyId } = getRazorpayKeys(company || "");
 
@@ -85,6 +116,7 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({
+      gateway: "razorpay",
       order_id: order.id,
       amount: order.amount,
       currency: order.currency,
