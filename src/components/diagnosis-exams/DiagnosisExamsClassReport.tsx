@@ -66,8 +66,8 @@ export function DiagnosisExamsClassReport({
     }
   > = {};
 
-  // Standard levels we want to show (from 5th to 12th, or whatever levels exist)
-  const levelOrder = ["5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"];
+  // Standard levels we want to show (from 5th to 10th)
+  const levelOrder = ["5th", "6th", "7th", "8th", "9th", "10th"];
 
   Object.entries(subjectStudentLatestAttempt).forEach(([subject, studentMap]) => {
     const levelCounts: Record<string, number> = {};
