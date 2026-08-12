@@ -140,15 +140,12 @@ async function reconcileCoFeePayment(input: ReconcileInput) {
   mappedPE.remarks = `Webhook reconciliation via CoFee. Order: ${input.orderId}. Student: ${input.studentName || ""}. Source: ${input.source || "webhook"}`;
 
   if (input.company) {
-    let resolved = await resolveAccountPaidTo("CoFee", input.company, FRAPPE_URL!, adminAuth);
+    const resolved = await resolveAccountPaidTo("CoFee", input.company, FRAPPE_URL!, adminAuth);
     if (!resolved) {
-      // fallback to Razorpay account mapping if CoFee is not defined
-      resolved = await resolveAccountPaidTo("Razorpay", input.company, FRAPPE_URL!, adminAuth);
+      throw new Error(`No account mapping found for CoFee and company ${input.company}`);
     }
-    if (resolved) {
-      mappedPE.paid_to = resolved.account;
-      mappedPE.paid_to_account_type = resolved.accountType;
-    }
+    mappedPE.paid_to = resolved.account;
+    mappedPE.paid_to_account_type = resolved.accountType;
   }
 
   if (mappedPE.references && Array.isArray(mappedPE.references)) {

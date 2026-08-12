@@ -16,6 +16,7 @@ import {
   Wifi,
   Wallet,
   FileBarChart,
+  Coffee,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Input } from "@/components/ui/Input";
@@ -38,14 +39,16 @@ function categoriseAccounts(accounts: AccountBalance[]) {
   let bank = 0;
   let razorpay = 0;
   let upi = 0;
+  let cofee = 0;
   for (const a of accounts) {
     const n = a.account_name.toLowerCase();
     if (n.includes("razorpay")) razorpay += a.balance;
     else if (n.includes("upi")) upi += a.balance;
+    else if (n.includes("cofee")) cofee += a.balance;
     else if (a.account_type === "Cash") cash += a.balance;
     else bank += a.balance;
   }
-  return { cash, bank, razorpay, upi, total: cash + bank + razorpay + upi };
+  return { cash, bank, razorpay, upi, cofee, total: cash + bank + razorpay + upi + cofee };
 }
 
 /** Extract the LLP / entity bank account name (not Cash, Razorpay, or UPI). */
@@ -53,7 +56,7 @@ function getBankEntityName(accounts: AccountBalance[]): string | null {
   const entity = accounts.find((a) => {
     if (a.account_type !== "Bank") return false;
     const n = a.account_name.toLowerCase();
-    return !n.includes("razorpay") && !n.includes("upi");
+    return !n.includes("razorpay") && !n.includes("upi") && !n.includes("cofee");
   });
   return entity?.account_name ?? null;
 }
@@ -121,7 +124,7 @@ function BranchBankCard({
         </div>
 
         {/* Stats grid */}
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           <div className="rounded-lg bg-emerald-500/5 px-2.5 py-1.5">
             <p className="text-[10px] text-emerald-600/80 flex items-center gap-0.5 mb-0.5">
               <Banknote className="h-2.5 w-2.5" /> Cash
@@ -143,6 +146,18 @@ function BranchBankCard({
             ) : (
               <p className="text-sm font-bold text-sky-600">
                 {formatCurrencyExact(cat?.bank ?? 0)}
+              </p>
+            )}
+          </div>
+          <div className="rounded-lg bg-amber-500/5 px-2.5 py-1.5">
+            <p className="text-[10px] text-amber-600/80 flex items-center gap-0.5 mb-0.5">
+              <Coffee className="h-2.5 w-2.5" /> CoFee
+            </p>
+            {isLoading ? (
+              <Pulse />
+            ) : (
+              <p className="text-sm font-bold text-amber-600">
+                {formatCurrencyExact(cat?.cofee ?? 0)}
               </p>
             )}
           </div>
@@ -195,12 +210,13 @@ function SummaryCards({ branches }: { branches: { name: string }[] }) {
       const cat = categoriseAccounts(q.data.accounts);
       acc.cash += cat.cash;
       acc.bank += cat.bank;
+      acc.cofee += cat.cofee;
       acc.razorpay += cat.razorpay;
       acc.upi += cat.upi;
       acc.total += cat.total;
       return acc;
     },
-    { cash: 0, bank: 0, razorpay: 0, upi: 0, total: 0 },
+    { cash: 0, bank: 0, cofee: 0, razorpay: 0, upi: 0, total: 0 },
   );
 
   const cards = [
@@ -226,6 +242,13 @@ function SummaryCards({ branches }: { branches: { name: string }[] }) {
       bg: "bg-sky-500/10",
     },
     {
+      label: "CoFee",
+      value: formatCurrencyExact(totals.cofee),
+      icon: Coffee,
+      color: "text-amber-600",
+      bg: "bg-amber-500/10",
+    },
+    {
       label: "Razorpay",
       value: formatCurrencyExact(totals.razorpay),
       icon: Wifi,
@@ -242,7 +265,7 @@ function SummaryCards({ branches }: { branches: { name: string }[] }) {
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
       {cards.map((c, i) => (
         <motion.div
           key={c.label}

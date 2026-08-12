@@ -205,20 +205,12 @@ export async function POST(request: NextRequest) {
       mappedPE.remarks = `Online payment via ${modeOfPayment}. Order: ${payment_order_id}, Payment: ${payment_id}. Student: ${student_name || ""}. Parent email: ${email}`;
 
       if (company) {
-        let resolved = await resolveAccountPaidTo(modeOfPayment, company, FRAPPE_URL!, adminAuth);
-        
-        // If "CoFee" doesn't exist or isn't mapped, fallback to "Razorpay" to ensure the entry goes through
-        if (!resolved && modeOfPayment === "CoFee") {
-          console.warn(`[payments/verify] No account mapping for CoFee, falling back to Razorpay for company=${company}`);
-          resolved = await resolveAccountPaidTo("Razorpay", company, FRAPPE_URL!, adminAuth);
-          mappedPE.mode_of_payment = "Razorpay";
-        }
-
+        const resolved = await resolveAccountPaidTo(modeOfPayment, company, FRAPPE_URL!, adminAuth);
         if (resolved) {
           mappedPE.paid_to = resolved.account;
           mappedPE.paid_to_account_type = resolved.accountType;
         } else {
-          console.warn(`[payments/verify] No account mapping found for company=${company}`);
+          throw new Error(`No account mapping found for ${modeOfPayment} and company ${company}`);
         }
       }
 

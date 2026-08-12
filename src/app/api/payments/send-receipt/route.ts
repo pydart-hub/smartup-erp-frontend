@@ -226,7 +226,7 @@ async function resolveReceiptContext(
         "name", "paid_amount", "reference_no", "reference_date",
         "mode_of_payment", "posting_date",
       ]),
-      order_by: "creation desc",
+      order_by: "`tabPayment Entry`.creation desc",
       limit_page_length: "1",
     });
     const entries = await safeFetchList(

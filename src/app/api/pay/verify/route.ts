@@ -197,7 +197,7 @@ export async function POST(request: NextRequest) {
           mappedPE.paid_to = resolved.account;
           mappedPE.paid_to_account_type = resolved.accountType;
         } else {
-          console.warn(`[pay/verify] No account mapping for ${modeOfPayment}, company=${company}`);
+          throw new Error(`No account mapping found for ${modeOfPayment} and company ${company}`);
         }
       }
 

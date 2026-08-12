@@ -19,6 +19,7 @@ import {
   FileText,
   CreditCard,
   Filter,
+  Coffee,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -55,21 +56,26 @@ function categoriseAccounts(accounts: AccountBalance[]) {
   let bank = 0;
   let razorpay = 0;
   let upi = 0;
+  let cofee = 0;
   for (const a of accounts) {
     const n = a.account_name.toLowerCase();
     if (n.includes("razorpay")) razorpay += a.balance;
     else if (n.includes("upi")) upi += a.balance;
+    else if (n.includes("cofee")) cofee += a.balance;
     else if (a.account_type === "Cash") cash += a.balance;
     else bank += a.balance;
   }
-  return { cash, bank, razorpay, upi, total: cash + bank + razorpay + upi };
+  return { cash, bank, razorpay, upi, cofee, total: cash + bank + razorpay + upi + cofee };
 }
 
 function getBankEntityName(accounts: AccountBalance[]): string | null {
   const bankAcc = accounts.find((a) => {
     const n = a.account_name.toLowerCase();
     return (
-      a.account_type === "Bank" && !n.includes("razorpay") && !n.includes("upi")
+      a.account_type === "Bank" &&
+      !n.includes("razorpay") &&
+      !n.includes("upi") &&
+      !n.includes("cofee")
     );
   });
   return bankAcc?.account_name ?? null;
@@ -474,7 +480,7 @@ export default function BranchBankPage() {
       {/* Summary Cards */}
       <motion.div
         variants={itemVariants}
-        className="grid grid-cols-2 sm:grid-cols-5 gap-4"
+        className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4"
       >
         <Card className="border-border-light">
           <CardContent className="p-4 text-center">
@@ -501,6 +507,15 @@ export default function BranchBankPage() {
               {loadGL ? "..." : formatCurrencyExact(cat.bank)}
             </p>
             <p className="text-xs text-text-tertiary truncate" title={entityName ?? "Bank"}>{entityName ?? "Bank"}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-amber-200/60">
+          <CardContent className="p-4 text-center">
+            <Coffee className="h-5 w-5 text-amber-600 mx-auto mb-2" />
+            <p className="text-2xl font-bold text-amber-600">
+              {loadGL ? "..." : formatCurrencyExact(cat.cofee)}
+            </p>
+            <p className="text-xs text-text-tertiary">CoFee</p>
           </CardContent>
         </Card>
         <Card className="border-blue-200/60">
