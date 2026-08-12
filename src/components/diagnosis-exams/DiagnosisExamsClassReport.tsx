@@ -197,6 +197,13 @@ export function DiagnosisExamsClassReport({
                       const percentage =
                         totalAssessed > 0 ? Math.round((count / totalAssessed) * 100) : 0;
 
+                      const getBarColor = (pct: number) => {
+                        if (pct >= 40) return "from-violet-600 to-[#5f2ea8]";
+                        if (pct >= 20) return "from-indigo-500 to-indigo-600";
+                        if (pct >= 10) return "from-blue-400 to-blue-500";
+                        return "from-slate-300 to-slate-400 dark:from-slate-700 dark:to-slate-600";
+                      };
+
                       return (
                         <div key={level} className="space-y-1.5">
                           <div className="flex justify-between text-xs font-bold text-text-secondary">
@@ -207,7 +214,7 @@ export function DiagnosisExamsClassReport({
                           </div>
                           <div className="h-3 w-full bg-surface-hover dark:bg-black/20 rounded-full overflow-hidden">
                             <div
-                              className="h-full bg-gradient-to-r from-violet-500 to-[#5f2ea8] rounded-full transition-all duration-500"
+                              className={`h-full bg-gradient-to-r ${getBarColor(percentage)} rounded-full transition-all duration-500`}
                               style={{ width: `${percentage}%` }}
                             />
                           </div>
