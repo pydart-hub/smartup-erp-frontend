@@ -89,6 +89,21 @@ export function DiagnosisExamsClassReport({
 
   const sortedSubjects = Object.keys(subjectsAggregation).sort();
 
+  // Calculate overall average distribution percentages for each level
+  const classAverageDistribution: Record<string, number> = {};
+  if (sortedSubjects.length > 0) {
+    levelOrder.forEach((level) => {
+      let sumPercentages = 0;
+      sortedSubjects.forEach((subject) => {
+        const { totalAssessed, levelCounts } = subjectsAggregation[subject];
+        const count = levelCounts[level] || 0;
+        const percentage = totalAssessed > 0 ? (count / totalAssessed) * 100 : 0;
+        sumPercentages += percentage;
+      });
+      classAverageDistribution[level] = Math.round(sumPercentages / sortedSubjects.length);
+    });
+  }
+
   return (
     <div className="space-y-6">
       {/* Back button and page header */}
@@ -151,6 +166,47 @@ export function DiagnosisExamsClassReport({
           </CardContent>
         </Card>
       </div>
+
+      {/* Class Average Level Distribution Card */}
+      {sortedSubjects.length > 0 && (
+        <Card className="border-border-light/60 bg-gradient-to-br from-violet-50/20 to-transparent dark:from-violet-950/5">
+          <CardHeader className="pb-3 border-b border-border-light/40 bg-surface-hover/20">
+            <CardTitle className="text-base font-black text-text-primary flex items-center gap-2">
+              <Award className="h-5 w-5 text-[#5f2ea8]" />
+              <span>Overall Class Average (All Subjects Combined)</span>
+            </CardTitle>
+            <CardDescription>
+              Average percentage of students diagnosed at each level across all assessed subjects ({sortedSubjects.join(", ")}).
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-4 grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+            {levelOrder.map((level) => {
+              const avgPercentage = classAverageDistribution[level] || 0;
+
+              const getBarColor = (pct: number) => {
+                if (pct >= 30) return "from-violet-600 to-[#5f2ea8]";
+                if (pct >= 15) return "from-[#7c3aed]/80 to-[#5f2ea8]/80";
+                return "from-slate-300 to-slate-400 dark:from-slate-600/50 dark:to-slate-700/50";
+              };
+
+              return (
+                <div key={level} className="space-y-1.5 p-3 rounded-2xl bg-surface/50 border border-border-light/30">
+                  <div className="flex justify-between text-xs font-bold text-text-secondary">
+                    <span>{getOrdinalSuffix(level)} Level</span>
+                    <span>{avgPercentage}%</span>
+                  </div>
+                  <div className="h-2.5 w-full bg-surface-hover dark:bg-black/20 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full bg-gradient-to-r ${getBarColor(avgPercentage)} rounded-full transition-all duration-500`}
+                      style={{ width: `${avgPercentage}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Subject-wise cards grid */}
       <div>
