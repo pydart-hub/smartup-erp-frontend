@@ -20,12 +20,6 @@ export default async function BranchManagerDiagnosisExamsPage() {
             subject: true,
           },
         },
-        answers: {
-          select: {
-            questionId: true,
-            selectedOption: true,
-          },
-        },
       },
       orderBy: { startedAt: "desc" },
     });

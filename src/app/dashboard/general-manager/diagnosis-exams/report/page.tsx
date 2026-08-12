@@ -16,12 +16,6 @@ export default async function GeneralManagerDiagnosisExamsReportPage() {
             subject: true,
           },
         },
-        answers: {
-          select: {
-            questionId: true,
-            selectedOption: true,
-          },
-        },
       },
       orderBy: { startedAt: "desc" },
     });
