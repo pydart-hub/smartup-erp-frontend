@@ -323,7 +323,7 @@ ssh smartup-portal
 ssh smartup-portal
 
 # Deploy ERP frontend update (Clustered Safe Deployment)
-ssh smartup-portal "cd /var/www/smartup-erp && git fetch --all && git reset --hard origin/main && npm install && npx prisma generate && npm run build && pm2 reload ecosystem.config.js && pm2 save && nginx -t && systemctl reload nginx"
+ssh smartup-portal "bash /var/www/smartup-erp/scripts/deploy.sh"
 
 # Deploy portal update (same as before)
 ssh smartup-portal "cd /var/www/smartup-portal && git pull origin main && npm run build && pm2 restart smartup-portal"

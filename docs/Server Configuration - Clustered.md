@@ -221,7 +221,7 @@ To update all 4 instances without causing port conflicts or chunk load errors, r
 
 ```bash
 # SSH into the server and execute the deploy command
-ssh smartup-portal "cd /var/www/smartup-erp && git fetch --all && git reset --hard origin/main && npm install && npx prisma generate && npm run build && pm2 reload ecosystem.config.js && pm2 save && nginx -t && systemctl reload nginx"
+ssh smartup-portal "bash /var/www/smartup-erp/scripts/deploy.sh"
 ```
 
 ### Individual Service Verification Checks
