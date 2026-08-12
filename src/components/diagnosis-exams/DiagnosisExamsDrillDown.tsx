@@ -499,8 +499,7 @@ export function DiagnosisExamsDrillDown({
               <Card
                 key={cls.levelCode}
                 hover
-                onClick={() => setSelectedClass(cls.levelCode)}
-                className="cursor-pointer border-border-light/80"
+                className="border-border-light/80"
               >
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
@@ -529,18 +528,19 @@ export function DiagnosisExamsDrillDown({
                       <p className="mt-1 text-lg font-black text-success">{cls.passRate}%</p>
                     </div>
                   </div>
-                  <div className="mt-4 flex items-center justify-between text-xs font-bold gap-2">
+                  <div className="mt-5 flex gap-2.5">
                     <Link
                       href={`${detailUrlPrefix}/class-report?class=${cls.levelCode}${selectedBranch ? `&branch=${encodeURIComponent(selectedBranch)}` : ""}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="text-[#5f2ea8] hover:text-[#4d238c] hover:underline"
+                      className="flex-1 text-center py-2.5 px-3 rounded-2xl font-bold text-xs bg-violet-50 hover:bg-violet-100 text-[#5f2ea8] dark:bg-violet-950/20 dark:hover:bg-violet-950/40 dark:text-violet-300 transition-all active:scale-[0.98] border border-violet-100/50 dark:border-violet-900/30"
                     >
                       Class Report
                     </Link>
-                    <div className="flex items-center text-primary gap-1">
-                      <span>Inspect student list</span>
-                      <ChevronRight className="w-4 h-4" />
-                    </div>
+                    <button
+                      onClick={() => setSelectedClass(cls.levelCode)}
+                      className="flex-1 text-center py-2.5 px-3 rounded-2xl font-bold text-xs border border-border-light hover:bg-surface-hover dark:hover:bg-white/5 text-text-secondary hover:text-text-primary transition-all active:scale-[0.98]"
+                    >
+                      Student List
+                    </button>
                   </div>
                 </CardContent>
               </Card>
