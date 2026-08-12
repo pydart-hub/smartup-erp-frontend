@@ -198,9 +198,9 @@ export function DiagnosisExamsClassReport({
                         totalAssessed > 0 ? Math.round((count / totalAssessed) * 100) : 0;
 
                       const getBarColor = (pct: number) => {
-                        if (pct >= 30) return "from-emerald-400 to-emerald-600";
-                        if (pct >= 15) return "from-amber-400 to-orange-500";
-                        return "from-rose-400 to-red-500";
+                        if (pct >= 30) return "from-violet-600 to-[#5f2ea8]";
+                        if (pct >= 15) return "from-[#7c3aed]/80 to-[#5f2ea8]/80";
+                        return "from-slate-300 to-slate-400 dark:from-slate-600/50 dark:to-slate-700/50";
                       };
 
                       return (
