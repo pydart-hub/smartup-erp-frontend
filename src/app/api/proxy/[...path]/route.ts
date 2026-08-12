@@ -87,6 +87,8 @@ async function proxyRequest(request: NextRequest, method: string) {
     const isHRManager = roles.includes("HR Manager");
     const isInstructor = !!sessionData.instructor_name;
     const isPureInstructor = isInstructor && !isBranchManager && !isAdmin;
+    const isClassIncharge = roles.includes("Class Incharge");
+    const isPureInstructorOrClassIncharge = (isInstructor || isClassIncharge) && !isBranchManager && !isAdmin;
     const hasUserToken = !!(sessionData.api_key && sessionData.api_secret);
 
     // If an instructor doesn't have their own token (generate_keys may have
@@ -218,7 +220,7 @@ async function proxyRequest(request: NextRequest, method: string) {
     // which gives broad write/delete access — so we must also block DELETE.
     let allowInstructorTopicCoverageWrite = false;
     let allowInstructorAttendanceWrite = false;
-    if (isPureInstructor && (method === "PUT" || method === "POST" || method === "DELETE")) {
+    if (isPureInstructorOrClassIncharge && (method === "PUT" || method === "POST" || method === "DELETE")) {
       const adminKey = process.env.FRAPPE_API_KEY;
       const adminSecret = process.env.FRAPPE_API_SECRET;
 
@@ -262,7 +264,10 @@ async function proxyRequest(request: NextRequest, method: string) {
         const instructorOwnsSchedule =
           !!sessionData.instructor_name && schedule.instructor === sessionData.instructor_name;
 
-        return { ok: instructorOwnsSchedule && inAllowedBranch };
+        const isClassIncharge = roles.includes("Class Incharge");
+        const allowedByRole = isClassIncharge || instructorOwnsSchedule;
+
+        return { ok: allowedByRole && inAllowedBranch };
       };
 
       const fetchAttendanceScheduleName = async (attendanceName: string) => {

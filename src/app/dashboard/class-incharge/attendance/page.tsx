@@ -368,6 +368,7 @@ export default function ClassInchargeAttendancePage() {
       await bulkMarkAttendance({
         student_group: schedule.student_group,
         date: selectedDate,
+        course_schedule: schedule.name,
         students: entries,
         custom_branch: schedule.custom_branch || effectiveBranch || undefined,
       });
