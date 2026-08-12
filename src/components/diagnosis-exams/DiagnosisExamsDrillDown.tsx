@@ -529,9 +529,18 @@ export function DiagnosisExamsDrillDown({
                       <p className="mt-1 text-lg font-black text-success">{cls.passRate}%</p>
                     </div>
                   </div>
-                  <div className="mt-4 flex items-center justify-end text-xs font-bold text-primary gap-1">
-                    <span>Inspect student list</span>
-                    <ChevronRight className="w-4 h-4" />
+                  <div className="mt-4 flex items-center justify-between text-xs font-bold gap-2">
+                    <Link
+                      href={`${detailUrlPrefix}/class-report?class=${cls.levelCode}${selectedBranch ? `&branch=${encodeURIComponent(selectedBranch)}` : ""}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-[#5f2ea8] hover:text-[#4d238c] hover:underline"
+                    >
+                      Class Report
+                    </Link>
+                    <div className="flex items-center text-primary gap-1">
+                      <span>Inspect student list</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </div>
                   </div>
                 </CardContent>
               </Card>
