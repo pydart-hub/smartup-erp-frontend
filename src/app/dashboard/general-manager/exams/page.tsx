@@ -1,6 +1,10 @@
+"use client";
+
+import React, { useState } from "react";
 import Link from "next/link";
 import { ArrowRight, ClipboardList, Microscope, Sparkles, Coffee } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
+import { motion } from "framer-motion";
 
 const examModes = [
   {
@@ -10,6 +14,7 @@ const examModes = [
     href: "/dashboard/general-manager/exams/regular",
     icon: ClipboardList,
     tone: "from-primary/15 via-white to-primary/5",
+    videoSrc: "/Logo Icon Smile ALPHA.webm",
   },
   {
     title: "Diagnosis Exams",
@@ -18,6 +23,7 @@ const examModes = [
     href: "/dashboard/general-manager/diagnosis-exams",
     icon: Microscope,
     tone: "from-info/15 via-white to-success/10",
+    videoSrc: "/Logo Icon Smile ALPHA.webm",
   },
   {
     title: "CWC Corner",
@@ -26,10 +32,13 @@ const examModes = [
     href: "/dashboard/general-manager/exams/cwc",
     icon: Coffee,
     tone: "from-amber-500/15 via-white to-amber-500/5",
+    videoSrc: "/Logo Icon LOOK ALPHA.webm",
   },
 ];
 
 export default function GMExamsLandingPage() {
+  const [hoveredCard, setHoveredCard] = useState<string | null>(null);
+
   return (
     <div className="mx-auto max-w-6xl space-y-6 p-4 sm:p-6">
       <section className="relative overflow-hidden rounded-[24px] border border-primary/10 bg-[linear-gradient(135deg,rgba(10,159,140,0.12),rgba(255,255,255,0.98)_45%,rgba(21,94,239,0.08))] p-6 shadow-card sm:p-8">
@@ -55,30 +64,60 @@ export default function GMExamsLandingPage() {
         />
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-3">
+      <section 
+        className="grid gap-6 lg:grid-cols-3"
+        style={{ perspective: 1200, transformStyle: "preserve-3d" }}
+      >
         {examModes.map((mode) => (
-          <Link key={mode.title} href={mode.href} className="block">
-            <Card hover className={`h-full overflow-hidden border-border-light/80 bg-[linear-gradient(135deg,var(--tw-gradient-stops))] ${mode.tone}`}>
-              <CardHeader>
-                <div className="flex items-center justify-between gap-3">
-                  <div className="rounded-2xl bg-white/90 p-3 text-primary shadow-sm">
-                    <mode.icon className="h-6 w-6" />
+          <motion.div
+            key={mode.title}
+            className="h-full"
+            onMouseEnter={() => setHoveredCard(mode.title)}
+            onMouseLeave={() => setHoveredCard(null)}
+            whileHover={{
+              scale: 1.04,
+              rotateX: 6,
+              rotateY: -6,
+              z: 15,
+            }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          >
+            <Link href={mode.href} className="block h-full">
+              <Card className={`h-full overflow-hidden border-border-light/80 bg-[linear-gradient(135deg,var(--tw-gradient-stops))] ${mode.tone} flex flex-col justify-between shadow-sm hover:shadow-xl transition-shadow duration-300 relative`}>
+                {/* Subtle Background Video on Hover */}
+                <video
+                  src={mode.videoSrc}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className={`absolute inset-0 w-full h-full object-cover pointer-events-none transition-opacity duration-500 ${
+                    hoveredCard === mode.title ? "opacity-[0.16]" : "opacity-0"
+                  }`}
+                />
+
+                <CardHeader className="relative z-10">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="rounded-2xl bg-white/90 p-3 text-primary shadow-sm relative w-12 h-12 flex items-center justify-center overflow-hidden">
+                      <mode.icon className="h-6 w-6" />
+                    </div>
+                    <ArrowRight className="h-5 w-5 text-text-tertiary" />
                   </div>
-                  <ArrowRight className="h-5 w-5 text-text-tertiary" />
-                </div>
-                <CardTitle className="mt-6 text-2xl">{mode.title}</CardTitle>
-                <CardDescription className="max-w-xl text-sm leading-6">{mode.description}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/85 px-3 py-2 text-sm font-medium text-text-primary">
-                  Open {mode.title}
-                  <ArrowRight className="h-4 w-4" />
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
+                  <CardTitle className="mt-6 text-2xl">{mode.title}</CardTitle>
+                  <CardDescription className="max-w-xl text-sm leading-6">{mode.description}</CardDescription>
+                </CardHeader>
+                <CardContent className="relative z-10">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/85 px-3 py-2 text-sm font-medium text-text-primary">
+                    Open {mode.title}
+                    <ArrowRight className="h-4 w-4" />
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          </motion.div>
         ))}
       </section>
     </div>
   );
 }
+
