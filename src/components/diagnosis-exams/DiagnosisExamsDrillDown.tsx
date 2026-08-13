@@ -91,7 +91,7 @@ export function DiagnosisExamsDrillDown({
     let score = attempt.scoreObtained;
     let percentage = attempt.percentage;
 
-    if (!isSubmitted) {
+    if (!isSubmitted && attempt.paperSnapshotJson) {
       // In-progress live score calculation
       try {
         const questions: any[] = typeof attempt.paperSnapshotJson === "string"
@@ -101,12 +101,14 @@ export function DiagnosisExamsDrillDown({
         const answerMap = new Map(answers.map((a: any) => [a.questionId, a.selectedOption]));
 
         let liveScore = 0;
-        questions.forEach((q: any) => {
-          const ans = answerMap.get(q.id);
-          if (ans && ans === q.correctOption) {
-            liveScore += q.marks || 1;
-          }
-        });
+        if (Array.isArray(questions)) {
+          questions.forEach((q: any) => {
+            const ans = answerMap.get(q.id);
+            if (ans && ans === q.correctOption) {
+              liveScore += q.marks || 1;
+            }
+          });
+        }
         score = liveScore;
         percentage = attempt.totalMarks > 0 ? Math.round((liveScore / attempt.totalMarks) * 100) : 0;
       } catch (e) {

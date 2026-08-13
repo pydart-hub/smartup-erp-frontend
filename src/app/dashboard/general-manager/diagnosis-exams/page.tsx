@@ -9,12 +9,33 @@ export const dynamic = "force-dynamic";
 
 export default async function GeneralManagerDiagnosisExamsPage() {
   try {
-    // Query all student attempts from the standalone Postgres database
+    // Query student attempts from the standalone Postgres database without loading heavy JSON snapshots
     const rawAttempts = await db.examAttempt.findMany({
-      include: {
+      select: {
+        id: true,
+        publishingId: true,
+        studentName: true,
+        studentBranch: true,
+        studentPhone: true,
+        classLevel: true,
+        status: true,
+        startedAt: true,
+        submittedAt: true,
+        scoreObtained: true,
+        totalMarks: true,
+        percentage: true,
+        correctCount: true,
+        wrongCount: true,
+        unansweredCount: true,
         publishing: {
-          include: {
-            subject: true,
+          select: {
+            title: true,
+            subject: {
+              select: {
+                code: true,
+                name: true,
+              },
+            },
           },
         },
       },

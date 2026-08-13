@@ -12,24 +12,49 @@ export default async function BranchManagerDiagnosisExamsPage() {
     const branchName = await getBranchManagerDefaultCompany();
     const canonicalBranch = getCanonicalBranchName(branchName);
 
-    // Fetch all attempts and filter by branch manager's branch
-    const allAttempts = await db.examAttempt.findMany({
-      include: {
+    // Fetch only necessary metadata fields for attempts matching the branch
+    const rawAttempts = await db.examAttempt.findMany({
+      where: {
+        OR: [
+          { studentBranch: { equals: branchName, mode: "insensitive" } },
+          { studentBranch: { equals: canonicalBranch, mode: "insensitive" } },
+        ],
+      },
+      select: {
+        id: true,
+        publishingId: true,
+        studentName: true,
+        studentBranch: true,
+        studentPhone: true,
+        classLevel: true,
+        status: true,
+        startedAt: true,
+        submittedAt: true,
+        scoreObtained: true,
+        totalMarks: true,
+        percentage: true,
+        correctCount: true,
+        wrongCount: true,
+        unansweredCount: true,
         publishing: {
-          include: {
-            subject: true,
+          select: {
+            title: true,
+            subject: {
+              select: {
+                code: true,
+                name: true,
+              },
+            },
           },
         },
       },
       orderBy: { startedAt: "desc" },
     });
 
-    const attempts = allAttempts
-      .filter((attempt) => getCanonicalBranchName(attempt.studentBranch) === canonicalBranch)
-      .map((attempt) => ({
-        ...attempt,
-        studentBranch: getCanonicalBranchName(attempt.studentBranch),
-      }));
+    const attempts = rawAttempts.map((attempt) => ({
+      ...attempt,
+      studentBranch: getCanonicalBranchName(attempt.studentBranch),
+    }));
 
     return (
       <div className="p-4 lg:p-6 max-w-7xl mx-auto">
