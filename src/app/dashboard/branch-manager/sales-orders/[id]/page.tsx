@@ -607,8 +607,8 @@ export default function SalesOrderDetailPage() {
               <p className="text-xs mt-1">Invoices are auto-created on admission.</p>
             </div>
           ) : (
-            <div className="overflow-hidden border border-slate-100 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-950 shadow-sm">
-              <table className="w-full text-sm border-collapse">
+            <div className="overflow-x-auto border border-slate-100 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-950 shadow-sm">
+              <table className="w-full min-w-[800px] text-sm border-collapse">
                 <thead>
                   <tr className="bg-slate-50/50 dark:bg-slate-900/40 border-b border-slate-100 dark:border-slate-800 text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-wider">
                     <th className="text-left py-3 px-4">#</th>
