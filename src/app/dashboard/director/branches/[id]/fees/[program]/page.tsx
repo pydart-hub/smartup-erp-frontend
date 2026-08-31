@@ -23,6 +23,8 @@ import {
   CalendarClock,
   ChevronDown,
   Receipt,
+  FileSpreadsheet,
+  Loader2,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -302,6 +304,7 @@ export default function ProgramStudentFeesPage() {
   const [search, setSearch] = useState("");
   const [planFilter, setPlanFilter] = useState<string>("all");
   const [frequencyFilter, setFrequencyFilter] = useState<string>("all");
+  const [isExporting, setIsExporting] = useState(false);
 
   const { data: students, isLoading, isError } = useQuery({
     queryKey: ["director-program-student-fees", branchName, programName],
@@ -344,6 +347,269 @@ export default function ProgramStudentFeesPage() {
   const discontinuedCount = filtered.filter((s) => s.enabled === 0).length;
   const totalDues = filtered.reduce((sum, s) => sum + s.duesTillToday, 0);
 
+  const exportToExcel = async () => {
+    if (!filtered || filtered.length === 0) return;
+    try {
+      setIsExporting(true);
+      const ExcelJS = (await import("exceljs")).default;
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = "SmartUp ERP";
+      workbook.created = new Date();
+
+      const sanitizedSheetName = `${programName.replace(/[\\/*?:[\]]/g, "_").slice(0, 25)} Fees`;
+      const sheet = workbook.addWorksheet(sanitizedSheetName, {
+        views: [{ state: "frozen", ySplit: 4 }],
+      });
+
+      // ── Title & Meta Header Block ──
+      sheet.mergeCells("A1:Q1");
+      const titleCell = sheet.getCell("A1");
+      titleCell.value = `SmartUp ERP — ${programName} Student Fee & Instalment Statement`;
+      titleCell.font = { name: "Segoe UI", size: 13, bold: true, color: { argb: "FFFFFFFF" } };
+      titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF581C87" } }; // Deep brand purple
+      titleCell.alignment = { vertical: "middle", horizontal: "center" };
+      sheet.getRow(1).height = 30;
+
+      sheet.mergeCells("A2:Q2");
+      const subCell = sheet.getCell("A2");
+      const todayFormatted = new Date().toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      subCell.value = `Branch: ${branchName}   |   Class / Program: ${programName}   |   Generated: ${todayFormatted}   |   Total Students: ${filtered.length}`;
+      subCell.font = { name: "Segoe UI", size: 9.5, italic: true, color: { argb: "FF3730A3" } };
+      subCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE0E7FF" } }; // Soft indigo tint
+      subCell.alignment = { vertical: "middle", horizontal: "center" };
+      sheet.getRow(2).height = 20;
+
+      // Blank spacing row
+      sheet.getRow(3).height = 8;
+
+      // Column Definitions
+      sheet.columns = [
+        { header: "#", key: "idx", width: 6 },
+        { header: "Student ID", key: "studentId", width: 22 },
+        { header: "Student Name", key: "studentName", width: 28 },
+        { header: "Status", key: "status", width: 14 },
+        { header: "Fee Plan", key: "feePlan", width: 14 },
+        { header: "Frequency", key: "frequency", width: 22 },
+        { header: "Payment Mode", key: "paymentMode", width: 14 },
+        { header: "Total Fee (₹)", key: "totalInvoiced", width: 16 },
+        { header: "Total Paid (₹)", key: "totalCollected", width: 16 },
+        { header: "Total Pending (₹)", key: "totalOutstanding", width: 16 },
+        { header: "Overdue (₹)", key: "duesTillToday", width: 16 },
+        { header: "Instalment", key: "instalment", width: 16 },
+        { header: "Due Date", key: "dueDate", width: 16 },
+        { header: "Inst. Amount (₹)", key: "instGrandTotal", width: 16 },
+        { header: "Inst. Paid (₹)", key: "instPaid", width: 16 },
+        { header: "Inst. Due (₹)", key: "instOutstanding", width: 16 },
+        { header: "Inst. Status", key: "instStatus", width: 14 },
+      ];
+
+      // Table Header on Row 4
+      const headerRow = sheet.getRow(4);
+      headerRow.values = [
+        "#",
+        "Student ID",
+        "Student Name",
+        "Status",
+        "Fee Plan",
+        "Frequency",
+        "Payment Mode",
+        "Total Fee (₹)",
+        "Total Paid (₹)",
+        "Total Pending (₹)",
+        "Overdue (₹)",
+        "Instalment",
+        "Due Date",
+        "Inst. Amount (₹)",
+        "Inst. Paid (₹)",
+        "Inst. Due (₹)",
+        "Inst. Status",
+      ];
+      headerRow.height = 24;
+      headerRow.font = { name: "Segoe UI", bold: true, size: 10, color: { argb: "FFFFFFFF" } };
+      headerRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF4F46E5" } };
+      headerRow.alignment = { vertical: "middle", horizontal: "center" };
+
+      const thinBorder: any = {
+        top: { style: "thin", color: { argb: "FFE2E8F0" } },
+        left: { style: "thin", color: { argb: "FFE2E8F0" } },
+        bottom: { style: "thin", color: { argb: "FFE2E8F0" } },
+        right: { style: "thin", color: { argb: "FFE2E8F0" } },
+      };
+
+      const numFmt = "₹#,##0.00";
+      let isEvenStudent = false;
+
+      filtered.forEach((student, studentIndex) => {
+        const studentBg = isEvenStudent ? "FFF8FAFC" : "FFFFFFFF";
+        isEvenStudent = !isEvenStudent;
+
+        const hasInstalments = student.instalments && student.instalments.length > 0;
+        const totalRows = hasInstalments ? student.instalments.length : 1;
+
+        for (let idx = 0; idx < totalRows; idx++) {
+          const inv = hasInstalments ? student.instalments[idx] : null;
+          const status = inv ? instalmentStatus(inv) : null;
+          const isFirstRow = idx === 0;
+
+          const row = sheet.addRow({
+            idx: isFirstRow ? studentIndex + 1 : "",
+            studentId: isFirstRow ? student.studentId : "",
+            studentName: isFirstRow ? (student.studentName + (student.disabilities ? ` (${student.disabilities})` : "")) : "",
+            status: isFirstRow ? (student.enabled === 0 ? "Discontinued" : "Active") : "",
+            feePlan: isFirstRow ? (student.feePlan || "-") : "",
+            frequency: isFirstRow ? (PAYMENT_OPTION_LABELS[student.noOfInstalments ?? ""] || student.noOfInstalments || "-") : "",
+            paymentMode: isFirstRow ? (student.paymentMode || "-") : "",
+            totalInvoiced: isFirstRow ? student.totalInvoiced : "",
+            totalCollected: isFirstRow ? student.totalCollected : "",
+            totalOutstanding: isFirstRow ? student.totalOutstanding : "",
+            duesTillToday: isFirstRow ? student.duesTillToday : "",
+            instalment: inv ? `Instalment ${idx + 1}` : "-",
+            dueDate: inv?.due_date
+              ? new Date(inv.due_date).toLocaleDateString("en-IN", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                })
+              : "-",
+            instGrandTotal: inv ? inv.grand_total : student.totalInvoiced,
+            instPaid: inv ? inv.paid : student.totalCollected,
+            instOutstanding: inv ? inv.outstanding_amount : student.totalOutstanding,
+            instStatus: status
+              ? status === "paid"
+                ? "Paid"
+                : status === "overdue"
+                ? "Overdue"
+                : "Upcoming"
+              : student.totalOutstanding === 0
+              ? "Paid"
+              : student.duesTillToday > 0
+              ? "Overdue"
+              : "Pending",
+          });
+
+          row.height = 20;
+          row.font = { name: "Segoe UI", size: 9.5 };
+
+          // Format cells
+          row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+            cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: studentBg } };
+            cell.border = thinBorder;
+            cell.alignment = { vertical: "middle" };
+
+            // Center align specific text columns
+            if ([1, 2, 4, 5, 6, 7, 12, 13, 17].includes(colNumber)) {
+              cell.alignment = { vertical: "middle", horizontal: "center" };
+            }
+            // Right align number columns
+            if ([8, 9, 10, 11, 14, 15, 16].includes(colNumber)) {
+              cell.alignment = { vertical: "middle", horizontal: "right" };
+              if (typeof cell.value === "number") {
+                cell.numFmt = numFmt;
+              }
+            }
+          });
+
+          // Discontinued status color
+          if (student.enabled === 0 && isFirstRow) {
+            row.getCell("status").font = { name: "Segoe UI", size: 9.5, bold: true, color: { argb: "FFD97706" } };
+          }
+
+          // Total Paid highlighting
+          if (isFirstRow && student.totalCollected > 0) {
+            row.getCell("totalCollected").font = { name: "Segoe UI", size: 9.5, color: { argb: "FF16A34A" } };
+          }
+          // Total Pending highlighting
+          if (isFirstRow && student.totalOutstanding > 0) {
+            row.getCell("totalOutstanding").font = { name: "Segoe UI", size: 9.5, bold: true, color: { argb: "FFDC2626" } };
+          }
+          // Overdue highlighting
+          if (isFirstRow && student.duesTillToday > 0) {
+            row.getCell("duesTillToday").font = { name: "Segoe UI", size: 9.5, bold: true, color: { argb: "FFEA580C" } };
+          }
+
+          // Instalment status colors
+          const statusCell = row.getCell("instStatus");
+          if (statusCell.value === "Paid") {
+            statusCell.font = { name: "Segoe UI", size: 9.5, bold: true, color: { argb: "FF16A34A" } };
+          } else if (statusCell.value === "Overdue") {
+            statusCell.font = { name: "Segoe UI", size: 9.5, bold: true, color: { argb: "FFDC2626" } };
+          } else if (statusCell.value === "Upcoming" || statusCell.value === "Pending") {
+            statusCell.font = { name: "Segoe UI", size: 9.5, color: { argb: "FF2563EB" } };
+          }
+
+          // Instalment due highlighting
+          const instDueCell = row.getCell("instOutstanding");
+          if (typeof instDueCell.value === "number" && instDueCell.value > 0) {
+            if (status === "overdue") {
+              instDueCell.font = { name: "Segoe UI", size: 9.5, bold: true, color: { argb: "FFDC2626" } };
+            }
+          }
+        }
+      });
+
+      // ── Blank Row & Summary Footer ──
+      sheet.addRow({}).height = 8;
+
+      const summaryRow = sheet.addRow({
+        studentName: "GRAND TOTAL",
+        totalInvoiced: totalFees,
+        totalCollected: totalCollected,
+        totalOutstanding: totalPending,
+        duesTillToday: totalDues,
+      });
+
+      summaryRow.height = 24;
+      summaryRow.font = { name: "Segoe UI", bold: true, size: 10 };
+      summaryRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF3E8FF" } };
+        cell.border = {
+          top: { style: "medium", color: { argb: "FF7C3AED" } },
+          bottom: { style: "double", color: { argb: "FF7C3AED" } },
+          left: { style: "thin", color: { argb: "FFE2E8F0" } },
+          right: { style: "thin", color: { argb: "FFE2E8F0" } },
+        };
+        if ([8, 9, 10, 11].includes(colNumber)) {
+          cell.alignment = { vertical: "middle", horizontal: "right" };
+          cell.numFmt = numFmt;
+        }
+      });
+
+      summaryRow.getCell("studentName").alignment = { vertical: "middle", horizontal: "center" };
+      summaryRow.getCell("totalCollected").font = { name: "Segoe UI", bold: true, size: 10, color: { argb: "FF16A34A" } };
+      summaryRow.getCell("totalOutstanding").font = { name: "Segoe UI", bold: true, size: 10, color: { argb: "FFDC2626" } };
+      if (totalDues > 0) {
+        summaryRow.getCell("duesTillToday").font = { name: "Segoe UI", bold: true, size: 10, color: { argb: "FFEA580C" } };
+      }
+
+      // Generate buffer and trigger download
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      const fileDate = new Date().toISOString().split("T")[0];
+      const safeBranch = shortName.replace(/[^a-zA-Z0-9_-]/g, "_");
+      const safeProg = programName.replace(/[^a-zA-Z0-9_-]/g, "_");
+      link.download = `${safeBranch}_${safeProg}_Fees_${fileDate}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Failed to export Excel:", err);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <BreadcrumbNav />
@@ -368,7 +634,23 @@ export default function ProgramStudentFeesPage() {
               {shortName} · Student-wise fee details
             </p>
           </div>
-          <Badge variant="outline" className="self-start text-xs">{branchName}</Badge>
+          <div className="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
+            <button
+              type="button"
+              onClick={exportToExcel}
+              disabled={isExporting || isLoading || filtered.length === 0}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
+              title="Download Excel statement of student fees and instalments"
+            >
+              {isExporting ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <FileSpreadsheet className="h-3.5 w-3.5" />
+              )}
+              {isExporting ? "Exporting Excel..." : "Download Excel"}
+            </button>
+            <Badge variant="outline" className="text-xs">{branchName}</Badge>
+          </div>
         </div>
       </motion.div>
 
@@ -471,6 +753,23 @@ export default function ProgramStudentFeesPage() {
               </button>
             )}
           </>
+        )}
+
+        {/* Quick Excel export in filter row */}
+        {!isLoading && filtered.length > 0 && (
+          <button
+            type="button"
+            onClick={exportToExcel}
+            disabled={isExporting}
+            className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors disabled:opacity-50"
+          >
+            {isExporting ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
+            )}
+            Excel ({filtered.length})
+          </button>
         )}
       </motion.div>
 

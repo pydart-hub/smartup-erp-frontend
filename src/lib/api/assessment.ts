@@ -56,6 +56,7 @@ export async function getAssessmentGroups(): Promise<AssessmentGroup[]> {
 
   const desiredOrder = [
     "Annual Exam",
+    "Onam Exam",
     "Half Yearly Exam",
     "Quarterly Exam",
     "Test",
@@ -68,6 +69,7 @@ export async function getAssessmentGroups(): Promise<AssessmentGroup[]> {
 
   const displayNameMap: Record<string, string> = {
     "Annual Exam": "Annual Exam",
+    "Onam Exam": "Onam Exam",
     "Half Yearly Exam": "Half Yearly",
     "Quarterly Exam": "Quarterly",
     "Test": "Test",

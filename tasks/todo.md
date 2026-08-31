@@ -1,5 +1,29 @@
 # SmartUp ERP — Task Tracker
 
+## Current: Add Onam Exam Type (2026-08-31)
+
+- [x] Ensure `Onam Exam` Assessment Group exists in Frappe backend
+- [x] Add `Onam Exam` to `desiredOrder` and `displayNameMap` in [`src/lib/api/assessment.ts`](file:///c:/Users/arjun/Desktop/Stibe/smartup-erp-frontend/src/lib/api/assessment.ts)
+- [x] Verify typecheck with `npx tsc --noEmit`
+
+## Current: Class Student Fee Excel Export with Instalment Details (2026-08-31)
+
+- [x] Implement `exportToExcel` in `src/app/dashboard/director/branches/[id]/fees/[program]/page.tsx`
+- [x] Include student info, installment wise due amount, due date, paid amount, pending amount, and overdue status
+- [x] Add "Export Excel" action button to the UI header and filter controls
+- [x] Verify TypeScript types and UI build (`npx tsc --noEmit`)
+- [x] Test excel generation format and data integrity
+
+### Review
+- Added an Excel export feature using `exceljs` to the class/program fee details view (`src/app/dashboard/director/branches/[id]/fees/[program]/page.tsx`).
+- The exported workbook contains:
+  - Header banner with branch name, program/class name, export date/time, and student count.
+  - Per-student details with installment-wise breakdown (Instalment #, Due Date, Instalment Amount, Paid Amount, Due/Outstanding Amount, Status).
+  - Student summary columns: Student ID, Name, Status (Active/Discontinued), Fee Plan, Payment Frequency, Mode, Total Fees, Paid, Pending, and Overdue.
+  - Summary row at the bottom with Grand Totals.
+  - Proper currency formatting (`₹#,##0.00`) and color coding for status indicators.
+- Verified TypeScript compilation with `npx tsc --noEmit` (0 errors).
+
 ## Current: Student Fee Discount Correction - Samrin v (2026-08-21)
 
 - [x] Cancel existing Payment Entry `ACC-PAY-2026-04552`

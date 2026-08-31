@@ -11,12 +11,11 @@ async function run() {
   const key = keyMatch ? keyMatch[1].trim() : "";
   const secret = secretMatch ? secretMatch[1].trim() : "";
   
-  console.log("Fetching instructors from:", url);
-  const res = await fetch(`${url}/api/resource/Instructor?fields=["name","instructor_name","employee"]&limit_page_length=1000`, {
+  console.log("Checking Assessment Groups from:", url);
+  const res = await fetch(`${url}/api/resource/Assessment%20Group?fields=["name","assessment_group_name"]&limit_page_length=50`, {
     headers: { Authorization: `token ${key}:${secret}` }
   });
   const data = await res.json();
-  console.log("Response (first 2):", data.data ? data.data.slice(0,2) : data);
-  if (data.data) console.log("Total instructors fetched:", data.data.length);
+  console.log("Assessment Groups in Frappe:", data.data?.map(d => d.name));
 }
 run();
