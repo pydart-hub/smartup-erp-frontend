@@ -338,10 +338,52 @@ export interface PaymentReceiptParams {
   invoiceId: string;
   amountPaid: number;
   paymentDate: string;
-  paymentMode: string; // "Razorpay" | "Cash" | "UPI" | "Bank Transfer" | "Cheque"
-  referenceId: string;
+  paymentMode?: string; // "Razorpay" | "Cash" | "UPI" | "Bank Transfer" | "Cheque"
+  referenceId?: string;
   /** e.g. "Instalment 1/3 — Balance: ₹50,000" or "Fully Paid" */
-  instalmentSummary: string;
+  instalmentSummary?: string;
+  pdfUrl?: string;
+}
+
+/**
+ * Builds template options for smartup_payment_done_v2 (PDF header + 5 body parameters)
+ */
+export function buildPaymentDoneWithPdf(
+  phone: string,
+  p: {
+    guardianName: string;
+    amountPaid: number;
+    invoiceId: string;
+    referenceNo: string;
+    paymentDate: string;
+    pdfUrl: string;
+  },
+): SendTemplateOptions {
+  return {
+    to: phone,
+    templateName: "smartup_payment_done_v2",
+    components: [
+      {
+        type: "header",
+        parameters: [
+          {
+            type: "document",
+            document: { link: p.pdfUrl, filename: `${p.invoiceId}.pdf` },
+          },
+        ],
+      },
+      {
+        type: "body",
+        parameters: [
+          txt(p.guardianName),
+          txt(`₹${formatINR(p.amountPaid)}`),
+          txt(p.invoiceId),
+          txt(p.referenceNo),
+          txt(p.paymentDate),
+        ],
+      },
+    ],
+  };
 }
 
 export function buildPaymentReceipt(
@@ -360,9 +402,9 @@ export function buildPaymentReceipt(
           txt(p.invoiceId),
           txt(formatINR(p.amountPaid)),
           txt(formatDate(p.paymentDate)),
-          txt(p.paymentMode),
-          txt(p.referenceId),
-          txt(p.instalmentSummary),
+          txt(p.paymentMode || "Online"),
+          txt(p.referenceId || p.invoiceId),
+          txt(p.instalmentSummary || "Fully Paid"),
         ],
       },
     ],

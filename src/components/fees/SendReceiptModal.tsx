@@ -58,7 +58,15 @@ export function SendReceiptModal({ isOpen, onClose, invoice, defaultEmail, defau
         return;
       }
 
-      toast.success(`Receipt successfully sent to ${data.recipient || trimmedEmail}`);
+      if (data.emailSent && data.whatsappSent) {
+        toast.success(`Receipt sent via Email & WhatsApp!`);
+      } else if (data.emailSent) {
+        toast.success(`Receipt sent via Email to ${data.recipient || trimmedEmail}`);
+      } else if (data.whatsappSent) {
+        toast.success(`Receipt sent via WhatsApp to ${data.recipientPhone || trimmedPhone}`);
+      } else {
+        toast.success(`Receipt request processed`);
+      }
       onClose();
     } catch {
       toast.error("Network error. Please try again.");

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { getInvoiceCompany } from "@/lib/utils/razorpay";
 import { resolveAccountPaidTo } from "@/lib/utils/accountMapping";
+import { dispatchPaymentReceipt } from "@/lib/services/receiptService";
 
 const FRAPPE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL;
 const FRAPPE_API_KEY = process.env.FRAPPE_API_KEY;
@@ -190,6 +191,16 @@ async function reconcileCoFeePayment(input: ReconcileInput) {
     const errText = await submitRes.text();
     throw new Error(`PE submit failed: ${submitRes.status} - ${errText.slice(0, 500)}`);
   }
+
+  // Automatically dispatch Email and WhatsApp payment receipts on CoFee webhook reconciliation
+  dispatchPaymentReceipt({
+    invoiceId: input.invoiceId,
+    paymentEntryName,
+    amountPaid: input.amount,
+    modeOfPayment: "CoFee",
+  }).catch((err) => {
+    console.warn("[cofee/webhook] Automatic receipt dispatch failed:", err);
+  });
 
   return {
     status: "recorded",

@@ -43,7 +43,11 @@ function verifyPdfToken(
 
 /** Generate a signed PDF URL for an invoice (1-hour expiry). */
 export function generatePdfUrl(invoiceId: string): string {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://smartuplearning.net";
+  let baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://smartuplearning.net";
+  // Meta Cloud API servers cannot fetch PDFs from localhost/127.0.0.1
+  if (baseUrl.includes("localhost") || baseUrl.includes("127.0.0.1")) {
+    baseUrl = "https://smartuplearning.net";
+  }
   const exp = Math.floor(Date.now() / 1000) + 3600; // 1 hour
   const token = crypto
     .createHmac("sha256", TOKEN_SECRET)

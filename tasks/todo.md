@@ -1,5 +1,25 @@
 # SmartUp ERP — Task Tracker
 
+## Current: Student Fee Discount Correction - Samrin v (2026-08-21)
+
+- [x] Cancel existing Payment Entry `ACC-PAY-2026-04552`
+- [x] Cancel Sales Invoice `ACC-SINV-2026-05442`
+- [x] Amend/Create new Sales Invoice with grand total ₹2,300 (₹900 discount applied) and submit
+- [x] Amend/Create new Payment Entry with identical date (`2026-04-22`), mode (`Cash`), reference (`CASH-1776865393327`), and amount (₹2,300) linked to the new Sales Invoice and submit
+- [x] Verify outstanding is ₹0 on the invoice and check student fee profile
+
+### Review
+- Successfully reduced Invoice 1 from ₹3,200 to ₹2,300 via amended invoice `ACC-SINV-2026-05442-2` linked to Sales Order `SAL-ORD-2026-00654`.
+- Re-linked Payment Entry `ACC-PAY-2026-07938` with identical parameters: Date `2026-04-22`, Mode `Cash`, Reference `CASH-1776865393327`, and Amount `₹2,300`.
+- Verified all 6 invoices now appear under the Sales Order in ERP:
+  1. `ACC-SINV-2026-05442-2` (22 Apr 2026): ₹2,300 (Paid, ₹0 outstanding)
+  2. `ACC-SINV-2026-05443` (15 Jun 2026): ₹3,200 (Paid ₹3,100, ₹100 outstanding)
+  3. `ACC-SINV-2026-05444` (15 Aug 2026): ₹3,200
+  4. `ACC-SINV-2026-05445` (15 Oct 2026): ₹3,200
+  5. `ACC-SINV-2026-05446` (15 Dec 2026): ₹3,200
+  6. `ACC-SINV-2026-05447` (15 Feb 2027): ₹2,500
+- Total Invoiced: ₹17,600 | Total Paid: ₹5,400 | Total Outstanding: ₹12,200.
+
 ## Current: Push and Deploy to Clustered Server (2026-08-05)
 
 - [x] Verify type checking and local project build

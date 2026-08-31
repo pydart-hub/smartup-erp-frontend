@@ -1,3 +1,4 @@
+import { executeCreateInvoices } from "@/lib/services/invoiceService";
 /**
  * POST /api/admission/convert-to-regular
  *
@@ -516,19 +517,26 @@ export async function POST(request: NextRequest) {
       JSON.stringify([["customer", "=", customerName], ["docstatus", "=", 1]]),
     );
     const invFields = encodeURIComponent(
-      JSON.stringify(["name", "grand_total", "outstanding_amount"]),
+      JSON.stringify(["name", "grand_total", "outstanding_amount", "status"]),
     );
-    const demoInvoices = await frappeGet(
-      `/resource/Sales Invoice?filters=${invFilters}&fields=${invFields}&limit_page_length=20`,
+    const demoInvoices: Array<{ name: string; grand_total: number; outstanding_amount: number; status: string }> =
+      (await frappeGet(
+        `/resource/Sales Invoice?filters=${invFilters}&fields=${invFields}&limit_page_length=20`,
+      )) ?? [];
+
+    const paidDemoInvoices = demoInvoices.filter(
+      (i) => (i.grand_total ?? 0) > (i.outstanding_amount ?? 0),
     );
-    const totalInvoiced: number = (demoInvoices ?? []).reduce(
-      (s: number, i: { grand_total: number }) => s + (i.grand_total ?? 0), 0,
+    const paidDemoNames = paidDemoInvoices.map((i) => i.name).join(", ");
+
+    const totalInvoiced: number = demoInvoices.reduce(
+      (s: number, i) => s + (i.grand_total ?? 0), 0,
     );
-    const totalOutstanding: number = (demoInvoices ?? []).reduce(
-      (s: number, i: { outstanding_amount: number }) => s + (i.outstanding_amount ?? 0), 0,
+    const totalOutstanding: number = demoInvoices.reduce(
+      (s: number, i) => s + (i.outstanding_amount ?? 0), 0,
     );
     const paidAmount = Math.max(0, totalInvoiced - totalOutstanding);
-    log.push(`Demo paid amount: ₹${paidAmount}`);
+    log.push(`Demo paid amount: ₹${paidAmount}${paidDemoNames ? ` (from ${paidDemoNames})` : ""}`);
 
     // ── 4. Build regular instalment schedule ──────────────────────────────────
     let schedule = generateInstalmentSchedule(
@@ -558,10 +566,13 @@ export async function POST(request: NextRequest) {
 
     // ── 5. Apply demo-paid credit to last invoice(s) backwards ────────────────
     if (paidAmount > 0) {
+      const demoRefRemark = paidDemoNames
+        ? `Demo credit ₹${paidAmount} paid via ${paidDemoNames}`
+        : `Demo conversion credit (₹${paidAmount} already paid)`;
       schedule = applyCreditToSchedule(
         schedule,
         paidAmount,
-        `Demo conversion credit (₹${paidAmount} already paid)`,
+        demoRefRemark,
       );
       log.push(`Applied ₹${paidAmount} credit to instalment schedule`);
     }
@@ -608,7 +619,7 @@ export async function POST(request: NextRequest) {
         qty: soQty,
         rate: soRate,
         description: paidAmount > 0
-          ? `Demo conversion — demo credit applied: -₹${paidAmount.toLocaleString("en-IN")}`
+          ? `Demo conversion — demo credit applied: -₹${paidAmount.toLocaleString("en-IN")}${paidDemoNames ? ` (via ${paidDemoNames})` : ""}`
           : `Regular admission — converted from Demo`,
       }],
       custom_academic_year: academicYear,
@@ -740,64 +751,30 @@ frappe.response["message"] = {"patched": True, "grand_total": frappe.db.get_valu
       log.push(`Sibling group linked on existing sibling: ${effectiveSiblingStudentId}`);
     }
 
-    // ── 8. Create Sales Invoices (inline with timeout) ───
-    // Invoice creation involves SO polling + sequential Frappe calls (10–40s).
-    // We now do this inline (instead of background task via after()) to ensure:
-    //   1. Errors are reported to user
-    //   2. User can immediately retry if it fails
-    //   3. Response includes actual invoice names if successful
-    // If invoice creation takes >60s, we abort but SO still exists (can be billed manually).
+    // ── 8. Create Sales Invoices (direct in-process call) ───
     let createdInvoices: string[] = [];
     let invoiceError: string | undefined;
 
     try {
-      const createInvoicesUrl = new URL("/api/admission/create-invoices", request.url).toString();
-      const invoiceBody = JSON.stringify({ salesOrderName, schedule: billableInstalments });
+      log.push(`Creating invoices for ${salesOrderName}...`);
+      const invoiceResult = await executeCreateInvoices(salesOrderName, billableInstalments);
 
-      // Use AbortController for 60-second timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000);
-
-      // Forward the session cookie so create-invoices can authenticate the caller.
-      // Without this, requireRole() in create-invoices returns 401.
-      const cookieHeader = request.headers.get("cookie") ?? "";
-
-      const invoiceRes = await fetch(createInvoicesUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(cookieHeader ? { Cookie: cookieHeader } : {}),
-        },
-        body: invoiceBody,
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-
-      if (invoiceRes.ok) {
-        const invoiceData = await invoiceRes.json();
-        createdInvoices = invoiceData.invoices || [];
-        if (invoiceData.absorbed?.length > 0) {
-          log.push(
-            `Skipped absorbed invoice rows: ${invoiceData.absorbed.map((row: { label: string }) => row.label).join(", ")}`,
-          );
-        }
-        if (createdInvoices.length > 0) {
-          log.push(`✓ Created ${createdInvoices.length} invoice(s): ${createdInvoices.join(", ")}`);
-        } else if (invoiceData.drafts?.length > 0) {
-          log.push(`⚠️  Created as drafts (submission failed): ${invoiceData.drafts.join(", ")}`);
-          invoiceError = "Invoices created as drafts but submission failed. Admin will submit manually.";
-        } else {
-          invoiceError = "No invoices created (check Sales Order status)";
-          log.push(`⚠️  ${invoiceError}`);
-        }
+      createdInvoices = invoiceResult.invoices || [];
+      if (invoiceResult.absorbed && invoiceResult.absorbed.length > 0) {
+        log.push(
+          `Skipped absorbed invoice rows: ${invoiceResult.absorbed.map((row) => row.label).join(", ")}`,
+        );
+      }
+      if (createdInvoices.length > 0) {
+        log.push(`✓ Created ${createdInvoices.length} invoice(s): ${createdInvoices.join(", ")}`);
+      } else if (invoiceResult.drafts && invoiceResult.drafts.length > 0) {
+        log.push(`⚠️ Created as drafts (submission failed): ${invoiceResult.drafts.join(", ")}`);
+        invoiceError = "Invoices created as drafts but submission failed. Admin will submit manually.";
       } else {
-        const errText = await invoiceRes.text().catch(() => "");
-        invoiceError = `Invoice API error (${invoiceRes.status}): ${errText.slice(0, 200)}`;
-        log.push(`❌ ${invoiceError}`);
+        invoiceError = invoiceResult.error || "No invoices created (check Sales Order status)";
+        log.push(`⚠️ ${invoiceError}`);
       }
     } catch (invoiceErr) {
-      // Invoice creation failed, but SO was created successfully
-      // This is non-fatal — SO exists and can be billed manually or retried
       const errMsg = invoiceErr instanceof Error ? invoiceErr.message : String(invoiceErr);
       invoiceError = `Invoice creation failed: ${errMsg}`;
       log.push(`❌ ${invoiceError}`);

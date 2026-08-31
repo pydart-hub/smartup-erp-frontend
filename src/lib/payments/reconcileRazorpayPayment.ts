@@ -1,5 +1,6 @@
 import { getInvoiceCompany, getSalesOrderCompany } from "@/lib/utils/razorpay";
 import { resolveAccountPaidTo } from "@/lib/utils/accountMapping";
+import { dispatchPaymentReceipt } from "@/lib/services/receiptService";
 
 const FRAPPE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL;
 const FRAPPE_API_KEY = process.env.FRAPPE_API_KEY;
@@ -150,6 +151,19 @@ export async function reconcileRazorpayPayment(
 
   const paymentEntryAfterSubmit = await fetchPaymentEntry(headers, paymentEntryName);
   const invoiceState = await fetchInvoiceState(headers, invoiceId);
+
+  // Automatically dispatch Email and WhatsApp payment receipts on webhook reconciliation
+  if (paymentEntryAfterSubmit?.docstatus === 1) {
+    dispatchPaymentReceipt({
+      invoiceId,
+      paymentEntryName,
+      overrideEmail: input.parentEmail,
+      amountPaid: input.amount,
+      modeOfPayment: "Razorpay",
+    }).catch((err) => {
+      console.warn("[reconcileRazorpayPayment] Automatic receipt dispatch failed:", err);
+    });
+  }
 
   return {
     status: "recorded",

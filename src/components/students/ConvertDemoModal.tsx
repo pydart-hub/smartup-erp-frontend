@@ -292,9 +292,10 @@ export function ConvertDemoModal({ student, onClose, onSuccess }: Props) {
   const RESTRICTED_BRANCHES = new Set(["Smart Up Kadavanthara", "Smart Up Edappally"]);
   const isRestrictedBranch = conversionInfo ? RESTRICTED_BRANCHES.has(conversionInfo.branch) : false;
   const siblingDiscountRate = useSiblingOffer ? (plan === "Advanced" ? 0.10 : 0.05) : 0;
-  const siblingDiscountAmount = feeConfig && siblingDiscountRate > 0
-    ? Math.round(getBaseOptionTotal(feeConfig, instalments) * siblingDiscountRate)
-    : 0;
+  const siblingDiscountAmount = schedulePreview.reduce(
+    (sum, row) => sum + (row.siblingDiscountApplied ?? 0),
+    0,
+  );
   const hasInvoiceIssue = Boolean(resultData?.invoiceError);
 
   function isPlanDisabled(planValue: string): boolean {

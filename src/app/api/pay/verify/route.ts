@@ -4,6 +4,7 @@ import { verifyToken } from "@/lib/utils/invoiceToken";
 import { getRazorpayKeys, getSalesOrderCompany } from "@/lib/utils/razorpay";
 import { resolveAccountPaidTo } from "@/lib/utils/accountMapping";
 import { getCofeeOrderStatus } from "@/lib/utils/cofee";
+import { dispatchPaymentReceipt } from "@/lib/services/receiptService";
 
 const FRAPPE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL;
 const FRAPPE_API_KEY = process.env.FRAPPE_API_KEY;
@@ -254,6 +255,16 @@ export async function POST(request: NextRequest) {
       if (!invoiceAfterSubmit) {
         throw new Error("Payment Entry submitted, but invoice could not be re-verified");
       }
+
+      // Automatically dispatch Email and WhatsApp payment receipts
+      dispatchPaymentReceipt({
+        invoiceId: invoice_id,
+        paymentEntryName,
+        amountPaid: amount,
+        modeOfPayment,
+      }).catch((err) => {
+        console.warn("[pay/verify] Automatic receipt dispatch failed:", err);
+      });
 
       return NextResponse.json({
         success: true,

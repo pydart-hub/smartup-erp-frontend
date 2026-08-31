@@ -18,6 +18,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole, STAFF_ROLES } from "@/lib/utils/apiAuth";
 import { resolveAccountPaidTo } from "@/lib/utils/accountMapping";
+import { dispatchPaymentReceipt } from "@/lib/services/receiptService";
 
 const FRAPPE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL;
 const API_KEY = process.env.FRAPPE_API_KEY;
@@ -246,7 +247,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Receipt email is now triggered by the frontend after receiving this response.
+    // Automatically trigger Email & WhatsApp receipt dispatch in background
+    dispatchPaymentReceipt({
+      invoiceId: invoice_id,
+      paymentEntryName,
+      amountPaid: amount,
+      modeOfPayment: mode_of_payment,
+    }).catch((err) => {
+      console.warn("[record-cash] Automatic receipt dispatch failed:", err);
+    });
 
     return NextResponse.json({ payment_entry: paymentEntryName });
   } catch (error: unknown) {
@@ -257,3 +266,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
