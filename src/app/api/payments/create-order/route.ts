@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createRazorpayInstance, getRazorpayKeys, getInvoiceCompany } from "@/lib/utils/razorpay";
 import { createCofeeOrder } from "@/lib/utils/cofee";
+import { getPublicAppUrl } from "@/lib/utils/constants";
 
 const FRAPPE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL;
 const FRAPPE_API_KEY = process.env.FRAPPE_API_KEY;
@@ -88,7 +89,7 @@ export async function POST(request: NextRequest) {
     const company = await getInvoiceCompany(invoice_id, FRAPPE_URL!, adminAuth);
 
     if (gateway === "cofee") {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+      const appUrl = getPublicAppUrl();
       let redirectUrl = `${appUrl}/dashboard/parent/fees/callback?gateway=cofee&invoice_id=${encodeURIComponent(
         invoice_id
       )}&amount=${amount}&student_name=${encodeURIComponent(student_name || "")}&customer=${encodeURIComponent(customer || "")}`;

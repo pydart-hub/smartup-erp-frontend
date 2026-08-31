@@ -21,8 +21,9 @@ import { sendEmail } from "@/lib/utils/email";
 import { sendTemplate } from "@/lib/utils/whatsapp";
 import { generateToken } from "@/lib/utils/invoiceToken";
 import { buildInvoiceGenerated } from "@/lib/utils/whatsappTemplates";
+import { getPublicAppUrl } from "@/lib/utils/constants";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://smartuplearning.net";
+const APP_URL = getPublicAppUrl();
 const FRAPPE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL;
 const FRAPPE_API_KEY = process.env.FRAPPE_API_KEY;
 const FRAPPE_API_SECRET = process.env.FRAPPE_API_SECRET;

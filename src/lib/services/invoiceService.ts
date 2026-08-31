@@ -8,11 +8,12 @@
 import { generateToken } from "@/lib/utils/invoiceToken";
 import { sendTemplate } from "@/lib/utils/whatsapp";
 import { buildInvoiceGenerated } from "@/lib/utils/whatsappTemplates";
+import { getPublicAppUrl } from "@/lib/utils/constants";
 
 const FRAPPE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL;
 const API_KEY = process.env.FRAPPE_API_KEY;
 const API_SECRET = process.env.FRAPPE_API_SECRET;
-const APP_BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://smartuplearning.net";
+const APP_BASE_URL = getPublicAppUrl();
 
 async function fetchRetry(
   url: string,

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireRole, STAFF_ROLES } from "@/lib/utils/apiAuth";
 import { sendEmail } from "@/lib/utils/email";
 import { sendTemplate } from "@/lib/utils/whatsapp";
+import { getPublicAppUrl } from "@/lib/utils/constants";
 
 const FRAPPE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL;
 const FRAPPE_API_KEY = process.env.FRAPPE_API_KEY;
@@ -113,9 +114,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Still send enrollment notification even for existing users
-      const loginUrl = process.env.NEXT_PUBLIC_APP_URL
-        || process.env.VERCEL_URL
-        || "https://smartuplearning.net";
+      const loginUrl = getPublicAppUrl();
 
       if (phone) {
         sendTemplate({
@@ -299,9 +298,7 @@ export async function POST(request: NextRequest) {
 
     // ── Send login credentials email to parent ──────────────────
     try {
-      const loginUrl = process.env.NEXT_PUBLIC_APP_URL
-        || process.env.VERCEL_URL
-        || "https://smartuplearning.net";
+      const loginUrl = getPublicAppUrl();
 
       const emailBody = `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto;">

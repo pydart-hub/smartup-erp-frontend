@@ -403,4 +403,14 @@ export function getCanonicalBranchName(name: any): string {
   }
 }
 
-
+export function getPublicAppUrl(): string {
+  let url = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || "https://smartuplearning.net";
+  if (!url.startsWith("http://") && !url.startsWith("https://")) {
+    url = `https://${url}`;
+  }
+  // Meta WhatsApp and external customer emails must never send localhost links
+  if (url.includes("localhost") || url.includes("127.0.0.1")) {
+    return "https://smartuplearning.net";
+  }
+  return url.replace(/\/+$/, "");
+}
