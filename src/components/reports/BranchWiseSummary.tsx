@@ -19,11 +19,11 @@ function formatCurrency(n: number): string {
   return "₹" + n.toLocaleString("en-IN");
 }
 
-async function fetchBranchSummary(): Promise<BranchRow[]> {
+async function fetchBranchSummary(fromDate?: string, toDate?: string): Promise<BranchRow[]> {
   const res = await fetch("/api/director/report-summary", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ mode: "branch" }),
+    body: JSON.stringify({ mode: "branch", fromDate, toDate }),
     credentials: "include",
   });
   if (!res.ok) {
@@ -35,15 +35,17 @@ async function fetchBranchSummary(): Promise<BranchRow[]> {
 }
 
 interface Props {
+  fromDate?: string;
+  toDate?: string;
   onSelectBranch: (branch: string) => void;
 }
 
-export function BranchWiseSummary({ onSelectBranch }: Props) {
+export function BranchWiseSummary({ fromDate, toDate, onSelectBranch }: Props) {
   const [loading, setLoading] = useState<"xlsx" | "csv" | null>(null);
 
   const { data: rows, isLoading, isError } = useQuery({
-    queryKey: ["report-summary", "branch", "all"],
-    queryFn: fetchBranchSummary,
+    queryKey: ["report-summary", "branch", "all", fromDate, toDate],
+    queryFn: () => fetchBranchSummary(fromDate, toDate),
     staleTime: 60_000,
   });
 
@@ -66,7 +68,7 @@ export function BranchWiseSummary({ onSelectBranch }: Props) {
       const res = await fetch("/api/director/report-summary-export", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode: "branch", format }),
+        body: JSON.stringify({ mode: "branch", fromDate, toDate, format }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: "Export failed" }));

@@ -19,11 +19,11 @@ function formatCurrency(n: number): string {
   return "₹" + n.toLocaleString("en-IN");
 }
 
-async function fetchClassSummary(): Promise<ClassRow[]> {
+async function fetchClassSummary(fromDate?: string, toDate?: string): Promise<ClassRow[]> {
   const res = await fetch("/api/director/report-summary", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ mode: "class" }),
+    body: JSON.stringify({ mode: "class", fromDate, toDate }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: "Failed" }));
@@ -34,15 +34,17 @@ async function fetchClassSummary(): Promise<ClassRow[]> {
 }
 
 interface Props {
+  fromDate?: string;
+  toDate?: string;
   onSelectClass: (program: string) => void;
 }
 
-export function ClassWiseSummary({ onSelectClass }: Props) {
+export function ClassWiseSummary({ fromDate, toDate, onSelectClass }: Props) {
   const [loading, setLoading] = useState<"xlsx" | "csv" | null>(null);
 
   const { data: rows, isLoading, isError } = useQuery({
-    queryKey: ["report-summary", "class", "all"],
-    queryFn: fetchClassSummary,
+    queryKey: ["report-summary", "class", "all", fromDate, toDate],
+    queryFn: () => fetchClassSummary(fromDate, toDate),
     staleTime: 60_000,
   });
 
@@ -64,7 +66,7 @@ export function ClassWiseSummary({ onSelectClass }: Props) {
       const res = await fetch("/api/director/report-summary-export", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode: "class", format }),
+        body: JSON.stringify({ mode: "class", fromDate, toDate, format }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: "Export failed" }));
@@ -145,7 +147,6 @@ export function ClassWiseSummary({ onSelectClass }: Props) {
               <th className="px-3 py-2.5 text-right text-xs font-semibold text-text-secondary uppercase tracking-wider">Total</th>
               <th className="px-3 py-2.5 text-right text-xs font-semibold text-text-secondary uppercase tracking-wider">Active</th>
               <th className="px-3 py-2.5 text-right text-xs font-semibold text-text-secondary uppercase tracking-wider">Discontinued</th>
-              <th className="px-3 py-2.5 text-right text-xs font-semibold text-text-secondary uppercase tracking-wider">Branches</th>
               <th className="px-3 py-2.5 text-right text-xs font-semibold text-text-secondary uppercase tracking-wider">Total Fee</th>
               <th className="px-3 py-2.5 text-right text-xs font-semibold text-text-secondary uppercase tracking-wider">Collected</th>
               <th className="px-3 py-2.5 text-right text-xs font-semibold text-text-secondary uppercase tracking-wider">Pending</th>
@@ -163,7 +164,6 @@ export function ClassWiseSummary({ onSelectClass }: Props) {
                 <td className="px-3 py-2 text-right text-text-primary">{row.totalStudents}</td>
                 <td className="px-3 py-2 text-right text-success">{row.active}</td>
                 <td className="px-3 py-2 text-right text-error">{row.discontinued}</td>
-                <td className="px-3 py-2 text-right text-text-primary">{row.branchCount}</td>
                 <td className="px-3 py-2 text-right text-text-primary whitespace-nowrap">{formatCurrency(row.totalFee)}</td>
                 <td className="px-3 py-2 text-right text-success whitespace-nowrap">{formatCurrency(row.collectedFee)}</td>
                 <td className="px-3 py-2 text-right text-error whitespace-nowrap">{formatCurrency(row.pendingFee)}</td>
@@ -180,7 +180,6 @@ export function ClassWiseSummary({ onSelectClass }: Props) {
                 <td className="px-3 py-2.5 text-right text-text-primary">{totals.totalStudents}</td>
                 <td className="px-3 py-2.5 text-right text-success">{totals.active}</td>
                 <td className="px-3 py-2.5 text-right text-error">{totals.discontinued}</td>
-                <td className="px-3 py-2.5 text-right text-text-primary">—</td>
                 <td className="px-3 py-2.5 text-right text-text-primary whitespace-nowrap">{formatCurrency(totals.totalFee)}</td>
                 <td className="px-3 py-2.5 text-right text-success whitespace-nowrap">{formatCurrency(totals.collectedFee)}</td>
                 <td className="px-3 py-2.5 text-right text-error whitespace-nowrap">{formatCurrency(totals.pendingFee)}</td>

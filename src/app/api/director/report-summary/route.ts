@@ -123,7 +123,7 @@ interface ClassDetailBranchRow {
 
 // ── Handlers ──
 
-async function getAllBranchesSummary(): Promise<BranchRow[]> {
+async function getAllBranchesSummary(fromDate?: string, toDate?: string): Promise<BranchRow[]> {
   // 1. Get all companies (branches) except "Smart Up"
   const companies = await frappeGet("Company", ["name"], [], "name asc");
   const branches = companies
@@ -131,13 +131,23 @@ async function getAllBranchesSummary(): Promise<BranchRow[]> {
     .filter((n) => n !== "Smart Up");
 
   // 2. Fetch all students once
-  const students = await frappeGet(
+  const allStudents = await frappeGet(
     "Student",
-    ["name", "custom_branch", "enabled"],
+    ["name", "custom_branch", "enabled", "joining_date"],
     [],
     undefined,
     0,
   );
+
+  // Filter students by admission/joining date if range provided
+  const students = allStudents.filter((s) => {
+    const jd = String(s.joining_date ?? "");
+    if (fromDate && jd < fromDate) return false;
+    if (toDate && jd > toDate) return false;
+    return true;
+  });
+  const studentNames = students.map((s) => String(s.name));
+  const studentSet = new Set(studentNames);
 
   // 3. Fetch all active employees once
   const employees = await frappeGet(
@@ -151,7 +161,7 @@ async function getAllBranchesSummary(): Promise<BranchRow[]> {
   // 4. Fetch all submitted invoices once
   const invoices = await frappeGet(
     "Sales Invoice",
-    ["company", "grand_total", "outstanding_amount"],
+    ["company", "student", "grand_total", "outstanding_amount"],
     [["docstatus", "=", 1]],
     undefined,
     0,
@@ -166,7 +176,9 @@ async function getAllBranchesSummary(): Promise<BranchRow[]> {
 
     const staff = employees.filter((e) => e.company === branch).length;
 
-    const branchInvoices = invoices.filter((inv) => inv.company === branch);
+    const branchInvoices = invoices.filter(
+      (inv) => inv.company === branch && studentSet.has(String(inv.student ?? "")),
+    );
     const totalFee = branchInvoices.reduce((sum, inv) => sum + (Number(inv.grand_total) || 0), 0);
     const pendingFee = branchInvoices.reduce((sum, inv) => sum + (Number(inv.outstanding_amount) || 0), 0);
 
@@ -186,18 +198,25 @@ async function getAllBranchesSummary(): Promise<BranchRow[]> {
   return result;
 }
 
-async function getBranchDetail(branch: string): Promise<{
+async function getBranchDetail(branch: string, fromDate?: string, toDate?: string): Promise<{
   summary: BranchRow;
   classes: BranchDetailClassRow[];
 }> {
   // Students for this branch
-  const students = await frappeGet(
+  const allStudents = await frappeGet(
     "Student",
-    ["name", "enabled"],
+    ["name", "enabled", "joining_date"],
     [["custom_branch", "=", branch]],
     undefined,
     0,
   );
+
+  const students = allStudents.filter((s) => {
+    const jd = String(s.joining_date ?? "");
+    if (fromDate && jd < fromDate) return false;
+    if (toDate && jd > toDate) return false;
+    return true;
+  });
 
   // Staff
   const employees = await frappeGet(
@@ -209,13 +228,18 @@ async function getBranchDetail(branch: string): Promise<{
   );
 
   // Invoices
-  const invoices = await frappeGet(
+  const allInvoices = await frappeGet(
     "Sales Invoice",
     ["student", "grand_total", "outstanding_amount"],
     [["docstatus", "=", 1], ["company", "=", branch]],
     undefined,
     0,
   );
+
+  const studentNames = students.map((s) => String(s.name));
+  const studentSet = new Set(studentNames);
+
+  const invoices = allInvoices.filter((inv) => studentSet.has(String(inv.student ?? "")));
 
   const totalStudents = students.length;
   const discontinued = students.filter((s) => Number(s.enabled) === 0).length;
@@ -237,8 +261,6 @@ async function getBranchDetail(branch: string): Promise<{
   };
 
   // Program enrollments — fetch all to avoid huge IN-filter URLs (Frappe URL limit)
-  const studentNames = students.map((s) => String(s.name));
-  const studentSet = new Set(studentNames);
   let allEnrollments: Record<string, unknown>[] = [];
   if (studentNames.length > 0) {
     allEnrollments = await frappeGet(
@@ -319,16 +341,25 @@ async function getBranchDetail(branch: string): Promise<{
   return { summary, classes };
 }
 
-async function getAllClassesSummary(): Promise<ClassRow[]> {
+async function getAllClassesSummary(fromDate?: string, toDate?: string): Promise<ClassRow[]> {
   // All students
-  const students = await frappeGet(
+  const allStudents = await frappeGet(
     "Student",
-    ["name", "custom_branch", "enabled"],
+    ["name", "custom_branch", "enabled", "joining_date"],
     [],
     undefined,
     0,
   );
+
+  const students = allStudents.filter((s) => {
+    const jd = String(s.joining_date ?? "");
+    if (fromDate && jd < fromDate) return false;
+    if (toDate && jd > toDate) return false;
+    return true;
+  });
+
   const studentNames = students.map((s) => String(s.name));
+  const studentSet = new Set(studentNames);
 
   // All program enrollments
   let enrollments: Record<string, unknown>[] = [];
@@ -359,13 +390,15 @@ async function getAllClassesSummary(): Promise<ClassRow[]> {
   }
 
   // All submitted invoices
-  const invoices = await frappeGet(
+  const allInvoices = await frappeGet(
     "Sales Invoice",
     ["student", "grand_total", "outstanding_amount"],
     [["docstatus", "=", 1]],
     undefined,
     0,
   );
+
+  const invoices = allInvoices.filter((inv) => studentSet.has(String(inv.student ?? "")));
 
   // Invoice lookup by student
   const invoiceByStudent = new Map<string, { total: number; outstanding: number }>();
@@ -424,19 +457,28 @@ async function getAllClassesSummary(): Promise<ClassRow[]> {
   return result;
 }
 
-async function getClassDetail(program: string): Promise<{
+async function getClassDetail(program: string, fromDate?: string, toDate?: string): Promise<{
   summary: ClassRow;
   branches: ClassDetailBranchRow[];
 }> {
   // All students
-  const students = await frappeGet(
+  const allStudents = await frappeGet(
     "Student",
-    ["name", "custom_branch", "enabled"],
+    ["name", "custom_branch", "enabled", "joining_date"],
     [],
     undefined,
     0,
   );
+
+  const students = allStudents.filter((s) => {
+    const jd = String(s.joining_date ?? "");
+    if (fromDate && jd < fromDate) return false;
+    if (toDate && jd > toDate) return false;
+    return true;
+  });
+
   const studentNames = students.map((s) => String(s.name));
+  const studentSet = new Set(studentNames);
 
   // Program enrollments
   let enrollments: Record<string, unknown>[] = [];
@@ -472,13 +514,15 @@ async function getClassDetail(program: string): Promise<{
   );
 
   // Invoices
-  const invoices = await frappeGet(
+  const allInvoices = await frappeGet(
     "Sales Invoice",
     ["student", "grand_total", "outstanding_amount"],
     [["docstatus", "=", 1]],
     undefined,
     0,
   );
+  const invoices = allInvoices.filter((inv) => studentSet.has(String(inv.student ?? "")));
+
   const invoiceByStudent = new Map<string, { total: number; outstanding: number }>();
   for (const inv of invoices) {
     const sid = String(inv.student ?? "");
@@ -577,21 +621,23 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const mode = String(body.mode ?? "");
     const detail = body.detail ? String(body.detail) : null;
+    const fromDate = body.fromDate ? String(body.fromDate) : undefined;
+    const toDate = body.toDate ? String(body.toDate) : undefined;
 
     if (mode === "branch" && !detail) {
-      const data = await getAllBranchesSummary();
+      const data = await getAllBranchesSummary(fromDate, toDate);
       return NextResponse.json({ data });
     }
     if (mode === "branch" && detail) {
-      const data = await getBranchDetail(detail);
+      const data = await getBranchDetail(detail, fromDate, toDate);
       return NextResponse.json({ data });
     }
     if (mode === "class" && !detail) {
-      const data = await getAllClassesSummary();
+      const data = await getAllClassesSummary(fromDate, toDate);
       return NextResponse.json({ data });
     }
     if (mode === "class" && detail) {
-      const data = await getClassDetail(detail);
+      const data = await getClassDetail(detail, fromDate, toDate);
       return NextResponse.json({ data });
     }
 

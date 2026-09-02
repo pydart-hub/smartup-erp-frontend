@@ -23,11 +23,11 @@ function fmt(n: number): string {
   return "₹" + n.toLocaleString("en-IN");
 }
 
-async function fetchData(program: string): Promise<FeesClassDetailData> {
+async function fetchData(program: string, fromDate?: string, toDate?: string): Promise<FeesClassDetailData> {
   const res = await fetch("/api/director/report-fees", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ mode: "class", detail: program }),
+    body: JSON.stringify({ mode: "class", detail: program, fromDate, toDate }),
     credentials: "include",
   });
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Failed");
@@ -36,14 +36,16 @@ async function fetchData(program: string): Promise<FeesClassDetailData> {
 
 interface Props {
   program: string;
+  fromDate?: string;
+  toDate?: string;
   onBack: () => void;
 }
 
-export function FeesClassDetail({ program, onBack }: Props) {
+export function FeesClassDetail({ program, fromDate, toDate, onBack }: Props) {
   const [loading, setLoading] = useState<"xlsx" | "csv" | null>(null);
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["report-fees", "class", program],
-    queryFn: () => fetchData(program),
+    queryKey: ["report-fees", "class", program, fromDate, toDate],
+    queryFn: () => fetchData(program, fromDate, toDate),
     staleTime: 60_000,
   });
 
@@ -53,7 +55,7 @@ export function FeesClassDetail({ program, onBack }: Props) {
       const res = await fetch("/api/director/report-fees-export", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode: "class", detail: program, format }),
+        body: JSON.stringify({ mode: "class", detail: program, fromDate, toDate, format }),
         credentials: "include",
       });
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Export failed");
@@ -158,7 +160,7 @@ export function FeesClassDetail({ program, onBack }: Props) {
                       {inv.disabilities && <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">{inv.disabilities}</span>}
                     </div>
                   </td>
-                  <td className="px-3 py-2 text-text-primary whitespace-nowrap">{inv.branch ?? "—"}</td>
+                  <td className="px-3 py-2 text-text-secondary whitespace-nowrap">{inv.branch?.replace("Smart Up ", "")}</td>
                   <td className="px-3 py-2 text-text-primary whitespace-nowrap">{inv.invoiceName}</td>
                   <td className="px-3 py-2 text-right text-text-primary whitespace-nowrap">{fmt(inv.amount)}</td>
                   <td className="px-3 py-2 text-right text-success whitespace-nowrap">{fmt(inv.paid)}</td>

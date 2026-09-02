@@ -19,11 +19,11 @@ import { Button } from "@/components/ui/Button";
 import { toast } from "sonner";
 import type { StudentsClassDetailData } from "@/lib/reports/summary-types";
 
-async function fetchData(program: string): Promise<StudentsClassDetailData> {
+async function fetchData(program: string, fromDate?: string, toDate?: string): Promise<StudentsClassDetailData> {
   const res = await fetch("/api/director/report-students", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ mode: "class", detail: program }),
+    body: JSON.stringify({ mode: "class", detail: program, fromDate, toDate }),
     credentials: "include",
   });
   if (!res.ok) {
@@ -35,14 +35,16 @@ async function fetchData(program: string): Promise<StudentsClassDetailData> {
 
 interface Props {
   program: string;
+  fromDate?: string;
+  toDate?: string;
   onBack: () => void;
 }
 
-export function StudentsClassDetail({ program, onBack }: Props) {
+export function StudentsClassDetail({ program, fromDate, toDate, onBack }: Props) {
   const [loading, setLoading] = useState<"xlsx" | "csv" | null>(null);
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["report-students", "class", program],
-    queryFn: () => fetchData(program),
+    queryKey: ["report-students", "class", program, fromDate, toDate],
+    queryFn: () => fetchData(program, fromDate, toDate),
     staleTime: 60_000,
   });
 
@@ -52,7 +54,7 @@ export function StudentsClassDetail({ program, onBack }: Props) {
       const res = await fetch("/api/director/report-students-export", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode: "class", detail: program, format }),
+        body: JSON.stringify({ mode: "class", detail: program, fromDate, toDate, format }),
         credentials: "include",
       });
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Export failed");
@@ -114,9 +116,7 @@ export function StudentsClassDetail({ program, onBack }: Props) {
       </div>
 
       <div className="flex items-center justify-between p-4 bg-surface rounded-[14px] border border-border-light">
-        <p className="text-sm text-text-secondary font-medium">
-          Student list &middot; {students.length} students
-        </p>
+        <p className="text-sm text-text-secondary font-medium">{students.length} students</p>
         <div className="flex items-center gap-2">
           <Button variant="primary" size="sm" onClick={() => handleExport("xlsx")} disabled={loading !== null}>
             {loading === "xlsx" ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
@@ -138,12 +138,12 @@ export function StudentsClassDetail({ program, onBack }: Props) {
               <tr className="bg-app-bg border-b border-border-light">
                 <th className="px-3 py-2.5 text-left text-xs font-semibold text-text-secondary uppercase tracking-wider">Student ID</th>
                 <th className="px-3 py-2.5 text-left text-xs font-semibold text-text-secondary uppercase tracking-wider">Name</th>
+                <th className="px-3 py-2.5 text-left text-xs font-semibold text-text-secondary uppercase tracking-wider">Branch</th>
                 <th className="px-3 py-2.5 text-left text-xs font-semibold text-text-secondary uppercase tracking-wider">Status</th>
                 <th className="px-3 py-2.5 text-left text-xs font-semibold text-text-secondary uppercase tracking-wider">Gender</th>
                 <th className="px-3 py-2.5 text-left text-xs font-semibold text-text-secondary uppercase tracking-wider">Phone</th>
                 <th className="px-3 py-2.5 text-left text-xs font-semibold text-text-secondary uppercase tracking-wider">Guardian</th>
                 <th className="px-3 py-2.5 text-left text-xs font-semibold text-text-secondary uppercase tracking-wider">Joining Date</th>
-                <th className="px-3 py-2.5 text-left text-xs font-semibold text-text-secondary uppercase tracking-wider">Branch</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border-light">
@@ -156,6 +156,7 @@ export function StudentsClassDetail({ program, onBack }: Props) {
                       {s.disabilities && <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">{s.disabilities}</span>}
                     </div>
                   </td>
+                  <td className="px-3 py-2 text-text-secondary whitespace-nowrap">{s.branch?.replace("Smart Up ", "")}</td>
                   <td className="px-3 py-2">
                     <span className={s.status === "Active" ? "text-success" : "text-error"}>{s.status}</span>
                   </td>
@@ -163,7 +164,6 @@ export function StudentsClassDetail({ program, onBack }: Props) {
                   <td className="px-3 py-2 text-text-primary whitespace-nowrap">{s.phone}</td>
                   <td className="px-3 py-2 text-text-primary whitespace-nowrap">{s.guardian}</td>
                   <td className="px-3 py-2 text-text-primary whitespace-nowrap">{s.joiningDate}</td>
-                  <td className="px-3 py-2 text-text-primary whitespace-nowrap">{s.branch}</td>
                 </tr>
               ))}
             </tbody>

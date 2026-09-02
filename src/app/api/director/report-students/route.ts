@@ -78,15 +78,22 @@ function thisMonthStart(): string {
 
 // ── Branch summary ──
 
-async function getAllBranchesSummary() {
+async function getAllBranchesSummary(fromDate?: string, toDate?: string) {
   const companies = await frappeGet("Company", ["name"], [], "name asc");
   const branches = companies.map((c) => String(c.name)).filter((n) => n !== "Smart Up");
 
-  const students = await frappeGet(
+  const allStudents = await frappeGet(
     "Student",
     ["name", "custom_branch", "enabled", "gender", "joining_date"],
     [],
   );
+
+  const students = allStudents.filter((s) => {
+    const jd = String(s.joining_date ?? "");
+    if (fromDate && jd < fromDate) return false;
+    if (toDate && jd > toDate) return false;
+    return true;
+  });
 
   // Fetch program enrollments to resolve student plan types
   const enrollments = await frappeGet(
@@ -153,12 +160,19 @@ async function getAllBranchesSummary() {
 
 // ── Branch detail ──
 
-async function getBranchDetail(branch: string) {
-  const students = await frappeGet(
+async function getBranchDetail(branch: string, fromDate?: string, toDate?: string) {
+  const allStudents = await frappeGet(
     "Student",
     ["name", "student_name", "enabled", "gender", "student_mobile_number", "custom_parent_name", "joining_date", "custom_disabilities"],
     [["custom_branch", "=", branch]],
   );
+
+  const students = allStudents.filter((s) => {
+    const jd = String(s.joining_date ?? "");
+    if (fromDate && jd < fromDate) return false;
+    if (toDate && jd > toDate) return false;
+    return true;
+  });
 
   const studentNames = students.map((s) => String(s.name));
   const studentSet = new Set(studentNames);
@@ -226,12 +240,20 @@ async function getBranchDetail(branch: string) {
 
 // ── Class summary ──
 
-async function getAllClassesSummary() {
-  const students = await frappeGet(
+async function getAllClassesSummary(fromDate?: string, toDate?: string) {
+  const allStudents = await frappeGet(
     "Student",
     ["name", "custom_branch", "enabled", "gender", "joining_date"],
     [],
   );
+
+  const students = allStudents.filter((s) => {
+    const jd = String(s.joining_date ?? "");
+    if (fromDate && jd < fromDate) return false;
+    if (toDate && jd > toDate) return false;
+    return true;
+  });
+
   const studentNames = students.map((s) => String(s.name));
 
   let enrollments: Record<string, unknown>[] = [];
@@ -310,12 +332,20 @@ async function getAllClassesSummary() {
 
 // ── Class detail ──
 
-async function getClassDetail(program: string) {
-  const students = await frappeGet(
+async function getClassDetail(program: string, fromDate?: string, toDate?: string) {
+  const allStudents = await frappeGet(
     "Student",
     ["name", "student_name", "custom_branch", "enabled", "gender", "student_mobile_number", "custom_parent_name", "joining_date", "custom_disabilities"],
     [],
   );
+
+  const students = allStudents.filter((s) => {
+    const jd = String(s.joining_date ?? "");
+    if (fromDate && jd < fromDate) return false;
+    if (toDate && jd > toDate) return false;
+    return true;
+  });
+
   const studentNames = students.map((s) => String(s.name));
 
   let enrollments: Record<string, unknown>[] = [];
@@ -393,18 +423,20 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const mode = String(body.mode ?? "");
     const detail = body.detail ? String(body.detail) : null;
+    const fromDate = body.fromDate ? String(body.fromDate) : undefined;
+    const toDate = body.toDate ? String(body.toDate) : undefined;
 
     if (mode === "branch" && !detail) {
-      return NextResponse.json({ data: await getAllBranchesSummary() });
+      return NextResponse.json({ data: await getAllBranchesSummary(fromDate, toDate) });
     }
     if (mode === "branch" && detail) {
-      return NextResponse.json({ data: await getBranchDetail(detail) });
+      return NextResponse.json({ data: await getBranchDetail(detail, fromDate, toDate) });
     }
     if (mode === "class" && !detail) {
-      return NextResponse.json({ data: await getAllClassesSummary() });
+      return NextResponse.json({ data: await getAllClassesSummary(fromDate, toDate) });
     }
     if (mode === "class" && detail) {
-      return NextResponse.json({ data: await getClassDetail(detail) });
+      return NextResponse.json({ data: await getClassDetail(detail, fromDate, toDate) });
     }
 
     return NextResponse.json({ error: "Invalid mode. Use 'branch' or 'class'" }, { status: 400 });

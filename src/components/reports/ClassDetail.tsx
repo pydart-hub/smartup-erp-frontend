@@ -24,11 +24,11 @@ function formatCurrency(n: number): string {
   return "₹" + n.toLocaleString("en-IN");
 }
 
-async function fetchClassDetail(program: string): Promise<ClassDetailData> {
+async function fetchClassDetail(program: string, fromDate?: string, toDate?: string): Promise<ClassDetailData> {
   const res = await fetch("/api/director/report-summary", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ mode: "class", detail: program }),
+    body: JSON.stringify({ mode: "class", detail: program, fromDate, toDate }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: "Failed" }));
@@ -40,15 +40,17 @@ async function fetchClassDetail(program: string): Promise<ClassDetailData> {
 
 interface Props {
   program: string;
+  fromDate?: string;
+  toDate?: string;
   onBack: () => void;
 }
 
-export function ClassDetail({ program, onBack }: Props) {
+export function ClassDetail({ program, fromDate, toDate, onBack }: Props) {
   const [loading, setLoading] = useState<"xlsx" | "csv" | null>(null);
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["report-summary", "class", program],
-    queryFn: () => fetchClassDetail(program),
+    queryKey: ["report-summary", "class", program, fromDate, toDate],
+    queryFn: () => fetchClassDetail(program, fromDate, toDate),
     staleTime: 60_000,
   });
 
@@ -58,7 +60,7 @@ export function ClassDetail({ program, onBack }: Props) {
       const res = await fetch("/api/director/report-summary-export", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode: "class", detail: program, format }),
+        body: JSON.stringify({ mode: "class", detail: program, fromDate, toDate, format }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: "Export failed" }));

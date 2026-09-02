@@ -19,11 +19,11 @@ function fmt(n: number): string {
   return "₹" + n.toLocaleString("en-IN");
 }
 
-async function fetchData(): Promise<FeesClassRow[]> {
+async function fetchData(fromDate?: string, toDate?: string): Promise<FeesClassRow[]> {
   const res = await fetch("/api/director/report-fees", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ mode: "class" }),
+    body: JSON.stringify({ mode: "class", fromDate, toDate }),
     credentials: "include",
   });
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Failed");
@@ -31,14 +31,16 @@ async function fetchData(): Promise<FeesClassRow[]> {
 }
 
 interface Props {
+  fromDate?: string;
+  toDate?: string;
   onDrillDown: (program: string) => void;
 }
 
-export function FeesClassSummary({ onDrillDown }: Props) {
+export function FeesClassSummary({ fromDate, toDate, onDrillDown }: Props) {
   const [loading, setLoading] = useState<"xlsx" | "csv" | null>(null);
   const { data: rows, isLoading, isError } = useQuery({
-    queryKey: ["report-fees", "class", "all"],
-    queryFn: fetchData,
+    queryKey: ["report-fees", "class", "all", fromDate, toDate],
+    queryFn: () => fetchData(fromDate, toDate),
     staleTime: 60_000,
   });
 
@@ -48,7 +50,7 @@ export function FeesClassSummary({ onDrillDown }: Props) {
       const res = await fetch("/api/director/report-fees-export", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode: "class", format }),
+        body: JSON.stringify({ mode: "class", fromDate, toDate, format }),
         credentials: "include",
       });
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Export failed");

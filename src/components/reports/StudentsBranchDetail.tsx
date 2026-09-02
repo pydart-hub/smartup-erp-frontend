@@ -18,11 +18,11 @@ import { Button } from "@/components/ui/Button";
 import { toast } from "sonner";
 import type { StudentsBranchDetailData } from "@/lib/reports/summary-types";
 
-async function fetchData(branch: string): Promise<StudentsBranchDetailData> {
+async function fetchData(branch: string, fromDate?: string, toDate?: string): Promise<StudentsBranchDetailData> {
   const res = await fetch("/api/director/report-students", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ mode: "branch", detail: branch }),
+    body: JSON.stringify({ mode: "branch", detail: branch, fromDate, toDate }),
     credentials: "include",
   });
   if (!res.ok) {
@@ -34,14 +34,16 @@ async function fetchData(branch: string): Promise<StudentsBranchDetailData> {
 
 interface Props {
   branch: string;
+  fromDate?: string;
+  toDate?: string;
   onBack: () => void;
 }
 
-export function StudentsBranchDetail({ branch, onBack }: Props) {
+export function StudentsBranchDetail({ branch, fromDate, toDate, onBack }: Props) {
   const [loading, setLoading] = useState<"xlsx" | "csv" | null>(null);
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["report-students", "branch", branch],
-    queryFn: () => fetchData(branch),
+    queryKey: ["report-students", "branch", branch, fromDate, toDate],
+    queryFn: () => fetchData(branch, fromDate, toDate),
     staleTime: 60_000,
   });
 
@@ -51,7 +53,7 @@ export function StudentsBranchDetail({ branch, onBack }: Props) {
       const res = await fetch("/api/director/report-students-export", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode: "branch", detail: branch, format }),
+        body: JSON.stringify({ mode: "branch", detail: branch, fromDate, toDate, format }),
         credentials: "include",
       });
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Export failed");

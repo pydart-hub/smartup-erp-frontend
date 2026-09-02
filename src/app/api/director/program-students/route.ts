@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
     };
     try {
       sessionData = JSON.parse(
+
         Buffer.from(sessionCookie.value, "base64").toString()
       );
     } catch {
@@ -36,6 +37,8 @@ export async function GET(request: NextRequest) {
     const sp = request.nextUrl.searchParams;
     const branch = sp.get("branch") || "";
     const program = sp.get("program") || "";
+    const fromDate = sp.get("fromDate") || "";
+    const toDate = sp.get("toDate") || "";
 
     if (!branch || !program) {
       return NextResponse.json(
@@ -72,12 +75,19 @@ export async function GET(request: NextRequest) {
 
     // Step 1: fetch students in this branch
     const studentJson = await frappeGet("resource/Student", {
-      fields: JSON.stringify(["name", "student_name", "enabled", "custom_disabilities"]),
+      fields: JSON.stringify(["name", "student_name", "enabled", "custom_disabilities", "joining_date"]),
       filters: JSON.stringify([["custom_branch", "=", branch]]),
       limit_page_length: "500",
     });
-    const students: { name: string; student_name: string; enabled: number; custom_disabilities?: string }[] =
+    const allStudents: { name: string; student_name: string; enabled: number; custom_disabilities?: string; joining_date?: string }[] =
       studentJson?.data ?? [];
+
+    const students = allStudents.filter((s) => {
+      const jd = String(s.joining_date ?? "");
+      if (fromDate && jd < fromDate) return false;
+      if (toDate && jd > toDate) return false;
+      return true;
+    });
 
     if (!students.length) {
       return NextResponse.json({ data: [] });

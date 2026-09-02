@@ -9,6 +9,8 @@ async function fetchReport(
   request: NextRequest,
   mode: string,
   detail?: string,
+  fromDate?: string,
+  toDate?: string,
 ): Promise<Record<string, unknown>> {
   const origin = request.nextUrl.origin;
   const cookie = request.cookies.get("smartup_session");
@@ -18,7 +20,7 @@ async function fetchReport(
       "Content-Type": "application/json",
       ...(cookie ? { Cookie: `smartup_session=${cookie.value}` } : {}),
     },
-    body: JSON.stringify({ mode, detail }),
+    body: JSON.stringify({ mode, detail, fromDate, toDate }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: "Export failed" }));
@@ -60,8 +62,9 @@ const branchDetailCols: ReportColumn[] = [
   { key: "gender", header: "Gender", width: 10 },
   { key: "phone", header: "Phone", width: 16 },
   { key: "guardian", header: "Guardian", width: 24 },
-  { key: "joiningDate", header: "Joining Date", width: 14 },
-  { key: "program", header: "Program", width: 22 },
+  { key: "joiningDate", header: "Admission Date", width: 16 },
+  { key: "program", header: "Class/Program", width: 24 },
+  { key: "disabilities", header: "Disabilities", width: 20 },
 ];
 
 const classDetailCols: ReportColumn[] = [
@@ -71,8 +74,9 @@ const classDetailCols: ReportColumn[] = [
   { key: "gender", header: "Gender", width: 10 },
   { key: "phone", header: "Phone", width: 16 },
   { key: "guardian", header: "Guardian", width: 24 },
-  { key: "joiningDate", header: "Joining Date", width: 14 },
-  { key: "branch", header: "Branch", width: 22 },
+  { key: "joiningDate", header: "Admission Date", width: 16 },
+  { key: "branch", header: "Branch", width: 20 },
+  { key: "disabilities", header: "Disabilities", width: 20 },
 ];
 
 function buildFilename(label: string): string {
@@ -98,13 +102,15 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const mode = String(body.mode ?? "");
     const detail = body.detail ? String(body.detail) : undefined;
+    const fromDate = body.fromDate ? String(body.fromDate) : undefined;
+    const toDate = body.toDate ? String(body.toDate) : undefined;
     const format = body.format === "csv" ? "csv" : "xlsx";
 
     let columns: ReportColumn[];
     let rows: Record<string, unknown>[];
     let label: string;
 
-    const result = await fetchReport(request, mode, detail);
+    const result = await fetchReport(request, mode, detail, fromDate, toDate);
     const data = (result as { data: unknown }).data;
 
     if (mode === "branch" && !detail) {

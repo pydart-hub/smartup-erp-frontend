@@ -10,6 +10,8 @@ async function fetchSummary(
   request: NextRequest,
   mode: string,
   detail?: string,
+  fromDate?: string,
+  toDate?: string,
 ): Promise<Record<string, unknown>> {
   const origin = request.nextUrl.origin;
   const cookie = request.cookies.get("smartup_session");
@@ -19,7 +21,7 @@ async function fetchSummary(
       "Content-Type": "application/json",
       ...(cookie ? { Cookie: `smartup_session=${cookie.value}` } : {}),
     },
-    body: JSON.stringify({ mode, detail }),
+    body: JSON.stringify({ mode, detail, fromDate, toDate }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: "Export failed" }));
@@ -97,13 +99,15 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const mode = String(body.mode ?? "");
     const detail = body.detail ? String(body.detail) : undefined;
+    const fromDate = body.fromDate ? String(body.fromDate) : undefined;
+    const toDate = body.toDate ? String(body.toDate) : undefined;
     const format = body.format === "csv" ? "csv" : "xlsx";
 
     let columns: ReportColumn[];
     let rows: Record<string, unknown>[];
     let label: string;
 
-    const result = await fetchSummary(request, mode, detail);
+    const result = await fetchSummary(request, mode, detail, fromDate, toDate);
     const data = (result as { data: unknown }).data;
 
     if (mode === "branch" && !detail) {

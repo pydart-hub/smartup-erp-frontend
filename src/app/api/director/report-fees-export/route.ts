@@ -9,6 +9,8 @@ async function fetchReport(
   request: NextRequest,
   mode: string,
   detail?: string,
+  fromDate?: string,
+  toDate?: string,
 ): Promise<Record<string, unknown>> {
   const origin = request.nextUrl.origin;
   const cookie = request.cookies.get("smartup_session");
@@ -18,7 +20,7 @@ async function fetchReport(
       "Content-Type": "application/json",
       ...(cookie ? { Cookie: `smartup_session=${cookie.value}` } : {}),
     },
-    body: JSON.stringify({ mode, detail }),
+    body: JSON.stringify({ mode, detail, fromDate, toDate }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: "Export failed" }));
@@ -58,24 +60,26 @@ const classSummaryCols: ReportColumn[] = [
 const branchDetailCols: ReportColumn[] = [
   { key: "studentId", header: "Student ID", width: 22 },
   { key: "studentName", header: "Name", width: 28 },
-  { key: "invoiceName", header: "Invoice", width: 22 },
+  { key: "invoiceName", header: "Invoice #", width: 24 },
   { key: "amount", header: "Amount", width: 14, transform: fmtCurrency },
   { key: "paid", header: "Paid", width: 14, transform: fmtCurrency },
-  { key: "outstanding", header: "Outstanding", width: 14, transform: fmtCurrency },
+  { key: "outstanding", header: "Pending", width: 14, transform: fmtCurrency },
   { key: "status", header: "Status", width: 12 },
   { key: "dueDate", header: "Due Date", width: 14 },
+  { key: "disabilities", header: "Disabilities", width: 20 },
 ];
 
 const classDetailCols: ReportColumn[] = [
   { key: "studentId", header: "Student ID", width: 22 },
   { key: "studentName", header: "Name", width: 28 },
-  { key: "invoiceName", header: "Invoice", width: 22 },
+  { key: "invoiceName", header: "Invoice #", width: 24 },
+  { key: "branch", header: "Branch", width: 20 },
   { key: "amount", header: "Amount", width: 14, transform: fmtCurrency },
   { key: "paid", header: "Paid", width: 14, transform: fmtCurrency },
-  { key: "outstanding", header: "Outstanding", width: 14, transform: fmtCurrency },
+  { key: "outstanding", header: "Pending", width: 14, transform: fmtCurrency },
   { key: "status", header: "Status", width: 12 },
   { key: "dueDate", header: "Due Date", width: 14 },
-  { key: "branch", header: "Branch", width: 22 },
+  { key: "disabilities", header: "Disabilities", width: 20 },
 ];
 
 function buildFilename(label: string): string {
@@ -101,13 +105,15 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const mode = String(body.mode ?? "");
     const detail = body.detail ? String(body.detail) : undefined;
+    const fromDate = body.fromDate ? String(body.fromDate) : undefined;
+    const toDate = body.toDate ? String(body.toDate) : undefined;
     const format = body.format === "csv" ? "csv" : "xlsx";
 
     let columns: ReportColumn[];
     let rows: Record<string, unknown>[];
     let label: string;
 
-    const result = await fetchReport(request, mode, detail);
+    const result = await fetchReport(request, mode, detail, fromDate, toDate);
     const data = (result as { data: unknown }).data;
 
     if (mode === "branch" && !detail) {

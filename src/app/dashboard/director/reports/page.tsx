@@ -78,6 +78,10 @@ export default function DirectorReportsPage() {
   const [mode, setMode] = useState<Mode>("branch");
   const [detail, setDetail] = useState<string | null>(null);
 
+  // Admission date range filter (for Overview, Students, Fees)
+  const [admissionFrom, setAdmissionFrom] = useState<string>("");
+  const [admissionTo, setAdmissionTo] = useState<string>("");
+
   // Attendance date range
   const defaults = getDefaultDates();
   const [fromDate, setFromDate] = useState(defaults.from);
@@ -100,26 +104,44 @@ export default function DirectorReportsPage() {
   function renderContent() {
     // OVERVIEW
     if (category === "overview") {
-      if (detail && mode === "branch") return <BranchDetail branch={detail} onBack={() => setDetail(null)} />;
-      if (detail && mode === "class") return <ClassDetail program={detail} onBack={() => setDetail(null)} />;
-      if (mode === "branch") return <BranchWiseSummary onSelectBranch={setDetail} />;
-      return <ClassWiseSummary onSelectClass={setDetail} />;
+      if (detail && mode === "branch") {
+        return <BranchDetail branch={detail} fromDate={admissionFrom || undefined} toDate={admissionTo || undefined} onBack={() => setDetail(null)} />;
+      }
+      if (detail && mode === "class") {
+        return <ClassDetail program={detail} fromDate={admissionFrom || undefined} toDate={admissionTo || undefined} onBack={() => setDetail(null)} />;
+      }
+      if (mode === "branch") {
+        return <BranchWiseSummary fromDate={admissionFrom || undefined} toDate={admissionTo || undefined} onSelectBranch={setDetail} />;
+      }
+      return <ClassWiseSummary fromDate={admissionFrom || undefined} toDate={admissionTo || undefined} onSelectClass={setDetail} />;
     }
 
     // STUDENTS
     if (category === "students") {
-      if (detail && mode === "branch") return <StudentsBranchDetail branch={detail} onBack={() => setDetail(null)} />;
-      if (detail && mode === "class") return <StudentsClassDetail program={detail} onBack={() => setDetail(null)} />;
-      if (mode === "branch") return <StudentsBranchSummary onSelect={setDetail} />;
-      return <StudentsClassSummary onSelect={setDetail} />;
+      if (detail && mode === "branch") {
+        return <StudentsBranchDetail branch={detail} fromDate={admissionFrom || undefined} toDate={admissionTo || undefined} onBack={() => setDetail(null)} />;
+      }
+      if (detail && mode === "class") {
+        return <StudentsClassDetail program={detail} fromDate={admissionFrom || undefined} toDate={admissionTo || undefined} onBack={() => setDetail(null)} />;
+      }
+      if (mode === "branch") {
+        return <StudentsBranchSummary fromDate={admissionFrom || undefined} toDate={admissionTo || undefined} onSelect={setDetail} />;
+      }
+      return <StudentsClassSummary fromDate={admissionFrom || undefined} toDate={admissionTo || undefined} onSelect={setDetail} />;
     }
 
     // FEES
     if (category === "fees") {
-      if (detail && mode === "branch") return <FeesBranchDetail branch={detail} onBack={() => setDetail(null)} />;
-      if (detail && mode === "class") return <FeesClassDetail program={detail} onBack={() => setDetail(null)} />;
-      if (mode === "branch") return <FeesBranchSummary onSelect={setDetail} />;
-      return <FeesClassSummary onDrillDown={setDetail} />;
+      if (detail && mode === "branch") {
+        return <FeesBranchDetail branch={detail} fromDate={admissionFrom || undefined} toDate={admissionTo || undefined} onBack={() => setDetail(null)} />;
+      }
+      if (detail && mode === "class") {
+        return <FeesClassDetail program={detail} fromDate={admissionFrom || undefined} toDate={admissionTo || undefined} onBack={() => setDetail(null)} />;
+      }
+      if (mode === "branch") {
+        return <FeesBranchSummary fromDate={admissionFrom || undefined} toDate={admissionTo || undefined} onSelect={setDetail} />;
+      }
+      return <FeesClassSummary fromDate={admissionFrom || undefined} toDate={admissionTo || undefined} onDrillDown={setDetail} />;
     }
 
     // ATTENDANCE
@@ -184,9 +206,9 @@ export default function DirectorReportsPage() {
         </div>
       </motion.div>
 
-      {/* Branch / Class toggle — visible at summary level only, not for Overdue */}
-      {!isDetail && category !== "overdue" && (
-        <motion.div variants={itemVariants}>
+      {/* Branch / Class toggle & Filter bar */}
+      <motion.div variants={itemVariants} className="flex items-center justify-between gap-4 flex-wrap">
+        {!isDetail && category !== "overdue" && (
           <div className="flex gap-2 p-1 bg-app-bg rounded-[12px] border border-border-light w-fit">
             <button
               onClick={() => switchMode("branch")}
@@ -213,34 +235,74 @@ export default function DirectorReportsPage() {
               Class Wise
             </button>
           </div>
-        </motion.div>
-      )}
+        )}
 
-      {/* Date filters for Attendance */}
-      {category === "attendance" && !isDetail && (
-        <motion.div variants={itemVariants}>
-          <div className="flex items-center gap-3 flex-wrap">
-            <label className="flex items-center gap-2 text-sm text-text-secondary">
+        {/* Admission Date Range Filter for Overview, Students, Fees */}
+        {(category === "overview" || category === "students" || category === "fees") && (
+          <div className="flex items-center gap-3 bg-surface p-2 px-3 rounded-[12px] border border-border-light text-sm">
+            <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
+              Admission Date:
+            </span>
+            <label className="flex items-center gap-1.5 text-xs text-text-secondary">
+              From
+              <input
+                type="date"
+                value={admissionFrom}
+                onChange={(e) => setAdmissionFrom(e.target.value)}
+                className="px-2.5 py-1 rounded-[6px] border border-border-light bg-app-bg text-text-primary text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </label>
+            <label className="flex items-center gap-1.5 text-xs text-text-secondary">
+              To
+              <input
+                type="date"
+                value={admissionTo}
+                onChange={(e) => setAdmissionTo(e.target.value)}
+                className="px-2.5 py-1 rounded-[6px] border border-border-light bg-app-bg text-text-primary text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </label>
+            {(admissionFrom || admissionTo) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setAdmissionFrom("");
+                  setAdmissionTo("");
+                }}
+                className="text-xs text-primary hover:underline font-medium ml-1"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Date filters for Attendance */}
+        {category === "attendance" && !isDetail && (
+          <div className="flex items-center gap-3 bg-surface p-2 px-3 rounded-[12px] border border-border-light text-sm">
+            <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
+              Attendance Date:
+            </span>
+            <label className="flex items-center gap-1.5 text-xs text-text-secondary">
               From
               <input
                 type="date"
                 value={fromDate}
                 onChange={(e) => setFromDate(e.target.value)}
-                className="px-3 py-1.5 rounded-[8px] border border-border-light bg-surface text-text-primary text-sm"
+                className="px-2.5 py-1 rounded-[6px] border border-border-light bg-app-bg text-text-primary text-xs focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </label>
-            <label className="flex items-center gap-2 text-sm text-text-secondary">
+            <label className="flex items-center gap-1.5 text-xs text-text-secondary">
               To
               <input
                 type="date"
                 value={toDate}
                 onChange={(e) => setToDate(e.target.value)}
-                className="px-3 py-1.5 rounded-[8px] border border-border-light bg-surface text-text-primary text-sm"
+                className="px-2.5 py-1 rounded-[6px] border border-border-light bg-app-bg text-text-primary text-xs focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </label>
           </div>
-        </motion.div>
-      )}
+        )}
+      </motion.div>
 
       {/* Content */}
       <motion.div variants={itemVariants} initial="hidden" animate="visible">

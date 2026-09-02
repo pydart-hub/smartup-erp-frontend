@@ -19,11 +19,11 @@ function fmt(n: number): string {
   return "₹" + n.toLocaleString("en-IN");
 }
 
-async function fetchData(): Promise<FeesBranchRow[]> {
+async function fetchData(fromDate?: string, toDate?: string): Promise<FeesBranchRow[]> {
   const res = await fetch("/api/director/report-fees", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ mode: "branch" }),
+    body: JSON.stringify({ mode: "branch", fromDate, toDate }),
     credentials: "include",
   });
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Failed");
@@ -31,14 +31,16 @@ async function fetchData(): Promise<FeesBranchRow[]> {
 }
 
 interface Props {
+  fromDate?: string;
+  toDate?: string;
   onSelect: (branch: string) => void;
 }
 
-export function FeesBranchSummary({ onSelect }: Props) {
+export function FeesBranchSummary({ fromDate, toDate, onSelect }: Props) {
   const [loading, setLoading] = useState<"xlsx" | "csv" | null>(null);
   const { data: rows, isLoading, isError } = useQuery({
-    queryKey: ["report-fees", "branch", "all"],
-    queryFn: fetchData,
+    queryKey: ["report-fees", "branch", "all", fromDate, toDate],
+    queryFn: () => fetchData(fromDate, toDate),
     staleTime: 60_000,
   });
 
@@ -60,7 +62,7 @@ export function FeesBranchSummary({ onSelect }: Props) {
       const res = await fetch("/api/director/report-fees-export", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode: "branch", format }),
+        body: JSON.stringify({ mode: "branch", fromDate, toDate, format }),
         credentials: "include",
       });
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Export failed");
