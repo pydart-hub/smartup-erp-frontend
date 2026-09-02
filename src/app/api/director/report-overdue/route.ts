@@ -93,7 +93,7 @@ async function getDiscontinuedStudentIds(branch?: string): Promise<Set<string>> 
   return new Set(rows.map((r) => String(r.name)));
 }
 
-async function getAllBranchesOverdueSummary() {
+export async function getAllBranchesOverdueSummary() {
   const today = todayStr();
 
   const companies = await frappeGet("Company", ["name"], [], { orderBy: "name asc" });
@@ -150,7 +150,7 @@ async function getAllBranchesOverdueSummary() {
   });
 }
 
-async function getBranchOverdueDetail(branch: string) {
+export async function getBranchOverdueDetail(branch: string) {
   const today = todayStr();
 
   const overdueInvoices = await frappeGet(

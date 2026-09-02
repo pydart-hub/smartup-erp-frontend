@@ -2,33 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateExcel } from "@/lib/reports/excel-generator";
 import { generateCSV } from "@/lib/reports/csv-generator";
 import type { ReportColumn } from "@/lib/reports/definitions";
+import {
+  getAllBranchesSummary,
+  getBranchDetail,
+  getAllClassesSummary,
+  getClassDetail,
+} from "../report-summary/route";
 
 export const dynamic = "force-dynamic";
-
-// Re-use the same summary endpoint internally
-async function fetchSummary(
-  request: NextRequest,
-  mode: string,
-  detail?: string,
-  fromDate?: string,
-  toDate?: string,
-): Promise<Record<string, unknown>> {
-  const origin = request.nextUrl.origin;
-  const cookie = request.cookies.get("smartup_session");
-  const res = await fetch(`${origin}/api/director/report-summary`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(cookie ? { Cookie: `smartup_session=${cookie.value}` } : {}),
-    },
-    body: JSON.stringify({ mode, detail, fromDate, toDate }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: "Export failed" }));
-    throw new Error(err.error || `Summary fetch failed (${res.status})`);
-  }
-  return res.json();
-}
 
 // ── Column definitions for each export type ──
 
@@ -107,39 +88,38 @@ export async function POST(request: NextRequest) {
     let rows: Record<string, unknown>[];
     let label: string;
 
-    const result = await fetchSummary(request, mode, detail, fromDate, toDate);
-    const data = (result as { data: unknown }).data;
-
     if (mode === "branch" && !detail) {
+      const data = await getAllBranchesSummary(fromDate, toDate);
       columns = branchSummaryCols;
       rows = addTotalRow(
-        data as Record<string, unknown>[],
+        data as unknown as Record<string, unknown>[],
         "branch",
         ["totalStudents", "active", "inactive", "discontinued", "staff", "totalFee", "collectedFee", "pendingFee"],
       );
       label = "All_Branches_Summary";
     } else if (mode === "branch" && detail) {
-      const d = data as { summary: Record<string, unknown>; classes: Record<string, unknown>[] };
+      const d = await getBranchDetail(detail, fromDate, toDate);
       columns = branchDetailClassCols;
       rows = addTotalRow(
-        d.classes,
+        d.classes as unknown as Record<string, unknown>[],
         "program",
         ["totalStudents", "active", "discontinued", "totalFee", "collectedFee", "pendingFee"],
       );
       label = `Branch_${detail.replace(/\s+/g, "_")}_Detail`;
     } else if (mode === "class" && !detail) {
+      const data = await getAllClassesSummary(fromDate, toDate);
       columns = classSummaryCols;
       rows = addTotalRow(
-        data as Record<string, unknown>[],
+        data as unknown as Record<string, unknown>[],
         "program",
         ["totalStudents", "active", "discontinued", "totalFee", "collectedFee", "pendingFee"],
       );
       label = "All_Classes_Summary";
     } else if (mode === "class" && detail) {
-      const d = data as { summary: Record<string, unknown>; branches: Record<string, unknown>[] };
+      const d = await getClassDetail(detail, fromDate, toDate);
       columns = classDetailBranchCols;
       rows = addTotalRow(
-        d.branches,
+        d.branches as unknown as Record<string, unknown>[],
         "branch",
         ["totalStudents", "active", "discontinued", "staff", "totalFee", "collectedFee", "pendingFee"],
       );

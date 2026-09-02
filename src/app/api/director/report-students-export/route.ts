@@ -2,32 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateExcel } from "@/lib/reports/excel-generator";
 import { generateCSV } from "@/lib/reports/csv-generator";
 import type { ReportColumn } from "@/lib/reports/definitions";
+import {
+  getAllBranchesSummary,
+  getBranchDetail,
+  getAllClassesSummary,
+  getClassDetail,
+} from "../report-students/route";
 
 export const dynamic = "force-dynamic";
-
-async function fetchReport(
-  request: NextRequest,
-  mode: string,
-  detail?: string,
-  fromDate?: string,
-  toDate?: string,
-): Promise<Record<string, unknown>> {
-  const origin = request.nextUrl.origin;
-  const cookie = request.cookies.get("smartup_session");
-  const res = await fetch(`${origin}/api/director/report-students`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(cookie ? { Cookie: `smartup_session=${cookie.value}` } : {}),
-    },
-    body: JSON.stringify({ mode, detail, fromDate, toDate }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: "Export failed" }));
-    throw new Error(err.error || `Report fetch failed (${res.status})`);
-  }
-  return res.json();
-}
 
 const branchSummaryCols: ReportColumn[] = [
   { key: "branch", header: "Branch", width: 28 },
@@ -110,34 +92,33 @@ export async function POST(request: NextRequest) {
     let rows: Record<string, unknown>[];
     let label: string;
 
-    const result = await fetchReport(request, mode, detail, fromDate, toDate);
-    const data = (result as { data: unknown }).data;
-
     if (mode === "branch" && !detail) {
+      const data = await getAllBranchesSummary(fromDate, toDate);
       columns = branchSummaryCols;
       rows = addTotalRow(
-        data as Record<string, unknown>[],
+        data as unknown as Record<string, unknown>[],
         "branch",
         ["totalStudents", "active", "discontinued", "basic", "intermediate", "advanced", "male", "female", "newThisMonth"],
       );
       label = "All_Branches";
     } else if (mode === "branch" && detail) {
-      const d = data as { students: Record<string, unknown>[] };
+      const d = await getBranchDetail(detail, fromDate, toDate);
       columns = branchDetailCols;
-      rows = d.students;
+      rows = d.students as unknown as Record<string, unknown>[];
       label = `Branch_${detail.replace(/\s+/g, "_")}`;
     } else if (mode === "class" && !detail) {
+      const data = await getAllClassesSummary(fromDate, toDate);
       columns = classSummaryCols;
       rows = addTotalRow(
-        data as Record<string, unknown>[],
+        data as unknown as Record<string, unknown>[],
         "program",
         ["totalStudents", "active", "discontinued", "basic", "intermediate", "advanced", "male", "female", "newThisMonth"],
       );
       label = "All_Classes";
     } else if (mode === "class" && detail) {
-      const d = data as { students: Record<string, unknown>[] };
+      const d = await getClassDetail(detail, fromDate, toDate);
       columns = classDetailCols;
-      rows = d.students;
+      rows = d.students as unknown as Record<string, unknown>[];
       label = `Class_${detail.replace(/\s+/g, "_")}`;
     } else {
       return NextResponse.json({ error: "Invalid mode" }, { status: 400 });

@@ -2,30 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateExcel } from "@/lib/reports/excel-generator";
 import { generateCSV } from "@/lib/reports/csv-generator";
 import type { ReportColumn } from "@/lib/reports/definitions";
+import {
+  getAllBranchesOverdueSummary,
+  getBranchOverdueDetail,
+} from "../report-overdue/route";
 
 export const dynamic = "force-dynamic";
-
-async function fetchReport(
-  request: NextRequest,
-  mode: string,
-  detail?: string,
-): Promise<Record<string, unknown>> {
-  const origin = request.nextUrl.origin;
-  const cookie = request.cookies.get("smartup_session");
-  const res = await fetch(`${origin}/api/director/report-overdue`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(cookie ? { Cookie: `smartup_session=${cookie.value}` } : {}),
-    },
-    body: JSON.stringify({ mode, detail }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: "Export failed" }));
-    throw new Error(err.error || `Report fetch failed (${res.status})`);
-  }
-  return res.json();
-}
 
 function fmtCurrency(v: unknown): string {
   return "₹" + Number(v || 0).toLocaleString("en-IN");
@@ -72,11 +54,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { mode = "branch", detail, format = "xlsx" } = body;
+  const { detail, format = "xlsx" } = body;
 
   try {
-    const reportData = await fetchReport(request, mode, detail);
-
     let rows: Record<string, unknown>[];
     let columns: ReportColumn[];
     let sheetName: string;
@@ -84,14 +64,15 @@ export async function POST(request: NextRequest) {
 
     if (detail) {
       // Branch detail — student list
-      const data = (reportData as { data: { summary: unknown; students: Record<string, unknown>[] } }).data;
-      rows = data.students;
+      const data = await getBranchOverdueDetail(detail);
+      rows = data.students as unknown as Record<string, unknown>[];
       columns = branchDetailCols;
       sheetName = `Overdue - ${String(detail).replace("Smart Up ", "")}`;
       fileBaseName = `overdue-${String(detail).replace(/\s+/g, "_").toLowerCase()}`;
     } else {
       // Branch summary
-      rows = (reportData as { data: Record<string, unknown>[] }).data;
+      const data = await getAllBranchesOverdueSummary();
+      rows = data as unknown as Record<string, unknown>[];
       columns = branchSummaryCols;
       sheetName = "Overdue Report";
       fileBaseName = "overdue-branch-summary";

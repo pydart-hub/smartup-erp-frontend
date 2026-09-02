@@ -79,7 +79,7 @@ function defaultDateRange(body: { fromDate?: string; toDate?: string }) {
 
 // ── Branch summary ──
 
-async function getAllBranchesSummary(from: string, to: string) {
+export async function getAllBranchesSummary(from: string, to: string) {
   const companies = await frappeGet("Company", ["name"], [], "name asc");
   const branches = companies.map((c) => String(c.name)).filter((n) => n !== "Smart Up");
 
@@ -119,7 +119,7 @@ async function getAllBranchesSummary(from: string, to: string) {
 
 // ── Branch detail ──
 
-async function getBranchDetail(branch: string, from: string, to: string) {
+export async function getBranchDetail(branch: string, from: string, to: string) {
   const rawAttendance = await frappeGet(
     "Student Attendance",
     ["name", "student", "status", "date"],
@@ -201,7 +201,7 @@ async function getBranchDetail(branch: string, from: string, to: string) {
 
 // ── Class summary ──
 
-async function getAllClassesSummary(from: string, to: string) {
+export async function getAllClassesSummary(from: string, to: string) {
   // Get all students for program mapping
   const allStudents = await frappeGet("Student", ["name"], []);
   const studentNames = allStudents.map((s) => String(s.name));
@@ -273,7 +273,7 @@ async function getAllClassesSummary(from: string, to: string) {
 
 // ── Class detail ──
 
-async function getClassDetail(program: string, from: string, to: string) {
+export async function getClassDetail(program: string, from: string, to: string) {
   const allStudents = await frappeGet("Student", ["name"], []);
   const studentNames = allStudents.map((s) => String(s.name));
 

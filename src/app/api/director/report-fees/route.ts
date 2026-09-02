@@ -77,7 +77,7 @@ function todayStr(): string {
 
 // ── Branch summary ──
 
-async function getAllBranchesSummary(fromDate?: string, toDate?: string) {
+export async function getAllBranchesSummary(fromDate?: string, toDate?: string) {
   const companies = await frappeGet("Company", ["name"], [], "name asc");
   const branches = companies.map((c) => String(c.name)).filter((n) => n !== "Smart Up");
 
@@ -226,7 +226,7 @@ async function getBranchProgramStats(branch: string, fromDate?: string, toDate?:
 
 // ── Branch detail ──
 
-async function getBranchDetail(branch: string, fromDate?: string, toDate?: string) {
+export async function getBranchDetail(branch: string, fromDate?: string, toDate?: string) {
   const allStudents = await frappeGet(
     "Student",
     ["name", "student_name", "custom_disabilities", "joining_date"],
@@ -294,7 +294,7 @@ async function getBranchDetail(branch: string, fromDate?: string, toDate?: strin
 
 // ── Class summary ──
 
-async function getAllClassesSummary(fromDate?: string, toDate?: string) {
+export async function getAllClassesSummary(fromDate?: string, toDate?: string) {
   const allStudents = await frappeGet("Student", ["name", "custom_branch", "joining_date"], []);
   const students = allStudents.filter((s) => {
     const jd = String(s.joining_date ?? "");
@@ -383,7 +383,7 @@ async function getAllClassesSummary(fromDate?: string, toDate?: string) {
 
 // ── Class detail ──
 
-async function getClassDetail(program: string, fromDate?: string, toDate?: string) {
+export async function getClassDetail(program: string, fromDate?: string, toDate?: string) {
   const allStudents = await frappeGet("Student", ["name", "student_name", "custom_branch", "custom_disabilities", "joining_date"], []);
   const students = allStudents.filter((s) => {
     const jd = String(s.joining_date ?? "");

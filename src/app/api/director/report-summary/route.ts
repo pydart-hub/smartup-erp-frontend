@@ -123,7 +123,7 @@ interface ClassDetailBranchRow {
 
 // ── Handlers ──
 
-async function getAllBranchesSummary(fromDate?: string, toDate?: string): Promise<BranchRow[]> {
+export async function getAllBranchesSummary(fromDate?: string, toDate?: string): Promise<BranchRow[]> {
   // 1. Get all companies (branches) except "Smart Up"
   const companies = await frappeGet("Company", ["name"], [], "name asc");
   const branches = companies
@@ -198,7 +198,7 @@ async function getAllBranchesSummary(fromDate?: string, toDate?: string): Promis
   return result;
 }
 
-async function getBranchDetail(branch: string, fromDate?: string, toDate?: string): Promise<{
+export async function getBranchDetail(branch: string, fromDate?: string, toDate?: string): Promise<{
   summary: BranchRow;
   classes: BranchDetailClassRow[];
 }> {
@@ -341,7 +341,7 @@ async function getBranchDetail(branch: string, fromDate?: string, toDate?: strin
   return { summary, classes };
 }
 
-async function getAllClassesSummary(fromDate?: string, toDate?: string): Promise<ClassRow[]> {
+export async function getAllClassesSummary(fromDate?: string, toDate?: string): Promise<ClassRow[]> {
   // All students
   const allStudents = await frappeGet(
     "Student",
@@ -457,7 +457,7 @@ async function getAllClassesSummary(fromDate?: string, toDate?: string): Promise
   return result;
 }
 
-async function getClassDetail(program: string, fromDate?: string, toDate?: string): Promise<{
+export async function getClassDetail(program: string, fromDate?: string, toDate?: string): Promise<{
   summary: ClassRow;
   branches: ClassDetailBranchRow[];
 }> {
