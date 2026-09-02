@@ -243,12 +243,22 @@ async function getBranchDetail(branch: string): Promise<{
   if (studentNames.length > 0) {
     allEnrollments = await frappeGet(
       "Program Enrollment",
-      ["student", "program"],
-      [["docstatus", "!=", 2]],
+      ["student", "program", "docstatus", "enrollment_date"],
+      [],
       "enrollment_date desc",
       0,
     );
   }
+
+  // Sort enrollments: active (1) first, draft (0) second, canceled (2) third
+  allEnrollments.sort((a, b) => {
+    const statusA = Number(a.docstatus ?? 0);
+    const statusB = Number(b.docstatus ?? 0);
+    const prio = (status: number) => (status === 1 ? 0 : status === 0 ? 1 : 2);
+    if (prio(statusA) !== prio(statusB)) return prio(statusA) - prio(statusB);
+    return String(b.enrollment_date ?? "").localeCompare(String(a.enrollment_date ?? ""));
+  });
+
   // Filter to only this branch's students in JS (avoids large IN filter URL)
   const enrollments = allEnrollments.filter((e) => studentSet.has(String(e.student)));
 
@@ -325,12 +335,21 @@ async function getAllClassesSummary(): Promise<ClassRow[]> {
   if (studentNames.length > 0) {
     enrollments = await frappeGet(
       "Program Enrollment",
-      ["student", "program"],
-      [["docstatus", "!=", 2]],
+      ["student", "program", "docstatus", "enrollment_date"],
+      [],
       "enrollment_date desc",
       0,
     );
   }
+
+  // Sort enrollments: active (1) first, draft (0) second, canceled (2) third
+  enrollments.sort((a, b) => {
+    const statusA = Number(a.docstatus ?? 0);
+    const statusB = Number(b.docstatus ?? 0);
+    const prio = (status: number) => (status === 1 ? 0 : status === 0 ? 1 : 2);
+    if (prio(statusA) !== prio(statusB)) return prio(statusA) - prio(statusB);
+    return String(b.enrollment_date ?? "").localeCompare(String(a.enrollment_date ?? ""));
+  });
 
   // Latest program per student
   const studentProgram = new Map<string, string>();
@@ -424,12 +443,21 @@ async function getClassDetail(program: string): Promise<{
   if (studentNames.length > 0) {
     enrollments = await frappeGet(
       "Program Enrollment",
-      ["student", "program"],
-      [["docstatus", "!=", 2]],
+      ["student", "program", "docstatus", "enrollment_date"],
+      [],
       "enrollment_date desc",
       0,
     );
   }
+
+  // Sort enrollments: active (1) first, draft (0) second, canceled (2) third
+  enrollments.sort((a, b) => {
+    const statusA = Number(a.docstatus ?? 0);
+    const statusB = Number(b.docstatus ?? 0);
+    const prio = (status: number) => (status === 1 ? 0 : status === 0 ? 1 : 2);
+    if (prio(statusA) !== prio(statusB)) return prio(statusA) - prio(statusB);
+    return String(b.enrollment_date ?? "").localeCompare(String(a.enrollment_date ?? ""));
+  });
 
   // Latest program per student
   const studentProgram = new Map<string, string>();

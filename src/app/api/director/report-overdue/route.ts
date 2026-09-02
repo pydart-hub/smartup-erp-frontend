@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
@@ -200,10 +200,20 @@ async function getBranchOverdueDetail(branch: string) {
 
   const allEnrollments = await frappeGet(
     "Program Enrollment",
-    ["student", "program", "custom_no_of_instalments"],
-    [["docstatus", "!=", 2]],
+    ["student", "program", "custom_no_of_instalments", "docstatus", "enrollment_date"],
+    [],
     { orderBy: "enrollment_date desc" },
   );
+
+  // Sort enrollments: active (1) first, draft (0) second, canceled (2) third
+  allEnrollments.sort((a: Record<string, unknown>, b: Record<string, unknown>) => {
+    const statusA = Number(a.docstatus ?? 0);
+    const statusB = Number(b.docstatus ?? 0);
+    const prio = (status: number) => (status === 1 ? 0 : status === 0 ? 1 : 2);
+    if (prio(statusA) !== prio(statusB)) return prio(statusA) - prio(statusB);
+    return String(b.enrollment_date ?? "").localeCompare(String(a.enrollment_date ?? ""));
+  });
+
   const branchStudentSet = new Set(stuRecords.map((s) => String(s.name)));
   const studentProgram = new Map<string, string>();
   const studentPlanType = new Map<string, string>();

@@ -87,15 +87,23 @@ export async function GET(request: NextRequest) {
 
     // Step 2: fetch all program enrollments once, then filter in-memory for this branch.
     const enrollJson = await frappeGet("resource/Program Enrollment", {
-      fields: JSON.stringify(["student", "program", "enrollment_date"]),
-      filters: JSON.stringify([["docstatus", "!=", "2"]]),
+      fields: JSON.stringify(["student", "program", "docstatus", "enrollment_date"]),
       limit_page_length: "5000",
       order_by: "enrollment_date desc",
     });
-    const enrollments: { student: string; program: string }[] =
+    const enrollments: { student: string; program: string; docstatus?: number | string; enrollment_date?: string }[] =
       enrollJson?.data ?? [];
 
-    // Keep only the latest program (order_by desc already handled by Frappe)
+    // Sort enrollments: active (1) first, draft (0) second, canceled (2) third
+    enrollments.sort((a, b) => {
+      const statusA = Number(a.docstatus ?? 0);
+      const statusB = Number(b.docstatus ?? 0);
+      const prio = (status: number) => (status === 1 ? 0 : status === 0 ? 1 : 2);
+      if (prio(statusA) !== prio(statusB)) return prio(statusA) - prio(statusB);
+      return String(b.enrollment_date ?? "").localeCompare(String(a.enrollment_date ?? ""));
+    });
+
+    // Keep only the latest program
     const studentProgram = new Map<string, string>();
     for (const e of enrollments) {
       if (branchStudentSet.has(e.student) && !studentProgram.has(e.student)) {
