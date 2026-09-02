@@ -185,7 +185,6 @@ export async function GET(request: NextRequest) {
     const matchers = [
       customer,
       studentId.trim(),
-      student.student_name?.trim(),
     ].filter((value, index, arr): value is string => Boolean(value) && arr.indexOf(value) === index);
 
     const data: Array<{
@@ -236,7 +235,6 @@ export async function GET(request: NextRequest) {
     for (const matcher of matchers) {
       const querySets = [
         [["payment_type", "=", "Receive"], ["party_type", "=", "Customer"], ["company", "=", branch], ["party", "=", matcher], ["docstatus", "=", 1]],
-        [["payment_type", "=", "Receive"], ["party_type", "=", "Customer"], ["company", "=", branch], ["party_name", "=", matcher], ["docstatus", "=", 1]],
       ];
 
       for (const filters of querySets) {

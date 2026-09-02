@@ -1,0 +1,214 @@
+{
+  "student": {
+    "name": "STU-SU CHL-26-221",
+    "owner": "arjunprakashk7@gmail.com",
+    "creation": "2026-05-27 17:19:49.491118",
+    "modified": "2026-05-27 17:25:01.663227",
+    "modified_by": "arjunprakashk7@gmail.com",
+    "docstatus": 0,
+    "idx": 108,
+    "enabled": 1,
+    "custom_discontinuation_date": null,
+    "custom_discontinuation_reason": "",
+    "custom_discontinuation_remarks": null,
+    "first_name": "MOHAMMED BILAL C",
+    "middle_name": "",
+    "last_name": "S",
+    "custom_srr_id": "221",
+    "custom_branch_abbr": "SU CHL",
+    "naming_series": "EDU-STU-.YYYY.-",
+    "joining_date": "2026-05-27",
+    "user": null,
+    "student_applicant": null,
+    "custom_branch": "Smart Up Chullickal",
+    "image": null,
+    "student_email_id": "sajishefi@gmail.com",
+    "date_of_birth": "2010-11-07",
+    "blood_group": "O+",
+    "student_mobile_number": "9567040363",
+    "custom_aadhaar": null,
+    "custom_disabilities": null,
+    "custom_place": "KARUVELIPPADY",
+    "custom_school_name": "GUJARATHY",
+    "custom_sibling_of": null,
+    "custom_sibling_group": null,
+    "custom_sibling_discount_applied": 0,
+    "custom_parent_name": null,
+    "gender": "Male",
+    "nationality": null,
+    "address_line_1": null,
+    "address_line_2": null,
+    "pincode": null,
+    "city": null,
+    "state": null,
+    "country": "India",
+    "customer": "MOHAMMED BILAL C S",
+    "customer_group": "Student",
+    "date_of_leaving": null,
+    "leaving_certificate_number": null,
+    "reason_for_leaving": null,
+    "student_name": "MOHAMMED BILAL C S",
+    "custom_student_type": "Fresher"
+  },
+  "programEnrollments": [
+    {
+      "name": "PEN-10th-Chullickal 26-27-221",
+      "owner": "arjunprakashk7@gmail.com",
+      "creation": "2026-05-27 17:19:49.927194",
+      "modified": "2026-05-27 17:19:50.614891",
+      "modified_by": "arjunprakashk7@gmail.com",
+      "docstatus": 1,
+      "idx": 1,
+      "student": "STU-SU CHL-26-221",
+      "custom_student_srr": "221",
+      "student_name": "MOHAMMED BILAL C S",
+      "enrollment_date": "2026-05-27",
+      "program": "10th State",
+      "custom_program_abb": "10th",
+      "academic_year": "2026-2027",
+      "academic_term": null,
+      "image": null,
+      "student_category": null,
+      "student_batch_name": "Chullickal 26-27",
+      "custom_fee_structure": "SU CHL-10th State-Basic-6",
+      "custom_plan": "Basic",
+      "custom_no_of_instalments": "6",
+      "school_house": null,
+      "boarding_student": 0,
+      "amended_from": null
+    }
+  ],
+  "invoices": [
+    {
+      "name": "ACC-SINV-2026-08256",
+      "posting_date": "2026-05-27",
+      "due_date": "2026-05-27",
+      "grand_total": 3000,
+      "outstanding_amount": 0,
+      "status": "Paid",
+      "docstatus": 1,
+      "items": [
+        {
+          "item_code": "10th State Tuition Fee",
+          "item_name": "10th State Tuition Fee",
+          "qty": 1,
+          "rate": 3000,
+          "amount": 3000,
+          "description": "Inst 1 — 10th State Tuition Fee"
+        }
+      ]
+    },
+    {
+      "name": "ACC-SINV-2026-08257",
+      "posting_date": "2026-05-27",
+      "due_date": "2026-07-27",
+      "grand_total": 3000,
+      "outstanding_amount": 3000,
+      "status": "Overdue",
+      "docstatus": 1,
+      "items": [
+        {
+          "item_code": "10th State Tuition Fee",
+          "item_name": "10th State Tuition Fee",
+          "qty": 1,
+          "rate": 3000,
+          "amount": 3000,
+          "description": "Inst 2 — 10th State Tuition Fee"
+        }
+      ]
+    },
+    {
+      "name": "ACC-SINV-2026-08258",
+      "posting_date": "2026-05-27",
+      "due_date": "2026-09-27",
+      "grand_total": 3000,
+      "outstanding_amount": 3000,
+      "status": "Unpaid",
+      "docstatus": 1,
+      "items": [
+        {
+          "item_code": "10th State Tuition Fee",
+          "item_name": "10th State Tuition Fee",
+          "qty": 1,
+          "rate": 3000,
+          "amount": 3000,
+          "description": "Inst 3 — 10th State Tuition Fee"
+        }
+      ]
+    },
+    {
+      "name": "ACC-SINV-2026-08259",
+      "posting_date": "2026-05-27",
+      "due_date": "2026-11-27",
+      "grand_total": 3000,
+      "outstanding_amount": 3000,
+      "status": "Unpaid",
+      "docstatus": 1,
+      "items": [
+        {
+          "item_code": "10th State Tuition Fee",
+          "item_name": "10th State Tuition Fee",
+          "qty": 1,
+          "rate": 3000,
+          "amount": 3000,
+          "description": "Inst 4 — 10th State Tuition Fee"
+        }
+      ]
+    },
+    {
+      "name": "ACC-SINV-2026-08260",
+      "posting_date": "2026-05-27",
+      "due_date": "2027-01-27",
+      "grand_total": 3000,
+      "outstanding_amount": 3000,
+      "status": "Unpaid",
+      "docstatus": 1,
+      "items": [
+        {
+          "item_code": "10th State Tuition Fee",
+          "item_name": "10th State Tuition Fee",
+          "qty": 1,
+          "rate": 3000,
+          "amount": 3000,
+          "description": "Inst 5 — 10th State Tuition Fee"
+        }
+      ]
+    },
+    {
+      "name": "ACC-SINV-2026-08261",
+      "posting_date": "2026-05-27",
+      "due_date": "2027-03-27",
+      "grand_total": 2300,
+      "outstanding_amount": 2300,
+      "status": "Unpaid",
+      "docstatus": 1,
+      "items": [
+        {
+          "item_code": "10th State Tuition Fee",
+          "item_name": "10th State Tuition Fee",
+          "qty": 1,
+          "rate": 2300,
+          "amount": 2300,
+          "description": "Inst 6 — 10th State Tuition Fee"
+        }
+      ]
+    }
+  ],
+  "payments": [
+    {
+      "name": "ACC-PAY-2026-05225",
+      "posting_date": "2026-05-27",
+      "paid_amount": 3000,
+      "mode_of_payment": "Razorpay",
+      "references": [
+        {
+          "reference_doctype": "Sales Invoice",
+          "reference_name": "ACC-SINV-2026-08256",
+          "total_amount": 3000,
+          "outstanding_amount": 0,
+          "allocated_amount": 3000
+        }
+      ]
+    }
+  ]
+}

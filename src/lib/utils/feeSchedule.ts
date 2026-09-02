@@ -48,6 +48,7 @@ function getInstalmentOffsets(instalments: number): number[] {
   switch (instalments) {
     case 1: return [0];
     case 4: return [0, 3, 6, 9];
+    case 5: return [0, 1, 2, 3, 4];
     case 6: return [0, 2, 4, 6, 8, 10];
     case 8: return [0, 1, 2, 3, 4, 5, 6, 7];
     default: return [];
@@ -74,6 +75,9 @@ export function generateInstalmentDueDates(
   }
   if (instalments === 4) {
     return INSTALMENT_DUE_DATES.quarterly.map((tmpl) => buildDueDate(tmpl, startYear));
+  }
+  if (instalments === 5) {
+    return INSTALMENT_DUE_DATES.inst5.map((tmpl) => buildDueDate(tmpl, startYear));
   }
   if (instalments === 6) {
     return INSTALMENT_DUE_DATES.inst6.map((tmpl) => buildDueDate(tmpl, startYear));
@@ -106,7 +110,7 @@ export function generateInstalmentSchedule(
 
   if (instalments === 4) {
     const labels = ["Q1", "Q2", "Q3", "Q4"];
-    const amounts = [config.q1, config.q2, config.q3, config.q4];
+    const amounts = [config.q1 ?? 0, config.q2 ?? 0, config.q3 ?? 0, config.q4 ?? 0];
     return INSTALMENT_DUE_DATES.quarterly.map((_, i) => ({
       index: i + 1,
       label: labels[i],
@@ -115,11 +119,27 @@ export function generateInstalmentSchedule(
     }));
   }
 
+  if (instalments === 5) {
+    const amounts = config.inst5_schedule || [
+      config.inst1 || 0,
+      config.inst2 || 0,
+      config.inst3 || 0,
+      config.inst4 || 0,
+      config.inst5 || 0,
+    ];
+    return amounts.map((amt, i) => ({
+      index: i + 1,
+      label: `Instalment ${i + 1}`,
+      amount: amt,
+      dueDate: dueDates[i],
+    }));
+  }
+
   if (instalments === 6) {
     return INSTALMENT_DUE_DATES.inst6.map((_, i) => ({
       index: i + 1,
       label: `Inst ${i + 1}`,
-      amount: i < 5 ? config.inst6_per : config.inst6_last,
+      amount: i < 5 ? (config.inst6_per ?? 0) : (config.inst6_last ?? 0),
       dueDate: dueDates[i],
     }));
   }
@@ -128,7 +148,7 @@ export function generateInstalmentSchedule(
     return INSTALMENT_DUE_DATES.inst8.map((_, i) => ({
       index: i + 1,
       label: `Inst ${i + 1}`,
-      amount: i < 7 ? config.inst8_per : config.inst8_last,
+      amount: i < 7 ? (config.inst8_per ?? 0) : (config.inst8_last ?? 0),
       dueDate: dueDates[i],
     }));
   }
@@ -144,12 +164,15 @@ export function getOptionTotal(config: FeeConfigEntry, instalments: number): num
     case 1: return config.otp;
     case 4:
       // Derive from quarter splits so UI totals always match displayed instalments.
-      return config.q1 + config.q2 + config.q3 + config.q4;
+      return (config.q1 ?? 0) + (config.q2 ?? 0) + (config.q3 ?? 0) + (config.q4 ?? 0);
+    case 5:
+      if (config.inst5_total) return config.inst5_total;
+      return (config.inst1 ?? 0) + (config.inst2 ?? 0) + (config.inst3 ?? 0) + (config.inst4 ?? 0) + (config.inst5 ?? 0);
     case 6:
       // Derive from per-instalment values to avoid stale total field mismatches.
-      return (config.inst6_per * 5) + config.inst6_last;
+      return ((config.inst6_per ?? 0) * 5) + (config.inst6_last ?? 0);
     case 8:
-      return (config.inst8_per * 7) + config.inst8_last;
+      return ((config.inst8_per ?? 0) * 7) + (config.inst8_last ?? 0);
     default: return 0;
   }
 }
@@ -163,7 +186,12 @@ export function getAllPaymentOptions(
   academicYear: string,
   enrollmentDate?: string,
 ): PaymentOptionSummary[] {
-  return [1, 4, 6, 8].map((n) => {
+  // If entry has 5-instalment schedule (7-month plan), output [1, 5]
+  const optionsToGenerate = (config.inst5_schedule || config.inst1 || config.instalments_count === 5)
+    ? [1, 5]
+    : [1, 4, 6, 8];
+
+  return optionsToGenerate.map((n) => {
     const total = getOptionTotal(config, n);
     const schedule = generateInstalmentSchedule(config, n, academicYear, enrollmentDate);
     return {

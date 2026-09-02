@@ -28,6 +28,13 @@ export const INSTALMENT_DUE_DATES = {
     { month: 11, day: 15 },
     { month: 2, day: 15 },
   ],
+  inst5: [
+    { month: 8, day: 15 },
+    { month: 9, day: 15 },
+    { month: 10, day: 15 },
+    { month: 11, day: 15 },
+    { month: 0, day: 15 },
+  ],
   inst6: [
     { month: 6, day: 15 },
     { month: 7, day: 15 },
@@ -51,6 +58,7 @@ export const INSTALMENT_DUE_DATES = {
 export const PAYMENT_OPTION_LABELS: Record<string, string> = {
   "1": "One-Time Payment",
   "4": "Quarterly",
+  "5": "5 Monthly Instalments",
   "6": "Bi-Monthly (6 Instalments)",
   "8": "Monthly (8 Instalments)",
 };

@@ -26,25 +26,23 @@ async function run() {
     }
   }
 
-  // Find a student who has SU THP-12th Science State-Basic-8
-  const studentSample = await frappeGet("resource/Program Enrollment", {
-    filters: JSON.stringify([["custom_fee_structure", "=", "SU THP-12th Science State-Basic-8"]]),
-    fields: JSON.stringify(["*"]),
-    limit_page_length: "2"
-  });
+  // Get details of all SU THP-12th Science State fee structures
+  const fsNames = [
+    "SU THP-12th Science State-Basic-1",
+    "SU THP-12th Science State-Basic-4",
+    "SU THP-12th Science State-Basic-6",
+    "SU THP-12th Science State-Basic-8",
+    "SU THP-12th Science State-Advanced-8"
+  ];
 
-  console.log("Sample Basic-8 students:", JSON.stringify(studentSample.data, null, 2));
-
-  if (studentSample.data && studentSample.data.length > 0) {
-    const custRes = await frappeGet(`resource/Student/${studentSample.data[0].student}`);
-    const custName = custRes.data.customer;
-    const invRes = await frappeGet("resource/Sales Invoice", {
-      filters: JSON.stringify([["customer", "=", custName]]),
-      fields: JSON.stringify(["name", "posting_date", "due_date", "grand_total", "items"]),
-      order_by: "due_date asc"
-    });
-    console.log(`Invoices for ${custName} (Basic-8):`, JSON.stringify(invRes.data, null, 2));
+  const results = {};
+  for (const name of fsNames) {
+    const doc = await frappeGet(`resource/Fee Structure/${name}`);
+    results[name] = doc.data;
   }
+
+  fs.writeFileSync("docs/thp_science_fee_structures.json", JSON.stringify(results, null, 2), "utf-8");
+  console.log("Saved thp_science_fee_structures.json");
 }
 
 run();

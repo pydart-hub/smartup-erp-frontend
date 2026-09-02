@@ -26,24 +26,19 @@ async function run() {
     }
   }
 
-  // Find a student who has SU THP-12th Science State-Basic-8
-  const studentSample = await frappeGet("resource/Program Enrollment", {
-    filters: JSON.stringify([["custom_fee_structure", "=", "SU THP-12th Science State-Basic-8"]]),
-    fields: JSON.stringify(["*"]),
-    limit_page_length: "2"
-  });
+  // Look for 4-instalment and 6-instalment peer examples in SU THP 12th Science State
+  const peers = [
+    { name: "Alfiya aa", plan: "Basic-4" },
+    { name: "Samrin v", plan: "Basic-6" }
+  ];
 
-  console.log("Sample Basic-8 students:", JSON.stringify(studentSample.data, null, 2));
-
-  if (studentSample.data && studentSample.data.length > 0) {
-    const custRes = await frappeGet(`resource/Student/${studentSample.data[0].student}`);
-    const custName = custRes.data.customer;
+  for (const p of peers) {
     const invRes = await frappeGet("resource/Sales Invoice", {
-      filters: JSON.stringify([["customer", "=", custName]]),
-      fields: JSON.stringify(["name", "posting_date", "due_date", "grand_total", "items"]),
+      filters: JSON.stringify([["customer", "=", p.name]]),
+      fields: JSON.stringify(["name", "posting_date", "due_date", "grand_total"]),
       order_by: "due_date asc"
     });
-    console.log(`Invoices for ${custName} (Basic-8):`, JSON.stringify(invRes.data, null, 2));
+    console.log(`Invoices for ${p.name} (${p.plan}):`, JSON.stringify(invRes.data, null, 2));
   }
 }
 

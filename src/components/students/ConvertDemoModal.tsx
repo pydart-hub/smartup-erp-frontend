@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import type { Student } from "@/lib/types/student";
-import { generateInstalmentSchedule } from "@/lib/utils/feeSchedule";
+import { generateInstalmentSchedule, getOptionTotal } from "@/lib/utils/feeSchedule";
 import type { FeeConfigEntry } from "@/lib/types/fee";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -122,11 +122,7 @@ function fmtCurrency(amount: number) {
 }
 
 function getBaseOptionTotal(config: FeeConfigEntry, instalments: number): number {
-  if (instalments === 1) return config.otp;
-  if (instalments === 4) return config.quarterly_total;
-  if (instalments === 6) return config.inst6_total;
-  if (instalments === 8) return config.inst8_total;
-  return 0;
+  return getOptionTotal(config, instalments);
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────

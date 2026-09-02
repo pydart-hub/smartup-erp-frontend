@@ -103,23 +103,35 @@ export interface PaymentFormData {
 
 /** Single pricing entry from fee_structure_parsed.json */
 export interface FeeConfigEntry {
-  branch: string;        // e.g. "Vennala", "Tier 1 (Chullikal, Fortkochi, Eraveli, Palluruthi)"
+  branch: string;        // e.g. "Vennala", "Tier 1", "Eraveli"
   plan: string;          // "Basic" | "Intermediate" | "Advanced"
   class: string;         // e.g. "8 State", "9 Cbse", "Plus One", "Plus Two"
   annual_fee: number;
-  early_bird: number;
   otp: number;           // One-Time Payment
-  quarterly_total: number;
-  q1: number;
-  q2: number;
-  q3: number;
-  q4: number;
-  inst6_total: number;
-  inst6_per: number;     // per-instalment for instalments 1-5
-  inst6_last: number;    // last instalment (different due to rounding)
-  inst8_total: number;
-  inst8_per: number;     // per-instalment for instalments 1-7
-  inst8_last: number;    // last instalment (different due to rounding)
+
+  // 7-Month (5 Instalments) plan fields
+  instalments_count?: number;
+  inst1?: number;
+  inst2?: number;
+  inst3?: number;
+  inst4?: number;
+  inst5?: number;
+  inst5_total?: number;
+  inst5_schedule?: number[];
+
+  // Legacy Full-Year plan fields
+  early_bird?: number;
+  quarterly_total?: number;
+  q1?: number;
+  q2?: number;
+  q3?: number;
+  q4?: number;
+  inst6_total?: number;
+  inst6_per?: number;     // per-instalment for instalments 1-5
+  inst6_last?: number;    // last instalment (different due to rounding)
+  inst8_total?: number;
+  inst8_per?: number;     // per-instalment for instalments 1-7
+  inst8_last?: number;    // last instalment (different due to rounding)
 }
 
 /** A single instalment in the payment schedule */
@@ -134,8 +146,8 @@ export interface InstalmentEntry {
 
 /** Payment option summary shown in the admission UI */
 export interface PaymentOptionSummary {
-  instalments: number;   // 1, 4, 6, or 8
-  label: string;         // "One-Time Payment", "Quarterly", etc.
+  instalments: number;   // 1, 4, 5, 6, or 8
+  label: string;         // "One-Time Payment", "Quarterly", "5 Monthly Instalments", etc.
   total: number;         // total amount for this option
   schedule: InstalmentEntry[];
   savings?: number;      // savings vs annual_fee (if applicable)

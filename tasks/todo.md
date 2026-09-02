@@ -1,5 +1,25 @@
 # SmartUp ERP — Task Tracker
 
+## Current: Migrate to 7-Month Fee Structure (2026-09-01)
+
+- [x] Deep audit of `FEES STRUCTURE 7 MONTHS.xlsx` across all 7 branch sheets
+- [x] Validate mathematical parity across all 41 branch/program entries
+- [x] Backup existing full-year JSON to `docs/fee_structure_parsed_full_year_backup.json`
+- [x] Convert 7-month structure to `docs/fee_structure_parsed.json` with 5-instalment breakdown
+- [x] Update `FeeConfigEntry` interface in `src/lib/types/fee.ts`
+- [x] Update `INSTALMENT_DUE_DATES` and `PAYMENT_OPTION_LABELS` in `src/lib/utils/constants.ts`
+- [x] Update schedule offsets and calculation engine in `src/lib/utils/feeSchedule.ts`
+- [x] Update Frappe `Custom Field` options for `custom_no_of_instalments` to support `5`
+- [x] Seed all 65 `*-Basic-5` Fee Structure records in Frappe ERP Cloud backend
+- [x] Run full TypeScript type check (`npx tsc --noEmit`) — 0 errors
+- [x] Execute end-to-end admission pricing simulation across all branches — 100% passed
+
+### Review
+- Successfully migrated admission fee structure from 8 installments to the new 7-month fee structure (One-Time Payment + 5 Monthly Instalments).
+- All 9 branches (`Smart Up Chullickal`, `Fortkochi`, `Palluruthy`, `Eraveli`, `Thopumpadi`, `Moolamkuzhi`, `Vennala`, `Kadavanthara`, `Edappally`) and all active academic programs are fully configured.
+- Frappe backend `Fee Structure` doctypes with `custom_no_of_instalments = "5"` have been created and linked to their respective company cost centers and tuition income categories.
+- Existing students' financial records remain untouched and protected.
+
 ## Current: Add Onam Exam Type (2026-08-31)
 
 - [x] Ensure `Onam Exam` Assessment Group exists in Frappe backend
