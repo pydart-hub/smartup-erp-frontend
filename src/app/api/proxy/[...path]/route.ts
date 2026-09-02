@@ -642,6 +642,12 @@ async function proxyRequest(request: NextRequest, method: string) {
       decodedPath.startsWith("resource/GM Study Material Subject") ||
       decodedPath.startsWith("resource/GM Study Material Link");
 
+    // Sales Order writes/submits during student admission (e.g. by Sales Users or Branch Managers)
+    const isSalesOrderWrite =
+      (method === "POST" || method === "PUT") &&
+      (decodedPath.startsWith("resource/Sales Order") ||
+        decodedPath.startsWith("resource/Sales Order/"));
+
     const useAdminToken =
       ((isBranchManager || isHRManager) && !isAdmin) ||
       allowInstructorTopicCoverageWrite ||
@@ -654,7 +660,8 @@ async function proxyRequest(request: NextRequest, method: string) {
       isCourseScheduleRead ||
       isStudentRead ||
       isProgramEnrollmentRead ||
-      isGMVideoReadOrWrite;
+      isGMVideoReadOrWrite ||
+      isSalesOrderWrite;
 
     console.log(`[PROXY DEBUG] path: "${proxyPath}", decoded: "${decodedPath}", isGMVideo: ${isGMVideoReadOrWrite}, useAdminToken: ${useAdminToken}, hasAdminKey: ${!!process.env.FRAPPE_API_KEY}`);
     if (!useAdminToken && hasUserToken) {

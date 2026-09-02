@@ -1061,7 +1061,7 @@ export async function admitStudent(
       // Fee selection — stored on PE for parent dashboard
       custom_fee_structure: form.fee_structure,
       custom_plan: form.custom_plan,
-      custom_no_of_instalments: form.custom_no_of_instalments,
+      custom_no_of_instalments: sanitizeInstalmentsForFrappe(form.custom_no_of_instalments),
       ...(form.o2oHourlyRate
         ? {
             custom_o2o_rate_per_class: form.o2oHourlyRate,
@@ -1186,7 +1186,7 @@ export async function admitStudent(
         // Custom fields for student fee tracking
         custom_academic_year: form.academic_year || "2026-2027",
         student: student.name,
-        custom_no_of_instalments: form.custom_no_of_instalments || undefined,
+        custom_no_of_instalments: sanitizeInstalmentsForFrappe(form.custom_no_of_instalments),
         custom_plan: form.custom_plan || undefined,
       };
       const soRes = await createSalesOrder(soPayload);
@@ -1198,7 +1198,7 @@ export async function admitStudent(
     }
   } catch (soError) {
     // Non-blocking — student + enrollment are already created
-    const msg = soError instanceof Error ? soError.message : String(soError);
+    const msg = extractFrappeError(soError, "Sales Order creation failed");
     console.warn("[admitStudent] Auto Sales Order creation failed (non-blocking):", soError);
     warnings.push(`Sales Order creation failed: ${msg}`);
     updateStage("sales_order", "failed", msg);
@@ -1245,7 +1245,7 @@ export async function admitStudent(
         updateStage("invoices", "failed", `HTTP ${invRes.status}`);
       }
     } catch (invError) {
-      const msg = invError instanceof Error ? invError.message : String(invError);
+      const msg = extractFrappeError(invError, "Auto Invoice creation failed");
       console.warn("[admitStudent] Auto Invoice creation failed (non-blocking):", invError);
       warnings.push(`Invoice creation failed: ${msg}. Invoices can be created later from the Sales Order.`);
       updateStage("invoices", "failed", msg);
@@ -1300,7 +1300,7 @@ export async function admitStudent(
           }
         }
       } catch (invError) {
-        const msg = invError instanceof Error ? invError.message : String(invError);
+        const msg = extractFrappeError(invError, "Single invoice fallback failed");
         warnings.push(`Invoice creation failed: ${msg}. Invoices can be created later from the Sales Order.`);
         updateStage("invoices", "failed", msg);
         console.warn("[admitStudent] Single invoice fallback failed (non-blocking):", invError);
@@ -1345,7 +1345,7 @@ export async function admitStudent(
         updateStage("sibling_discount", "failed", `HTTP ${discountRes.status}`);
       }
     } catch (discountErr) {
-      const msg = discountErr instanceof Error ? discountErr.message : String(discountErr);
+      const msg = extractFrappeError(discountErr, "Sibling discount error");
       console.warn("[admitStudent] Sibling discount error (non-blocking):", discountErr);
       warnings.push(`Existing sibling discount failed: ${msg}. Can be applied manually later.`);
       updateStage("sibling_discount", "failed", msg);
@@ -1400,3 +1400,15 @@ function extractFrappeError(err: unknown, fallback: string): string {
 
   return fallback;
 }
+
+/**
+ * Frappe's custom_no_of_instalments field is a Select field with options "1", "4", "6", "8" in Frappe Cloud.
+ * If a value outside Frappe's Select options (e.g. "5") is sent in the REST body, Frappe raises a ValidationError (417).
+ * This helper returns the value if supported by Frappe's Select options, or undefined otherwise.
+ */
+function sanitizeInstalmentsForFrappe(value?: string): string | undefined {
+  if (!value) return undefined;
+  const validFrappeOptions = ["1", "4", "5", "6", "8"];
+  return validFrappeOptions.includes(value) ? value : undefined;
+}
+
