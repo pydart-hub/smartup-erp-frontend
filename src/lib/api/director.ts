@@ -1583,6 +1583,11 @@ export interface DuesTodayStudentRow {
   class_name?: string;
   batch_name?: string;
   total_dues: number;
+  total_fee?: number;
+  paid_fee?: number;
+  balance_fee?: number;
+  admission_date?: string;
+  is_overdue?: boolean;
   plan: string;
   no_of_instalments: string;
   guardian_name: string;

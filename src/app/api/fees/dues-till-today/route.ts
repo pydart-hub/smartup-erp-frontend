@@ -692,11 +692,9 @@ async function handleGet(request: NextRequest) {
 
       const discCustomers = await getDiscontinuedCustomers(branch);
 
-      // Step 2: Fetch overdue invoices for these students
+      // Step 2: Fetch all posted invoices for these students
       const siFilters: (string | number | string[])[][] = [
         ["Sales Invoice", "docstatus", "=", 1],
-        ["Sales Invoice", "outstanding_amount", ">", 0],
-        ["Sales Invoice", "due_date", "<=", todayDate],
         ["Sales Invoice", "student", "in", studentIds],
         ["Sales Invoice", "company", "=", branch],
       ];
@@ -784,24 +782,58 @@ async function handleGet(request: NextRequest) {
         return "Inst";
       }
 
-      // Aggregate per student
+      // Initialize map for all enrolled students in the batch
       const studentMap = new Map<string, {
         total_dues: number;
-        overdue_invoices: { name: string; amount: number; grand_total: number; due_date: string; instalment_label: string }[];
+        total_fee: number;
+        paid_fee: number;
+        balance_fee: number;
+        overdue_invoices: { name: string; amount: number; grand_total: number; paid: number; due_date: string; instalment_label: string }[];
       }>();
+
+      for (const s of sgStudents) {
+        if (!discStudentIds.has(s.student)) {
+          studentMap.set(s.student, {
+            total_dues: 0,
+            total_fee: 0,
+            paid_fee: 0,
+            balance_fee: 0,
+            overdue_invoices: [],
+          });
+        }
+      }
 
       for (const inv of invoices) {
         if (!inv.student || discStudentIds.has(inv.student)) continue;
-        const existing = studentMap.get(inv.student) ?? { total_dues: 0, overdue_invoices: [] };
-        existing.total_dues += inv.outstanding_amount ?? 0;
-        const planInfo = studentPlanMap.get(inv.student);
-        existing.overdue_invoices.push({
-          name: inv.name,
-          amount: inv.outstanding_amount ?? 0,
-          grand_total: inv.grand_total ?? 0,
-          due_date: inv.due_date,
-          instalment_label: getInstalmentLabel(inv.due_date, planInfo?.no_of_instalments ?? "1"),
-        });
+        const existing = studentMap.get(inv.student) ?? {
+          total_dues: 0,
+          total_fee: 0,
+          paid_fee: 0,
+          balance_fee: 0,
+          overdue_invoices: [],
+        };
+
+        const grandTotal = inv.grand_total ?? 0;
+        const outstanding = inv.outstanding_amount ?? 0;
+        const paid = Math.max(0, grandTotal - outstanding);
+
+        existing.total_fee += grandTotal;
+        existing.paid_fee += paid;
+        existing.balance_fee += outstanding;
+
+        const isOverdue = outstanding > 0 && inv.due_date <= todayDate;
+        if (isOverdue) {
+          existing.total_dues += outstanding;
+          const planInfo = studentPlanMap.get(inv.student);
+          existing.overdue_invoices.push({
+            name: inv.name,
+            amount: outstanding,
+            grand_total: grandTotal,
+            paid,
+            due_date: inv.due_date,
+            instalment_label: getInstalmentLabel(inv.due_date, planInfo?.no_of_instalments ?? "1"),
+          });
+        }
         studentMap.set(inv.student, existing);
       }
 
@@ -836,6 +868,8 @@ async function handleGet(request: NextRequest) {
           }
           if (doc?.joining_date) {
             joiningDateMap.set(studentIds[i], doc.joining_date);
+          } else if (doc?.creation) {
+            joiningDateMap.set(studentIds[i], String(doc.creation).slice(0, 10));
           }
         }
       }
@@ -859,29 +893,35 @@ async function handleGet(request: NextRequest) {
       }
 
       const rows = Array.from(studentMap.entries())
-        .map(([studentId, { total_dues, overdue_invoices }]) => {
+        .map(([studentId, { total_dues, total_fee, paid_fee, balance_fee, overdue_invoices }]) => {
           const planInfo = studentPlanMap.get(studentId);
           const guardianId = studentGuardianMap.get(studentId) ?? "";
+          const admissionDate = joiningDateMap.get(studentId) ?? "";
           return {
             student_id: studentId,
             student_name: nameMap.get(studentId) ?? studentId,
             total_dues,
+            total_fee,
+            paid_fee,
+            balance_fee,
+            admission_date: admissionDate,
+            is_overdue: total_dues > 0,
             plan: planInfo?.plan || "",
             no_of_instalments: planInfo?.no_of_instalments || "",
             guardian_name: guardianNameMap.get(guardianId) ?? "",
             guardian_phone: guardianPhoneMap.get(guardianId) ?? "",
-            joining_date: joiningDateMap.get(studentId) ?? "",
-            overdue_invoices: overdue_invoices
-              .map((inv) => ({
-                ...inv,
-                paid: (inv.grand_total ?? 0) - (inv.amount ?? 0),
-              }))
-              .sort(
-                (a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
-              ),
+            joining_date: admissionDate,
+            overdue_invoices: overdue_invoices.sort(
+              (a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
+            ),
           };
         })
-        .sort((a, b) => b.total_dues - a.total_dues);
+        .sort((a, b) => {
+          if (b.total_dues !== a.total_dues) {
+            return b.total_dues - a.total_dues;
+          }
+          return a.student_name.localeCompare(b.student_name);
+        });
 
       return NextResponse.json({ data: rows });
     }
