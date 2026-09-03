@@ -45,6 +45,7 @@ const statusMap: Record<string, string> = {
   "On Leave": "Leave",
   "Work From Home": "Work From Home",
   "At Head Office": "At Head Office",
+  Holiday: "Holiday",
   "Not Marked": "-",
 };
 
@@ -55,6 +56,7 @@ const statusColors: Record<string, string> = {
   "On Leave": "text-sky-700 bg-sky-50 border-sky-200",
   "Work From Home": "text-indigo-700 bg-indigo-50 border-indigo-200",
   "At Head Office": "text-indigo-700 bg-indigo-50 border-indigo-200",
+  Holiday: "text-purple-700 bg-purple-50 border-purple-200",
   "Not Marked": "text-gray-400 bg-gray-50/50 border-gray-100",
 };
 
@@ -327,6 +329,10 @@ export default function HRMonthlyReportDashboard() {
             } else if (raw.startsWith("At Head Office")) {
               data.cell.styles.fillColor = [238, 242, 255];
               data.cell.styles.textColor = [67, 56, 202];
+            } else if (raw.startsWith("Holiday")) {
+              data.cell.styles.fillColor = [243, 232, 255];
+              data.cell.styles.textColor = [126, 34, 206];
+              data.cell.styles.fontStyle = "bold";
             } else if (raw === "-") {
               data.cell.styles.textColor = [156, 163, 175];
             }
@@ -535,7 +541,7 @@ export default function HRMonthlyReportDashboard() {
           </div>
 
           {/* Legend Bar */}
-          <div className="flex items-center gap-4 flex-wrap px-4 py-2.5 bg-white/50 dark:bg-slate-900/20 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
+          <div className="flex items-center gap-2.5 flex-wrap px-4 py-2.5 bg-white/50 dark:bg-slate-900/20 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
             <span className="font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1">
               <Clock className="h-3.5 w-3.5 text-violet-500" /> Key:
             </span>
@@ -553,6 +559,12 @@ export default function HRMonthlyReportDashboard() {
             </span>
             <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20 font-medium">
               Work From Home
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20 font-medium">
+              At Head Office
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/20 font-medium">
+              Holiday
             </span>
             <span className="text-slate-400 dark:text-slate-500 ml-auto">
               Timestamps: <strong className="text-slate-700 dark:text-slate-300">In - Out</strong> &bull; <strong className="text-violet-600 dark:text-violet-400 font-bold">Hrs</strong>

@@ -17,6 +17,7 @@ import {
   X,
   MapPin,
   ExternalLink,
+  Palmtree,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/Card";
@@ -37,6 +38,7 @@ const statusConfig: Record<
   "On Leave": { color: "text-blue-500 dark:text-blue-400", bg: "bg-blue-500/10", icon: Clock },
   "Work From Home": { color: "text-violet-500 dark:text-violet-400", bg: "bg-violet-500/10", icon: Users },
   "At Head Office": { color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-500/10", icon: Building2 },
+  Holiday: { color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-500/10", icon: Palmtree },
   "Not Marked": { color: "text-slate-500 dark:text-slate-400", bg: "bg-slate-500/10", icon: Clock },
 };
 
@@ -102,6 +104,7 @@ export default function HRBranchAttendanceDashboard() {
       let onLeave = 0;
       let wfh = 0;
       let atHeadOffice = 0;
+      let holiday = 0;
       let notMarked = 0;
 
       const employeeDetails = branchEmployees.map((emp) => {
@@ -114,6 +117,7 @@ export default function HRBranchAttendanceDashboard() {
         else if (status === "On Leave") onLeave++;
         else if (status === "Work From Home") wfh++;
         else if (status === "At Head Office") atHeadOffice++;
+        else if (status === "Holiday") holiday++;
         else notMarked++;
 
         return {
@@ -133,7 +137,7 @@ export default function HRBranchAttendanceDashboard() {
         employees: employeeDetails,
         total,
         rate,
-        stats: { present, absent, halfDay, onLeave, wfh, atHeadOffice, notMarked },
+        stats: { present, absent, halfDay, onLeave, wfh, atHeadOffice, holiday, notMarked },
       };
     });
   }, [branches, allEmployees, allAttendance]);
@@ -146,6 +150,7 @@ export default function HRBranchAttendanceDashboard() {
     let totalOnLeave = 0;
     let totalWfh = 0;
     let totalAtHeadOffice = 0;
+    let totalHoliday = 0;
 
     branchData.forEach((b) => {
       totalEmployees += b.total;
@@ -154,6 +159,7 @@ export default function HRBranchAttendanceDashboard() {
       totalOnLeave += b.stats.onLeave + b.stats.halfDay; // count half day here or separate
       totalWfh += b.stats.wfh;
       totalAtHeadOffice += b.stats.atHeadOffice || 0;
+      totalHoliday += b.stats.holiday || 0;
     });
 
     const attendanceRate = totalEmployees > 0 
@@ -168,6 +174,7 @@ export default function HRBranchAttendanceDashboard() {
       totalOnLeave,
       totalWfh,
       totalAtHeadOffice,
+      totalHoliday,
     };
   }, [branchData]);
 
@@ -445,7 +452,7 @@ export default function HRBranchAttendanceDashboard() {
 
                 {/* Status Quick Filter Tabs */}
                 <div className="flex flex-wrap gap-1.5">
-                  {["All", "Present", "Absent", "Half Day", "On Leave", "Work From Home", "At Head Office", "Not Marked"].map((status) => {
+                  {["All", "Present", "Absent", "Half Day", "On Leave", "Work From Home", "At Head Office", "Holiday", "Not Marked"].map((status) => {
                     const count = status === "All" 
                       ? currentBranchDetail.total 
                       : status === "Present" 
@@ -460,7 +467,9 @@ export default function HRBranchAttendanceDashboard() {
                                 ? currentBranchDetail.stats.wfh 
                                 : status === "At Head Office"
                                   ? currentBranchDetail.stats.atHeadOffice
-                                  : currentBranchDetail.stats.notMarked;
+                                  : status === "Holiday"
+                                    ? currentBranchDetail.stats.holiday
+                                    : currentBranchDetail.stats.notMarked;
 
                     return (
                       <button

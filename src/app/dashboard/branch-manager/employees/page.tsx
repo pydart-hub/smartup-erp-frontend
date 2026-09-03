@@ -19,16 +19,19 @@ import {
   RefreshCw,
   X,
   Shield,
+  Palmtree,
 } from "lucide-react";
 import Link from "next/link";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
-import { Card, CardContent } from "@/components/ui/Card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/lib/hooks/useAuth";
 import {
+  type Employee,
+  type EmployeeAttendance,
   getEmployees,
   getEmployeeAttendance,
   createEmployeeAttendance,
@@ -44,7 +47,7 @@ function formatTimeForInput(val?: string | null): string {
   return timePart.slice(0, 5); // HH:MM
 }
 
-type AttStatus = "Present" | "Absent" | "Half Day" | "On Leave" | "Work From Home" | "At Head Office";
+type AttStatus = "Present" | "Absent" | "Half Day" | "On Leave" | "Work From Home" | "At Head Office" | "Holiday";
 
 const ATT_OPTIONS: {
   value: AttStatus;
@@ -57,6 +60,7 @@ const ATT_OPTIONS: {
   { value: "Half Day",       label: "Half Day", icon: Clock,       active: "bg-warning text-white border-warning" },
   { value: "Work From Home", label: "WFH",      icon: Users,       active: "bg-primary text-white border-primary" },
   { value: "At Head Office", label: "At HO",    icon: Building2,   active: "bg-indigo-600 text-white border-indigo-600" },
+  { value: "Holiday",        label: "Holiday",  icon: Palmtree,    active: "bg-purple-600 text-white border-purple-600" },
 ];
 
 const ATT_VIEW_CONFIG: Record<
@@ -69,6 +73,7 @@ const ATT_VIEW_CONFIG: Record<
   "On Leave":       { variant: "default", icon: UserX,       color: "text-info" },
   "Work From Home": { variant: "default", icon: Users,       color: "text-primary" },
   "At Head Office": { variant: "default", icon: Building2,   color: "text-indigo-600" },
+  Holiday:          { variant: "default", icon: Palmtree,    color: "text-purple-600 dark:text-purple-400" },
 };
 
 //  Page 

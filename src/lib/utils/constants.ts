@@ -113,6 +113,7 @@ export const CURRICULUM_DEPT_NAV: NavItem[] = [
     emoji: "🎯",
     children: [
       { label: "Branch Wise Ranking", href: "/dashboard/curriculum-dept/cwc-corner/branch-ranking", icon: "School", emoji: "🏫" },
+      { label: "Subject Wise Ranking", href: "/dashboard/curriculum-dept/cwc-corner/subject-ranking", icon: "BookOpen", emoji: "📚" },
       { label: "SmartUp Ranking", href: "/dashboard/curriculum-dept/cwc-corner/smartup-ranking", icon: "Trophy", emoji: "🏆" },
     ],
   },

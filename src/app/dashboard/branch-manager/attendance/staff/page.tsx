@@ -4,8 +4,9 @@ import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  ClipboardCheck, Calendar, Search, Users, CheckCircle,
+  ClipboardCheck, Calendar, Users, CheckCircle,
   XCircle, Clock, Loader2, UserX, Save, ArrowLeft, Building2, LogIn, LogOut,
+  Palmtree,
 } from "lucide-react";
 import Link from "next/link";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
@@ -26,7 +27,7 @@ import {
 } from "@/lib/api/employees";
 import { getCourseSchedules } from "@/lib/api/courseSchedule";
 
-type StaffStatus = "Present" | "Absent" | "Half Day" | "On Leave" | "Work From Home" | "At Head Office";
+type StaffStatus = "Present" | "Absent" | "Half Day" | "On Leave" | "Work From Home" | "At Head Office" | "Holiday";
 
 interface StaffAttendanceChange {
   status: StaffStatus;
@@ -34,7 +35,7 @@ interface StaffAttendanceChange {
   out_time?: string;
 }
 
-const STATUS_OPTIONS: StaffStatus[] = ["Present", "Absent", "Half Day", "Work From Home", "At Head Office"];
+const STATUS_OPTIONS: StaffStatus[] = ["Present", "Absent", "Half Day", "Work From Home", "At Head Office", "Holiday"];
 
 const DEFAULT_IN_TIME = "09:00";
 const DEFAULT_OUT_TIME = "17:30";
@@ -60,6 +61,7 @@ const statusConfig: Record<string, { color: string; bg: string; icon: React.Comp
   "On Leave": { color: "text-info", bg: "bg-info/10", icon: UserX, variant: "default" },
   "Work From Home": { color: "text-primary", bg: "bg-brand-wash", icon: Users, variant: "default" },
   "At Head Office": { color: "text-indigo-600", bg: "bg-indigo-50", icon: Building2, variant: "default" },
+  Holiday: { color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-50 dark:bg-purple-950/30", icon: Palmtree, variant: "default" },
   "Not Marked": { color: "text-text-tertiary", bg: "bg-app-bg", icon: Clock, variant: "default" },
 };
 
@@ -70,18 +72,11 @@ export default function StaffAttendancePage() {
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split("T")[0]
   );
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
   const [pendingChanges, setPendingChanges] = useState<Record<string, StaffAttendanceChange>>({});
   const [saving, setSaving] = useState(false);
   const [classTime, setClassTime] = useState("17:00");
 
   const employeeAttendanceQueryKey = ["employee-attendance", defaultCompany, selectedDate] as const;
-
-  useEffect(() => {
-    const t = setTimeout(() => setSearch(searchInput), 400);
-    return () => clearTimeout(t);
-  }, [searchInput]);
 
   // Reset pending changes when date changes
   useEffect(() => {
@@ -269,19 +264,16 @@ export default function StaffAttendancePage() {
       };
     });
 
-    // Combine and apply search
-    const combined = [...regular, ...visiting];
-    if (!search) return combined;
-    return combined.filter((s) =>
-      s.employee_name.toLowerCase().includes(search.toLowerCase())
-    );
-  }, [employees, visitingInstructors, attMap, visitingAttMap, pendingChanges, search]);
+    // Combine regular employees and visiting instructors
+    return [...regular, ...visiting];
+  }, [employees, visitingInstructors, attMap, visitingAttMap, pendingChanges]);
 
   // Summary counts (including pending changes)
   const presentCount = unifiedStaffList.filter((e) => e.attendance_status === "Present").length;
   const absentCount = unifiedStaffList.filter((e) => e.attendance_status === "Absent").length;
+  const holidayCount = unifiedStaffList.filter((e) => e.attendance_status === "Holiday").length;
   const notMarkedCount = unifiedStaffList.filter((e) => e.attendance_status === "Not Marked").length;
-  const otherCount = unifiedStaffList.length - presentCount - absentCount - notMarkedCount;
+  const otherCount = unifiedStaffList.length - presentCount - absentCount - holidayCount - notMarkedCount;
 
   const pendingCount = Object.keys(pendingChanges).length;
 
@@ -323,7 +315,7 @@ export default function StaffAttendancePage() {
     } else if (nextStatus === "Half Day") {
       if (!in_time) in_time = DEFAULT_IN_TIME;
       if (!out_time) out_time = DEFAULT_HALF_DAY_OUT_TIME;
-    } else if (nextStatus === "Absent" || nextStatus === "On Leave" || nextStatus === "Work From Home" || nextStatus === "At Head Office") {
+    } else if (nextStatus === "Absent" || nextStatus === "On Leave" || nextStatus === "Work From Home" || nextStatus === "At Head Office" || nextStatus === "Holiday") {
       in_time = "";
       out_time = "";
     }
@@ -379,6 +371,26 @@ export default function StaffAttendancePage() {
     }
     setPendingChanges(changes);
   }
+
+  // Mark all holiday
+  function markAllHoliday() {
+    const changes: Record<string, StaffAttendanceChange> = {};
+    for (const emp of employees) {
+      changes[emp.name] = {
+        status: "Holiday",
+        in_time: "",
+        out_time: "",
+      };
+    }
+    for (const v of visitingInstructors) {
+      changes[`visiting_${v.employee}`] = {
+        status: "Holiday",
+        in_time: "",
+        out_time: "",
+      };
+    }
+    setPendingChanges(changes);
+  }
   // Save attendance
   const saveAttendance = useCallback(async () => {
     const currentSavedClassTime = (attRes?.data || []).find((r) => r.custom_class_time)?.custom_class_time?.slice(0, 5) || "";
@@ -428,14 +440,15 @@ export default function StaffAttendancePage() {
           const v = visitingInstructors.find((vi) => vi.employee === empId);
           if (!v) return;
           const existing = visitingAttMap.get(empId);
+          const isNoTimeStatus = change.status === "At Head Office" || change.status === "Holiday" || change.status === "Absent" || change.status === "On Leave";
           const payload = {
             employee: empId,
             employee_name: v.instructor_name,
             attendance_date: selectedDate,
             status: change.status,
             company: v.custom_company || defaultCompany || "",
-            in_time: change.status === "At Head Office" ? undefined : inTimeISO,
-            out_time: change.status === "At Head Office" ? undefined : outTimeISO,
+            in_time: isNoTimeStatus ? undefined : inTimeISO,
+            out_time: isNoTimeStatus ? undefined : outTimeISO,
             custom_class_time: classTime || undefined,
             custom_visiting_branch: defaultCompany || undefined,
           };
@@ -452,14 +465,15 @@ export default function StaffAttendancePage() {
         const existing = attMap.get(empId);
         const emp = employees.find((e) => e.name === empId);
         if (!emp) return;
+        const isNoTimeStatus = change.status === "At Head Office" || change.status === "Holiday" || change.status === "Absent" || change.status === "On Leave";
         const payload = {
           employee: empId,
           employee_name: emp.employee_name,
           attendance_date: selectedDate,
           status: change.status,
           company: defaultCompany || "",
-          in_time: change.status === "At Head Office" ? undefined : inTimeISO,
-          out_time: change.status === "At Head Office" ? undefined : outTimeISO,
+          in_time: isNoTimeStatus ? undefined : inTimeISO,
+          out_time: isNoTimeStatus ? undefined : outTimeISO,
           custom_class_time: classTime || undefined,
         };
 
@@ -609,8 +623,12 @@ export default function StaffAttendancePage() {
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="md" onClick={markAllPresent} disabled={attLoading || employees.length === 0}>
-            <CheckCircle className="h-4 w-4" />
+            <CheckCircle className="h-4 w-4 text-success" />
             Mark All Present
+          </Button>
+          <Button variant="outline" size="md" onClick={markAllHoliday} disabled={attLoading || employees.length === 0}>
+            <Palmtree className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+            Mark All Holiday
           </Button>
           <Button
             variant="primary"
@@ -625,7 +643,7 @@ export default function StaffAttendancePage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold text-success">{presentCount}</p>
@@ -636,6 +654,12 @@ export default function StaffAttendancePage() {
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold text-error">{absentCount}</p>
             <p className="text-xs text-error font-medium mt-1">Absent</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{holidayCount}</p>
+            <p className="text-xs text-purple-600 dark:text-purple-400 font-medium mt-1">Holiday</p>
           </CardContent>
         </Card>
         <Card>
@@ -652,39 +676,59 @@ export default function StaffAttendancePage() {
         </Card>
       </div>
 
-      {/* Filters */}
+      {/* Filters & Legend Bar */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="flex-1">
-              <Input
-                placeholder="Search by employee name…"
-                leftIcon={<Search className="h-4 w-4" />}
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-              />
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            {/* Legend / Keys */}
+            <div className="flex items-center gap-2 flex-wrap text-xs">
+              <span className="font-semibold text-text-secondary flex items-center gap-1 mr-1">
+                <Clock className="h-3.5 w-3.5 text-primary" /> Key:
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-success-light text-success font-medium">
+                <CheckCircle className="h-3 w-3" /> Present
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-error-light text-error font-medium">
+                <XCircle className="h-3 w-3" /> Absent
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-warning-light text-warning font-medium">
+                <Clock className="h-3 w-3" /> Half Day
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-brand-wash text-primary font-medium">
+                <Users className="h-3 w-3" /> Work From Home
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-indigo-50 text-indigo-600 font-medium">
+                <Building2 className="h-3 w-3" /> At Head Office
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-purple-50 text-purple-600 dark:bg-purple-950/30 dark:text-purple-400 font-medium">
+                <Palmtree className="h-3 w-3" /> Holiday
+              </span>
             </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-text-secondary flex items-center gap-1">
-                <Calendar className="h-3 w-3" /> Date
-              </label>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="h-10 rounded-[10px] border border-border-input bg-surface px-3 text-sm"
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-text-secondary flex items-center gap-1">
-                <Clock className="h-3 w-3" /> Class Time
-              </label>
-              <input
-                type="time"
-                value={classTime}
-                onChange={(e) => setClassTime(e.target.value)}
-                className="h-10 rounded-[10px] border border-border-input bg-surface px-3 text-sm"
-              />
+
+            {/* Date & Class Time Controls */}
+            <div className="flex items-center gap-3 self-end lg:self-auto">
+              <div className="flex items-center gap-1.5">
+                <label className="text-xs font-medium text-text-secondary flex items-center gap-1">
+                  <Calendar className="h-3.5 w-3.5" /> Date
+                </label>
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="h-9 rounded-[10px] border border-border-input bg-surface px-2.5 text-sm"
+                />
+              </div>
+              <div className="flex items-center gap-1.5">
+                <label className="text-xs font-medium text-text-secondary flex items-center gap-1">
+                  <Clock className="h-3.5 w-3.5" /> Class Time
+                </label>
+                <input
+                  type="time"
+                  value={classTime}
+                  onChange={(e) => setClassTime(e.target.value)}
+                  className="h-9 rounded-[10px] border border-border-input bg-surface px-2.5 text-sm"
+                />
+              </div>
             </div>
           </div>
         </CardContent>
@@ -727,7 +771,7 @@ export default function StaffAttendancePage() {
               {unifiedStaffList.map((emp, index) => {
                 const cfg = statusConfig[emp.attendance_status] ?? statusConfig["Not Marked"];
                 const Icon = cfg.icon as React.ComponentType<{ className?: string }>;
-                const showTimings = emp.attendance_status && emp.attendance_status !== "Absent" && emp.attendance_status !== "On Leave" && emp.attendance_status !== "Work From Home" && emp.attendance_status !== "At Head Office" && emp.attendance_status !== "Not Marked";
+                const showTimings = emp.attendance_status && emp.attendance_status !== "Absent" && emp.attendance_status !== "On Leave" && emp.attendance_status !== "Work From Home" && emp.attendance_status !== "At Head Office" && emp.attendance_status !== "Holiday" && emp.attendance_status !== "Not Marked";
 
                 return (
                   <motion.div

@@ -19,6 +19,7 @@ import {
   LogIn,
   LogOut,
   Building2,
+  Palmtree,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
@@ -40,6 +41,7 @@ const statusConfig: Record<
   "On Leave": { color: "text-info", bg: "bg-info/10", icon: Clock, variant: "default" },
   "Work From Home": { color: "text-primary", bg: "bg-brand-wash", icon: Users, variant: "default" },
   "At Head Office": { color: "text-indigo-600", bg: "bg-indigo-50", icon: Building2, variant: "default" },
+  Holiday: { color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-500/10", icon: Palmtree, variant: "default" },
   "Not Marked": { color: "text-text-tertiary", bg: "bg-app-bg", icon: Clock, variant: "default" },
 };
 
@@ -108,8 +110,9 @@ export default function DirectorStaffBranchAttendancePage() {
 
   const presentCount = merged.filter((e) => e.attendance_status === "Present").length;
   const absentCount = merged.filter((e) => e.attendance_status === "Absent").length;
+  const holidayCount = merged.filter((e) => e.attendance_status === "Holiday").length;
   const notMarkedCount = merged.filter((e) => e.attendance_status === "Not Marked").length;
-  const otherCount = merged.length - presentCount - absentCount - notMarkedCount;
+  const otherCount = merged.length - presentCount - absentCount - holidayCount - notMarkedCount;
 
   return (
     <motion.div
@@ -155,7 +158,7 @@ export default function DirectorStaffBranchAttendancePage() {
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold text-success">{presentCount}</p>
@@ -166,6 +169,12 @@ export default function DirectorStaffBranchAttendancePage() {
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold text-error">{absentCount}</p>
             <p className="text-xs text-text-tertiary">Absent</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{holidayCount}</p>
+            <p className="text-xs text-purple-600 dark:text-purple-400">Holiday</p>
           </CardContent>
         </Card>
         <Card>
@@ -217,7 +226,7 @@ export default function DirectorStaffBranchAttendancePage() {
                   statusConfig[emp.attendance_status] ??
                   statusConfig["Not Marked"];
                 const Icon = cfg.icon;
-                const showTimings = emp.attendance_status && emp.attendance_status !== "Absent" && emp.attendance_status !== "On Leave" && emp.attendance_status !== "Work From Home" && emp.attendance_status !== "At Head Office" && emp.attendance_status !== "Not Marked";
+                const showTimings = emp.attendance_status && emp.attendance_status !== "Absent" && emp.attendance_status !== "On Leave" && emp.attendance_status !== "Work From Home" && emp.attendance_status !== "At Head Office" && emp.attendance_status !== "Holiday" && emp.attendance_status !== "Not Marked";
 
                 return (
                   <div

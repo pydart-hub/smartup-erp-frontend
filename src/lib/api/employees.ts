@@ -46,7 +46,7 @@ export interface EmployeeAttendance {
   employee: string;
   employee_name: string;
   attendance_date: string;
-  status: string; // "Present" | "Absent" | "Half Day" | "On Leave" | "Work From Home"
+  status: string; // "Present" | "Absent" | "Half Day" | "On Leave" | "Work From Home" | "At Head Office" | "Holiday"
   company: string;
   department?: string;
   leave_type?: string;
@@ -453,14 +453,14 @@ export async function createEmployeeAttendance(payload: {
   custom_class_time?: string;
   custom_visiting_branch?: string;
 }): Promise<{ data: EmployeeAttendance }> {
-  // "At Head Office" is not a valid Frappe HRMS status — use a custom Server Script
+  // "At Head Office" and "Holiday" use custom Server Script
   // that calls frappe.db.set_value to bypass the Python validate() hook.
-  if (payload.status === "At Head Office") {
+  if (payload.status === "At Head Office" || payload.status === "Holiday") {
     const { data } = await apiClient.post("/method/set_attendance_status", {
       employee: payload.employee,
       employee_name: payload.employee_name,
       attendance_date: payload.attendance_date,
-      status: "At Head Office",
+      status: payload.status,
       company: payload.company,
     });
     return { data: data as EmployeeAttendance };
@@ -552,14 +552,14 @@ export async function updateEmployeeAttendance(
     custom_visiting_branch?: string;
   }
 ): Promise<void> {
-  // "At Head Office" bypasses Python validator via custom Server Script
-  if (payload.status === "At Head Office") {
+  // "At Head Office" and "Holiday" bypass Python validator via custom Server Script
+  if (payload.status === "At Head Office" || payload.status === "Holiday") {
     await apiClient.post("/method/set_attendance_status", {
       existing_name: existingName,
       employee: payload.employee,
       employee_name: payload.employee_name,
       attendance_date: payload.attendance_date,
-      status: "At Head Office",
+      status: payload.status,
       company: payload.company,
     });
     return;
