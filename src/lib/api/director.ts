@@ -210,6 +210,7 @@ export async function getDiscontinuedStudents(params?: {
   limit_start?: number;
   limit_page_length?: number;
   search?: string;
+  branch?: string;
 }): Promise<{ data: DiscontinuedStudent[]; count: number }> {
   // Step 1: Fetch discontinued students
   const searchParams = new URLSearchParams({
@@ -227,7 +228,7 @@ export async function getDiscontinuedStudents(params?: {
       "student_mobile_number",
     ]),
     limit_start: String(params?.limit_start ?? 0),
-    limit_page_length: String(params?.limit_page_length ?? 50),
+    limit_page_length: String(params?.limit_page_length ?? 1000),
     order_by: "creation desc",
   });
 
@@ -235,12 +236,24 @@ export async function getDiscontinuedStudents(params?: {
   if (params?.search) {
     filters.push(["student_name", "like", `%${params.search}%`]);
   }
+  if (params?.branch && params.branch !== "all") {
+    filters.push(["custom_branch", "=", params.branch]);
+  }
   searchParams.set("filters", JSON.stringify(filters));
 
   try {
-    const { data: studentData } = await apiClient.get(`/resource/Student?${searchParams}`);
+    const [countRes, studentResponse] = await Promise.allSettled([
+      getCount("Student", filters),
+      apiClient.get(`/resource/Student?${searchParams}`),
+    ]);
+
+    const studentData =
+      studentResponse.status === "fulfilled" ? studentResponse.value?.data : null;
     const students: DiscontinuedStudent[] = studentData?.data ?? [];
-    const count = studentData?.message ?? studentData?.data?.length ?? 0;
+    const count =
+      countRes.status === "fulfilled" && typeof countRes.value === "number"
+        ? countRes.value
+        : studentData?.message ?? studentData?.data?.length ?? 0;
 
     // Step 2: Fetch enrollment + guardian info via director/admin routes
     if (students.length > 0) {
