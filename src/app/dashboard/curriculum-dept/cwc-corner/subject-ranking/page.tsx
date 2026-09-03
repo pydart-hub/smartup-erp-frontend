@@ -11,7 +11,6 @@ import {
   Users,
   Trophy,
   Sparkles,
-  Percent,
   Search,
   ChevronRight,
   ChevronDown,
@@ -20,7 +19,6 @@ import {
   XCircle,
   GraduationCap,
   Layers,
-  Award,
   Filter
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
@@ -65,10 +63,14 @@ const getRateColor = (rate: number) => {
 };
 
 export default function SubjectRankingPage() {
+  // 3-Level Drill-Down: "classes" | "subjects" | "ranking"
+  const [level, setLevel] = useState<"classes" | "subjects" | "ranking">("classes");
+
   const [selectedCwc, setSelectedCwc] = useState("CWC 1");
   const [selectedSubject, setSelectedSubject] = useState("Physics");
   const [selectedStandard, setSelectedStandard] = useState("10th");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedPlanFilter, setSelectedPlanFilter] = useState<"all" | "Advanced" | "Basic">("all");
   const [rankingSortBy, setRankingSortBy] = useState<"passRate" | "averageScore" | "topperCount">("passRate");
 
   // Selected Branch for Drill-down / Detailed Student list
@@ -206,6 +208,128 @@ export default function SubjectRankingPage() {
       setSelectedStandard(has10th || "all");
     }
   }, [availableStandards, selectedStandard]);
+
+  // Level 1: Class Summaries Calculation
+  const classSummaries = useMemo(() => {
+    const defaultStandards = ["8th", "9th", "10th", "11th", "12th"];
+    const standardKeys = Array.from(new Set([...availableStandards, ...defaultStandards]))
+      .sort((a, b) => (parseInt(a) || 0) - (parseInt(b) || 0));
+
+    return standardKeys.map((stdKey) => {
+      const stdPlans = cwcPlansFiltered.filter((p: any) => {
+        const std = extractStandard(p.student_group || p.course || "");
+        return std.toLowerCase() === stdKey.toLowerCase();
+      });
+
+      const subjectsSet = new Set<string>();
+      const resultsList: any[] = [];
+
+      stdPlans.forEach((p: any) => {
+        if (p.course) {
+          const baseSub = getBaseSubject(p.course);
+          if (baseSub) subjectsSet.add(baseSub);
+        }
+        const resList = resultsByPlan.get(p.name) || [];
+        resultsList.push(...resList);
+      });
+
+      let passedCount = 0;
+      resultsList.forEach((r: any) => {
+        const score = Number(r.total_score) || 0;
+        const max = Number(r.maximum_score) || 100;
+        const pct = max > 0 ? (score / max) * 100 : 0;
+        if (pct >= 40) passedCount++;
+      });
+
+      const totalResults = resultsList.length;
+      const passRate = totalResults > 0 ? Math.round((passedCount / totalResults) * 100) : 0;
+
+      let label = `${stdKey} Grade`;
+      if (stdKey === "11th") label = "11th Grade (Plus One)";
+      if (stdKey === "12th") label = "12th Grade (Plus Two)";
+
+      return {
+        key: stdKey,
+        label,
+        subjectsCount: subjectsSet.size,
+        totalStudents: totalResults,
+        passRate: totalResults > 0 ? `${passRate}%` : "N/A",
+        numericRate: passRate,
+        plansCount: stdPlans.length,
+      };
+    });
+  }, [availableStandards, cwcPlansFiltered, resultsByPlan]);
+
+  // Level 2: Subject Summaries Calculation for Selected Class
+  const subjectSummariesForSelectedClass = useMemo(() => {
+    if (!selectedStandard) return [];
+
+    const stdPlans = cwcPlansFiltered.filter((p: any) => {
+      if (selectedStandard === "all") return true;
+      const std = extractStandard(p.student_group || p.course || "");
+      return std.toLowerCase() === selectedStandard.toLowerCase();
+    });
+
+    const subMap = new Map<string, {
+      subjectName: string;
+      plans: any[];
+      branchMap: Map<string, { total: number; passed: number }>;
+    }>();
+
+    stdPlans.forEach((p: any) => {
+      const sub = getBaseSubject(p.course);
+      if (!sub) return;
+      if (!subMap.has(sub)) {
+        subMap.set(sub, { subjectName: sub, plans: [], branchMap: new Map() });
+      }
+      const entry = subMap.get(sub)!;
+      entry.plans.push(p);
+
+      const branchKey = cleanBranchName(p.custom_branch || "Other");
+      if (!entry.branchMap.has(branchKey)) {
+        entry.branchMap.set(branchKey, { total: 0, passed: 0 });
+      }
+      const branchEntry = entry.branchMap.get(branchKey)!;
+
+      const resList = resultsByPlan.get(p.name) || [];
+      resList.forEach((r: any) => {
+        const score = Number(r.total_score) || 0;
+        const max = Number(r.maximum_score) || 100;
+        const pct = max > 0 ? (score / max) * 100 : 0;
+        branchEntry.total += 1;
+        if (pct >= 40) branchEntry.passed += 1;
+      });
+    });
+
+    return Array.from(subMap.values()).map((s) => {
+      let totalStudents = 0;
+      let totalPassed = 0;
+      let topBranchName = "N/A";
+      let topBranchRate = -1;
+
+      s.branchMap.forEach((bData, bName) => {
+        totalStudents += bData.total;
+        totalPassed += bData.passed;
+        const rate = bData.total > 0 ? (bData.passed / bData.total) * 100 : 0;
+        if (rate > topBranchRate && bData.total > 0) {
+          topBranchRate = rate;
+          topBranchName = bName;
+        }
+      });
+
+      const passRate = totalStudents > 0 ? Math.round((totalPassed / totalStudents) * 100) : 0;
+
+      return {
+        name: s.subjectName,
+        branchesCount: s.branchMap.size,
+        totalStudents,
+        passRate: totalStudents > 0 ? `${passRate}%` : "N/A",
+        numericRate: passRate,
+        topBranchName: topBranchRate >= 0 ? topBranchName : "N/A",
+        topBranchRate: topBranchRate >= 0 ? `${Math.round(topBranchRate)}%` : "N/A",
+      };
+    }).sort((a, b) => a.name.localeCompare(b.name));
+  }, [selectedStandard, cwcPlansFiltered, resultsByPlan]);
 
   // Calculate Branch Performance for Selected Subject + Selected Standard in selected CWC
   const { branchRankingData, networkStats } = useMemo(() => {
@@ -408,6 +532,7 @@ export default function SubjectRankingPage() {
         student: r.student,
         studentName: r.student_name || r.student,
         studentGroup: r.studentGroup,
+        customPlan: r.custom_plan || "",
         score,
         max,
         pct,
@@ -416,10 +541,17 @@ export default function SubjectRankingPage() {
       };
     });
 
-    sortedStudents.sort((a, b) => b.score - a.score || b.pct - a.pct);
+    let filtered = sortedStudents;
+    if (selectedPlanFilter === "Advanced") {
+      filtered = filtered.filter((s) => (s.customPlan || "").toLowerCase().includes("advanced"));
+    } else if (selectedPlanFilter === "Basic") {
+      filtered = filtered.filter((s) => (s.customPlan || "").toLowerCase().includes("basic") || !s.customPlan);
+    }
+
+    filtered.sort((a, b) => b.score - a.score || b.pct - a.pct);
 
     let rank = 1;
-    const rankedList = sortedStudents.map((st, idx, arr) => {
+    const rankedList = filtered.map((st, idx, arr) => {
       if (idx > 0 && st.pct < arr[idx - 1].pct) {
         rank = idx + 1;
       }
@@ -430,7 +562,7 @@ export default function SubjectRankingPage() {
       branchInfo,
       students: rankedList,
     };
-  }, [drillDownBranch, branchRankingData]);
+  }, [drillDownBranch, branchRankingData, selectedPlanFilter]);
 
   const pageLoading = branchesLoading || plansLoading || resultsLoading;
 
@@ -472,23 +604,59 @@ export default function SubjectRankingPage() {
           <BreadcrumbNav />
           <h1 className="text-2xl font-bold text-text-primary mt-1 flex items-center gap-2.5">
             <BookOpen className="h-7 w-7 text-emerald-600" />
-            Subject Wise Ranking
-            <Badge className="bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 font-bold ml-1 text-xs">
-              {selectedStandard === "all" ? "All Classes" : `${selectedStandard} Grade`} • {selectedSubject}
-            </Badge>
+            Subject Wise Ranking ({selectedCwc})
           </h1>
-          <p className="text-xs text-text-secondary mt-1">
-            Compare all SmartUp branches head-to-head for specific subject assessments and drill down into class and student scores.
-          </p>
+          {/* Interactive Navigation Breadcrumbs */}
+          <div className="flex flex-wrap items-center gap-1.5 text-xs text-text-secondary mt-1">
+            <span 
+              className={`hover:underline cursor-pointer font-medium ${level === "classes" ? "text-text-primary font-bold" : "text-emerald-600"}`}
+              onClick={() => { setLevel("classes"); setDrillDownBranch(null); }}
+            >
+              All Classes
+            </span>
+            {level !== "classes" && selectedStandard && (
+              <>
+                <ChevronRight className="h-3.5 w-3.5 text-text-tertiary" />
+                <span 
+                  className={`hover:underline cursor-pointer font-medium ${level === "subjects" ? "text-text-primary font-bold" : "text-emerald-600"}`}
+                  onClick={() => { setLevel("subjects"); setDrillDownBranch(null); }}
+                >
+                  {selectedStandard === "all" ? "All Classes" : `${selectedStandard} Grade`}
+                </span>
+              </>
+            )}
+            {level === "ranking" && selectedSubject && (
+              <>
+                <ChevronRight className="h-3.5 w-3.5 text-text-tertiary" />
+                <span className="text-text-primary font-bold">{selectedSubject} Standings</span>
+              </>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
-          {drillDownBranch && (
+          {level === "ranking" && drillDownBranch && (
             <button
               onClick={() => setDrillDownBranch(null)}
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-text-secondary hover:text-text-primary bg-surface border border-border/60 hover:border-border transition-colors shadow-sm"
             >
-              <ArrowLeft className="h-4 w-4" /> Back to All Branches
+              <ArrowLeft className="h-4 w-4" /> Back to Standings
+            </button>
+          )}
+          {level === "ranking" && !drillDownBranch && (
+            <button
+              onClick={() => setLevel("subjects")}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-text-secondary hover:text-text-primary bg-surface border border-border/60 hover:border-border transition-colors shadow-sm"
+            >
+              <ArrowLeft className="h-4 w-4" /> Back to Subjects
+            </button>
+          )}
+          {level === "subjects" && (
+            <button
+              onClick={() => setLevel("classes")}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-text-secondary hover:text-text-primary bg-surface border border-border/60 hover:border-border transition-colors shadow-sm"
+            >
+              <ArrowLeft className="h-4 w-4" /> Back to All Classes
             </button>
           )}
           <Link href="/dashboard/curriculum-dept/cwc-corner">
@@ -499,130 +667,307 @@ export default function SubjectRankingPage() {
         </div>
       </div>
 
-      {/* Control Filters Bar */}
-      <Card className="border border-border/60 bg-surface shadow-sm p-4 rounded-2xl">
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-          {/* CWC Exam Selector Pills */}
-          <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-xl border border-border/40">
-            {cwcOptions.map((opt) => (
-              <button
-                key={opt}
-                onClick={() => {
-                  setSelectedCwc(opt);
-                  setDrillDownBranch(null);
-                }}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  selectedCwc === opt
-                    ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20"
-                    : "text-text-secondary hover:text-text-primary hover:bg-surface"
-                }`}
-              >
-                {opt}
-              </button>
-            ))}
-          </div>
-
-          {/* Subject & Standard Selectors */}
-          <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-            {/* Subject Selector */}
-            <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 border border-border-input px-3 py-1.5 rounded-xl">
-              <BookOpen className="h-4 w-4 text-emerald-600 shrink-0" />
-              <span className="text-[11px] font-bold text-text-secondary uppercase">Subject:</span>
-              <select
-                value={selectedSubject}
-                onChange={(e) => {
-                  setSelectedSubject(e.target.value);
-                  setDrillDownBranch(null);
-                }}
-                className="text-xs bg-transparent font-bold text-text-primary focus:outline-none cursor-pointer"
-              >
-                {availableSubjects.map((sub) => (
-                  <option key={sub} value={sub} className="bg-surface text-text-primary font-medium">
-                    {sub}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Class / Standard Selector */}
-            <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 border border-border-input px-3 py-1.5 rounded-xl">
-              <GraduationCap className="h-4 w-4 text-primary shrink-0" />
-              <span className="text-[11px] font-bold text-text-secondary uppercase">Class:</span>
-              <select
-                value={selectedStandard}
-                onChange={(e) => {
-                  setSelectedStandard(e.target.value);
-                  setDrillDownBranch(null);
-                }}
-                className="text-xs bg-transparent font-bold text-text-primary focus:outline-none cursor-pointer"
-              >
-                <option value="all" className="bg-surface text-text-primary">
-                  All Classes
-                </option>
-                {availableStandards.map((std) => (
-                  <option key={std} value={std} className="bg-surface text-text-primary font-medium">
-                    {std} Grade
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Sort Criteria */}
-            <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 border border-border-input px-3 py-1.5 rounded-xl">
-              <Filter className="h-4 w-4 text-amber-500 shrink-0" />
-              <span className="text-[11px] font-bold text-text-secondary uppercase">Rank By:</span>
-              <select
-                value={rankingSortBy}
-                onChange={(e) => setRankingSortBy(e.target.value as any)}
-                className="text-xs bg-transparent font-bold text-text-primary focus:outline-none cursor-pointer"
-              >
-                <option value="passRate" className="bg-surface text-text-primary">
-                  Pass Rate (%)
-                </option>
-                <option value="averageScore" className="bg-surface text-text-primary">
-                  Average Score (%)
-                </option>
-                <option value="topperCount" className="bg-surface text-text-primary">
-                  Full Mark / 90%+ Count
-                </option>
-              </select>
-            </div>
-
-            {/* Search */}
-            <div className="relative flex-1 sm:w-48">
-              <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-text-tertiary" />
-              <input
-                type="text"
-                placeholder="Search branch..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-900 border border-border-input rounded-xl text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-1 focus:ring-emerald-600"
-              />
-            </div>
-          </div>
-        </div>
-      </Card>
+      {/* CWC Exam Selector Pills (Always visible for switching CWC context) */}
+      <div className="flex items-center gap-3 bg-surface p-1.5 rounded-2xl border border-border/60 w-fit shadow-sm">
+        {cwcOptions.map((opt) => (
+          <button
+            key={opt}
+            onClick={() => {
+              setSelectedCwc(opt);
+              setDrillDownBranch(null);
+            }}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              selectedCwc === opt
+                ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20"
+                : "text-text-secondary hover:text-text-primary hover:bg-slate-100 dark:hover:bg-slate-800"
+            }`}
+          >
+            {opt}
+          </button>
+        ))}
+      </div>
 
       {pageLoading ? (
         <div className="py-32 flex justify-center items-center">
           <GifLoader size="lg" />
         </div>
-      ) : displayedBranches.length === 0 ? (
-        <Card className="p-16 text-center border-dashed bg-surface">
-          <div className="p-4 rounded-2xl bg-emerald-500/10 text-emerald-600 w-fit mx-auto mb-3">
-            <BookOpen className="h-10 w-10" />
-          </div>
-          <h3 className="text-base font-bold text-text-primary">No Subject Assessment Records Found</h3>
-          <p className="text-xs text-text-secondary mt-1 max-w-md mx-auto">
-            No assessment results were submitted for {selectedCwc} in {selectedStandard === "all" ? "" : `${selectedStandard} `}
-            {selectedSubject}. Try selecting another CWC exam or subject from the filters above.
-          </p>
-        </Card>
       ) : (
-        <div className="space-y-6">
+        <AnimatePresence mode="wait">
+          {/* LEVEL 1: CLASS SELECTION CARDS */}
+          {level === "classes" && (
+            <motion.div
+              key="classes"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              className="space-y-4"
+            >
+              <div className="flex justify-between items-center bg-surface p-4 rounded-2xl border border-slate-100 dark:border-white/[0.06] shadow-sm">
+                <div>
+                  <h2 className="text-base font-extrabold text-text-primary">Select Class / Grade for Subject Ranking</h2>
+                  <p className="text-xs text-text-secondary mt-0.5">
+                    Click a class card to explore its subject-wise performance breakdown across all branches.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {classSummaries.map((c) => {
+                  const colors = getRateColor(c.numericRate);
+                  return (
+                    <Card
+                      key={c.key}
+                      onClick={() => {
+                        setSelectedStandard(c.key);
+                        setLevel("subjects");
+                        setDrillDownBranch(null);
+                      }}
+                      className="cursor-pointer border border-slate-100 dark:border-white/[0.06] shadow-sm hover:border-emerald-500/40 hover:shadow-md transition-all group bg-surface"
+                    >
+                      <CardHeader className="p-6 pb-2">
+                        <div className="flex justify-between items-start">
+                          <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 rounded-xl">
+                            <GraduationCap className="h-6 w-6" />
+                          </div>
+                          <Badge className="bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 border border-slate-100 dark:border-white/[0.04]">
+                            {c.subjectsCount} Subjects
+                          </Badge>
+                        </div>
+                        <CardTitle className="text-base font-bold text-text-primary mt-4 group-hover:text-emerald-600 transition-colors">
+                          {c.label}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-6 pt-2">
+                        <div className="mt-2 flex items-baseline justify-between">
+                          <span className="text-xs text-text-secondary font-medium">Assessed Pass Rate</span>
+                          <span className={`text-xl font-bold ${colors.text}`}>{c.passRate}</span>
+                        </div>
+                        {c.numericRate > 0 && (
+                          <div className="w-full bg-slate-50 dark:bg-white/[0.04] h-1.5 rounded-full mt-3 overflow-hidden">
+                            <div className={`h-full ${colors.bg} rounded-full`} style={{ width: `${c.numericRate}%` }} />
+                          </div>
+                        )}
+                        <div className="mt-4 pt-3 border-t border-slate-100 dark:border-white/[0.06] flex items-center justify-between text-xs text-text-tertiary font-semibold group-hover:text-emerald-600 transition-colors">
+                          <span>{c.totalStudents} Students Assessed</span>
+                          <ChevronRight className="h-4 w-4" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </motion.div>
+          )}
+
+          {/* LEVEL 2: SUBJECT SELECTION CARDS */}
+          {level === "subjects" && (
+            <motion.div
+              key="subjects"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="space-y-4"
+            >
+              <div className="flex justify-between items-center bg-surface p-4 rounded-2xl border border-slate-100 dark:border-white/[0.06] shadow-sm">
+                <div>
+                  <h2 className="text-base font-extrabold text-text-primary">
+                    Subjects in {selectedStandard === "all" ? "All Classes" : `${selectedStandard} Grade`}
+                  </h2>
+                  <p className="text-xs text-text-secondary mt-0.5">
+                    Click a subject card to view cross-branch standings and detailed student rankings.
+                  </p>
+                </div>
+              </div>
+
+              {subjectSummariesForSelectedClass.length === 0 ? (
+                <Card className="p-16 text-center border-dashed bg-surface">
+                  <BookOpen className="h-10 w-10 text-slate-300 mx-auto mb-2" />
+                  <h3 className="text-base font-bold text-text-primary">No Subjects Found</h3>
+                  <p className="text-xs text-text-secondary mt-1">No exam records match this grade for {selectedCwc}.</p>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {subjectSummariesForSelectedClass.map((s) => {
+                    const colors = getRateColor(s.numericRate);
+                    return (
+                      <Card
+                        key={s.name}
+                        onClick={() => {
+                          setSelectedSubject(s.name);
+                          setLevel("ranking");
+                          setDrillDownBranch(null);
+                        }}
+                        className="cursor-pointer border border-slate-100 dark:border-white/[0.06] shadow-sm hover:border-emerald-500/40 hover:shadow-md transition-all group bg-surface"
+                      >
+                        <CardHeader className="p-6 pb-2">
+                          <div className="flex justify-between items-start">
+                            <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 rounded-xl">
+                              <BookOpen className="h-6 w-6" />
+                            </div>
+                            <Badge className="bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 border border-slate-100 dark:border-white/[0.04]">
+                              {s.branchesCount} Branches
+                            </Badge>
+                          </div>
+                          <CardTitle className="text-base font-bold text-text-primary mt-4 group-hover:text-emerald-600 transition-colors">
+                            {s.name}
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-6 pt-2">
+                          <div className="mt-2 flex items-baseline justify-between">
+                            <span className="text-xs text-text-secondary font-medium">Network Pass Rate</span>
+                            <span className={`text-xl font-bold ${colors.text}`}>{s.passRate}</span>
+                          </div>
+                          {s.numericRate > 0 && (
+                            <div className="w-full bg-slate-50 dark:bg-white/[0.04] h-1.5 rounded-full mt-3 overflow-hidden">
+                              <div className={`h-full ${colors.bg} rounded-full`} style={{ width: `${s.numericRate}%` }} />
+                            </div>
+                          )}
+                          <div className="mt-3 text-xs text-text-tertiary flex items-center justify-between">
+                            <span className="font-semibold text-emerald-600">Topper: {s.topBranchName} ({s.topBranchRate})</span>
+                            <span className="font-semibold">{s.totalStudents} Students</span>
+                          </div>
+                          <div className="mt-3 pt-3 border-t border-slate-100 dark:border-white/[0.06] flex items-center justify-between text-xs text-text-tertiary font-semibold group-hover:text-emerald-600 transition-colors">
+                            <span>View Branch Standings</span>
+                            <ChevronRight className="h-4 w-4" />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {/* LEVEL 3: CROSS-BRANCH SUBJECT STANDINGS */}
+          {level === "ranking" && (
+            <motion.div
+              key="ranking"
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              className="space-y-6"
+            >
+              {/* Quick Switchers & Search Bar */}
+              <Card className="border border-border/60 bg-surface shadow-sm p-4 rounded-2xl">
+                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                  <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                    {/* Subject Selector */}
+                    <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 border border-border-input px-3 py-1.5 rounded-xl">
+                      <BookOpen className="h-4 w-4 text-emerald-600 shrink-0" />
+                      <span className="text-[11px] font-bold text-text-secondary uppercase">Subject:</span>
+                      <select
+                        value={selectedSubject}
+                        onChange={(e) => {
+                          setSelectedSubject(e.target.value);
+                          setDrillDownBranch(null);
+                        }}
+                        className="text-xs bg-transparent font-bold text-text-primary focus:outline-none cursor-pointer"
+                      >
+                        {availableSubjects.map((sub) => (
+                          <option key={sub} value={sub} className="bg-surface text-text-primary font-medium">
+                            {sub}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Class Selector */}
+                    <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 border border-border-input px-3 py-1.5 rounded-xl">
+                      <GraduationCap className="h-4 w-4 text-primary shrink-0" />
+                      <span className="text-[11px] font-bold text-text-secondary uppercase">Class:</span>
+                      <select
+                        value={selectedStandard}
+                        onChange={(e) => {
+                          setSelectedStandard(e.target.value);
+                          setDrillDownBranch(null);
+                        }}
+                        className="text-xs bg-transparent font-bold text-text-primary focus:outline-none cursor-pointer"
+                      >
+                        <option value="all" className="bg-surface text-text-primary">
+                          All Classes
+                        </option>
+                        {availableStandards.map((std) => (
+                          <option key={std} value={std} className="bg-surface text-text-primary font-medium">
+                            {std} Grade
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Sort Criteria */}
+                    <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 border border-border-input px-3 py-1.5 rounded-xl">
+                      <Filter className="h-4 w-4 text-amber-500 shrink-0" />
+                      <span className="text-[11px] font-bold text-text-secondary uppercase">Rank By:</span>
+                      <select
+                        value={rankingSortBy}
+                        onChange={(e) => setRankingSortBy(e.target.value as any)}
+                        className="text-xs bg-transparent font-bold text-text-primary focus:outline-none cursor-pointer"
+                      >
+                        <option value="passRate" className="bg-surface text-text-primary">
+                          Pass Rate (%)
+                        </option>
+                        <option value="averageScore" className="bg-surface text-text-primary">
+                          Average Score (%)
+                        </option>
+                        <option value="topperCount" className="bg-surface text-text-primary">
+                          Full Mark / 90%+ Count
+                        </option>
+                      </select>
+                    </div>
+
+                    {/* Student Plan Filter */}
+                    <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 border border-border-input px-3 py-1.5 rounded-xl">
+                      <Sparkles className="h-4 w-4 text-purple-600 shrink-0" />
+                      <span className="text-[11px] font-bold text-text-secondary uppercase">Plan:</span>
+                      <select
+                        value={selectedPlanFilter}
+                        onChange={(e) => setSelectedPlanFilter(e.target.value as any)}
+                        className="text-xs bg-transparent font-bold text-text-primary focus:outline-none cursor-pointer"
+                      >
+                        <option value="all" className="bg-surface text-text-primary font-medium">
+                          All Plans
+                        </option>
+                        <option value="Advanced" className="bg-surface text-purple-600 font-bold">
+                          ⚡ Advanced Students
+                        </option>
+                        <option value="Basic" className="bg-surface text-text-primary font-medium">
+                          📘 Basic Students
+                        </option>
+                      </select>
+                    </div>
+
+                    {/* Search */}
+                    <div className="relative flex-1 sm:w-48">
+                      <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-text-tertiary" />
+                      <input
+                        type="text"
+                        placeholder="Search branch..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-900 border border-border-input rounded-xl text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
+              {displayedBranches.length === 0 ? (
+                <Card className="p-16 text-center border-dashed bg-surface">
+                  <div className="p-4 rounded-2xl bg-emerald-500/10 text-emerald-600 w-fit mx-auto mb-3">
+                    <BookOpen className="h-10 w-10" />
+                  </div>
+                  <h3 className="text-base font-bold text-text-primary">No Subject Assessment Records Found</h3>
+                  <p className="text-xs text-text-secondary mt-1 max-w-md mx-auto">
+                    No assessment results were submitted for {selectedCwc} in {selectedStandard === "all" ? "" : `${selectedStandard} `}
+                    {selectedSubject}. Try selecting another CWC exam or subject from the filters above.
+                  </p>
+                </Card>
+              ) : (
+                <div className="space-y-6">
           {/* Network Summary Bar */}
           {networkStats && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Card className="border border-border/60 bg-surface p-4">
                 <p className="text-[10px] font-bold text-text-secondary uppercase">Branches Evaluated</p>
                 <div className="mt-1 flex items-baseline justify-between">
@@ -638,24 +983,6 @@ export default function SubjectRankingPage() {
                 <div className="mt-1 flex items-baseline justify-between">
                   <span className="text-2xl font-black text-text-primary">{networkStats.totalStudents}</span>
                   <Users className="h-4 w-4 text-text-tertiary" />
-                </div>
-              </Card>
-
-              <Card className="border border-border/60 bg-surface p-4">
-                <p className="text-[10px] font-bold text-text-secondary uppercase">Network Pass Rate</p>
-                <div className="mt-1 flex items-baseline justify-between">
-                  <span className={`text-2xl font-black ${getRateColor(networkStats.passRate).text}`}>
-                    {networkStats.passRate}%
-                  </span>
-                  <Percent className="h-4 w-4 text-text-tertiary" />
-                </div>
-              </Card>
-
-              <Card className="border border-border/60 bg-surface p-4">
-                <p className="text-[10px] font-bold text-text-secondary uppercase">Network Average Score</p>
-                <div className="mt-1 flex items-baseline justify-between">
-                  <span className="text-2xl font-black text-emerald-600">{networkStats.avgScore}%</span>
-                  <Award className="h-4 w-4 text-emerald-500" />
                 </div>
               </Card>
             </div>
@@ -942,7 +1269,14 @@ export default function SubjectRankingPage() {
                             )}
                           </td>
                           <td className="px-6 py-3 font-bold text-text-primary">
-                            {st.studentName}
+                            <div className="flex items-center gap-2">
+                              <span>{st.studentName}</span>
+                              {st.customPlan && (st.customPlan || "").toLowerCase().includes("advanced") && (
+                                <span className="px-1.5 py-0.5 text-[9px] font-extrabold rounded bg-purple-500/10 text-purple-600 border border-purple-500/30 shrink-0 flex items-center gap-0.5">
+                                  ⚡ Advanced
+                                </span>
+                              )}
+                            </div>
                             <span className="block text-[9px] font-normal text-text-tertiary font-mono">{st.student}</span>
                           </td>
                           <td className="px-6 py-3 font-medium text-text-secondary">
@@ -983,6 +1317,10 @@ export default function SubjectRankingPage() {
             </div>
           )}
         </div>
+      )}
+    </motion.div>
+  )}
+        </AnimatePresence>
       )}
     </div>
   );

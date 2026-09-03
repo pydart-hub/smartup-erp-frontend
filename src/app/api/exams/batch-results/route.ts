@@ -19,12 +19,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const studentGroup = request.nextUrl.searchParams.get("student_group");
+    const studentGroupRaw = request.nextUrl.searchParams.get("student_group");
     const assessmentGroup = request.nextUrl.searchParams.get("assessment_group");
 
-    if (!studentGroup || !assessmentGroup) {
+    if (!studentGroupRaw || !assessmentGroup) {
       return NextResponse.json(
         { error: "student_group and assessment_group params required" },
+        { status: 400 },
+      );
+    }
+
+    const studentGroups = studentGroupRaw.split(",").map((s) => s.trim()).filter(Boolean);
+    if (studentGroups.length === 0) {
+      return NextResponse.json(
+        { error: "Valid student_group param required" },
         { status: 400 },
       );
     }
@@ -34,7 +42,9 @@ export async function GET(request: NextRequest) {
     // Build plan filter: if assessmentGroup starts with CWC, match by assessment_group OR assessment_name pattern
     const isCwc = assessmentGroup.toLowerCase().includes("cwc");
     const planFilters: any[] = [
-      ["student_group", "=", studentGroup],
+      studentGroups.length > 1
+        ? ["student_group", "in", studentGroups]
+        : ["student_group", "=", studentGroups[0]],
       ["docstatus", "=", 1],
     ];
 
@@ -48,8 +58,8 @@ export async function GET(request: NextRequest) {
     const plansRes = await fetch(
       `${FRAPPE_URL}/api/resource/Assessment%20Plan?${new URLSearchParams({
         filters: JSON.stringify(planFilters),
-        fields: JSON.stringify(["name", "course", "maximum_assessment_score", "assessment_group", "assessment_name"]),
-        limit_page_length: "200",
+        fields: JSON.stringify(["name", "course", "maximum_assessment_score", "assessment_group", "assessment_name", "student_group"]),
+        limit_page_length: "500",
       })}`,
       { headers: { Authorization: auth }, cache: "no-store" },
     );
@@ -58,7 +68,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Failed to fetch plans" }, { status: plansRes.status });
     }
 
-    let plans: { name: string; course: string; maximum_assessment_score: number; assessment_group?: string; assessment_name?: string }[] =
+    let plans: { name: string; course: string; maximum_assessment_score: number; assessment_group?: string; assessment_name?: string; student_group?: string }[] =
       (await plansRes.json()).data ?? [];
 
     if (isCwc) {
@@ -125,10 +135,47 @@ export async function GET(request: NextRequest) {
       return intervals[intervals.length - 1]?.grade_code ?? "";
     }
 
+    // Create map from plan name to student_group
+    const planToGroupMap = new Map<string, string>();
+    plans.forEach((p) => {
+      if (p.student_group) planToGroupMap.set(p.name, p.student_group);
+    });
+
+    // Fetch Program Enrollment custom_plan for each student
+    const studentIds = Array.from(new Set(results.map((r) => r.student)));
+    const studentPlanMap = new Map<string, string>();
+    if (studentIds.length > 0) {
+      try {
+        const peRes = await fetch(
+          `${FRAPPE_URL}/api/resource/Program%20Enrollment?${new URLSearchParams({
+            filters: JSON.stringify([
+              ["student", "in", studentIds],
+              ["docstatus", "=", 1],
+            ]),
+            fields: JSON.stringify(["student", "custom_plan"]),
+            limit_page_length: "1000",
+          })}`,
+          { headers: { Authorization: auth }, cache: "no-store" }
+        );
+        if (peRes.ok) {
+          const peList: { student: string; custom_plan?: string }[] = (await peRes.json()).data ?? [];
+          peList.forEach((pe) => {
+            if (pe.student && pe.custom_plan) {
+              studentPlanMap.set(pe.student, pe.custom_plan);
+            }
+          });
+        }
+      } catch (err) {
+        console.error("[batch-results] PE custom_plan fetch error:", err);
+      }
+    }
+
     // Group results by student, and within student by course to handle multiple plans of the same course
     const studentMap = new Map<string, {
       student: string;
       student_name: string;
+      student_group: string;
+      custom_plan: string;
       courseMap: Map<string, { course: string; score: number; maximum_score: number }>;
     }>();
 
@@ -137,6 +184,8 @@ export async function GET(request: NextRequest) {
         studentMap.set(r.student, {
           student: r.student,
           student_name: r.student_name || r.student,
+          student_group: planToGroupMap.get(r.assessment_plan) || "",
+          custom_plan: studentPlanMap.get(r.student) || "",
           courseMap: new Map(),
         });
       }
@@ -174,6 +223,8 @@ export async function GET(request: NextRequest) {
       return {
         student: s.student,
         student_name: s.student_name,
+        student_group: s.student_group,
+        custom_plan: s.custom_plan,
         subjects,
         total_score: totalScore,
         total_maximum: totalMax,

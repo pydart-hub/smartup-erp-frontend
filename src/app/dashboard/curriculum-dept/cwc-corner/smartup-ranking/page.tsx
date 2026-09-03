@@ -19,8 +19,41 @@ export default function SmartUpRankingPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedBranchFilter, setSelectedBranchFilter] = useState("all");
   const [selectedClassFilter, setSelectedClassFilter] = useState("all");
+  const [selectedPlanFilter, setSelectedPlanFilter] = useState<"all" | "Advanced" | "Basic">("all");
 
   const cwcOptions = ["CWC 1", "CWC 2", "CWC 3"];
+
+  // Fetch Program Enrollments to map student -> custom_plan
+  const { data: programEnrollments = [] } = useQuery({
+    queryKey: ["all-program-enrollments-plan"],
+    queryFn: async () => {
+      const res = await fetch("/api/curriculum-dept/admin-proxy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          path: "resource/Program Enrollment",
+          method: "GET",
+          payload: {
+            fields: JSON.stringify(["student", "custom_plan"]),
+            filters: JSON.stringify([["docstatus", "=", 1]]),
+            limit_page_length: "15000"
+          }
+        })
+      }).then(r => r.json());
+      return res.data ?? [];
+    },
+    staleTime: 60_000,
+  });
+
+  const studentPlanMap = useMemo(() => {
+    const map = new Map<string, string>();
+    programEnrollments.forEach((pe: any) => {
+      if (pe.student && pe.custom_plan) {
+        map.set(pe.student, pe.custom_plan);
+      }
+    });
+    return map;
+  }, [programEnrollments]);
 
   // 1. Fetch all assessment plans
   const { data: allPlans = [], isLoading: plansLoading } = useQuery({
@@ -100,6 +133,7 @@ export default function SmartUpRankingPage() {
       studentName: string;
       branch: string;
       studentGroup: string;
+      customPlan?: string;
       totalObtained: number;
       totalMax: number;
       subjects: any[];
@@ -153,6 +187,7 @@ export default function SmartUpRankingPage() {
           studentName,
           branch,
           studentGroup,
+          customPlan: studentPlanMap.get(r.student) || "",
           totalObtained: 0,
           totalMax: 0,
           subjects: [] as any[],
@@ -183,8 +218,8 @@ export default function SmartUpRankingPage() {
         const percentagesList = s.subjects.map((sub: any) => (sub.score / sub.max) * 100);
         const avgPercentage = percentagesList.reduce((sum: number, p: number) => sum + p, 0) / (attendedCount || 1);
         
-        // 2. Exam Completion Score
-        const completionScore = (attendedCount / standardSubjectCount) * 100;
+        // 2. Exam Completion Score (Capped at 100%)
+        const completionScore = Math.min(100, (attendedCount / standardSubjectCount) * 100);
         
         // 3. Subject Consistency Score (100 - score range width)
         let consistencyScore = 100;
@@ -266,9 +301,15 @@ export default function SmartUpRankingPage() {
                             item.branch.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesBranch = selectedBranchFilter === "all" || item.branch === selectedBranchFilter;
       const matchesClass = selectedClassFilter === "all" || item.standard === selectedClassFilter;
-      return matchesSearch && matchesBranch && matchesClass;
+      const planName = (item.customPlan || "").toLowerCase();
+      const matchesPlan = selectedPlanFilter === "all"
+        ? true
+        : selectedPlanFilter === "Advanced"
+        ? planName.includes("advanced")
+        : planName.includes("basic") || !planName;
+      return matchesSearch && matchesBranch && matchesClass && matchesPlan;
     });
-  }, [leaderboardData, searchQuery, selectedBranchFilter, selectedClassFilter]);
+  }, [leaderboardData, searchQuery, selectedBranchFilter, selectedClassFilter, selectedPlanFilter]);
 
   const pageLoading = plansLoading || resultsLoading;
 
@@ -322,6 +363,17 @@ export default function SmartUpRankingPage() {
         </div>
 
         <div className="flex items-center gap-3 w-full md:w-auto">
+          {/* Plan Filter */}
+          <select
+            value={selectedPlanFilter}
+            onChange={(e) => setSelectedPlanFilter(e.target.value as any)}
+            className="h-10 px-3 text-xs bg-surface border border-border-input rounded-xl font-semibold text-text-primary focus:outline-none focus:ring-1 focus:ring-purple-600 cursor-pointer"
+          >
+            <option value="all">All Plans</option>
+            <option value="Advanced">⚡ Advanced Students</option>
+            <option value="Basic">📘 Basic Students</option>
+          </select>
+
           {/* Class Filter */}
           <select
             value={selectedClassFilter}
@@ -472,7 +524,14 @@ export default function SmartUpRankingPage() {
                         )}
                       </td>
                       <td className="px-6 py-3 font-bold text-text-primary">
-                        {st.studentName}
+                        <div className="flex items-center gap-2">
+                          <span>{st.studentName}</span>
+                          {st.customPlan && (st.customPlan || "").toLowerCase().includes("advanced") && (
+                            <span className="px-1.5 py-0.5 text-[9px] font-extrabold rounded bg-purple-500/10 text-purple-600 border border-purple-500/30 shrink-0 flex items-center gap-0.5">
+                              ⚡ Advanced
+                            </span>
+                          )}
+                        </div>
                         <span className="block text-[10px] font-normal text-text-tertiary font-mono">
                           {st.studentId}
                         </span>

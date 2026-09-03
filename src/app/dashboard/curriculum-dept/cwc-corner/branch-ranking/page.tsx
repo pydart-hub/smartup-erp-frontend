@@ -30,11 +30,14 @@ export default function BranchRankingPage() {
 
   // Drill-down levels: "branches" | "classes" | "report"
   const [level, setLevel] = useState<"branches" | "classes" | "report">("branches");
+  const [viewMode, setViewMode] = useState<"combined" | "separate">("combined");
   
   // Entities selection
   const [selectedBranch, setSelectedBranch] = useState("");
-  const [selectedClass, setSelectedClass] = useState(""); // Student Group ID
+  const [selectedClass, setSelectedClass] = useState(""); // Student Group ID or comma-separated IDs
   const [selectedClassName, setSelectedClassName] = useState(""); // Student Group name
+  const [selectedSubBatches, setSelectedSubBatches] = useState<{ id: string; name: string; division: string }[]>([]);
+  const [selectedDivisionFilter, setSelectedDivisionFilter] = useState("all");
   const [selectedExamGroup, setSelectedExamGroup] = useState("CWC 1");
   const [selectedFilterSubject, setSelectedFilterSubject] = useState<string | null>(null);
 
@@ -214,9 +217,93 @@ export default function BranchRankingPage() {
         id: sg.name,
         name: sg.student_group_name,
         program: sg.program,
+        subBatches: [{ id: sg.name, name: sg.student_group_name, division: "" }],
+        divisions: [],
         passRate: total > 0 ? `${rate}%` : "N/A",
         numericRate: rate,
-        examsCount: classPlans.length
+        examsCount: classPlans.length,
+        isCombined: false
+      };
+    });
+  }, [studentGroups, allPlans, resultsByPlan, selectedCwc]);
+
+  const parseBatchInfo = (name: string) => {
+    if (!name) return { baseName: "", division: "" };
+    const match = name.match(/^(.*?)[-_\s]+(?:sec(?:tion)?|div(?:ision)?\s*)?([A-Z0-9])$/i);
+    if (match) {
+      return { baseName: match[1].trim(), division: match[2].toUpperCase() };
+    }
+    return { baseName: name.trim(), division: "" };
+  };
+
+  // Aggregated pass rates combining section batches (e.g., 10th State A, B, C) into one combined class entity
+  const combinedClassPerformances = useMemo(() => {
+    const groupsMap = new Map<string, {
+      baseName: string;
+      program: string;
+      subBatches: { id: string; name: string; division: string }[];
+      classPlans: any[];
+      classResultsList: any[];
+    }>();
+
+    studentGroups.forEach((sg: any) => {
+      const { baseName, division } = parseBatchInfo(sg.student_group_name);
+      
+      const plansForSg = allPlans.filter((p: any) => {
+        if (p.student_group !== sg.name) return false;
+        const ag = (p.assessment_group || "").toLowerCase();
+        const an = (p.assessment_name || "").toLowerCase();
+
+        const match = selectedCwc.toLowerCase().match(/cwc\s*(?:exam\s*)?(\d+)/);
+        const cwcNum = match ? match[1] : "";
+        if (cwcNum) {
+          const targetRegex = new RegExp(`cwc\\s*(?:exam\\s*)?${cwcNum}\\b`, "i");
+          return targetRegex.test(ag) || targetRegex.test(an);
+        }
+        return ag.includes("cwc") || an.includes("cwc");
+      });
+
+      if (!groupsMap.has(baseName)) {
+        groupsMap.set(baseName, {
+          baseName,
+          program: sg.program,
+          subBatches: [],
+          classPlans: [],
+          classResultsList: [],
+        });
+      }
+
+      const group = groupsMap.get(baseName)!;
+      group.subBatches.push({
+        id: sg.name,
+        name: sg.student_group_name,
+        division: division || sg.student_group_name,
+      });
+
+      plansForSg.forEach((p: any) => {
+        if (!group.classPlans.some((existingP: any) => existingP.name === p.name)) {
+          group.classPlans.push(p);
+        }
+        const resList = resultsByPlan.get(p.name) || [];
+        group.classResultsList.push(...resList);
+      });
+    });
+
+    return Array.from(groupsMap.values()).map((g) => {
+      const { rate, total } = computePassRate(g.classResultsList);
+      const subBatchIds = g.subBatches.map((sb) => sb.id).join(",");
+      const divisions = g.subBatches.map((sb) => sb.division).filter(Boolean);
+
+      return {
+        id: subBatchIds,
+        name: g.baseName,
+        program: g.program,
+        subBatches: g.subBatches,
+        divisions,
+        passRate: total > 0 ? `${rate}%` : "N/A",
+        numericRate: rate,
+        examsCount: g.classPlans.length,
+        isCombined: g.subBatches.length > 1
       };
     });
   }, [studentGroups, allPlans, resultsByPlan, selectedCwc]);
@@ -239,6 +326,8 @@ export default function BranchRankingPage() {
 
   const filterOptions = [
     { label: "All Students", value: "all" },
+    { label: "⚡ Advanced Students Only", value: "advanced_only" },
+    { label: "📘 Basic Students Only", value: "basic_only" },
     { label: "Class Topper", value: "topper" },
     { label: "Top 3", value: "top3" },
     { label: "Top 5", value: "top5" },
@@ -262,11 +351,20 @@ export default function BranchRankingPage() {
   ];
 
   const filteredStudents = useMemo(() => {
-    if (selectedFilter === "all") return studentsList;
-    return studentsList.filter((st) => {
+    let list = studentsList;
+    if (selectedDivisionFilter !== "all") {
+      list = list.filter((st: any) => st.student_group === selectedDivisionFilter);
+    }
+    if (selectedFilter === "all") return list;
+    return list.filter((st: any) => {
       const isPassedAll = !st.subjects.some((sub: any) => sub.percentage < 40) && st.passed;
       const isFailedAny = st.subjects.some((sub: any) => sub.percentage < 40);
+      const planName = (st.custom_plan || "").toLowerCase();
       switch (selectedFilter) {
+        case "advanced_only":
+          return planName.includes("advanced");
+        case "basic_only":
+          return planName.includes("basic") || !planName;
         case "topper":
           return st.rank === 1;
         case "top3":
@@ -528,18 +626,54 @@ export default function BranchRankingPage() {
               exit={{ opacity: 0, x: -20 }}
               className="space-y-4"
             >
+              {/* Header and View Mode Switcher */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-surface p-4 rounded-2xl border border-slate-100 dark:border-white/[0.06] shadow-sm">
+                <div>
+                  <h2 className="text-base font-extrabold text-text-primary">
+                    Classes in {selectedBranch.replace("Smart Up ", "")}
+                  </h2>
+                  <p className="text-xs text-text-secondary mt-0.5">
+                    {viewMode === "combined"
+                      ? "Combined view grouping section batches (A, B, C) together"
+                      : "Individual division batch breakdown"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-border/50 text-xs font-bold">
+                  <button
+                    onClick={() => setViewMode("combined")}
+                    className={`px-3 py-1.5 rounded-lg transition-all ${
+                      viewMode === "combined"
+                        ? "bg-amber-500 text-white shadow-sm"
+                        : "text-text-secondary hover:text-text-primary"
+                    }`}
+                  >
+                    Combined Class View
+                  </button>
+                  <button
+                    onClick={() => setViewMode("separate")}
+                    className={`px-3 py-1.5 rounded-lg transition-all ${
+                      viewMode === "separate"
+                        ? "bg-amber-500 text-white shadow-sm"
+                        : "text-text-secondary hover:text-text-primary"
+                    }`}
+                  >
+                    Batch Division View
+                  </button>
+                </div>
+              </div>
+
               {groupsLoading ? (
                 <div className="py-24 flex items-center justify-center">
                   <GifLoader size="lg" />
                 </div>
-              ) : classPerformances.length === 0 ? (
+              ) : (viewMode === "combined" ? combinedClassPerformances : classPerformances).length === 0 ? (
                 <Card className="p-12 text-center border-dashed bg-surface">
                   <h3 className="text-base font-semibold text-text-primary">No classes found</h3>
                   <p className="text-sm text-text-secondary mt-1">This branch does not have any active student groups.</p>
                 </Card>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {classPerformances.map((c: any) => {
+                  {(viewMode === "combined" ? combinedClassPerformances : classPerformances).map((c: any) => {
                     const colors = getRateColor(c.numericRate);
                     return (
                       <Card 
@@ -547,23 +681,42 @@ export default function BranchRankingPage() {
                         onClick={() => {
                           setSelectedClass(c.id);
                           setSelectedClassName(c.name);
+                          setSelectedSubBatches(c.subBatches || []);
+                          setSelectedDivisionFilter("all");
                           setSelectedExamGroup(selectedCwc);
                           setLevel("report");
                         }}
-                        className="cursor-pointer border border-slate-100 dark:border-white/[0.06] shadow-sm hover:border-slate-200 dark:hover:border-white/[0.12] transition-all group bg-surface"
+                        className="cursor-pointer border border-slate-100 dark:border-white/[0.06] shadow-sm hover:border-amber-500/40 hover:shadow-md transition-all group bg-surface"
                       >
                         <CardHeader className="p-6 pb-2">
                           <div className="flex justify-between items-start">
                             <div className="p-2 bg-slate-50 dark:bg-slate-800/50 text-slate-400 rounded-lg">
                               <Users className="h-5 w-5" />
                             </div>
-                            <Badge className="bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 border border-slate-100 dark:border-white/[0.04]">
-                              {c.examsCount} Exams
-                            </Badge>
+                            <div className="flex items-center gap-1.5">
+                              {c.isCombined && (
+                                <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-bold text-[10px]">
+                                  Combined Class
+                                </Badge>
+                              )}
+                              <Badge className="bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 border border-slate-100 dark:border-white/[0.04]">
+                                {c.examsCount} Exams
+                              </Badge>
+                            </div>
                           </div>
-                          <CardTitle className="text-base font-bold text-text-primary mt-4 group-hover:text-primary transition-colors">
+                          <CardTitle className="text-base font-bold text-text-primary mt-4 group-hover:text-amber-500 transition-colors">
                             {c.name}
                           </CardTitle>
+                          {c.divisions && c.divisions.length > 0 && (
+                            <div className="flex items-center gap-1 mt-2 flex-wrap">
+                              <span className="text-[10px] font-bold text-text-tertiary uppercase">Divisions:</span>
+                              {c.divisions.map((div: string) => (
+                                <span key={div} className="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-slate-100 dark:bg-slate-800 text-text-secondary border border-border/40">
+                                  {div}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </CardHeader>
                         <CardContent className="p-6 pt-2">
                           <div className="mt-2 flex items-baseline justify-between">
@@ -607,6 +760,24 @@ export default function BranchRankingPage() {
                       {selectedExamGroup}
                     </Badge>
                   </div>
+
+                  {selectedSubBatches.length > 1 && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-text-secondary uppercase">Division:</span>
+                      <select
+                        value={selectedDivisionFilter}
+                        onChange={(e) => setSelectedDivisionFilter(e.target.value)}
+                        className="h-8 px-2 text-xs bg-slate-50 dark:bg-slate-800 border border-border-input rounded-[8px] font-semibold text-text-primary focus:outline-none cursor-pointer"
+                      >
+                        <option value="all">All Divisions ({selectedSubBatches.map(s => s.division || s.name).join(", ")})</option>
+                        {selectedSubBatches.map((sb) => (
+                          <option key={sb.id} value={sb.id}>
+                            {sb.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold text-text-secondary uppercase">Filter:</span>
@@ -874,7 +1045,19 @@ export default function BranchRankingPage() {
                                     {displayRank}
                                   </td>
                                   <td className="px-6 py-3 font-bold text-text-primary">
-                                    {row.student_name}
+                                    <div className="flex items-center gap-2">
+                                      <span>{row.student_name}</span>
+                                      {selectedSubBatches.length > 1 && row.student_group && (
+                                        <span className="px-1.5 py-0.5 text-[9px] font-extrabold rounded bg-amber-500/10 text-amber-600 border border-amber-500/20 shrink-0">
+                                          {selectedSubBatches.find(sb => sb.id === row.student_group)?.division || row.student_group}
+                                        </span>
+                                      )}
+                                      {row.custom_plan && (row.custom_plan || "").toLowerCase().includes("advanced") && (
+                                        <span className="px-1.5 py-0.5 text-[9px] font-extrabold rounded bg-purple-500/10 text-purple-600 border border-purple-500/30 shrink-0 flex items-center gap-0.5">
+                                          ⚡ Advanced
+                                        </span>
+                                      )}
+                                    </div>
                                     <span className="block text-[9px] font-normal text-text-tertiary font-mono mt-0.5">
                                       {row.student}
                                     </span>

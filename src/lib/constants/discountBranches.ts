@@ -6,9 +6,7 @@ export const MANUAL_DISCOUNT_COMPANIES = [
 
 export function canApplyManualDiscount(company?: string | null): boolean {
   if (!company) return false;
-  return MANUAL_DISCOUNT_COMPANIES.includes(
-    company as (typeof MANUAL_DISCOUNT_COMPANIES)[number],
-  );
+  return true;
 }
 
 /** Vennala-only percentage discount for Plus Two old students */

@@ -1324,7 +1324,7 @@ function AdmitPageContent() {
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-text-secondary">Fee Plan *</label>
                       <div className="grid grid-cols-3 gap-3">
-                        {PLAN_OPTIONS.filter((p) => availablePlans.includes(p.value) && (!RESTRICTED_BRANCHES.has(selectedBranch) || p.value === "Advanced")).map((plan) => {
+                        {PLAN_OPTIONS.filter((p) => availablePlans.includes(p.value)).map((plan) => {
                           const isSelected = selectedPlan === plan.value;
                           return (
                             <label
@@ -1513,7 +1513,7 @@ function AdmitPageContent() {
                       <label className="text-sm font-medium text-text-secondary">Admission Discount</label>
                       <div className="bg-amber-50 rounded-[12px] border border-amber-200 p-4 space-y-3">
                         <p className="text-xs text-amber-800">
-                          Available only for Kadavanthara and Edappally. The discount is deducted from the last invoice first, then the previous invoice if needed.
+                          The discount is deducted from the last invoice first, then the previous invoice if needed.
                         </p>
                         <Input
                           type="number"

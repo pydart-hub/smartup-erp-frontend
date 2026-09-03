@@ -1334,7 +1334,7 @@ function SubjectAdmitPageContent() {
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-text-secondary">Fee Plan *</label>
                       <div className={`grid gap-3 ${availablePlans.length >= 3 ? "grid-cols-3" : "grid-cols-2"}`}>
-                        {PLAN_OPTIONS.filter((p) => availablePlans.includes(p.value) && (!RESTRICTED_BRANCHES.has(selectedBranch) || p.value === "Advanced")).map((plan) => {
+                        {PLAN_OPTIONS.filter((p) => availablePlans.includes(p.value)).map((plan) => {
                           const isSelected = selectedPlan === plan.value;
                           return (
                             <label

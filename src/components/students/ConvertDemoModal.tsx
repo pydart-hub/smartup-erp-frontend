@@ -295,15 +295,8 @@ export function ConvertDemoModal({ student, onClose, onSuccess }: Props) {
   const hasInvoiceIssue = Boolean(resultData?.invoiceError);
 
   function isPlanDisabled(planValue: string): boolean {
-    return isRestrictedBranch && planValue !== "Advanced";
+    return false;
   }
-
-  // Kadavanthara & Edappally: show only Advanced plan in this conversion screen.
-  useEffect(() => {
-    if (isRestrictedBranch && plan !== "Advanced") {
-      setPlan("Advanced");
-    }
-  }, [isRestrictedBranch, plan]);
 
   return (
     <AnimatePresence>
