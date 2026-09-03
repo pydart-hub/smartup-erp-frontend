@@ -1,9 +1,6 @@
-# Task: Add "Holiday" Status to Staff Attendance
+# Task: Add Student Name & Phone Number Search Filter in Diagnosis Exam
 
-- [x] Update Frappe Cloud Property Setter for Attendance status options (`Attendance-status-options`) <!-- id: 0 -->
-- [x] Update `src/lib/api/employees.ts` to support `"Holiday"` in types and API endpoints <!-- id: 1 -->
-- [x] Update Branch Manager Staff Attendance UI (`src/app/dashboard/branch-manager/attendance/staff/page.tsx`) <!-- id: 2 -->
-- [x] Update Branch Manager Employee Attendance pages (`employees/mark-attendance` & `employees/page.tsx`) <!-- id: 3 -->
-- [x] Update HR Manager Dashboard & Report (`hr-manager/page.tsx` & `hr-manager/report/page.tsx`) <!-- id: 4 -->
-- [x] Update Director Staff Attendance & Report (`director/attendance/staff/[branchId]` & report) <!-- id: 5 -->
-- [x] Type check with `npx tsc --noEmit` and verify UI / API <!-- id: 6 -->
+- [x] Add `searchQuery` state and memoized filter matching student name & phone number in `DiagnosisExamsDrillDown.tsx` <!-- id: 0 -->
+- [x] Add stylish search bar above the attempts table with Search icon, clear button, and counter <!-- id: 1 -->
+- [x] Handle empty search results state with quick reset <!-- id: 2 -->
+- [x] Run `npx tsc --noEmit` to verify type safety and build correctness <!-- id: 3 -->

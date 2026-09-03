@@ -22,6 +22,7 @@ import {
   BookOpenCheck,
   Trash2,
   X,
+  Search,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -159,7 +160,13 @@ export function DiagnosisExamsDrillDown({
   }, [resolvedBranch]);
 
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const [expandedStudentKeys, setExpandedStudentKeys] = useState<Record<string, boolean>>({});
+
+  // Reset search filter when navigating branch or class
+  React.useEffect(() => {
+    setSearchQuery("");
+  }, [selectedBranch, selectedClass]);
 
   const toggleStudentExpand = (key: string) => {
     setExpandedStudentKeys((prev) => ({
@@ -250,6 +257,22 @@ export function DiagnosisExamsDrillDown({
     // Sort groups by student name
     return Object.values(groups).sort((a, b) => a.studentName.localeCompare(b.studentName));
   }, [filteredAttempts]);
+
+  // Filter students by name or phone number
+  const filteredStudentGroups = React.useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return studentGroups;
+
+    const queryDigits = q.replace(/\D/g, "");
+
+    return studentGroups.filter((student) => {
+      const nameMatch = student.studentName.toLowerCase().includes(q);
+      const studentPhoneDigits = (student.studentPhone || "").replace(/\D/g, "");
+      const phoneMatch = queryDigits ? studentPhoneDigits.includes(queryDigits) : false;
+
+      return nameMatch || phoneMatch;
+    });
+  }, [studentGroups, searchQuery]);
 
   // Level 1: Branch summaries
   const getBranchSummaries = () => {
@@ -554,25 +577,80 @@ export function DiagnosisExamsDrillDown({
       {/* Level 3: Student attempts detailed list */}
       {selectedBranch && selectedClass && (
         <section className="space-y-4">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setSelectedClass(null)}
-              className="rounded-xl"
-            >
-              <ArrowLeft className="w-4 h-4 mr-1" />
-              <span>Back</span>
-            </Button>
-            <h2 className="text-xl font-bold text-text-primary tracking-tight">
-              {selectedBranch} — Class {selectedClass} Attempts
-            </h2>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedClass(null)}
+                className="rounded-xl"
+              >
+                <ArrowLeft className="w-4 h-4 mr-1" />
+                <span>Back</span>
+              </Button>
+              <h2 className="text-xl font-bold text-text-primary tracking-tight">
+                {selectedBranch} — Class {selectedClass} Attempts
+              </h2>
+            </div>
+
+            {/* Student Search & Filter Bar */}
+            <div className="flex items-center gap-2">
+              <div className="relative w-full sm:w-80">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Filter by student name or phone..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-8 py-2 text-sm bg-white dark:bg-[#0E1526] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-[#5f2ea8]/20 focus:border-[#5f2ea8] transition-all"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-primary transition-colors p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+                    title="Clear filter"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+              {searchQuery ? (
+                <Badge variant="outline" className="hidden sm:inline-flex text-xs font-semibold whitespace-nowrap bg-purple-50 text-[#5f2ea8] dark:bg-purple-950/30 dark:text-purple-300 border-purple-200/60 dark:border-purple-800/40">
+                  {filteredStudentGroups.length} of {studentGroups.length}
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="hidden sm:inline-flex text-xs font-semibold whitespace-nowrap text-text-tertiary">
+                  {studentGroups.length} {studentGroups.length === 1 ? "student" : "students"}
+                </Badge>
+              )}
+            </div>
           </div>
 
           <div className="bg-white dark:bg-[#0E1526]/85 border border-slate-200/60 dark:border-slate-800/80 rounded-3xl shadow-sm overflow-hidden">
             {studentGroups.length === 0 ? (
               <div className="p-10 text-center text-text-secondary text-sm">
                 No student attempts found for Class {selectedClass} in {selectedBranch}.
+              </div>
+            ) : filteredStudentGroups.length === 0 ? (
+              <div className="p-12 text-center space-y-3">
+                <div className="mx-auto w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800/80 flex items-center justify-center text-text-tertiary">
+                  <Search className="w-6 h-6" />
+                </div>
+                <div className="text-base font-bold text-text-primary">
+                  No students found matching &ldquo;{searchQuery}&rdquo;
+                </div>
+                <p className="text-xs text-text-tertiary max-w-sm mx-auto">
+                  Try searching with a different name or checking the phone number digits entered during exam starting.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSearchQuery("")}
+                  className="rounded-xl mt-2 text-xs font-bold text-[#5f2ea8] border-[#5f2ea8]/30 hover:bg-[#5f2ea8]/5"
+                >
+                  Clear search
+                </Button>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -590,7 +668,7 @@ export function DiagnosisExamsDrillDown({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50 text-text-secondary font-medium">
-                    {studentGroups.map((student) => {
+                    {filteredStudentGroups.map((student) => {
                       const isExpanded = !!expandedStudentKeys[student.key];
                       const attemptCount = student.attempts.length;
                       const subjectsList = Array.from(
