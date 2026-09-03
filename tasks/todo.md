@@ -1,6 +1,9 @@
-# Task: Add Student Name & Phone Number Search Filter in Diagnosis Exam
+# Task: Restore Diagnosed Level Display in Diagnosis Exams
 
-- [x] Add `searchQuery` state and memoized filter matching student name & phone number in `DiagnosisExamsDrillDown.tsx` <!-- id: 0 -->
-- [x] Add stylish search bar above the attempts table with Search icon, clear button, and counter <!-- id: 1 -->
-- [x] Handle empty search results state with quick reset <!-- id: 2 -->
-- [x] Run `npx tsc --noEmit` to verify type safety and build correctness <!-- id: 3 -->
+- [x] Add `diagnosedLevel?: string | null` and `resultSnapshotJson` support to `AttemptWithPublishing` & `getAttemptLevelBreakdown` in `src/lib/public-exam/diagnostics.ts` <!-- id: 0 -->
+- [x] Update `BranchManagerDiagnosisExamsPage` to select `resultSnapshotJson` and map `diagnosedLevel` <!-- id: 1 -->
+- [x] Update `DirectorDiagnosisExamsPage` and `GeneralManagerDiagnosisExamsPage` to select `resultSnapshotJson` and map `diagnosedLevel` <!-- id: 2 -->
+- [x] Ensure `DiagnosisExamsDrillDown.tsx` uses `attempt.diagnosedLevel` directly <!-- id: 3 -->
+- [x] Run `npx tsc --noEmit` to verify type safety <!-- id: 4 -->
+- [x] Commit, push to `origin main`, and run `deploy.sh` on the server <!-- id: 5 -->
+- [x] Verify server health and diagnosis exams on live cluster <!-- id: 6 -->

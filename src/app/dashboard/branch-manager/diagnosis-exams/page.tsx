@@ -36,6 +36,7 @@ export default async function BranchManagerDiagnosisExamsPage() {
         correctCount: true,
         wrongCount: true,
         unansweredCount: true,
+        resultSnapshotJson: true,
         publishing: {
           select: {
             title: true,
@@ -51,10 +52,25 @@ export default async function BranchManagerDiagnosisExamsPage() {
       orderBy: { startedAt: "desc" },
     });
 
-    const attempts = rawAttempts.map((attempt) => ({
-      ...attempt,
-      studentBranch: getCanonicalBranchName(attempt.studentBranch),
-    }));
+    const attempts = rawAttempts.map((attempt) => {
+      let diagnosedLevel: string | null = null;
+      if (attempt.resultSnapshotJson) {
+        try {
+          const res = typeof attempt.resultSnapshotJson === "string"
+            ? JSON.parse(attempt.resultSnapshotJson)
+            : attempt.resultSnapshotJson;
+          diagnosedLevel = res?.diagnosedLevel || null;
+        } catch {
+          // Ignore JSON parse error
+        }
+      }
+
+      return {
+        ...attempt,
+        studentBranch: getCanonicalBranchName(attempt.studentBranch),
+        diagnosedLevel,
+      };
+    });
 
     return (
       <div className="p-4 lg:p-6 max-w-7xl mx-auto">

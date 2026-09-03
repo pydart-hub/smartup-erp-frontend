@@ -797,8 +797,9 @@ export function DiagnosisExamsDrillDown({
                                             attempt.status === "submitted" ||
                                             attempt.status === "auto_submitted";
                                           const diagnosedLevel = isSubmitted ? (
-                                            calculateDiagnosedLevel(attempt.classLevel, attempt.paperSnapshotJson, attempt.resultSnapshotJson) ||
-                                            (attempt.resultSnapshotJson && (typeof attempt.resultSnapshotJson === "object" ? (attempt.resultSnapshotJson as any).diagnosedLevel : JSON.parse(attempt.resultSnapshotJson).diagnosedLevel))
+                                            attempt.diagnosedLevel ||
+                                            (attempt.resultSnapshotJson && (typeof attempt.resultSnapshotJson === "object" ? (attempt.resultSnapshotJson as any).diagnosedLevel : JSON.parse(attempt.resultSnapshotJson).diagnosedLevel)) ||
+                                            calculateDiagnosedLevel(attempt.classLevel, attempt.paperSnapshotJson, attempt.resultSnapshotJson)
                                           ) : null;
 
                                           return (

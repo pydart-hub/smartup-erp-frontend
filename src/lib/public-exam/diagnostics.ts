@@ -13,6 +13,7 @@ export interface AttemptWithPublishing {
   correctCount: number;
   wrongCount: number;
   unansweredCount: number;
+  diagnosedLevel?: string | null;
   paperSnapshotJson?: any;
   resultSnapshotJson?: any;
   publishing: {
@@ -38,23 +39,28 @@ export function getOrdinalSuffix(val: string): string {
 
 export function getAttemptLevelBreakdown(attempt: AttemptWithPublishing) {
   try {
-    const questions: any[] = typeof attempt.paperSnapshotJson === "string"
-      ? JSON.parse(attempt.paperSnapshotJson)
-      : attempt.paperSnapshotJson;
+    const rawResult = typeof attempt.resultSnapshotJson === "string"
+      ? JSON.parse(attempt.resultSnapshotJson)
+      : attempt.resultSnapshotJson;
 
-    if (!questions || questions.length === 0) return { breakdown: [], diagnosedLevel: null };
+    const questions: any[] = (typeof attempt.paperSnapshotJson === "string"
+      ? JSON.parse(attempt.paperSnapshotJson)
+      : attempt.paperSnapshotJson) || (rawResult && Array.isArray(rawResult.questions) ? rawResult.questions : []);
+
+    if (!questions || questions.length === 0) {
+      const fallbackLevel = attempt.diagnosedLevel || rawResult?.diagnosedLevel || null;
+      return { breakdown: [], diagnosedLevel: fallbackLevel, diagnosedCorrect: null, diagnosedTotal: null };
+    }
 
     // Map correct answers
     const correctMap = new Map<string, boolean>();
     const isSubmitted = attempt.status === "submitted" || attempt.status === "auto_submitted";
 
     if (isSubmitted) {
-      const results = typeof attempt.resultSnapshotJson === "string"
-        ? JSON.parse(attempt.resultSnapshotJson)
-        : attempt.resultSnapshotJson;
+      const results = rawResult;
       if (results && results.questions) {
         results.questions.forEach((q: any) => {
-          correctMap.set(q.questionId, q.isCorrect);
+          correctMap.set(q.questionId || q.id, !!q.isCorrect);
         });
       }
     } else {
@@ -75,7 +81,7 @@ export function getAttemptLevelBreakdown(attempt: AttemptWithPublishing) {
       const qMarks = q.marks ?? 1;
       stats.total += 1;
       stats.totalMarks += qMarks;
-      if (correctMap.get(q.id)) {
+      if (correctMap.get(q.id) || (q.questionId && correctMap.get(q.questionId)) || !!q.isCorrect) {
         stats.correct += 1;
         stats.scoredMarks += qMarks;
       }
