@@ -23,6 +23,8 @@ import {
   Trash2,
   X,
   Search,
+  AlertCircle,
+  MessageSquare,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -161,11 +163,13 @@ export function DiagnosisExamsDrillDown({
 
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [attendanceFilter, setAttendanceFilter] = useState<"all" | "full" | "partial" | "single">("all");
   const [expandedStudentKeys, setExpandedStudentKeys] = useState<Record<string, boolean>>({});
 
-  // Reset search filter when navigating branch or class
+  // Reset search and attendance filter when navigating branch or class
   React.useEffect(() => {
     setSearchQuery("");
+    setAttendanceFilter("all");
   }, [selectedBranch, selectedClass]);
 
   const toggleStudentExpand = (key: string) => {
@@ -258,21 +262,63 @@ export function DiagnosisExamsDrillDown({
     return Object.values(groups).sort((a, b) => a.studentName.localeCompare(b.studentName));
   }, [filteredAttempts]);
 
-  // Filter students by name or phone number
+  // Total subjects in current class level (e.g. 7 for Class 8, 9, 10)
+  const totalClassSubjects = React.useMemo(() => {
+    const subjects = new Set<string>();
+    filteredAttempts.forEach((a) => {
+      if (a.publishing?.subject?.name) {
+        subjects.add(a.publishing.subject.name);
+      }
+    });
+    return Math.max(subjects.size, 7);
+  }, [filteredAttempts]);
+
+  // Aggregate attendance statistics across students in this class
+  const attendanceStats = React.useMemo(() => {
+    let fullCount = 0;
+    let partialCount = 0;
+    let singleCount = 0;
+
+    studentGroups.forEach((student) => {
+      const uniqueSubjects = new Set(student.attempts.map((a) => a.publishing?.subject?.name)).size;
+      if (uniqueSubjects >= totalClassSubjects) {
+        fullCount++;
+      } else if (uniqueSubjects === 1) {
+        singleCount++;
+      } else {
+        partialCount++;
+      }
+    });
+
+    return {
+      all: studentGroups.length,
+      full: fullCount,
+      partial: partialCount,
+      single: singleCount,
+    };
+  }, [studentGroups, totalClassSubjects]);
+
+  // Filter students by attendance status AND search query (name or phone)
   const filteredStudentGroups = React.useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return studentGroups;
-
     const queryDigits = q.replace(/\D/g, "");
 
     return studentGroups.filter((student) => {
+      // 1. Attendance status filter
+      const uniqueSubjects = new Set(student.attempts.map((a) => a.publishing?.subject?.name)).size;
+      if (attendanceFilter === "full" && uniqueSubjects < totalClassSubjects) return false;
+      if (attendanceFilter === "single" && uniqueSubjects !== 1) return false;
+      if (attendanceFilter === "partial" && (uniqueSubjects <= 1 || uniqueSubjects >= totalClassSubjects)) return false;
+
+      // 2. Search query filter
+      if (!q) return true;
       const nameMatch = student.studentName.toLowerCase().includes(q);
       const studentPhoneDigits = (student.studentPhone || "").replace(/\D/g, "");
       const phoneMatch = queryDigits ? studentPhoneDigits.includes(queryDigits) : false;
 
       return nameMatch || phoneMatch;
     });
-  }, [studentGroups, searchQuery]);
+  }, [studentGroups, searchQuery, attendanceFilter, totalClassSubjects]);
 
   // Level 1: Branch summaries
   const getBranchSummaries = () => {
@@ -577,7 +623,7 @@ export function DiagnosisExamsDrillDown({
       {/* Level 3: Student attempts detailed list */}
       {selectedBranch && selectedClass && (
         <section className="space-y-4">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="flex flex-col gap-3">
             <div className="flex items-center gap-3">
               <Button
                 variant="outline"
@@ -593,37 +639,88 @@ export function DiagnosisExamsDrillDown({
               </h2>
             </div>
 
-            {/* Student Search & Filter Bar */}
-            <div className="flex items-center gap-2">
-              <div className="relative w-full sm:w-80">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary pointer-events-none" />
-                <input
-                  type="text"
-                  placeholder="Filter by student name or phone..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-8 py-2 text-sm bg-white dark:bg-[#0E1526] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-[#5f2ea8]/20 focus:border-[#5f2ea8] transition-all"
-                />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery("")}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-primary transition-colors p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
-                    title="Clear filter"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                )}
+            {/* Attendance Filter Tabs & Search Bar */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-white/70 dark:bg-[#0E1526]/70 p-2.5 rounded-2xl border border-slate-200/60 dark:border-slate-800/80 backdrop-blur shadow-xs">
+              {/* Segmented Attendance Status Filters */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setAttendanceFilter("all")}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    attendanceFilter === "all"
+                      ? "bg-[#5f2ea8] text-white shadow-xs"
+                      : "bg-slate-100 dark:bg-slate-800/80 text-text-secondary hover:text-text-primary hover:bg-slate-200/80"
+                  }`}
+                >
+                  All ({attendanceStats.all})
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setAttendanceFilter("full")}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    attendanceFilter === "full"
+                      ? "bg-emerald-600 text-white shadow-xs"
+                      : "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100/70 border border-emerald-200/50 dark:border-emerald-800/30"
+                  }`}
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Full Attended ({attendanceStats.full})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setAttendanceFilter("partial")}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    attendanceFilter === "partial"
+                      ? "bg-blue-600 text-white shadow-xs"
+                      : "bg-blue-50 dark:bg-blue-950/20 text-blue-700 dark:text-blue-400 hover:bg-blue-100/70 border border-blue-200/50 dark:border-blue-800/30"
+                  }`}
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>Partial ({attendanceStats.partial})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setAttendanceFilter("single")}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    attendanceFilter === "single"
+                      ? "bg-amber-600 text-white shadow-xs"
+                      : "bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 hover:bg-amber-100/70 border border-amber-200/50 dark:border-amber-800/30"
+                  }`}
+                >
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  <span>1 Attempt Only ({attendanceStats.single})</span>
+                </button>
               </div>
-              {searchQuery ? (
-                <Badge variant="outline" className="hidden sm:inline-flex text-xs font-semibold whitespace-nowrap bg-purple-50 text-[#5f2ea8] dark:bg-purple-950/30 dark:text-purple-300 border-purple-200/60 dark:border-purple-800/40">
+
+              {/* Student Search & Match Counter */}
+              <div className="flex items-center gap-2">
+                <div className="relative w-full sm:w-72">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary pointer-events-none" />
+                  <input
+                    type="text"
+                    placeholder="Search name or phone..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-8 py-1.5 text-xs bg-white dark:bg-[#0E1526] border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-[#5f2ea8]/20 focus:border-[#5f2ea8] transition-all"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-primary transition-colors p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+                      title="Clear search"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+                <Badge variant="outline" className="hidden sm:inline-flex text-[11px] font-semibold whitespace-nowrap text-text-tertiary">
                   {filteredStudentGroups.length} of {studentGroups.length}
                 </Badge>
-              ) : (
-                <Badge variant="outline" className="hidden sm:inline-flex text-xs font-semibold whitespace-nowrap text-text-tertiary">
-                  {studentGroups.length} {studentGroups.length === 1 ? "student" : "students"}
-                </Badge>
-              )}
+              </div>
             </div>
           </div>
 
@@ -638,18 +735,21 @@ export function DiagnosisExamsDrillDown({
                   <Search className="w-6 h-6" />
                 </div>
                 <div className="text-base font-bold text-text-primary">
-                  No students found matching &ldquo;{searchQuery}&rdquo;
+                  No students found matching current filters
                 </div>
                 <p className="text-xs text-text-tertiary max-w-sm mx-auto">
-                  Try searching with a different name or checking the phone number digits entered during exam starting.
+                  {searchQuery ? `No results for "${searchQuery}" in ${attendanceFilter} category.` : `No students found in ${attendanceFilter} category.`}
                 </p>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setSearchQuery("")}
+                  onClick={() => {
+                    setSearchQuery("");
+                    setAttendanceFilter("all");
+                  }}
                   className="rounded-xl mt-2 text-xs font-bold text-[#5f2ea8] border-[#5f2ea8]/30 hover:bg-[#5f2ea8]/5"
                 >
-                  Clear search
+                  Reset all filters
                 </Button>
               </div>
             ) : (
@@ -659,8 +759,8 @@ export function DiagnosisExamsDrillDown({
                     <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800 text-text-tertiary font-bold text-xs uppercase tracking-wider">
                       <th className="py-4 px-6 w-10"></th>
                       <th className="py-4 px-6">Student Name</th>
-                      <th className="py-4 px-6">Phone</th>
-                      <th className="py-4 px-6 text-center">Attempts</th>
+                      <th className="py-4 px-6">Phone & Contact</th>
+                      <th className="py-4 px-6 text-center">Attendance Progress</th>
                       <th className="py-4 px-6">Subjects</th>
                       <th className="py-4 px-6 text-center">Latest Score</th>
                       <th className="py-4 px-6">Last Attempt</th>
@@ -675,6 +775,11 @@ export function DiagnosisExamsDrillDown({
                         new Set(student.attempts.map((a) => a.publishing.subject.name))
                       ).join(", ");
                       const latestAttempt = student.attempts[0];
+
+                      const uniqueSubjects = new Set(student.attempts.map((a) => a.publishing?.subject?.name)).size;
+                      const isFullAttended = uniqueSubjects >= totalClassSubjects;
+                      const isSingleAttempt = uniqueSubjects === 1;
+                      const pendingSubjectsCount = Math.max(totalClassSubjects - uniqueSubjects, 0);
 
                       return (
                         <React.Fragment key={student.key}>
@@ -701,18 +806,58 @@ export function DiagnosisExamsDrillDown({
                             </td>
                             <td className="py-4 px-6">
                               {student.studentPhone ? (
-                                <div className="flex items-center gap-1">
-                                  <Phone className="w-3.5 h-3.5 text-text-tertiary" />
-                                  <span>{student.studentPhone}</span>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <div className="flex items-center gap-1 font-mono text-xs text-text-primary">
+                                    <Phone className="w-3.5 h-3.5 text-text-tertiary" />
+                                    <span>{student.studentPhone}</span>
+                                  </div>
+                                  {!isFullAttended && (
+                                    <a
+                                      href={`https://wa.me/91${student.studentPhone.replace(/\D/g, "")}?text=${encodeURIComponent(
+                                        `Hello ${student.studentName}, your SmartUp Class ${student.classLevel} Diagnosis Exam has ${pendingSubjectsCount} remaining subject(s). Please resume and complete them here: https://smartuplearning.net/exam-site`
+                                      )}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      onClick={(e) => e.stopPropagation()}
+                                      title="Send WhatsApp reminder to resume exam"
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/40 transition-colors cursor-pointer"
+                                    >
+                                      <MessageSquare className="w-3 h-3" />
+                                      <span>WhatsApp</span>
+                                    </a>
+                                  )}
                                 </div>
                               ) : (
                                 <span className="text-text-tertiary">—</span>
                               )}
                             </td>
                             <td className="py-4 px-6 text-center">
-                              <Badge variant="outline" className="font-black">
-                                {attemptCount} {attemptCount === 1 ? "attempt" : "attempts"}
-                              </Badge>
+                              {isFullAttended ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/40 whitespace-nowrap">
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                  <span>{uniqueSubjects}/{totalClassSubjects} Full</span>
+                                </span>
+                              ) : isSingleAttempt ? (
+                                <div className="inline-flex flex-col items-center">
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/40 whitespace-nowrap">
+                                    <AlertCircle className="w-3 h-3 text-amber-600" />
+                                    <span>1/{totalClassSubjects} Attempt</span>
+                                  </span>
+                                  <span className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold mt-0.5">
+                                    {pendingSubjectsCount} Pending
+                                  </span>
+                                </div>
+                              ) : (
+                                <div className="inline-flex flex-col items-center">
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400 border border-blue-200/60 dark:border-blue-800/40 whitespace-nowrap">
+                                    <Clock className="w-3 h-3 text-blue-600" />
+                                    <span>{uniqueSubjects}/{totalClassSubjects} Subjects</span>
+                                  </span>
+                                  <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold mt-0.5">
+                                    {pendingSubjectsCount} Pending
+                                  </span>
+                                </div>
+                              )}
                             </td>
                             <td className="py-4 px-6">
                               <div className="flex items-center gap-1.5">

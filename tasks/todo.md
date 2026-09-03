@@ -1,9 +1,9 @@
-# Task: Restore Diagnosed Level Display in Diagnosis Exams
+# Task: Add Full Attended & 1-Attempt Filter to Diagnosis Exam
 
-- [x] Add `diagnosedLevel?: string | null` and `resultSnapshotJson` support to `AttemptWithPublishing` & `getAttemptLevelBreakdown` in `src/lib/public-exam/diagnostics.ts` <!-- id: 0 -->
-- [x] Update `BranchManagerDiagnosisExamsPage` to select `resultSnapshotJson` and map `diagnosedLevel` <!-- id: 1 -->
-- [x] Update `DirectorDiagnosisExamsPage` and `GeneralManagerDiagnosisExamsPage` to select `resultSnapshotJson` and map `diagnosedLevel` <!-- id: 2 -->
-- [x] Ensure `DiagnosisExamsDrillDown.tsx` uses `attempt.diagnosedLevel` directly <!-- id: 3 -->
-- [x] Run `npx tsc --noEmit` to verify type safety <!-- id: 4 -->
-- [x] Commit, push to `origin main`, and run `deploy.sh` on the server <!-- id: 5 -->
-- [x] Verify server health and diagnosis exams on live cluster <!-- id: 6 -->
+- [x] Add `attendanceFilter` state and stats calculation in `DiagnosisExamsDrillDown.tsx` <!-- id: 0 -->
+- [x] Add segmented filter tabs (`All`, `Full Attended`, `Partial`, `1 Attempt Only`) <!-- id: 1 -->
+- [x] Add subject completion progress badges in Attempts column (`7/7 Full`, `1/7 (6 Pending)`) <!-- id: 2 -->
+- [x] Add 1-click WhatsApp follow-up link for incomplete students to complete remaining subjects <!-- id: 3 -->
+- [x] Run `npx tsc --noEmit` to verify type correctness <!-- id: 4 -->
+- [x] Commit, push to `origin main`, and deploy to production cluster <!-- id: 5 -->
+- [x] Verify server health across all 4 cluster instances <!-- id: 6 -->
