@@ -17,7 +17,7 @@ const ROLE_DASHBOARD_MAP: Record<string, string> = {
   Parent: "/dashboard/parent",
 };
 
-const PUBLIC_PATHS = ["/auth/login", "/auth/forgot-password", "/api/", "/pay/", "/demo", "/exam-site", "/plus-two-predictor"];
+const PUBLIC_PATHS = ["/auth/login", "/auth/forgot-password", "/api/", "/pay/", "/demo", "/exam-site", "/plus-two-predictor", "/scholar"];
 const APP_ROLES = Object.keys(ROLE_DASHBOARD_MAP);
 
 function hasAlternateDashboardRole(roles: string[], currentRole: string) {
@@ -36,14 +36,30 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Handle predictor subdomain rewrites
+  // Handle scholar subdomain rewrites
+  if (host.toLowerCase().startsWith("scholar.")) {
+    const isInternal =
+      pathname.startsWith("/api") ||
+      pathname.startsWith("/_next") ||
+      pathname.includes("."); // e.g. favicon.ico, images
+
+    console.log(`[MIDDLEWARE DEBUG] Scholar subdomain detected. isInternal: ${isInternal}, pathname: "${pathname}"`);
+
+    if (!isInternal && !pathname.startsWith("/scholar")) {
+      url.pathname = `/scholar${pathname === "/" ? "" : pathname}`;
+      console.log(`[MIDDLEWARE DEBUG] Rewriting scholar subdomain request to: "${url.pathname}"`);
+      return NextResponse.rewrite(url);
+    }
+  }
+
+  // Handle legacy predictor subdomain rewrites
   if (host.toLowerCase().startsWith("predictor.")) {
     const isInternal =
       pathname.startsWith("/api") ||
       pathname.startsWith("/_next") ||
       pathname.includes("."); // e.g. favicon.ico, images
 
-    console.log(`[MIDDLEWARE DEBUG] Subdomain detected. isInternal: ${isInternal}, pathname: "${pathname}"`);
+    console.log(`[MIDDLEWARE DEBUG] Predictor subdomain detected. isInternal: ${isInternal}, pathname: "${pathname}"`);
 
     if (!isInternal && !pathname.startsWith("/plus-two-predictor")) {
       url.pathname = `/plus-two-predictor${pathname === "/" ? "" : pathname}`;
