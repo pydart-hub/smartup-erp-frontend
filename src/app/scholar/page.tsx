@@ -47,25 +47,12 @@ const CLASSES = [
   "Plus Two (+2)",
 ];
 
-const BRANCHES = [
-  "Smart Up Kadavanthara",
-  "Smart Up Edappally",
-  "Smart Up Vennala",
-  "Smart Up Eraveli",
-  "Smart Up Fortkochi",
-  "Smart Up Chullickal",
-  "Smart Up Palluruthy",
-  "Smart Up Thopumpadi",
-  "Smart Up Moolamkuzhi",
-];
-
 export default function ScholarRegistrationPage() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [selectedClass, setSelectedClass] = useState("Class 10");
   const [district, setDistrict] = useState("Ernakulam");
   const [school, setSchool] = useState("");
-  const [branch, setBranch] = useState(BRANCHES[0]);
   const [agree, setAgree] = useState(true);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
@@ -207,9 +194,8 @@ export default function ScholarRegistrationPage() {
                   </div>
 
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-700 space-y-1.5 text-left">
-                    <div><strong>Mobile Number:</strong> +91 {phone}</div>
+                    <div><strong>Number:</strong> +91 {phone}</div>
                     <div><strong>District:</strong> {district}</div>
-                    <div><strong>Assigned Branch:</strong> {branch}</div>
                     {school && <div><strong>School:</strong> {school}</div>}
                   </div>
 
@@ -247,7 +233,7 @@ export default function ScholarRegistrationPage() {
                     {/* Mobile Number */}
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-600">
-                        WhatsApp / Mobile <span className="text-red-500">*</span>
+                        Number <span className="text-red-500">*</span>
                       </label>
                       <div className="flex">
                         <span className="inline-flex items-center px-3 text-xs font-bold bg-slate-100 border border-r-0 border-slate-200 rounded-l-xl text-slate-600">
@@ -286,43 +272,22 @@ export default function ScholarRegistrationPage() {
                     </div>
                   </div>
 
-                  {/* District & Preferred Branch */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {/* District */}
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-600">
-                        District <span className="text-red-500">*</span>
-                      </label>
-                      <select
-                        value={district}
-                        onChange={(e) => setDistrict(e.target.value)}
-                        className="w-full px-3.5 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#673AB7]/20 focus:border-[#673AB7] transition shadow-2xs cursor-pointer"
-                      >
-                        {KERALA_DISTRICTS.map((d) => (
-                          <option key={d} value={d}>
-                            {d}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* SmartUp Branch */}
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-600">
-                        Nearest Branch
-                      </label>
-                      <select
-                        value={branch}
-                        onChange={(e) => setBranch(e.target.value)}
-                        className="w-full px-3.5 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#673AB7]/20 focus:border-[#673AB7] transition shadow-2xs cursor-pointer"
-                      >
-                        {BRANCHES.map((b) => (
-                          <option key={b} value={b}>
-                            {b}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                  {/* District (Full width) */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-600">
+                      District <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={district}
+                      onChange={(e) => setDistrict(e.target.value)}
+                      className="w-full px-3.5 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#673AB7]/20 focus:border-[#673AB7] transition shadow-2xs cursor-pointer"
+                    >
+                      {KERALA_DISTRICTS.map((d) => (
+                        <option key={d} value={d}>
+                          {d}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   {/* School Name */}
