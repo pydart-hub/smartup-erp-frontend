@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "SmartUp Scholarship Exam 2026 — Merit & Talent Search",
+  title: "SmartUp Scholarship Exam 2026 — Candidate Registration",
   description:
-    "Apply for SmartUp Scholarship Exam 2026. Win up to 100% tuition fee waiver for Classes 8, 9, 10, Plus One, and Plus Two.",
+    "Register for SmartUp Scholarship Exam 2026. Enter your details to book your test slot and claim tuition fee waivers.",
 };
 
 export default function ScholarLayout({
@@ -12,7 +12,7 @@ export default function ScholarLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-[#0E071A] text-slate-100 selection:bg-[#82C35B] selection:text-[#0E071A] antialiased font-sans">
+    <div className="min-h-screen bg-[#F7F8FA] text-slate-900 selection:bg-[#673AB7] selection:text-white antialiased font-sans">
       {children}
     </div>
   );
