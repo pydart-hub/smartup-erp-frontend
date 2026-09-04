@@ -12,7 +12,7 @@ export default function ScholarLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-50 selection:bg-purple-500 selection:text-white antialiased font-sans">
+    <div className="min-h-screen bg-[#0E071A] text-slate-100 selection:bg-[#82C35B] selection:text-[#0E071A] antialiased font-sans">
       {children}
     </div>
   );
