@@ -211,81 +211,207 @@ export default function BranchAllStudentsPage() {
     workbook.creator = "SmartUp ERP";
     workbook.created = new Date();
 
-    const sheet = workbook.addWorksheet("Overdue Students");
+    const sanitizedSheetName = `${shortBranch.replace(/[\\/*?:[\]]/g, "_").slice(0, 25)} Fees`;
+    const sheet = workbook.addWorksheet(sanitizedSheetName, {
+      views: [{ state: "frozen", ySplit: 4 }],
+    });
 
+    // ── Row 1: Title Header Bar ──
+    sheet.mergeCells("A1:S1");
+    const titleCell = sheet.getCell("A1");
+    titleCell.value = "Inst. Status";
+    titleCell.font = { name: "Segoe UI", size: 13, bold: true, color: { argb: "FFFFFFFF" } };
+    titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF4A154B" } };
+    titleCell.alignment = { vertical: "middle", horizontal: "center" };
+    sheet.getRow(1).height = 30;
+
+    // ── Row 2: Sub-Banner Line ──
+    sheet.mergeCells("A2:S2");
+    const subCell = sheet.getCell("A2");
+    const todayFormatted = new Date().toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    subCell.value = `Branch: ${branch}   |   Report: All Overdue Students   |   Generated: ${todayFormatted}   |   Total Students: ${filteredStudents.length}   |   Report exported from ERP`;
+    subCell.font = { name: "Segoe UI", size: 9.5, italic: true, color: { argb: "FF3730A3" } };
+    subCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE0E7FF" } };
+    subCell.alignment = { vertical: "middle", horizontal: "center" };
+    sheet.getRow(2).height = 20;
+
+    // ── Row 3: Blank Spacing Row ──
+    sheet.getRow(3).height = 8;
+
+    // ── Column Definitions ──
     sheet.columns = [
-      { header: "#", key: "idx", width: 5 },
-      { header: "Name", key: "name", width: 26 },
-      { header: "Class", key: "cls", width: 16 },
-      { header: "Batch", key: "batch", width: 16 },
-      { header: "Plan", key: "plan", width: 14 },
-      { header: "Frequency", key: "freq", width: 16 },
-      { header: "Guardian", key: "guardian", width: 22 },
-      { header: "Phone", key: "phone", width: 14 },
+      { header: "#", key: "idx", width: 6 },
+      { header: "Student ID", key: "student_id", width: 22 },
+      { header: "Student Name", key: "name", width: 28 },
+      { header: "Status", key: "status", width: 12 },
+      { header: "Fee Plan", key: "plan", width: 14 },
+      { header: "Frequency", key: "freq", width: 22 },
+      { header: "Payment Mode", key: "payment_mode", width: 14 },
+      { header: "Total Fee (₹)", key: "total_fee", width: 16 },
+      { header: "Total Paid (₹)", key: "total_paid", width: 16 },
+      { header: "Total Pending (₹)", key: "total_pending", width: 16 },
+      { header: "Overdue (₹)", key: "student_overdue", width: 16 },
       { header: "Instalment", key: "instalment", width: 16 },
-      { header: "Total (?)", key: "total", width: 14 },
-      { header: "Paid (?)", key: "paid", width: 14 },
-      { header: "Balance (?)", key: "balance", width: 14 },
+      { header: "Due Date", key: "due_date", width: 16 },
+      { header: "Invoice No", key: "invoice_no", width: 22 },
+      { header: "Inst. Amount (₹)", key: "inv_total", width: 16 },
+      { header: "Inst. Paid (₹)", key: "inv_paid", width: 16 },
+      { header: "Inst. Due (₹)", key: "inv_overdue", width: 16 },
+      { header: "Guardian Name", key: "guardian", width: 22 },
+      { header: "Guardian Phone", key: "phone", width: 16 },
     ];
 
-    // Style header row
-    const headerRow = sheet.getRow(1);
-    headerRow.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 10 };
-    headerRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFEA580C" } };
+    // ── Row 4: Column Header Formatting ──
+    const headerRow = sheet.getRow(4);
+    headerRow.values = [
+      "#",
+      "Student ID",
+      "Student Name",
+      "Status",
+      "Fee Plan",
+      "Frequency",
+      "Payment Mode",
+      "Total Fee (₹)",
+      "Total Paid (₹)",
+      "Total Pending (₹)",
+      "Overdue (₹)",
+      "Instalment",
+      "Due Date",
+      "Invoice No",
+      "Inst. Amount (₹)",
+      "Inst. Paid (₹)",
+      "Inst. Due (₹)",
+      "Guardian Name",
+      "Guardian Phone",
+    ];
+    headerRow.height = 24;
+    headerRow.font = { name: "Segoe UI", bold: true, size: 10, color: { argb: "FFFFFFFF" } };
+    headerRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF4F46E5" } };
     headerRow.alignment = { vertical: "middle", horizontal: "center" };
-    headerRow.height = 18;
 
-    let rowColorToggle = false;
-    filteredStudents.forEach((s, i) => {
-      s.overdue_invoices.forEach((inv, invIdx) => {
-        const row = sheet.addRow({
-          idx: invIdx === 0 ? i + 1 : "",
-          name: invIdx === 0 ? s.student_name : "",
-          cls: invIdx === 0 ? (s.class_name ?? "").replace(" Tuition Fee", "") : "",
-          batch: invIdx === 0 ? (s.batch_name ?? "") : "",
-          plan: invIdx === 0 ? (s.plan ?? "") : "",
-          freq: invIdx === 0 ? (PAYMENT_OPTION_LABELS[s.no_of_instalments] ?? s.no_of_instalments ?? "") : "",
-          guardian: invIdx === 0 ? (s.guardian_name ?? "") : "",
-          phone: invIdx === 0 ? (s.guardian_phone ?? "") : "",
-          instalment: inv.instalment_label ?? `Instalment ${invIdx + 1}`,
-          total: inv.grand_total ?? 0,
-          paid: inv.paid ?? 0,
-          balance: inv.amount ?? 0,
+    const thinBorder: any = {
+      top: { style: "thin", color: { argb: "FFE2E8F0" } },
+      left: { style: "thin", color: { argb: "FFE2E8F0" } },
+      bottom: { style: "thin", color: { argb: "FFE2E8F0" } },
+      right: { style: "thin", color: { argb: "FFE2E8F0" } },
+    };
+
+    const numFmt = "₹#,##0.00";
+    let isEvenStudent = false;
+
+    filteredStudents.forEach((s, idx) => {
+      const studentBg = isEvenStudent ? "FFF8FAFC" : "FFFFFFFF";
+      isEvenStudent = !isEvenStudent;
+
+      const status = "Active";
+      const invs = s.overdue_invoices ?? [];
+
+      if (invs.length === 0) {
+        const addedRow = sheet.addRow({
+          idx: idx + 1,
+          student_id: s.student_id,
+          name: s.student_name,
+          status,
+          plan: s.plan || "Basic",
+          freq: PAYMENT_OPTION_LABELS[s.no_of_instalments] || s.no_of_instalments || "—",
+          payment_mode: "—",
+          total_fee: s.total_fee ?? 0,
+          total_paid: s.paid_fee ?? 0,
+          total_pending: s.balance_fee ?? 0,
+          student_overdue: s.total_dues ?? 0,
+          instalment: "—",
+          due_date: "—",
+          invoice_no: "—",
+          inv_total: s.total_fee ?? 0,
+          inv_paid: s.paid_fee ?? 0,
+          inv_overdue: s.total_dues ?? 0,
+          guardian: s.guardian_name || "—",
+          phone: s.guardian_phone || "—",
         });
 
-        if (rowColorToggle) {
-          row.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF7ED" } };
-        }
+        addedRow.height = 20;
 
-        const numFmt = '?#,##0.00';
-        row.getCell("total").numFmt = numFmt;
-        row.getCell("paid").numFmt = numFmt;
-        if ((inv.paid ?? 0) > 0) {
-          row.getCell("paid").font = { color: { argb: "FF16A34A" } };
-        }
-        row.getCell("balance").numFmt = numFmt;
-        row.getCell("balance").font = { bold: true, color: { argb: "FFEA580C" } };
-      });
-      // Toggle stripe color per student group
-      rowColorToggle = !rowColorToggle;
-    });
+        sheet.columns.forEach((col) => {
+          if (!col.key) return;
+          const cell = addedRow.getCell(col.key);
+          cell.font = { name: "Segoe UI", size: 9.5 };
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: studentBg } };
+          cell.border = thinBorder;
+          cell.alignment = { vertical: "middle" };
+        });
 
-    // Blank row then summary
-    sheet.addRow({});
-    const sumRow = sheet.addRow({
-      guardian: "TOTAL",
-      total: filteredStudents.reduce((s, st) => s + st.overdue_invoices.reduce((a, i) => a + (i.grand_total ?? 0), 0), 0),
-      paid: filteredStudents.reduce((s, st) => s + st.overdue_invoices.reduce((a, i) => a + (i.paid ?? 0), 0), 0),
-      balance: totalDues,
+        addedRow.getCell("total_fee").numFmt = numFmt;
+        addedRow.getCell("total_paid").numFmt = numFmt;
+        addedRow.getCell("total_paid").font = { name: "Segoe UI", size: 9.5, color: { argb: "FF16A34A" } };
+        addedRow.getCell("total_pending").numFmt = numFmt;
+        addedRow.getCell("total_pending").font = { name: "Segoe UI", size: 9.5, bold: true, color: { argb: "FFDC2626" } };
+        addedRow.getCell("student_overdue").numFmt = numFmt;
+        addedRow.getCell("student_overdue").font = { name: "Segoe UI", size: 9.5, bold: true, color: { argb: "FFEA580C" } };
+
+        addedRow.getCell("inv_total").numFmt = numFmt;
+        addedRow.getCell("inv_paid").numFmt = numFmt;
+        addedRow.getCell("inv_overdue").numFmt = numFmt;
+      } else {
+        invs.forEach((inv, invIdx) => {
+          const addedRow = sheet.addRow({
+            idx: invIdx === 0 ? idx + 1 : "",
+            student_id: invIdx === 0 ? s.student_id : "",
+            name: invIdx === 0 ? s.student_name : "",
+            status: invIdx === 0 ? status : "",
+            plan: invIdx === 0 ? (s.plan || "Basic") : "",
+            freq: invIdx === 0 ? (PAYMENT_OPTION_LABELS[s.no_of_instalments] || s.no_of_instalments || "—") : "",
+            payment_mode: invIdx === 0 ? "—" : "",
+            total_fee: invIdx === 0 ? (s.total_fee ?? 0) : "",
+            total_paid: invIdx === 0 ? (s.paid_fee ?? 0) : "",
+            total_pending: invIdx === 0 ? (s.balance_fee ?? 0) : "",
+            student_overdue: invIdx === 0 ? (s.total_dues ?? 0) : "",
+            instalment: inv.instalment_label || `Instalment ${invIdx + 1}`,
+            due_date: inv.due_date ? formatDate(inv.due_date) : "—",
+            invoice_no: inv.name,
+            inv_total: inv.grand_total ?? 0,
+            inv_paid: inv.paid ?? 0,
+            inv_overdue: inv.amount ?? 0,
+            guardian: invIdx === 0 ? (s.guardian_name || "—") : "",
+            phone: invIdx === 0 ? (s.guardian_phone || "—") : "",
+          });
+
+          addedRow.height = 20;
+
+          sheet.columns.forEach((col) => {
+            if (!col.key) return;
+            const cell = addedRow.getCell(col.key);
+            cell.font = { name: "Segoe UI", size: 9.5 };
+            cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: studentBg } };
+            cell.border = thinBorder;
+            cell.alignment = { vertical: "middle" };
+          });
+
+          addedRow.getCell("inv_total").numFmt = numFmt;
+          addedRow.getCell("inv_paid").numFmt = numFmt;
+          if ((inv.paid ?? 0) > 0) {
+            addedRow.getCell("inv_paid").font = { name: "Segoe UI", size: 9.5, color: { argb: "FF16A34A" } };
+          }
+          addedRow.getCell("inv_overdue").numFmt = numFmt;
+          addedRow.getCell("inv_overdue").font = { name: "Segoe UI", size: 9.5, bold: true, color: { argb: "FFEA580C" } };
+
+          if (invIdx === 0) {
+            addedRow.getCell("total_fee").numFmt = numFmt;
+            addedRow.getCell("total_paid").numFmt = numFmt;
+            addedRow.getCell("total_paid").font = { name: "Segoe UI", size: 9.5, color: { argb: "FF16A34A" } };
+            addedRow.getCell("total_pending").numFmt = numFmt;
+            addedRow.getCell("total_pending").font = { name: "Segoe UI", size: 9.5, bold: true, color: { argb: "FFDC2626" } };
+            addedRow.getCell("student_overdue").numFmt = numFmt;
+            addedRow.getCell("student_overdue").font = { name: "Segoe UI", size: 9.5, bold: true, color: { argb: "FFEA580C" } };
+          }
+        });
+      }
     });
-    sumRow.getCell("guardian").font = { bold: true };
-    const numFmt = '?#,##0.00';
-    sumRow.getCell("total").numFmt = numFmt;
-    sumRow.getCell("total").font = { bold: true };
-    sumRow.getCell("paid").numFmt = numFmt;
-    sumRow.getCell("paid").font = { bold: true, color: { argb: "FF16A34A" } };
-    sumRow.getCell("balance").numFmt = numFmt;
-    sumRow.getCell("balance").font = { bold: true, color: { argb: "FFEA580C" } };
 
     const buf = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
