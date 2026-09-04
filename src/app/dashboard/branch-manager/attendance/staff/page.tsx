@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ClipboardCheck, Calendar, Users, CheckCircle,
   XCircle, Clock, Loader2, UserX, Save, ArrowLeft, Building2, LogIn, LogOut,
-  Palmtree,
+  Palmtree, Sliders, Sparkles, BookOpen,
 } from "lucide-react";
 import Link from "next/link";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
@@ -75,12 +75,15 @@ export default function StaffAttendancePage() {
   const [pendingChanges, setPendingChanges] = useState<Record<string, StaffAttendanceChange>>({});
   const [saving, setSaving] = useState(false);
   const [classTime, setClassTime] = useState("17:00");
+  const [timingMode, setTimingMode] = useState<"same" | "different">("same");
+  const [individualClassTimes, setIndividualClassTimes] = useState<Record<string, string>>({});
 
   const employeeAttendanceQueryKey = ["employee-attendance", defaultCompany, selectedDate] as const;
 
-  // Reset pending changes when date changes
+  // Reset pending changes and individual times when date changes
   useEffect(() => {
     setPendingChanges({});
+    setIndividualClassTimes({});
   }, [selectedDate]);
 
   // Fetch employees for the branch
@@ -119,9 +122,19 @@ export default function StaffAttendancePage() {
     enabled: !!defaultCompany,
   });
 
-  // Pre-fill classTime when attendance records are loaded for the selected date
+  // Pre-fill classTime and detect if different times exist when attendance records are loaded
   useEffect(() => {
     if (attRes?.data && attRes.data.length > 0) {
+      const distinctTimes = new Set(
+        attRes.data
+          .map((r) => r.custom_class_time?.slice(0, 5))
+          .filter(Boolean)
+      );
+
+      if (distinctTimes.size > 1) {
+        setTimingMode("different");
+      }
+
       const recordWithClassTime = attRes.data.find((r) => r.custom_class_time);
       if (recordWithClassTime?.custom_class_time) {
         setClassTime(recordWithClassTime.custom_class_time.slice(0, 5));
@@ -142,6 +155,21 @@ export default function StaffAttendancePage() {
     }
     return map;
   }, [allInstrRes]);
+
+  // Map employee name -> schedules on selectedDate
+  const employeeSchedulesMap = React.useMemo(() => {
+    const schedules = schedulesRes?.data ?? [];
+    const map = new Map<string, typeof schedules>();
+    for (const sched of schedules) {
+      if (!sched.instructor) continue;
+      const instr = instrMap.get(sched.instructor);
+      if (!instr?.employee) continue;
+      const existing = map.get(instr.employee) ?? [];
+      existing.push(sched);
+      map.set(instr.employee, existing);
+    }
+    return map;
+  }, [schedulesRes, instrMap]);
 
   // Derive visiting instructors from today's schedules (not in branch employee list)
   const visitingInstructors = React.useMemo(() => {
@@ -206,6 +234,41 @@ export default function StaffAttendancePage() {
   // Build lookup: employee name → attendance record
   const attMap = new Map(attendanceRecords.map((r) => [r.employee, r]));
 
+  // Helper to resolve an employee's effective class time
+  const getEmployeeEffectiveClassTime = useCallback(
+    (empId: string, isVisiting = false): { time: string; source: "global" | "custom" | "schedule" | "saved"; scheduleDetail?: string } => {
+      if (timingMode === "same") {
+        return { time: classTime, source: "global" };
+      }
+
+      // 1. Manually typed / selected in UI during this session
+      if (individualClassTimes[empId]) {
+        return { time: individualClassTimes[empId], source: "custom" };
+      }
+
+      // 2. Previously saved in Frappe attendance record
+      const existingAtt = isVisiting ? visitingAttMap.get(empId) : attMap.get(empId);
+      if (existingAtt?.custom_class_time) {
+        return { time: existingAtt.custom_class_time.slice(0, 5), source: "saved" };
+      }
+
+      // 3. Matched from today's course schedule if this employee has class
+      const schedules = employeeSchedulesMap.get(empId);
+      if (schedules && schedules.length > 0) {
+        const firstSched = schedules[0];
+        const timeFromSched = firstSched.from_time ? firstSched.from_time.slice(0, 5) : "";
+        if (timeFromSched) {
+          const detail = firstSched.title || firstSched.course || firstSched.student_group || "Class";
+          return { time: timeFromSched, source: "schedule", scheduleDetail: detail };
+        }
+      }
+
+      // 4. Fallback to default classTime
+      return { time: classTime, source: "global" };
+    },
+    [timingMode, classTime, individualClassTimes, visitingAttMap, attMap, employeeSchedulesMap]
+  );
+
   // Merge regular employees and visiting instructors into a single unified list
   const unifiedStaffList = React.useMemo(() => {
     // 1. Regular employees
@@ -221,6 +284,8 @@ export default function StaffAttendancePage() {
         pending.out_time !== formatTimeForInput(att?.out_time)
       );
 
+      const classTimeInfo = getEmployeeEffectiveClassTime(emp.name, false);
+
       return {
         name: emp.name,
         employee_name: emp.employee_name,
@@ -233,6 +298,7 @@ export default function StaffAttendancePage() {
         hasChange,
         isVisiting: false,
         homeBranch: undefined,
+        classTimeInfo,
       };
     });
 
@@ -249,6 +315,8 @@ export default function StaffAttendancePage() {
         pending.out_time !== formatTimeForInput(existingAtt?.out_time)
       );
 
+      const classTimeInfo = getEmployeeEffectiveClassTime(v.employee, true);
+
       return {
         name: v.employee,
         employee_name: v.instructor_name,
@@ -261,12 +329,13 @@ export default function StaffAttendancePage() {
         hasChange,
         isVisiting: true,
         homeBranch: v.custom_company,
+        classTimeInfo,
       };
     });
 
     // Combine regular employees and visiting instructors
     return [...regular, ...visiting];
-  }, [employees, visitingInstructors, attMap, visitingAttMap, pendingChanges]);
+  }, [employees, visitingInstructors, attMap, visitingAttMap, pendingChanges, getEmployeeEffectiveClassTime]);
 
   // Summary counts (including pending changes)
   const presentCount = unifiedStaffList.filter((e) => e.attendance_status === "Present").length;
@@ -276,6 +345,7 @@ export default function StaffAttendancePage() {
   const otherCount = unifiedStaffList.length - presentCount - absentCount - holidayCount - notMarkedCount;
 
   const pendingCount = Object.keys(pendingChanges).length;
+  const hasIndividualTimeChanges = Object.keys(individualClassTimes).length > 0;
 
   const savedClassTime = React.useMemo(() => {
     if (attRes?.data && attRes.data.length > 0) {
@@ -286,7 +356,7 @@ export default function StaffAttendancePage() {
   }, [attRes]);
 
   const isClassTimeChanged = classTime !== savedClassTime;
-  const hasUnsavedChanges = pendingCount > 0 || (isClassTimeChanged && (attendanceRecords.length > 0 || visitingAttMap.size > 0));
+  const hasUnsavedChanges = pendingCount > 0 || hasIndividualTimeChanges || (isClassTimeChanged && (attendanceRecords.length > 0 || visitingAttMap.size > 0));
 
   function getLateMinutes(inTime?: string, cTime?: string): number {
     if (!inTime || !cTime) return 0;
@@ -391,18 +461,26 @@ export default function StaffAttendancePage() {
     }
     setPendingChanges(changes);
   }
+  function handleIndividualClassTimeChange(employeeId: string, time: string) {
+    setIndividualClassTimes((prev) => ({
+      ...prev,
+      [employeeId]: time,
+    }));
+  }
+
   // Save attendance
   const saveAttendance = useCallback(async () => {
     const currentSavedClassTime = (attRes?.data || []).find((r) => r.custom_class_time)?.custom_class_time?.slice(0, 5) || "";
     const isCTChanged = classTime !== currentSavedClassTime;
+    const hasIndChanges = Object.keys(individualClassTimes).length > 0;
 
-    if (pendingCount === 0 && !isCTChanged) return;
+    if (pendingCount === 0 && !isCTChanged && !hasIndChanges) return;
     setSaving(true);
     try {
       type SaveResult = { key: string; employee: string; status: StaffStatus; in_time?: string; out_time?: string; kind: "employee" | "visiting" };
       
       const allChanges = { ...pendingChanges };
-      if (isCTChanged) {
+      if (isCTChanged || hasIndChanges) {
         for (const existing of attendanceRecords) {
           if (!allChanges[existing.employee]) {
             allChanges[existing.employee] = {
@@ -441,6 +519,7 @@ export default function StaffAttendancePage() {
           if (!v) return;
           const existing = visitingAttMap.get(empId);
           const isNoTimeStatus = change.status === "At Head Office" || change.status === "Holiday" || change.status === "Absent" || change.status === "On Leave";
+          const effectiveTime = getEmployeeEffectiveClassTime(empId, true).time;
           const payload = {
             employee: empId,
             employee_name: v.instructor_name,
@@ -449,7 +528,7 @@ export default function StaffAttendancePage() {
             company: v.custom_company || defaultCompany || "",
             in_time: isNoTimeStatus ? undefined : inTimeISO,
             out_time: isNoTimeStatus ? undefined : outTimeISO,
-            custom_class_time: classTime || undefined,
+            custom_class_time: effectiveTime || undefined,
             custom_visiting_branch: defaultCompany || undefined,
           };
           if (existing && !existing.name.startsWith("LOCAL-")) {
@@ -466,6 +545,7 @@ export default function StaffAttendancePage() {
         const emp = employees.find((e) => e.name === empId);
         if (!emp) return;
         const isNoTimeStatus = change.status === "At Head Office" || change.status === "Holiday" || change.status === "Absent" || change.status === "On Leave";
+        const effectiveTime = getEmployeeEffectiveClassTime(empId, false).time;
         const payload = {
           employee: empId,
           employee_name: emp.employee_name,
@@ -474,7 +554,7 @@ export default function StaffAttendancePage() {
           company: defaultCompany || "",
           in_time: isNoTimeStatus ? undefined : inTimeISO,
           out_time: isNoTimeStatus ? undefined : outTimeISO,
-          custom_class_time: classTime || undefined,
+          custom_class_time: effectiveTime || undefined,
         };
 
         if (existing && !existing.name.startsWith("LOCAL-")) {
@@ -501,6 +581,9 @@ export default function StaffAttendancePage() {
       }
 
       setPendingChanges(nextPending);
+      if (failed.length === 0) {
+        setIndividualClassTimes({});
+      }
 
       // Optimistically sync successful statuses into cache so UI updates immediately.
       if (succeeded.length > 0) {
@@ -521,6 +604,7 @@ export default function StaffAttendancePage() {
               in_time: row.in_time,
               out_time: row.out_time,
               attendance_date: selectedDate,
+              custom_class_time: getEmployeeEffectiveClassTime(row.employee, false).time,
             });
           }
           return { data: Array.from(byEmployee.values()) };
@@ -544,6 +628,7 @@ export default function StaffAttendancePage() {
               in_time: row.in_time,
               out_time: row.out_time,
               attendance_date: selectedDate,
+              custom_class_time: getEmployeeEffectiveClassTime(row.employee, true).time,
             });
           }
           return { data: Array.from(byEmployee.values()) };
@@ -586,6 +671,7 @@ export default function StaffAttendancePage() {
     pendingChanges,
     pendingCount,
     classTime,
+    individualClassTimes,
     attendanceRecords,
     attRes,
     attMap,
@@ -597,6 +683,7 @@ export default function StaffAttendancePage() {
     visitingInstructors,
     employeeAttendanceQueryKey,
     visitingAttendanceQueryKey,
+    getEmployeeEffectiveClassTime,
   ]);
 
   return (
@@ -706,7 +793,36 @@ export default function StaffAttendancePage() {
             </div>
 
             {/* Date & Class Time Controls */}
-            <div className="flex items-center gap-3 self-end lg:self-auto">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 self-end lg:self-auto flex-wrap">
+              {/* Timing Mode Toggle */}
+              <div className="flex items-center bg-surface-muted/60 p-0.5 rounded-[10px] border border-border-input text-xs">
+                <button
+                  type="button"
+                  onClick={() => setTimingMode("same")}
+                  className={`px-2.5 py-1.5 rounded-[8px] font-medium transition-all flex items-center gap-1.5 ${
+                    timingMode === "same"
+                      ? "bg-surface text-primary shadow-xs font-semibold"
+                      : "text-text-tertiary hover:text-text-secondary"
+                  }`}
+                >
+                  <Clock className="h-3.5 w-3.5" />
+                  Same time for all
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTimingMode("different")}
+                  className={`px-2.5 py-1.5 rounded-[8px] font-medium transition-all flex items-center gap-1.5 ${
+                    timingMode === "different"
+                      ? "bg-surface text-primary shadow-xs font-semibold"
+                      : "text-text-tertiary hover:text-text-secondary"
+                  }`}
+                >
+                  <Sliders className="h-3.5 w-3.5" />
+                  Different time for all
+                </button>
+              </div>
+
+              {/* Date picker */}
               <div className="flex items-center gap-1.5">
                 <label className="text-xs font-medium text-text-secondary flex items-center gap-1">
                   <Calendar className="h-3.5 w-3.5" /> Date
@@ -718,17 +834,26 @@ export default function StaffAttendancePage() {
                   className="h-9 rounded-[10px] border border-border-input bg-surface px-2.5 text-sm"
                 />
               </div>
-              <div className="flex items-center gap-1.5">
-                <label className="text-xs font-medium text-text-secondary flex items-center gap-1">
-                  <Clock className="h-3.5 w-3.5" /> Class Time
-                </label>
-                <input
-                  type="time"
-                  value={classTime}
-                  onChange={(e) => setClassTime(e.target.value)}
-                  className="h-9 rounded-[10px] border border-border-input bg-surface px-2.5 text-sm"
-                />
-              </div>
+
+              {/* Class Time control: shows global input when 'same', or informative badge when 'different' */}
+              {timingMode === "same" ? (
+                <div className="flex items-center gap-1.5">
+                  <label className="text-xs font-medium text-text-secondary flex items-center gap-1">
+                    <Clock className="h-3.5 w-3.5" /> Class Time
+                  </label>
+                  <input
+                    type="time"
+                    value={classTime}
+                    onChange={(e) => setClassTime(e.target.value)}
+                    className="h-9 rounded-[10px] border border-border-input bg-surface px-2.5 text-sm"
+                  />
+                </div>
+              ) : (
+                <div className="hidden sm:flex items-center gap-1.5 text-xs text-primary font-medium bg-brand-wash px-2.5 py-1.5 rounded-[10px] border border-primary/20">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Individual class times per employee
+                </div>
+              )}
             </div>
           </div>
         </CardContent>
@@ -828,9 +953,33 @@ export default function StaffAttendancePage() {
 
                     {/* Check-In and Check-Out Time Controls */}
                     {showTimings && (() => {
-                      const lateMins = getLateMinutes(emp.in_time, classTime);
+                      const effectiveClassTime = emp.classTimeInfo.time;
+                      const lateMins = getLateMinutes(emp.in_time, effectiveClassTime);
+
                       return (
                         <div className="pt-2 border-t border-border-light/60 flex flex-col gap-2">
+                          {/* Individual Employee Class Time when in 'different' mode */}
+                          {timingMode === "different" && (
+                            <div className="flex items-center justify-between gap-1.5 bg-surface/90 px-2 py-1 rounded-[6px] border border-primary/20">
+                              <div className="flex items-center gap-1 min-w-0">
+                                <Clock className="h-3 w-3 text-primary flex-shrink-0" />
+                                <span className="text-[11px] text-text-secondary font-medium whitespace-nowrap">Class Time:</span>
+                                {emp.classTimeInfo.source === "schedule" && (
+                                  <span className="text-[9px] px-1 py-0 rounded bg-info/10 text-info font-medium truncate flex items-center gap-0.5" title={emp.classTimeInfo.scheduleDetail}>
+                                    <BookOpen className="h-2.5 w-2.5" />
+                                    {emp.classTimeInfo.scheduleDetail}
+                                  </span>
+                                )}
+                              </div>
+                              <input
+                                type="time"
+                                value={emp.classTimeInfo.time || ""}
+                                onChange={(e) => handleIndividualClassTimeChange(emp.name, e.target.value)}
+                                className="h-6 px-1.5 border border-border-input rounded bg-surface text-text-primary text-[11px] w-[85px] text-right font-medium"
+                              />
+                            </div>
+                          )}
+
                           <div className="flex items-center justify-between gap-2 text-xs">
                             <div className="flex items-center gap-1.5 bg-surface/80 px-2 py-1 rounded-[6px] border border-border-light flex-1">
                               <LogIn className="h-3 w-3 text-success flex-shrink-0" />
@@ -857,7 +1006,7 @@ export default function StaffAttendancePage() {
                           {lateMins > 0 && (
                             <div className="text-[10px] text-error font-medium flex items-center gap-1 bg-error-light/50 px-2 py-0.5 rounded-[4px] border border-error/10 w-fit">
                               <Clock className="h-2.5 w-2.5" />
-                              {lateMins} min late
+                              {lateMins} min late (vs {effectiveClassTime})
                             </div>
                           )}
                         </div>
