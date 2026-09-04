@@ -196,7 +196,7 @@ async function exportBatchStudentsExcel(
   });
 
   // ── Row 1: Title Header Bar ──
-  sheet.mergeCells("A1:S1");
+  sheet.mergeCells("A1:P1");
   const titleCell = sheet.getCell("A1");
   titleCell.value = "Inst. Status";
   titleCell.font = { name: "Segoe UI", size: 13, bold: true, color: { argb: "FFFFFFFF" } };
@@ -205,7 +205,7 @@ async function exportBatchStudentsExcel(
   sheet.getRow(1).height = 30;
 
   // ── Row 2: Sub-Banner Line ──
-  sheet.mergeCells("A2:S2");
+  sheet.mergeCells("A2:P2");
   const subCell = sheet.getCell("A2");
   const todayFormatted = new Date().toLocaleDateString("en-IN", {
     day: "2-digit",
@@ -228,13 +228,10 @@ async function exportBatchStudentsExcel(
     { header: "#", key: "idx", width: 6 },
     { header: "Student ID", key: "student_id", width: 22 },
     { header: "Student Name", key: "name", width: 28 },
-    { header: "Status", key: "status", width: 12 },
     { header: "Fee Plan", key: "plan", width: 14 },
     { header: "Frequency", key: "freq", width: 22 },
-    { header: "Payment Mode", key: "payment_mode", width: 14 },
     { header: "Total Fee (₹)", key: "total_fee", width: 16 },
     { header: "Total Paid (₹)", key: "total_paid", width: 16 },
-    { header: "Total Pending (₹)", key: "total_pending", width: 16 },
     { header: "Overdue (₹)", key: "student_overdue", width: 16 },
     { header: "Instalment", key: "instalment", width: 16 },
     { header: "Due Date", key: "due_date", width: 16 },
@@ -252,13 +249,10 @@ async function exportBatchStudentsExcel(
     "#",
     "Student ID",
     "Student Name",
-    "Status",
     "Fee Plan",
     "Frequency",
-    "Payment Mode",
     "Total Fee (₹)",
     "Total Paid (₹)",
-    "Total Pending (₹)",
     "Overdue (₹)",
     "Instalment",
     "Due Date",
@@ -288,13 +282,6 @@ async function exportBatchStudentsExcel(
     const studentBg = isEvenStudent ? "FFF8FAFC" : "FFFFFFFF";
     isEvenStudent = !isEvenStudent;
 
-    const status =
-      s.total_dues > 0
-        ? "Active"
-        : (s.balance_fee ?? 0) === 0
-        ? "Active"
-        : "Active";
-
     const invs = s.overdue_invoices ?? [];
 
     if (invs.length === 0) {
@@ -302,13 +289,10 @@ async function exportBatchStudentsExcel(
         idx: idx + 1,
         student_id: s.student_id,
         name: s.student_name,
-        status,
         plan: s.plan || "Basic",
         freq: PAYMENT_OPTION_LABELS[s.no_of_instalments] || s.no_of_instalments || "—",
-        payment_mode: "—",
         total_fee: s.total_fee ?? 0,
         total_paid: s.paid_fee ?? 0,
-        total_pending: s.balance_fee ?? 0,
         student_overdue: s.total_dues ?? 0,
         instalment: "—",
         due_date: "—",
@@ -334,8 +318,6 @@ async function exportBatchStudentsExcel(
       addedRow.getCell("total_fee").numFmt = numFmt;
       addedRow.getCell("total_paid").numFmt = numFmt;
       addedRow.getCell("total_paid").font = { name: "Segoe UI", size: 9.5, color: { argb: "FF16A34A" } };
-      addedRow.getCell("total_pending").numFmt = numFmt;
-      addedRow.getCell("total_pending").font = { name: "Segoe UI", size: 9.5, bold: true, color: { argb: "FFDC2626" } };
       addedRow.getCell("student_overdue").numFmt = numFmt;
       addedRow.getCell("student_overdue").font = { name: "Segoe UI", size: 9.5, bold: true, color: { argb: "FFEA580C" } };
 
@@ -348,13 +330,10 @@ async function exportBatchStudentsExcel(
           idx: invIdx === 0 ? idx + 1 : "",
           student_id: invIdx === 0 ? s.student_id : "",
           name: invIdx === 0 ? s.student_name : "",
-          status: invIdx === 0 ? status : "",
           plan: invIdx === 0 ? (s.plan || "Basic") : "",
           freq: invIdx === 0 ? (PAYMENT_OPTION_LABELS[s.no_of_instalments] || s.no_of_instalments || "—") : "",
-          payment_mode: invIdx === 0 ? "—" : "",
           total_fee: invIdx === 0 ? (s.total_fee ?? 0) : "",
           total_paid: invIdx === 0 ? (s.paid_fee ?? 0) : "",
-          total_pending: invIdx === 0 ? (s.balance_fee ?? 0) : "",
           student_overdue: invIdx === 0 ? (s.total_dues ?? 0) : "",
           instalment: inv.instalment_label || `Instalment ${invIdx + 1}`,
           due_date: inv.due_date ? formatDate(inv.due_date) : "—",
@@ -389,8 +368,6 @@ async function exportBatchStudentsExcel(
           addedRow.getCell("total_fee").numFmt = numFmt;
           addedRow.getCell("total_paid").numFmt = numFmt;
           addedRow.getCell("total_paid").font = { name: "Segoe UI", size: 9.5, color: { argb: "FF16A34A" } };
-          addedRow.getCell("total_pending").numFmt = numFmt;
-          addedRow.getCell("total_pending").font = { name: "Segoe UI", size: 9.5, bold: true, color: { argb: "FFDC2626" } };
           addedRow.getCell("student_overdue").numFmt = numFmt;
           addedRow.getCell("student_overdue").font = { name: "Segoe UI", size: 9.5, bold: true, color: { argb: "FFEA580C" } };
         }
