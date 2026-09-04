@@ -136,10 +136,14 @@ export default function SalesOverdueStudentPage() {
     );
   }
 
+  const overdueStudents = useMemo(() => {
+    return (students ?? []).filter((s) => s.total_dues > 0);
+  }, [students]);
+
   const { planOptions, frequencyOptions } = useMemo(() => {
     const plans = new Set<string>();
     const freqs = new Set<string>();
-    for (const s of students ?? []) {
+    for (const s of overdueStudents) {
       if (s.plan) plans.add(s.plan);
       if (s.no_of_instalments) freqs.add(s.no_of_instalments);
     }
@@ -147,11 +151,10 @@ export default function SalesOverdueStudentPage() {
       planOptions: Array.from(plans).sort(),
       frequencyOptions: Array.from(freqs).sort((a, b) => Number(a) - Number(b)),
     };
-  }, [students]);
+  }, [overdueStudents]);
 
   const filteredStudents = useMemo(() => {
-    if (!students) return [];
-    let result = students.filter((s) => {
+    let result = overdueStudents.filter((s) => {
       if (planFilter !== "all" && s.plan !== planFilter) return false;
       if (frequencyFilter !== "all" && s.no_of_instalments !== frequencyFilter) return false;
       // Not-called filter: only students with no follow-up log in allLogs
@@ -170,12 +173,12 @@ export default function SalesOverdueStudentPage() {
       });
     }
     return result;
-  }, [students, planFilter, frequencyFilter, notCalledOnly, sortField, sortOrder, allLogs]);
+  }, [overdueStudents, planFilter, frequencyFilter, notCalledOnly, sortField, sortOrder, allLogs]);
 
   const notCalledCount = useMemo(() => {
-    if (!students || !allLogs) return null;
-    return students.filter((s) => !allLogs[s.student_id]).length;
-  }, [students, allLogs]);
+    if (!allLogs) return null;
+    return overdueStudents.filter((s) => !allLogs[s.student_id]).length;
+  }, [overdueStudents, allLogs]);
 
   const totalDues = filteredStudents.reduce((s, st) => s + st.total_dues, 0);
   const hasActiveFilters = planFilter !== "all" || frequencyFilter !== "all" || notCalledOnly || sortField !== "none";
@@ -230,7 +233,7 @@ export default function SalesOverdueStudentPage() {
       </motion.div>
 
       {/* Filters */}
-      {!isLoading && students && students.length > 0 && (
+      {!isLoading && overdueStudents.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -376,7 +379,7 @@ export default function SalesOverdueStudentPage() {
           <AlertCircle className="h-8 w-8 text-error" />
           <p className="text-sm text-error">Failed to load students</p>
         </div>
-      ) : !students?.length ? (
+      ) : !overdueStudents.length ? (
         <div className="flex flex-col items-center justify-center h-48 gap-3">
           <CalendarClock className="h-8 w-8 text-success" />
           <p className="text-sm text-success font-medium">No overdue fees for this batch!</p>
