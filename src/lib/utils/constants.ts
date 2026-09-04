@@ -412,6 +412,23 @@ export function getCanonicalBranchName(name: any): string {
   }
 }
 
+export function getBranchSearchKeywords(name: any): string[] {
+  if (typeof name !== "string") {
+    return [];
+  }
+  const clean = name.replace(/[\s\-_]/g, "").toLowerCase();
+  if (clean.includes("kadavanthara")) return ["Kadavanthara"];
+  if (clean.includes("edappally")) return ["Edappally"];
+  if (clean.includes("vennala")) return ["Vennala"];
+  if (clean.includes("eraveli")) return ["Eraveli"];
+  if (clean.includes("fortkochi") || clean.includes("fort")) return ["Fortkochi", "Fort Kochi", "Fort"];
+  if (clean.includes("chullickal") || clean.includes("chullikal")) return ["Chullickal", "Chullikal"];
+  if (clean.includes("palluruthy")) return ["Palluruthy"];
+  if (clean.includes("thopumpadi") || clean.includes("thoppumpady")) return ["Thopumpadi", "Thoppumpady"];
+  if (clean.includes("moolamkuzhi")) return ["Moolamkuzhi"];
+  return [name.trim()];
+}
+
 export function getPublicAppUrl(): string {
   let url = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || "https://smartuplearning.net";
   if (!url.startsWith("http://") && !url.startsWith("https://")) {

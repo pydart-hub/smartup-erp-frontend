@@ -27,7 +27,7 @@ export default async function BranchManagerDiagnosisExamsReportPage() {
       .filter((attempt) => getCanonicalBranchName(attempt.studentBranch) === canonicalBranch)
       .map((attempt) => ({
         ...attempt,
-        studentBranch: getCanonicalBranchName(attempt.studentBranch),
+        studentBranch: canonicalBranch,
       }));
 
     return (
@@ -35,7 +35,7 @@ export default async function BranchManagerDiagnosisExamsReportPage() {
         <DiagnosisExamsReport
           attempts={attempts}
           title="Diagnosis Exam Class-Wise Report"
-          restrictToBranch={branchName}
+          restrictToBranch={canonicalBranch}
         />
       </div>
     );

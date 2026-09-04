@@ -197,6 +197,14 @@ export function DiagnosisExamsDrillDown({
   const completedCount = completedAttempts.length;
   const inProgressCount = totalAttemptsCount - completedCount;
 
+  // Unique submitted students
+  const submittedStudentsSet = new Set(
+    completedAttempts.map(
+      (a) => (a.studentPhone ? a.studentPhone.replace(/\D/g, "") : "") || a.studentName.toLowerCase().trim()
+    )
+  );
+  const totalSubmittedStudents = submittedStudentsSet.size;
+
   const overallAvgScore =
     completedCount > 0
       ? Math.round(completedAttempts.reduce((sum, a) => sum + a.percentage, 0) / completedCount)
@@ -320,6 +328,11 @@ export function DiagnosisExamsDrillDown({
     });
   }, [studentGroups, searchQuery, attendanceFilter, totalClassSubjects]);
 
+  // Helper to extract clean student identifier key
+  const getStudentKey = (attempt: AttemptWithPublishing) => {
+    return (attempt.studentPhone ? attempt.studentPhone.replace(/\D/g, "") : "") || attempt.studentName.toLowerCase().trim();
+  };
+
   // Level 1: Branch summaries
   const getBranchSummaries = () => {
     const branchMap = new Map<string, AttemptWithPublishing[]>();
@@ -344,10 +357,16 @@ export function DiagnosisExamsDrillDown({
             )
           : 0;
 
+      // Calculate distinct submitted students vs distinct in-progress only students
+      const submittedStudents = new Set(branchCompleted.map(getStudentKey));
+      const allBranchStudents = new Set(list.map(getStudentKey));
+
       return {
         name: branchName,
-        total: list.length,
-        completed: branchCompletedCount,
+        totalAttempts: list.length,
+        completedAttempts: branchCompletedCount,
+        submittedStudentsCount: submittedStudents.size,
+        totalStudentsCount: allBranchStudents.size,
         avgPercentage,
         passRate: branchPassRate,
       };
@@ -380,10 +399,16 @@ export function DiagnosisExamsDrillDown({
             )
           : 0;
 
+      // Calculate distinct submitted students vs total distinct students in this class
+      const submittedStudents = new Set(classCompleted.map(getStudentKey));
+      const allClassStudents = new Set(list.map(getStudentKey));
+
       return {
         levelCode: classLevel,
-        total: list.length,
-        completed: classCompletedCount,
+        totalAttempts: list.length,
+        completedAttempts: classCompletedCount,
+        submittedStudentsCount: submittedStudents.size,
+        totalStudentsCount: allClassStudents.size,
         avgPercentage,
         passRate: classPassRate,
       };
@@ -407,16 +432,16 @@ export function DiagnosisExamsDrillDown({
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
           {
-            label: "Total Attempts",
-            value: totalAttemptsCount,
-            note: `${inProgressCount} in progress`,
-            icon: Activity,
+            label: "Submitted Students",
+            value: totalSubmittedStudents,
+            note: `${totalAttemptsCount} total papers attempted`,
+            icon: GraduationCap,
             colorClass: "text-[#5f2ea8] bg-[#5f2ea8]/10",
           },
           {
-            label: "Completed",
+            label: "Completed Papers",
             value: completedCount,
-            note: "Submitted attempts",
+            note: inProgressCount > 0 ? `${inProgressCount} papers in progress` : "All papers submitted",
             icon: BookOpenCheck,
             colorClass: "text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10",
           },
@@ -513,14 +538,14 @@ export function DiagnosisExamsDrillDown({
                       <Building2 className="h-6 w-6" />
                     </div>
                     <Badge variant="outline" className="font-bold">
-                      {branch.total} attempts
+                      {branch.submittedStudentsCount} {branch.submittedStudentsCount === 1 ? "student" : "students"}
                     </Badge>
                   </div>
                   <CardTitle className="mt-4 text-lg font-bold text-text-primary">
                     {branch.name}
                   </CardTitle>
                   <CardDescription>
-                    {branch.completed} completed, {branch.total - branch.completed} in progress
+                    {branch.completedAttempts} completed papers, {branch.totalAttempts - branch.completedAttempts} in progress
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -578,14 +603,14 @@ export function DiagnosisExamsDrillDown({
                       <GraduationCap className="h-6 w-6" />
                     </div>
                     <Badge variant="outline" className="font-bold">
-                      {cls.total} attempts
+                      {cls.submittedStudentsCount} {cls.submittedStudentsCount === 1 ? "student" : "students"}
                     </Badge>
                   </div>
                   <CardTitle className="mt-4 text-lg font-bold text-text-primary">
                     Class {cls.levelCode}
                   </CardTitle>
                   <CardDescription>
-                    {cls.completed} completed, {cls.total - cls.completed} in progress
+                    {cls.completedAttempts} completed papers, {cls.totalAttempts - cls.completedAttempts} in progress
                   </CardDescription>
                 </CardHeader>
                 <CardContent>

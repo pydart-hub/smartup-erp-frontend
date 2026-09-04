@@ -3,7 +3,7 @@ import { db } from "@/lib/public-exam/db";
 import { DiagnosisExamsDrillDown } from "@/components/diagnosis-exams/DiagnosisExamsDrillDown";
 import { DatabaseErrorCard } from "@/components/diagnosis-exams/DatabaseErrorCard";
 import { getBranchManagerDefaultCompany } from "@/lib/server/branchManagerSession";
-import { getCanonicalBranchName } from "@/lib/utils/constants";
+import { getCanonicalBranchName, getBranchSearchKeywords } from "@/lib/utils/constants";
 
 export const dynamic = "force-dynamic";
 
@@ -11,13 +11,15 @@ export default async function BranchManagerDiagnosisExamsPage() {
   try {
     const branchName = await getBranchManagerDefaultCompany();
     const canonicalBranch = getCanonicalBranchName(branchName);
+    const searchKeywords = getBranchSearchKeywords(branchName);
 
-    // Fetch only necessary metadata fields for attempts matching the branch
+    // Fetch attempts matching any variant of this branch across the database
     const rawAttempts = await db.examAttempt.findMany({
       where: {
         OR: [
-          { studentBranch: { equals: branchName, mode: "insensitive" } },
-          { studentBranch: { equals: canonicalBranch, mode: "insensitive" } },
+          ...searchKeywords.map((kw) => ({ studentBranch: { contains: kw, mode: "insensitive" as const } })),
+          { studentBranch: { equals: branchName, mode: "insensitive" as const } },
+          { studentBranch: { equals: canonicalBranch, mode: "insensitive" as const } },
         ],
       },
       select: {
@@ -52,25 +54,27 @@ export default async function BranchManagerDiagnosisExamsPage() {
       orderBy: { startedAt: "desc" },
     });
 
-    const attempts = rawAttempts.map((attempt) => {
-      let diagnosedLevel: string | null = null;
-      if (attempt.resultSnapshotJson) {
-        try {
-          const res = typeof attempt.resultSnapshotJson === "string"
-            ? JSON.parse(attempt.resultSnapshotJson)
-            : attempt.resultSnapshotJson;
-          diagnosedLevel = res?.diagnosedLevel || null;
-        } catch {
-          // Ignore JSON parse error
+    const attempts = rawAttempts
+      .filter((attempt) => getCanonicalBranchName(attempt.studentBranch) === canonicalBranch)
+      .map((attempt) => {
+        let diagnosedLevel: string | null = null;
+        if (attempt.resultSnapshotJson) {
+          try {
+            const res = typeof attempt.resultSnapshotJson === "string"
+              ? JSON.parse(attempt.resultSnapshotJson)
+              : attempt.resultSnapshotJson;
+            diagnosedLevel = res?.diagnosedLevel || null;
+          } catch {
+            // Ignore JSON parse error
+          }
         }
-      }
 
-      return {
-        ...attempt,
-        studentBranch: getCanonicalBranchName(attempt.studentBranch),
-        diagnosedLevel,
-      };
-    });
+        return {
+          ...attempt,
+          studentBranch: canonicalBranch,
+          diagnosedLevel,
+        };
+      });
 
     return (
       <div className="p-4 lg:p-6 max-w-7xl mx-auto">
@@ -78,7 +82,7 @@ export default async function BranchManagerDiagnosisExamsPage() {
           attempts={attempts}
           detailUrlPrefix="/dashboard/branch-manager/diagnosis-exams"
           title="Diagnosis Exam Dashboard"
-          restrictToBranch={branchName}
+          restrictToBranch={canonicalBranch}
         />
       </div>
     );
