@@ -246,6 +246,14 @@ export async function getBranchOverdueDetail(branch: string) {
     installmentPaid: number;    // paid toward those overdue invoices
     oldestDueDate: string;
     invoiceCount: number;
+    overdueInvoices: Array<{
+      name: string;
+      dueDate: string;
+      grandTotal: number;
+      paid: number;
+      amount: number;
+      instalmentLabel: string;
+    }>;
   };
 
   const studentAgg = new Map<string, StudentOverdueAgg>();
@@ -257,7 +265,14 @@ export async function getBranchOverdueDetail(branch: string) {
     const dueDate = String(inv.due_date ?? "");
 
     if (!studentAgg.has(sid)) {
-      studentAgg.set(sid, { overdueOutstanding: 0, installmentAmount: 0, installmentPaid: 0, oldestDueDate: dueDate, invoiceCount: 0 });
+      studentAgg.set(sid, {
+        overdueOutstanding: 0,
+        installmentAmount: 0,
+        installmentPaid: 0,
+        oldestDueDate: dueDate,
+        invoiceCount: 0,
+        overdueInvoices: [],
+      });
     }
     const agg = studentAgg.get(sid)!;
     agg.overdueOutstanding += ost;
@@ -265,6 +280,15 @@ export async function getBranchOverdueDetail(branch: string) {
     agg.installmentPaid += grand - ost;
     agg.invoiceCount++;
     if (dueDate && dueDate < agg.oldestDueDate) agg.oldestDueDate = dueDate;
+
+    agg.overdueInvoices.push({
+      name: String(inv.name ?? ""),
+      dueDate,
+      grandTotal: grand,
+      paid: Math.max(0, grand - ost),
+      amount: ost,
+      instalmentLabel: String(inv.name ?? ""),
+    });
   }
 
   // ── Pending = outstanding on future invoices (due_date > today) per student ──
@@ -344,6 +368,7 @@ export async function getBranchOverdueDetail(branch: string) {
       oldestDueDate: agg.oldestDueDate,
       daysOverdue: agg.oldestDueDate ? daysBetween(agg.oldestDueDate, today) : 0,
       invoiceCount: agg.invoiceCount,
+      overdueInvoices: agg.overdueInvoices,
     };
   });
 

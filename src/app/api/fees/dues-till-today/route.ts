@@ -250,6 +250,9 @@ export async function getBranchStudentsOverdueData(branch: string, todayDate: st
   // Step 4: Aggregate per student
   const studentMap = new Map<string, {
     total_dues: number;
+    total_fee: number;
+    paid_fee: number;
+    balance_fee: number;
     overdue_invoices: { name: string; amount: number; grand_total: number; paid: number; due_date: string; instalment_label: string }[];
   }>();
   for (const inv of invoices) {
@@ -259,13 +262,27 @@ export async function getBranchStudentsOverdueData(branch: string, todayDate: st
       if (cls) studentClassMap.set(inv.student, cls);
     }
     const planInfo = studentPlanMap.get(inv.student);
-    const existing = studentMap.get(inv.student) ?? { total_dues: 0, overdue_invoices: [] };
-    existing.total_dues += inv.outstanding_amount ?? 0;
+    const existing = studentMap.get(inv.student) ?? {
+      total_dues: 0,
+      total_fee: 0,
+      paid_fee: 0,
+      balance_fee: 0,
+      overdue_invoices: [],
+    };
+    const grandTotal = inv.grand_total ?? 0;
+    const outstanding = inv.outstanding_amount ?? 0;
+    const paid = Math.max(0, grandTotal - outstanding);
+
+    existing.total_fee += grandTotal;
+    existing.paid_fee += paid;
+    existing.balance_fee += outstanding;
+    existing.total_dues += outstanding;
+
     existing.overdue_invoices.push({
       name: inv.name,
-      amount: inv.outstanding_amount ?? 0,
-      grand_total: inv.grand_total ?? 0,
-      paid: (inv.grand_total ?? 0) - (inv.outstanding_amount ?? 0),
+      amount: outstanding,
+      grand_total: grandTotal,
+      paid,
       due_date: inv.due_date,
       instalment_label: getBranchInstalmentLabel(inv.due_date, planInfo?.no_of_instalments ?? "1"),
     });
@@ -317,20 +334,26 @@ export async function getBranchStudentsOverdueData(branch: string, todayDate: st
 
   // Step 6: Build response
   const rows = Array.from(studentMap.entries())
-    .map(([studentId, { total_dues, overdue_invoices }]) => {
+    .map(([studentId, { total_dues, total_fee, paid_fee, balance_fee, overdue_invoices }]) => {
       const planInfo = studentPlanMap.get(studentId);
       const guardianId = studentGuardianMap.get(studentId) ?? "";
+      const admissionDate = joiningDateMap.get(studentId) ?? "";
       return {
         student_id: studentId,
         student_name: nameMap.get(studentId) ?? studentId,
         class_name: studentClassMap.get(studentId) ?? "",
         batch_name: studentBatchMap.get(studentId) ?? "",
         total_dues,
+        total_fee,
+        paid_fee,
+        balance_fee,
+        admission_date: admissionDate,
+        is_overdue: total_dues > 0,
         plan: planInfo?.plan || "",
         no_of_instalments: planInfo?.no_of_instalments || "",
         guardian_name: guardianNameMap.get(guardianId) ?? "",
         guardian_phone: guardianPhoneMap.get(guardianId) ?? "",
-        joining_date: joiningDateMap.get(studentId) ?? "",
+        joining_date: admissionDate,
         overdue_invoices: overdue_invoices.sort((a, b) => a.due_date.localeCompare(b.due_date)),
       };
     })

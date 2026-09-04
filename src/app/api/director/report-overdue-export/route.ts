@@ -30,20 +30,21 @@ const branchSummaryCols: ReportColumn[] = [
 
 const branchDetailCols: ReportColumn[] = [
   { key: "studentId", header: "Student ID", width: 22 },
-  { key: "studentName", header: "Name", width: 30 },
+  { key: "studentName", header: "Student Name", width: 30 },
   { key: "parentName", header: "Parent Name", width: 28 },
   { key: "parentPhone", header: "Parent Phone", width: 18 },
   { key: "program", header: "Class / Plan", width: 28 },
   { key: "planType", header: "Plan Type", width: 18 },
-  { key: "totalFee", header: "Total Fee", width: 16, transform: fmtCurrency },
-  { key: "paid", header: "Paid", width: 16, transform: fmtCurrency },
-  { key: "overdueAmount", header: "Overdue", width: 16, transform: fmtCurrency },
-  { key: "installmentAmount", header: "Inst. Amount", width: 16, transform: fmtCurrency },
-  { key: "installmentPaid", header: "Inst. Paid", width: 16, transform: fmtCurrency },
-  { key: "pending", header: "Pending (Not Yet Due)", width: 22, transform: fmtCurrency },
-  { key: "oldestDueDate", header: "Oldest Due Date", width: 16 },
+  { key: "invoiceNo", header: "Invoice No", width: 22 },
+  { key: "invoiceDueDate", header: "Due Date", width: 14 },
+  { key: "invoiceGrandTotal", header: "Invoice Total", width: 16, transform: fmtCurrency },
+  { key: "invoicePaid", header: "Invoice Paid", width: 16, transform: fmtCurrency },
+  { key: "invoiceOutstanding", header: "Invoice Overdue", width: 18, transform: fmtCurrency },
+  { key: "totalFee", header: "Student Total Fee", width: 18, transform: fmtCurrency },
+  { key: "paid", header: "Student Total Paid", width: 18, transform: fmtCurrency },
+  { key: "overdueAmount", header: "Student Overdue", width: 18, transform: fmtCurrency },
+  { key: "pending", header: "Pending (Future)", width: 20, transform: fmtCurrency },
   { key: "daysOverdue", header: "Days Overdue", width: 14 },
-  { key: "invoiceCount", header: "Invoices", width: 12 },
 ];
 
 export async function POST(request: NextRequest) {
@@ -63,9 +64,54 @@ export async function POST(request: NextRequest) {
     let fileBaseName: string;
 
     if (detail) {
-      // Branch detail — student list
+      // Branch detail — student list with expanded overdue installment invoices
       const data = await getBranchOverdueDetail(detail);
-      rows = data.students as unknown as Record<string, unknown>[];
+      const expandedRows: Record<string, unknown>[] = [];
+
+      for (const st of data.students) {
+        if (st.overdueInvoices && st.overdueInvoices.length > 0) {
+          for (const inv of st.overdueInvoices) {
+            expandedRows.push({
+              studentId: st.studentId,
+              studentName: st.studentName,
+              parentName: st.parentName,
+              parentPhone: st.parentPhone,
+              program: st.program,
+              planType: st.planType,
+              invoiceNo: inv.name,
+              invoiceDueDate: inv.dueDate,
+              invoiceGrandTotal: inv.grandTotal,
+              invoicePaid: inv.paid,
+              invoiceOutstanding: inv.amount,
+              totalFee: st.totalFee,
+              paid: st.paid,
+              overdueAmount: st.overdueAmount,
+              pending: st.pending,
+              daysOverdue: st.daysOverdue,
+            });
+          }
+        } else {
+          expandedRows.push({
+            studentId: st.studentId,
+            studentName: st.studentName,
+            parentName: st.parentName,
+            parentPhone: st.parentPhone,
+            program: st.program,
+            planType: st.planType,
+            invoiceNo: "—",
+            invoiceDueDate: st.oldestDueDate || "—",
+            invoiceGrandTotal: st.installmentAmount,
+            invoicePaid: st.installmentPaid,
+            invoiceOutstanding: st.overdueAmount,
+            totalFee: st.totalFee,
+            paid: st.paid,
+            overdueAmount: st.overdueAmount,
+            pending: st.pending,
+            daysOverdue: st.daysOverdue,
+          });
+        }
+      }
+      rows = expandedRows;
       columns = branchDetailCols;
       sheetName = `Overdue - ${String(detail).replace("Smart Up ", "")}`;
       fileBaseName = `overdue-${String(detail).replace(/\s+/g, "_").toLowerCase()}`;

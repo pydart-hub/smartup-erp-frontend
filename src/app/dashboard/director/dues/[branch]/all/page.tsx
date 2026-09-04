@@ -18,14 +18,14 @@ import {
   Search,
   X,
   Users,
-  CheckCircle2,
+  BookOpen,
   Sheet,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { getDuesTodayByStudent, type DuesTodayStudentRow } from "@/lib/api/director";
+import { getDuesTodayByBranchStudents, type DuesTodayStudentRow } from "@/lib/api/director";
 import { formatCurrency } from "@/lib/utils/formatters";
 
 const PAYMENT_OPTION_LABELS: Record<string, string> = {
@@ -63,15 +63,16 @@ function formatDate(iso: string): string {
   }
 }
 
-function exportBatchStudentsCSV(
+function exportBranchStudentsCSV(
   students: DuesTodayStudentRow[],
-  batchName: string,
   branchName: string
 ) {
   const headers = [
     "Sl No",
     "Student Name",
     "Student ID",
+    "Class",
+    "Batch",
     "Admission Date",
     "Plan",
     "Payment Frequency",
@@ -88,7 +89,6 @@ function exportBatchStudentsCSV(
     "Fee Status",
     "Guardian Name",
     "Guardian Phone",
-    "Batch",
     "Branch",
   ];
 
@@ -109,15 +109,17 @@ function exportBatchStudentsCSV(
         idx + 1,
         s.student_name,
         s.student_id,
+        s.class_name ? s.class_name.replace(" Tuition Fee", "") : "—",
+        s.batch_name || "—",
         s.admission_date ? formatDate(s.admission_date) : "—",
         s.plan || "—",
         PAYMENT_OPTION_LABELS[s.no_of_instalments] || s.no_of_instalments || "—",
         "—",
         "—",
         "—",
-        "—",
-        "—",
-        "—",
+        s.total_fee ?? 0,
+        s.paid_fee ?? 0,
+        s.total_dues ?? 0,
         s.total_fee ?? 0,
         s.paid_fee ?? 0,
         s.total_dues ?? 0,
@@ -125,7 +127,6 @@ function exportBatchStudentsCSV(
         status,
         s.guardian_name || "—",
         s.guardian_phone || "—",
-        batchName,
         branchName,
       ]);
     } else {
@@ -134,6 +135,8 @@ function exportBatchStudentsCSV(
           invIdx === 0 ? idx + 1 : "",
           invIdx === 0 ? s.student_name : "",
           invIdx === 0 ? s.student_id : "",
+          invIdx === 0 ? (s.class_name ? s.class_name.replace(" Tuition Fee", "") : "—") : "",
+          invIdx === 0 ? (s.batch_name || "—") : "",
           invIdx === 0 ? (s.admission_date ? formatDate(s.admission_date) : "—") : "",
           invIdx === 0 ? (s.plan || "—") : "",
           invIdx === 0 ? (PAYMENT_OPTION_LABELS[s.no_of_instalments] || s.no_of_instalments || "—") : "",
@@ -150,7 +153,6 @@ function exportBatchStudentsCSV(
           invIdx === 0 ? status : "",
           invIdx === 0 ? (s.guardian_name || "—") : "",
           invIdx === 0 ? (s.guardian_phone || "—") : "",
-          invIdx === 0 ? batchName : "",
           invIdx === 0 ? branchName : "",
         ]);
       });
@@ -168,11 +170,11 @@ function exportBatchStudentsCSV(
   });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
-  const cleanBatch = batchName.replace(/[^a-zA-Z0-9-_]/g, "_");
+  const cleanBranch = branchName.replace(/[^a-zA-Z0-9-_]/g, "_");
   link.href = url;
   link.setAttribute(
     "download",
-    `${cleanBatch}_Students_Fee_Report_${new Date().toISOString().slice(0, 10)}.csv`
+    `${cleanBranch}_All_Overdue_Students_Report_${new Date().toISOString().slice(0, 10)}.csv`
   );
   document.body.appendChild(link);
   link.click();
@@ -180,9 +182,8 @@ function exportBatchStudentsCSV(
   URL.revokeObjectURL(url);
 }
 
-async function exportBatchStudentsExcel(
+async function exportBranchStudentsExcel(
   students: DuesTodayStudentRow[],
-  batchName: string,
   branchName: string
 ) {
   const ExcelJS = (await import("exceljs")).default;
@@ -190,12 +191,14 @@ async function exportBatchStudentsExcel(
   workbook.creator = "SmartUp ERP";
   workbook.created = new Date();
 
-  const sheet = workbook.addWorksheet("Batch Fee Report");
+  const sheet = workbook.addWorksheet("Overdue Students Report");
 
   sheet.columns = [
     { header: "#", key: "idx", width: 6 },
     { header: "Student Name", key: "name", width: 26 },
     { header: "Student ID", key: "student_id", width: 22 },
+    { header: "Class", key: "cls", width: 16 },
+    { header: "Batch", key: "batch", width: 16 },
     { header: "Admission Date", key: "admission_date", width: 16 },
     { header: "Plan", key: "plan", width: 14 },
     { header: "Frequency", key: "freq", width: 18 },
@@ -211,7 +214,6 @@ async function exportBatchStudentsExcel(
     { header: "Fee Status", key: "status", width: 14 },
     { header: "Guardian Name", key: "guardian", width: 22 },
     { header: "Guardian Phone", key: "phone", width: 16 },
-    { header: "Batch", key: "batch", width: 18 },
     { header: "Branch", key: "branch", width: 18 },
   ];
 
@@ -239,27 +241,28 @@ async function exportBatchStudentsExcel(
         idx: idx + 1,
         name: s.student_name,
         student_id: s.student_id,
+        cls: s.class_name ? s.class_name.replace(" Tuition Fee", "") : "—",
+        batch: s.batch_name || "—",
         admission_date: s.admission_date ? formatDate(s.admission_date) : "—",
         plan: s.plan || "—",
         freq: PAYMENT_OPTION_LABELS[s.no_of_instalments] || s.no_of_instalments || "—",
         instalment: "—",
         invoice_no: "—",
         due_date: "—",
-        inv_total: 0,
-        inv_paid: 0,
-        inv_overdue: 0,
+        inv_total: s.total_fee ?? 0,
+        inv_paid: s.paid_fee ?? 0,
+        inv_overdue: s.total_dues ?? 0,
         total_fee: s.total_fee ?? 0,
         total_paid: s.paid_fee ?? 0,
         student_overdue: s.total_dues ?? 0,
         status,
         guardian: s.guardian_name || "—",
         phone: s.guardian_phone || "—",
-        batch: batchName,
         branch: branchName,
       });
 
       if (stripeToggle) row.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF5F3FF" } };
-      ["total_fee", "total_paid", "student_overdue"].forEach((k) => {
+      ["inv_total", "inv_paid", "inv_overdue", "total_fee", "total_paid", "student_overdue"].forEach((k) => {
         row.getCell(k).numFmt = numFmt;
       });
     } else {
@@ -268,6 +271,8 @@ async function exportBatchStudentsExcel(
           idx: invIdx === 0 ? idx + 1 : "",
           name: invIdx === 0 ? s.student_name : "",
           student_id: invIdx === 0 ? s.student_id : "",
+          cls: invIdx === 0 ? (s.class_name ? s.class_name.replace(" Tuition Fee", "") : "—") : "",
+          batch: invIdx === 0 ? (s.batch_name || "—") : "",
           admission_date: invIdx === 0 ? (s.admission_date ? formatDate(s.admission_date) : "—") : "",
           plan: invIdx === 0 ? (s.plan || "—") : "",
           freq: invIdx === 0 ? (PAYMENT_OPTION_LABELS[s.no_of_instalments] || s.no_of_instalments || "—") : "",
@@ -283,7 +288,6 @@ async function exportBatchStudentsExcel(
           status: invIdx === 0 ? status : "",
           guardian: invIdx === 0 ? (s.guardian_name || "—") : "",
           phone: invIdx === 0 ? (s.guardian_phone || "—") : "",
-          batch: invIdx === 0 ? batchName : "",
           branch: invIdx === 0 ? branchName : "",
         });
 
@@ -302,115 +306,95 @@ async function exportBatchStudentsExcel(
     stripeToggle = !stripeToggle;
   });
 
-  const cleanBatch = batchName.replace(/[^a-zA-Z0-9-_]/g, "_");
+  const cleanBranch = branchName.replace(/[^a-zA-Z0-9-_]/g, "_");
   const buf = await workbook.xlsx.writeBuffer();
   const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `${cleanBatch}_Students_Fee_Report_${new Date().toISOString().slice(0, 10)}.xlsx`;
+  a.download = `${cleanBranch}_All_Overdue_Students_Report_${new Date().toISOString().slice(0, 10)}.xlsx`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
 
-export default function DuesStudentPage() {
+export default function DirectorBranchAllStudentsPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const branch = decodeURIComponent(params.branch as string);
-  const classId = decodeURIComponent(params.classId as string);
-  const batch = decodeURIComponent(params.batch as string);
   const shortBranch = branch.replace("Smart Up ", "").replace("Smart Up", "HQ");
   const asOf = searchParams.get("as_of") || undefined;
   const childQs = asOf ? `?as_of=${asOf}` : "";
 
-  // View Mode: "overdue" vs "all"
-  const [viewMode, setViewMode] = useState<"overdue" | "all">("overdue");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [classFilter, setClassFilter] = useState<string>("all");
+  const [batchFilter, setBatchFilter] = useState<string>("all");
   const [planFilter, setPlanFilter] = useState<string>("all");
   const [frequencyFilter, setFrequencyFilter] = useState<string>("all");
 
   const { data: students, isLoading, isError } = useQuery({
-    queryKey: ["director-dues-students", branch, batch, asOf, classId],
-    queryFn: () => getDuesTodayByStudent(branch, batch, asOf, classId),
+    queryKey: ["director-branch-all-students", branch, asOf],
+    queryFn: () => getDuesTodayByBranchStudents(branch, asOf),
     staleTime: 30_000,
-    refetchInterval: 30_000,
+    refetchInterval: 60_000,
   });
 
-  // Overall batch statistics
-  const batchStats = useMemo(() => {
-    if (!students) return { total: 0, overdueCount: 0, upToDateCount: 0, totalDues: 0, totalFee: 0, totalPaid: 0 };
-    let overdueCount = 0;
-    let upToDateCount = 0;
-    let totalDues = 0;
-    let totalFee = 0;
-    let totalPaid = 0;
-
-    for (const s of students) {
-      if (s.total_dues > 0) {
-        overdueCount++;
-        totalDues += s.total_dues;
-      } else {
-        upToDateCount++;
-      }
-      totalFee += s.total_fee ?? 0;
-      totalPaid += s.paid_fee ?? 0;
-    }
-
-    return {
-      total: students.length,
-      overdueCount,
-      upToDateCount,
-      totalDues,
-      totalFee,
-      totalPaid,
-    };
-  }, [students]);
-
-  // Derive available filter options from the data
-  const { planOptions, frequencyOptions } = useMemo(() => {
+  // Extract filter options
+  const { classOptions, batchOptions, planOptions, frequencyOptions } = useMemo(() => {
+    const classes = new Set<string>();
+    const batches = new Set<string>();
     const plans = new Set<string>();
     const freqs = new Set<string>();
+
     for (const s of students ?? []) {
+      if (s.class_name) classes.add(s.class_name);
+      if (s.batch_name) batches.add(s.batch_name);
       if (s.plan) plans.add(s.plan);
       if (s.no_of_instalments) freqs.add(s.no_of_instalments);
     }
+
     return {
+      classOptions: Array.from(classes).sort(),
+      batchOptions: Array.from(batches).sort(),
       planOptions: Array.from(plans).sort(),
       frequencyOptions: Array.from(freqs).sort((a, b) => Number(a) - Number(b)),
     };
   }, [students]);
 
-  // Apply filters and view mode
+  // Filter students
   const filteredStudents = useMemo(() => {
     if (!students) return [];
     const q = searchQuery.trim().toLowerCase();
 
     return students.filter((s) => {
-      // 1. View mode filter
-      if (viewMode === "overdue" && s.total_dues <= 0) return false;
-
-      // 2. Dropdown filters
+      if (classFilter !== "all" && s.class_name !== classFilter) return false;
+      if (batchFilter !== "all" && s.batch_name !== batchFilter) return false;
       if (planFilter !== "all" && s.plan !== planFilter) return false;
       if (frequencyFilter !== "all" && s.no_of_instalments !== frequencyFilter) return false;
 
-      // 3. Search query
       if (q) {
         const nameMatch = s.student_name.toLowerCase().includes(q);
         const idMatch = s.student_id.toLowerCase().includes(q);
         const phoneMatch = (s.guardian_phone || "").includes(q);
-        if (!nameMatch && !idMatch && !phoneMatch) return false;
+        const classMatch = (s.class_name || "").toLowerCase().includes(q);
+        const batchMatch = (s.batch_name || "").toLowerCase().includes(q);
+        if (!nameMatch && !idMatch && !phoneMatch && !classMatch && !batchMatch) return false;
       }
 
       return true;
     });
-  }, [students, viewMode, planFilter, frequencyFilter, searchQuery]);
+  }, [students, classFilter, batchFilter, planFilter, frequencyFilter, searchQuery]);
 
-  const displayedTotalDues = filteredStudents.reduce((s, st) => s + st.total_dues, 0);
-  const displayedTotalFee = filteredStudents.reduce((s, st) => s + (st.total_fee ?? 0), 0);
-  const displayedTotalPaid = filteredStudents.reduce((s, st) => s + (st.paid_fee ?? 0), 0);
-  const hasActiveFilters = planFilter !== "all" || frequencyFilter !== "all" || searchQuery.length > 0;
+  const totalOverdue = filteredStudents.reduce((sum, s) => sum + s.total_dues, 0);
+  const totalBilled = filteredStudents.reduce((sum, s) => sum + (s.total_fee ?? 0), 0);
+  const totalPaid = filteredStudents.reduce((sum, s) => sum + (s.paid_fee ?? 0), 0);
+  const hasActiveFilters =
+    classFilter !== "all" ||
+    batchFilter !== "all" ||
+    planFilter !== "all" ||
+    frequencyFilter !== "all" ||
+    searchQuery.length > 0;
 
   return (
     <motion.div
@@ -421,21 +405,21 @@ export default function DuesStudentPage() {
     >
       <BreadcrumbNav />
 
-      {/* Header & Title */}
+      {/* Header */}
       <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Link
-            href={`/dashboard/director/dues/${encodeURIComponent(branch)}/${encodeURIComponent(classId)}${childQs}`}
+            href={`/dashboard/director/dues${childQs}`}
             className="text-text-tertiary hover:text-primary transition-colors p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
           >
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
             <h1 className="text-2xl font-bold text-text-primary tracking-tight">
-              {batch} — {viewMode === "all" ? "All Students" : "Dues"}
+              {shortBranch} — All Overdue Students
             </h1>
             <p className="text-sm text-text-secondary mt-0.5">
-              {viewMode === "all" ? "Complete batch roster and fee status" : "Student-wise overdue breakdown"} at {shortBranch}
+              Complete student-wise overdue list across all classes at {shortBranch}
             </p>
           </div>
         </div>
@@ -444,7 +428,7 @@ export default function DuesStudentPage() {
         {students && students.length > 0 && (
           <div className="flex items-center gap-2 self-start sm:self-auto">
             <Button
-              onClick={() => exportBatchStudentsExcel(filteredStudents, batch, shortBranch)}
+              onClick={() => exportBranchStudentsExcel(filteredStudents, shortBranch)}
               className="rounded-xl inline-flex items-center gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700 text-xs font-bold shadow-xs px-3 py-2 cursor-pointer"
               title="Export to Excel (.xlsx)"
             >
@@ -452,7 +436,7 @@ export default function DuesStudentPage() {
               <span>Excel ({filteredStudents.length})</span>
             </Button>
             <Button
-              onClick={() => exportBatchStudentsCSV(filteredStudents, batch, shortBranch)}
+              onClick={() => exportBranchStudentsCSV(filteredStudents, shortBranch)}
               className="rounded-xl inline-flex items-center gap-1.5 bg-[#5f2ea8] text-white hover:bg-[#5f2ea8]/90 text-xs font-bold shadow-xs px-3 py-2 cursor-pointer"
               title="Export to CSV (.csv)"
             >
@@ -473,9 +457,9 @@ export default function DuesStudentPage() {
                   <CalendarClock className="h-5 w-5 text-orange-500" />
                 </div>
                 <div>
-                  <p className="text-xs text-text-secondary font-medium">Batch Overdue</p>
+                  <p className="text-xs text-text-secondary font-medium">Branch Overdue</p>
                   <p className="text-xl font-bold text-orange-600">
-                    {isLoading ? "..." : formatCurrency(displayedTotalDues)}
+                    {isLoading ? "..." : formatCurrency(totalOverdue)}
                   </p>
                 </div>
               </div>
@@ -487,19 +471,19 @@ export default function DuesStudentPage() {
                 <div>
                   <p className="text-xs text-text-secondary font-medium">Total Billed</p>
                   <p className="text-xl font-bold text-text-primary">
-                    {isLoading ? "..." : formatCurrency(displayedTotalFee)}
+                    {isLoading ? "..." : formatCurrency(totalBilled)}
                   </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-3 border-l border-slate-100 dark:border-slate-800/80 pl-4">
                 <div className="w-11 h-11 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center shrink-0">
-                  <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                  <CalendarClock className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <div>
                   <p className="text-xs text-text-secondary font-medium">Collected / Paid</p>
                   <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
-                    {isLoading ? "..." : formatCurrency(displayedTotalPaid)}
+                    {isLoading ? "..." : formatCurrency(totalPaid)}
                   </p>
                 </div>
               </div>
@@ -509,11 +493,9 @@ export default function DuesStudentPage() {
                   <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <p className="text-xs text-text-secondary font-medium">
-                    {viewMode === "overdue" ? "Overdue Students" : "Batch Students"}
-                  </p>
+                  <p className="text-xs text-text-secondary font-medium">Overdue Students</p>
                   <p className="text-xl font-bold text-text-primary">
-                    {isLoading ? "..." : `${filteredStudents.length} / ${batchStats.total}`}
+                    {isLoading ? "..." : `${filteredStudents.length} / ${(students ?? []).length}`}
                   </p>
                 </div>
               </div>
@@ -522,65 +504,58 @@ export default function DuesStudentPage() {
         </Card>
       </motion.div>
 
-      {/* View Mode Segmented Controls & Filters Bar */}
+      {/* Filter Bar */}
       <motion.div variants={itemVariants} className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-white/70 dark:bg-[#0E1526]/70 p-2.5 rounded-2xl border border-slate-200/60 dark:border-slate-800/80 backdrop-blur shadow-xs">
-        {/* Toggle between Overdue and All Students */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <button
-            type="button"
-            onClick={() => setViewMode("overdue")}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              viewMode === "overdue"
-                ? "bg-orange-600 text-white shadow-xs"
-                : "bg-orange-50 dark:bg-orange-950/20 text-orange-700 dark:text-orange-400 hover:bg-orange-100/70 border border-orange-200/50 dark:border-orange-800/30"
-            }`}
-          >
-            <AlertCircle className="w-3.5 h-3.5" />
-            <span>Overdue Students ({batchStats.overdueCount})</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setViewMode("all")}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              viewMode === "all"
-                ? "bg-[#5f2ea8] text-white shadow-xs"
-                : "bg-purple-50 dark:bg-purple-950/20 text-[#5f2ea8] dark:text-purple-300 hover:bg-purple-100/70 border border-purple-200/50 dark:border-purple-800/30"
-            }`}
-          >
-            <Users className="w-3.5 h-3.5" />
-            <span>All Students in Batch ({batchStats.total})</span>
-          </button>
-
-          {batchStats.upToDateCount > 0 && (
-            <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 px-2.5 py-1 rounded-lg border border-emerald-200/50 dark:border-emerald-800/30">
-              <CheckCircle2 className="w-3 h-3" />
-              {batchStats.upToDateCount} fully paid / up to date
-            </span>
+        {/* Search */}
+        <div className="relative w-full lg:w-72">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Search student, class, phone..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-7 py-1.5 text-xs bg-white dark:bg-[#0E1526] border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-[#5f2ea8]/20 focus:border-[#5f2ea8] transition-all"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-primary p-0.5 rounded-full"
+            >
+              <X className="w-3 h-3" />
+            </button>
           )}
         </div>
 
-        {/* Search & Dropdown Filters */}
+        {/* Dropdown Filters */}
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary pointer-events-none" />
-            <input
-              type="text"
-              placeholder="Search student or phone..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-7 py-1.5 text-xs bg-white dark:bg-[#0E1526] border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-[#5f2ea8]/20 focus:border-[#5f2ea8] transition-all"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-primary p-0.5 rounded-full"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            )}
-          </div>
+          {classOptions.length > 0 && (
+            <select
+              value={classFilter}
+              onChange={(e) => setClassFilter(e.target.value)}
+              className="text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0E1526] px-2.5 py-1.5 text-text-primary focus:outline-none focus:ring-2 focus:ring-[#5f2ea8]/20 max-w-[150px] truncate"
+            >
+              <option value="all">All Classes</option>
+              {classOptions.map((c) => (
+                <option key={c} value={c}>
+                  {c.replace(" Tuition Fee", "")}
+                </option>
+              ))}
+            </select>
+          )}
+
+          {batchOptions.length > 0 && (
+            <select
+              value={batchFilter}
+              onChange={(e) => setBatchFilter(e.target.value)}
+              className="text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0E1526] px-2.5 py-1.5 text-text-primary focus:outline-none focus:ring-2 focus:ring-[#5f2ea8]/20 max-w-[150px] truncate"
+            >
+              <option value="all">All Batches</option>
+              {batchOptions.map((b) => (
+                <option key={b} value={b}>{b}</option>
+              ))}
+            </select>
+          )}
 
           {planOptions.length > 0 && (
             <select
@@ -611,6 +586,8 @@ export default function DuesStudentPage() {
           {hasActiveFilters && (
             <button
               onClick={() => {
+                setClassFilter("all");
+                setBatchFilter("all");
                 setPlanFilter("all");
                 setFrequencyFilter("all");
                 setSearchQuery("");
@@ -629,26 +606,24 @@ export default function DuesStudentPage() {
       ) : isError ? (
         <div className="flex flex-col items-center justify-center h-48 gap-3 bg-white dark:bg-[#0E1526]/85 rounded-2xl border border-slate-200 dark:border-slate-800 p-8">
           <AlertCircle className="h-8 w-8 text-error" />
-          <p className="text-sm text-error font-medium">Failed to load batch student fee details</p>
+          <p className="text-sm text-error font-medium">Failed to load branch overdue students</p>
         </div>
       ) : !students?.length ? (
         <div className="flex flex-col items-center justify-center h-48 gap-3 bg-white dark:bg-[#0E1526]/85 rounded-2xl border border-slate-200 dark:border-slate-800 p-8">
           <CalendarClock className="h-8 w-8 text-success" />
-          <p className="text-sm text-success font-medium">No students enrolled in this batch!</p>
+          <p className="text-sm text-success font-medium">No overdue students in {shortBranch} — all caught up!</p>
         </div>
       ) : filteredStudents.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-48 gap-3 bg-white dark:bg-[#0E1526]/85 rounded-2xl border border-slate-200 dark:border-slate-800 p-8">
           <Filter className="h-8 w-8 text-text-tertiary" />
-          <p className="text-sm text-text-secondary font-medium">
-            {viewMode === "overdue"
-              ? "No students in this batch have overdue dues!"
-              : "No students match the current filters"}
-          </p>
+          <p className="text-sm text-text-secondary font-medium">No students match the selected filters</p>
           {hasActiveFilters && (
             <Button
               variant="outline"
               size="sm"
               onClick={() => {
+                setClassFilter("all");
+                setBatchFilter("all");
                 setPlanFilter("all");
                 setFrequencyFilter("all");
                 setSearchQuery("");
@@ -664,13 +639,13 @@ export default function DuesStudentPage() {
           {filteredStudents.map((student, idx) => {
             const planColor = PLAN_COLORS[student.plan] ?? { bg: "bg-gray-50", text: "text-gray-600" };
             const frequencyLabel = PAYMENT_OPTION_LABELS[student.no_of_instalments] ?? "";
-            const isStudentOverdue = student.total_dues > 0;
+            const displayClassName = student.class_name ? student.class_name.replace(" Tuition Fee", "") : "";
 
             return (
               <motion.div key={student.student_id} variants={itemVariants}>
                 <div className="p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800/90 bg-white dark:bg-[#0E1526]/90 shadow-xs hover:border-[#5f2ea8]/30 transition-all">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-3">
-                    {/* Student Info & Admission Date */}
+                    {/* Student Info, Class & Admission Date */}
                     <div className="flex items-start gap-3 min-w-0">
                       <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/40 flex items-center justify-center shrink-0 mt-0.5">
                         <GraduationCap className="h-5 w-5 text-[#5f2ea8] dark:text-purple-300" />
@@ -681,11 +656,28 @@ export default function DuesStudentPage() {
                             <span className="text-text-tertiary mr-2 font-mono text-xs">#{idx + 1}</span>
                             {student.student_name}
                           </p>
+
+                          {/* Student Class Badge */}
+                          {displayClassName && (
+                            <span className="inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[11px] font-bold bg-[#5f2ea8]/10 text-[#5f2ea8] dark:bg-purple-950/50 dark:text-purple-300 border border-[#5f2ea8]/20">
+                              <BookOpen className="w-3 h-3" />
+                              <span>{displayClassName}</span>
+                            </span>
+                          )}
+
+                          {/* Batch Name */}
+                          {student.batch_name && (
+                            <span className="inline-flex items-center rounded-lg px-2 py-0.5 text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-text-secondary border border-slate-200/60 dark:border-slate-800">
+                              {student.batch_name}
+                            </span>
+                          )}
+
                           {student.plan && (
                             <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold ${planColor.bg} ${planColor.text}`}>
                               {student.plan}
                             </span>
                           )}
+
                           {frequencyLabel && (
                             <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-text-secondary">
                               {frequencyLabel}
@@ -712,9 +704,9 @@ export default function DuesStudentPage() {
                       </div>
                     </div>
 
-                    {/* Financial Summary: Total Fee, Paid Fee, Overdue / Balance */}
+                    {/* Financial Summary: Total Fee, Paid Fee, Overdue */}
                     <div className="flex items-center gap-4 sm:gap-6 shrink-0 justify-between sm:justify-end border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-100 dark:border-slate-800">
-                      {student.total_fee !== undefined && (
+                      {student.total_fee !== undefined && student.total_fee > 0 && (
                         <div className="text-left sm:text-right">
                           <p className="text-[10px] uppercase tracking-wider text-text-tertiary font-bold">Total Fee</p>
                           <p className="text-xs sm:text-sm font-bold text-text-primary">
@@ -733,18 +725,10 @@ export default function DuesStudentPage() {
                       )}
 
                       <div className="text-right">
-                        <p className="text-[10px] uppercase tracking-wider text-text-tertiary font-bold">
-                          {isStudentOverdue ? "Overdue" : "Balance"}
+                        <p className="text-[10px] uppercase tracking-wider text-orange-600 font-bold">Overdue</p>
+                        <p className="text-base sm:text-lg font-black text-orange-600">
+                          {formatCurrency(student.total_dues)}
                         </p>
-                        <p className={`text-base sm:text-lg font-black ${isStudentOverdue ? "text-orange-600" : "text-text-primary"}`}>
-                          {formatCurrency(isStudentOverdue ? student.total_dues : (student.balance_fee ?? 0))}
-                        </p>
-                        {!isStudentOverdue && (
-                          <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
-                            <CheckCircle2 className="w-3 h-3" />
-                            <span>{(student.balance_fee ?? 0) === 0 ? "Fully Paid" : "Up-to-Date"}</span>
-                          </span>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -796,4 +780,3 @@ export default function DuesStudentPage() {
     </motion.div>
   );
 }
-

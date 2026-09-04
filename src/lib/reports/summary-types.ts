@@ -243,6 +243,15 @@ export interface OverdueBranchRow {
   overduePct: number;
 }
 
+export interface OverdueInvoiceDetail {
+  name: string;
+  dueDate: string;
+  grandTotal: number;
+  paid: number;
+  amount: number;
+  instalmentLabel?: string;
+}
+
 export interface OverdueStudentRow {
   studentId: string;
   studentName: string;
@@ -259,9 +268,11 @@ export interface OverdueStudentRow {
   oldestDueDate: string;
   daysOverdue: number;
   invoiceCount: number;
+  overdueInvoices?: OverdueInvoiceDetail[];
 }
 
 export interface OverdueBranchDetailData {
   summary: OverdueBranchRow;
   students: OverdueStudentRow[];
 }
+

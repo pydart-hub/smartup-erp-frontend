@@ -10,6 +10,7 @@ import {
   ChevronRight,
   AlertCircle,
   CalendarClock,
+  Users,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -140,33 +141,55 @@ export default function DuesBranchPage() {
           <p className="text-sm text-success font-medium">No overdue dues — all caught up!</p>
         </div>
       ) : (
-        <motion.div key={asOf} initial="hidden" animate="visible" variants={containerVariants} className="space-y-2">
+        <motion.div key={asOf} initial="hidden" animate="visible" variants={containerVariants} className="space-y-3">
           {branches.map((branch) => {
             const shortName = branch.branch.replace("Smart Up ", "").replace("Smart Up", "HQ");
             return (
               <motion.div key={branch.branch} variants={itemVariants}>
-                <Link href={`/dashboard/director/dues/${encodeURIComponent(branch.branch)}${childQs}`}>
-                  <div className="flex items-center gap-3 p-4 rounded-[10px] border border-border-light hover:border-orange-300/50 hover:shadow-sm transition-all cursor-pointer bg-surface">
-                    <div className="w-10 h-10 rounded-lg bg-brand-wash flex items-center justify-center shrink-0">
-                      <Building2 className="h-5 w-5 text-primary" />
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800/90 hover:border-orange-300/60 hover:shadow-xs transition-all bg-white dark:bg-[#0E1526]/85">
+                  <Link
+                    href={`/dashboard/director/dues/${encodeURIComponent(branch.branch)}${childQs}`}
+                    className="flex items-center gap-3.5 flex-1 min-w-0"
+                  >
+                    <div className="w-11 h-11 rounded-xl bg-purple-50 dark:bg-purple-950/40 flex items-center justify-center shrink-0">
+                      <Building2 className="h-5 w-5 text-[#5f2ea8] dark:text-purple-300" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-text-primary">{shortName}</p>
+                      <p className="text-base font-bold text-text-primary hover:text-[#5f2ea8] transition-colors">{shortName}</p>
                       <p className="text-xs text-text-tertiary">
                         {branch.student_count} student{branch.student_count !== 1 ? "s" : ""} with overdue
                       </p>
                     </div>
-                    <div className="text-right shrink-0">
-                      <p className="text-lg font-bold text-orange-600">
+                    <div className="text-right shrink-0 pr-2">
+                      <p className="text-lg font-black text-orange-600">
                         {formatCurrency(branch.total_dues)}
                       </p>
-                      <Badge variant="outline" className="text-[10px] text-orange-500 border-orange-200">
+                      <Badge variant="outline" className="text-[10px] text-orange-600 dark:text-orange-400 border-orange-200/70 dark:border-orange-800/50">
                         {branch.invoice_count} invoice{branch.invoice_count !== 1 ? "s" : ""}
                       </Badge>
                     </div>
-                    <ChevronRight className="h-4 w-4 text-text-tertiary shrink-0" />
+                  </Link>
+
+                  {/* Actions: Class Breakdown & All Students Direct Button */}
+                  <div className="flex items-center gap-2 shrink-0 border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-100 dark:border-slate-800">
+                    <Link
+                      href={`/dashboard/director/dues/${encodeURIComponent(branch.branch)}/all${childQs}`}
+                      className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-[#5f2ea8] hover:bg-[#5f2ea8]/90 transition-all shadow-xs cursor-pointer"
+                      title={`View all ${branch.student_count} overdue students in ${shortName}`}
+                    >
+                      <Users className="w-3.5 h-3.5" />
+                      <span>All Students ({branch.student_count})</span>
+                    </Link>
+
+                    <Link
+                      href={`/dashboard/director/dues/${encodeURIComponent(branch.branch)}${childQs}`}
+                      className="p-2 rounded-xl text-text-tertiary hover:text-text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                      title="Drill down by classes"
+                    >
+                      <ChevronRight className="h-5 w-5" />
+                    </Link>
                   </div>
-                </Link>
+                </div>
               </motion.div>
             );
           })}
