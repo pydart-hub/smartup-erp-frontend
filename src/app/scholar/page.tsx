@@ -49,6 +49,7 @@ export default function ScholarRegistrationPage() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [selectedClass, setSelectedClass] = useState("Class 10");
+  const [syllabus, setSyllabus] = useState<"State" | "CBSE">("State");
   const [district, setDistrict] = useState("Ernakulam");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -72,6 +73,7 @@ export default function ScholarRegistrationPage() {
           name: name.trim(),
           phone: cleanPhone,
           selectedClass,
+          syllabus,
           district,
         }),
       });
@@ -104,6 +106,7 @@ export default function ScholarRegistrationPage() {
           name: name.trim(),
           phone: cleanPhone,
           selectedClass,
+          syllabus,
           district,
           registrationId,
         }),
@@ -280,6 +283,10 @@ export default function ScholarRegistrationPage() {
                       <span className="font-mono font-bold">+91 {phone}</span>
                     </div>
                     <div className="flex justify-between">
+                      <span className="text-slate-500">Syllabus:</span>
+                      <span className="font-bold text-[#5C34A4]">{syllabus === "State" ? "State Syllabus" : "CBSE Board"}</span>
+                    </div>
+                    <div className="flex justify-between">
                       <span className="text-slate-500">District:</span>
                       <span>{district}</span>
                     </div>
@@ -347,6 +354,33 @@ export default function ScholarRegistrationPage() {
                             }`}
                           >
                             {c.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Syllabus / Board */}
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-slate-700 tracking-wide">
+                      Syllabus / Board <span className="text-red-500">*</span>
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(["State", "CBSE"] as const).map((s) => {
+                        const isSelected = syllabus === s;
+                        return (
+                          <button
+                            key={s}
+                            type="button"
+                            onClick={() => setSyllabus(s)}
+                            className={`py-2 px-3 text-center rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                              isSelected
+                                ? "bg-[#5C34A4] text-white shadow-md shadow-purple-900/20"
+                                : "bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/70"
+                            }`}
+                          >
+                            <span>{s === "State" ? "State Syllabus" : "CBSE Board"}</span>
+                            {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
                           </button>
                         );
                       })}

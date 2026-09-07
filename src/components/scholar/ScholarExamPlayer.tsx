@@ -54,20 +54,27 @@ export default function ScholarExamPlayer({
   const [answers, setAnswers] = useState<Record<string, string>>(initialAnswers);
   const [savingMap, setSavingMap] = useState<Record<string, "saving" | "saved" | "error">>({});
   const [remainingSeconds, setRemainingSeconds] = useState(0);
+  const [questionSecondsLeft, setQuestionSecondsLeft] = useState(60);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const questionTimerRef = useRef<NodeJS.Timeout | null>(null);
   const flushTimerRef = useRef<NodeJS.Timeout | null>(null);
   const flushPromiseRef = useRef<Promise<boolean> | null>(null);
   const flushPendingAnswersRef = useRef<(options?: { keepalive?: boolean }) => Promise<boolean>>(async () => true);
   const autoSubmitRef = useRef<() => Promise<void>>(async () => {});
   const pendingAnswersRef = useRef<Record<string, string>>({});
 
+  const currentIndexRef = useRef(currentIndex);
+  currentIndexRef.current = currentIndex;
+  const totalQuestions = questions.length;
+  const totalQuestionsRef = useRef(totalQuestions);
+  totalQuestionsRef.current = totalQuestions;
+
   const currentQuestion = questions[currentIndex];
   const answeredCount = Object.keys(answers).length;
-  const totalQuestions = questions.length;
 
   // Flush pending answers to backend
   const flushPendingAnswers = async (options: { keepalive?: boolean } = {}) => {
@@ -141,7 +148,7 @@ export default function ScholarExamPlayer({
 
   flushPendingAnswersRef.current = flushPendingAnswers;
 
-  // Auto-submit logic when timer expires
+  // Auto-submit logic when overall timer expires or final question expires
   const handleAutoSubmit = async () => {
     if (submitting) return;
     setSubmitting(true);
@@ -167,7 +174,7 @@ export default function ScholarExamPlayer({
 
   autoSubmitRef.current = handleAutoSubmit;
 
-  // Timer Countdown calculation
+  // Overall Exam Timer (30 mins)
   useEffect(() => {
     const startTime = new Date(startedAt).getTime();
     const durationMs = durationMinutes * 60 * 1000;
@@ -191,6 +198,45 @@ export default function ScholarExamPlayer({
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [startedAt, durationMinutes]);
+
+  // Per-Question 1-Minute (60 Seconds) Timer:
+  // When timer expires, auto-advances to the next question. If last question, auto-submits.
+  useEffect(() => {
+    setQuestionSecondsLeft(60);
+
+    if (questionTimerRef.current) {
+      clearInterval(questionTimerRef.current);
+    }
+
+    questionTimerRef.current = setInterval(() => {
+      setQuestionSecondsLeft((prev) => {
+        if (prev <= 1) {
+          // Question time expired: flush answers and advance
+          flushPendingAnswersRef.current();
+          const curr = currentIndexRef.current;
+          const total = totalQuestionsRef.current;
+
+          if (curr < total - 1) {
+            // Auto advance to next question
+            setCurrentIndex(curr + 1);
+            return 60;
+          } else {
+            // On last question, timer expired -> auto submit exam
+            if (questionTimerRef.current) clearInterval(questionTimerRef.current);
+            autoSubmitRef.current();
+            return 0;
+          }
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      if (questionTimerRef.current) {
+        clearInterval(questionTimerRef.current);
+      }
+    };
+  }, [currentIndex]);
 
   // Page unload guard
   useEffect(() => {
@@ -280,15 +326,33 @@ export default function ScholarExamPlayer({
           </div>
 
           {/* Timer & Submit CTA */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            {/* Per-Question 1-Minute Timer Badge */}
             <div
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-mono font-bold transition-colors ${
-                isUrgent
-                  ? "bg-rose-50 text-rose-600 border border-rose-200 animate-pulse"
-                  : "bg-slate-100 text-slate-800 border border-slate-200"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-mono font-bold transition-all ${
+                questionSecondsLeft <= 10
+                  ? "bg-rose-50 text-rose-700 border border-rose-300 animate-pulse ring-2 ring-rose-200"
+                  : questionSecondsLeft <= 20
+                  ? "bg-amber-50 text-amber-700 border border-amber-300"
+                  : "bg-purple-50 text-[#5C34A4] border border-purple-200"
               }`}
+              title="Time remaining for this question (auto-moves on 00:00)"
             >
               <Clock className="w-3.5 h-3.5" />
+              <span className="text-[10px] font-sans uppercase font-bold tracking-wider opacity-75">Q Time:</span>
+              <span>00:{String(questionSecondsLeft).padStart(2, "0")}</span>
+            </div>
+
+            {/* Total 30-Min Exam Time */}
+            <div
+              className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-mono font-semibold ${
+                isUrgent
+                  ? "bg-rose-50 text-rose-600 border border-rose-200"
+                  : "bg-slate-100 text-slate-700 border border-slate-200"
+              }`}
+              title="Total 30-minute exam time"
+            >
+              <span className="text-[9px] text-slate-400 font-sans uppercase font-bold tracking-wider">Total:</span>
               <span>
                 {String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}
               </span>
@@ -310,6 +374,20 @@ export default function ScholarExamPlayer({
         {/* Left Column: Question Presentation Area */}
         <section className="lg:col-span-8 bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-sm flex flex-col justify-between min-h-[500px]">
           <div>
+            {/* 60s Question Timer Linear Progress Bar */}
+            <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mb-5">
+              <div
+                className={`h-full transition-all duration-1000 ease-linear rounded-full ${
+                  questionSecondsLeft <= 10
+                    ? "bg-rose-500"
+                    : questionSecondsLeft <= 20
+                    ? "bg-amber-500"
+                    : "bg-[#5C34A4]"
+                }`}
+                style={{ width: `${(questionSecondsLeft / 60) * 100}%` }}
+              />
+            </div>
+
             {/* Question Top Status */}
             <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-6">
               <div className="flex items-center gap-2">
@@ -318,6 +396,18 @@ export default function ScholarExamPlayer({
                 </span>
                 <span className="text-xs text-slate-400 font-medium">
                   of {totalQuestions} Questions
+                </span>
+                <span className="w-1 h-1 rounded-full bg-slate-300" />
+                <span
+                  className={`text-xs font-bold font-mono ${
+                    questionSecondsLeft <= 10
+                      ? "text-rose-600 animate-pulse"
+                      : questionSecondsLeft <= 20
+                      ? "text-amber-600"
+                      : "text-slate-500"
+                  }`}
+                >
+                  ⏱️ 00:{String(questionSecondsLeft).padStart(2, "0")}
                 </span>
               </div>
 

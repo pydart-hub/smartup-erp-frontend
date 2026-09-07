@@ -5,12 +5,14 @@ import { randomUUID } from "crypto";
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, phone, selectedClass, district, registrationId } = await request.json();
+    const { name, phone, selectedClass, district, syllabus, registrationId } = await request.json();
     const normalizedPhone = typeof phone === "string" ? phone.replace(/\D/g, "") : "";
 
     if (!name?.trim() || !normalizedPhone || !selectedClass) {
       return NextResponse.json({ error: "Missing required student details" }, { status: 400 });
     }
+
+    const selectedSyllabus = syllabus === "CBSE" ? "CBSE" : "State";
 
     if (!/^\d{10}$/.test(normalizedPhone)) {
       return NextResponse.json({ error: "Please enter a valid 10-digit phone number" }, { status: 400 });
@@ -142,6 +144,7 @@ export async function POST(request: NextRequest) {
         studentBranch: district || "Ernakulam",
         studentPhone: normalizedPhone,
         classLevel: targetLevel,
+        syllabus: selectedSyllabus,
         status: "in_progress",
         totalMarks: publishing.paper.totalMarks,
         paperSnapshotJson: JSON.stringify(questionsSnapshot),

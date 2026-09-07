@@ -99,6 +99,7 @@ model ExamAttempt {
   studentBranch      String?          // Manually selected branch
   studentPhone       String?          // Manually entered phone number
   classLevel         String           // Manually selected ("8", "9", "10")
+  syllabus           String?          @default("State") // "State" | "CBSE"
   status             String           @default("in_progress") // "in_progress", "submitted", "auto_submitted"
   startedAt          DateTime         @default(now())
   submittedAt        DateTime?
@@ -158,6 +159,7 @@ model ScholarRegistration {
   studentName  String
   phone        String
   classLevel   String        // "Class 8", "Class 9", "Class 10", "Plus One (+1)", "Plus Two (+2)"
+  syllabus     String?       @default("State") // "State" | "CBSE"
   district     String
   status       String        @default("registered") // "registered", "attempting", "completed"
   attemptId    String?
@@ -168,3 +170,4 @@ model ScholarRegistration {
   @@index([classLevel])
   @@index([createdAt])
 }
+

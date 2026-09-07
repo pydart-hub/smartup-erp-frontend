@@ -4,7 +4,7 @@ import { db } from "@/lib/public-exam/db";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, phone, selectedClass, district } = body;
+    const { name, phone, selectedClass, district, syllabus } = body;
 
     const normalizedPhone = typeof phone === "string" ? phone.replace(/\D/g, "") : "";
     if (!name?.trim() || !normalizedPhone || normalizedPhone.length < 10) {
@@ -13,6 +13,8 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    const selectedSyllabus = syllabus === "CBSE" ? "CBSE" : "State";
 
     // Map class labels to publishing search keywords
     const classLevelMap: Record<string, string> = {
@@ -27,12 +29,13 @@ export async function POST(request: NextRequest) {
 
     const targetLevel = classLevelMap[selectedClass] || selectedClass;
 
-    // Save Registration Record
+    // Save Registration Record with syllabus
     const registration = await db.scholarRegistration.create({
       data: {
         studentName: name.trim(),
         phone: normalizedPhone,
         classLevel: selectedClass,
+        syllabus: selectedSyllabus,
         district: district || "Ernakulam",
         status: "registered",
       },
