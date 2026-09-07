@@ -6,7 +6,6 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Plus,
   FileText,
   Calendar,
   Search,
@@ -117,12 +116,6 @@ export default function BranchManagerRegularExamsPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <Link href="/dashboard/branch-manager/exams/create">
-            <Button className="gap-2 shadow-md hover:shadow-lg transition-all">
-              <Plus className="h-4 w-4" />
-              Create Regular Exam
-            </Button>
-          </Link>
           <Link href="/dashboard/branch-manager/exams/analytics">
             <Button variant="outline" className="gap-2">
               <BarChart3 className="h-4 w-4" />
@@ -208,15 +201,8 @@ export default function BranchManagerRegularExamsPage() {
           <FileText className="mx-auto h-12 w-12 text-text-tertiary/50 mb-3" />
           <h3 className="text-base font-semibold text-text-primary">No regular exams found</h3>
           <p className="text-sm text-text-secondary mt-1">
-            {search ? "Try adjusting your search or filter." : "Create your first regular exam to get started."}
+            {search ? "Try adjusting your search or filter." : "No regular exams scheduled for this branch."}
           </p>
-          {!search && (
-            <Link href="/dashboard/branch-manager/exams/create" className="mt-4 inline-block">
-              <Button size="sm" className="gap-2">
-                <Plus className="h-4 w-4" /> Create Exam
-              </Button>
-            </Link>
-          )}
         </Card>
       ) : (
         <motion.div variants={container} initial="hidden" animate="show" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
