@@ -52,7 +52,8 @@ export default function ScholarRegistrationPage() {
   const [district, setDistrict] = useState("Ernakulam");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [activePublishingId, setActivePublishingId] = useState<string | null>(null);
+  const [isStartingExam, setIsStartingExam] = useState(false);
+  const [registrationId, setRegistrationId] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,29 +81,8 @@ export default function ScholarRegistrationPage() {
         throw new Error(data.error || "Failed to register. Please try again.");
       }
 
-      if (data.publishingId) {
-        setActivePublishingId(data.publishingId);
-      }
-
-      // Map selected class to exam system classLevel code
-      const classLevelMap: Record<string, string> = {
-        "Class 8": "8",
-        "Class 9": "9",
-        "Class 10": "10",
-        "Plus One (+1)": "11",
-        "Plus Two (+2)": "12",
-      };
-      const classCode = classLevelMap[selectedClass] || "10";
-      const branchName = "Smart Up Kadavanthara"; // Default central branch
-
-      // Seamless prefill for exam-site via localStorage
-      if (typeof window !== "undefined") {
-        localStorage.setItem("smartup_exam_student_name", name.trim());
-        localStorage.setItem("smartup_exam_student_phone", cleanPhone);
-        localStorage.setItem("smartup_exam_student_branch", branchName);
-        localStorage.setItem("smartup_exam_student_class", classCode);
-        localStorage.setItem("smartup_exam_district", district);
-        localStorage.setItem("smartup_exam_type", "scholarship");
+      if (data.registrationId) {
+        setRegistrationId(data.registrationId);
       }
 
       setIsSubmitted(true);
@@ -110,6 +90,38 @@ export default function ScholarRegistrationPage() {
       alert(err.message || "Something went wrong while registering.");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleStartScholarshipExam = async () => {
+    const cleanPhone = phone.replace(/\D/g, "");
+    try {
+      setIsStartingExam(true);
+      const res = await fetch("/api/scholar/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim(),
+          phone: cleanPhone,
+          selectedClass,
+          district,
+          registrationId,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to start scholarship exam.");
+      }
+
+      if (data.sessionToken) {
+        sessionStorage.setItem(`scholar_token_${data.attemptId}`, data.sessionToken);
+      }
+
+      window.location.href = `/scholar/exam/${data.attemptId}`;
+    } catch (err: any) {
+      alert(err.message || "Failed to start exam. Please try again.");
+      setIsStartingExam(false);
     }
   };
 
@@ -278,27 +290,15 @@ export default function ScholarRegistrationPage() {
                     <span>Your registration is saved in the portal database.</span>
                   </div>
 
-                  {activePublishingId && (
-                    <a
-                      href={`/exam-site?type=scholarship&phone=${encodeURIComponent(phone.replace(/\D/g, ""))}&name=${encodeURIComponent(name.trim())}&class=${encodeURIComponent(
-                        selectedClass === "Class 8"
-                          ? "8"
-                          : selectedClass === "Class 9"
-                          ? "9"
-                          : selectedClass === "Class 10"
-                          ? "10"
-                          : selectedClass.includes("+1")
-                          ? "11"
-                          : selectedClass.includes("+2")
-                          ? "12"
-                          : "10"
-                      )}&branch=${encodeURIComponent("Smart Up Kadavanthara")}&district=${encodeURIComponent(district)}`}
-                      className="w-full py-3 px-6 font-bold text-sm text-white bg-[#5C34A4] hover:bg-[#4E2B8E] active:bg-[#43237E] rounded-full transition-all shadow-lg shadow-purple-900/25 flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      <span>Take Scholarship Exam Now</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </a>
-                  )}
+                  <button
+                    type="button"
+                    disabled={isStartingExam}
+                    onClick={handleStartScholarshipExam}
+                    className="w-full py-3 px-6 font-bold text-sm text-white bg-[#5C34A4] hover:bg-[#4E2B8E] active:bg-[#43237E] disabled:opacity-70 rounded-full transition-all shadow-lg shadow-purple-900/25 flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    <span>{isStartingExam ? "Starting Scholarship Exam..." : "Take Scholarship Exam Now"}</span>
+                    {!isStartingExam && <ArrowRight className="w-4 h-4" />}
+                  </button>
 
                   <button
                     onClick={() => setIsSubmitted(false)}
