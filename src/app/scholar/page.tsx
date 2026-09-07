@@ -127,24 +127,24 @@ export default function ScholarRegistrationPage() {
 
             {/* Subtitle */}
             <p className="text-base sm:text-lg text-slate-500 max-w-xl font-normal leading-relaxed mb-8">
-              Take the <strong className="text-slate-700 font-semibold">SmartUp Scholarship Exam</strong> for Classes 8, 9, 10, +1 &amp; +2 and get a chance for 100% tuition fee waiver.
+              Take the <strong className="text-slate-700 font-semibold">SmartUp Scholarship Exam</strong> for Classes 8, 9, 10, +1 &amp; +2.
             </p>
 
             {/* Visual Hero Area: Student Image & Floating Badges */}
             <div className="relative w-full max-w-[460px] mx-auto lg:mx-0 flex justify-center items-end pt-4 pb-2">
               {/* Circular Soft Purple Glow Backdrop */}
-              <div className="absolute w-72 h-72 sm:w-80 sm:h-80 rounded-full bg-[#EFEBFA]/80 -z-10 bottom-6 left-1/2 -translate-x-1/2" />
-              <div className="absolute w-96 h-96 rounded-full bg-purple-100/40 -z-20 blur-2xl bottom-0 left-1/2 -translate-x-1/2" />
+              <div className="absolute w-72 h-72 sm:w-84 sm:h-84 rounded-full bg-[#EFEBFA] -z-10 bottom-4 left-1/2 -translate-x-1/2" />
+              <div className="absolute w-96 h-96 rounded-full bg-purple-100/50 -z-20 blur-3xl bottom-0 left-1/2 -translate-x-1/2" />
 
-              {/* Student Image */}
-              <div className="relative w-[310px] h-[340px] sm:w-[360px] sm:h-[390px]">
+              {/* Student Cutout Image */}
+              <div className="relative w-[320px] h-[370px] sm:w-[370px] sm:h-[420px]">
                 <Image
-                  src="/scholar-hero-student.jpg"
+                  src="/scholar-hero-student.png"
                   alt="SmartUp Student"
                   fill
                   priority
-                  className="object-cover object-top rounded-full"
-                  sizes="(max-width: 640px) 310px, 360px"
+                  className="object-contain object-bottom drop-shadow-sm"
+                  sizes="(max-width: 640px) 320px, 370px"
                 />
               </div>
 
