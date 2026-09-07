@@ -95,6 +95,7 @@ export default function ExamSiteLandingPage() {
   const [studentBranch, setStudentBranch] = useState("");
   const [studentPhone, setStudentPhone] = useState("");
   const [classLevel, setClassLevel] = useState("");
+  const [isScholarship, setIsScholarship] = useState(false);
   const [exams, setExams] = useState<ActiveExam[]>([]);
   const [loading, setLoading] = useState(false);
   const [fetchingExams, setFetchingExams] = useState(false);
@@ -204,14 +205,25 @@ export default function ExamSiteLandingPage() {
 
 
   useEffect(() => {
-    if (parentChildren.length > 0) return; // parent auto-fill takes precedence
-
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const qPhone = params.get("phone");
       const qName = params.get("name");
       const qClass = params.get("class");
       const qBranch = params.get("branch");
+      const qType = params.get("type");
+
+      const isScholar =
+        qType === "scholarship" ||
+        localStorage.getItem("smartup_exam_type") === "scholarship" ||
+        window.location.hostname.toLowerCase().startsWith("scholar.");
+
+      setIsScholarship(isScholar);
+      if (isScholar) {
+        localStorage.setItem("smartup_exam_type", "scholarship");
+      }
+
+      if (parentChildren.length > 0) return; // parent auto-fill takes precedence for student profile
 
       const savedName = qName || localStorage.getItem("smartup_exam_student_name");
       const savedBranch = qBranch || localStorage.getItem("smartup_exam_student_branch") || BRANCHES[0];
@@ -250,7 +262,8 @@ export default function ExamSiteLandingPage() {
       setFetchingExams(true);
       setError(null);
       try {
-        const res = await fetch(`/api/public-exam/active?classLevel=${classLevel}`);
+        const typeParam = isScholarship ? "&type=scholarship" : "";
+        const res = await fetch(`/api/public-exam/active?classLevel=${classLevel}${typeParam}`);
         const data = await res.json();
         if (!res.ok) {
           setError(data.error || "Failed to load exams");
@@ -266,7 +279,7 @@ export default function ExamSiteLandingPage() {
     };
 
     fetchActiveExams();
-  }, [classLevel]);
+  }, [classLevel, isScholarship]);
 
   useEffect(() => {
     if (normalizedPhone.length !== 10) {
@@ -279,7 +292,8 @@ export default function ExamSiteLandingPage() {
     const timeoutId = setTimeout(async () => {
       setFetchingHistory(true);
       try {
-        const res = await fetch(`/api/public-exam/history?phone=${normalizedPhone}`, {
+        const typeParam = isScholarship ? "&type=scholarship" : "&type=diagnosis";
+        const res = await fetch(`/api/public-exam/history?phone=${normalizedPhone}${typeParam}`, {
           signal: controller.signal,
         });
         const data = await res.json();
@@ -414,18 +428,42 @@ export default function ExamSiteLandingPage() {
           <div className="max-w-md">
             <h1 className="text-[2.15rem] font-bold tracking-[-0.06em] text-slate-950 dark:text-white sm:text-5xl lg:text-[3.8rem] lg:leading-[1.02]">
               <span className="block pb-1">Begin Your</span>
-              <span className="mt-1 block bg-[linear-gradient(135deg,#5d35d5,#7e57c2)] bg-clip-text pb-2 text-transparent">Diagnosis</span>
+              <span className="mt-1 block bg-[linear-gradient(135deg,#5d35d5,#7e57c2)] bg-clip-text pb-2 text-transparent">
+                {isScholarship ? "Scholarship Exam" : "Diagnosis"}
+              </span>
             </h1>
             <div className="mt-4 h-1 w-24 rounded-full bg-[linear-gradient(90deg,#5d35d5,#7e57c2)] sm:mt-5 sm:w-28" />
             <p className="mt-6 text-base leading-8 text-slate-600 dark:text-slate-400 sm:text-lg sm:leading-9">
-              A focused, premium exam experience designed for clarity and performance.
+              {isScholarship
+                ? "Official SmartUp Scholarship & Merit Assessment for Batch 2026-27."
+                : "A focused, premium exam experience designed for clarity and performance."}
             </p>
           </div>
 
           <div className="mt-8 space-y-5 sm:mt-10 sm:space-y-6">
-            <InfoRow icon={<Sparkles className="h-5 w-5" />} title="Fast & Focused" description="Intentionally crisp and time-efficient flow." />
-            <InfoRow icon={<ShieldCheck className="h-5 w-5" />} title="Secure & Private" description="Your data and progress are always protected." />
-            <InfoRow icon={<WalletCards className="h-5 w-5" />} title="Insightful Reports" description="Concise reports that help you improve." />
+            <InfoRow
+              icon={<Sparkles className="h-5 w-5" />}
+              title={isScholarship ? "40 Questions • 30 Mins" : "Fast & Focused"}
+              description={
+                isScholarship
+                  ? "Standardized computerized merit test with instant scoring."
+                  : "Intentionally crisp and time-efficient flow."
+              }
+            />
+            <InfoRow
+              icon={<ShieldCheck className="h-5 w-5" />}
+              title="Secure & Private"
+              description="Your data and progress are always protected."
+            />
+            <InfoRow
+              icon={<WalletCards className="h-5 w-5" />}
+              title={isScholarship ? "Merit Fee Waiver" : "Insightful Reports"}
+              description={
+                isScholarship
+                  ? "Qualify for scholarship vouchers and fee discounts upon completion."
+                  : "Concise reports that help you improve."
+              }
+            />
           </div>
         </section>
 
@@ -439,9 +477,15 @@ export default function ExamSiteLandingPage() {
                 <WalletCards className="h-5 w-5" />
               </div>
               <div>
-                <div className="text-[11px] font-bold uppercase tracking-[0.24em] text-[#673ab7] sm:text-xs">Step 1 of 3</div>
-                <h2 className="mt-2 text-[1.55rem] font-bold tracking-[-0.04em] text-slate-950 dark:text-white sm:text-[1.8rem]">Student Details</h2>
-                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Fill in your details to continue</p>
+                <div className="text-[11px] font-bold uppercase tracking-[0.24em] text-[#673ab7] sm:text-xs">
+                  {isScholarship ? "Scholarship Portal" : "Step 1 of 3"}
+                </div>
+                <h2 className="mt-2 text-[1.55rem] font-bold tracking-[-0.04em] text-slate-950 dark:text-white sm:text-[1.8rem]">
+                  Student Details
+                </h2>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                  {isScholarship ? "Review details to begin your scholarship exam" : "Fill in your details to continue"}
+                </p>
               </div>
             </div>
 
@@ -640,28 +684,49 @@ export default function ExamSiteLandingPage() {
 
               {classLevel && (
                 <div className="rounded-[20px] border border-[#eee4ff] bg-[#fbf8ff]/92 p-3.5 dark:border-white/[0.12] dark:bg-[#221d38]">
-                  <div className="mb-3 text-[11px] font-bold uppercase tracking-[0.22em] text-[#7e6a9f] dark:text-slate-300">Diagnosis Sequence Status</div>
+                  <div className="mb-3 text-[11px] font-bold uppercase tracking-[0.22em] text-[#7e6a9f] dark:text-slate-300">
+                    {isScholarship ? "Scholarship Assessment Status" : "Diagnosis Sequence Status"}
+                  </div>
                   {fetchingExams ? (
-                    <div className="rounded-[16px] border border-[#e9deff] bg-white px-4 py-4 text-center text-sm text-slate-500 dark:border-white/[0.12] dark:bg-[#2a2445] dark:text-slate-300">Checking active exams...</div>
+                    <div className="rounded-[16px] border border-[#e9deff] bg-white px-4 py-4 text-center text-sm text-slate-500 dark:border-white/[0.12] dark:bg-[#2a2445] dark:text-slate-300">
+                      {isScholarship ? "Checking scholarship paper..." : "Checking active exams..."}
+                    </div>
                   ) : exams.length === 0 ? (
-                    <div className="flex gap-3 rounded-[16px] border border-amber-300/40 bg-amber-50 px-4 py-4 text-sm text-amber-700 dark:border-amber-400/20 dark:bg-amber-500/10 dark:text-amber-300"><AlertCircle className="mt-0.5 h-5 w-5 shrink-0" /><span>No active diagnosis exams are available for {LEVEL_OPTIONS.find((item) => item.value === classLevel)?.label} right now.</span></div>
+                    <div className="flex gap-3 rounded-[16px] border border-amber-300/40 bg-amber-50 px-4 py-4 text-sm text-amber-700 dark:border-amber-400/20 dark:bg-amber-500/10 dark:text-amber-300">
+                      <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+                      <span>
+                        {isScholarship
+                          ? `No active scholarship exam is published for ${LEVEL_OPTIONS.find((item) => item.value === classLevel)?.label} right now.`
+                          : `No active diagnosis exams are available for ${LEVEL_OPTIONS.find((item) => item.value === classLevel)?.label} right now.`}
+                      </span>
+                    </div>
                   ) : nextUnattemptedExam ? (
                     <div className="rounded-[18px] border border-primary/20 bg-primary/5 p-4 dark:border-[#7e57c2]/40 dark:bg-[#2a2445]">
-                      <div className="text-xs font-bold uppercase text-[#673ab7] tracking-wider dark:text-[#9575cd]">Up Next</div>
-                      <div className="mt-2 text-base font-bold text-slate-950 dark:text-white">{nextUnattemptedExam.subjectName}</div>
+                      <div className="text-xs font-bold uppercase text-[#673ab7] tracking-wider dark:text-[#9575cd]">
+                        {isScholarship ? "Official Scholarship Assessment" : "Up Next"}
+                      </div>
+                      <div className="mt-2 text-base font-bold text-slate-950 dark:text-white">
+                        {nextUnattemptedExam.title}
+                      </div>
                       <div className="mt-1 text-xs leading-6 text-slate-500 dark:text-slate-400">
-                        {nextUnattemptedExam.totalQuestions} questions - {nextUnattemptedExam.totalMarks} marks - {nextUnattemptedExam.durationMinutes} mins
+                        {nextUnattemptedExam.totalQuestions} questions • {nextUnattemptedExam.totalMarks} marks • {nextUnattemptedExam.durationMinutes} mins
                       </div>
                       <p className="mt-2 text-[11px] text-slate-400">
-                        This exam will run under a {nextUnattemptedExam.durationMinutes}-minute timer.
+                        This exam will run under a {nextUnattemptedExam.durationMinutes}-minute countdown timer.
                       </p>
                     </div>
                   ) : (
                     <div className="flex gap-3 rounded-[18px] border border-emerald-300/40 bg-emerald-50 px-4 py-4 text-sm text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-300">
                       <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
                       <div>
-                        <span className="block font-bold text-emerald-800 dark:text-emerald-400">All Exams Completed!</span>
-                        <span className="text-xs">You have completed all {exams.length} active subject exams for Class {classLevel}. View your performance reports below.</span>
+                        <span className="block font-bold text-emerald-800 dark:text-emerald-400">
+                          {isScholarship ? "Scholarship Exam Completed!" : "All Exams Completed!"}
+                        </span>
+                        <span className="text-xs">
+                          {isScholarship
+                            ? "You have already completed the scholarship assessment for this class. View your score report below."
+                            : `You have completed all ${exams.length} active subject exams for Class ${classLevel}. View your performance reports below.`}
+                        </span>
                       </div>
                     </div>
                   )}
@@ -682,22 +747,33 @@ export default function ExamSiteLandingPage() {
                 </div>
               ) : null}
 
-              <button type="submit" disabled={loading || fetchingExams || !nextUnattemptedExam} className="inline-flex h-13 w-full items-center justify-center gap-3 rounded-[18px] bg-[linear-gradient(135deg,#5d35d5,#7e57c2)] px-6 text-[15px] font-semibold text-white shadow-[0_18px_30px_rgba(93,53,213,0.24)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_36px_rgba(93,53,213,0.3)] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none dark:disabled:bg-slate-700">
+              <button
+                type="submit"
+                disabled={loading || fetchingExams || !nextUnattemptedExam}
+                className="inline-flex h-13 w-full items-center justify-center gap-3 rounded-[18px] bg-[linear-gradient(135deg,#5d35d5,#7e57c2)] px-6 text-[15px] font-semibold text-white shadow-[0_18px_30px_rgba(93,53,213,0.24)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_36px_rgba(93,53,213,0.3)] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none dark:disabled:bg-slate-700"
+              >
                 {loading ? (
                   <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
                 ) : (
                   <>
                     <Play className="h-4 w-4 fill-current" />
-                    <span>{nextUnattemptedExam ? `Start ${nextUnattemptedExam.subjectName} Exam` : "Start Diagnosis Exam"}</span>
+                    <span>
+                      {nextUnattemptedExam
+                        ? isScholarship
+                          ? "Start Scholarship Exam"
+                          : `Start ${nextUnattemptedExam.subjectName} Exam`
+                        : isScholarship
+                        ? "Start Scholarship Exam"
+                        : "Start Diagnosis Exam"}
+                    </span>
                     <ArrowRight className="h-4 w-4" />
                   </>
                 )}
               </button>
 
-
               <div className="flex items-center justify-center gap-2 text-sm text-[#7a6897] dark:text-slate-400">
                 <ShieldCheck className="h-4 w-4" />
-                No registration required
+                {isScholarship ? "Online Merit & Fee Waiver Assessment" : "No registration required"}
               </div>
             </form>
           </div>

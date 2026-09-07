@@ -102,6 +102,7 @@ export default function ScholarRegistrationPage() {
         localStorage.setItem("smartup_exam_student_branch", branchName);
         localStorage.setItem("smartup_exam_student_class", classCode);
         localStorage.setItem("smartup_exam_district", district);
+        localStorage.setItem("smartup_exam_type", "scholarship");
       }
 
       setIsSubmitted(true);
@@ -279,7 +280,7 @@ export default function ScholarRegistrationPage() {
 
                   {activePublishingId && (
                     <a
-                      href={`/exam-site?phone=${encodeURIComponent(phone.replace(/\D/g, ""))}&name=${encodeURIComponent(name.trim())}&class=${encodeURIComponent(
+                      href={`/exam-site?type=scholarship&phone=${encodeURIComponent(phone.replace(/\D/g, ""))}&name=${encodeURIComponent(name.trim())}&class=${encodeURIComponent(
                         selectedClass === "Class 8"
                           ? "8"
                           : selectedClass === "Class 9"

@@ -38,11 +38,15 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Check if an active exam publishing exists for this class
+    // Check if an active Scholarship exam publishing exists for this class
     const activePublishing = await db.examPublishing.findFirst({
       where: {
         classLevel: targetLevel,
         isActive: true,
+        OR: [
+          { slug: { startsWith: "scholarship-" } },
+          { title: { contains: "Scholarship", mode: "insensitive" } },
+        ],
       },
       select: {
         id: true,

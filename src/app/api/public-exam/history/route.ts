@@ -4,13 +4,40 @@ import { db } from "@/lib/public-exam/db";
 export async function GET(request: NextRequest) {
   try {
     const phone = request.nextUrl.searchParams.get("phone")?.replace(/\D/g, "") ?? "";
+    const examType = request.nextUrl.searchParams.get("type"); // "scholarship" or null/empty
 
     if (!/^\d{10}$/.test(phone)) {
       return NextResponse.json({ attempts: [] });
     }
 
+    const typeFilter =
+      examType === "scholarship"
+        ? {
+            publishing: {
+              OR: [
+                { slug: { startsWith: "scholarship-" } },
+                { title: { contains: "Scholarship", mode: "insensitive" as const } },
+              ],
+            },
+          }
+        : examType === "diagnosis"
+        ? {
+            publishing: {
+              NOT: {
+                OR: [
+                  { slug: { startsWith: "scholarship-" } },
+                  { title: { contains: "Scholarship", mode: "insensitive" as const } },
+                ],
+              },
+            },
+          }
+        : {};
+
     const attempts = await db.examAttempt.findMany({
-      where: { studentPhone: phone },
+      where: {
+        studentPhone: phone,
+        ...typeFilter,
+      },
       orderBy: { createdAt: "desc" },
       include: {
         publishing: {

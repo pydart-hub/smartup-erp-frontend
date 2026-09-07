@@ -1,0 +1,4647 @@
+{
+  "8": {
+    "title": "SmartUp Scholarship Exam 2026-27 - Class 8",
+    "classLevel": "8",
+    "subjectCode": "SCHOLARSHIP-8",
+    "subjectName": "Scholarship Assessment (Class 8)",
+    "durationMinutes": 30,
+    "questions": [
+      {
+        "questionNumber": 1,
+        "questionText": "What is the value of 3² + 4²?",
+        "options": [
+          {
+            "key": "A",
+            "text": "12"
+          },
+          {
+            "key": "B",
+            "text": "25"
+          },
+          {
+            "key": "C",
+            "text": "49"
+          },
+          {
+            "key": "D",
+            "text": "16"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 2,
+        "questionText": "The reciprocal of 5/8 is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "5/8"
+          },
+          {
+            "key": "B",
+            "text": "8/5"
+          },
+          {
+            "key": "C",
+            "text": "3/8"
+          },
+          {
+            "key": "D",
+            "text": "5/3"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 3,
+        "questionText": "Simplify: 15 × 4 ÷ 5",
+        "options": [
+          {
+            "key": "A",
+            "text": "10"
+          },
+          {
+            "key": "B",
+            "text": "12"
+          },
+          {
+            "key": "C",
+            "text": "15"
+          },
+          {
+            "key": "D",
+            "text": "20"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 4,
+        "questionText": "The perimeter of a square of side 9 cm is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "18 cm"
+          },
+          {
+            "key": "B",
+            "text": "27 cm"
+          },
+          {
+            "key": "C",
+            "text": "36 cm"
+          },
+          {
+            "key": "D",
+            "text": "81 cm"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 5,
+        "questionText": "25% of 200 is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "25"
+          },
+          {
+            "key": "B",
+            "text": "50"
+          },
+          {
+            "key": "C",
+            "text": "75"
+          },
+          {
+            "key": "D",
+            "text": "100"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 6,
+        "questionText": "Which of the following is a prime number?",
+        "options": [
+          {
+            "key": "A",
+            "text": "21"
+          },
+          {
+            "key": "B",
+            "text": "39"
+          },
+          {
+            "key": "C",
+            "text": "31"
+          },
+          {
+            "key": "D",
+            "text": "51"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 7,
+        "questionText": "The area of a rectangle with length 12 cm and breadth 5 cm is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "17 cm²"
+          },
+          {
+            "key": "B",
+            "text": "34 cm²"
+          },
+          {
+            "key": "C",
+            "text": "60 cm²"
+          },
+          {
+            "key": "D",
+            "text": "120 cm²"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 8,
+        "questionText": "Convert 0.75 into percentage.",
+        "options": [
+          {
+            "key": "A",
+            "text": "7.5%"
+          },
+          {
+            "key": "B",
+            "text": "75%"
+          },
+          {
+            "key": "C",
+            "text": "0.75%"
+          },
+          {
+            "key": "D",
+            "text": "750%"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 9,
+        "questionText": "The sum of angles in a triangle is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "90°"
+          },
+          {
+            "key": "B",
+            "text": "180°"
+          },
+          {
+            "key": "C",
+            "text": "270°"
+          },
+          {
+            "key": "D",
+            "text": "360°"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 10,
+        "questionText": "What is the HCF of 18 and 24?",
+        "options": [
+          {
+            "key": "A",
+            "text": "2"
+          },
+          {
+            "key": "B",
+            "text": "4"
+          },
+          {
+            "key": "C",
+            "text": "6"
+          },
+          {
+            "key": "D",
+            "text": "8"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 11,
+        "questionText": "Which organ pumps blood throughout the body?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Brain"
+          },
+          {
+            "key": "B",
+            "text": "Heart"
+          },
+          {
+            "key": "C",
+            "text": "Kidney"
+          },
+          {
+            "key": "D",
+            "text": "Lungs"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 12,
+        "questionText": "Plants prepare food by:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Respiration"
+          },
+          {
+            "key": "B",
+            "text": "Digestion"
+          },
+          {
+            "key": "C",
+            "text": "Photosynthesis"
+          },
+          {
+            "key": "D",
+            "text": "Transpiration"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 13,
+        "questionText": "The boiling point of water is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "0°C"
+          },
+          {
+            "key": "B",
+            "text": "50°C"
+          },
+          {
+            "key": "C",
+            "text": "100°C"
+          },
+          {
+            "key": "D",
+            "text": "200°C"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 14,
+        "questionText": "Which gas is essential for respiration?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Nitrogen"
+          },
+          {
+            "key": "B",
+            "text": "Oxygen"
+          },
+          {
+            "key": "C",
+            "text": "Carbon dioxide"
+          },
+          {
+            "key": "D",
+            "text": "Hydrogen"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 15,
+        "questionText": "The unit of force is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Joule"
+          },
+          {
+            "key": "B",
+            "text": "Newton"
+          },
+          {
+            "key": "C",
+            "text": "Watt"
+          },
+          {
+            "key": "D",
+            "text": "Volt"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 16,
+        "questionText": "Which planet is known as the Red Planet?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Earth"
+          },
+          {
+            "key": "B",
+            "text": "Venus"
+          },
+          {
+            "key": "C",
+            "text": "Mars"
+          },
+          {
+            "key": "D",
+            "text": "Jupiter"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 17,
+        "questionText": "The process of changing water vapour into liquid is called:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Evaporation"
+          },
+          {
+            "key": "B",
+            "text": "Condensation"
+          },
+          {
+            "key": "C",
+            "text": "Freezing"
+          },
+          {
+            "key": "D",
+            "text": "Melting  --- PAGE 2 ---"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 18,
+        "questionText": "Which vitamin is produced in sunlight?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Vitamin A"
+          },
+          {
+            "key": "B",
+            "text": "Vitamin B"
+          },
+          {
+            "key": "C",
+            "text": "Vitamin C"
+          },
+          {
+            "key": "D",
+            "text": "Vitamin D"
+          }
+        ],
+        "correctOption": "D"
+      },
+      {
+        "questionNumber": 19,
+        "questionText": "The largest organ in the human body is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Heart"
+          },
+          {
+            "key": "B",
+            "text": "Liver"
+          },
+          {
+            "key": "C",
+            "text": "Skin"
+          },
+          {
+            "key": "D",
+            "text": "Brain"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 20,
+        "questionText": "Sound cannot travel through:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Solids"
+          },
+          {
+            "key": "B",
+            "text": "Liquids"
+          },
+          {
+            "key": "C",
+            "text": "Gases"
+          },
+          {
+            "key": "D",
+            "text": "Vacuum"
+          }
+        ],
+        "correctOption": "D"
+      },
+      {
+        "questionNumber": 21,
+        "questionText": "Who was known as the ‘Iron Man of India’?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Mahatma Gandhi"
+          },
+          {
+            "key": "B",
+            "text": "Jawaharlal Nehru"
+          },
+          {
+            "key": "C",
+            "text": "Sardar Vallabhbhai Patel"
+          },
+          {
+            "key": "D",
+            "text": "Subhas Chandra Bose"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 22,
+        "questionText": "The capital of Kerala is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Kochi"
+          },
+          {
+            "key": "B",
+            "text": "Kozhikode"
+          },
+          {
+            "key": "C",
+            "text": "Kannur"
+          },
+          {
+            "key": "D",
+            "text": "Thiruvananthapuram"
+          }
+        ],
+        "correctOption": "D"
+      },
+      {
+        "questionNumber": 23,
+        "questionText": "The Earth revolves around the:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Moon"
+          },
+          {
+            "key": "B",
+            "text": "Mars"
+          },
+          {
+            "key": "C",
+            "text": "Sun"
+          },
+          {
+            "key": "D",
+            "text": "Jupiter"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 24,
+        "questionText": "Which is the largest continent?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Africa"
+          },
+          {
+            "key": "B",
+            "text": "Europe"
+          },
+          {
+            "key": "C",
+            "text": "Asia"
+          },
+          {
+            "key": "D",
+            "text": "Australia"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 25,
+        "questionText": "The Constitution of India came into effect on:",
+        "options": [
+          {
+            "key": "A",
+            "text": "January 26, 1950"
+          },
+          {
+            "key": "B",
+            "text": "August 15, 1947"
+          },
+          {
+            "key": "C",
+            "text": "October 2, 1948"
+          },
+          {
+            "key": "D",
+            "text": "January 30, 1950"
+          }
+        ],
+        "correctOption": "A"
+      },
+      {
+        "questionNumber": 26,
+        "questionText": "Which ocean is the largest?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Indian Ocean"
+          },
+          {
+            "key": "B",
+            "text": "Atlantic Ocean"
+          },
+          {
+            "key": "C",
+            "text": "Arctic Ocean"
+          },
+          {
+            "key": "D",
+            "text": "Pacific Ocean"
+          }
+        ],
+        "correctOption": "D"
+      },
+      {
+        "questionNumber": 27,
+        "questionText": "Mahatma Gandhi launched the Salt March in:",
+        "options": [
+          {
+            "key": "A",
+            "text": "1919"
+          },
+          {
+            "key": "B",
+            "text": "1930"
+          },
+          {
+            "key": "C",
+            "text": "1942"
+          },
+          {
+            "key": "D",
+            "text": "1947"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 28,
+        "questionText": "Which is the national animal of India?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Lion"
+          },
+          {
+            "key": "B",
+            "text": "Tiger"
+          },
+          {
+            "key": "C",
+            "text": "Elephant"
+          },
+          {
+            "key": "D",
+            "text": "Peacock"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 29,
+        "questionText": "The Tropic of Cancer passes through:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Northern India"
+          },
+          {
+            "key": "B",
+            "text": "Southern India"
+          },
+          {
+            "key": "C",
+            "text": "Sri Lanka"
+          },
+          {
+            "key": "D",
+            "text": "Maldives"
+          }
+        ],
+        "correctOption": "A"
+      },
+      {
+        "questionNumber": 30,
+        "questionText": "The main occupation of people in villages is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Banking"
+          },
+          {
+            "key": "B",
+            "text": "Agriculture"
+          },
+          {
+            "key": "C",
+            "text": "Software jobs"
+          },
+          {
+            "key": "D",
+            "text": "Trading"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 31,
+        "questionText": "Choose the correct synonym of “Brave”.",
+        "options": [
+          {
+            "key": "A",
+            "text": "Cowardly"
+          },
+          {
+            "key": "B",
+            "text": "Fearful"
+          },
+          {
+            "key": "C",
+            "text": "Courageous"
+          },
+          {
+            "key": "D",
+            "text": "Weak"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 32,
+        "questionText": "Identify the noun in the sentence: “Ravi plays football.”",
+        "options": [
+          {
+            "key": "A",
+            "text": "plays"
+          },
+          {
+            "key": "B",
+            "text": "football"
+          },
+          {
+            "key": "C",
+            "text": "Ravi"
+          },
+          {
+            "key": "D",
+            "text": "both B and C"
+          }
+        ],
+        "correctOption": "D"
+      },
+      {
+        "questionNumber": 33,
+        "questionText": "Choose the correct plural form of “Child”.",
+        "options": [
+          {
+            "key": "A",
+            "text": "Childs"
+          },
+          {
+            "key": "B",
+            "text": "Children"
+          },
+          {
+            "key": "C",
+            "text": "Childes"
+          },
+          {
+            "key": "D",
+            "text": "Childrens"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 34,
+        "questionText": "Fill in the blank: She ____ to school every day.",
+        "options": [
+          {
+            "key": "A",
+            "text": "go"
+          },
+          {
+            "key": "B",
+            "text": "goes"
+          },
+          {
+            "key": "C",
+            "text": "going"
+          },
+          {
+            "key": "D",
+            "text": "gone"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 35,
+        "questionText": "Opposite of “Ancient” is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Old"
+          },
+          {
+            "key": "B",
+            "text": "Modern"
+          },
+          {
+            "key": "C",
+            "text": "Antique"
+          },
+          {
+            "key": "D",
+            "text": "Historic"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 36,
+        "questionText": "Choose the correct sentence.",
+        "options": [
+          {
+            "key": "A",
+            "text": "He are my friend."
+          },
+          {
+            "key": "B",
+            "text": "He is my friend."
+          },
+          {
+            "key": "C",
+            "text": "He am my friend."
+          },
+          {
+            "key": "D",
+            "text": "He were my friend."
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 37,
+        "questionText": "Which punctuation mark is used at the end of a question?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Full stop"
+          },
+          {
+            "key": "B",
+            "text": "Comma"
+          },
+          {
+            "key": "C",
+            "text": "Question mark"
+          },
+          {
+            "key": "D",
+            "text": "Exclamation mark"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 38,
+        "questionText": "Identify the adjective: “It is a beautiful flower.”  --- PAGE 3 ---",
+        "options": [
+          {
+            "key": "A",
+            "text": "flower"
+          },
+          {
+            "key": "B",
+            "text": "beautiful"
+          },
+          {
+            "key": "C",
+            "text": "it"
+          },
+          {
+            "key": "D",
+            "text": "is"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 39,
+        "questionText": "Fill in the blank: They _____ playing cricket.",
+        "options": [
+          {
+            "key": "A",
+            "text": "is"
+          },
+          {
+            "key": "B",
+            "text": "am"
+          },
+          {
+            "key": "C",
+            "text": "are"
+          },
+          {
+            "key": "D",
+            "text": "was"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 40,
+        "questionText": "Choose the correct spelling.",
+        "options": [
+          {
+            "key": "A",
+            "text": "Enviroment"
+          },
+          {
+            "key": "B",
+            "text": "Environment"
+          },
+          {
+            "key": "C",
+            "text": "Envirnoment"
+          },
+          {
+            "key": "D",
+            "text": "Environmant"
+          }
+        ],
+        "correctOption": "B"
+      }
+    ]
+  },
+  "9": {
+    "title": "SmartUp Scholarship Exam 2026-27 - Class 9",
+    "classLevel": "9",
+    "subjectCode": "SCHOLARSHIP-9",
+    "subjectName": "Scholarship Assessment (Class 9)",
+    "durationMinutes": 30,
+    "questions": [
+      {
+        "questionNumber": 1,
+        "questionText": "All questions are compulsory. 2. Each question carries 1 mark. 3. Choose the most appropriate answer. 4. There is no negative marking. 5. Some questions are HOTS based. 1. Which of the following is both a physical and chemical change?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Melting of ice"
+          },
+          {
+            "key": "B",
+            "text": "Burning of candle"
+          },
+          {
+            "key": "C",
+            "text": "Boiling of water"
+          },
+          {
+            "key": "D",
+            "text": "Cutting paper"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 2,
+        "questionText": "A farmer adds earthworms to soil because they:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Increase soil temperature"
+          },
+          {
+            "key": "B",
+            "text": "Make soil fertile"
+          },
+          {
+            "key": "C",
+            "text": "Reduce water content"
+          },
+          {
+            "key": "D",
+            "text": "Destroy microorganisms"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 3,
+        "questionText": "The process by which green plants prepare food is called:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Respiration"
+          },
+          {
+            "key": "B",
+            "text": "Digestion"
+          },
+          {
+            "key": "C",
+            "text": "Photosynthesis"
+          },
+          {
+            "key": "D",
+            "text": "Transpiration"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 4,
+        "questionText": "If a person travels 120 km in 3 hours, the average speed is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "30 km/h"
+          },
+          {
+            "key": "B",
+            "text": "40 km/h"
+          },
+          {
+            "key": "C",
+            "text": "50 km/h"
+          },
+          {
+            "key": "D",
+            "text": "60 km/h"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 5,
+        "questionText": "(HOTS) A metal spoon feels colder than a wooden spoon kept in the same room because:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Metal has lower temperature"
+          },
+          {
+            "key": "B",
+            "text": "Wood produces heat"
+          },
+          {
+            "key": "C",
+            "text": "Metal conducts heat faster from your hand"
+          },
+          {
+            "key": "D",
+            "text": "Wood absorbs moisture"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 6,
+        "questionText": "Which vitamin is produced in our body in the presence of sunlight?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Vitamin A"
+          },
+          {
+            "key": "B",
+            "text": "Vitamin B"
+          },
+          {
+            "key": "C",
+            "text": "Vitamin C"
+          },
+          {
+            "key": "D",
+            "text": "Vitamin D  --- PAGE 2 ---"
+          }
+        ],
+        "correctOption": "D"
+      },
+      {
+        "questionNumber": 7,
+        "questionText": "The force that pulls objects towards Earth is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Magnetic force"
+          },
+          {
+            "key": "B",
+            "text": "Frictional force"
+          },
+          {
+            "key": "C",
+            "text": "Gravitational force"
+          },
+          {
+            "key": "D",
+            "text": "Muscular force"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 8,
+        "questionText": "Which gas is mainly responsible for global warming?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Oxygen"
+          },
+          {
+            "key": "B",
+            "text": "Nitrogen"
+          },
+          {
+            "key": "C",
+            "text": "Carbon dioxide"
+          },
+          {
+            "key": "D",
+            "text": "Hydrogen"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 9,
+        "questionText": "(HOTS) A student covers one eye and tries to catch a ball. It becomes difficult because:",
+        "options": [
+          {
+            "key": "A",
+            "text": "One eye cannot see color"
+          },
+          {
+            "key": "B",
+            "text": "Depth perception decreases"
+          },
+          {
+            "key": "C",
+            "text": "The ball moves faster"
+          },
+          {
+            "key": "D",
+            "text": "Brain stops working properly"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 10,
+        "questionText": "Which of the following organisms reproduces by budding?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Amoeba"
+          },
+          {
+            "key": "B",
+            "text": "Hydra"
+          },
+          {
+            "key": "C",
+            "text": "Earthworm"
+          },
+          {
+            "key": "D",
+            "text": "Fish"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 11,
+        "questionText": "The value of (-3)^2 is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "-9"
+          },
+          {
+            "key": "B",
+            "text": "9"
+          },
+          {
+            "key": "C",
+            "text": "6"
+          },
+          {
+            "key": "D",
+            "text": "-6"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 12,
+        "questionText": "The simple interest on ■1000 at 10% per annum for 2 years is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "■100"
+          },
+          {
+            "key": "B",
+            "text": "■150"
+          },
+          {
+            "key": "C",
+            "text": "■200"
+          },
+          {
+            "key": "D",
+            "text": "■250"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 13,
+        "questionText": "A rational number between 1/2 and 3/4 is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "2/3"
+          },
+          {
+            "key": "B",
+            "text": "5/4"
+          },
+          {
+            "key": "C",
+            "text": "1/4"
+          },
+          {
+            "key": "D",
+            "text": "4/3"
+          }
+        ],
+        "correctOption": "A"
+      },
+      {
+        "questionNumber": 14,
+        "questionText": "The sum of angles in a quadrilateral is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "180°"
+          },
+          {
+            "key": "B",
+            "text": "270°  --- PAGE 3 ---"
+          },
+          {
+            "key": "C",
+            "text": "360°"
+          },
+          {
+            "key": "D",
+            "text": "540°"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 15,
+        "questionText": "(HOTS) A rectangular garden is 20 m long and 15 m wide. A path of width 1 m is built inside along the boundary. What is the area of the path?",
+        "options": [
+          {
+            "key": "A",
+            "text": "60 m²"
+          },
+          {
+            "key": "B",
+            "text": "64 m²"
+          },
+          {
+            "key": "C",
+            "text": "66 m²"
+          },
+          {
+            "key": "D",
+            "text": "70 m²"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 16,
+        "questionText": "The cube of 5 is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "15"
+          },
+          {
+            "key": "B",
+            "text": "25"
+          },
+          {
+            "key": "C",
+            "text": "75"
+          },
+          {
+            "key": "D",
+            "text": "125"
+          }
+        ],
+        "correctOption": "D"
+      },
+      {
+        "questionNumber": 17,
+        "questionText": "Which of the following is a perfect square?",
+        "options": [
+          {
+            "key": "A",
+            "text": "225"
+          },
+          {
+            "key": "B",
+            "text": "250"
+          },
+          {
+            "key": "C",
+            "text": "275"
+          },
+          {
+            "key": "D",
+            "text": "300"
+          }
+        ],
+        "correctOption": "A"
+      },
+      {
+        "questionNumber": 18,
+        "questionText": "If x + 5 = 12, then x equals:",
+        "options": [
+          {
+            "key": "A",
+            "text": "5"
+          },
+          {
+            "key": "B",
+            "text": "6"
+          },
+          {
+            "key": "C",
+            "text": "7"
+          },
+          {
+            "key": "D",
+            "text": "8"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 19,
+        "questionText": "(HOTS) A shopkeeper gives 10% discount on a bag costing ■800 and still gains ■80. What is the cost price of the bag?",
+        "options": [
+          {
+            "key": "A",
+            "text": "■600"
+          },
+          {
+            "key": "B",
+            "text": "■620"
+          },
+          {
+            "key": "C",
+            "text": "■640"
+          },
+          {
+            "key": "D",
+            "text": "■700"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 20,
+        "questionText": "The probability of getting a head when a coin is tossed once is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "0"
+          },
+          {
+            "key": "B",
+            "text": "1/4"
+          },
+          {
+            "key": "C",
+            "text": "1/2"
+          },
+          {
+            "key": "D",
+            "text": "1"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 21,
+        "questionText": "The Indian Constitution came into effect on:",
+        "options": [
+          {
+            "key": "A",
+            "text": "15 August 1947"
+          },
+          {
+            "key": "B",
+            "text": "26 January 1950"
+          },
+          {
+            "key": "C",
+            "text": "2 October 1948"
+          },
+          {
+            "key": "D",
+            "text": "14 November 1949  --- PAGE 4 ---"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 22,
+        "questionText": "Who was known as the 'Tiger of Mysore'?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Akbar"
+          },
+          {
+            "key": "B",
+            "text": "Shivaji"
+          },
+          {
+            "key": "C",
+            "text": "Tipu Sultan"
+          },
+          {
+            "key": "D",
+            "text": "Bahadur Shah"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 23,
+        "questionText": "The largest desert in India is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Sahara Desert"
+          },
+          {
+            "key": "B",
+            "text": "Gobi Desert"
+          },
+          {
+            "key": "C",
+            "text": "Thar Desert"
+          },
+          {
+            "key": "D",
+            "text": "Kalahari Desert"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 24,
+        "questionText": "Which layer of the atmosphere contains the ozone layer?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Troposphere"
+          },
+          {
+            "key": "B",
+            "text": "Mesosphere"
+          },
+          {
+            "key": "C",
+            "text": "Stratosphere"
+          },
+          {
+            "key": "D",
+            "text": "Thermosphere"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 25,
+        "questionText": "(HOTS) A region receives heavy rainfall but still faces water shortage. The most likely reason is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Too many rivers"
+          },
+          {
+            "key": "B",
+            "text": "Lack of water management"
+          },
+          {
+            "key": "C",
+            "text": "Cold climate"
+          },
+          {
+            "key": "D",
+            "text": "Presence of forests"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 26,
+        "questionText": "Which fundamental right ensures equality before law?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Right to Freedom"
+          },
+          {
+            "key": "B",
+            "text": "Right against Exploitation"
+          },
+          {
+            "key": "C",
+            "text": "Right to Equality"
+          },
+          {
+            "key": "D",
+            "text": "Right to Religion"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 27,
+        "questionText": "The main occupation of people in coastal regions is generally:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Mining"
+          },
+          {
+            "key": "B",
+            "text": "Fishing"
+          },
+          {
+            "key": "C",
+            "text": "Forestry"
+          },
+          {
+            "key": "D",
+            "text": "Dairy farming"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 28,
+        "questionText": "The Revolt of 1857 first started in:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Delhi"
+          },
+          {
+            "key": "B",
+            "text": "Meerut"
+          },
+          {
+            "key": "C",
+            "text": "Kolkata"
+          },
+          {
+            "key": "D",
+            "text": "Mumbai"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 29,
+        "questionText": "(HOTS) If forests are removed from hilly regions, what is the most immediate environmental impact?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Increase in rainfall"
+          },
+          {
+            "key": "B",
+            "text": "Soil erosion and landslides"
+          },
+          {
+            "key": "C",
+            "text": "Decrease in sunlight  --- PAGE 5 ---"
+          },
+          {
+            "key": "D",
+            "text": "Increase in oxygen"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 30,
+        "questionText": "Which of the following is a renewable resource?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Coal"
+          },
+          {
+            "key": "B",
+            "text": "Petroleum"
+          },
+          {
+            "key": "C",
+            "text": "Natural gas"
+          },
+          {
+            "key": "D",
+            "text": "Solar energy"
+          }
+        ],
+        "correctOption": "D"
+      },
+      {
+        "questionNumber": 31,
+        "questionText": "Find the next number in the series: 2, 6, 12, 20, 30, ?",
+        "options": [
+          {
+            "key": "A",
+            "text": "36"
+          },
+          {
+            "key": "B",
+            "text": "40"
+          },
+          {
+            "key": "C",
+            "text": "42"
+          },
+          {
+            "key": "D",
+            "text": "44"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 32,
+        "questionText": "If SOUTH is written as TPVUI, then NORTH will be written as:",
+        "options": [
+          {
+            "key": "A",
+            "text": "OPSUI"
+          },
+          {
+            "key": "B",
+            "text": "OPSUIF"
+          },
+          {
+            "key": "C",
+            "text": "OPSUI"
+          },
+          {
+            "key": "D",
+            "text": "OPSUII"
+          }
+        ],
+        "correctOption": "A"
+      },
+      {
+        "questionNumber": 33,
+        "questionText": "A clock shows 3:15. What is the angle between the hour hand and minute hand?",
+        "options": [
+          {
+            "key": "A",
+            "text": "0°"
+          },
+          {
+            "key": "B",
+            "text": "7.5°"
+          },
+          {
+            "key": "C",
+            "text": "15°"
+          },
+          {
+            "key": "D",
+            "text": "22.5°"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 34,
+        "questionText": "If all roses are flowers and some flowers are red, which statement is definitely true?",
+        "options": [
+          {
+            "key": "A",
+            "text": "All roses are red"
+          },
+          {
+            "key": "B",
+            "text": "Some roses may be red"
+          },
+          {
+            "key": "C",
+            "text": "No flowers are roses"
+          },
+          {
+            "key": "D",
+            "text": "All red things are roses"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 35,
+        "questionText": "(HOTS) A boy walks 5 km north, then 3 km east, then 5 km south. How far is he from the starting point?",
+        "options": [
+          {
+            "key": "A",
+            "text": "2 km"
+          },
+          {
+            "key": "B",
+            "text": "3 km"
+          },
+          {
+            "key": "C",
+            "text": "5 km"
+          },
+          {
+            "key": "D",
+            "text": "8 km"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 36,
+        "questionText": "Choose the odd one out:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Square"
+          },
+          {
+            "key": "B",
+            "text": "Rectangle"
+          },
+          {
+            "key": "C",
+            "text": "Triangle"
+          },
+          {
+            "key": "D",
+            "text": "Circle"
+          }
+        ],
+        "correctOption": "D"
+      },
+      {
+        "questionNumber": 37,
+        "questionText": "If CAT = 24 and DOG = 26, then BAT = ?",
+        "options": [
+          {
+            "key": "A",
+            "text": "21  --- PAGE 6 ---"
+          },
+          {
+            "key": "B",
+            "text": "22"
+          },
+          {
+            "key": "C",
+            "text": "23"
+          },
+          {
+            "key": "D",
+            "text": "24"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 38,
+        "questionText": "Which number replaces the question mark? 3, 9, 27, 81, ?",
+        "options": [
+          {
+            "key": "A",
+            "text": "108"
+          },
+          {
+            "key": "B",
+            "text": "162"
+          },
+          {
+            "key": "C",
+            "text": "243"
+          },
+          {
+            "key": "D",
+            "text": "324"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 39,
+        "questionText": "(HOTS) A train 120 m long crosses a pole in 6 seconds. What is its speed?",
+        "options": [
+          {
+            "key": "A",
+            "text": "10 m/s"
+          },
+          {
+            "key": "B",
+            "text": "15 m/s"
+          },
+          {
+            "key": "C",
+            "text": "20 m/s"
+          },
+          {
+            "key": "D",
+            "text": "25 m/s"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 40,
+        "questionText": "Mirror image of the number 261 when viewed in a mirror is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "192"
+          },
+          {
+            "key": "B",
+            "text": "162"
+          },
+          {
+            "key": "C",
+            "text": "261"
+          },
+          {
+            "key": "D",
+            "text": "291"
+          }
+        ],
+        "correctOption": "B"
+      }
+    ]
+  },
+  "10": {
+    "title": "SmartUp Scholarship Exam 2026-27 - Class 10",
+    "classLevel": "10",
+    "subjectCode": "SCHOLARSHIP-10",
+    "subjectName": "Scholarship Assessment (Class 10)",
+    "durationMinutes": 30,
+    "questions": [
+      {
+        "questionNumber": 1,
+        "questionText": "The value of √196 is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "12"
+          },
+          {
+            "key": "B",
+            "text": "13"
+          },
+          {
+            "key": "C",
+            "text": "14"
+          },
+          {
+            "key": "D",
+            "text": "16"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 2,
+        "questionText": "If x + 5 = 12, then the value of x is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "5"
+          },
+          {
+            "key": "B",
+            "text": "6"
+          },
+          {
+            "key": "C",
+            "text": "7"
+          },
+          {
+            "key": "D",
+            "text": "8"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 3,
+        "questionText": "Which of the following is a rational number?",
+        "options": [
+          {
+            "key": "A",
+            "text": "√3"
+          },
+          {
+            "key": "B",
+            "text": "π"
+          },
+          {
+            "key": "C",
+            "text": "√9"
+          },
+          {
+            "key": "D",
+            "text": "√7"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 4,
+        "questionText": "The area of a rectangle having length 12 cm and breadth 5 cm is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "17 cm²"
+          },
+          {
+            "key": "B",
+            "text": "60 cm²"
+          },
+          {
+            "key": "C",
+            "text": "34 cm²"
+          },
+          {
+            "key": "D",
+            "text": "120 cm²"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 5,
+        "questionText": "The sum of angles in a triangle is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "90°"
+          },
+          {
+            "key": "B",
+            "text": "180°"
+          },
+          {
+            "key": "C",
+            "text": "270°"
+          },
+          {
+            "key": "D",
+            "text": "360°"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 6,
+        "questionText": "If the perimeter of a square is 36 cm, then its side is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "6 cm"
+          },
+          {
+            "key": "B",
+            "text": "7 cm"
+          },
+          {
+            "key": "C",
+            "text": "8 cm"
+          },
+          {
+            "key": "D",
+            "text": "9 cm"
+          }
+        ],
+        "correctOption": "D"
+      },
+      {
+        "questionNumber": 7,
+        "questionText": "Which of the following is a linear equation?",
+        "options": [
+          {
+            "key": "A",
+            "text": "x² + 2x + 3 = 0"
+          },
+          {
+            "key": "B",
+            "text": "2x + 5 = 9"
+          },
+          {
+            "key": "C",
+            "text": "x³ - 3x + 1 = 0"
+          },
+          {
+            "key": "D",
+            "text": "x² = 1/2"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 8,
+        "questionText": "The median of 2, 4, 6, 8, 10 is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "4"
+          },
+          {
+            "key": "B",
+            "text": "5"
+          },
+          {
+            "key": "C",
+            "text": "6"
+          },
+          {
+            "key": "D",
+            "text": "8"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 9,
+        "questionText": "The value of 3² + 4² is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "12"
+          },
+          {
+            "key": "B",
+            "text": "25"
+          },
+          {
+            "key": "C",
+            "text": "49"
+          },
+          {
+            "key": "D",
+            "text": "16"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 10,
+        "questionText": "A polynomial having degree 2 is called:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Linear polynomial"
+          },
+          {
+            "key": "B",
+            "text": "Cubic polynomial"
+          },
+          {
+            "key": "C",
+            "text": "Quadratic polynomial"
+          },
+          {
+            "key": "D",
+            "text": "Constant polynomial"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 11,
+        "questionText": "The SI unit of force is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Joule"
+          },
+          {
+            "key": "B",
+            "text": "Watt"
+          },
+          {
+            "key": "C",
+            "text": "Newton"
+          },
+          {
+            "key": "D",
+            "text": "Pascal"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 12,
+        "questionText": "Velocity is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Distance travelled per unit time"
+          },
+          {
+            "key": "B",
+            "text": "Speed in a given direction"
+          },
+          {
+            "key": "C",
+            "text": "Change in mass"
+          },
+          {
+            "key": "D",
+            "text": "Force per unit area"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 13,
+        "questionText": "An object moving with uniform speed covers:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Equal distances in equal intervals of time"
+          },
+          {
+            "key": "B",
+            "text": "Unequal distances in equal intervals"
+          },
+          {
+            "key": "C",
+            "text": "Equal distances in unequal intervals"
+          },
+          {
+            "key": "D",
+            "text": "None of these"
+          }
+        ],
+        "correctOption": "A"
+      },
+      {
+        "questionNumber": 14,
+        "questionText": "The force that pulls objects towards Earth is called:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Magnetic force"
+          },
+          {
+            "key": "B",
+            "text": "Frictional force"
+          },
+          {
+            "key": "C",
+            "text": "Gravitational force"
+          },
+          {
+            "key": "D",
+            "text": "Muscular force"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 15,
+        "questionText": "Which instrument is used to measure electric current?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Voltmeter"
+          },
+          {
+            "key": "B",
+            "text": "Thermometer"
+          },
+          {
+            "key": "C",
+            "text": "Ammeter"
+          },
+          {
+            "key": "D",
+            "text": "Barometer"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 16,
+        "questionText": "The speed of light in vacuum is approximately:",
+        "options": [
+          {
+            "key": "A",
+            "text": "3 × 10⁸ m/s"
+          },
+          {
+            "key": "B",
+            "text": "3 × 10⁶ m/s"
+          },
+          {
+            "key": "C",
+            "text": "3 × 10⁵ m/s"
+          },
+          {
+            "key": "D",
+            "text": "3 × 10⁴ m/s"
+          }
+        ],
+        "correctOption": "A"
+      },
+      {
+        "questionNumber": 17,
+        "questionText": "Which of the following is a renewable source of energy?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Coal"
+          },
+          {
+            "key": "B",
+            "text": "Petroleum"
+          },
+          {
+            "key": "C",
+            "text": "Solar energy"
+          },
+          {
+            "key": "D",
+            "text": "Natural gas"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 18,
+        "questionText": "The work done is zero when:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Force is applied"
+          },
+          {
+            "key": "B",
+            "text": "Object moves"
+          },
+          {
+            "key": "C",
+            "text": "No displacement occurs"
+          },
+          {
+            "key": "D",
+            "text": "Speed increases"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 19,
+        "questionText": "The boiling point of water in Celsius scale is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "0°C"
+          },
+          {
+            "key": "B",
+            "text": "50°C"
+          },
+          {
+            "key": "C",
+            "text": "100°C"
+          },
+          {
+            "key": "D",
+            "text": "212°C"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 20,
+        "questionText": "Which mirror is used in vehicles as rear-view mirror?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Plane mirror"
+          },
+          {
+            "key": "B",
+            "text": "Convex mirror"
+          },
+          {
+            "key": "C",
+            "text": "Concave mirror"
+          },
+          {
+            "key": "D",
+            "text": "Cylindrical mirror"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 21,
+        "questionText": "The chemical formula of water is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "CO₂"
+          },
+          {
+            "key": "B",
+            "text": "H₂O"
+          },
+          {
+            "key": "C",
+            "text": "O₂"
+          },
+          {
+            "key": "D",
+            "text": "NaCl"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 22,
+        "questionText": "A substance made up of only one type of atom is called:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Compound"
+          },
+          {
+            "key": "B",
+            "text": "Mixture"
+          },
+          {
+            "key": "C",
+            "text": "Element"
+          },
+          {
+            "key": "D",
+            "text": "Solution"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 23,
+        "questionText": "Which gas is necessary for respiration?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Nitrogen"
+          },
+          {
+            "key": "B",
+            "text": "Oxygen"
+          },
+          {
+            "key": "C",
+            "text": "Hydrogen"
+          },
+          {
+            "key": "D",
+            "text": "Carbon dioxide"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 24,
+        "questionText": "The pH value of a neutral solution is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "0"
+          },
+          {
+            "key": "B",
+            "text": "5"
+          },
+          {
+            "key": "C",
+            "text": "7"
+          },
+          {
+            "key": "D",
+            "text": "14"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 25,
+        "questionText": "Rusting takes place in the presence of:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Hydrogen only"
+          },
+          {
+            "key": "B",
+            "text": "Oxygen only"
+          },
+          {
+            "key": "C",
+            "text": "Water only"
+          },
+          {
+            "key": "D",
+            "text": "Oxygen and moisture"
+          }
+        ],
+        "correctOption": "D"
+      },
+      {
+        "questionNumber": 26,
+        "questionText": "Which of the following is an acid?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Sodium hydroxide"
+          },
+          {
+            "key": "B",
+            "text": "Hydrochloric acid"
+          },
+          {
+            "key": "C",
+            "text": "Calcium oxide"
+          },
+          {
+            "key": "D",
+            "text": "Soap solution"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 27,
+        "questionText": "The smallest unit of an element is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Cell"
+          },
+          {
+            "key": "B",
+            "text": "Atom"
+          },
+          {
+            "key": "C",
+            "text": "Molecule"
+          },
+          {
+            "key": "D",
+            "text": "Electron"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 28,
+        "questionText": "LPG mainly contains:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Methane and Ethane"
+          },
+          {
+            "key": "B",
+            "text": "Butane and Propane"
+          },
+          {
+            "key": "C",
+            "text": "Nitrogen and Oxygen"
+          },
+          {
+            "key": "D",
+            "text": "Hydrogen and Helium"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 29,
+        "questionText": "Which metal is liquid at room temperature?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Iron"
+          },
+          {
+            "key": "B",
+            "text": "Copper"
+          },
+          {
+            "key": "C",
+            "text": "Mercury"
+          },
+          {
+            "key": "D",
+            "text": "Aluminium"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 30,
+        "questionText": "The process of conversion of liquid into vapour is called:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Condensation"
+          },
+          {
+            "key": "B",
+            "text": "Evaporation"
+          },
+          {
+            "key": "C",
+            "text": "Freezing"
+          },
+          {
+            "key": "D",
+            "text": "Melting"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 31,
+        "questionText": "The basic structural and functional unit of life is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Tissue"
+          },
+          {
+            "key": "B",
+            "text": "Organ"
+          },
+          {
+            "key": "C",
+            "text": "Cell"
+          },
+          {
+            "key": "D",
+            "text": "Organ system"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 32,
+        "questionText": "Photosynthesis takes place in:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Roots"
+          },
+          {
+            "key": "B",
+            "text": "Stem"
+          },
+          {
+            "key": "C",
+            "text": "Leaves"
+          },
+          {
+            "key": "D",
+            "text": "Flowers"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 33,
+        "questionText": "Which vitamin is produced in the skin by sunlight?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Vitamin A"
+          },
+          {
+            "key": "B",
+            "text": "Vitamin B"
+          },
+          {
+            "key": "C",
+            "text": "Vitamin C"
+          },
+          {
+            "key": "D",
+            "text": "Vitamin D"
+          }
+        ],
+        "correctOption": "D"
+      },
+      {
+        "questionNumber": 34,
+        "questionText": "The human heart has:",
+        "options": [
+          {
+            "key": "A",
+            "text": "2 chambers"
+          },
+          {
+            "key": "B",
+            "text": "3 chambers"
+          },
+          {
+            "key": "C",
+            "text": "4 chambers"
+          },
+          {
+            "key": "D",
+            "text": "5 chambers"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 35,
+        "questionText": "The green pigment in plants is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Hemoglobin"
+          },
+          {
+            "key": "B",
+            "text": "Chlorophyll"
+          },
+          {
+            "key": "C",
+            "text": "Melanin"
+          },
+          {
+            "key": "D",
+            "text": "Carotene"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 36,
+        "questionText": "Which organ purifies blood in the human body?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Heart"
+          },
+          {
+            "key": "B",
+            "text": "Kidney"
+          },
+          {
+            "key": "C",
+            "text": "Lung"
+          },
+          {
+            "key": "D",
+            "text": "Liver"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 37,
+        "questionText": "The process by which plants lose water through leaves is called:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Respiration"
+          },
+          {
+            "key": "B",
+            "text": "Photosynthesis"
+          },
+          {
+            "key": "C",
+            "text": "Transpiration"
+          },
+          {
+            "key": "D",
+            "text": "Germination"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 38,
+        "questionText": "Which part of the cell contains genetic material?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Cell wall"
+          },
+          {
+            "key": "B",
+            "text": "Cytoplasm"
+          },
+          {
+            "key": "C",
+            "text": "Nucleus"
+          },
+          {
+            "key": "D",
+            "text": "Vacuole"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 39,
+        "questionText": "Animals that eat only plants are called:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Carnivores"
+          },
+          {
+            "key": "B",
+            "text": "Omnivores"
+          },
+          {
+            "key": "C",
+            "text": "Herbivores"
+          },
+          {
+            "key": "D",
+            "text": "Parasites"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 40,
+        "questionText": "The respiratory pigment present in human blood is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Chlorophyll"
+          },
+          {
+            "key": "B",
+            "text": "Hemoglobin"
+          },
+          {
+            "key": "C",
+            "text": "Melanin"
+          },
+          {
+            "key": "D",
+            "text": "Insulin"
+          }
+        ],
+        "correctOption": "B"
+      }
+    ]
+  },
+  "11": {
+    "title": "SmartUp Scholarship Exam 2026-27 - Plus One (+1)",
+    "classLevel": "11",
+    "subjectCode": "SCHOLARSHIP-11",
+    "subjectName": "Scholarship Assessment (Plus One)",
+    "durationMinutes": 30,
+    "questions": [
+      {
+        "questionNumber": 1,
+        "questionText": "The SI unit of electric power is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Joule"
+          },
+          {
+            "key": "B",
+            "text": "Volt"
+          },
+          {
+            "key": "C",
+            "text": "Watt"
+          },
+          {
+            "key": "D",
+            "text": "Ampere"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 2,
+        "questionText": "A wire of resistance 10 Ω carries a current of 2 A for 5 minutes. The heat produced is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "1200 J"
+          },
+          {
+            "key": "B",
+            "text": "6000 J"
+          },
+          {
+            "key": "C",
+            "text": "12000 J"
+          },
+          {
+            "key": "D",
+            "text": "24000 J"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 3,
+        "questionText": "A concave mirror forms a real image equal in size to the object. The object is placed at:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Focus"
+          },
+          {
+            "key": "B",
+            "text": "Centre of curvature 1. 2. 3. 4."
+          },
+          {
+            "key": "C",
+            "text": "Infinity"
+          },
+          {
+            "key": "D",
+            "text": "Between focus and pole"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 4,
+        "questionText": "The magnetic field inside a long straight solenoid is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Zero"
+          },
+          {
+            "key": "B",
+            "text": "Circular"
+          },
+          {
+            "key": "C",
+            "text": "Uniform"
+          },
+          {
+            "key": "D",
+            "text": "Random"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 5,
+        "questionText": "The power of a lens is +2 D. Its focal length is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "0.5 m"
+          },
+          {
+            "key": "B",
+            "text": "2 m"
+          },
+          {
+            "key": "C",
+            "text": "–0.5 m"
+          },
+          {
+            "key": "D",
+            "text": "–2 m"
+          }
+        ],
+        "correctOption": "A"
+      },
+      {
+        "questionNumber": 6,
+        "questionText": "Which color of light has the maximum wavelength?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Violet"
+          },
+          {
+            "key": "B",
+            "text": "Blue"
+          },
+          {
+            "key": "C",
+            "text": "Green"
+          },
+          {
+            "key": "D",
+            "text": "Red"
+          }
+        ],
+        "correctOption": "D"
+      },
+      {
+        "questionNumber": 7,
+        "questionText": "Which of the following undergoes both oxidation and reduction?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Combination reaction"
+          },
+          {
+            "key": "B",
+            "text": "Decomposition reaction"
+          },
+          {
+            "key": "C",
+            "text": "Redox reaction"
+          },
+          {
+            "key": "D",
+            "text": "Neutralization reaction"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 8,
+        "questionText": "The pH of a neutral solution at 25°C is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "0"
+          },
+          {
+            "key": "B",
+            "text": "7"
+          },
+          {
+            "key": "C",
+            "text": "14"
+          },
+          {
+            "key": "D",
+            "text": "1"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 9,
+        "questionText": "Which gas is evolved when zinc reacts with dilute hydrochloric acid?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Oxygen"
+          },
+          {
+            "key": "B",
+            "text": "Nitrogen"
+          },
+          {
+            "key": "C",
+            "text": "Hydrogen"
+          },
+          {
+            "key": "D",
+            "text": "Chlorine"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 10,
+        "questionText": "The chemical formula of washing soda is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Na2CO3·10H2O"
+          },
+          {
+            "key": "B",
+            "text": "NaHCO3"
+          },
+          {
+            "key": "C",
+            "text": "CaCO3"
+          },
+          {
+            "key": "D",
+            "text": "NaOH"
+          }
+        ],
+        "correctOption": "A"
+      },
+      {
+        "questionNumber": 11,
+        "questionText": "Which among the following is an unsaturated hydrocarbon?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Methane"
+          },
+          {
+            "key": "B",
+            "text": "Ethane"
+          },
+          {
+            "key": "C",
+            "text": "Ethene"
+          },
+          {
+            "key": "D",
+            "text": "Propane"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 12,
+        "questionText": "The element required for chlorophyll formation is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Calcium"
+          },
+          {
+            "key": "B",
+            "text": "Magnesium"
+          },
+          {
+            "key": "C",
+            "text": "Iron"
+          },
+          {
+            "key": "D",
+            "text": "Sodium"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 13,
+        "questionText": "The functional unit of the kidney is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Neuron"
+          },
+          {
+            "key": "B",
+            "text": "Nephron"
+          },
+          {
+            "key": "C",
+            "text": "Alveoli"
+          },
+          {
+            "key": "D",
+            "text": "Villi"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 14,
+        "questionText": "Which hormone regulates blood sugar level?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Thyroxine"
+          },
+          {
+            "key": "B",
+            "text": "Insulin"
+          },
+          {
+            "key": "C",
+            "text": "Adrenaline"
+          },
+          {
+            "key": "D",
+            "text": "Estrogen"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 15,
+        "questionText": "In human beings, fertilization occurs in:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Ovary"
+          },
+          {
+            "key": "B",
+            "text": "Uterus"
+          },
+          {
+            "key": "C",
+            "text": "Fallopian tube"
+          },
+          {
+            "key": "D",
+            "text": "Vagina"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 16,
+        "questionText": "The green pigment present in plants is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Hemoglobin"
+          },
+          {
+            "key": "B",
+            "text": "Chlorophyll"
+          },
+          {
+            "key": "C",
+            "text": "Melanin"
+          },
+          {
+            "key": "D",
+            "text": "Carotene"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 17,
+        "questionText": "Which blood group is known as the universal donor?",
+        "options": [
+          {
+            "key": "A",
+            "text": "AB+"
+          },
+          {
+            "key": "B",
+            "text": "O–"
+          },
+          {
+            "key": "C",
+            "text": "A+"
+          },
+          {
+            "key": "D",
+            "text": "B–"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 18,
+        "questionText": "The movement of water through a selectively permeable membrane is called:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Diffusion"
+          },
+          {
+            "key": "B",
+            "text": "Osmosis"
+          },
+          {
+            "key": "C",
+            "text": "Respiration"
+          },
+          {
+            "key": "D",
+            "text": "Translocation"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 19,
+        "questionText": "If the roots of the equation x² – 5x + 6 = 0 are α and β, then α + β =",
+        "options": [
+          {
+            "key": "A",
+            "text": "6"
+          },
+          {
+            "key": "B",
+            "text": "5"
+          },
+          {
+            "key": "C",
+            "text": "–5"
+          },
+          {
+            "key": "D",
+            "text": "–6"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 20,
+        "questionText": "The distance between points (3, 4) and (0, 0) is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "3"
+          },
+          {
+            "key": "B",
+            "text": "4"
+          },
+          {
+            "key": "C",
+            "text": "5"
+          },
+          {
+            "key": "D",
+            "text": "7"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 21,
+        "questionText": "If tan θ = 1, then θ equals:",
+        "options": [
+          {
+            "key": "A",
+            "text": "30°"
+          },
+          {
+            "key": "B",
+            "text": "45°"
+          },
+          {
+            "key": "C",
+            "text": "60°"
+          },
+          {
+            "key": "D",
+            "text": "90°"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 22,
+        "questionText": "The probability of getting a prime number when a die is thrown once is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "1/6"
+          },
+          {
+            "key": "B",
+            "text": "1/3"
+          },
+          {
+            "key": "C",
+            "text": "1/2"
+          },
+          {
+            "key": "D",
+            "text": "2/3"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 23,
+        "questionText": "The curved surface area of a cylinder is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "2πr²"
+          },
+          {
+            "key": "B",
+            "text": "πr²h"
+          },
+          {
+            "key": "C",
+            "text": "2πrh"
+          },
+          {
+            "key": "D",
+            "text": "πrh"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 24,
+        "questionText": "If the HCF of 72 and 120 is 24, then their LCM is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "120"
+          },
+          {
+            "key": "B",
+            "text": "240"
+          },
+          {
+            "key": "C",
+            "text": "360"
+          },
+          {
+            "key": "D",
+            "text": "720"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 25,
+        "questionText": "A polynomial of degree 3 is called:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Linear polynomial"
+          },
+          {
+            "key": "B",
+            "text": "Quadratic polynomial"
+          },
+          {
+            "key": "C",
+            "text": "Cubic polynomial"
+          },
+          {
+            "key": "D",
+            "text": "Constant polynomial"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 26,
+        "questionText": "The value of sin²θ + cos²θ is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "0"
+          },
+          {
+            "key": "B",
+            "text": "1"
+          },
+          {
+            "key": "C",
+            "text": "2"
+          },
+          {
+            "key": "D",
+            "text": "tan θ REASONING"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 27,
+        "questionText": "Which planet is known as the Red Planet?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Venus"
+          },
+          {
+            "key": "B",
+            "text": "Jupiter"
+          },
+          {
+            "key": "C",
+            "text": "Mars"
+          },
+          {
+            "key": "D",
+            "text": "Saturn"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 28,
+        "questionText": "Find the odd one out:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Square"
+          },
+          {
+            "key": "B",
+            "text": "Rectangle"
+          },
+          {
+            "key": "C",
+            "text": "Triangle"
+          },
+          {
+            "key": "D",
+            "text": "Circle"
+          }
+        ],
+        "correctOption": "D"
+      },
+      {
+        "questionNumber": 29,
+        "questionText": "If CAT = 24, then DOG =",
+        "options": [
+          {
+            "key": "A",
+            "text": "26"
+          },
+          {
+            "key": "B",
+            "text": "28"
+          },
+          {
+            "key": "C",
+            "text": "30"
+          },
+          {
+            "key": "D",
+            "text": "29"
+          }
+        ],
+        "correctOption": "A"
+      },
+      {
+        "questionNumber": 30,
+        "questionText": "Which gas is mainly responsible for global warming?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Oxygen"
+          },
+          {
+            "key": "B",
+            "text": "Nitrogen"
+          },
+          {
+            "key": "C",
+            "text": "Carbon dioxide"
+          },
+          {
+            "key": "D",
+            "text": "Hydrogen"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 31,
+        "questionText": "A train travels 120 km in 2 hours. Its average speed is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "40 km/h"
+          },
+          {
+            "key": "B",
+            "text": "50 km/h"
+          },
+          {
+            "key": "C",
+            "text": "60 km/h"
+          },
+          {
+            "key": "D",
+            "text": "80 km/h"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 32,
+        "questionText": "The branch of science dealing with heredity is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Ecology"
+          },
+          {
+            "key": "B",
+            "text": "Genetics"
+          },
+          {
+            "key": "C",
+            "text": "Anatomy"
+          },
+          {
+            "key": "D",
+            "text": "Cytology"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 33,
+        "questionText": "Which among the following is not a vector quantity?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Velocity"
+          },
+          {
+            "key": "B",
+            "text": "Force"
+          },
+          {
+            "key": "C",
+            "text": "Momentum"
+          },
+          {
+            "key": "D",
+            "text": "Speed"
+          }
+        ],
+        "correctOption": "D"
+      },
+      {
+        "questionNumber": 34,
+        "questionText": "In a code language, SCHOOL is written as TDIPPM. Then BOOK is written as:",
+        "options": [
+          {
+            "key": "A",
+            "text": "CPNL"
+          },
+          {
+            "key": "B",
+            "text": "CQQM"
+          },
+          {
+            "key": "C",
+            "text": "CPLL"
+          },
+          {
+            "key": "D",
+            "text": "DPPM"
+          }
+        ],
+        "correctOption": "A"
+      },
+      {
+        "questionNumber": 35,
+        "questionText": "A body covers half the distance at 40 km/h and the remaining half at 60 km/h. The average speed is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "48 km/h"
+          },
+          {
+            "key": "B",
+            "text": "50 km/h"
+          },
+          {
+            "key": "C",
+            "text": "52 km/h"
+          },
+          {
+            "key": "D",
+            "text": "55 km/h"
+          }
+        ],
+        "correctOption": "A"
+      },
+      {
+        "questionNumber": 36,
+        "questionText": "The resistance of a conductor depends on:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Length only"
+          },
+          {
+            "key": "B",
+            "text": "Material only"
+          },
+          {
+            "key": "C",
+            "text": "Temperature only"
+          },
+          {
+            "key": "D",
+            "text": "Length, material, and temperature"
+          }
+        ],
+        "correctOption": "D"
+      },
+      {
+        "questionNumber": 37,
+        "questionText": "Which of the following metals reacts violently with cold water?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Copper"
+          },
+          {
+            "key": "B",
+            "text": "Sodium"
+          },
+          {
+            "key": "C",
+            "text": "Iron"
+          },
+          {
+            "key": "D",
+            "text": "Silver"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 38,
+        "questionText": "A convex lens always forms:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Only real images"
+          },
+          {
+            "key": "B",
+            "text": "Only virtual images"
+          },
+          {
+            "key": "C",
+            "text": "Both real and virtual images"
+          },
+          {
+            "key": "D",
+            "text": "No image"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 39,
+        "questionText": "The number of chromosomes in a human gamete is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "46"
+          },
+          {
+            "key": "B",
+            "text": "23 pairs"
+          },
+          {
+            "key": "C",
+            "text": "23"
+          },
+          {
+            "key": "D",
+            "text": "92"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 40,
+        "questionText": "If the sum of first n natural numbers is 210, then n =",
+        "options": [
+          {
+            "key": "A",
+            "text": "18"
+          },
+          {
+            "key": "B",
+            "text": "19"
+          },
+          {
+            "key": "C",
+            "text": "20"
+          },
+          {
+            "key": "D",
+            "text": "21"
+          }
+        ],
+        "correctOption": "C"
+      }
+    ]
+  },
+  "12": {
+    "title": "SmartUp Scholarship Exam 2026-27 - Plus Two (+2)",
+    "classLevel": "12",
+    "subjectCode": "SCHOLARSHIP-12",
+    "subjectName": "Scholarship Assessment (Plus Two)",
+    "durationMinutes": 30,
+    "questions": [
+      {
+        "questionNumber": 1,
+        "questionText": "A body is projected vertically upward with velocity 40 m/s. The ratio of time taken to reach half the maximum height to the total time of flight is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "1:2"
+          },
+          {
+            "key": "B",
+            "text": "1:(2+√2)"
+          },
+          {
+            "key": "C",
+            "text": "(√2−1):1"
+          },
+          {
+            "key": "D",
+            "text": "1:√2"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 2,
+        "questionText": "The dimensional formula of Planck’s constant is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "ML²T⁻¹"
+          },
+          {
+            "key": "B",
+            "text": "ML²T⁻²"
+          },
+          {
+            "key": "C",
+            "text": "MLT⁻¹"
+          },
+          {
+            "key": "D",
+            "text": "MLT⁻²"
+          }
+        ],
+        "correctOption": "A"
+      },
+      {
+        "questionNumber": 1,
+        "questionText": "2. 3. 4. 5. 3. A particle moves such that its displacement is given by x = t³ − 6t² + 9t + 4. The acceleration at t = 2 s is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "0 m/s²"
+          },
+          {
+            "key": "B",
+            "text": "6 m/s²"
+          },
+          {
+            "key": "C",
+            "text": "12 m/s²"
+          },
+          {
+            "key": "D",
+            "text": "−6 m/s²"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 4,
+        "questionText": "A satellite revolves close to the surface of Earth. Its orbital speed is nearly:",
+        "options": [
+          {
+            "key": "A",
+            "text": "11.2 km/s"
+          },
+          {
+            "key": "B",
+            "text": "7.9 km/s"
+          },
+          {
+            "key": "C",
+            "text": "3.2 km/s"
+          },
+          {
+            "key": "D",
+            "text": "5.6 km/s"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 5,
+        "questionText": "The efficiency of a Carnot engine operating between 500 K and 300 K is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "20%"
+          },
+          {
+            "key": "B",
+            "text": "30%"
+          },
+          {
+            "key": "C",
+            "text": "40%"
+          },
+          {
+            "key": "D",
+            "text": "60%"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 6,
+        "questionText": "In SHM, the velocity of the particle is maximum when:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Displacement is maximum"
+          },
+          {
+            "key": "B",
+            "text": "Acceleration is maximum"
+          },
+          {
+            "key": "C",
+            "text": "Potential energy is maximum"
+          },
+          {
+            "key": "D",
+            "text": "Displacement is zero"
+          }
+        ],
+        "correctOption": "D"
+      },
+      {
+        "questionNumber": 7,
+        "questionText": "Two vectors of magnitudes 3 and 4 units have a resultant of magnitude 5 units. The angle between them is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "30°"
+          },
+          {
+            "key": "B",
+            "text": "60°"
+          },
+          {
+            "key": "C",
+            "text": "90°"
+          },
+          {
+            "key": "D",
+            "text": "120°"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 8,
+        "questionText": "The escape velocity from a planet depends upon:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Radius only"
+          },
+          {
+            "key": "B",
+            "text": "Mass only"
+          },
+          {
+            "key": "C",
+            "text": "Density only"
+          },
+          {
+            "key": "D",
+            "text": "Mass and radius"
+          }
+        ],
+        "correctOption": "D"
+      },
+      {
+        "questionNumber": 9,
+        "questionText": "The number of significant figures in 0.004560 is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "3"
+          },
+          {
+            "key": "B",
+            "text": "4"
+          },
+          {
+            "key": "C",
+            "text": "5"
+          },
+          {
+            "key": "D",
+            "text": "6"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 10,
+        "questionText": "Which quantum number determines the shape of an orbital?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Principal quantum number"
+          },
+          {
+            "key": "B",
+            "text": "Magnetic quantum number"
+          },
+          {
+            "key": "C",
+            "text": "Azimuthal quantum number"
+          },
+          {
+            "key": "D",
+            "text": "Spin quantum number"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 11,
+        "questionText": "The hybridization of carbon in ethyne is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "sp³"
+          },
+          {
+            "key": "B",
+            "text": "sp²"
+          },
+          {
+            "key": "C",
+            "text": "sp"
+          },
+          {
+            "key": "D",
+            "text": "dsp²"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 12,
+        "questionText": "The oxidation state of chromium in K₂Cr₂O₇ is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "+3"
+          },
+          {
+            "key": "B",
+            "text": "+4"
+          },
+          {
+            "key": "C",
+            "text": "+6"
+          },
+          {
+            "key": "D",
+            "text": "+7"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 13,
+        "questionText": "Which law explains the partial pressures of gases in a mixture?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Boyle’s law"
+          },
+          {
+            "key": "B",
+            "text": "Dalton’s law"
+          },
+          {
+            "key": "C",
+            "text": "Charles’ law"
+          },
+          {
+            "key": "D",
+            "text": "Graham’s law"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 14,
+        "questionText": "The conjugate acid of NH₃ is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "NH₂⁻"
+          },
+          {
+            "key": "B",
+            "text": "NH₄⁺"
+          },
+          {
+            "key": "C",
+            "text": "HNO₃"
+          },
+          {
+            "key": "D",
+            "text": "OH⁻"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 15,
+        "questionText": "Which among the following has maximum bond dissociation energy?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Cl₂"
+          },
+          {
+            "key": "B",
+            "text": "Br₂"
+          },
+          {
+            "key": "C",
+            "text": "F₂"
+          },
+          {
+            "key": "D",
+            "text": "H₂"
+          }
+        ],
+        "correctOption": "D"
+      },
+      {
+        "questionNumber": 16,
+        "questionText": "The IUPAC name of CH₃CH₂CHO is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Propanal"
+          },
+          {
+            "key": "B",
+            "text": "Propanone"
+          },
+          {
+            "key": "C",
+            "text": "Ethanal"
+          },
+          {
+            "key": "D",
+            "text": "Butanal"
+          }
+        ],
+        "correctOption": "A"
+      },
+      {
+        "questionNumber": 17,
+        "questionText": "If sin θ + cos θ = √2 cos θ, then θ equals:",
+        "options": [
+          {
+            "key": "A",
+            "text": "30°"
+          },
+          {
+            "key": "B",
+            "text": "45°"
+          },
+          {
+            "key": "C",
+            "text": "60°"
+          },
+          {
+            "key": "D",
+            "text": "90°"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 18,
+        "questionText": "The value of determinant |2 3; 4 5| is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "−2"
+          },
+          {
+            "key": "B",
+            "text": "2"
+          },
+          {
+            "key": "C",
+            "text": "8"
+          },
+          {
+            "key": "D",
+            "text": "−8"
+          }
+        ],
+        "correctOption": "A"
+      },
+      {
+        "questionNumber": 19,
+        "questionText": "If f(x) = x² − 4x + 7, then the minimum value of f(x) is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "1"
+          },
+          {
+            "key": "B",
+            "text": "2"
+          },
+          {
+            "key": "C",
+            "text": "3"
+          },
+          {
+            "key": "D",
+            "text": "4"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 20,
+        "questionText": "The sum of first 20 natural numbers is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "190"
+          },
+          {
+            "key": "B",
+            "text": "200"
+          },
+          {
+            "key": "C",
+            "text": "210"
+          },
+          {
+            "key": "D",
+            "text": "220"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 21,
+        "questionText": "If A = {1,2,3} and B = {2,3,4}, then A ∩ B is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "{1,4}"
+          },
+          {
+            "key": "B",
+            "text": "{2,3}"
+          },
+          {
+            "key": "C",
+            "text": "{1,2,3,4}"
+          },
+          {
+            "key": "D",
+            "text": "{ }"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 22,
+        "questionText": "The equation x² − 5x + 6 = 0 has roots:",
+        "options": [
+          {
+            "key": "A",
+            "text": "1,6"
+          },
+          {
+            "key": "B",
+            "text": "2,3"
+          },
+          {
+            "key": "C",
+            "text": "−2,−3"
+          },
+          {
+            "key": "D",
+            "text": "1,5"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 23,
+        "questionText": "If tan A = 1, then sec²A equals:",
+        "options": [
+          {
+            "key": "A",
+            "text": "1"
+          },
+          {
+            "key": "B",
+            "text": "2"
+          },
+          {
+            "key": "C",
+            "text": "3"
+          },
+          {
+            "key": "D",
+            "text": "4"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 24,
+        "questionText": "The distance between points (2,3) and (5,7) is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "3"
+          },
+          {
+            "key": "B",
+            "text": "4"
+          },
+          {
+            "key": "C",
+            "text": "5"
+          },
+          {
+            "key": "D",
+            "text": "√5"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 25,
+        "questionText": "The powerhouse of the cell is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Ribosome"
+          },
+          {
+            "key": "B",
+            "text": "Golgi body"
+          },
+          {
+            "key": "C",
+            "text": "Mitochondria"
+          },
+          {
+            "key": "D",
+            "text": "Lysosome"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 26,
+        "questionText": "Which tissue transports food in plants?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Xylem"
+          },
+          {
+            "key": "B",
+            "text": "Phloem"
+          },
+          {
+            "key": "C",
+            "text": "Epidermis"
+          },
+          {
+            "key": "D",
+            "text": "Cortex"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 27,
+        "questionText": "The functional unit of kidney is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Neuron"
+          },
+          {
+            "key": "B",
+            "text": "Nephron"
+          },
+          {
+            "key": "C",
+            "text": "Alveoli"
+          },
+          {
+            "key": "D",
+            "text": "Villi"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 28,
+        "questionText": "DNA replication occurs during:",
+        "options": [
+          {
+            "key": "A",
+            "text": "G₁ phase"
+          },
+          {
+            "key": "B",
+            "text": "S phase"
+          },
+          {
+            "key": "C",
+            "text": "G₂ phase"
+          },
+          {
+            "key": "D",
+            "text": "M phase"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 29,
+        "questionText": "The blood group universal donor is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "A"
+          },
+          {
+            "key": "B",
+            "text": "B"
+          },
+          {
+            "key": "C",
+            "text": "AB"
+          },
+          {
+            "key": "D",
+            "text": "O negative"
+          }
+        ],
+        "correctOption": "D"
+      },
+      {
+        "questionNumber": 30,
+        "questionText": "Which hormone regulates blood sugar level?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Thyroxine"
+          },
+          {
+            "key": "B",
+            "text": "Adrenaline"
+          },
+          {
+            "key": "C",
+            "text": "Insulin"
+          },
+          {
+            "key": "D",
+            "text": "Estrogen"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 31,
+        "questionText": "In humans, fertilization normally occurs in:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Ovary"
+          },
+          {
+            "key": "B",
+            "text": "Uterus"
+          },
+          {
+            "key": "C",
+            "text": "Fallopian tube"
+          },
+          {
+            "key": "D",
+            "text": "Cervix"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 32,
+        "questionText": "Which among the following is a nitrogen-fixing bacterium?",
+        "options": [
+          {
+            "key": "A",
+            "text": "Lactobacillus"
+          },
+          {
+            "key": "B",
+            "text": "Rhizobium"
+          },
+          {
+            "key": "C",
+            "text": "Salmonella"
+          },
+          {
+            "key": "D",
+            "text": "Vibrio"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 33,
+        "questionText": "If 8 workers can complete a work in 15 days, how many days will 12 workers take?",
+        "options": [
+          {
+            "key": "A",
+            "text": "8"
+          },
+          {
+            "key": "B",
+            "text": "10"
+          },
+          {
+            "key": "C",
+            "text": "12"
+          },
+          {
+            "key": "D",
+            "text": "15"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 34,
+        "questionText": "Find the odd one out:",
+        "options": [
+          {
+            "key": "A",
+            "text": "Square"
+          },
+          {
+            "key": "B",
+            "text": "Rectangle"
+          },
+          {
+            "key": "C",
+            "text": "Circle"
+          },
+          {
+            "key": "D",
+            "text": "Triangle"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 35,
+        "questionText": "A train 120 m long crosses a pole in 6 seconds. Its speed is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "20 m/s"
+          },
+          {
+            "key": "B",
+            "text": "15 m/s"
+          },
+          {
+            "key": "C",
+            "text": "10 m/s"
+          },
+          {
+            "key": "D",
+            "text": "25 m/s"
+          }
+        ],
+        "correctOption": "A"
+      },
+      {
+        "questionNumber": 36,
+        "questionText": "If the code for CAT is DBU, then DOG is coded as:",
+        "options": [
+          {
+            "key": "A",
+            "text": "EPH"
+          },
+          {
+            "key": "B",
+            "text": "DPH"
+          },
+          {
+            "key": "C",
+            "text": "EOG"
+          },
+          {
+            "key": "D",
+            "text": "FQI"
+          }
+        ],
+        "correctOption": "A"
+      },
+      {
+        "questionNumber": 37,
+        "questionText": "The next number in the sequence 2, 6, 12, 20, 30, ? is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "36"
+          },
+          {
+            "key": "B",
+            "text": "40"
+          },
+          {
+            "key": "C",
+            "text": "42"
+          },
+          {
+            "key": "D",
+            "text": "44"
+          }
+        ],
+        "correctOption": "C"
+      },
+      {
+        "questionNumber": 38,
+        "questionText": "If all roses are flowers and some flowers are red, then:",
+        "options": [
+          {
+            "key": "A",
+            "text": "All roses are red"
+          },
+          {
+            "key": "B",
+            "text": "Some roses are red"
+          },
+          {
+            "key": "C",
+            "text": "No rose is red"
+          },
+          {
+            "key": "D",
+            "text": "Cannot be determined"
+          }
+        ],
+        "correctOption": "D"
+      },
+      {
+        "questionNumber": 39,
+        "questionText": "A clock shows 3:15. The angle between hour and minute hand is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "0°"
+          },
+          {
+            "key": "B",
+            "text": "7.5°"
+          },
+          {
+            "key": "C",
+            "text": "15°"
+          },
+          {
+            "key": "D",
+            "text": "22.5°"
+          }
+        ],
+        "correctOption": "B"
+      },
+      {
+        "questionNumber": 40,
+        "questionText": "A sum doubles itself in 8 years at simple interest. The rate of interest per annum is:",
+        "options": [
+          {
+            "key": "A",
+            "text": "10%"
+          },
+          {
+            "key": "B",
+            "text": "12.5%"
+          },
+          {
+            "key": "C",
+            "text": "15%"
+          },
+          {
+            "key": "D",
+            "text": "20%"
+          }
+        ],
+        "correctOption": "B"
+      }
+    ]
+  }
+}

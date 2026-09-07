@@ -5,18 +5,39 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const classLevel = searchParams.get("classLevel");
+    const examType = searchParams.get("type"); // "scholarship" or null/empty
 
     if (!classLevel) {
       return NextResponse.json({ error: "Missing classLevel parameter" }, { status: 400 });
     }
 
     const now = new Date();
+
+    // Build condition to cleanly separate Scholarship exams from Branch Diagnosis exams
+    const typeFilter =
+      examType === "scholarship"
+        ? {
+            OR: [
+              { slug: { startsWith: "scholarship-" } },
+              { title: { contains: "Scholarship", mode: "insensitive" as const } },
+            ],
+          }
+        : {
+            NOT: {
+              OR: [
+                { slug: { startsWith: "scholarship-" } },
+                { title: { contains: "Scholarship", mode: "insensitive" as const } },
+              ],
+            },
+          };
+
     const activeExams = await db.examPublishing.findMany({
       where: {
         classLevel,
         isActive: true,
         startAt: { lte: now },
         endAt: { gte: now },
+        ...typeFilter,
       },
       include: {
         subject: {

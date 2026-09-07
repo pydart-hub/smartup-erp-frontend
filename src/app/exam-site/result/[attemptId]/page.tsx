@@ -295,6 +295,10 @@ export default async function ResultPage({ params }: PageProps) {
     };
   });
 
+  const isScholarshipAttempt =
+    hydratedAttempt.publishing.slug.startsWith("scholarship-") ||
+    hydratedAttempt.publishing.title.toLowerCase().includes("scholarship");
+
   return (
     <div className="min-h-screen bg-app-bg text-text-primary relative overflow-hidden selection:bg-primary-light selection:text-primary">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(103,58,183,0.14),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(130,195,91,0.12),transparent_26%)] dark:bg-[radial-gradient(circle_at_top_left,rgba(126,87,194,0.22),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(96,165,250,0.18),transparent_28%)]" />
@@ -306,8 +310,12 @@ export default async function ResultPage({ params }: PageProps) {
               <Award className="h-7 w-7" />
             </div>
             <div>
-              <div className="text-[11px] font-bold uppercase tracking-[0.24em] text-text-tertiary">SmartUp Diagnosis Report</div>
-              <h1 className="mt-1 text-3xl font-black tracking-tight text-text-primary sm:text-4xl">Assessment Completed</h1>
+              <div className="text-[11px] font-bold uppercase tracking-[0.24em] text-text-tertiary">
+                {isScholarshipAttempt ? "SmartUp Scholarship Exam Scorecard" : "SmartUp Diagnosis Report"}
+              </div>
+              <h1 className="mt-1 text-3xl font-black tracking-tight text-text-primary sm:text-4xl">
+                {isScholarshipAttempt ? "Scholarship Assessment Completed" : "Assessment Completed"}
+              </h1>
               <p className="mt-2 text-sm text-text-secondary sm:text-base">{hydratedAttempt.studentName} - {hydratedAttempt.publishing.title}</p>
             </div>
           </div>
