@@ -297,7 +297,7 @@ export const INSTRUCTOR_NAV: NavItem[] = [
 export const PARENT_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard/parent", icon: "LayoutDashboard", emoji: "📊" },
   { label: "Children", href: "/dashboard/parent/children", icon: "Baby", emoji: "👶" },
-  { label: "Diagnosis Exam", href: "/dashboard/parent/level-exams", icon: "ClipboardList", emoji: "📝" },
+  { label: "Diagnosis Exam", href: "/exam-site", icon: "ClipboardList", emoji: "📝" },
   { label: "Learning Hub", href: "/dashboard/parent/learning-hub", icon: "BookOpen", emoji: "✨" },
   { label: "Attendance", href: "/dashboard/parent/attendance", icon: "ClipboardCheck", emoji: "✅" },
   { label: "Schedule", href: "/dashboard/parent/schedule", icon: "CalendarDays", emoji: "📅" },

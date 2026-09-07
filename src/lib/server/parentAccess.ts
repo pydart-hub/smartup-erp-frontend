@@ -78,11 +78,16 @@ export async function getParentLinkedStudents(request: NextRequest) {
   }
 
   const guardianIds = guardians.map((item) => item.name);
+  const guardianMobiles = guardians
+    .map((g) => g.mobile_number?.replace(/\D/g, ""))
+    .filter((m): m is string => Boolean(m && m.length >= 10));
+
   const studentFields = [
     "name",
     "student_name",
     "custom_branch",
     "custom_branch_abbr",
+    "student_mobile_number",
     "enabled",
   ];
 
@@ -91,6 +96,7 @@ export async function getParentLinkedStudents(request: NextRequest) {
     student_name: string;
     custom_branch?: string;
     custom_branch_abbr?: string;
+    student_mobile_number?: string;
     enabled?: number;
   }>(
     frappeListUrl("Student", [["Student Guardian", "guardian", "in", guardianIds]], studentFields, { limit: 20 }),
@@ -135,6 +141,8 @@ export async function getParentLinkedStudents(request: NextRequest) {
         studentName: child.student_name,
         branch: child.custom_branch || "",
         branchAbbr: child.custom_branch_abbr || "",
+        studentMobile: child.student_mobile_number?.replace(/\D/g, "") || "",
+        guardianMobiles,
         enabled: child.enabled === 1,
         program: latestEnrollment[0]?.program || "",
         studentGroup: latestEnrollment[0]?.student_batch_name || "",
@@ -149,3 +157,4 @@ export async function getParentLinkedStudents(request: NextRequest) {
 
   return enrollments;
 }
+

@@ -690,15 +690,16 @@ export default async function ResultPage({ params }: PageProps) {
             </Link>
           )}
           <PrintButton />
-          <Link href="/auth/login" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-border-light bg-surface px-6 py-3 text-sm font-bold text-text-primary transition-colors hover:bg-app-bg">
+          <Link href="/dashboard/parent" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-border-light bg-surface px-6 py-3 text-sm font-bold text-text-primary transition-colors hover:bg-app-bg">
             <Home className="h-4 w-4" />
-            <span>Go to Portal Login</span>
+            <span>Go to Portal</span>
           </Link>
         </div>
       </main>
     </div>
   );
 }
+
 
 function MetricCard({ icon, label, value, helper }: { icon: React.ReactNode; label: string; value: string; helper: string }) {
   return (

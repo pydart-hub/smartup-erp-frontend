@@ -77,8 +77,18 @@ function formatHistoryDate(value: string) {
   });
 }
 
+type LinkedChild = {
+  studentId: string;
+  studentName: string;
+  studentPhone: string;
+  branch: string;
+  classLevel: string;
+};
+
 export default function ExamSiteLandingPage() {
   const router = useRouter();
+  const [parentChildren, setParentChildren] = useState<LinkedChild[]>([]);
+  const [selectedChildId, setSelectedChildId] = useState<string>("");
   const [studentName, setStudentName] = useState("");
   const [studentBranch, setStudentBranch] = useState("");
   const [studentPhone, setStudentPhone] = useState("");
@@ -104,7 +114,96 @@ export default function ExamSiteLandingPage() {
     return exams.find((exam) => !attemptedPublishingIds.has(exam.publishingId)) || null;
   }, [exams, historyItems]);
 
+  // If user is a logged-in parent, automatically load linked children
   useEffect(() => {
+    let isMounted = true;
+
+    async function checkParentSession() {
+      try {
+        // First try the specialized /api/parent/children endpoint
+        let children: LinkedChild[] = [];
+        const res = await fetch("/api/parent/children", { credentials: "include", cache: "no-store" });
+        if (res.ok) {
+          const data = await res.json();
+          children = data.children || [];
+        }
+
+        // Fallback: If children endpoint returned empty, try /api/parent/data which the parent dashboard uses
+        if (children.length === 0) {
+          const fallbackRes = await fetch("/api/parent/data", { credentials: "include", cache: "no-store" });
+          if (fallbackRes.ok) {
+            const fbData = await fallbackRes.json();
+            const rawChildren = fbData.children || [];
+            const enrollments = fbData.enrollments || {};
+            children = rawChildren.map((c: any) => {
+              const enr = enrollments[c.name]?.[0];
+              const programStr = enr?.program || "";
+              const classMatch = programStr.match(/\b(8|9|10)\b/);
+              const lvl = classMatch ? classMatch[1] : programStr.includes("8th") ? "8" : programStr.includes("9th") ? "9" : "10";
+              return {
+                studentId: c.name,
+                studentName: c.student_name || c.first_name || "",
+                studentPhone: (c.student_mobile_number || fbData.guardian?.mobile_number || "").replace(/\D/g, ""),
+                branch: c.custom_branch || "",
+                classLevel: lvl,
+              };
+            });
+          }
+        }
+
+        if (!isMounted || children.length === 0) return;
+
+        setParentChildren(children);
+        const first = children[0];
+        setSelectedChildId(first.studentId);
+        setStudentName(first.studentName);
+
+        const matchedBranch =
+          BRANCHES.find(
+            (b) =>
+              b.toLowerCase() === first.branch.toLowerCase() ||
+              b.toLowerCase().includes(first.branch.toLowerCase()) ||
+              first.branch.toLowerCase().includes(b.toLowerCase())
+          ) || (BRANCHES.includes(first.branch) ? first.branch : BRANCHES[0]);
+
+        setStudentBranch(matchedBranch);
+        setStudentPhone(first.studentPhone);
+        if (first.classLevel) {
+          setClassLevel(first.classLevel);
+        }
+        setHasSavedDetails(true);
+      } catch (err) {
+        console.warn("[exam-site] Not logged in as parent or error fetching children:", err);
+      }
+    }
+
+    checkParentSession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleSelectChild = (child: LinkedChild) => {
+    setSelectedChildId(child.studentId);
+    setStudentName(child.studentName);
+    const matchedBranch = BRANCHES.find(
+      (b) => b.toLowerCase() === child.branch.toLowerCase() ||
+             b.toLowerCase().includes(child.branch.toLowerCase()) ||
+             child.branch.toLowerCase().includes(b.toLowerCase())
+    ) || child.branch;
+    setStudentBranch(matchedBranch);
+    setStudentPhone(child.studentPhone);
+    setClassLevel(child.classLevel);
+    setHasSavedDetails(true);
+    setError(null);
+    setResumeMessage(null);
+  };
+
+
+  useEffect(() => {
+    if (parentChildren.length > 0) return; // parent auto-fill takes precedence
+
     if (typeof window !== "undefined") {
       const savedName = localStorage.getItem("smartup_exam_student_name");
       const savedBranch = localStorage.getItem("smartup_exam_student_branch");
@@ -119,7 +218,8 @@ export default function ExamSiteLandingPage() {
         setHasSavedDetails(true);
       }
     }
-  }, []);
+  }, [parentChildren.length]);
+
 
   useEffect(() => {
     if (!classLevel) {
@@ -273,15 +373,22 @@ export default function ExamSiteLandingPage() {
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             <ThemeToggle />
             <button
-              onClick={() => router.push("/auth/login")}
+              onClick={() => {
+                if (typeof window !== "undefined" && document.cookie.includes("smartup_session")) {
+                  router.push("/dashboard/parent");
+                } else {
+                  router.push("/auth/login");
+                }
+              }}
               className="inline-flex h-10 items-center gap-2 rounded-2xl border border-[#e9deff] bg-white/92 px-3 text-sm font-semibold text-slate-700 shadow-[0_10px_24px_rgba(93,53,213,0.06)] transition duration-200 hover:-translate-y-0.5 hover:border-[#d7c5ff] hover:bg-white dark:border-white/10 dark:bg-white/6 dark:text-slate-200 dark:hover:bg-white/10 sm:h-12 sm:px-5"
             >
               <ArrowLeft className="h-4 w-4" />
-              <span className="hidden sm:inline">Login</span>
+              <span className="hidden sm:inline">Back</span>
             </button>
           </div>
         </div>
       </header>
+
 
       <main className="relative z-10 mx-auto grid min-h-[calc(100vh-74px)] w-full max-w-7xl gap-8 px-4 py-6 sm:px-6 lg:grid-cols-[1fr_0.98fr] lg:items-start lg:px-8 lg:py-10 xl:gap-10">
         <section className="order-1 max-w-xl lg:order-1 lg:pl-8">
@@ -320,53 +427,100 @@ export default function ExamSiteLandingPage() {
             </div>
 
             <form onSubmit={handleStartExam} className="relative space-y-4">
-              {hasSavedDetails ? (
-                <div className="relative overflow-hidden rounded-[20px] border border-primary/20 bg-primary/5 p-4 text-sm backdrop-blur dark:border-[#7e57c2]/40 dark:bg-[#2a2445]">
-                  <div className="flex items-start justify-between gap-3">
+              {parentChildren.length > 0 && (
+                <div className="space-y-3">
+                  {parentChildren.length > 1 && (
                     <div>
-                      <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#673ab7] dark:text-[#9575cd]">Registered Student</div>
-                      <div className="mt-1 text-base font-bold text-slate-950 dark:text-white">{studentName}</div>
-                      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                        Class {classLevel} - {studentBranch} - {studentPhone}
-                      </p>
+                      <label className="mb-2 block text-xs font-bold uppercase tracking-[0.2em] text-[#673ab7] dark:text-[#9575cd]">
+                        Select Linked Child
+                      </label>
+                      <div className="flex gap-2 flex-wrap">
+                        {parentChildren.map((ch) => {
+                          const isSelected = ch.studentId === selectedChildId;
+                          return (
+                            <button
+                              key={ch.studentId}
+                              type="button"
+                              onClick={() => handleSelectChild(ch)}
+                              className={`rounded-[14px] border px-3.5 py-2 text-left transition-all ${
+                                isSelected
+                                  ? "border-[#673ab7] bg-[#673ab7] text-white shadow-md"
+                                  : "border-[#e9deff] bg-white text-slate-700 hover:border-[#673ab7]/50 dark:border-white/10 dark:bg-[#221d38] dark:text-slate-200"
+                              }`}
+                            >
+                              <p className="text-xs font-bold">{ch.studentName}</p>
+                              <p className={`text-[10px] ${isSelected ? "text-white/80" : "text-slate-400"}`}>
+                                Class {ch.classLevel} • {ch.branch.replace("Smart Up ", "")}
+                              </p>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={handleClearDetails}
-                      className="shrink-0 cursor-pointer text-xs font-bold text-rose-500 hover:text-rose-600 hover:underline"
-                    >
-                      Change Details
-                    </button>
+                  )}
+
+                  <div className="relative overflow-hidden rounded-[20px] border border-primary/20 bg-primary/5 p-4 text-sm backdrop-blur dark:border-[#7e57c2]/40 dark:bg-[#2a2445]">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#673ab7] dark:text-[#9575cd]">
+                          Linked Student (Parent Portal)
+                        </div>
+                        <div className="mt-1 text-base font-bold text-slate-950 dark:text-white">{studentName}</div>
+                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                          Class {classLevel || "—"} • {studentBranch || "—"} • {studentPhone || "No phone registered"}
+                        </p>
+                      </div>
+                      <span className="shrink-0 rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-bold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                        Verified
+                      </span>
+                    </div>
                   </div>
                 </div>
-              ) : (
-                <>
-                  <InputField icon={<User className="h-[18px] w-[18px]" />}>
-                    <input type="text" required value={studentName} onChange={(e) => setStudentName(e.target.value)} placeholder="Full Name" className="h-13 w-full rounded-[18px] border border-[#e9deff] bg-white/92 px-12 pr-4 text-[15px] text-slate-900 outline-none transition duration-300 placeholder:text-slate-400 hover:border-[#d7c5ff] focus:border-[#673ab7] focus:shadow-[0_0_0_4px_rgba(103,58,183,0.08),0_14px_24px_rgba(103,58,183,0.08)] dark:border-white/[0.12] dark:bg-[#221d38] dark:text-white dark:placeholder:text-slate-500 dark:hover:border-white/25 dark:focus:border-[#7e57c2]" />
-                  </InputField>
-
-                  <InputField icon={<WalletCards className="h-[18px] w-[18px]" />}>
-                    <select required value={studentBranch} onChange={(e) => setStudentBranch(e.target.value)} className="h-13 w-full appearance-none rounded-[18px] border border-[#e9deff] bg-white/92 px-12 pr-12 text-[15px] text-slate-900 outline-none transition duration-300 hover:border-[#d7c5ff] focus:border-[#673ab7] focus:shadow-[0_0_0_4px_rgba(103,58,183,0.08),0_14px_24px_rgba(103,58,183,0.08)] dark:border-white/[0.12] dark:bg-[#221d38] dark:text-white dark:hover:border-white/25 dark:focus:border-[#7e57c2] [&>option]:dark:bg-[#1e1a30] [&>option]:dark:text-white">
-                      <option value="" disabled className="dark:bg-[#1e1a30] dark:text-slate-400">Select Your Branch</option>
-                      {BRANCHES.map((branch) => <option key={branch} value={branch} className="dark:bg-[#1e1a30] dark:text-white">{branch}</option>)}
-                    </select>
-                    <ChevronDown className="pointer-events-none absolute right-5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8d79b4] dark:text-slate-400" />
-                  </InputField>
-
-                  <InputField icon={<Phone className="h-[18px] w-[18px]" />}>
-                    <input
-                      type="tel"
-                      required
-                      value={studentPhone}
-                      onChange={(e) => setStudentPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                      placeholder="Phone Number"
-                      inputMode="numeric"
-                      maxLength={10}
-                      className="h-13 w-full rounded-[18px] border border-[#e9deff] bg-white/92 px-12 pr-4 text-[15px] text-slate-900 outline-none transition duration-300 placeholder:text-slate-400 hover:border-[#d7c5ff] focus:border-[#673ab7] focus:shadow-[0_0_0_4px_rgba(103,58,183,0.08),0_14px_24px_rgba(103,58,183,0.08)] dark:border-white/[0.12] dark:bg-[#221d38] dark:text-white dark:placeholder:text-slate-500 dark:hover:border-white/25 dark:focus:border-[#7e57c2]"
-                    />
-                  </InputField>
-                </>
               )}
+
+              {/* Form Input fields: always rendered so user clearly sees them pre-filled */}
+              <InputField icon={<User className="h-[18px] w-[18px]" />}>
+                <input
+                  type="text"
+                  required
+                  value={studentName}
+                  onChange={(e) => setStudentName(e.target.value)}
+                  placeholder="Full Name"
+                  className="h-13 w-full rounded-[18px] border border-[#e9deff] bg-white/92 px-12 pr-4 text-[15px] text-slate-900 outline-none transition duration-300 placeholder:text-slate-400 hover:border-[#d7c5ff] focus:border-[#673ab7] focus:shadow-[0_0_0_4px_rgba(103,58,183,0.08),0_14px_24px_rgba(103,58,183,0.08)] dark:border-white/[0.12] dark:bg-[#221d38] dark:text-white dark:placeholder:text-slate-500 dark:hover:border-white/25 dark:focus:border-[#7e57c2]"
+                />
+              </InputField>
+
+              <InputField icon={<WalletCards className="h-[18px] w-[18px]" />}>
+                <select
+                  required
+                  value={studentBranch}
+                  onChange={(e) => setStudentBranch(e.target.value)}
+                  className="h-13 w-full appearance-none rounded-[18px] border border-[#e9deff] bg-white/92 px-12 pr-12 text-[15px] text-slate-900 outline-none transition duration-300 hover:border-[#d7c5ff] focus:border-[#673ab7] focus:shadow-[0_0_0_4px_rgba(103,58,183,0.08),0_14px_24px_rgba(103,58,183,0.08)] dark:border-white/[0.12] dark:bg-[#221d38] dark:text-white dark:hover:border-white/25 dark:focus:border-[#7e57c2] [&>option]:dark:bg-[#1e1a30] [&>option]:dark:text-white"
+                >
+                  <option value="" disabled className="dark:bg-[#1e1a30] dark:text-slate-400">
+                    Select Your Branch
+                  </option>
+                  {BRANCHES.map((branch) => (
+                    <option key={branch} value={branch} className="dark:bg-[#1e1a30] dark:text-white">
+                      {branch}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8d79b4] dark:text-slate-400" />
+              </InputField>
+
+              <InputField icon={<Phone className="h-[18px] w-[18px]" />}>
+                <input
+                  type="tel"
+                  required
+                  value={studentPhone}
+                  onChange={(e) => setStudentPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                  placeholder="Phone Number"
+                  inputMode="numeric"
+                  maxLength={10}
+                  className="h-13 w-full rounded-[18px] border border-[#e9deff] bg-white/92 px-12 pr-4 text-[15px] text-slate-900 outline-none transition duration-300 placeholder:text-slate-400 hover:border-[#d7c5ff] focus:border-[#673ab7] focus:shadow-[0_0_0_4px_rgba(103,58,183,0.08),0_14px_24px_rgba(103,58,183,0.08)] dark:border-white/[0.12] dark:bg-[#221d38] dark:text-white dark:placeholder:text-slate-500 dark:hover:border-white/25 dark:focus:border-[#7e57c2]"
+                />
+              </InputField>
 
               {normalizedPhone.length === 10 ? (
                 <div className="rounded-[20px] border border-[#eee4ff] bg-[#fbf8ff]/92 p-3.5 dark:border-white/[0.12] dark:bg-[#221d38]">
@@ -423,23 +577,47 @@ export default function ExamSiteLandingPage() {
                 </div>
               ) : null}
 
-              {!hasSavedDetails && (
-                <div className="pt-1">
-                  <label className="mb-3 block text-[1rem] font-semibold tracking-[-0.02em] text-slate-950 dark:text-white">Select Class Level</label>
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                    {LEVEL_OPTIONS.map((level) => {
-                      const active = classLevel === level.value;
-                      return (
-                        <button key={level.value} type="button" onClick={() => setClassLevel(level.value)} className={`relative rounded-[20px] border px-3 py-4 text-center transition duration-300 [transform-style:preserve-3d] hover:-translate-y-1 hover:[transform:translateY(-4px)_rotateX(2deg)] ${active ? "border-[#673ab7] bg-[linear-gradient(180deg,rgba(103,58,183,0.18),rgba(103,58,183,0.08))] shadow-[0_14px_24px_rgba(103,58,183,0.2)] dark:border-[#7e57c2] dark:bg-[linear-gradient(180deg,rgba(126,87,194,0.25),rgba(103,58,183,0.15))] dark:shadow-[0_14px_24px_rgba(126,87,194,0.2)]" : "border-[#e9deff] bg-white hover:border-[#d7c5ff] hover:shadow-[0_14px_22px_rgba(93,53,213,0.06)] dark:border-white/[0.12] dark:bg-[#221d38] dark:hover:border-white/25 dark:hover:bg-[#2a2445]"}`}>
-                          {active ? <div className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-[#673ab7] text-white shadow-[0_12px_20px_rgba(103,58,183,0.28)] animate-[pulseGlow_4s_ease-in-out_infinite]"><span className="text-xs">?</span></div> : null}
-                          <div className={`mx-auto flex h-10 w-10 items-center justify-center rounded-full ${active ? "bg-[#efe8ff] text-[#673ab7] dark:bg-[#3d2d80] dark:text-[#c5b0ff]" : "bg-slate-100 text-slate-500 dark:bg-white/[0.08] dark:text-slate-300"}`}><GraduationCap className="h-5 w-5" /></div>
-                          <div className="mt-3 text-[15px] font-semibold text-slate-950 dark:text-white">{level.label}</div>
-                        </button>
-                      );
-                    })}
-                  </div>
+              <div className="pt-1">
+                <label className="mb-3 block text-[1rem] font-semibold tracking-[-0.02em] text-slate-950 dark:text-white">
+                  Select Class Level
+                </label>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  {LEVEL_OPTIONS.map((level) => {
+                    const active = classLevel === level.value;
+                    return (
+                      <button
+                        key={level.value}
+                        type="button"
+                        onClick={() => setClassLevel(level.value)}
+                        className={`relative rounded-[20px] border px-3 py-4 text-center transition duration-300 [transform-style:preserve-3d] hover:-translate-y-1 hover:[transform:translateY(-4px)_rotateX(2deg)] ${
+                          active
+                            ? "border-[#673ab7] bg-[linear-gradient(180deg,rgba(103,58,183,0.18),rgba(103,58,183,0.08))] shadow-[0_14px_24px_rgba(103,58,183,0.2)] dark:border-[#7e57c2] dark:bg-[linear-gradient(180deg,rgba(126,87,194,0.25),rgba(103,58,183,0.15))] dark:shadow-[0_14px_24px_rgba(126,87,194,0.2)]"
+                            : "border-[#e9deff] bg-white hover:border-[#d7c5ff] hover:shadow-[0_14px_22px_rgba(93,53,213,0.06)] dark:border-white/[0.12] dark:bg-[#221d38] dark:hover:border-white/25 dark:hover:bg-[#2a2445]"
+                        }`}
+                      >
+                        {active ? (
+                          <div className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-[#673ab7] text-white shadow-[0_8px_16px_rgba(103,58,183,0.28)]">
+                            <CheckCircle2 className="h-4 w-4 text-white" />
+                          </div>
+                        ) : null}
+
+                        <div
+                          className={`mx-auto flex h-10 w-10 items-center justify-center rounded-full ${
+                            active
+                              ? "bg-[#efe8ff] text-[#673ab7] dark:bg-[#3d2d80] dark:text-[#c5b0ff]"
+                              : "bg-slate-100 text-slate-500 dark:bg-white/[0.08] dark:text-slate-300"
+                          }`}
+                        >
+                          <GraduationCap className="h-5 w-5" />
+                        </div>
+                        <div className="mt-3 text-[15px] font-semibold text-slate-950 dark:text-white">
+                          {level.label}
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
-              )}
+              </div>
 
               {classLevel && (
                 <div className="rounded-[20px] border border-[#eee4ff] bg-[#fbf8ff]/92 p-3.5 dark:border-white/[0.12] dark:bg-[#221d38]">
@@ -486,8 +664,17 @@ export default function ExamSiteLandingPage() {
               ) : null}
 
               <button type="submit" disabled={loading || fetchingExams || !nextUnattemptedExam} className="inline-flex h-13 w-full items-center justify-center gap-3 rounded-[18px] bg-[linear-gradient(135deg,#5d35d5,#7e57c2)] px-6 text-[15px] font-semibold text-white shadow-[0_18px_30px_rgba(93,53,213,0.24)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_36px_rgba(93,53,213,0.3)] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none dark:disabled:bg-slate-700">
-                {loading ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" /> : <><Play className="h-4 w-4 fill-current" />{nextUnattemptedExam ? `Start ${nextUnattemptedExam.subjectName} Exam` : "Start Diagnosis Exam"}<span className="ml-1 text-lg">?</span></>}
+                {loading ? (
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                ) : (
+                  <>
+                    <Play className="h-4 w-4 fill-current" />
+                    <span>{nextUnattemptedExam ? `Start ${nextUnattemptedExam.subjectName} Exam` : "Start Diagnosis Exam"}</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
               </button>
+
 
               <div className="flex items-center justify-center gap-2 text-sm text-[#7a6897] dark:text-slate-400">
                 <ShieldCheck className="h-4 w-4" />

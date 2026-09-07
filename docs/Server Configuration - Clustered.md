@@ -262,3 +262,6 @@ pm2 restart ecosystem.config.js
 - [x] Nginx configuration updated with `upstream` pool and proxy forwarding
 - [x] Connection pooling set to `connection_limit=20` in `.env.local` to protect database
 - [x] Git deployment commands updated to reload the PM2 ecosystem instead of a single process
+
+
+
