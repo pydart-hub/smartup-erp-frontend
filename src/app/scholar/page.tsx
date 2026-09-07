@@ -49,15 +49,45 @@ export default function ScholarRegistrationPage() {
   const [phone, setPhone] = useState("");
   const [selectedClass, setSelectedClass] = useState("Class 10");
   const [district, setDistrict] = useState("Ernakulam");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [activePublishingId, setActivePublishingId] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !phone.trim() || phone.replace(/\D/g, "").length < 10) {
+    const cleanPhone = phone.replace(/\D/g, "");
+    if (!name.trim() || cleanPhone.length < 10) {
       alert("Please enter a valid student name and 10-digit mobile number.");
       return;
     }
-    setIsSubmitted(true);
+
+    try {
+      setIsSubmitting(true);
+      const res = await fetch("/api/scholar/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim(),
+          phone: cleanPhone,
+          selectedClass,
+          district,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to register. Please try again.");
+      }
+
+      if (data.publishingId) {
+        setActivePublishingId(data.publishingId);
+      }
+      setIsSubmitted(true);
+    } catch (err: any) {
+      alert(err.message || "Something went wrong while registering.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -222,12 +252,22 @@ export default function ScholarRegistrationPage() {
 
                   <div className="p-2.5 rounded-xl bg-purple-50 text-[11px] text-[#5C34A4] text-left flex items-start gap-2">
                     <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                    <span>Exam schedule & link will be dispatched to your WhatsApp/SMS.</span>
+                    <span>Your registration is saved in the portal database.</span>
                   </div>
+
+                  {activePublishingId && (
+                    <a
+                      href={`/exam-site?phone=${encodeURIComponent(phone)}&name=${encodeURIComponent(name)}`}
+                      className="w-full py-3 px-6 font-bold text-sm text-white bg-[#5C34A4] hover:bg-[#4E2B8E] active:bg-[#43237E] rounded-full transition-all shadow-lg shadow-purple-900/25 flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <span>Take Scholarship Exam Now</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </a>
+                  )}
 
                   <button
                     onClick={() => setIsSubmitted(false)}
-                    className="text-xs font-bold text-slate-500 hover:text-[#5C34A4] hover:underline cursor-pointer pt-1"
+                    className="text-xs font-bold text-slate-500 hover:text-[#5C34A4] hover:underline cursor-pointer pt-1 block mx-auto"
                   >
                     ← Register another student
                   </button>
@@ -327,10 +367,11 @@ export default function ScholarRegistrationPage() {
                   <div className="pt-2">
                     <button
                       type="submit"
-                      className="w-full py-3 px-6 font-bold text-sm text-white bg-[#5C34A4] hover:bg-[#4E2B8E] active:bg-[#43237E] rounded-full transition-all shadow-lg shadow-purple-900/25 flex items-center justify-center gap-2 cursor-pointer"
+                      disabled={isSubmitting}
+                      className="w-full py-3 px-6 font-bold text-sm text-white bg-[#5C34A4] hover:bg-[#4E2B8E] active:bg-[#43237E] disabled:opacity-70 rounded-full transition-all shadow-lg shadow-purple-900/25 flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
                     >
-                      <span>Register for Exam</span>
-                      <ArrowRight className="w-4 h-4" />
+                      <span>{isSubmitting ? "Registering..." : "Register for Exam"}</span>
+                      {!isSubmitting && <ArrowRight className="w-4 h-4" />}
                     </button>
                   </div>
 

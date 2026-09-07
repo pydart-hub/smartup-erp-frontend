@@ -151,3 +151,20 @@ model PlusTwoPredictorSubmission {
   @@index([phone])
   @@index([submittedAt])
 }
+
+// 10. Scholarship Exam Registrations
+model ScholarRegistration {
+  id           String        @id @default(uuid())
+  studentName  String
+  phone        String
+  classLevel   String        // "Class 8", "Class 9", "Class 10", "Plus One (+1)", "Plus Two (+2)"
+  district     String
+  status       String        @default("registered") // "registered", "attempting", "completed"
+  attemptId    String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([phone])
+  @@index([classLevel])
+  @@index([createdAt])
+}
