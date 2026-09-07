@@ -1,0 +1,426 @@
+Online Scholarship Examination – Class 10
+Based on Class 9 Syllabus (CBSE & State)
+Duration:
+30 Minutes
+Total Questions:
+40 MCQs
+Instructions:
+Each question carries 1 mark.
+Choose the most appropriate answer.
+No negative marking.
+All questions are compulsory.
+MATHEMATICS
+1.
+The value of
+is:
+A) 12
+B) 13
+C) 14
+D) 16
+2.
+If
+, then the value of
+is:
+A) 5
+B) 6
+C) 7
+D) 8
+3.
+Which of the following is a rational number?
+A)
+B)
+C)
+D)
+•
+•
+•
+•
+196
+x
++
+5
+=
+12
+x
+3
+π
+9
+7
+5
+1
+4.
+The area of a rectangle having length 12 cm and breadth 5 cm is:
+A) 17 cm²
+B) 60 cm²
+C) 34 cm²
+D) 120 cm²
+5.
+The sum of angles in a triangle is:
+A) 90°
+B) 180°
+C) 270°
+D) 360°
+6.
+If the perimeter of a square is 36 cm, then its side is:
+A) 6 cm
+B) 7 cm
+C) 8 cm
+D) 9 cm
+7.
+Which of the following is a linear equation?
+A)
+B)
+C)
+D)
+8.
+The median of 2, 4, 6, 8, 10 is:
+x
++
+2
+3
+=
+0
+2
+x
++
+5
+=
+9
+x
+−
+3
+1
+=
+0
+=
+x
+1
+2
+2
+A) 4
+B) 5
+C) 6
+D) 8
+9.
+The value of
+is:
+A) 12
+B) 25
+C) 49
+D) 16
+10.
+A polynomial having degree 2 is called:
+A) Linear polynomial
+B) Cubic polynomial
+C) Quadratic polynomial
+D) Constant polynomial
+PHYSICS
+11.
+The SI unit of force is:
+A) Joule
+B) Watt
+C) Newton
+D) Pascal
+12.
+Velocity is:
+A) Distance travelled per unit time
+B) Speed in a given direction
+3
++
+2
+4
+2
+3
+C) Change in mass
+D) Force per unit area
+13.
+An object moving with uniform speed covers:
+A) Equal distances in equal intervals of time
+B) Unequal distances in equal intervals
+C) Equal distances in unequal intervals
+D) None of these
+14.
+The force that pulls objects towards Earth is called:
+A) Magnetic force
+B) Frictional force
+C) Gravitational force
+D) Muscular force
+15.
+Which instrument is used to measure electric current?
+A) Voltmeter
+B) Thermometer
+C) Ammeter
+D) Barometer
+16.
+The speed of light in vacuum is approximately:
+A)
+m/s
+B)
+m/s
+C)
+m/s
+D)
+m/s
+3
+×
+1
+0
+8
+3
+×
+1
+0
+6
+3
+×
+1
+0
+5
+3
+×
+1
+0
+4
+4
+17.
+Which of the following is a renewable source of energy?
+A) Coal
+B) Petroleum
+C) Solar energy
+D) Natural gas
+18.
+The work done is πero when:
+A) Force is applied
+B) Object moves
+C) No displacement occurs
+D) Speed increases
+19.
+The boiling point of water in Celsius scale is:
+A) 0°C
+B) 50°C
+C) 100°C
+D) 212°C
+20.
+Which mirror is used in vehicles as rear-view mirror?
+A) Plane mirror
+B) Convex mirror
+C) Concave mirror
+D) Cylindrical mirror
+CHEMISTRY
+21.
+The chemical formula of water is:
+5
+A) CO₂
+B) H₂O
+C) O₂
+D) NaCl
+22.
+A substance made up of only one type of atom is called:
+A) Compound
+B) Mixture
+C) Element
+D) Solution
+23.
+Which gas is necessary for respiration?
+A) Nitrogen
+B) Oxygen
+C) Hydrogen
+D) Carbon dioxide
+24.
+The pH value of a neutral solution is:
+A) 0
+B) 5
+C) 7
+D) 14
+25.
+Rusting takes place in the presence of:
+A) Hydrogen only
+B) Oxygen only
+C) Water only
+D) Oxygen and moisture
+6
+26.
+Which of the following is an acid?
+A) Sodium hydroxide
+B) Hydrochloric acid
+C) Calcium oxide
+D) Soap solution
+27.
+The smallest unit of an element is:
+A) Cell
+B) Atom
+C) Molecule
+D) Electron
+28.
+LPG mainly contains:
+A) Methane and Ethane
+B) Butane and Propane
+C) Nitrogen and Oxygen
+D) Hydrogen and Helium
+29.
+Which metal is liquid at room temperature?
+A) Iron
+B) Copper
+C) Mercury
+D) Aluminium
+30.
+The process of conversion of liquid into vapour is called:
+A) Condensation
+B) Evaporation
+7
+C) Freeπing
+D) Melting
+BIOLOGY
+31.
+The basic structural and functional unit of life is:
+A) Tissue
+B) Organ
+C) Cell
+D) Organ system
+32.
+Photosynthesis takes place in:
+A) Roots
+B) Stem
+C) Leaves
+D) Flowers
+33.
+Which vitamin is produced in the skin by sunlight?
+A) Vitamin A
+B) Vitamin B
+C) Vitamin C
+D) Vitamin D
+34.
+The human heart has:
+A) 2 chambers
+B) 3 chambers
+C) 4 chambers
+D) 5 chambers
+8
+35.
+The green pigment in plants is:
+A) Hemoglobin
+B) Chlorophyll
+C) Melanin
+D) Carotene
+36.
+Which organ purifies blood in the human body?
+A) Heart
+B) Kidney
+C) Lung
+D) Liver
+37.
+The process by which plants lose water through leaves is called:
+A) Respiration
+B) Photosynthesis
+C) Transpiration
+D) Germination
+38.
+Which part of the cell contains genetic material?
+A) Cell wall
+B) Cytoplasm
+C) Nucleus
+D) Vacuole
+39.
+Animals that eat only plants are called:
+A) Carnivores
+B) Omnivores
+9
+C) Herbivores
+D) Parasites
+40.
+The respiratory pigment present in human blood is:
+A) Chlorophyll
+B) Hemoglobin
+C) Melanin
+D) Insulin
+ANSWER KEY
+Q.No
+Answer
+Q.No
+Answer
+1
+C
+21
+B
+2
+C
+22
+C
+3
+C
+23
+B
+4
+B
+24
+C
+5
+B
+25
+D
+6
+D
+26
+B
+7
+B
+27
+B
+8
+C
+28
+B
+9
+B
+29
+C
+10
+C
+30
+B
+11
+C
+31
+C
+12
+B
+32
+C
+13
+A
+33
+D
+14
+C
+34
+C
+15
+C
+35
+B
+16
+A
+36
+B
+17
+C
+37
+C
+10
+Q.No
+Answer
+Q.No
+Answer
+18
+C
+38
+C
+19
+C
+39
+C
+20
+B
+40
+B
+11

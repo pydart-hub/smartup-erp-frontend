@@ -1,0 +1,305 @@
+ONLINE SCHOLARSHIP EXAM – PLUS TWO
+STUDENTS
+Duration: 30 Minutes
+Total Questions: 40 MCQs
+Syllabus: Class 11 (CBSE & State Level)
+Difficulty Level: Tough
+Instructions
+Each question carries 1 mark.
+There is no negative marking.
+Choose the most appropriate answer.
+Use rough work wherever necessary.
+Time management is important.
+PHYSICS
+1. A body is projected vertically upward with velocity 40 m/s. The ratio of time taken to
+reach half the maximum height to the total time of flight is:
+A) 1:2
+B) 1:(2+
+√
+2)
+C) (
+√
+2
+−
+1):1
+D) 1:
+√
+2
+2. The dimensional formula of Planck’s constant is:
+A) ML²T⁻¹
+B) ML²T⁻²
+C) MLT⁻¹
+D) MLT⁻²
+1.
+2.
+3.
+4.
+5.
+1
+3. A particle moves such that its displacement is given by x = t³
+−
+6t² + 9t + 4. The
+acceleration at t = 2 s is:
+A) 0 m/s²
+B) 6 m/s²
+C) 12 m/s²
+D)
+−
+6 m/s²
+4. A satellite revolves close to the surface of Earth. Its orbital speed is nearly:
+A) 11.2 km/s
+B) 7.9 km/s
+C) 3.2 km/s
+D) 5.6 km/s
+5. The efficiency of a Carnot engine operating between 500 K and 300 K is:
+A) 20%
+B) 30%
+C) 40%
+D) 60%
+6. In SHM, the velocity of the particle is maximum when:
+A) Displacement is maximum
+B) Acceleration is maximum
+C) Potential energy is maximum
+D) Displacement is zero
+7. Two vectors of magnitudes 3 and 4 units have a resultant of magnitude 5 units. The
+angle between them is:
+A) 30°
+B) 60°
+C) 90°
+D) 120°
+8. The escape velocity from a planet depends upon:
+A) Radius only
+B) Mass only
+C) Density only
+D) Mass and radius
+2
+CHEMISTRY
+9. The number of significant figures in 0.004560 is:
+A) 3
+B) 4
+C) 5
+D) 6
+10. Which quantum number determines the shape of an orbital?
+A) Principal quantum number
+B) Magnetic quantum number
+C) Azimuthal quantum number
+D) Spin quantum number
+11. The hybridization of carbon in ethyne is:
+A) sp³
+B) sp²
+C) sp
+D) dsp²
+12. The oxidation state of chromium in K₂Cr₂O₇ is:
+A) +3
+B) +4
+C) +6
+D) +7
+13. Which law explains the partial pressures of gases in a mixture?
+A) Boyle’s law
+B) Dalton’s law
+C) Charles’ law
+D) Graham’s law
+14. The conjugate acid of NH₃ is:
+A) NH₂⁻
+B) NH₄⁺
+C) HNO₃
+D) OH⁻
+3
+15. Which among the following has maximum bond dissociation energy?
+A) Cl₂
+B) Br₂
+C) F₂
+D) H₂
+16. The IUPAC name of CH₃CH₂CHO is:
+A) Propanal
+B) Propanone
+C) Ethanal
+D) Butanal
+MATHEMATICS
+17. If sin θ + cos θ =
+√
+2 cos θ, then θ equals:
+A) 30°
+B) 45°
+C) 60°
+D) 90°
+18. The value of determinant |2 3; 4 5| is:
+A)
+−
+2
+B) 2
+C) 8
+D)
+−
+8
+19. If f(x) = x²
+−
+4x + 7, then the minimum value of f(x) is:
+A) 1
+B) 2
+C) 3
+D) 4
+20. The sum of first 20 natural numbers is:
+A) 190
+B) 200
+C) 210
+D) 220
+4
+21. If A = {1,2,3} and B = {2,3,4}, then A
+∩
+B is:
+A) {1,4}
+B) {2,3}
+C) {1,2,3,4}
+D) { }
+22. The equation x²
+−
+5x + 6 = 0 has roots:
+A) 1,6
+B) 2,3
+C)
+−
+2,
+−
+3
+D) 1,5
+23. If tan A = 1, then sec²A equals:
+A) 1
+B) 2
+C) 3
+D) 4
+24. The distance between points (2,3) and (5,7) is:
+A) 3
+B) 4
+C) 5
+D)
+√
+5
+BIOLOGY
+25. The powerhouse of the cell is:
+A) Ribosome
+B) Golgi body
+C) Mitochondria
+D) Lysosome
+26. Which tissue transports food in plants?
+A) Xylem
+B) Phloem
+C) Epidermis
+D) Cortex
+5
+27. The functional unit of kidney is:
+A) Neuron
+B) Nephron
+C) Alveoli
+D) Villi
+28. DNA replication occurs during:
+A) G₁ phase
+B) S phase
+C) G₂ phase
+D) M phase
+29. The blood group universal donor is:
+A) A
+B) B
+C) AB
+D) O negative
+30. Which hormone regulates blood sugar level?
+A) Thyroxine
+B) Adrenaline
+C) Insulin
+D) Estrogen
+31. In humans, fertilization normally occurs in:
+A) Ovary
+B) Uterus
+C) Fallopian tube
+D) Cervix
+32. Which among the following is a nitrogen-fixing bacterium?
+A) Lactobacillus
+B) Rhizobium
+C) Salmonella
+D) Vibrio
+6
+GENERAL APTITUDE & REASONING
+33. If 8 workers can complete a work in 15 days, how many days will 12 workers take?
+A) 8
+B) 10
+C) 12
+D) 15
+34. Find the odd one out:
+A) Square
+B) Rectangle
+C) Circle
+D) Triangle
+35. A train 120 m long crosses a pole in 6 seconds. Its speed is:
+A) 20 m/s
+B) 15 m/s
+C) 10 m/s
+D) 25 m/s
+36. If the code for CAT is DBU, then DOG is coded as:
+A) EPH
+B) DPH
+C) EOG
+D) FQI
+37. The next number in the sequence 2, 6, 12, 20, 30, ? is:
+A) 36
+B) 40
+C) 42
+D) 44
+38. If all roses are flowers and some flowers are red, then:
+A) All roses are red
+B) Some roses are red
+C) No rose is red
+D) Cannot be determined
+7
+39. A clock shows 3:15. The angle between hour and minute hand is:
+A) 0°
+B) 7.5°
+C) 15°
+D) 22.5°
+40. A sum doubles itself in 8 years at simple interest. The rate of interest per annum is:
+A) 10%
+B) 12.5%
+C) 15%
+D) 20%
+ANSWER KEY
+1-B
+2-A
+3-A
+4-B
+5-C
+6-D
+7-C
+8-D
+9-B
+10-C
+11-C
+12-C
+13-B
+14-B
+15-D
+16-A
+17-B
+18-A
+19-C
+20-C
+21-B
+22-B
+23-B
+24-C
+25-C
+26-B
+27-B
+28-B
+29-D
+8
+30-C
+31-C
+32-B
+33-B
+34-C
+35-A
+36-A
+37-C
+38-D
+39-B
+40-B
+9

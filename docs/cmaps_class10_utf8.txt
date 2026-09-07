@@ -1,0 +1,225 @@
+﻿Stream 16 is CMap!
+/CIDInit /ProcSet findresource begin
+12 dict begin
+begincmap
+/CIDSystemInfo
+<< /Registry (Adobe)
+/Ordering (UCS)
+/Supplement 0
+>> def
+/CMapName /Adobe-Identity-UCS def
+/CMapType 2 def
+1 begincodespacerange
+<0000> <ffff>
+endcodespacerange
+55 beginbfchar
+<0032> <004f>
+<0051> <006e>
+<004f> <006c>
+<004c> <0069>
+<0048> <0065>
+<0003> <0020>
+<0036> <0053>
+<0046> <0063>
+<004b> <0068>
+<0052> <006f>
+<0044> <0061>
+<0055> <0072>
+<0056> <0073>
+<0053> <0070>
+<0028> <0045>
+<005b> <0078>
+<0050> <006d>
+<0057> <0074>
+<0201> <2013>
+<0026> <0043>
+<0014> <0031>
+<0013> <0030>
+<0025> <0042>
+<0047> <0064>
+<001c> <0039>
+<005c> <0079>
+<0045> <0062>
+<0058> <0075>
+<000b> <0028>
+<0009> <0026>
+<000c> <0029>
+<0027> <0044>
+<001d> <003a>
+<0037> <0054>
+<0034> <0051>
+<002c> <0049>
+<0030> <004d>
+<0024> <0041>
+<002b> <0048>
+<0011> <002e>
+<0015> <0032>
+<0016> <0033>
+<0017> <0034>
+<0018> <0035>
+<0019> <0036>
+<001a> <0037>
+<001b> <0038>
+<0033> <0050>
+<003c> <0059>
+<0035> <0052>
+<002f> <004c>
+<002a> <0047>
+<0031> <004e>
+<003a> <0057>
+<002e> <004b>
+endbfchar
+endcmap
+CMapName currentdict /CMap defineresource pop
+end
+end
+Stream 17 is CMap!
+/CIDInit /ProcSet findresource begin
+12 dict begin
+begincmap
+/CIDSystemInfo
+<< /Registry (Adobe)
+/Ordering (UCS)
+/Supplement 0
+>> def
+/CMapName /Adobe-Identity-UCS def
+/CMapType 2 def
+1 begincodespacerange
+<0000> <ffff>
+endcodespacerange
+72 beginbfchar
+<0003> <0020>
+<0016> <0033>
+<0013> <0030>
+<0030> <004d>
+<004c> <0069>
+<0051> <006e>
+<0058> <0075>
+<0057> <0074>
+<0048> <0065>
+<0056> <0073>
+<0017> <0034>
+<0026> <0043>
+<0034> <0051>
+<0028> <0045>
+<0044> <0061>
+<0046> <0063>
+<004b> <0068>
+<0054> <0071>
+<0052> <006f>
+<0055> <0072>
+<0014> <0031>
+<0050> <006d>
+<004e> <006b>
+<0011> <002e>
+<0053> <0070>
+<005a> <0077>
+<0031> <004e>
+<004a> <0067>
+<0059> <0076>
+<0024> <0041>
+<004f> <006c>
+<005c> <0079>
+<0037> <0054>
+<0049> <0066>
+<001d> <003a>
+<000c> <0029>
+<0015> <0032>
+<0025> <0042>
+<0027> <0044>
+<0019> <0036>
+<002c> <0049>
+<000f> <002c>
+<0018> <0035>
+<001a> <0037>
+<001b> <0038>
+<003a> <0057>
+<0045> <0062>
+<0022> <003f>
+<020e> <2022>
+<0047> <0064>
+<0074> <00b2>
+<001c> <0039>
+<0072> <00b0>
+<002f> <004c>
+<0036> <0053>
+<002d> <004a>
+<0033> <0050>
+<0039> <0056>
+<0029> <0046>
+<004d> <006a>
+<0038> <0055>
+<002a> <0047>
+<005b> <0078>
+<0012> <002f>
+<005d> <007a>
+<0032> <004f>
+<0010> <002d>
+<0a18> <2082>
+<002b> <0048>
+<0035> <0052>
+<07af> <00660069>
+<002e> <004b>
+endbfchar
+endcmap
+CMapName currentdict /CMap defineresource pop
+end
+end
+Stream 18 is CMap!
+/CIDInit /ProcSet findresource begin
+12 dict begin
+begincmap
+/CIDSystemInfo
+<< /Registry (Adobe)
+/Ordering (UCS)
+/Supplement 0
+>> def
+/CMapName /Adobe-Identity-UCS def
+/CMapType 2 def
+1 begincodespacerange
+<0000> <ffff>
+endcodespacerange
+14 beginbfchar
+<0014> <0031>
+<001c> <0039>
+<0019> <0036>
+<000e> <002b>
+<0018> <0035>
+<0020> <003d>
+<0015> <0032>
+<0016> <0033>
+<001a> <0037>
+<0013> <0030>
+<00c1> <2212>
+<0017> <0034>
+<006b> <00d7>
+<001b> <0038>
+endbfchar
+endcmap
+CMapName currentdict /CMap defineresource pop
+end
+end
+Stream 19 is CMap!
+/CIDInit /ProcSet findresource begin
+12 dict begin
+begincmap
+/CIDSystemInfo
+<< /Registry (Adobe)
+/Ordering (UCS)
+/Supplement 0
+>> def
+/CMapName /Adobe-Identity-UCS def
+/CMapType 2 def
+1 begincodespacerange
+<0000> <ffff>
+endcodespacerange
+2 beginbfchar
+<003f> <0078>
+<005d> <03c0>
+endbfchar
+endcmap
+CMapName currentdict /CMap defineresource pop
+end
+end
+Stream 22 contains Font reference:
+1 0 2 108 3 232 4 588 5 751 7 882 9 1034 11 1186 13 1339 15 1492 17 1645 19 1798 21 1951 23 2104 25 2257 27 2410 28 2564 29 2835 30 2943 31 3071 32 3152 33 3244 34 3340 35 3432 36 3525 37 3616 38 3709 39 3805 40 3898 41 3981 42 4104 43 4186 44 4281 45 4375 46 4470 47 4563 48 4658 49 4749 50 4844 51 4938 52 5021 53 5146 54 5228 55 5322 56 5417 57 5510 58 5605 59 5696 60 5791 61 5885 62 5980 63 6061 64 6185 65 6267 66 6362 67 6456 68 6551 69 6642 70 6737 71 6831 72 6926 73 7019 74 7101 75 7191 81 
