@@ -83,6 +83,27 @@ export default function ScholarRegistrationPage() {
       if (data.publishingId) {
         setActivePublishingId(data.publishingId);
       }
+
+      // Map selected class to exam system classLevel code
+      const classLevelMap: Record<string, string> = {
+        "Class 8": "8",
+        "Class 9": "9",
+        "Class 10": "10",
+        "Plus One (+1)": "11",
+        "Plus Two (+2)": "12",
+      };
+      const classCode = classLevelMap[selectedClass] || "10";
+      const branchName = "Smart Up Kadavanthara"; // Default central branch
+
+      // Seamless prefill for exam-site via localStorage
+      if (typeof window !== "undefined") {
+        localStorage.setItem("smartup_exam_student_name", name.trim());
+        localStorage.setItem("smartup_exam_student_phone", cleanPhone);
+        localStorage.setItem("smartup_exam_student_branch", branchName);
+        localStorage.setItem("smartup_exam_student_class", classCode);
+        localStorage.setItem("smartup_exam_district", district);
+      }
+
       setIsSubmitted(true);
     } catch (err: any) {
       alert(err.message || "Something went wrong while registering.");
@@ -258,7 +279,19 @@ export default function ScholarRegistrationPage() {
 
                   {activePublishingId && (
                     <a
-                      href={`/exam-site?phone=${encodeURIComponent(phone)}&name=${encodeURIComponent(name)}`}
+                      href={`/exam-site?phone=${encodeURIComponent(phone.replace(/\D/g, ""))}&name=${encodeURIComponent(name.trim())}&class=${encodeURIComponent(
+                        selectedClass === "Class 8"
+                          ? "8"
+                          : selectedClass === "Class 9"
+                          ? "9"
+                          : selectedClass === "Class 10"
+                          ? "10"
+                          : selectedClass.includes("+1")
+                          ? "11"
+                          : selectedClass.includes("+2")
+                          ? "12"
+                          : "10"
+                      )}&branch=${encodeURIComponent("Smart Up Kadavanthara")}&district=${encodeURIComponent(district)}`}
                       className="w-full py-3 px-6 font-bold text-sm text-white bg-[#5C34A4] hover:bg-[#4E2B8E] active:bg-[#43237E] rounded-full transition-all shadow-lg shadow-purple-900/25 flex items-center justify-center gap-2 cursor-pointer"
                     >
                       <span>Take Scholarship Exam Now</span>

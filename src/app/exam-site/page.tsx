@@ -65,6 +65,8 @@ const LEVEL_OPTIONS = [
   { value: "8", label: "Class 8" },
   { value: "9", label: "Class 9" },
   { value: "10", label: "Class 10" },
+  { value: "11", label: "+1 (Plus One)" },
+  { value: "12", label: "+2 (Plus Two)" },
 ];
 
 function formatHistoryDate(value: string) {
@@ -205,17 +207,34 @@ export default function ExamSiteLandingPage() {
     if (parentChildren.length > 0) return; // parent auto-fill takes precedence
 
     if (typeof window !== "undefined") {
-      const savedName = localStorage.getItem("smartup_exam_student_name");
-      const savedBranch = localStorage.getItem("smartup_exam_student_branch");
-      const savedPhone = localStorage.getItem("smartup_exam_student_phone");
-      const savedClass = localStorage.getItem("smartup_exam_student_class");
+      const params = new URLSearchParams(window.location.search);
+      const qPhone = params.get("phone");
+      const qName = params.get("name");
+      const qClass = params.get("class");
+      const qBranch = params.get("branch");
 
-      if (savedName && savedBranch && savedPhone && savedClass) {
-        setStudentName(savedName);
-        setStudentBranch(savedBranch);
-        setStudentPhone(savedPhone);
-        setClassLevel(savedClass);
+      const savedName = qName || localStorage.getItem("smartup_exam_student_name");
+      const savedBranch = qBranch || localStorage.getItem("smartup_exam_student_branch") || BRANCHES[0];
+      const savedPhone = qPhone ? qPhone.replace(/\D/g, "") : localStorage.getItem("smartup_exam_student_phone");
+      const savedClass = qClass || localStorage.getItem("smartup_exam_student_class");
+
+      if (savedName) setStudentName(savedName);
+      if (savedBranch) {
+        const matched = BRANCHES.find(
+          (b) => b.toLowerCase() === savedBranch.toLowerCase() || b.toLowerCase().includes(savedBranch.toLowerCase())
+        ) || BRANCHES[0];
+        setStudentBranch(matched);
+      }
+      if (savedPhone) setStudentPhone(savedPhone);
+      if (savedClass) setClassLevel(savedClass);
+
+      if (savedName && savedPhone && savedClass) {
         setHasSavedDetails(true);
+        // Also persist so navigation is stable across reloads
+        localStorage.setItem("smartup_exam_student_name", savedName);
+        localStorage.setItem("smartup_exam_student_branch", savedBranch);
+        localStorage.setItem("smartup_exam_student_phone", savedPhone);
+        localStorage.setItem("smartup_exam_student_class", savedClass);
       }
     }
   }, [parentChildren.length]);
@@ -581,7 +600,7 @@ export default function ExamSiteLandingPage() {
                 <label className="mb-3 block text-[1rem] font-semibold tracking-[-0.02em] text-slate-950 dark:text-white">
                   Select Class Level
                 </label>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-5">
                   {LEVEL_OPTIONS.map((level) => {
                     const active = classLevel === level.value;
                     return (
