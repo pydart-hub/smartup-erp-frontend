@@ -5,13 +5,11 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import {
   GraduationCap,
-  Sparkles,
   Trophy,
   User,
   ArrowRight,
   ShieldCheck,
   CheckCircle2,
-  Flame,
 } from "lucide-react";
 
 // Official SmartUp Color Palette:
@@ -74,36 +72,14 @@ export default function ScholarRegistrationPage() {
       </div>
 
       {/* Clean Minimal Header */}
-      <header className="w-full bg-white/80 backdrop-blur-md border-b border-slate-100">
-        <div className="max-w-6xl mx-auto px-4 sm:px-8 h-18 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Image
-              src="/smartup-logo-v2.png"
-              alt="SmartUp"
-              width={38}
-              height={38}
-              priority
-              className="object-contain"
-            />
-            <div className="flex flex-col">
-              <div className="flex items-center gap-1.5">
-                <span className="text-lg font-black tracking-wider text-slate-900 uppercase leading-none">
-                  SMART UP
-                </span>
-                <span className="w-2 h-2 rounded-full bg-[#82C35B]" />
-              </div>
-              <span className="text-[10px] font-bold text-[#673AB7] tracking-widest uppercase mt-0.5">
-                Scholarship Exam
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-semibold bg-[#EFF8E8] text-[#4E8F27] border border-[#82C35B]/20">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#82C35B] animate-pulse" />
-              Batch 2026-27
-            </span>
-          </div>
+      <header className="w-full border-b border-slate-100/80 bg-white/60 backdrop-blur-md">
+        <div className="max-w-6xl mx-auto px-4 sm:px-8 h-16 flex items-center justify-between">
+          <span className="text-xs font-bold tracking-widest text-[#673AB7] uppercase">
+            SmartUp Academic Evaluation
+          </span>
+          <span className="text-xs font-semibold text-slate-500">
+            Official Portal
+          </span>
         </div>
       </header>
 
@@ -111,53 +87,37 @@ export default function ScholarRegistrationPage() {
       <main className="max-w-6xl mx-auto px-4 sm:px-8 py-10 sm:py-16 w-full flex-1 flex items-center">
         <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-center">
           
-          {/* Left Column: Minimal Branding & Core Proposition */}
-          <div className="lg:col-span-6 space-y-6">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#EDE7F6] text-[#673AB7] text-xs font-bold tracking-wide">
-              <Sparkles className="w-3.5 h-3.5 text-[#673AB7]" />
-              <span>SmartUp Talent Search 2026</span>
+          {/* Left Column: Minimal Brand Logo & Inspiring Quote */}
+          <div className="lg:col-span-6 space-y-8 lg:pr-8">
+            <div className="flex items-center gap-3">
+              <Image
+                src="/smartup-logo-v2.png"
+                alt="SmartUp"
+                width={56}
+                height={56}
+                priority
+                className="object-contain"
+              />
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl sm:text-3xl font-black tracking-wider text-slate-900 uppercase leading-none">
+                    SMART UP
+                  </span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#82C35B]" />
+                </div>
+                <span className="text-xs font-bold text-[#673AB7] tracking-widest uppercase mt-1">
+                  Scholarship Exam
+                </span>
+              </div>
             </div>
 
-            <h1 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight leading-[1.15]">
-              Register for SmartUp{" "}
-              <span className="text-[#673AB7]">Scholarship Exam</span> & Win Up To{" "}
-              <span className="text-[#82C35B] underline decoration-[#82C35B]/30 decoration-wavy">
-                100% Fee Waiver
-              </span>
-            </h1>
-
-            <p className="text-slate-600 text-sm sm:text-base leading-relaxed max-w-md">
-              Free computerized academic test for Classes 8, 9, 10, +1 & +2 with instant results and fee waiver vouchers.
-            </p>
-
-            {/* 3 Crisp Minimal Highlights */}
-            <div className="space-y-2.5 pt-2 max-w-md">
-              <div className="flex items-center gap-3 p-3 rounded-2xl bg-white border border-slate-200/70 shadow-2xs">
-                <div className="w-7 h-7 rounded-lg bg-[#EDE7F6] text-[#673AB7] flex items-center justify-center font-black text-xs shrink-0">
-                  100%
-                </div>
-                <span className="text-xs font-semibold text-slate-800">
-                  Full Tuition Fee Waiver for Super 30 Top Performers
-                </span>
-              </div>
-
-              <div className="flex items-center gap-3 p-3 rounded-2xl bg-white border border-slate-200/70 shadow-2xs">
-                <div className="w-7 h-7 rounded-lg bg-[#EFF8E8] text-[#4E8F27] flex items-center justify-center font-bold text-xs shrink-0">
-                  ⚡
-                </div>
-                <span className="text-xs font-semibold text-slate-800">
-                  Instant Computerized Result & Digital Rank Certificate
-                </span>
-              </div>
-
-              <div className="flex items-center gap-3 p-3 rounded-2xl bg-white border border-slate-200/70 shadow-2xs">
-                <div className="w-7 h-7 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs shrink-0">
-                  ✓
-                </div>
-                <span className="text-xs font-semibold text-slate-800">
-                  Online from Home or Offline at 9+ SmartUp Centers
-                </span>
-              </div>
+            <div className="space-y-4">
+              <blockquote className="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight leading-[1.25]">
+                “Education is the key that unlocks your true potential.”
+              </blockquote>
+              <p className="text-sm sm:text-base text-slate-500 font-medium leading-relaxed">
+                Take the SmartUp Scholarship Exam to measure your academic strengths and earn certified tuition fee waivers.
+              </p>
             </div>
           </div>
 
