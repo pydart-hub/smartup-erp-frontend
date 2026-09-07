@@ -14,10 +14,11 @@ import {
   ChevronDown,
 } from "lucide-react";
 
-// Official SmartUp Colors from mockup:
+// Official SmartUp Colors & Theme:
 // Primary Brand Purple: #5C34A4 / #673AB7 (Gradient & Buttons)
 // Light Purple Bg: #FAF9FD / White
 // Class pill active: #5B32A3
+// Scholarship Exam Portal 2026-27 Production Release
 
 const KERALA_DISTRICTS = [
   "Ernakulam",
