@@ -17,6 +17,9 @@ export async function GET(request: NextRequest) {
         isActive: true,
         startAt: { lte: now },
         endAt: { gte: now },
+        subjectCode: {
+          in: ["BIOLOGY", "CHEMISTRY", "ENGLISH", "HINDI", "MALAYALAM", "MATHS", "PHYSICS"],
+        },
       },
       include: {
         subject: {
