@@ -108,11 +108,11 @@ export default function ScholarResultView({ attempt }: ScholarResultViewProps) {
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12 w-full flex-1">
         <div
           id="scholarship-report"
-          className="relative overflow-hidden bg-white rounded-[32px] p-6 sm:p-10 border border-slate-100 shadow-xl shadow-purple-950/5 space-y-8 print:border-none print:shadow-none print:p-2"
+          className="relative overflow-hidden bg-white rounded-[32px] p-6 sm:p-10 border border-slate-100 shadow-xl shadow-purple-950/5 space-y-8 print:space-y-3 print:border-none print:shadow-none print:p-0"
         >
           {/* Centered SmartUp Logo Background Watermark with Low Opacity */}
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden z-0 select-none">
-            <div className="relative w-[340px] h-[340px] sm:w-[500px] sm:h-[500px] opacity-[0.035] print:opacity-[0.05]">
+            <div className="relative w-[340px] h-[340px] sm:w-[500px] sm:h-[500px] opacity-[0.035] print:opacity-[0.04]">
               <Image
                 src="/smartup-logo-v2.png"
                 alt=""
@@ -124,32 +124,32 @@ export default function ScholarResultView({ attempt }: ScholarResultViewProps) {
           </div>
 
           {/* Print-Only Official Header with SmartUp Logo */}
-          <div className="relative z-10 hidden print:flex items-center justify-between border-b-2 border-[#5C34A4] pb-4 mb-6">
-            <div className="flex items-center gap-3.5">
-              <div className="relative w-14 h-14 shrink-0">
+          <div className="relative z-10 hidden print:flex items-center justify-between border-b-2 border-[#5C34A4] pb-2 mb-2">
+            <div className="flex items-center gap-2.5">
+              <div className="relative w-11 h-11 shrink-0">
                 <Image
                   src="/smartup-logo-v2.png"
                   alt="SmartUp"
-                  width={56}
-                  height={56}
+                  width={44}
+                  height={44}
                   priority
                   className="object-contain"
                 />
               </div>
               <div className="flex flex-col">
-                <span className="text-2xl font-black text-slate-900 tracking-tight leading-none">
+                <span className="text-xl font-black text-slate-900 tracking-tight leading-none">
                   SMART UP
                 </span>
-                <span className="text-xs font-bold text-[#5C34A4] tracking-widest uppercase mt-1">
+                <span className="text-[10px] font-bold text-[#5C34A4] tracking-widest uppercase mt-0.5">
                   Online Scholarship Examination 2026-27
                 </span>
               </div>
             </div>
 
             <div className="text-right">
-              <div className="text-sm font-bold text-slate-800">Official Assessment &amp; Answer Report</div>
-              <div className="text-xs text-slate-500">
-                {new Date(attempt.createdAt).toLocaleDateString("en-IN", {
+              <div className="text-xs font-bold text-slate-800">Official Candidate Scorecard &amp; Answer Key</div>
+              <div className="text-[10px] text-slate-500">
+                Date: {new Date(attempt.createdAt).toLocaleDateString("en-IN", {
                   day: "numeric",
                   month: "short",
                   year: "numeric",
@@ -159,98 +159,98 @@ export default function ScholarResultView({ attempt }: ScholarResultViewProps) {
           </div>
 
           {/* Top Hero Banner */}
-          <div className="relative z-10 text-center space-y-3">
-            <div className="w-20 h-20 rounded-full bg-[#EFEBFA] text-[#5C34A4] flex items-center justify-center mx-auto shadow-inner print:w-16 print:h-16">
-              <Trophy className="w-10 h-10 stroke-[2.2] print:w-8 print:h-8" />
+          <div className="relative z-10 text-center space-y-3 print:space-y-0.5">
+            <div className="w-20 h-20 rounded-full bg-[#EFEBFA] text-[#5C34A4] flex items-center justify-center mx-auto shadow-inner print:hidden">
+              <Trophy className="w-10 h-10 stroke-[2.2]" />
             </div>
 
-            <div className="space-y-1">
-              <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#7C5CB7]">
+            <div className="space-y-1 print:space-y-0">
+              <span className="text-xs print:text-[9.5px] font-bold uppercase tracking-[0.2em] text-[#7C5CB7]">
                 Official Scorecard &amp; Assessment Report
               </span>
-              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+              <h1 className="text-2xl sm:text-3xl print:text-lg font-black text-slate-900 tracking-tight">
                 Scholarship Assessment Completed!
               </h1>
-              <p className="text-xs sm:text-sm text-slate-500">
+              <p className="text-xs sm:text-sm print:text-[10px] text-slate-500">
                 Congratulations, <strong className="text-[#5C34A4]">{attempt.studentName}</strong>! Your results have been officially recorded.
               </p>
             </div>
           </div>
 
           {/* Student & Assessment Details Bar */}
-          <div className="relative z-10 grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50/90 backdrop-blur-sm p-4 rounded-2xl border border-slate-100 text-xs">
+          <div className="relative z-10 grid grid-cols-2 sm:grid-cols-4 gap-3 print:gap-1.5 bg-slate-50/90 backdrop-blur-sm p-4 print:p-2 rounded-2xl print:rounded-xl border border-slate-100 text-xs print:text-[9.5px]">
             <div className="space-y-0.5">
               <span className="text-slate-400 font-medium flex items-center gap-1">
-                <User className="w-3.5 h-3.5" /> Student Name
+                <User className="w-3.5 h-3.5 print:w-3 print:h-3" /> Student Name
               </span>
               <p className="font-bold text-slate-900 truncate">{attempt.studentName}</p>
             </div>
 
             <div className="space-y-0.5">
               <span className="text-slate-400 font-medium flex items-center gap-1">
-                <GraduationCap className="w-3.5 h-3.5" /> Class Level
+                <GraduationCap className="w-3.5 h-3.5 print:w-3 print:h-3" /> Class Level
               </span>
               <p className="font-bold text-slate-900">Class {attempt.classLevel}</p>
             </div>
 
             <div className="space-y-0.5">
               <span className="text-slate-400 font-medium flex items-center gap-1">
-                <MapPin className="w-3.5 h-3.5" /> District
+                <MapPin className="w-3.5 h-3.5 print:w-3 print:h-3" /> District
               </span>
               <p className="font-bold text-slate-900 truncate">{attempt.studentBranch || "Kerala"}</p>
             </div>
 
             <div className="space-y-0.5">
               <span className="text-slate-400 font-medium flex items-center gap-1">
-                <FileCheck2 className="w-3.5 h-3.5" /> Total Questions
+                <FileCheck2 className="w-3.5 h-3.5 print:w-3 print:h-3" /> Total Questions
               </span>
               <p className="font-bold text-slate-900">40 MCQs</p>
             </div>
           </div>
 
           {/* Core Score Statistics */}
-          <div className="relative z-10 grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="relative z-10 grid grid-cols-1 sm:grid-cols-3 gap-3 print:gap-2">
             {/* Score Card */}
-            <div className="p-6 rounded-3xl bg-gradient-to-br from-[#5C34A4] to-[#7B42D6] text-white space-y-2 shadow-lg shadow-purple-950/15">
-              <span className="text-[11px] font-bold uppercase tracking-widest text-purple-200">
+            <div className="p-4 sm:p-5 print:p-2.5 rounded-2xl bg-gradient-to-br from-[#5C34A4] to-[#7B42D6] text-white space-y-1 shadow-md shadow-purple-950/15">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-purple-200">
                 Score Obtained
               </span>
-              <div className="flex items-baseline gap-2">
-                <span className="text-4xl sm:text-5xl font-black">{score}</span>
-                <span className="text-sm font-semibold text-purple-200">/ {total} Marks</span>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-3xl sm:text-4xl print:text-2xl font-black">{score}</span>
+                <span className="text-xs font-semibold text-purple-200">/ {total} Marks</span>
               </div>
-              <p className="text-xs text-purple-100 font-medium">Overall Percentage: {percentage}%</p>
+              <p className="text-[11px] print:text-[9.5px] text-purple-100 font-medium">Percentage: {percentage}%</p>
             </div>
 
             {/* Answer Breakdown */}
-            <div className="p-6 rounded-3xl bg-slate-50/90 backdrop-blur-sm border border-slate-100 flex flex-col justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
+            <div className="p-4 sm:p-5 print:p-2.5 rounded-2xl bg-slate-50/90 backdrop-blur-sm border border-slate-100 flex flex-col justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
                 Accuracy Summary
               </span>
-              <div className="grid grid-cols-3 gap-2 text-center my-2">
-                <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-2">
-                  <span className="block text-lg font-black text-emerald-700">{attempt.correctCount}</span>
-                  <span className="text-[10px] font-bold text-emerald-600">Correct</span>
+              <div className="grid grid-cols-3 gap-1.5 text-center my-1">
+                <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-1.5 print:p-1">
+                  <span className="block text-base print:text-sm font-black text-emerald-700">{attempt.correctCount}</span>
+                  <span className="text-[9px] font-bold text-emerald-600">Correct</span>
                 </div>
-                <div className="bg-rose-50 border border-rose-100 rounded-xl p-2">
-                  <span className="block text-lg font-black text-rose-700">{attempt.wrongCount}</span>
-                  <span className="text-[10px] font-bold text-rose-600">Wrong</span>
+                <div className="bg-rose-50 border border-rose-100 rounded-lg p-1.5 print:p-1">
+                  <span className="block text-base print:text-sm font-black text-rose-700">{attempt.wrongCount}</span>
+                  <span className="text-[9px] font-bold text-rose-600">Wrong</span>
                 </div>
-                <div className="bg-slate-100 border border-slate-200 rounded-xl p-2">
-                  <span className="block text-lg font-black text-slate-700">{attempt.unansweredCount}</span>
-                  <span className="text-[10px] font-bold text-slate-500">Skipped</span>
+                <div className="bg-slate-100 border border-slate-200 rounded-lg p-1.5 print:p-1">
+                  <span className="block text-base print:text-sm font-black text-slate-700">{attempt.unansweredCount}</span>
+                  <span className="text-[9px] font-bold text-slate-500">Skipped</span>
                 </div>
               </div>
-              <p className="text-[11px] text-slate-400 text-center">Standard computerized evaluation</p>
+              <p className="text-[10px] print:text-[8.5px] text-slate-400 text-center">Computerized evaluation</p>
             </div>
 
             {/* Academic Performance Rating */}
-            <div className="p-6 rounded-3xl border border-purple-200 bg-purple-50/50 backdrop-blur-sm flex flex-col justify-between">
+            <div className="p-4 sm:p-5 print:p-2.5 rounded-2xl border border-purple-200 bg-purple-50/50 backdrop-blur-sm flex flex-col justify-between">
               <div>
-                <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-white text-[#5C34A4] border border-purple-200 inline-block mb-2">
-                  Academic Performance
+                <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-white text-[#5C34A4] border border-purple-200 inline-block mb-1">
+                  Performance
                 </span>
-                <h3 className="text-xl font-black text-slate-900 leading-tight">
+                <h3 className="text-base sm:text-lg print:text-sm font-black text-slate-900 leading-tight">
                   {percentage >= 80
                     ? "Excellent Performance"
                     : percentage >= 60
@@ -260,28 +260,29 @@ export default function ScholarResultView({ attempt }: ScholarResultViewProps) {
                     : "Participated"}
                 </h3>
               </div>
-              <p className="text-xs text-slate-600 mt-2 font-medium">
+              <p className="text-[11px] print:text-[8.5px] text-slate-600 mt-1 font-medium">
                 Verified computerized assessment for SmartUp Scholarship Exam Batch 2026-27.
               </p>
             </div>
           </div>
 
-          {/* Detailed Question-by-Question Review with Student Answer & Correct Answer */}
+          {/* Detailed Question-by-Question Review with Student Answer & Correct Answer - Compact 2-Column Grid */}
           {questions.length > 0 && (
-            <div className="relative z-10 pt-4 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-200/80 pb-3">
+            <div className="relative z-10 pt-2 space-y-2.5 print:space-y-1.5">
+              <div className="flex items-center justify-between border-b border-slate-200/80 pb-2 print:pb-1">
                 <div className="flex items-center gap-2">
-                  <FileSpreadsheet className="w-5 h-5 text-[#5C34A4]" />
-                  <h2 className="text-base sm:text-lg font-black text-slate-900">
+                  <FileSpreadsheet className="w-4 h-4 text-[#5C34A4]" />
+                  <h2 className="text-sm sm:text-base print:text-xs font-black text-slate-900">
                     Question-wise Performance &amp; Answer Key
                   </h2>
                 </div>
-                <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
+                <span className="text-[11px] print:text-[9px] font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full">
                   {questions.length} Questions Evaluated
                 </span>
               </div>
 
-              <div className="space-y-3">
+              {/* 2-Column Compact Grid on Screen and in Print */}
+              <div className="grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-2.5 print:gap-1.5">
                 {questions.map((q) => {
                   const studentSelectedOption = q.options.find(
                     (opt) => opt.optionKey === q.selectedOption
@@ -293,119 +294,103 @@ export default function ScholarResultView({ attempt }: ScholarResultViewProps) {
                   return (
                     <div
                       key={q.id}
-                      className={`p-4 sm:p-5 rounded-2xl border transition-all print:break-inside-avoid ${
+                      className={`p-2.5 sm:p-3 print:p-2 rounded-xl border text-xs print:text-[9px] print:break-inside-avoid flex flex-col justify-between transition-all ${
                         q.selectedOption === null
-                          ? "bg-slate-50/80 border-slate-200"
+                          ? "bg-slate-50/70 border-slate-200"
                           : q.isCorrect
-                          ? "bg-emerald-50/40 border-emerald-200"
-                          : "bg-rose-50/30 border-rose-200"
+                          ? "bg-emerald-50/30 border-emerald-200"
+                          : "bg-rose-50/25 border-rose-200"
                       }`}
                     >
-                      {/* Question Header */}
-                      <div className="flex items-start justify-between gap-3 mb-2.5">
-                        <div className="flex items-center gap-2">
-                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-slate-200/70 text-slate-800 text-xs font-black shrink-0">
-                            {q.questionNumber}
-                          </span>
-                          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                            MCQ
+                      <div>
+                        {/* Question Header Line */}
+                        <div className="flex items-start justify-between gap-1.5 mb-1.5">
+                          <div className="flex items-baseline gap-1.5">
+                            <span className="font-black text-slate-800 shrink-0 text-xs print:text-[9.5px]">
+                              Q{q.questionNumber}.
+                            </span>
+                            <p className="font-bold text-slate-900 leading-snug text-xs print:text-[9px]">
+                              {q.questionText}
+                            </p>
+                          </div>
+                          <span
+                            className={`shrink-0 text-[10px] print:text-[8px] font-black px-2 py-0.5 rounded-md ${
+                              q.selectedOption === null
+                                ? "bg-slate-200/80 text-slate-700"
+                                : q.isCorrect
+                                ? "bg-emerald-100 text-emerald-800"
+                                : "bg-rose-100 text-rose-800"
+                            }`}
+                          >
+                            {q.selectedOption === null
+                              ? "Skipped"
+                              : q.isCorrect
+                              ? `Correct (+${q.marks})`
+                              : "Incorrect"}
                           </span>
                         </div>
 
-                        {/* Status Badge */}
-                        <div>
-                          {q.selectedOption === null ? (
-                            <span className="inline-flex items-center gap-1 bg-slate-200 text-slate-700 text-[11px] font-bold px-2.5 py-1 rounded-full">
-                              <MinusCircle className="w-3.5 h-3.5 text-slate-500" />
-                              <span>Skipped</span>
-                            </span>
-                          ) : q.isCorrect ? (
-                            <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 text-[11px] font-bold px-2.5 py-1 rounded-full">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                              <span>Correct (+{q.marks})</span>
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 bg-rose-100 text-rose-800 text-[11px] font-bold px-2.5 py-1 rounded-full">
-                              <XCircle className="w-3.5 h-3.5 text-rose-600" />
-                              <span>Incorrect (0)</span>
-                            </span>
-                          )}
-                        </div>
-                      </div>
+                        {/* Compact 2x2 Options Grid */}
+                        <div className="grid grid-cols-2 gap-1 mb-1.5">
+                          {q.options.map((opt) => {
+                            const isThisCorrect = opt.optionKey === q.correctOption;
+                            const isThisSelected = opt.optionKey === q.selectedOption;
 
-                      {/* Question Text */}
-                      <p className="text-sm font-bold text-slate-800 leading-relaxed mb-3">
-                        {q.questionText}
-                      </p>
+                            let optionStyle = "bg-white/90 border-slate-200 text-slate-700";
+                            if (isThisCorrect) {
+                              optionStyle = "bg-emerald-50 border-emerald-300 text-emerald-900 font-semibold";
+                            } else if (isThisSelected && !q.isCorrect) {
+                              optionStyle = "bg-rose-50 border-rose-300 text-rose-900 font-semibold";
+                            }
 
-                      {/* Options Grid */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
-                        {q.options.map((opt) => {
-                          const isThisCorrect = opt.optionKey === q.correctOption;
-                          const isThisSelected = opt.optionKey === q.selectedOption;
-
-                          let optionStyle = "bg-white/80 border-slate-200 text-slate-700";
-                          let indicator = null;
-
-                          if (isThisCorrect) {
-                            optionStyle = "bg-emerald-100/70 border-emerald-300 text-emerald-900 font-semibold";
-                            indicator = (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase text-emerald-700 bg-emerald-200/80 px-1.5 py-0.5 rounded">
-                                <Check className="w-3 h-3" /> Correct
-                              </span>
-                            );
-                          } else if (isThisSelected && !q.isCorrect) {
-                            optionStyle = "bg-rose-100/70 border-rose-300 text-rose-900 font-semibold";
-                            indicator = (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase text-rose-700 bg-rose-200/80 px-1.5 py-0.5 rounded">
-                                <X className="w-3 h-3" /> Your Choice
-                              </span>
-                            );
-                          }
-
-                          return (
-                            <div
-                              key={opt.optionKey}
-                              className={`p-2.5 rounded-xl border text-xs flex items-start justify-between gap-2 ${optionStyle}`}
-                            >
-                              <div className="flex items-start gap-2">
-                                <span className="font-black shrink-0 w-5 h-5 rounded-md bg-black/5 flex items-center justify-center text-[11px]">
-                                  {opt.optionKey}
-                                </span>
-                                <span className="leading-snug">{opt.optionText}</span>
+                            return (
+                              <div
+                                key={opt.optionKey}
+                                className={`px-2 py-1 print:py-0.5 rounded-lg border text-[11px] print:text-[8.5px] flex items-center justify-between gap-1 ${optionStyle}`}
+                              >
+                                <div className="flex items-center gap-1.5 truncate">
+                                  <span className="font-black text-[10px] print:text-[8px] text-slate-500 shrink-0">
+                                    {opt.optionKey}.
+                                  </span>
+                                  <span className="truncate">{opt.optionText}</span>
+                                </div>
+                                {isThisCorrect && (
+                                  <span className="text-[9px] text-emerald-600 font-bold shrink-0">✓</span>
+                                )}
+                                {isThisSelected && !q.isCorrect && (
+                                  <span className="text-[9px] text-rose-600 font-bold shrink-0">✗</span>
+                                )}
                               </div>
-                              {indicator}
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                        </div>
                       </div>
 
-                      {/* Answer Comparison Summary Line */}
-                      <div className="pt-2 border-t border-slate-200/60 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-slate-400 font-medium">Your Answer:</span>
-                          {q.selectedOption ? (
-                            <span
-                              className={`font-bold ${
-                                q.isCorrect ? "text-emerald-700" : "text-rose-700"
-                              }`}
-                            >
-                              Option {q.selectedOption}
-                              {studentSelectedOption?.optionText &&
-                                ` (${studentSelectedOption.optionText})`}
-                            </span>
-                          ) : (
-                            <span className="font-semibold text-slate-500 italic">Not Answered</span>
-                          )}
+                      {/* Compact 1-Line Answer Comparison Footer */}
+                      <div className="pt-1 border-t border-slate-200/60 flex items-center justify-between text-[10.5px] print:text-[8.5px] text-slate-500">
+                        <div className="truncate">
+                          Your:{" "}
+                          <span
+                            className={`font-bold ${
+                              q.selectedOption === null
+                                ? "text-slate-500 italic"
+                                : q.isCorrect
+                                ? "text-emerald-700"
+                                : "text-rose-700"
+                            }`}
+                          >
+                            {q.selectedOption
+                              ? `Opt ${q.selectedOption}${studentSelectedOption?.optionText ? ` (${studentSelectedOption.optionText})` : ""}`
+                              : "Skipped"}
+                          </span>
                         </div>
 
                         {!q.isCorrect && (
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-slate-400 font-medium">Correct Answer:</span>
+                          <div className="shrink-0 text-right">
+                            Correct:{" "}
                             <span className="font-bold text-emerald-700">
-                              Option {q.correctOption}
-                              {correctOptionObj?.optionText &&
-                                ` (${correctOptionObj.optionText})`}
+                              Opt {q.correctOption}
+                              {correctOptionObj?.optionText ? ` (${correctOptionObj.optionText})` : ""}
                             </span>
                           </div>
                         )}
@@ -440,7 +425,7 @@ export default function ScholarResultView({ attempt }: ScholarResultViewProps) {
           </div>
 
           {/* Official Verification Footer Note */}
-          <div className="relative z-10 flex items-center justify-center gap-1.5 text-xs text-slate-400 pt-2">
+          <div className="relative z-10 flex items-center justify-center gap-1.5 text-xs text-slate-400 pt-2 print:pt-1 print:text-[9px]">
             <ShieldCheck className="w-4 h-4 text-slate-400" />
             <span>Official Computerized Assessment Report — SmartUp Learning Ventures</span>
           </div>
@@ -458,7 +443,7 @@ export default function ScholarResultView({ attempt }: ScholarResultViewProps) {
         @media print {
           @page {
             size: A4 portrait;
-            margin: 10mm;
+            margin: 6mm 8mm;
           }
 
           body {
@@ -466,6 +451,7 @@ export default function ScholarResultView({ attempt }: ScholarResultViewProps) {
             color: #0f172a !important;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
+            font-size: 10px !important;
           }
 
           .no-print, header, footer {
@@ -474,6 +460,7 @@ export default function ScholarResultView({ attempt }: ScholarResultViewProps) {
 
           main {
             padding: 0 !important;
+            margin: 0 !important;
             max-width: 100% !important;
           }
 
@@ -481,6 +468,8 @@ export default function ScholarResultView({ attempt }: ScholarResultViewProps) {
             border: none !important;
             box-shadow: none !important;
             padding: 0 !important;
+            margin: 0 !important;
+            space-y: 8px !important;
           }
         }
       `,
