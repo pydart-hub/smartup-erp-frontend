@@ -41,6 +41,7 @@ export function proxy(request: NextRequest) {
     const isInternal =
       pathname.startsWith("/api") ||
       pathname.startsWith("/_next") ||
+      pathname.startsWith("/exam-site") || // Allow public exam platform directly on scholar subdomain
       pathname.includes("."); // e.g. favicon.ico, images
 
     console.log(`[MIDDLEWARE DEBUG] Scholar subdomain detected. isInternal: ${isInternal}, pathname: "${pathname}"`);
