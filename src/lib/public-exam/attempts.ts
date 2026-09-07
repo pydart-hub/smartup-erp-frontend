@@ -90,7 +90,9 @@ export async function finalizeExpiredAttemptIfNeeded(attemptId: string, now = ne
     return { attempt: null, finalized: false, expired: false };
   }
 
-  const expired = isAttemptExpired(attempt.startedAt, attempt.publishing.durationMinutes, now);
+  const paperQuestions = parsePaperSnapshot(attempt.paperSnapshotJson);
+  const effectiveDurationMinutes = paperQuestions.length > 0 ? paperQuestions.length : (attempt.publishing.durationMinutes || 40);
+  const expired = isAttemptExpired(attempt.startedAt, effectiveDurationMinutes, now);
 
   if (attempt.status !== "in_progress" || !expired) {
     return { attempt, finalized: false, expired };

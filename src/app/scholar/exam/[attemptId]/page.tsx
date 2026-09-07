@@ -41,7 +41,7 @@ export default async function ScholarAttemptPage({ params }: PageProps) {
       studentName={attempt.studentName}
       examTitle={attempt.publishing.title}
       classLevel={attempt.classLevel}
-      durationMinutes={attempt.publishing.durationMinutes || 30}
+      durationMinutes={questions.length > 0 ? questions.length : (attempt.publishing.durationMinutes || 40)}
       startedAt={attempt.startedAt.toISOString()}
       questions={questions}
       initialAnswers={answersMap}

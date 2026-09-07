@@ -174,10 +174,12 @@ export default function ScholarExamPlayer({
 
   autoSubmitRef.current = handleAutoSubmit;
 
-  // Overall Exam Timer (30 mins)
+  // Overall Exam Timer: dynamically based on 1 minute per question (questions.length minutes)
+  const totalExamMinutes = questions.length > 0 ? questions.length : (durationMinutes || 40);
+
   useEffect(() => {
     const startTime = new Date(startedAt).getTime();
-    const durationMs = durationMinutes * 60 * 1000;
+    const durationMs = totalExamMinutes * 60 * 1000;
     const endTime = startTime + durationMs;
 
     const tick = () => {
@@ -197,7 +199,7 @@ export default function ScholarExamPlayer({
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [startedAt, durationMinutes]);
+  }, [startedAt, totalExamMinutes]);
 
   // Per-Question 1-Minute (60 Seconds) Timer:
   // When timer expires, auto-advances to the next question. If last question, auto-submits.
@@ -350,7 +352,7 @@ export default function ScholarExamPlayer({
                   ? "bg-rose-50 text-rose-600 border border-rose-200"
                   : "bg-slate-100 text-slate-700 border border-slate-200"
               }`}
-              title="Total 30-minute exam time"
+              title="Total exam time (1 minute per question)"
             >
               <span className="text-[9px] text-slate-400 font-sans uppercase font-bold tracking-wider">Total:</span>
               <span>

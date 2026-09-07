@@ -55,8 +55,13 @@ export async function POST(request: NextRequest) {
         id: true,
         title: true,
         durationMinutes: true,
+        paper: {
+          select: { totalQuestions: true },
+        },
       },
     });
+
+    const durationMinutes = activePublishing?.paper?.totalQuestions || activePublishing?.durationMinutes || 40;
 
     return NextResponse.json({
       success: true,
@@ -64,7 +69,7 @@ export async function POST(request: NextRequest) {
       hasActiveExam: !!activePublishing,
       publishingId: activePublishing?.id || null,
       examTitle: activePublishing?.title || null,
-      durationMinutes: activePublishing?.durationMinutes || 30,
+      durationMinutes,
     });
   } catch (error: any) {
     console.error("[api/scholar/register] Error:", error);
