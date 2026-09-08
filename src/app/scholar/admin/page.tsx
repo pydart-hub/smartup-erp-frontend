@@ -76,7 +76,6 @@ export default function ScholarAdminPage() {
   const [registrations, setRegistrations] = useState<RegistrationRecord[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [activeTab, setActiveTab] = useState<"attempts" | "registrations">("attempts");
-  const [examScope, setExamScope] = useState<"scholarship" | "all">("scholarship");
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -89,7 +88,7 @@ export default function ScholarAdminPage() {
     if (savedToken) {
       setToken(savedToken);
       setIsAuthenticated(true);
-      fetchData(savedToken, examScope);
+      fetchData(savedToken);
     }
   }, []);
 
@@ -114,7 +113,7 @@ export default function ScholarAdminPage() {
       setToken(data.token);
       setIsAuthenticated(true);
       setPassword("");
-      fetchData(data.token, examScope);
+      fetchData(data.token);
     } catch (err: any) {
       setLoginError(err.message || "Invalid credentials.");
     } finally {
@@ -132,10 +131,10 @@ export default function ScholarAdminPage() {
     setPassword("");
   };
 
-  const fetchData = async (authToken: string, scope = examScope) => {
+  const fetchData = async (authToken: string) => {
     setIsLoadingData(true);
     try {
-      const res = await fetch(`/api/scholar/admin/attempts?scope=${scope}`, {
+      const res = await fetch("/api/scholar/admin/attempts", {
         headers: { Authorization: `Bearer ${authToken}` },
       });
 
@@ -153,13 +152,6 @@ export default function ScholarAdminPage() {
       console.error("Failed to load scholar data:", err);
     } finally {
       setIsLoadingData(false);
-    }
-  };
-
-  const handleScopeChange = (newScope: "scholarship" | "all") => {
-    setExamScope(newScope);
-    if (token) {
-      fetchData(token, newScope);
     }
   };
 
@@ -236,7 +228,7 @@ export default function ScholarAdminPage() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `scholar_attendees_${examScope}_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute("download", `scholar_candidates_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -373,32 +365,14 @@ export default function ScholarAdminPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Exam Scope Toggle */}
-            <div className="hidden sm:flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/80 text-xs font-semibold">
-              <button
-                onClick={() => handleScopeChange("scholarship")}
-                className={`px-3 py-1.5 rounded-lg transition-all ${
-                  examScope === "scholarship"
-                    ? "bg-white text-[#5C34A4] shadow-xs font-bold"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                Scholarship Exams
-              </button>
-              <button
-                onClick={() => handleScopeChange("all")}
-                className={`px-3 py-1.5 rounded-lg transition-all ${
-                  examScope === "all"
-                    ? "bg-white text-[#5C34A4] shadow-xs font-bold"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                All Public Exams
-              </button>
+            {/* Scholarship Exam Active Badge */}
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 border border-purple-200/70 text-xs font-bold text-[#5C34A4]">
+              <span className="w-2 h-2 rounded-full bg-[#5C34A4] animate-pulse" />
+              <span>Scholarship Exam</span>
             </div>
 
             <button
-              onClick={() => token && fetchData(token, examScope)}
+              onClick={() => token && fetchData(token)}
               disabled={isLoadingData}
               className="p-2 text-slate-600 hover:text-slate-900 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
               title="Refresh logs"
@@ -428,34 +402,22 @@ export default function ScholarAdminPage() {
       {/* Main Container */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full flex-1 flex flex-col space-y-6">
         {/* Scope notification banner */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-purple-50/80 border border-purple-200/70 rounded-2xl p-4">
+        <div className="flex items-center justify-between gap-3 bg-purple-50/80 border border-purple-200/70 rounded-2xl p-4">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-[#5C34A4] text-white flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-[#5C34A4] text-white flex items-center justify-center shrink-0 shadow-xs">
               <Layers className="w-4 h-4" />
             </div>
             <div>
               <div className="text-xs font-bold text-slate-900">
                 Viewing:{" "}
                 <span className="text-[#5C34A4]">
-                  {examScope === "scholarship"
-                    ? "Dedicated Scholarship Exam 2026-27 Candidates"
-                    : "All Online Diagnosis & Scholarship Exam Attempts"}
+                  Dedicated Scholarship Exam 2026-27 Candidates
                 </span>
               </div>
               <div className="text-[11px] text-slate-500">
-                {examScope === "scholarship"
-                  ? "Showing students taking the official SmartUp Scholarship Exam (Classes 8, 9, 10, +1 & +2)."
-                  : "Showing all historical diagnosis and public exam attempts stored in the portal database."}
+                Showing students taking the official SmartUp Scholarship Exam (Classes 8, 9, 10, +1 &amp; +2).
               </div>
             </div>
-          </div>
-          <div className="flex sm:hidden items-center gap-2">
-            <button
-              onClick={() => handleScopeChange(examScope === "scholarship" ? "all" : "scholarship")}
-              className="text-xs font-bold text-[#5C34A4] underline"
-            >
-              Switch to {examScope === "scholarship" ? "All Public Exams" : "Scholarship Only"}
-            </button>
           </div>
         </div>
 
