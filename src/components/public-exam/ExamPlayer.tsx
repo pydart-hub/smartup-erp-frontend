@@ -299,6 +299,7 @@ export default function ExamPlayer({
       studentName={studentName}
       studentPhone={studentPhone}
       attemptId={attemptId}
+      onAutoSubmit={handleAutoSubmit}
     >
       <div className="min-h-screen bg-app-bg text-text-primary relative overflow-hidden selection:bg-primary-light selection:text-primary">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(103,58,183,0.16),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(130,195,91,0.12),transparent_26%)] dark:bg-[radial-gradient(circle_at_top_left,rgba(126,87,194,0.22),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(96,165,250,0.18),transparent_28%)]" />

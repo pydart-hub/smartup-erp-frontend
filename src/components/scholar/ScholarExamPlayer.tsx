@@ -307,6 +307,7 @@ export default function ScholarExamPlayer({
       studentName={studentName}
       studentPhone={studentPhone}
       attemptId={attemptId}
+      onAutoSubmit={handleAutoSubmit}
     >
       <div className="min-h-screen bg-[#FBFBFE] text-slate-800 flex flex-col justify-between font-sans select-none">
       {/* Top Fixed Header */}
