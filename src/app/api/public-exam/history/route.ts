@@ -10,7 +10,17 @@ export async function GET(request: NextRequest) {
     }
 
     const attempts = await db.examAttempt.findMany({
-      where: { studentPhone: phone },
+      where: {
+        studentPhone: phone,
+        publishing: {
+          NOT: {
+            OR: [
+              { slug: { startsWith: "scholarship-" } },
+              { title: { contains: "Scholarship", mode: "insensitive" } },
+            ],
+          },
+        },
+      },
       orderBy: { createdAt: "desc" },
       include: {
         publishing: {

@@ -25,6 +25,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Exam is not active or not found" }, { status: 404 });
     }
 
+    // Explicitly block scholarship exams from being triggered via the diagnosis engine
+    if (publishing.slug.startsWith("scholarship-") || publishing.title.toLowerCase().includes("scholarship")) {
+      return NextResponse.json(
+        { error: "Scholarship exams cannot be taken through the branch diagnosis site. Please visit scholar.smartuplearning.net" },
+        { status: 403 }
+      );
+    }
+
     const existingAttempts = await db.examAttempt.findMany({
       where: { publishingId, studentPhone: normalizedPhone, status: "in_progress" },
       orderBy: { createdAt: "desc" },

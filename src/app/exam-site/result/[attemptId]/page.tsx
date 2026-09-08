@@ -255,6 +255,9 @@ export default async function ResultPage({ params }: PageProps) {
       isActive: true,
       startAt: { lte: now },
       endAt: { gte: now },
+      subjectCode: {
+        in: ["BIOLOGY", "CHEMISTRY", "ENGLISH", "HINDI", "MALAYALAM", "MATHS", "PHYSICS"],
+      },
     },
     include: {
       subject: { select: { name: true } },
