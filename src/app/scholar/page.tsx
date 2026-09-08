@@ -135,12 +135,11 @@ export default function ScholarRegistrationPage() {
       {/* Top Navigation Bar */}
       <header className="w-full bg-transparent py-6 px-6 sm:px-12 lg:px-20">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          {/* Brand Logo & Title (Clickable Admin Trigger) */}
-          <button
-            type="button"
-            onClick={() => setIsAdminModalOpen(true)}
+          {/* Brand Logo & Title (Navigates to Dedicated Admin Control Page) */}
+          <a
+            href="/scholar/admin"
             className="flex items-center gap-3.5 group cursor-pointer text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5C34A4] rounded-xl p-1 -m-1 transition-transform active:scale-95"
-            title="SmartUp Admin Control"
+            title="SmartUp Admin Control Center"
           >
             <div className="relative w-11 h-11 flex items-center justify-center shrink-0 group-hover:opacity-90 transition-opacity">
               <Image
@@ -160,7 +159,7 @@ export default function ScholarRegistrationPage() {
                 Scholarship Exam
               </span>
             </div>
-          </button>
+          </a>
         </div>
       </header>
 

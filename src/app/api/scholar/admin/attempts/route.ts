@@ -56,6 +56,14 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: "desc" },
     });
 
+    // Create a fast lookup map for registration by phone or attemptId
+    const regByAttemptId = new Map<string, typeof registrations[0]>();
+    const regByPhone = new Map<string, typeof registrations[0]>();
+    for (const r of registrations) {
+      if (r.attemptId) regByAttemptId.set(r.attemptId, r);
+      if (r.phone) regByPhone.set(r.phone, r);
+    }
+
     // Format attempts
     const formattedAttempts = attempts.map((a) => {
       let resultSnapshot: any = null;
@@ -69,13 +77,18 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      // Check linked registration for official district
+      const matchedReg = regByAttemptId.get(a.id) || (a.studentPhone ? regByPhone.get(a.studentPhone) : null);
+      const districtValue = matchedReg?.district || a.studentBranch || "Not specified";
+
       return {
         id: a.id,
         studentName: a.studentName,
         studentPhone: a.studentPhone,
-        district: a.studentBranch || "Not specified",
+        district: districtValue,
+        studentBranch: a.studentBranch || matchedReg?.district || null,
         classLevel: a.classLevel,
-        syllabus: a.syllabus || "State",
+        syllabus: a.syllabus || matchedReg?.syllabus || "State",
         examTitle: a.publishing?.title || "Scholarship Exam",
         status: a.status, // "in_progress", "submitted", "auto_submitted"
         scoreObtained: a.scoreObtained,
