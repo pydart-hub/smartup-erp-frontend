@@ -13,6 +13,7 @@ import {
   Sparkles,
   ShieldCheck,
 } from "lucide-react";
+import ExamSecurityGuard from "@/components/public-exam/ExamSecurityGuard";
 
 type Question = {
   id: string;
@@ -31,6 +32,7 @@ type Question = {
 type ScholarExamPlayerProps = {
   attemptId: string;
   studentName: string;
+  studentPhone?: string;
   examTitle: string;
   classLevel: string;
   durationMinutes: number;
@@ -42,6 +44,7 @@ type ScholarExamPlayerProps = {
 export default function ScholarExamPlayer({
   attemptId,
   studentName,
+  studentPhone,
   examTitle,
   classLevel,
   durationMinutes,
@@ -300,7 +303,12 @@ export default function ScholarExamPlayer({
   const isUrgent = remainingSeconds < 300; // < 5 mins
 
   return (
-    <div className="min-h-screen bg-[#FBFBFE] text-slate-800 flex flex-col justify-between font-sans select-none">
+    <ExamSecurityGuard
+      studentName={studentName}
+      studentPhone={studentPhone}
+      attemptId={attemptId}
+    >
+      <div className="min-h-screen bg-[#FBFBFE] text-slate-800 flex flex-col justify-between font-sans select-none">
       {/* Top Fixed Header */}
       <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 sm:px-8 py-3.5 shadow-sm">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
@@ -621,6 +629,7 @@ export default function ScholarExamPlayer({
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </ExamSecurityGuard>
   );
 }

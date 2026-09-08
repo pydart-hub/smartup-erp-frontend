@@ -39,6 +39,7 @@ export default async function AttemptPage({ params }: PageProps) {
     <ExamPlayer
       attemptId={attempt.id}
       studentName={attempt.studentName}
+      studentPhone={attempt.studentPhone || ""}
       examTitle={attempt.publishing.title}
       durationMinutes={attempt.publishing.durationMinutes}
       startedAt={attempt.startedAt.toISOString()}

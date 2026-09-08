@@ -14,6 +14,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
+import ExamSecurityGuard from "@/components/public-exam/ExamSecurityGuard";
 
 type Question = {
   id: string;
@@ -32,6 +33,7 @@ type Question = {
 type ExamPlayerProps = {
   attemptId: string;
   studentName: string;
+  studentPhone?: string;
   examTitle: string;
   durationMinutes: number;
   startedAt: string;
@@ -42,6 +44,7 @@ type ExamPlayerProps = {
 export default function ExamPlayer({
   attemptId,
   studentName,
+  studentPhone,
   examTitle,
   durationMinutes,
   startedAt,
@@ -292,7 +295,12 @@ export default function ExamPlayer({
   const progress = questions.length ? Math.round((answeredCount / questions.length) * 100) : 0;
 
   return (
-    <div className="min-h-screen bg-app-bg text-text-primary relative overflow-hidden selection:bg-primary-light selection:text-primary">
+    <ExamSecurityGuard
+      studentName={studentName}
+      studentPhone={studentPhone}
+      attemptId={attemptId}
+    >
+      <div className="min-h-screen bg-app-bg text-text-primary relative overflow-hidden selection:bg-primary-light selection:text-primary">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(103,58,183,0.16),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(130,195,91,0.12),transparent_26%)] dark:bg-[radial-gradient(circle_at_top_left,rgba(126,87,194,0.22),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(96,165,250,0.18),transparent_28%)]" />
 
       <header className="sticky top-0 z-20 border-b border-border-light bg-surface/85 backdrop-blur-xl">
@@ -480,7 +488,8 @@ export default function ExamPlayer({
           </div>
         </div>
       ) : null}
-    </div>
+      </div>
+    </ExamSecurityGuard>
   );
 }
 

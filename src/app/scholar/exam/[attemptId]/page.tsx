@@ -39,6 +39,7 @@ export default async function ScholarAttemptPage({ params }: PageProps) {
     <ScholarExamPlayer
       attemptId={attempt.id}
       studentName={attempt.studentName}
+      studentPhone={attempt.studentPhone || ""}
       examTitle={attempt.publishing.title}
       classLevel={attempt.classLevel}
       durationMinutes={questions.length > 0 ? questions.length : (attempt.publishing.durationMinutes || 40)}
