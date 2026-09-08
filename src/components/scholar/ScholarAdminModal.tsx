@@ -112,7 +112,8 @@ export default function ScholarAdminModal({ isOpen, onClose }: ScholarAdminModal
       setToken(data.token);
       setIsAuthenticated(true);
       setPassword("");
-      fetchData(data.token);
+      onClose();
+      window.location.href = "/scholar/admin";
     } catch (err: any) {
       setLoginError(err.message || "Invalid credentials.");
     } finally {
@@ -274,7 +275,7 @@ export default function ScholarAdminModal({ isOpen, onClose }: ScholarAdminModal
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="admin@SmartUp"
+                  placeholder="Enter administrator username"
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#5C34A4]/20 focus:border-[#5C34A4] transition-all"
                 />
               </div>
@@ -289,7 +290,7 @@ export default function ScholarAdminModal({ isOpen, onClose }: ScholarAdminModal
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••••••"
+                  placeholder="Enter your password"
                   className="w-full pl-10 pr-11 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#5C34A4]/20 focus:border-[#5C34A4] transition-all"
                 />
                 <button

@@ -16,8 +16,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized. Please log in again." }, { status: 401 });
     }
 
-    // Fetch all attempts for scholarship exams or all attempts in standalone DB
+    // Filter to Scholarship exams by default (slug starting with 'scholarship-' or title containing 'Scholarship')
+    // Option ?scope=all to view all exams if needed
+    const scope = request.nextUrl.searchParams.get("scope") || "scholarship";
+
+    const publishingWhere = scope === "all"
+      ? undefined
+      : {
+          OR: [
+            { slug: { startsWith: "scholarship-" } },
+            { title: { contains: "Scholarship", mode: "insensitive" as const } },
+          ],
+        };
+
     const attempts = await db.examAttempt.findMany({
+      where: publishingWhere ? { publishing: publishingWhere } : undefined,
       include: {
         publishing: {
           select: {
@@ -38,7 +51,7 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: "desc" },
     });
 
-    // Also fetch all registrations to capture any students who registered but haven't started
+    // Also fetch all registrations to capture any students who registered
     const registrations = await db.scholarRegistration.findMany({
       orderBy: { createdAt: "desc" },
     });
