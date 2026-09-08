@@ -6,7 +6,6 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Plus,
   FileText,
   Calendar,
   Search,
@@ -143,7 +142,7 @@ export default function InstructorExamsPage() {
         <div>
           <h1 className="text-2xl font-bold text-text-primary">My Exams</h1>
           <p className="text-sm text-text-secondary mt-0.5">
-            Create exams, enter marks, and view results for your batches
+            Enter marks and view results for your batches
           </p>
         </div>
         <div className="flex gap-2">
@@ -151,12 +150,6 @@ export default function InstructorExamsPage() {
             <Button variant="outline" size="md">
               <BarChart3 className="h-4 w-4" />
               Results
-            </Button>
-          </Link>
-          <Link href="/dashboard/instructor/exams/create">
-            <Button variant="primary" size="md">
-              <Plus className="h-4 w-4" />
-              Create Exam
             </Button>
           </Link>
         </div>
@@ -226,16 +219,9 @@ export default function InstructorExamsPage() {
               </h3>
               <p className="text-sm text-text-secondary mb-4">
                 {exams.length === 0
-                  ? "Create your first exam to get started."
+                  ? "No exams scheduled yet by the Curriculum Department."
                   : "Try adjusting your search or filter."}
               </p>
-              {exams.length === 0 && (
-                <Link href="/dashboard/instructor/exams/create">
-                  <Button variant="primary" size="md">
-                    <Plus className="h-4 w-4" /> Create Exam
-                  </Button>
-                </Link>
-              )}
             </CardContent>
           </Card>
         </motion.div>

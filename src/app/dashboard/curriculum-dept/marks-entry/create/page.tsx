@@ -43,6 +43,11 @@ interface CourseItem {
   course_name: string;
 }
 
+interface TopicItem {
+  topic: string;
+  topic_name: string;
+}
+
 export default function CurriculumCreateExamPage() {
   const router = useRouter();
 
@@ -66,6 +71,8 @@ export default function CurriculumCreateExamPage() {
   const [loadingPrograms, setLoadingPrograms] = useState<Record<string, boolean>>({});
   const [programSubjectMap, setProgramSubjectMap] = useState<Record<string, string>>({});
   const [programTopicMap, setProgramTopicMap] = useState<Record<string, string>>({});
+  const [programCourseTopicsMap, setProgramCourseTopicsMap] = useState<Record<string, TopicItem[]>>({});
+  const [loadingTopics, setLoadingTopics] = useState<Record<string, boolean>>({});
   const [classSubjectOverrides, setClassSubjectOverrides] = useState<Record<string, string>>({});
   const [classTopicOverrides, setClassTopicOverrides] = useState<Record<string, string>>({});
   const [showPerClassCustomization, setShowPerClassCustomization] = useState(false);
@@ -126,15 +133,84 @@ export default function CurriculumCreateExamPage() {
 
       setProgramCoursesMap((prev) => ({ ...prev, [progName]: courseItems }));
       if (courseItems.length > 0) {
-        setProgramSubjectMap((prev) => ({
-          ...prev,
-          [progName]: prev[progName] || courseItems[0].course,
-        }));
+        const initialCourse = courseItems[0].course;
+        setProgramSubjectMap((prev) => {
+          const selected = prev[progName] || initialCourse;
+          loadTopicsForCourse(progName, selected);
+          return {
+            ...prev,
+            [progName]: selected,
+          };
+        });
       }
     } catch (err: any) {
       console.error(`Failed to load courses for ${progName}:`, err);
     } finally {
       setLoadingPrograms((prev) => ({ ...prev, [progName]: false }));
+    }
+  }
+
+  // Fetch topics for a specific program & course (strictly READ only - do NOT create new topics)
+  async function loadTopicsForCourse(progName: string, courseName: string) {
+    if (!progName || !courseName) return;
+    const key = `${progName}__${courseName}`;
+    if (programCourseTopicsMap[key] || loadingTopics[key]) return;
+
+    setLoadingTopics((prev) => ({ ...prev, [key]: true }));
+    try {
+      const res = await fetch("/api/curriculum-dept/admin-proxy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          path: "resource/Program Topic",
+          method: "GET",
+          payload: {
+            filters: JSON.stringify([
+              ["program", "=", progName],
+              ["course", "=", courseName],
+            ]),
+            fields: JSON.stringify(["name", "topic", "topic_name", "sort_order"]),
+            order_by: "sort_order asc",
+            limit_page_length: "200",
+          },
+        }),
+      }).then((r) => r.json());
+
+      let topics = res.data ?? [];
+      // Fallback: search topics by course name across programs if none returned
+      if (topics.length === 0) {
+        const fallbackRes = await fetch("/api/curriculum-dept/admin-proxy", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            path: "resource/Program Topic",
+            method: "GET",
+            payload: {
+              filters: JSON.stringify([["course", "=", courseName]]),
+              fields: JSON.stringify(["name", "topic", "topic_name", "sort_order"]),
+              order_by: "sort_order asc",
+              limit_page_length: "200",
+            },
+          }),
+        }).then((r) => r.json());
+        topics = fallbackRes.data ?? [];
+      }
+
+      const uniqueTopics: TopicItem[] = [];
+      const seen = new Set<string>();
+      for (const t of topics) {
+        const id = t.topic || t.name;
+        if (id && !seen.has(id)) {
+          seen.add(id);
+          uniqueTopics.push({ topic: id, topic_name: t.topic_name || id });
+        }
+      }
+
+      setProgramCourseTopicsMap((prev) => ({ ...prev, [key]: uniqueTopics }));
+    } catch (err: any) {
+      console.error(`Failed to load topics for ${courseName}:`, err);
+    } finally {
+      setLoadingTopics((prev) => ({ ...prev, [key]: false }));
     }
   }
 
@@ -310,9 +386,15 @@ export default function CurriculumCreateExamPage() {
 
   useEffect(() => {
     Object.keys(selectedByProgram).forEach((prog) => {
-      if (prog !== "General") loadCoursesForProgram(prog);
+      if (prog !== "General") {
+        loadCoursesForProgram(prog);
+        const currentCourse = programSubjectMap[prog];
+        if (currentCourse) {
+          loadTopicsForCourse(prog, currentCourse);
+        }
+      }
     });
-  }, [selectedByProgram]);
+  }, [selectedByProgram, programSubjectMap]);
 
   const effectiveCourseForGroup = (sg: StudentGroupItem) => {
     return classSubjectOverrides[sg.name] || programSubjectMap[sg.program] || "";
@@ -906,6 +988,10 @@ export default function CurriculumCreateExamPage() {
                                 onChange={(e) => {
                                   const val = e.target.value;
                                   setProgramSubjectMap((prev) => ({ ...prev, [programName]: val }));
+                                  setProgramTopicMap((prev) => ({ ...prev, [programName]: "" }));
+                                  if (val) {
+                                    loadTopicsForCourse(programName, val);
+                                  }
                                 }}
                                 required
                                 className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
@@ -920,22 +1006,51 @@ export default function CurriculumCreateExamPage() {
                             )}
                           </div>
 
-                          {/* Optional Topic */}
-                          <div className="space-y-1">
-                            <label className="text-xs font-medium text-text-tertiary">
-                              Topic for {programName} (optional)
-                            </label>
-                            <input
-                              type="text"
-                              placeholder="e.g. Quadratic Equations"
-                              value={programTopicMap[programName] || ""}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                setProgramTopicMap((prev) => ({ ...prev, [programName]: val }));
-                              }}
-                              className="w-full h-9 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-xs focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
-                            />
-                          </div>
+                          {/* Topic Dropdown */}
+                          {(() => {
+                            const topicsKey = `${programName}__${selectedCourse}`;
+                            const availableTopics = programCourseTopicsMap[topicsKey] || [];
+                            const isLoadingTopics = loadingTopics[topicsKey] || false;
+
+                            return (
+                              <div className="space-y-1.5">
+                                <label className="text-xs font-semibold text-text-secondary flex items-center justify-between">
+                                  <span>Topic for {programName} (optional)</span>
+                                  {isLoadingTopics && (
+                                    <span className="text-[10px] text-text-tertiary flex items-center gap-1 font-normal">
+                                      <Loader2 className="w-3 h-3 animate-spin text-primary" /> Loading topics...
+                                    </span>
+                                  )}
+                                </label>
+                                <select
+                                  value={programTopicMap[programName] || ""}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setProgramTopicMap((prev) => ({ ...prev, [programName]: val }));
+                                  }}
+                                  disabled={!selectedCourse || isLoadingTopics}
+                                  className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 text-xs focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  {!selectedCourse ? (
+                                    <option value="">Select a subject first...</option>
+                                  ) : isLoadingTopics ? (
+                                    <option value="">Loading topics...</option>
+                                  ) : availableTopics.length === 0 ? (
+                                    <option value="">No topics available for this subject</option>
+                                  ) : (
+                                    <>
+                                      <option value="">No topic (optional)</option>
+                                      {availableTopics.map((t) => (
+                                        <option key={t.topic} value={t.topic}>
+                                          {t.topic_name || t.topic}
+                                        </option>
+                                      ))}
+                                    </>
+                                  )}
+                                </select>
+                              </div>
+                            );
+                          })()}
                         </div>
                       );
                     })}

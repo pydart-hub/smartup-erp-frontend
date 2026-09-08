@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { parseSession } from "@/lib/utils/apiAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -13,11 +14,30 @@ const FRAPPE_API_SECRET = process.env.FRAPPE_API_SECRET;
  * Auto-fills: program, academic_year, custom_branch from Student Group.
  * Uses admin token since instructors may lack direct create permission.
  */
+const ALLOWED_EXAM_CREATOR_ROLES = [
+  "Curriculum Dept",
+  "Director",
+  "Administrator",
+  "System Manager",
+];
+
 export async function POST(request: NextRequest) {
   try {
-    const sessionCookie = request.cookies.get("smartup_session");
-    if (!sessionCookie) {
+    const session = parseSession(request);
+    if (!session) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+
+    const userRoles = session.roles || [];
+    const isAllowed = ALLOWED_EXAM_CREATOR_ROLES.some((role) =>
+      userRoles.includes(role),
+    );
+
+    if (!isAllowed) {
+      return NextResponse.json(
+        { error: "Only the Curriculum Department is authorized to schedule exams." },
+        { status: 403 },
+      );
     }
 
     const body = await request.json();

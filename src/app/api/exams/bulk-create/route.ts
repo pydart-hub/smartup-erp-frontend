@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
+import { parseSession } from "@/lib/utils/apiAuth";
 
 export const dynamic = "force-dynamic";
 
 const FRAPPE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL;
 const FRAPPE_API_KEY = process.env.FRAPPE_API_KEY;
 const FRAPPE_API_SECRET = process.env.FRAPPE_API_SECRET;
+
+const ALLOWED_EXAM_CREATOR_ROLES = [
+  "Curriculum Dept",
+  "Director",
+  "Administrator",
+  "System Manager",
+];
 
 /**
  * POST /api/exams/bulk-create
@@ -14,9 +22,21 @@ const FRAPPE_API_SECRET = process.env.FRAPPE_API_SECRET;
  */
 export async function POST(request: NextRequest) {
   try {
-    const sessionCookie = request.cookies.get("smartup_session");
-    if (!sessionCookie) {
+    const session = parseSession(request);
+    if (!session) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+
+    const userRoles = session.roles || [];
+    const isAllowed = ALLOWED_EXAM_CREATOR_ROLES.some((role) =>
+      userRoles.includes(role),
+    );
+
+    if (!isAllowed) {
+      return NextResponse.json(
+        { error: "Only the Curriculum Department is authorized to schedule exams." },
+        { status: 403 },
+      );
     }
 
     const body = await request.json();
@@ -87,6 +107,43 @@ export async function POST(request: NextRequest) {
         console.warn("[exams/bulk-create] Criteria ensure error:", critErr);
       }
       return criteriaName;
+    }
+
+    // Helper to verify topic exists in Frappe (strictly READ only - do NOT create new topics)
+    const verifiedTopics = new Map<string, string | null>();
+    async function verifyTopicExists(topicName?: string): Promise<string | null> {
+      const normalized = typeof topicName === "string" ? topicName.trim() : "";
+      if (!normalized) return null;
+      if (verifiedTopics.has(normalized)) return verifiedTopics.get(normalized) ?? null;
+
+      try {
+        const checkRes = await fetch(
+          `${FRAPPE_URL}/api/resource/Topic/${encodeURIComponent(normalized)}`,
+          { headers: { Authorization: auth }, cache: "no-store" },
+        );
+        if (checkRes.ok) {
+          verifiedTopics.set(normalized, normalized);
+          return normalized;
+        }
+
+        const filterRes = await fetch(
+          `${FRAPPE_URL}/api/resource/Topic?filters=[["topic_name","=","${encodeURIComponent(normalized)}"]]&limit_page_length=1`,
+          { headers: { Authorization: auth }, cache: "no-store" },
+        );
+        if (filterRes.ok) {
+          const filterData = await filterRes.json();
+          if (filterData.data && filterData.data.length > 0) {
+            const found = filterData.data[0].name;
+            verifiedTopics.set(normalized, found);
+            return found;
+          }
+        }
+      } catch (topicErr) {
+        console.warn("[exams/bulk-create] Topic verification error:", topicErr);
+      }
+
+      verifiedTopics.set(normalized, null);
+      return null;
     }
 
     const created: Array<{
@@ -188,6 +245,7 @@ export async function POST(request: NextRequest) {
         }
 
         const criteriaName = await ensureCriteria(groupCourse, normalizedTopic);
+        const validTopic = normalizedTopic ? await verifyTopicExists(normalizedTopic) : null;
 
         // Plan Payload
         const planData = {
@@ -204,7 +262,7 @@ export async function POST(request: NextRequest) {
           to_time,
           maximum_assessment_score: Number(maximum_assessment_score),
           examiner: examiner || "",
-          ...(normalizedTopic ? { custom_topic: normalizedTopic } : {}),
+          ...(validTopic ? { custom_topic: validTopic } : {}),
           ...(room ? { room } : {}),
           assessment_criteria: [
             {

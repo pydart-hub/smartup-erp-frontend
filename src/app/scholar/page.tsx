@@ -13,6 +13,7 @@ import {
   CheckCircle2,
   ChevronDown,
 } from "lucide-react";
+import ScholarAdminModal from "@/components/scholar/ScholarAdminModal";
 
 // Official SmartUp Colors & Theme:
 // Primary Brand Purple: #5C34A4 / #673AB7 (Gradient & Buttons)
@@ -55,6 +56,7 @@ export default function ScholarRegistrationPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isStartingExam, setIsStartingExam] = useState(false);
   const [registrationId, setRegistrationId] = useState<string | null>(null);
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,9 +135,14 @@ export default function ScholarRegistrationPage() {
       {/* Top Navigation Bar */}
       <header className="w-full bg-transparent py-6 px-6 sm:px-12 lg:px-20">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          {/* Brand Logo & Title */}
-          <div className="flex items-center gap-3.5">
-            <div className="relative w-11 h-11 flex items-center justify-center shrink-0">
+          {/* Brand Logo & Title (Clickable Admin Trigger) */}
+          <button
+            type="button"
+            onClick={() => setIsAdminModalOpen(true)}
+            className="flex items-center gap-3.5 group cursor-pointer text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5C34A4] rounded-xl p-1 -m-1 transition-transform active:scale-95"
+            title="SmartUp Admin Control"
+          >
+            <div className="relative w-11 h-11 flex items-center justify-center shrink-0 group-hover:opacity-90 transition-opacity">
               <Image
                 src="/smartup-logo-v2.png"
                 alt="SmartUp"
@@ -146,33 +153,14 @@ export default function ScholarRegistrationPage() {
               />
             </div>
             <div className="flex flex-col">
-              <span className="text-[19px] font-black tracking-tight text-slate-900 leading-none">
+              <span className="text-[19px] font-black tracking-tight text-slate-900 leading-none group-hover:text-[#5C34A4] transition-colors">
                 SMART UP
               </span>
               <span className="text-[10px] font-bold text-slate-500 tracking-[0.18em] uppercase mt-1">
                 Scholarship Exam
               </span>
             </div>
-          </div>
-
-          {/* Right Navigation Links */}
-          <nav className="flex items-center gap-6 sm:gap-8">
-            <a
-              href="#about"
-              className="text-[13px] font-semibold text-slate-600 hover:text-[#5C34A4] transition-colors"
-            >
-              About
-            </a>
-            <a
-              href="#faq"
-              className="text-[13px] font-semibold text-slate-600 hover:text-[#5C34A4] transition-colors"
-            >
-              FAQ
-            </a>
-            <div className="bg-[#EFEBFA] text-[#5C34A4] px-4 py-1.5 rounded-full text-xs font-bold tracking-wide">
-              Batch 2026-27
-            </div>
-          </nav>
+          </button>
         </div>
       </header>
 
@@ -460,6 +448,12 @@ export default function ScholarRegistrationPage() {
       {/* Footer (Empty / Minimal) */}
       <footer className="py-2 text-center text-xs text-slate-400">
       </footer>
+
+      {/* Admin Records & Attendees Modal */}
+      <ScholarAdminModal
+        isOpen={isAdminModalOpen}
+        onClose={() => setIsAdminModalOpen(false)}
+      />
     </div>
   );
 }

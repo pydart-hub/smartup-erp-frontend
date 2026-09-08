@@ -26,8 +26,20 @@ const item = {
 
 export default function InstructorCreateExamPage() {
   const router = useRouter();
-  const { defaultCompany, instructorName } = useAuth();
+  const { defaultCompany, instructorName, activeRole, role, switchableRoles } = useAuth();
   const { activeBatches, isLoading: batchesLoading } = useInstructorBatches();
+
+  const isCurriculumDept = 
+    activeRole === "Curriculum Dept" || 
+    role === "Curriculum Dept" || 
+    switchableRoles.includes("Curriculum Dept");
+
+  React.useEffect(() => {
+    if (!isCurriculumDept) {
+      toast.error("Only the Curriculum Department is authorized to schedule exams.");
+      router.replace("/dashboard/instructor/exams");
+    }
+  }, [isCurriculumDept, router]);
 
   const [studentGroup, setStudentGroup] = useState("");
   const [course, setCourse] = useState("");
@@ -109,6 +121,18 @@ export default function InstructorCreateExamPage() {
   }
 
   const isSubmitting = createMutation.isPending;
+
+  if (!isCurriculumDept) {
+    return (
+      <div className="p-8 text-center space-y-4">
+        <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto" />
+        <h2 className="text-xl font-bold text-text-primary">Exam Creation Restricted</h2>
+        <p className="text-sm text-text-secondary max-w-md mx-auto">
+          Exam scheduling is managed exclusively by the Curriculum Department. Redirecting...
+        </p>
+      </div>
+    );
+  }
 
   return (
     <motion.div

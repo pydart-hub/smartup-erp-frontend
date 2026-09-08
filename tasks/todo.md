@@ -1,9 +1,7 @@
-# Task: Include Overdue Installment Invoices in Overdue Reports & Exports
+# Task: Restrict Exam Scheduling to Curriculum Dept Only
 
-- [ ] Update `src/app/api/director/report-overdue/route.ts` to attach `overdueInvoices` list per student <!-- id: 0 -->
-- [ ] Update `src/app/api/director/report-overdue-export/route.ts` to expand overdue installment invoices in Excel/CSV exports <!-- id: 1 -->
-- [ ] Update `src/app/dashboard/director/dues/[branch]/all/page.tsx` to expand overdue installment invoices in CSV & Excel exports and add Excel export button <!-- id: 2 -->
-- [ ] Update `src/app/dashboard/director/dues/[branch]/[classId]/[batch]/page.tsx` to expand overdue installment invoices in CSV & Excel exports and add Excel export button <!-- id: 3 -->
-- [ ] Run `npx tsc --noEmit` to verify type safety <!-- id: 4 -->
-- [ ] Commit, push to `origin main`, and run `deploy.sh` on production server <!-- id: 5 -->
-- [ ] Verify server health across all cluster instances <!-- id: 6 -->
+- [x] Remove "+ Create Exam" button and update text in `src/app/dashboard/instructor/exams/page.tsx` <!-- id: 0 -->
+- [x] Guard `/dashboard/instructor/exams/create` page route so instructors cannot schedule exams <!-- id: 1 -->
+- [x] Add role-based check in `/api/exams/create/route.ts` and `/api/exams/bulk-create/route.ts` to restrict exam creation to Curriculum Dept / authorized roles <!-- id: 2 -->
+- [x] Run `npx tsc --noEmit` to verify type check passes cleanly <!-- id: 3 -->
+- [x] Verify UI and functionality <!-- id: 4 -->
