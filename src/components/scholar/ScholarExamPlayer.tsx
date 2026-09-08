@@ -12,6 +12,7 @@ import {
   Send,
   Sparkles,
   ShieldCheck,
+  Lock,
 } from "lucide-react";
 import ExamSecurityGuard from "@/components/public-exam/ExamSecurityGuard";
 
@@ -58,6 +59,7 @@ export default function ScholarExamPlayer({
   const [savingMap, setSavingMap] = useState<Record<string, "saving" | "saved" | "error">>({});
   const [remainingSeconds, setRemainingSeconds] = useState(0);
   const [questionSecondsLeft, setQuestionSecondsLeft] = useState(60);
+  const [expiredQuestionIds, setExpiredQuestionIds] = useState<Set<string>>(new Set());
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -220,6 +222,16 @@ export default function ScholarExamPlayer({
           flushPendingAnswersRef.current();
           const curr = currentIndexRef.current;
           const total = totalQuestionsRef.current;
+
+          // Permanently lock the timed-out question so it cannot be re-opened
+          const timedOutQ = questions[curr];
+          if (timedOutQ) {
+            setExpiredQuestionIds((prevSet) => {
+              const updated = new Set(prevSet);
+              updated.add(timedOutQ.id);
+              return updated;
+            });
+          }
 
           if (curr < total - 1) {
             // Auto advance to next question
@@ -479,15 +491,37 @@ export default function ScholarExamPlayer({
 
           {/* Question Navigation Controls */}
           <div className="border-t border-slate-100 pt-6 mt-8 flex items-center justify-between">
-            <button
-              type="button"
-              onClick={() => setCurrentIndex((prev) => Math.max(0, prev - 1))}
-              disabled={currentIndex === 0}
-              className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Previous</span>
-            </button>
+            {(() => {
+              const prevIndex = currentIndex - 1;
+              const prevQ = prevIndex >= 0 ? questions[prevIndex] : null;
+              const isPrevExpired = prevQ ? expiredQuestionIds.has(prevQ.id) : false;
+
+              return (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!isPrevExpired && prevIndex >= 0) {
+                      setCurrentIndex(prevIndex);
+                    }
+                  }}
+                  disabled={currentIndex === 0 || isPrevExpired}
+                  title={
+                    isPrevExpired
+                      ? "Previous question timer has expired (Locked)"
+                      : "Go to previous question"
+                  }
+                  className={`px-4 py-2.5 rounded-xl border text-xs font-bold flex items-center gap-2 transition-all ${
+                    isPrevExpired || currentIndex === 0
+                      ? "border-slate-200 text-slate-400 bg-slate-50 opacity-50 cursor-not-allowed"
+                      : "border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer"
+                  }`}
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Previous</span>
+                  {isPrevExpired && <Lock className="w-3 h-3 text-slate-400 ml-0.5" />}
+                </button>
+              );
+            })()}
 
             {currentIndex < totalQuestions - 1 ? (
               <button
@@ -536,21 +570,39 @@ export default function ScholarExamPlayer({
               {questions.map((q, idx) => {
                 const isAnswered = !!answers[q.id];
                 const isCurrent = idx === currentIndex;
+                const isExpired = expiredQuestionIds.has(q.id);
 
                 return (
                   <button
                     key={q.id}
                     type="button"
-                    onClick={() => setCurrentIndex(idx)}
-                    className={`h-9 w-full rounded-xl text-xs font-bold transition-all flex items-center justify-center cursor-pointer ${
-                      isCurrent
-                        ? "ring-2 ring-[#5C34A4] bg-purple-100 text-[#5C34A4] font-black"
+                    disabled={isExpired}
+                    onClick={() => {
+                      if (!isExpired) setCurrentIndex(idx);
+                    }}
+                    title={
+                      isExpired
+                        ? `Question ${idx + 1}: Time Expired (Locked)`
+                        : `Go to Question ${idx + 1}`
+                    }
+                    className={`h-9 w-full rounded-xl text-xs font-bold transition-all flex items-center justify-center ${
+                      isExpired
+                        ? "bg-slate-100 text-slate-400 border border-slate-200 opacity-60 cursor-not-allowed"
+                        : isCurrent
+                        ? "ring-2 ring-[#5C34A4] bg-purple-100 text-[#5C34A4] font-black cursor-pointer"
                         : isAnswered
-                        ? "bg-[#5C34A4] text-white shadow-sm"
-                        : "bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200/70"
+                        ? "bg-[#5C34A4] text-white shadow-sm cursor-pointer"
+                        : "bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200/70 cursor-pointer"
                     }`}
                   >
-                    {idx + 1}
+                    {isExpired ? (
+                      <span className="flex items-center text-[10px] text-slate-400">
+                        {idx + 1}
+                        <Lock className="w-2.5 h-2.5 ml-0.5" />
+                      </span>
+                    ) : (
+                      idx + 1
+                    )}
                   </button>
                 );
               })}
@@ -564,8 +616,14 @@ export default function ScholarExamPlayer({
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="w-3 h-3 rounded-md bg-slate-100 border border-slate-200" />
-                <span>Pending ({totalQuestions - answeredCount})</span>
+                <span>Pending ({totalQuestions - answeredCount - expiredQuestionIds.size})</span>
               </div>
+              {expiredQuestionIds.size > 0 && (
+                <div className="flex items-center gap-1.5 text-slate-400 font-semibold">
+                  <Lock className="w-3 h-3 text-slate-400" />
+                  <span>Expired ({expiredQuestionIds.size})</span>
+                </div>
+              )}
             </div>
           </div>
 

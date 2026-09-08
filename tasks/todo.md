@@ -1,9 +1,8 @@
-# Task: Comprehensive Anti-Screenshot and Exam Security Shield
+# Task: Increase Violation Limit to 4 & Lock Expired Questions
 
-- [x] Create reusable `ExamSecurityGuard` component with keystroke suppression, clipboard wipe, blur blackout shield, print blackout, and forensic watermarking <!-- id: 0 -->
-- [x] Integrate `ExamSecurityGuard` into `ScholarExamPlayer` and pass `studentPhone` from `ScholarAttemptPage` <!-- id: 1 -->
-- [x] Integrate `ExamSecurityGuard` into `ExamPlayer` and pass `studentPhone` from `AttemptPage` <!-- id: 2 -->
-- [x] Add global anti-print and anti-selection CSS rules for secure exam routes <!-- id: 3 -->
-- [x] Run `npx tsc --noEmit` to verify type safety and compilation <!-- id: 4 -->
-- [x] Commit and push to `origin main` <!-- id: 5 -->
-- [x] Deploy and verify on clustered production server (`76.13.244.60`) <!-- id: 6 -->
+- [x] Update `ExamSecurityGuard.tsx` to increase strike limit from 3 to 4 <!-- id: 0 -->
+- [x] Implement `expiredQuestionIds` in `ScholarExamPlayer.tsx` to lock timed-out questions from being re-opened <!-- id: 1 -->
+- [x] Disable "Previous" button and Question Grid buttons for expired questions <!-- id: 2 -->
+- [x] Run `npx tsc --noEmit` to verify type safety <!-- id: 3 -->
+- [ ] Commit and push to `origin main` <!-- id: 4 -->
+- [ ] Deploy and verify on production clustered server (`76.13.244.60`) <!-- id: 5 -->

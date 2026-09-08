@@ -25,6 +25,7 @@ export default function ExamSecurityGuard({
   const [isDisqualified, setIsDisqualified] = useState(false);
   const [warningMessage, setWarningMessage] = useState<string | null>(null);
 
+  const MAX_STRIKES = 4;
   const strikesRef = useRef(0);
   strikesRef.current = strikes;
 
@@ -57,17 +58,17 @@ export default function ExamSecurityGuard({
       setStrikes(nextStrikes);
       setIsObscured(true);
 
-      if (nextStrikes >= 3) {
+      if (nextStrikes >= MAX_STRIKES) {
         setIsDisqualified(true);
         autoSubmitCalledRef.current = true;
-        showSecurityWarning("Maximum security strikes exceeded (3/3). Auto-submitting exam...");
+        showSecurityWarning(`Maximum security strikes exceeded (${MAX_STRIKES}/${MAX_STRIKES}). Auto-submitting exam...`);
         setTimeout(() => {
           if (onAutoSubmit) {
             void onAutoSubmit();
           }
         }, 1500);
       } else {
-        showSecurityWarning(`Security Violation (Strike ${nextStrikes}/3): ${reason}`);
+        showSecurityWarning(`Security Violation (Strike ${nextStrikes}/${MAX_STRIKES}): ${reason}`);
       }
     },
     [onAutoSubmit, showSecurityWarning]
@@ -215,7 +216,7 @@ export default function ExamSecurityGuard({
     };
 
     const handleFocus = () => {
-      if (strikesRef.current < 3 && !autoSubmitCalledRef.current) {
+      if (strikesRef.current < MAX_STRIKES && !autoSubmitCalledRef.current) {
         setIsObscured(false);
       }
     };
@@ -229,7 +230,7 @@ export default function ExamSecurityGuard({
         }
         void clearSystemClipboard();
       } else {
-        if (strikesRef.current < 3 && !autoSubmitCalledRef.current) {
+        if (strikesRef.current < MAX_STRIKES && !autoSubmitCalledRef.current) {
           setIsObscured(false);
         }
       }
@@ -243,7 +244,7 @@ export default function ExamSecurityGuard({
     };
 
     const handleMouseEnter = () => {
-      if (strikesRef.current < 3 && !autoSubmitCalledRef.current) {
+      if (strikesRef.current < MAX_STRIKES && !autoSubmitCalledRef.current) {
         setIsObscured(false);
       }
     };
@@ -349,7 +350,7 @@ export default function ExamSecurityGuard({
 
             <div className="w-full bg-slate-800/60 rounded-2xl p-3 text-[11px] text-slate-400 flex items-center justify-center gap-2 border border-slate-700/50">
               <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0" />
-              <span>3 Security Strikes will automatically submit your exam.</span>
+              <span>4 Security Strikes will automatically submit your exam.</span>
             </div>
 
             <button
@@ -364,7 +365,7 @@ export default function ExamSecurityGuard({
         </div>
       )}
 
-      {/* Disqualification / Strike 3 Terminal Screen */}
+      {/* Disqualification / Strike 4 Terminal Screen */}
       {isDisqualified && (
         <div className="fixed inset-0 z-[100000] bg-rose-950/95 backdrop-blur-3xl flex flex-col items-center justify-center p-6 text-white select-none">
           <div className="max-w-md w-full bg-slate-900 border border-rose-600 rounded-3xl p-8 shadow-2xl text-center flex flex-col items-center space-y-4">
@@ -375,7 +376,7 @@ export default function ExamSecurityGuard({
               Exam Disqualified
             </h2>
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              You have exceeded the maximum allowed security strikes (3/3) by exiting fullscreen or switching windows. Your responses are being automatically submitted.
+              You have exceeded the maximum allowed security strikes (4/4) by exiting fullscreen or switching windows. Your responses are being automatically submitted.
             </p>
             <div className="text-xs text-slate-400 font-mono">
               Submitting test... please wait.
@@ -394,7 +395,7 @@ export default function ExamSecurityGuard({
 
             <div className="space-y-2">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-bold uppercase tracking-wider">
-                Strike {strikes} of 3
+                Strike {strikes} of {MAX_STRIKES}
               </div>
               <h2 className="text-xl font-bold text-white tracking-tight">
                 Security Alert: Focus Lost
@@ -407,8 +408,8 @@ export default function ExamSecurityGuard({
             <div className="w-full bg-rose-950/40 border border-rose-800/40 rounded-2xl p-3 text-[11px] text-rose-300 flex items-center justify-center gap-2">
               <EyeOff className="w-4 h-4 text-rose-400 shrink-0" />
               <span>
-                {3 - strikes > 0
-                  ? `Warning: ${3 - strikes} more violation(s) will automatically submit your exam.`
+                {MAX_STRIKES - strikes > 0
+                  ? `Warning: ${MAX_STRIKES - strikes} more violation(s) will automatically submit your exam.`
                   : "Final strike reached."}
               </span>
             </div>
