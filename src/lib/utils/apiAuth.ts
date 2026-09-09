@@ -70,6 +70,7 @@ export function requireRole(
 /** Roles that can perform staff-level operations (record payments, create users, etc.) */
 export const STAFF_ROLES = [
   "Administrator",
+  "Academic Planning Dept",
   "Branch Manager",
   "Curriculum Dept",
   "Director",

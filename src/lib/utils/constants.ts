@@ -66,6 +66,7 @@ export const PAYMENT_OPTION_LABELS: Record<string, string> = {
 export const ROLES = {
   GENERAL_MANAGER: "General Manager",
   CURRICULUM_DEPT: "Curriculum Dept",
+  ACADEMIC_PLANNING: "Academic Planning Dept",
   BRANCH_MANAGER: "Branch Manager",
   MENTOR: "Mentor",
   BATCH_COORDINATOR: "Batch Coordinator",
@@ -79,6 +80,7 @@ export const ROLE_DASHBOARD_MAP: Record<string, string> = {
   Director: "/dashboard/director",
   Management: "/dashboard/director",
   "Curriculum Dept": "/dashboard/curriculum-dept",
+  "Academic Planning Dept": "/dashboard/academic-planning",
   "General Manager": "/dashboard/general-manager",
   "Branch Manager": "/dashboard/branch-manager",
   Mentor: "/dashboard/mentor",
@@ -101,6 +103,13 @@ export interface NavItem {
   badge?: string;
   children?: NavItem[];
 }
+
+export const ACADEMIC_PLANNING_NAV: NavItem[] = [
+  { label: "Dashboard", href: "/dashboard/academic-planning", icon: "LayoutDashboard", emoji: "📊" },
+  { label: "Portion Completion", href: "/dashboard/academic-planning/portion-completion", icon: "BookOpen", emoji: "📖" },
+  { label: "Course Schedule", href: "/dashboard/academic-planning/course-schedule", icon: "CalendarDays", emoji: "📅" },
+  { label: "Batches", href: "/dashboard/academic-planning/batches", icon: "Users", emoji: "👥" },
+];
 
 export const CURRICULUM_DEPT_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard/curriculum-dept", icon: "LayoutDashboard", emoji: "📊" },
@@ -183,6 +192,7 @@ export const BRANCH_MANAGER_NAV: NavItem[] = [
       { label: "Student Performance", href: "/dashboard/branch-manager/student-performance", icon: "TrendingUp", emoji: "📊" },
     ],
   },
+  { label: "Portion Completion", href: "/dashboard/branch-manager/portion-completion", icon: "CheckCircle2", emoji: "🎯" },
   { label: "Topic Coverage", href: "/dashboard/branch-manager/topic-coverage", icon: "BookOpen", emoji: "📖" },
   {
     label: "Mentors",

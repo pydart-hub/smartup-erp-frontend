@@ -60,7 +60,9 @@ export async function POST(request: NextRequest) {
 
     function getGrade(percentage: number): string {
       for (const iv of intervals) {
-        if (percentage >= iv.threshold) return iv.grade_code;
+        // Ensure 30% is treated as passing (D grade)
+        const threshold = iv.grade_code === "D" ? Math.min(iv.threshold, 30) : iv.threshold;
+        if (percentage >= threshold) return iv.grade_code;
       }
       return intervals[intervals.length - 1]?.grade_code ?? "";
     }

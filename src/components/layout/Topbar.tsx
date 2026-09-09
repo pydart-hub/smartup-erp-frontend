@@ -2,7 +2,7 @@
 
 import React from "react";
 import { usePathname } from "next/navigation";
-import { Menu, Search, LogOut, ChevronDown, GraduationCap, Building2, Globe, School, Video } from "lucide-react";
+import { Menu, Search, LogOut, ChevronDown, GraduationCap, Building2, Globe, School, Video, BookOpen } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useUIStore } from "@/lib/stores/uiStore";
@@ -24,6 +24,7 @@ const ROLE_ICONS: Record<string, React.ReactNode> = {
   "HR Manager": <Building2 className="h-3.5 w-3.5" />,
   "Sales User": <Building2 className="h-3.5 w-3.5" />,
   "Content Admin": <Video className="h-3.5 w-3.5" />,
+  "Academic Planning Dept": <BookOpen className="h-3.5 w-3.5" />,
 };
 
 const ROLE_LABELS: Record<string, string> = {
@@ -38,9 +39,11 @@ const ROLE_LABELS: Record<string, string> = {
   "HR Manager": "HR Manager",
   "Sales User": "Sales User",
   "Content Admin": "Content Admin",
+  "Academic Planning Dept": "Academic Planning Dept",
 };
 
 const DASHBOARD_ROLE_PREFIXES: Array<{ prefix: string; role: string }> = [
+  { prefix: "/dashboard/academic-planning", role: "Academic Planning Dept" },
   { prefix: "/dashboard/curriculum-dept", role: "Curriculum Dept" },
   { prefix: "/dashboard/director", role: "Director" },
   { prefix: "/dashboard/general-manager", role: "General Manager" },

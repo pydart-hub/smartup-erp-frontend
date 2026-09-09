@@ -56,7 +56,7 @@ const GRADE_THRESHOLDS = [
   { grade: "B", min: 60, color: "text-primary" },
   { grade: "C+", min: 50, color: "text-warning" },
   { grade: "C", min: 40, color: "text-warning" },
-  { grade: "D", min: 33, color: "text-orange-500" },
+  { grade: "D", min: 30, color: "text-orange-500" },
   { grade: "F", min: 0, color: "text-error" },
 ];
 

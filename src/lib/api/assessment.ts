@@ -55,6 +55,7 @@ export async function getAssessmentGroups(): Promise<AssessmentGroup[]> {
   );
 
   const desiredOrder = [
+    "Weekly Exam",
     "Annual Exam",
     "Onam Exam",
     "Half Yearly Exam",
@@ -68,6 +69,7 @@ export async function getAssessmentGroups(): Promise<AssessmentGroup[]> {
   ];
 
   const displayNameMap: Record<string, string> = {
+    "Weekly Exam": "Weekly Exam",
     "Annual Exam": "Annual Exam",
     "Onam Exam": "Onam Exam",
     "Half Yearly Exam": "Half Yearly",
@@ -81,17 +83,19 @@ export async function getAssessmentGroups(): Promise<AssessmentGroup[]> {
   };
 
   const raw = data.data ?? [];
-  const processed = raw
-    .filter((g) => desiredOrder.includes(g.name))
-    .map((g) => ({
-      ...g,
-      assessment_group_name: displayNameMap[g.name] || g.assessment_group_name,
-    }));
+  // Include groups in desiredOrder as well as any other groups found
+  const processed = raw.map((g) => ({
+    ...g,
+    assessment_group_name: displayNameMap[g.name] || g.assessment_group_name || g.name,
+  }));
 
   return processed.sort((a, b) => {
     const idxA = desiredOrder.indexOf(a.name);
     const idxB = desiredOrder.indexOf(b.name);
-    return idxA - idxB;
+    if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+    if (idxA !== -1) return -1;
+    if (idxB !== -1) return 1;
+    return a.assessment_group_name.localeCompare(b.assessment_group_name);
   });
 }
 
@@ -104,6 +108,7 @@ export async function getAssessmentPlans(params?: {
   student_group?: string;
   schedule_date_gte?: string;
   schedule_date_lte?: string;
+  limit_page_length?: number;
 }): Promise<AssessmentPlan[]> {
   const filters: string[][] = [];
   if (params?.custom_branch) filters.push(["custom_branch", "=", params.custom_branch]);
@@ -126,7 +131,7 @@ export async function getAssessmentPlans(params?: {
         ]),
         filters: JSON.stringify(filters),
         order_by: "schedule_date desc",
-        limit_page_length: 200,
+        limit_page_length: params?.limit_page_length ?? 0,
       },
     },
   );
@@ -230,6 +235,25 @@ export async function getExamResults(assessmentPlan: string): Promise<{
   const res = await fetch(`/api/exams/results?${query}`, { credentials: "include" });
   if (!res.ok) throw new Error("Failed to fetch exam results");
   return res.json();
+}
+
+/** Get set of assessment plan IDs that have submitted marks */
+export async function getSubmittedAssessmentPlanNames(): Promise<Set<string>> {
+  const { data } = await apiClient.get<FrappeListResponse<{ assessment_plan: string }>>(
+    "/resource/Assessment Result",
+    {
+      params: {
+        fields: JSON.stringify(["assessment_plan"]),
+        filters: JSON.stringify([["docstatus", "=", 1]]),
+        limit_page_length: 0,
+      },
+    },
+  );
+  const set = new Set<string>();
+  (data.data ?? []).forEach((r) => {
+    if (r.assessment_plan) set.add(r.assessment_plan);
+  });
+  return set;
 }
 
 export interface ExamPlanResult {

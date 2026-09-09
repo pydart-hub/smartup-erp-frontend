@@ -4,6 +4,8 @@ import type { NextRequest } from "next/server";
 const ROLE_DASHBOARD_MAP: Record<string, string> = {
   Director: "/dashboard/director",
   Management: "/dashboard/director",
+  "Curriculum Dept": "/dashboard/curriculum-dept",
+  "Academic Planning Dept": "/dashboard/academic-planning",
   "General Manager": "/dashboard/general-manager",
   "Branch Manager": "/dashboard/branch-manager",
   Mentor: "/dashboard/mentor",
