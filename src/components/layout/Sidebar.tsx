@@ -40,11 +40,16 @@ import {
   Microscope,
   Upload,
   FileText,
+  LineChart,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useUIStore } from "@/lib/stores/uiStore";
+import { useAuth } from "@/lib/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
 import { BRANCH_MANAGER_NAV, type NavItem } from "@/lib/utils/constants";
 import { useTransferNotifications } from "@/lib/hooks/useTransferNotifications";
+
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutDashboard,
@@ -77,6 +82,8 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Microscope,
   Upload,
   FileText,
+  LineChart,
+  BarChart3,
 };
 
 interface SidebarProps {
@@ -87,21 +94,140 @@ export function Sidebar({ navItems = BRANCH_MANAGER_NAV }: SidebarProps) {
   const pathname = usePathname();
   const { sidebarOpen, sidebarCollapsed, setSidebarOpen, toggleSidebarCollapsed } = useUIStore();
   const { pendingCount } = useTransferNotifications();
+  const { defaultCompany } = useAuth();
   const [openGroups, setOpenGroups] = React.useState<Record<string, boolean>>({});
+
+  // Fetch dynamic classes for the current branch (Branch Manager role)
+  const { data: branchClassesData } = useQuery<{
+    classes: string[];
+    classBatches?: Record<string, Array<{ name: string; student_group_name: string; batch_code: string }>>;
+  }>({
+    queryKey: ["branch-classes-nav", defaultCompany],
+    queryFn: async () => {
+      if (!defaultCompany) return { classes: [] };
+      const res = await fetch(`/api/analytics/class-performance?branch=${encodeURIComponent(defaultCompany)}`);
+      if (!res.ok) return { classes: [] };
+      return res.json();
+    },
+    enabled: !!defaultCompany,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Fetch dynamic branches for Academic Performance (Director role)
+  const isDirectorView = pathname.startsWith("/dashboard/director");
+  const { data: directorBranchesData } = useQuery<{
+    branches: Array<{ branch: string; batchCount: number; classes: string[] }>;
+  }>({
+    queryKey: ["director-branches-nav"],
+    queryFn: async () => {
+      const res = await fetch(`/api/analytics/class-performance`);
+      if (!res.ok) return { branches: [] };
+      return res.json();
+    },
+    enabled: isDirectorView,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const branchClasses = branchClassesData?.classes ?? [];
+  const classBatches = branchClassesData?.classBatches;
+  const directorBranches = directorBranchesData?.branches ?? [];
+
+  // Enhance navItems with dynamic classes under "Class Performance" and branches under "Academic Performance"
+  const enhancedNavItems = React.useMemo(() => {
+    return navItems.map((item) => {
+      if (item.children?.length) {
+        const updatedChildren = item.children.map((child) => {
+          if (child.label === "Class Performance") {
+            const dynamicChildren: NavItem[] = [
+              {
+                label: "All Classes",
+                href: "/dashboard/branch-manager/class-performance",
+                icon: "BarChart3",
+                emoji: "📊",
+              },
+              ...branchClasses.map((cls) => {
+                const bList = (classBatches && classBatches[cls]) || [];
+                const batchChildren: NavItem[] = bList.length > 0 ? [
+                  {
+                    label: `All ${cls}`,
+                    href: `/dashboard/branch-manager/class-performance?program=${encodeURIComponent(cls)}`,
+                    icon: "Layers",
+                    emoji: "📑",
+                  },
+                  ...bList.map((b) => ({
+                    label: `Batch ${b.batch_code}`,
+                    href: `/dashboard/branch-manager/class-performance?program=${encodeURIComponent(cls)}&batch=${encodeURIComponent(b.name)}`,
+                    icon: "Users",
+                    emoji: "👥",
+                  })),
+                ] : [];
+
+                return {
+                  label: cls,
+                  href: `/dashboard/branch-manager/class-performance?program=${encodeURIComponent(cls)}`,
+                  icon: "GraduationCap",
+                  emoji: "📈",
+                  ...(batchChildren.length > 0 ? { children: batchChildren } : {}),
+                };
+              }),
+            ];
+
+            return {
+              ...child,
+              children: dynamicChildren,
+            };
+          }
+
+          // Standard director sub-item for Academic Performance
+          if (child.label === "Academic Performance") {
+            return child;
+          }
+
+          return child;
+        });
+
+        return { ...item, children: updatedChildren };
+      }
+      return item;
+    });
+  }, [navItems, branchClasses, classBatches, directorBranches]);
 
   // Auto-expand groups whose children match the current path
   React.useEffect(() => {
-    const expanded: Record<string, boolean> = {};
-    navItems.forEach((item) => {
+    const toExpand: string[] = [];
+    enhancedNavItems.forEach((item) => {
       if (item.children?.length) {
-        const childActive = item.children.some((c) => pathname.startsWith(c.href));
+        const childActive = item.children.some(
+          (c) =>
+            pathname.startsWith(c.href) ||
+            (c.children && c.children.some((sub) => pathname.startsWith(sub.href.split("?")[0]))),
+        );
         if (childActive || pathname.startsWith(item.href)) {
-          expanded[item.href] = true;
+          toExpand.push(item.href);
+          // Also expand nested group if active
+          item.children.forEach((c) => {
+            if (c.children?.length && pathname.startsWith(c.href.split("?")[0])) {
+              toExpand.push(c.href);
+            }
+          });
         }
       }
     });
-    setOpenGroups((prev) => ({ ...prev, ...expanded }));
-  }, [pathname, navItems]);
+
+    if (toExpand.length > 0) {
+      setOpenGroups((prev) => {
+        let changed = false;
+        const next = { ...prev };
+        for (const href of toExpand) {
+          if (!next[href]) {
+            next[href] = true;
+            changed = true;
+          }
+        }
+        return changed ? next : prev;
+      });
+    }
+  }, [pathname, enhancedNavItems]);
 
   const toggleGroup = (href: string) => {
     setOpenGroups((prev) => ({ ...prev, [href]: !prev[href] }));
@@ -109,17 +235,18 @@ export function Sidebar({ navItems = BRANCH_MANAGER_NAV }: SidebarProps) {
 
   const visibleNavItems = React.useMemo(
     () =>
-      navItems.map((item) => {
+      enhancedNavItems.map((item) => {
         if (item.label === "Transfers" && pendingCount > 0) {
           return { ...item, badge: String(pendingCount) };
         }
         return item;
       }),
-    [navItems, pendingCount],
+    [enhancedNavItems, pendingCount],
   );
 
   // Logo link: first nav item's href (works for any role)
   const homeHref = navItems[0]?.href ?? "/dashboard/branch-manager";
+
 
   const renderIcon = (iconName: string, emoji: string, isActive: boolean, isChild = false) => {
     if (isActive) {
@@ -139,8 +266,59 @@ export function Sidebar({ navItems = BRANCH_MANAGER_NAV }: SidebarProps) {
     return <IconComp className={cn(sizeClass, "shrink-0 text-text-tertiary group-hover:text-text-secondary transition-colors")} />;
   };
 
-  const renderNavLink = (item: NavItem, isChild = false) => {
-    const isActive = pathname === item.href;
+  const renderNavLink = (item: NavItem, isChild = false, depth = 1) => {
+    const isActive = pathname === item.href || (pathname.startsWith(item.href.split("?")[0]) && item.href.includes("?"));
+    const hasChildren = !!item.children?.length;
+    const isSubOpen = !!openGroups[item.href];
+
+    if (hasChildren) {
+      return (
+        <div key={item.href} className="w-full">
+          <div className="flex items-center">
+            <Link
+              href={item.href}
+              onClick={() => setSidebarOpen(false)}
+              className={cn(
+                "group flex-1 flex items-center transition-all duration-200 relative",
+                isChild ? "py-1.5 text-xs font-normal" : "py-2 text-sm font-medium",
+                isActive ? "text-primary font-semibold" : "text-text-secondary hover:text-text-primary",
+                sidebarCollapsed ? "justify-center px-0 mx-auto w-10 h-10 rounded-xl" : cn("gap-2.5 rounded-xl px-2.5", depth === 1 && "pl-8", depth >= 2 && "pl-12")
+              )}
+            >
+              <span className={cn("relative flex items-center", sidebarCollapsed ? "justify-center" : "gap-2.5 w-full")}>
+                {renderIcon(item.icon, item.emoji, isActive, true)}
+                {!sidebarCollapsed && <span className="truncate">{item.label}</span>}
+              </span>
+            </Link>
+            {!sidebarCollapsed && (
+              <motion.button
+                animate={{ rotate: isSubOpen ? 180 : 0 }}
+                transition={{ duration: 0.2 }}
+                onClick={() => toggleGroup(item.href)}
+                className="p-1 rounded-md text-text-tertiary hover:text-text-primary transition-colors mr-2"
+              >
+                <ChevronDown className="h-3 w-3" />
+              </motion.button>
+            )}
+          </div>
+          {!sidebarCollapsed && (
+            <AnimatePresence initial={false}>
+              {isSubOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden space-y-0.5"
+                >
+                  {item.children!.map((subChild) => renderNavLink(subChild, true, depth + 1))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          )}
+        </div>
+      );
+    }
 
     return (
       <Link
@@ -155,7 +333,7 @@ export function Sidebar({ navItems = BRANCH_MANAGER_NAV }: SidebarProps) {
             : "text-text-secondary hover:text-text-primary",
           sidebarCollapsed
             ? "justify-center px-0 mx-auto w-10 h-10 rounded-xl"
-            : cn("gap-3 rounded-xl px-3", isChild && "pl-10")
+            : cn("gap-3 rounded-xl px-3", isChild && depth === 1 && "pl-10", isChild && depth >= 2 && "pl-14")
         )}
       >
         {isActive && (
@@ -185,6 +363,7 @@ export function Sidebar({ navItems = BRANCH_MANAGER_NAV }: SidebarProps) {
       </Link>
     );
   };
+
 
   return (
     <>

@@ -212,3 +212,120 @@ export async function getSubjectBranchStudents(
   if (!res.ok) throw new Error("Failed to fetch subject branch students");
   return res.json();
 }
+
+// ── Class Performance Analytics ──
+
+export interface ClassPerformanceResponse {
+  branch: string;
+  program?: string;
+  classes: string[];
+  classBatchCounts?: Record<string, number>;
+  batch?: string | null;
+  classBatches?: Record<string, Array<{ name: string; student_group_name: string; batch_code: string }>>;
+  allBatches?: Array<{ name: string; student_group_name: string; batch_code: string }>;
+  stats?: {
+    overallAvg: number;
+    totalExams: number;
+    highestScore: number;
+    trend: number;
+    bestExam: string;
+    totalStudents: number;
+  };
+  timeline?: Array<{
+    exam_key: string;
+    exam_title: string;
+    assessment_group: string;
+    schedule_date: string;
+    total_score: number;
+    maximum_score: number;
+    percentage: number;
+    subject_count: number;
+    students_appeared: number;
+    batch_scores?: Record<
+      string,
+      {
+        batch_code: string;
+        total_score: number;
+        maximum_score: number;
+        percentage: number;
+        students_appeared: number;
+      }
+    >;
+    class_scores?: Record<
+      string,
+      {
+        program: string;
+        total_score: number;
+        maximum_score: number;
+        percentage: number;
+        students_appeared: number;
+      }
+    >;
+    subjects: Array<{
+      course: string;
+      total_score: number;
+      maximum_score: number;
+      percentage: number;
+    }>;
+  }>;
+  batches?: Array<{
+    student_group: string;
+    student_group_name: string;
+    student_count: number;
+    avg_pct: number;
+    exam_count: number;
+    top_score: number;
+  }>;
+  subjects?: Array<{
+    course: string;
+    total_students: number;
+    avg_score: number;
+    max_score: number;
+    maximum_possible: number;
+    avg_pct: number;
+    pass_count: number;
+    pass_rate: number;
+  }>;
+  students?: Array<{
+    student: string;
+    student_name: string;
+    batch: string;
+    total_score: number;
+    maximum_score: number;
+    percentage: number;
+    exams_appeared: number;
+    grade: string;
+    rank: number;
+  }>;
+}
+
+export async function getClassPerformance(params: {
+  branch?: string;
+  program?: string;
+  batch?: string;
+}): Promise<ClassPerformanceResponse & {
+  branches?: Array<{
+    branch: string;
+    batchCount: number;
+    studentCount: number;
+    avgScore: number;
+    passRate: number;
+    classes: string[];
+  }>;
+}> {
+  const query = new URLSearchParams();
+  if (params.branch) query.set("branch", params.branch);
+  if (params.program) query.set("program", params.program);
+  if (params.batch) query.set("batch", params.batch);
+
+  const res = await fetch(`/api/analytics/class-performance?${query.toString()}`, {
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || "Failed to fetch class performance");
+  }
+  return res.json();
+}
+
+

@@ -154,6 +154,7 @@ export const BRANCH_MANAGER_NAV: NavItem[] = [
     children: [
       { label: "Classes", href: "/dashboard/branch-manager/classes", icon: "School", emoji: "🏫" },
       { label: "Batches", href: "/dashboard/branch-manager/batches", icon: "Users", emoji: "👥" },
+      { label: "Class Performance", href: "/dashboard/branch-manager/class-performance", icon: "BarChart3", emoji: "📊" },
     ],
   },
   {
@@ -266,6 +267,7 @@ export const DIRECTOR_NAV: NavItem[] = [
     icon: "BarChart3",
     emoji: "📈",
     children: [
+      { label: "Academic Performance", href: "/dashboard/director/academic-performance", icon: "TrendingUp", emoji: "📊" },
       { label: "Overview", href: "/dashboard/director/academics/overview", icon: "BarChart3", emoji: "📈" },
       { label: "Attendance", href: "/dashboard/director/academics/attendance", icon: "ClipboardCheck", emoji: "✅" },
       { label: "Exams", href: "/dashboard/director/academics/exams", icon: "ClipboardList", emoji: "📝" },

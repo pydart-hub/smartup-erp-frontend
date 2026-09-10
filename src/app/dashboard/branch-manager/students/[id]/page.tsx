@@ -24,6 +24,7 @@ import { DiscontinueStudentModal } from "@/components/students/DiscontinueStuden
 import { ConvertDemoModal } from "@/components/students/ConvertDemoModal";
 import { StudentTransactionHistory } from "@/components/fees/StudentTransactionHistory";
 import { SendReceiptModal } from "@/components/fees/SendReceiptModal";
+import { StudentPerformanceCard } from "@/components/students/StudentPerformanceCard";
 import { resolveO2OHourlyRate } from "@/lib/utils/o2oFeeRates";
 import { extractO2ORateFromRecord } from "@/lib/utils/o2oRateField";
 import { formatBillingMonthLabel, getBillingMonthKey, resolveBilledScheduleNames } from "@/lib/utils/o2oBillingMetadata";
@@ -761,6 +762,9 @@ export default function StudentViewPage() {
         </SectionCard>
 
       </div>
+
+      {/* Student Academic & Exam Performance Graph Card */}
+      <StudentPerformanceCard studentId={id} />
 
       {/* One-to-One billing recovery */}
       {isO2OStudent && (
