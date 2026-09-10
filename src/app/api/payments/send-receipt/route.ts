@@ -14,18 +14,41 @@ export async function POST(request: NextRequest) {
     if (authResult instanceof NextResponse) return authResult;
 
     const body = await request.json();
-    const { invoice_id, email: overrideEmail, phone: overridePhone } = body as {
-      invoice_id: string;
+    const {
+      invoice_id,
+      payment_entry_id,
+      send_email = true,
+      send_whatsapp = true,
+      email: overrideEmail,
+      phone: overridePhone,
+    } = body as {
+      invoice_id?: string;
+      payment_entry_id?: string;
+      send_email?: boolean;
+      send_whatsapp?: boolean;
       email?: string;
       phone?: string;
     };
 
-    if (!invoice_id) {
-      return NextResponse.json({ error: "invoice_id is required" }, { status: 400 });
+    if (!invoice_id && !payment_entry_id) {
+      return NextResponse.json(
+        { error: "Either invoice_id or payment_entry_id is required" },
+        { status: 400 },
+      );
+    }
+
+    if (!send_email && !send_whatsapp) {
+      return NextResponse.json(
+        { error: "At least one channel (Email or WhatsApp) must be selected" },
+        { status: 400 },
+      );
     }
 
     const result = await dispatchPaymentReceipt({
       invoiceId: invoice_id,
+      paymentEntryId: payment_entry_id,
+      sendEmail: send_email,
+      sendWhatsapp: send_whatsapp,
       overrideEmail,
       overridePhone,
     });

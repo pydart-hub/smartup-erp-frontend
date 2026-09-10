@@ -23,7 +23,8 @@ import apiClient from "@/lib/api/client";
 import { DiscontinueStudentModal } from "@/components/students/DiscontinueStudentModal";
 import { ConvertDemoModal } from "@/components/students/ConvertDemoModal";
 import { StudentTransactionHistory } from "@/components/fees/StudentTransactionHistory";
-import { SendReceiptModal } from "@/components/fees/SendReceiptModal";
+import { SendReceiptModal, type ReceiptItemOption } from "@/components/fees/SendReceiptModal";
+import type { StudentTransactionHistoryRow } from "@/lib/api/fees";
 import { StudentPerformanceCard } from "@/components/students/StudentPerformanceCard";
 import { resolveO2OHourlyRate } from "@/lib/utils/o2oFeeRates";
 import { extractO2ORateFromRecord } from "@/lib/utils/o2oRateField";
@@ -180,6 +181,7 @@ export default function StudentViewPage() {
 
   // ── Send Receipt modal state ──────────────────────────────
   const [showSendReceipt, setShowSendReceipt] = useState(false);
+  const [selectedReceiptItem, setSelectedReceiptItem] = useState<{ type: "invoice" | "payment"; id: string } | undefined>(undefined);
 
   // ── Parent login password state ───────────────────────────
   const [parentPassword, setParentPassword] = useState<string | null>(null);
@@ -305,13 +307,24 @@ export default function StudentViewPage() {
   });
   const salesInvoices = salesInvoicesRes ?? [];
 
-  const latestPaidInvoice = [...salesInvoices]
-    .filter((inv) => inv.outstanding_amount <= 0 || inv.status === "Paid")
-    .sort((a, b) => {
-      const aDate = Date.parse(a.posting_date ?? a.due_date ?? "");
-      const bDate = Date.parse(b.posting_date ?? b.due_date ?? "");
-      return (bDate || 0) - (aDate || 0);
-    })[0] ?? null;
+  const paidInvoices = [...salesInvoices].filter(
+    (inv) => inv.outstanding_amount <= 0 || inv.status === "Paid"
+  );
+
+  const latestPaidInvoice = [...paidInvoices].sort((a, b) => {
+    const aDate = Date.parse(a.posting_date ?? a.due_date ?? "");
+    const bDate = Date.parse(b.posting_date ?? b.due_date ?? "");
+    return (bDate || 0) - (aDate || 0);
+  })[0] ?? null;
+
+  const availableReceiptItems = useMemo<ReceiptItemOption[]>(() => {
+    return paidInvoices.map((inv) => ({
+      type: "invoice",
+      id: inv.name,
+      amount: inv.grand_total,
+      date: inv.posting_date || inv.due_date,
+    }));
+  }, [paidInvoices]);
 
   const { data: salesOrderDiscountMeta } = useQuery({
     queryKey: ["student-so-discount-meta", primarySalesOrderName],
@@ -910,7 +923,10 @@ export default function StudentViewPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setShowSendReceipt(true)}
+                    onClick={() => {
+                      setSelectedReceiptItem(undefined);
+                      setShowSendReceipt(true);
+                    }}
                     className="!border-success/40 !text-success hover:!bg-success/5 gap-1.5"
                   >
                     <Mail className="h-3.5 w-3.5" />
@@ -1049,6 +1065,7 @@ export default function StudentViewPage() {
                         <th className="text-right pb-2 font-semibold text-text-secondary text-xs">Amount</th>
                         <th className="text-right pb-2 font-semibold text-text-secondary text-xs">Outstanding</th>
                         <th className="text-right pb-2 font-semibold text-text-secondary text-xs">Status</th>
+                        <th className="text-right pb-2 font-semibold text-text-secondary text-xs pr-2">Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1080,6 +1097,22 @@ export default function StudentViewPage() {
                                 {isPaid ? "Paid" : isOverdue ? "Overdue" : "Pending"}
                               </Badge>
                             </td>
+                            <td className="py-2 text-right pr-2">
+                              {isPaid && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedReceiptItem({ type: "invoice", id: inv.name });
+                                    setShowSendReceipt(true);
+                                  }}
+                                  className="h-7 px-2 text-xs ml-auto flex items-center gap-1 !border-success/40 !text-success hover:!bg-success/5"
+                                  title="Send Receipt for this invoice"
+                                >
+                                  <Mail className="h-3.5 w-3.5" /> Receipt
+                                </Button>
+                              )}
+                            </td>
                           </tr>
                         );
                       })}
@@ -1092,6 +1125,13 @@ export default function StudentViewPage() {
                     <StudentTransactionHistory
                       studentId={id}
                       branch={student.custom_branch}
+                      onSendReceipt={(row: StudentTransactionHistoryRow) => {
+                        setSelectedReceiptItem({
+                          type: "payment",
+                          id: row.payment_entry_id,
+                        });
+                        setShowSendReceipt(true);
+                      }}
                     />
                   </div>
                 )}
@@ -1169,11 +1209,15 @@ export default function StudentViewPage() {
       )}
 
       {/* Send Receipt Modal */}
-      {showSendReceipt && latestPaidInvoice && (
+      {showSendReceipt && (
         <SendReceiptModal
           isOpen={showSendReceipt}
-          onClose={() => setShowSendReceipt(false)}
-          invoice={latestPaidInvoice}
+          onClose={() => {
+            setShowSendReceipt(false);
+            setSelectedReceiptItem(undefined);
+          }}
+          availableItems={availableReceiptItems}
+          initialSelectedItem={selectedReceiptItem}
           defaultEmail={guardian?.email_address || ""}
           defaultPhone={guardian?.mobile_number || ""}
         />

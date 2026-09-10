@@ -2,14 +2,15 @@
 
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown, ChevronUp, Clock3, ReceiptText } from "lucide-react";
+import { ChevronDown, ChevronUp, Clock3, ReceiptText, Mail } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { formatCurrency } from "@/lib/utils/formatters";
-import { getStudentTransactionHistory } from "@/lib/api/fees";
+import { getStudentTransactionHistory, type StudentTransactionHistoryRow } from "@/lib/api/fees";
 
 interface StudentTransactionHistoryProps {
   studentId: string;
   branch: string;
+  onSendReceipt?: (row: StudentTransactionHistoryRow) => void;
 }
 
 function formatDate(dateStr: string): string {
@@ -34,6 +35,7 @@ function modeVariant(mode: "Razorpay" | "UPI" | "Bank" | "Cash"): "info" | "succ
 export function StudentTransactionHistory({
   studentId,
   branch,
+  onSendReceipt,
 }: StudentTransactionHistoryProps) {
   const [open, setOpen] = useState(false);
 
@@ -86,20 +88,24 @@ export function StudentTransactionHistory({
             <p className="py-2 text-xs text-text-secondary">No transaction history yet</p>
           ) : (
             <div className="space-y-2">
-              <div className="grid grid-cols-[1.1fr_1fr_0.9fr] gap-2 px-1">
+              <div className={`grid ${onSendReceipt ? "grid-cols-[1.1fr_1fr_0.9fr_auto]" : "grid-cols-[1.1fr_1fr_0.9fr]"} gap-2 px-1`}>
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-text-tertiary">Date</p>
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-right text-text-tertiary">Amount</p>
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-right text-text-tertiary">Mode</p>
+                {onSendReceipt && <p className="text-[10px] font-semibold uppercase tracking-wide text-right text-text-tertiary w-8"></p>}
               </div>
 
               {rows.map((row) => (
                 <div
                   key={`${row.payment_entry_id}-${row.invoice_id}`}
-                  className="grid grid-cols-[1.1fr_1fr_0.9fr] items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2"
+                  className={`grid ${onSendReceipt ? "grid-cols-[1.1fr_1fr_0.9fr_auto]" : "grid-cols-[1.1fr_1fr_0.9fr]"} items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2`}
                 >
                   <div className="min-w-0">
                     <p className="text-xs font-medium text-text-primary">{formatDate(row.posting_date)}</p>
-                    <p className="truncate text-[9px] text-text-tertiary/70">{row.invoice_id || "Direct payment"}</p>
+                    <p className="truncate text-[9px] text-text-tertiary/70 font-mono">
+                      {row.payment_entry_id}
+                      {row.invoice_id ? ` • ${row.invoice_id}` : " • Direct"}
+                    </p>
                   </div>
                   <p className="text-right text-xs font-semibold tabular-nums text-text-primary">
                     {formatCurrency(row.amount)}
@@ -109,6 +115,18 @@ export function StudentTransactionHistory({
                       {row.mode}
                     </Badge>
                   </div>
+                  {onSendReceipt && (
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => onSendReceipt(row)}
+                        title="Send receipt for this payment"
+                        className="p-1 rounded-md text-text-tertiary hover:text-primary hover:bg-primary/5 transition-colors"
+                      >
+                        <Mail className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

@@ -1,4 +1,4 @@
-import { sendEmail, fetchInvoicePDF } from "@/lib/utils/email";
+import { sendEmail, fetchInvoicePDF, fetchPaymentEntryPDF } from "@/lib/utils/email";
 import { sendTemplate, normalisePhone } from "@/lib/utils/whatsapp";
 import { generatePdfUrl } from "@/app/api/payments/invoice-pdf/[id]/route";
 import { buildPaymentDoneWithPdf, buildPaymentReceipt } from "@/lib/utils/whatsappTemplates";
@@ -49,12 +49,12 @@ export interface PaymentEntryRef {
 }
 
 export interface ReceiptContext {
-  invoice: InvoiceDoc;
+  invoice?: InvoiceDoc | null;
+  paymentEntry: PaymentEntryRef | null;
   guardianEmail: string;
   guardianName: string;
   guardianPhone?: string;
   studentName: string;
-  paymentEntry: PaymentEntryRef | null;
   totalCourseFee: number;
   totalPaidSoFar: number;
   totalOutstanding: number;
@@ -63,7 +63,10 @@ export interface ReceiptContext {
 }
 
 export interface DispatchReceiptOptions {
-  invoiceId: string;
+  invoiceId?: string;
+  paymentEntryId?: string;
+  sendEmail?: boolean;
+  sendWhatsapp?: boolean;
   overrideEmail?: string;
   overridePhone?: string;
   paymentEntryName?: string;
@@ -153,61 +156,77 @@ async function resolveContactFromStudent(
 }
 
 export async function resolveReceiptContext(
-  invoiceId: string,
+  invoiceId?: string,
   overrideEmail?: string,
   overridePhone?: string,
   explicitPaymentEntryName?: string,
 ): Promise<ReceiptContext | null> {
-  // 1. Fetch invoice
-  const inv = (await safeFetchDoc(
-    `${FRAPPE_URL}/api/resource/Sales Invoice/${encodeURIComponent(invoiceId)}`,
-  )) as InvoiceDoc | null;
-  if (!inv) {
-    console.error(`[receiptService] Could not fetch invoice ${invoiceId}`);
+  let inv: InvoiceDoc | null = null;
+  let peDoc: Record<string, unknown> | null = null;
+
+  if (explicitPaymentEntryName) {
+    peDoc = await safeFetchDoc(
+      `${FRAPPE_URL}/api/resource/Payment Entry/${encodeURIComponent(explicitPaymentEntryName)}`,
+    );
+  }
+
+  if (!invoiceId && peDoc) {
+    const references = (peDoc.references as Array<{ reference_doctype?: string; reference_name?: string }>) || [];
+    const invRef = references.find((r) => r.reference_doctype === "Sales Invoice" && r.reference_name);
+    if (invRef?.reference_name) {
+      invoiceId = invRef.reference_name;
+    }
+  }
+
+  if (invoiceId) {
+    inv = (await safeFetchDoc(
+      `${FRAPPE_URL}/api/resource/Sales Invoice/${encodeURIComponent(invoiceId)}`,
+    )) as InvoiceDoc | null;
+    if (inv) {
+      inv.name = invoiceId;
+    }
+  }
+
+  if (!inv && !peDoc) {
+    console.error(`[receiptService] Neither invoice ${invoiceId} nor payment entry ${explicitPaymentEntryName} could be fetched`);
     return null;
   }
-  inv.name = invoiceId;
 
   let guardianEmail = overrideEmail || "";
   let guardianName = "Parent";
   let guardianPhone = overridePhone || undefined;
-  let studentName = (inv.student_name as string) || (inv.customer_name as string) || "";
+  let studentName = (inv?.student_name as string) || (inv?.customer_name as string) || (peDoc?.party_name as string) || "";
 
-  // Resolve contact details if any are missing
   if (!guardianEmail || !guardianPhone || guardianName === "Parent") {
     let resolvedEmail = "";
     let resolvedName = "";
     let resolvedPhone: string | undefined;
 
-    // Path A: Invoice.student -> Student / Guardian
-    if (inv.student) {
+    if (inv?.student) {
       const g = await resolveContactFromStudent(inv.student);
       if (g.email) resolvedEmail = g.email;
       if (g.name) resolvedName = g.name;
       if (g.phone) resolvedPhone = g.phone;
     }
 
-    // Path B: Invoice -> SO -> Student / Guardian
-    if (!resolvedEmail || !resolvedPhone) {
-      const soName = inv.items?.[0]?.sales_order;
-      if (soName) {
-        const so = await safeFetchDoc(
-          `${FRAPPE_URL}/api/resource/Sales Order/${encodeURIComponent(soName)}`,
-        );
-        if (so?.student) {
-          const g = await resolveContactFromStudent(so.student as string);
-          if (!resolvedEmail && g.email) resolvedEmail = g.email;
-          if (!resolvedName && g.name) resolvedName = g.name;
-          if (!resolvedPhone && g.phone) resolvedPhone = g.phone;
-          if (!studentName) studentName = (so.student_name as string) || "";
-        }
+    if ((!resolvedEmail || !resolvedPhone) && inv?.items?.[0]?.sales_order) {
+      const soName = inv.items[0].sales_order;
+      const so = await safeFetchDoc(
+        `${FRAPPE_URL}/api/resource/Sales Order/${encodeURIComponent(soName)}`,
+      );
+      if (so?.student) {
+        const g = await resolveContactFromStudent(so.student as string);
+        if (!resolvedEmail && g.email) resolvedEmail = g.email;
+        if (!resolvedName && g.name) resolvedName = g.name;
+        if (!resolvedPhone && g.phone) resolvedPhone = g.phone;
+        if (!studentName) studentName = (so.student_name as string) || "";
       }
     }
 
-    // Path C: Invoice -> Customer -> find Student -> Guardian
-    if ((!resolvedEmail || !resolvedPhone) && inv.customer) {
+    const customer = (inv?.customer as string) || (peDoc?.party_type === "Customer" ? (peDoc.party as string) : "");
+    if ((!resolvedEmail || !resolvedPhone) && customer) {
       const params = new URLSearchParams({
-        filters: JSON.stringify([["customer", "=", inv.customer]]),
+        filters: JSON.stringify([["customer", "=", customer]]),
         fields: JSON.stringify(["name"]),
         limit_page_length: "1",
       });
@@ -227,18 +246,9 @@ export async function resolveReceiptContext(
     if (!guardianPhone) guardianPhone = resolvedPhone;
   }
 
-  // 3. Fetch latest Payment Entry for this invoice
-  let paymentEntry: PaymentEntryRef | null = null;
-  if (explicitPaymentEntryName) {
-    const peDoc = await safeFetchDoc(
-      `${FRAPPE_URL}/api/resource/Payment Entry/${encodeURIComponent(explicitPaymentEntryName)}`,
-    );
-    if (peDoc) {
-      paymentEntry = peDoc as unknown as PaymentEntryRef;
-    }
-  }
+  let paymentEntry: PaymentEntryRef | null = peDoc ? (peDoc as unknown as PaymentEntryRef) : null;
 
-  if (!paymentEntry) {
+  if (!paymentEntry && invoiceId) {
     try {
       const peParams = new URLSearchParams({
         filters: JSON.stringify([
@@ -264,15 +274,14 @@ export async function resolveReceiptContext(
     }
   }
 
-  // 4. Fetch all invoices in the same Sales Order for totals
-  let totalCourseFee = inv.grand_total || 0;
-  let totalOutstanding = inv.outstanding_amount || 0;
+  let totalCourseFee = inv?.grand_total || (paymentEntry?.paid_amount || 0);
+  let totalOutstanding = inv?.outstanding_amount || 0;
   let totalPaidSoFar = totalCourseFee - totalOutstanding;
   let instalmentIndex = 1;
   let totalInstalments = 1;
 
-  const soName = inv.items?.[0]?.sales_order;
-  if (soName) {
+  const soName = inv?.items?.[0]?.sales_order;
+  if (soName && invoiceId) {
     try {
       const siParams = new URLSearchParams({
         filters: JSON.stringify([
@@ -330,18 +339,20 @@ function fmt(amount: number): string {
 
 export function buildReceiptHtml(ctx: ReceiptContext): string {
   const inv = ctx.invoice;
-  const paidOnInvoice = (inv.grand_total || 0) - (inv.outstanding_amount || 0);
-  const balanceOnInvoice = inv.outstanding_amount || 0;
+  const paidOnInvoice = inv
+    ? (inv.grand_total || 0) - (inv.outstanding_amount || 0)
+    : (ctx.paymentEntry?.paid_amount || 0);
+  const balanceOnInvoice = inv ? (inv.outstanding_amount || 0) : 0;
 
   const paymentRef = ctx.paymentEntry?.reference_no || ctx.paymentEntry?.name || "—";
   const paymentMode = ctx.paymentEntry?.mode_of_payment || "Online";
   const paymentDate =
-    ctx.paymentEntry?.posting_date || inv.posting_date || new Date().toISOString().slice(0, 10);
+    ctx.paymentEntry?.posting_date || inv?.posting_date || new Date().toISOString().slice(0, 10);
 
   const instalmentLabel =
     ctx.totalInstalments > 1
       ? `Instalment ${ctx.instalmentIndex} of ${ctx.totalInstalments}`
-      : "Full Payment";
+      : inv ? "Full Payment" : "Payment Entry";
 
   return `
 <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 640px; margin: 0 auto; background-color: #ffffff;">
@@ -378,8 +389,9 @@ export function buildReceiptHtml(ctx: ReceiptContext): string {
       We have received a payment for <strong>${ctx.studentName}</strong>. Here is the summary:
     </p>
 
-    <!-- Invoice Details -->
+    <!-- Details -->
     <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px;">
+      ${inv ? `
       <tr>
         <td style="padding: 6px 0; color: #777; width: 160px;">Invoice No:</td>
         <td style="padding: 6px 0; font-weight: 600; color: #333;">${inv.name}</td>
@@ -393,28 +405,42 @@ export function buildReceiptHtml(ctx: ReceiptContext): string {
         <td style="padding: 6px 0; color: #333;">${inv.due_date || "—"}</td>
       </tr>
       ${inv.academic_year ? `<tr><td style="padding: 6px 0; color: #777;">Academic Year:</td><td style="padding: 6px 0; color: #333;">${inv.academic_year}</td></tr>` : ""}
+      ` : `
+      <tr>
+        <td style="padding: 6px 0; color: #777; width: 160px;">Payment Entry:</td>
+        <td style="padding: 6px 0; font-weight: 600; color: #333;">${ctx.paymentEntry?.name || "—"}</td>
+      </tr>
+      <tr>
+        <td style="padding: 6px 0; color: #777;">Payment Date:</td>
+        <td style="padding: 6px 0; color: #333;">${paymentDate}</td>
+      </tr>
+      `}
     </table>
 
-    <!-- Instalment Breakdown -->
+    <!-- Amount Breakdown -->
     <div style="background-color: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
       <h3 style="margin: 0 0 14px; font-size: 14px; color: #1e3a5f; text-transform: uppercase; letter-spacing: 0.5px;">
-        Instalment Breakdown
+        Payment Breakdown
       </h3>
       <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+        ${inv ? `
         <tr>
           <td style="padding: 8px 0; color: #555;">Instalment Amount</td>
           <td style="padding: 8px 0; text-align: right; font-weight: 600; color: #333;">${fmt(inv.grand_total || 0)}</td>
         </tr>
+        ` : ""}
         <tr>
           <td style="padding: 8px 0; color: #555;">Amount Paid</td>
           <td style="padding: 8px 0; text-align: right; font-weight: 600; color: #2e7d32;">${fmt(paidOnInvoice)}</td>
         </tr>
+        ${inv ? `
         <tr style="border-top: 1px dashed #ccc;">
           <td style="padding: 10px 0 4px; color: #555; font-weight: 600;">Balance Remaining</td>
           <td style="padding: 10px 0 4px; text-align: right; font-weight: 700; color: ${balanceOnInvoice > 0 ? "#e65100" : "#2e7d32"}; font-size: 16px;">
             ${balanceOnInvoice > 0 ? fmt(balanceOnInvoice) : "Fully Paid ✓"}
           </td>
         </tr>
+        ` : ""}
       </table>
     </div>
 
@@ -463,7 +489,7 @@ export function buildReceiptHtml(ctx: ReceiptContext): string {
 
     <!-- PDF note -->
     <p style="margin: 0 0 24px; color: #555; font-size: 13px; text-align: center; font-style: italic;">
-      📎 The detailed invoice PDF is attached to this email.
+      📎 The detailed receipt PDF is attached to this email.
     </p>
 
     <!-- Divider -->
@@ -493,29 +519,41 @@ export function buildReceiptHtml(ctx: ReceiptContext): string {
   `.trim();
 }
 
-/**
- * Dispatches both Email and WhatsApp payment receipts in parallel.
- * Safe & non-blocking: guarantees execution does not throw unhandled exceptions.
- */
 export async function dispatchPaymentReceipt(
   opts: DispatchReceiptOptions,
 ): Promise<DispatchReceiptResult> {
-  const { invoiceId, overrideEmail, overridePhone, paymentEntryName, amountPaid: explicitAmount, modeOfPayment } = opts;
+  const {
+    invoiceId,
+    paymentEntryId,
+    sendEmail: shouldSendEmail = true,
+    sendWhatsapp: shouldSendWhatsapp = true,
+    overrideEmail,
+    overridePhone,
+    paymentEntryName,
+    amountPaid: explicitAmount,
+    modeOfPayment,
+  } = opts;
 
-  console.log(`[receiptService] Dispatching payment receipt for invoice ${invoiceId}`);
+  const targetId = invoiceId || paymentEntryId || paymentEntryName || "unknown";
+  console.log(`[receiptService] Dispatching payment receipt for ${invoiceId ? `invoice ${invoiceId}` : `payment entry ${paymentEntryId || paymentEntryName}`}`);
 
-  const ctx = await resolveReceiptContext(invoiceId, overrideEmail, overridePhone, paymentEntryName);
+  const ctx = await resolveReceiptContext(
+    invoiceId,
+    overrideEmail,
+    overridePhone,
+    paymentEntryId || paymentEntryName,
+  );
+
   if (!ctx) {
-    console.error(`[receiptService] Unable to resolve context for invoice ${invoiceId}`);
+    console.error(`[receiptService] Unable to resolve context for target ${targetId}`);
     return {
       success: false,
       emailSent: false,
       whatsappSent: false,
-      error: `Could not resolve context or guardian details for invoice ${invoiceId}`,
+      error: `Could not resolve context or guardian details for ${targetId}`,
     };
   }
 
-  // If explicit payment mode or amount were passed, augment context
   if (explicitAmount && ctx.paymentEntry) {
     ctx.paymentEntry.paid_amount = explicitAmount;
   }
@@ -528,17 +566,29 @@ export async function dispatchPaymentReceipt(
   let emailError: string | undefined;
   let whatsappError: string | undefined;
 
-  // 1. Send Email (if guardian email is available)
   const emailPromise = (async () => {
+    if (!shouldSendEmail) return;
+
     if (!ctx.guardianEmail) {
       emailError = "No guardian email available";
       return;
     }
 
     try {
-      const pdfBuffer = await fetchInvoicePDF(invoiceId);
+      let pdfBuffer: Buffer | null = null;
+      let filename = `${targetId}.pdf`;
+
+      if (invoiceId) {
+        pdfBuffer = await fetchInvoicePDF(invoiceId);
+        filename = `${invoiceId}.pdf`;
+      } else if (paymentEntryId || ctx.paymentEntry?.name) {
+        const peId = paymentEntryId || ctx.paymentEntry!.name;
+        pdfBuffer = await fetchPaymentEntryPDF(peId);
+        filename = `${peId}.pdf`;
+      }
+
       const attachments = pdfBuffer
-        ? [{ filename: `${invoiceId}.pdf`, content: pdfBuffer, contentType: "application/pdf" }]
+        ? [{ filename, content: pdfBuffer, contentType: "application/pdf" }]
         : undefined;
 
       const instLabel =
@@ -546,8 +596,8 @@ export async function dispatchPaymentReceipt(
           ? `Inst ${ctx.instalmentIndex}/${ctx.totalInstalments}`
           : "";
       const subject = instLabel
-        ? `Payment Receipt — ${instLabel} — ${ctx.studentName} | ${invoiceId}`
-        : `Payment Receipt — ${ctx.studentName} | ${invoiceId}`;
+        ? `Payment Receipt — ${instLabel} — ${ctx.studentName} | ${invoiceId || targetId}`
+        : `Payment Receipt — ${ctx.studentName} | ${invoiceId || targetId}`;
 
       await sendEmail({
         to: ctx.guardianEmail,
@@ -563,8 +613,9 @@ export async function dispatchPaymentReceipt(
     }
   })();
 
-  // 2. Send WhatsApp (if guardian phone is available)
   const whatsappPromise = (async () => {
+    if (!shouldSendWhatsapp) return;
+
     if (!ctx.guardianPhone) {
       whatsappError = "No guardian phone available";
       return;
@@ -574,23 +625,26 @@ export async function dispatchPaymentReceipt(
       const paidAmt =
         explicitAmount ??
         ctx.paymentEntry?.paid_amount ??
-        ((ctx.invoice.grand_total || 0) - (ctx.invoice.outstanding_amount || 0));
+        (ctx.invoice ? ((ctx.invoice.grand_total || 0) - (ctx.invoice.outstanding_amount || 0)) : 0);
 
       const txRef =
-        ctx.paymentEntry?.reference_no || ctx.paymentEntry?.name || ctx.invoice.name;
+        ctx.paymentEntry?.reference_no || ctx.paymentEntry?.name || (ctx.invoice ? ctx.invoice.name : targetId);
       const txDate =
         ctx.paymentEntry?.posting_date ||
-        ctx.invoice.posting_date ||
+        ctx.invoice?.posting_date ||
         new Date().toISOString().slice(0, 10);
 
-      const pdfLink = generatePdfUrl(invoiceId);
+      const docIdForPdf = invoiceId || paymentEntryId || ctx.paymentEntry?.name || "";
+      const docTypeForPdf = invoiceId ? "Sales Invoice" : "Payment Entry";
+      const pdfLink = docIdForPdf ? generatePdfUrl(docIdForPdf, docTypeForPdf) : "";
 
-      // Attempt smartup_payment_done_v2 (PDF header + 5 body params)
+      const primaryDocId = invoiceId || targetId;
+
       try {
         const templateOpts = buildPaymentDoneWithPdf(ctx.guardianPhone, {
           guardianName: ctx.guardianName,
           amountPaid: paidAmt,
-          invoiceId,
+          invoiceId: primaryDocId,
           referenceNo: txRef,
           paymentDate: txDate,
           pdfUrl: pdfLink,
@@ -600,17 +654,16 @@ export async function dispatchPaymentReceipt(
         console.log(`[receiptService] WhatsApp (smartup_payment_done_v2) sent to ${ctx.guardianPhone}`);
       } catch (waErr: unknown) {
         console.warn(`[receiptService] Template smartup_payment_done_v2 failed, trying payment_receipt fallback...`, waErr);
-        // Fallback to text template payment_receipt
         const fallbackOpts = buildPaymentReceipt(ctx.guardianPhone, {
           guardianName: ctx.guardianName,
           studentName: ctx.studentName,
-          invoiceId,
+          invoiceId: primaryDocId,
           amountPaid: paidAmt,
           paymentDate: txDate,
           paymentMode: ctx.paymentEntry?.mode_of_payment || modeOfPayment || "Online",
           referenceId: txRef,
           instalmentSummary: ctx.totalInstalments > 1
-            ? `Instalment ${ctx.instalmentIndex}/${ctx.totalInstalments} — Balance: ₹${(ctx.invoice.outstanding_amount || 0).toLocaleString("en-IN")}`
+            ? `Instalment ${ctx.instalmentIndex}/${ctx.totalInstalments} — Balance: ₹${((ctx.invoice?.outstanding_amount) || 0).toLocaleString("en-IN")}`
             : "Fully Paid",
         });
         await sendTemplate(fallbackOpts);

@@ -41,8 +41,8 @@ function verifyPdfToken(
   );
 }
 
-/** Generate a signed PDF URL for an invoice (1-hour expiry). */
-export function generatePdfUrl(invoiceId: string): string {
+/** Generate a signed PDF URL for an invoice or payment entry (1-hour expiry). */
+export function generatePdfUrl(docId: string, doctype: "Sales Invoice" | "Payment Entry" = "Sales Invoice"): string {
   let baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://smartuplearning.net";
   // Meta Cloud API servers cannot fetch PDFs from localhost/127.0.0.1
   if (baseUrl.includes("localhost") || baseUrl.includes("127.0.0.1")) {
@@ -51,23 +51,25 @@ export function generatePdfUrl(invoiceId: string): string {
   const exp = Math.floor(Date.now() / 1000) + 3600; // 1 hour
   const token = crypto
     .createHmac("sha256", TOKEN_SECRET)
-    .update(`${invoiceId}:${exp}`)
+    .update(`${docId}:${exp}`)
     .digest("hex");
 
-  return `${baseUrl}/api/payments/invoice-pdf/${encodeURIComponent(invoiceId)}?token=${token}&exp=${exp}`;
+  const dtParam = doctype === "Payment Entry" ? "&doctype=Payment+Entry" : "";
+  return `${baseUrl}/api/payments/invoice-pdf/${encodeURIComponent(docId)}?token=${token}&exp=${exp}${dtParam}`;
 }
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id: invoiceId } = await params;
+  const { id: docId } = await params;
   const { searchParams } = request.nextUrl;
   const token = searchParams.get("token") || "";
   const exp = searchParams.get("exp") || "";
+  const doctype = searchParams.get("doctype") === "Payment Entry" ? "Payment Entry" : "Sales Invoice";
 
   // Validate HMAC token
-  if (!verifyPdfToken(invoiceId, token, exp)) {
+  if (!verifyPdfToken(docId, token, exp)) {
     return NextResponse.json(
       { error: "Invalid or expired token" },
       { status: 403 },
@@ -83,14 +85,16 @@ export async function GET(
   }
 
   try {
-    const url = `${FRAPPE_URL}/api/method/frappe.utils.print_format.download_pdf?doctype=Sales+Invoice&name=${encodeURIComponent(invoiceId)}&format=SmartUp+Invoice&no_letterhead=1`;
+    const printFormatQuery = doctype === "Sales Invoice" ? "&format=SmartUp+Invoice" : "";
+    const encodedDt = doctype === "Payment Entry" ? "Payment+Entry" : "Sales+Invoice";
+    const url = `${FRAPPE_URL}/api/method/frappe.utils.print_format.download_pdf?doctype=${encodedDt}&name=${encodeURIComponent(docId)}${printFormatQuery}&no_letterhead=1`;
     const res = await fetch(url, {
       headers: { Authorization: `token ${API_KEY}:${API_SECRET}` },
       cache: "no-store",
     });
 
     if (!res.ok) {
-      console.warn(`[invoice-pdf] Frappe PDF fetch failed: ${res.status}`);
+      console.warn(`[invoice-pdf] Frappe PDF fetch failed for ${docId}: ${res.status}`);
       return NextResponse.json(
         { error: "PDF not found" },
         { status: 404 },
@@ -103,7 +107,7 @@ export async function GET(
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `inline; filename="${invoiceId}.pdf"`,
+        "Content-Disposition": `inline; filename="${docId}.pdf"`,
         "Cache-Control": "private, max-age=3600",
       },
     });
@@ -115,3 +119,4 @@ export async function GET(
     );
   }
 }
+

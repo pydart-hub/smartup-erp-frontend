@@ -20,6 +20,9 @@ import { getStudent } from "@/lib/api/students";
 import apiClient from "@/lib/api/client";
 import { selectPrimarySalesOrder, sortSalesOrdersForDisplay } from "@/lib/utils/salesOrderSelection";
 import { formatDate } from "@/lib/utils/formatters";
+import { SendReceiptModal, type ReceiptItemOption } from "@/components/fees/SendReceiptModal";
+import { StudentTransactionHistory } from "@/components/fees/StudentTransactionHistory";
+import type { StudentTransactionHistoryRow } from "@/lib/api/fees";
 
 function initials(name: string) {
   return name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
@@ -74,6 +77,10 @@ export default function SalesUserStudentDetailPage() {
    const [payAmount, setPayAmount] = useState<string>("");
    const [payMode, setPayMode] = useState<"Cash" | "UPI" | "Bank Transfer" | "Cheque">("Cash");
    const [payRef, setPayRef] = useState<string>("");
+
+   // ── Receipt modal states ──────────────────────────────────
+   const [showSendReceipt, setShowSendReceipt] = useState(false);
+   const [selectedReceiptItem, setSelectedReceiptItem] = useState<{ type: "invoice" | "payment"; id: string } | undefined>(undefined);
  
    const todayDate = useMemo(() => {
      const d = new Date();
@@ -250,6 +257,30 @@ export default function SalesUserStudentDetailPage() {
   const isDiscontinued = student.enabled === 0 && !!student.custom_discontinuation_date;
   const primarySalesOrder = selectPrimarySalesOrder(salesOrdersRes);
 
+  const paidInvoices = useMemo(() => {
+    return (salesInvoicesRes ?? []).filter(
+      (inv: { outstanding_amount: number; status?: string }) =>
+        inv.outstanding_amount <= 0 || inv.status === "Paid"
+    );
+  }, [salesInvoicesRes]);
+
+  const latestPaidInvoice = useMemo(() => {
+    return [...paidInvoices].sort((a, b) => {
+      const aDate = Date.parse(a.posting_date ?? a.due_date ?? "");
+      const bDate = Date.parse(b.posting_date ?? b.due_date ?? "");
+      return (bDate || 0) - (aDate || 0);
+    })[0] ?? null;
+  }, [paidInvoices]);
+
+  const availableReceiptItems = useMemo<ReceiptItemOption[]>(() => {
+    return paidInvoices.map((inv: { name: string; grand_total: number; posting_date?: string; due_date?: string }) => ({
+      type: "invoice",
+      id: inv.name,
+      amount: inv.grand_total,
+      date: inv.posting_date || inv.due_date,
+    }));
+  }, [paidInvoices]);
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 max-w-4xl mx-auto">
       <BreadcrumbNav />
@@ -392,9 +423,25 @@ export default function SalesUserStudentDetailPage() {
       {((salesOrdersRes?.length ?? 0) > 0 || (salesInvoicesRes?.length ?? 0) > 0) && (
         <Card>
           <CardContent className="p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <span className="text-primary"><CreditCard className="h-4 w-4" /></span>
-              <h3 className="font-semibold text-text-primary">Fee & Payments</h3>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-primary"><CreditCard className="h-4 w-4" /></span>
+                <h3 className="font-semibold text-text-primary">Fee & Payments</h3>
+              </div>
+              {latestPaidInvoice && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedReceiptItem(undefined);
+                    setShowSendReceipt(true);
+                  }}
+                  className="!border-success/40 !text-success hover:!bg-success/5 gap-1.5"
+                >
+                  <Mail className="h-3.5 w-3.5" />
+                  Send Receipt
+                </Button>
+              )}
             </div>
 
             {/* SO summary */}
@@ -476,7 +523,7 @@ export default function SalesUserStudentDetailPage() {
                             </Badge>
                           </td>
                           <td className="py-2 text-right">
-                            {!isPaid && !isDiscontinued && (
+                            {!isPaid && !isDiscontinued ? (
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -485,13 +532,42 @@ export default function SalesUserStudentDetailPage() {
                               >
                                 <Banknote className="h-3.5 w-3.5" /> Pay
                               </Button>
-                            )}
+                            ) : isPaid ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedReceiptItem({ type: "invoice", id: inv.name });
+                                  setShowSendReceipt(true);
+                                }}
+                                className="h-7 px-2 text-xs ml-auto flex items-center gap-1 !border-success/40 !text-success hover:!bg-success/5"
+                                title="Send Receipt for this invoice"
+                              >
+                                <Mail className="h-3.5 w-3.5" /> Receipt
+                              </Button>
+                            ) : null}
                           </td>
                         </tr>
                       );
                     })}
                   </tbody>
                 </table>
+              </div>
+            )}
+
+            {student?.custom_branch && (
+              <div className="mt-4 rounded-[12px] border border-border-light bg-app-bg px-4 py-3">
+                <StudentTransactionHistory
+                  studentId={id}
+                  branch={student.custom_branch}
+                  onSendReceipt={(row: StudentTransactionHistoryRow) => {
+                    setSelectedReceiptItem({
+                      type: "payment",
+                      id: row.payment_entry_id,
+                    });
+                    setShowSendReceipt(true);
+                  }}
+                />
               </div>
             )}
 
@@ -634,6 +710,21 @@ export default function SalesUserStudentDetailPage() {
             </div>
           </motion.div>
         </div>
+      )}
+
+      {/* Send Receipt Modal */}
+      {showSendReceipt && (
+        <SendReceiptModal
+          isOpen={showSendReceipt}
+          onClose={() => {
+            setShowSendReceipt(false);
+            setSelectedReceiptItem(undefined);
+          }}
+          availableItems={availableReceiptItems}
+          initialSelectedItem={selectedReceiptItem}
+          defaultEmail={guardian?.email_address || ""}
+          defaultPhone={guardian?.mobile_number || ""}
+        />
       )}
     </motion.div>
   );
