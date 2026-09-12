@@ -937,7 +937,7 @@
     "questions": [
       {
         "questionNumber": 1,
-        "questionText": "All questions are compulsory. 2. Each question carries 1 mark. 3. Choose the most appropriate answer. 4. There is no negative marking. 5. Some questions are HOTS based. 1. Which of the following is both a physical and chemical change?",
+        "questionText": "Which of the following is both a physical and chemical change?",
         "options": [
           {
             "key": "A",
@@ -3769,8 +3769,8 @@
         "correctOption": "A"
       },
       {
-        "questionNumber": 1,
-        "questionText": "2. 3. 4. 5. 3. A particle moves such that its displacement is given by x = t³ − 6t² + 9t + 4. The acceleration at t = 2 s is:",
+        "questionNumber": 3,
+        "questionText": "A particle moves such that its displacement is given by x = t³ − 6t² + 9t + 4. The acceleration at t = 2 s is:",
         "options": [
           {
             "key": "A",

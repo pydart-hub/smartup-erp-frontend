@@ -53,7 +53,11 @@ type ScholarResultViewProps = {
 
 function cleanExamText(text: string | null | undefined): string {
   if (!text) return "";
-  return text.replace(/\s*---\s*PAGE\s*\d+\s*---\s*/gi, "").trim();
+  return text
+    .replace(/\s*---\s*PAGE\s*\d+\s*---\s*/gi, "")
+    .replace(/^All questions are compulsory.*?\b\d+\.\s*/i, "")
+    .replace(/^\s*(?:\d+\.\s*){2,}/, "")
+    .trim();
 }
 
 export default function ScholarResultView({ attempt }: ScholarResultViewProps) {
