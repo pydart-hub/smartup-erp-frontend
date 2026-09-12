@@ -54,7 +54,8 @@ function SectionCard({ title, icon, children }: { title: string; icon: React.Rea
   );
 }
 
-function formatInvoiceDueDate(date: string): string {
+function formatInvoiceDueDate(date?: string | null): string {
+  if (!date) return "—";
   return formatDate(date, "dd MMM yyyy");
 }
 
@@ -215,6 +216,31 @@ export default function SalesUserStudentDetailPage() {
     staleTime: 60_000,
   });
 
+  // ── Paid invoices & receipts (must be called unconditionally before early returns) ──
+  const paidInvoices = useMemo(() => {
+    return (salesInvoicesRes ?? []).filter(
+      (inv: { outstanding_amount?: number; status?: string }) =>
+        (inv.outstanding_amount ?? 0) <= 0 || inv.status === "Paid"
+    );
+  }, [salesInvoicesRes]);
+
+  const latestPaidInvoice = useMemo(() => {
+    return [...paidInvoices].sort((a, b) => {
+      const aDate = Date.parse(a.posting_date ?? a.due_date ?? "");
+      const bDate = Date.parse(b.posting_date ?? b.due_date ?? "");
+      return (bDate || 0) - (aDate || 0);
+    })[0] ?? null;
+  }, [paidInvoices]);
+
+  const availableReceiptItems = useMemo<ReceiptItemOption[]>(() => {
+    return paidInvoices.map((inv: { name: string; grand_total?: number; posting_date?: string; due_date?: string }) => ({
+      type: "invoice",
+      id: inv.name,
+      amount: inv.grand_total ?? 0,
+      date: inv.posting_date || inv.due_date,
+    }));
+  }, [paidInvoices]);
+
   // ── Loading ───────────────────────────────────────────────
   if (isLoading) {
     return (
@@ -256,30 +282,6 @@ export default function SalesUserStudentDetailPage() {
   const isConvertedStudent = student.custom_student_type !== "Demo" && hasRegularOrder && hasDemoLikeOrder;
   const isDiscontinued = student.enabled === 0 && !!student.custom_discontinuation_date;
   const primarySalesOrder = selectPrimarySalesOrder(salesOrdersRes);
-
-  const paidInvoices = useMemo(() => {
-    return (salesInvoicesRes ?? []).filter(
-      (inv: { outstanding_amount: number; status?: string }) =>
-        inv.outstanding_amount <= 0 || inv.status === "Paid"
-    );
-  }, [salesInvoicesRes]);
-
-  const latestPaidInvoice = useMemo(() => {
-    return [...paidInvoices].sort((a, b) => {
-      const aDate = Date.parse(a.posting_date ?? a.due_date ?? "");
-      const bDate = Date.parse(b.posting_date ?? b.due_date ?? "");
-      return (bDate || 0) - (aDate || 0);
-    })[0] ?? null;
-  }, [paidInvoices]);
-
-  const availableReceiptItems = useMemo<ReceiptItemOption[]>(() => {
-    return paidInvoices.map((inv: { name: string; grand_total: number; posting_date?: string; due_date?: string }) => ({
-      type: "invoice",
-      id: inv.name,
-      amount: inv.grand_total,
-      date: inv.posting_date || inv.due_date,
-    }));
-  }, [paidInvoices]);
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 max-w-4xl mx-auto">
@@ -448,9 +450,9 @@ export default function SalesUserStudentDetailPage() {
             {(salesOrdersRes?.length ?? 0) > 0 && (() => {
               const salesOrders = salesOrdersRes ?? [];
               const so = primarySalesOrder ?? salesOrders[0];
-              const soTotalGrand = (salesOrders as { grand_total: number }[]).reduce((s, o) => s + (o.grand_total ?? 0), 0);
-              const invTotal = salesInvoicesRes?.reduce((s: number, i: { grand_total: number }) => s + i.grand_total, 0) ?? 0;
-              const invOutstanding = salesInvoicesRes?.reduce((s: number, i: { outstanding_amount: number; grand_total: number }) => s + Math.min(i.outstanding_amount, i.grand_total), 0) ?? 0;
+              const soTotalGrand = (salesOrders as { grand_total?: number }[]).reduce((s, o) => s + (o.grand_total ?? 0), 0);
+              const invTotal = salesInvoicesRes?.reduce((s: number, i: { grand_total?: number }) => s + (i.grand_total ?? 0), 0) ?? 0;
+              const invOutstanding = salesInvoicesRes?.reduce((s: number, i: { outstanding_amount?: number; grand_total?: number }) => s + Math.min(i.outstanding_amount ?? 0, i.grand_total ?? 0), 0) ?? 0;
               const displayedTotal = invTotal > 0 ? invTotal : soTotalGrand;
               const paid = invTotal - invOutstanding;
               const pct = displayedTotal > 0 ? Math.min(100, Math.round((paid / displayedTotal) * 100)) : 0;
@@ -465,11 +467,11 @@ export default function SalesUserStudentDetailPage() {
                       {so.custom_plan && <Badge variant="info" className="ml-2">{so.custom_plan}</Badge>}
                       {so.custom_no_of_instalments && <Badge variant="default" className="ml-1">{so.custom_no_of_instalments}x</Badge>}
                     </div>
-                    <span className="text-lg font-bold text-text-primary">₹{displayedTotal.toLocaleString("en-IN")}</span>
+                    <span className="text-lg font-bold text-text-primary">₹{(displayedTotal ?? 0).toLocaleString("en-IN")}</span>
                   </div>
                   <div className="flex items-center gap-3 text-xs text-text-secondary mb-2">
-                    <span>Paid: <strong className="text-success">₹{paid.toLocaleString("en-IN")}</strong></span>
-                    <span>Outstanding: <strong className="text-error">₹{invOutstanding.toLocaleString("en-IN")}</strong></span>
+                    <span>Paid: <strong className="text-success">₹{(paid ?? 0).toLocaleString("en-IN")}</strong></span>
+                    <span>Outstanding: <strong className="text-error">₹{(invOutstanding ?? 0).toLocaleString("en-IN")}</strong></span>
                   </div>
                   <div className="w-full h-2 bg-border-light rounded-full overflow-hidden">
                     <div className="h-full rounded-full bg-success transition-all" style={{ width: `${pct}%` }} />
@@ -494,11 +496,13 @@ export default function SalesUserStudentDetailPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {salesInvoicesRes.map((inv: { name: string; due_date?: string; posting_date: string; grand_total: number; outstanding_amount: number; status: string }) => {
+                    {salesInvoicesRes.map((inv: { name: string; due_date?: string; posting_date?: string; grand_total?: number; outstanding_amount?: number; status?: string }) => {
                       const todayStr = new Date().toISOString().split("T")[0];
                       const dueDate = inv.due_date ?? inv.posting_date;
-                      const isPaid = inv.outstanding_amount <= 0;
-                      const isOverdue = !isPaid && dueDate < todayStr;
+                      const outstanding = inv.outstanding_amount ?? 0;
+                      const grandTotal = inv.grand_total ?? 0;
+                      const isPaid = outstanding <= 0;
+                      const isOverdue = !isPaid && !!dueDate && dueDate < todayStr;
                       return (
                         <tr key={inv.name} className="border-b border-border-light last:border-0">
                           <td className="py-2 text-xs font-mono text-text-primary">{inv.name}</td>
@@ -509,12 +513,12 @@ export default function SalesUserStudentDetailPage() {
                               {isOverdue && <span className="text-[9px] font-bold ml-0.5">OVERDUE</span>}
                             </span>
                           </td>
-                          <td className="py-2 text-right text-xs font-semibold text-text-primary">₹{inv.grand_total.toLocaleString("en-IN")}</td>
+                          <td className="py-2 text-right text-xs font-semibold text-text-primary">₹{grandTotal.toLocaleString("en-IN")}</td>
                           <td className="py-2 text-right text-xs">
                             {isPaid ? (
                               <span className="text-success">—</span>
                             ) : (
-                              <span className="font-semibold text-error">₹{inv.outstanding_amount.toLocaleString("en-IN")}</span>
+                              <span className="font-semibold text-error">₹{outstanding.toLocaleString("en-IN")}</span>
                             )}
                           </td>
                           <td className="py-2 text-right">
@@ -592,7 +596,7 @@ export default function SalesUserStudentDetailPage() {
                   <p className="text-xs text-text-tertiary mb-0.5">Date</p>
                   <p className="text-sm font-medium text-text-primary">
                     {student.custom_discontinuation_date
-                      ? new Date(student.custom_discontinuation_date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
+                      ? formatDate(student.custom_discontinuation_date, "dd MMM yyyy")
                       : "—"}
                   </p>
                 </div>

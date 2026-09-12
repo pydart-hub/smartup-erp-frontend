@@ -38,6 +38,14 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Normalize spaces in dashboard routes (e.g. "/dashboard/sales user/..." -> "/dashboard/sales-user/...")
+  const decodedPath = decodeURIComponent(pathname);
+  if (decodedPath.startsWith("/dashboard/sales user")) {
+    const normalizedPath = decodedPath.replace("/dashboard/sales user", "/dashboard/sales-user");
+    url.pathname = normalizedPath;
+    return NextResponse.redirect(url);
+  }
+
   // Handle scholar subdomain rewrites
   if (host.toLowerCase().startsWith("scholar.")) {
     const isInternal =

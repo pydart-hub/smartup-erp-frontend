@@ -34,21 +34,27 @@ export function BreadcrumbNav() {
       >
         <Home className="h-3.5 w-3.5" />
       </Link>
-      {breadcrumbs.slice(1).map((crumb, index) => (
-        <React.Fragment key={crumb.href}>
-          <ChevronRight className="h-3.5 w-3.5 text-text-tertiary/50" />
-          {index === breadcrumbs.length - 2 ? (
-            <span className="text-text-primary font-medium">{crumb.label}</span>
-          ) : (
-            <Link
-              href={crumb.href}
-              className="hover:text-text-secondary transition-colors"
-            >
-              {crumb.label}
-            </Link>
-          )}
-        </React.Fragment>
-      ))}
+      {(() => {
+        const items = breadcrumbs.slice(1);
+        return items.map((crumb, index) => {
+          const isLast = index === items.length - 1;
+          return (
+            <React.Fragment key={crumb.href}>
+              <ChevronRight className="h-3.5 w-3.5 text-text-tertiary/50" />
+              {isLast ? (
+                <span className="text-text-primary font-medium">{crumb.label}</span>
+              ) : (
+                <Link
+                  href={crumb.href}
+                  className="hover:text-text-secondary transition-colors"
+                >
+                  {crumb.label}
+                </Link>
+              )}
+            </React.Fragment>
+          );
+        });
+      })()}
     </nav>
   );
 }
