@@ -51,6 +51,11 @@ type ScholarResultViewProps = {
   };
 };
 
+function cleanExamText(text: string | null | undefined): string {
+  if (!text) return "";
+  return text.replace(/\s*---\s*PAGE\s*\d+\s*---\s*/gi, "").trim();
+}
+
 export default function ScholarResultView({ attempt }: ScholarResultViewProps) {
   const score = attempt.scoreObtained;
   const total = attempt.totalMarks || 40;
@@ -310,7 +315,7 @@ export default function ScholarResultView({ attempt }: ScholarResultViewProps) {
                               Q{q.questionNumber}.
                             </span>
                             <p className="font-bold text-slate-900 leading-snug text-xs print:text-[9px]">
-                              {q.questionText}
+                              {cleanExamText(q.questionText)}
                             </p>
                           </div>
                           <span
@@ -352,7 +357,7 @@ export default function ScholarResultView({ attempt }: ScholarResultViewProps) {
                                   <span className="font-black text-[10px] print:text-[8px] text-slate-500 shrink-0">
                                     {opt.optionKey}.
                                   </span>
-                                  <span className="truncate">{opt.optionText}</span>
+                                  <span className="truncate">{cleanExamText(opt.optionText)}</span>
                                 </div>
                                 {isThisCorrect && (
                                   <span className="text-[9px] text-emerald-600 font-bold shrink-0">✓</span>

@@ -42,6 +42,11 @@ type ScholarExamPlayerProps = {
   initialAnswers: Record<string, string>;
 };
 
+function cleanExamText(text: string | null | undefined): string {
+  if (!text) return "";
+  return text.replace(/\s*---\s*PAGE\s*\d+\s*---\s*/gi, "").trim();
+}
+
 export default function ScholarExamPlayer({
   attemptId,
   studentName,
@@ -452,7 +457,7 @@ export default function ScholarExamPlayer({
             {/* Question Text */}
             <div className="mb-8">
               <h2 className="text-lg sm:text-xl font-bold text-slate-900 leading-relaxed">
-                {currentQuestion?.questionText}
+                {cleanExamText(currentQuestion?.questionText)}
               </h2>
             </div>
 
@@ -481,7 +486,7 @@ export default function ScholarExamPlayer({
                       {opt.optionKey}
                     </div>
                     <span className="text-sm sm:text-[15px] font-medium leading-normal">
-                      {opt.optionText}
+                      {cleanExamText(opt.optionText)}
                     </span>
                   </button>
                 );

@@ -392,7 +392,7 @@
           },
           {
             "key": "D",
-            "text": "Melting  --- PAGE 2 ---"
+            "text": "Melting"
           }
         ],
         "correctOption": "B"
@@ -859,7 +859,7 @@
       },
       {
         "questionNumber": 38,
-        "questionText": "Identify the adjective: “It is a beautiful flower.”  --- PAGE 3 ---",
+        "questionText": "Identify the adjective: “It is a beautiful flower.”",
         "options": [
           {
             "key": "A",
@@ -1068,7 +1068,7 @@
           },
           {
             "key": "D",
-            "text": "Vitamin D  --- PAGE 2 ---"
+            "text": "Vitamin D"
           }
         ],
         "correctOption": "D"
@@ -1244,7 +1244,7 @@
           },
           {
             "key": "B",
-            "text": "270°  --- PAGE 3 ---"
+            "text": "270°"
           },
           {
             "key": "C",
@@ -1413,7 +1413,7 @@
           },
           {
             "key": "D",
-            "text": "14 November 1949  --- PAGE 4 ---"
+            "text": "14 November 1949"
           }
         ],
         "correctOption": "B"
@@ -1593,7 +1593,7 @@
           },
           {
             "key": "C",
-            "text": "Decrease in sunlight  --- PAGE 5 ---"
+            "text": "Decrease in sunlight"
           },
           {
             "key": "D",
@@ -1769,7 +1769,7 @@
         "options": [
           {
             "key": "A",
-            "text": "21  --- PAGE 6 ---"
+            "text": "21"
           },
           {
             "key": "B",
