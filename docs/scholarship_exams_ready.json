@@ -1190,23 +1190,23 @@
       },
       {
         "questionNumber": 12,
-        "questionText": "The simple interest on ■1000 at 10% per annum for 2 years is:",
+        "questionText": "The simple interest on ₹1000 at 10% per annum for 2 years is:",
         "options": [
           {
             "key": "A",
-            "text": "■100"
+            "text": "₹100"
           },
           {
             "key": "B",
-            "text": "■150"
+            "text": "₹150"
           },
           {
             "key": "C",
-            "text": "■200"
+            "text": "₹200"
           },
           {
             "key": "D",
-            "text": "■250"
+            "text": "₹250"
           }
         ],
         "correctOption": "C"
@@ -1351,23 +1351,23 @@
       },
       {
         "questionNumber": 19,
-        "questionText": "(HOTS) A shopkeeper gives 10% discount on a bag costing ■800 and still gains ■80. What is the cost price of the bag?",
+        "questionText": "(HOTS) A shopkeeper gives 10% discount on a bag costing ₹800 and still gains ₹80. What is the cost price of the bag?",
         "options": [
           {
             "key": "A",
-            "text": "■600"
+            "text": "₹600"
           },
           {
             "key": "B",
-            "text": "■620"
+            "text": "₹620"
           },
           {
             "key": "C",
-            "text": "■640"
+            "text": "₹640"
           },
           {
             "key": "D",
-            "text": "■700"
+            "text": "₹700"
           }
         ],
         "correctOption": "C"

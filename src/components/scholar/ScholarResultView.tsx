@@ -57,6 +57,7 @@ function cleanExamText(text: string | null | undefined): string {
     .replace(/\s*---\s*PAGE\s*\d+\s*---\s*/gi, "")
     .replace(/^All questions are compulsory.*?\b\d+\.\s*/i, "")
     .replace(/^\s*(?:\d+\.\s*){2,}/, "")
+    .replace(/■/g, "₹")
     .trim();
 }
 
