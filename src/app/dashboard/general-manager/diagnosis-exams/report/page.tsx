@@ -4,12 +4,14 @@ import { DiagnosisExamsReport } from "@/components/diagnosis-exams/DiagnosisExam
 import { DatabaseErrorCard } from "@/components/diagnosis-exams/DatabaseErrorCard";
 
 import { getCanonicalBranchName } from "@/lib/utils/constants";
+import { DIAGNOSIS_EXAM_PUBLISHING_FILTER, isScholarshipAttempt } from "@/lib/utils/diagnosis";
 
 export const dynamic = "force-dynamic";
 
 export default async function GeneralManagerDiagnosisExamsReportPage() {
   try {
     const rawAttempts = await db.examAttempt.findMany({
+      where: DIAGNOSIS_EXAM_PUBLISHING_FILTER,
       include: {
         publishing: {
           include: {
@@ -20,10 +22,12 @@ export default async function GeneralManagerDiagnosisExamsReportPage() {
       orderBy: { startedAt: "desc" },
     });
 
-    const attempts = rawAttempts.map((attempt) => ({
-      ...attempt,
-      studentBranch: getCanonicalBranchName(attempt.studentBranch),
-    }));
+    const attempts = rawAttempts
+      .filter((attempt) => !isScholarshipAttempt(attempt))
+      .map((attempt) => ({
+        ...attempt,
+        studentBranch: getCanonicalBranchName(attempt.studentBranch),
+      }));
 
     return (
       <div className="p-4 lg:p-6 max-w-7xl mx-auto">

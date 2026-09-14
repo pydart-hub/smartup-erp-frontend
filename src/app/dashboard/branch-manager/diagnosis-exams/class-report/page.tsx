@@ -5,6 +5,7 @@ import { DiagnosisExamsClassReport } from "@/components/diagnosis-exams/Diagnosi
 import { DatabaseErrorCard } from "@/components/diagnosis-exams/DatabaseErrorCard";
 import { getBranchManagerDefaultCompany } from "@/lib/server/branchManagerSession";
 import { getCanonicalBranchName } from "@/lib/utils/constants";
+import { DIAGNOSIS_EXAM_PUBLISHING_FILTER } from "@/lib/utils/diagnosis";
 
 export const dynamic = "force-dynamic";
 
@@ -29,10 +30,11 @@ export default async function BranchManagerDiagnosisClassReportPage({
     const branchName = await getBranchManagerDefaultCompany();
     const canonicalBranch = getCanonicalBranchName(branchName);
 
-    // Fetch attempts for this class level (fast, answers excluded!)
+    // Fetch attempts for this class level, strictly excluding Kerala scholarship exams
     const allAttempts = await db.examAttempt.findMany({
       where: {
         classLevel: classLevel,
+        ...DIAGNOSIS_EXAM_PUBLISHING_FILTER,
       },
       include: {
         publishing: {

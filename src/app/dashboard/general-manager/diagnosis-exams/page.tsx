@@ -4,13 +4,15 @@ import { DiagnosisExamsDrillDown } from "@/components/diagnosis-exams/DiagnosisE
 import { DatabaseErrorCard } from "@/components/diagnosis-exams/DatabaseErrorCard";
 
 import { getCanonicalBranchName } from "@/lib/utils/constants";
+import { DIAGNOSIS_EXAM_PUBLISHING_FILTER, isScholarshipAttempt } from "@/lib/utils/diagnosis";
 
 export const dynamic = "force-dynamic";
 
 export default async function GeneralManagerDiagnosisExamsPage() {
   try {
-    // Query student attempts from the standalone Postgres database without loading heavy JSON snapshots
+    // Query student attempts from the standalone Postgres database, strictly filtering out Kerala scholarship exams
     const rawAttempts = await db.examAttempt.findMany({
+      where: DIAGNOSIS_EXAM_PUBLISHING_FILTER,
       select: {
         id: true,
         publishingId: true,
@@ -43,25 +45,27 @@ export default async function GeneralManagerDiagnosisExamsPage() {
       orderBy: { startedAt: "desc" },
     });
 
-    const attempts = rawAttempts.map((attempt) => {
-      let diagnosedLevel: string | null = null;
-      if (attempt.resultSnapshotJson) {
-        try {
-          const res = typeof attempt.resultSnapshotJson === "string"
-            ? JSON.parse(attempt.resultSnapshotJson)
-            : attempt.resultSnapshotJson;
-          diagnosedLevel = res?.diagnosedLevel || null;
-        } catch {
-          // Ignore JSON parse error
+    const attempts = rawAttempts
+      .filter((attempt) => !isScholarshipAttempt(attempt))
+      .map((attempt) => {
+        let diagnosedLevel: string | null = null;
+        if (attempt.resultSnapshotJson) {
+          try {
+            const res = typeof attempt.resultSnapshotJson === "string"
+              ? JSON.parse(attempt.resultSnapshotJson)
+              : attempt.resultSnapshotJson;
+            diagnosedLevel = res?.diagnosedLevel || null;
+          } catch {
+            // Ignore JSON parse error
+          }
         }
-      }
 
-      return {
-        ...attempt,
-        studentBranch: getCanonicalBranchName(attempt.studentBranch),
-        diagnosedLevel,
-      };
-    });
+        return {
+          ...attempt,
+          studentBranch: getCanonicalBranchName(attempt.studentBranch),
+          diagnosedLevel,
+        };
+      });
 
     return (
       <div className="p-4 lg:p-6 max-w-7xl mx-auto">

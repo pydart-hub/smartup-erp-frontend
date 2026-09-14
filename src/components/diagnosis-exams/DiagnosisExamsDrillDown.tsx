@@ -36,6 +36,7 @@ import {
   getAttemptLevelBreakdown,
 } from "@/lib/public-exam/diagnostics";
 import { getCanonicalBranchName } from "@/lib/utils/constants";
+import { isScholarshipAttempt } from "@/lib/utils/diagnosis";
 
 interface DiagnosisExamsDrillDownProps {
   attempts: AttemptWithPublishing[];
@@ -51,11 +52,13 @@ export function DiagnosisExamsDrillDown({
   restrictToBranch,
 }: DiagnosisExamsDrillDownProps) {
   const router = useRouter();
-  const [localAttempts, setLocalAttempts] = useState<AttemptWithPublishing[]>(attempts);
+  const [localAttempts, setLocalAttempts] = useState<AttemptWithPublishing[]>(() =>
+    attempts.filter((a) => !isScholarshipAttempt(a))
+  );
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
   React.useEffect(() => {
-    setLocalAttempts(attempts);
+    setLocalAttempts(attempts.filter((a) => !isScholarshipAttempt(a)));
   }, [attempts]);
 
   const handleDeleteAttempt = async (attemptId: string) => {

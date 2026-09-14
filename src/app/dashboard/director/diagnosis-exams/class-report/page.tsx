@@ -4,6 +4,7 @@ import { db } from "@/lib/public-exam/db";
 import { DiagnosisExamsClassReport } from "@/components/diagnosis-exams/DiagnosisExamsClassReport";
 import { DatabaseErrorCard } from "@/components/diagnosis-exams/DatabaseErrorCard";
 import { getCanonicalBranchName } from "@/lib/utils/constants";
+import { DIAGNOSIS_EXAM_PUBLISHING_FILTER, isScholarshipAttempt } from "@/lib/utils/diagnosis";
 
 export const dynamic = "force-dynamic";
 
@@ -26,10 +27,11 @@ export default async function DirectorDiagnosisClassReportPage({
   }
 
   try {
-    // Fetch attempts for this class level (fast, answers excluded!)
+    // Fetch attempts for this class level, strictly excluding Kerala scholarship exams
     const allAttempts = await db.examAttempt.findMany({
       where: {
         classLevel: classLevel,
+        ...DIAGNOSIS_EXAM_PUBLISHING_FILTER,
       },
       include: {
         publishing: {
@@ -41,10 +43,12 @@ export default async function DirectorDiagnosisClassReportPage({
       orderBy: { startedAt: "desc" },
     });
 
-    let attempts = allAttempts.map((attempt) => ({
-      ...attempt,
-      studentBranch: getCanonicalBranchName(attempt.studentBranch),
-    }));
+    let attempts = allAttempts
+      .filter((attempt) => !isScholarshipAttempt(attempt))
+      .map((attempt) => ({
+        ...attempt,
+        studentBranch: getCanonicalBranchName(attempt.studentBranch),
+      }));
 
     if (branchFilter) {
       const canonicalFilter = getCanonicalBranchName(branchFilter);

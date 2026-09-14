@@ -16,6 +16,7 @@ import {
   getAttemptLevelBreakdown,
   getOrdinalSuffix,
 } from "@/lib/public-exam/diagnostics";
+import { isScholarshipAttempt } from "@/lib/utils/diagnosis";
 
 interface DiagnosisExamsClassReportProps {
   attempts: AttemptWithPublishing[];
@@ -30,8 +31,10 @@ export function DiagnosisExamsClassReport({
   branchName = "All Branches",
   backUrl,
 }: DiagnosisExamsClassReportProps) {
-  // 1. Filter attempts for this class
-  const classAttempts = attempts.filter((a) => a.classLevel === classLevel);
+  // 1. Filter attempts for this class, strictly excluding scholarship attempts
+  const classAttempts = attempts.filter(
+    (a) => a.classLevel === classLevel && !isScholarshipAttempt(a)
+  );
 
   // 2. Count total unique students in this class
   const uniqueStudents = new Set(

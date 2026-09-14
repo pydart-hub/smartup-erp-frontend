@@ -4,6 +4,7 @@ import { DiagnosisExamsReport } from "@/components/diagnosis-exams/DiagnosisExam
 import { DatabaseErrorCard } from "@/components/diagnosis-exams/DatabaseErrorCard";
 import { getBranchManagerDefaultCompany } from "@/lib/server/branchManagerSession";
 import { getCanonicalBranchName } from "@/lib/utils/constants";
+import { DIAGNOSIS_EXAM_PUBLISHING_FILTER } from "@/lib/utils/diagnosis";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,7 @@ export default async function BranchManagerDiagnosisExamsReportPage() {
     const canonicalBranch = getCanonicalBranchName(branchName);
 
     const allAttempts = await db.examAttempt.findMany({
+      where: DIAGNOSIS_EXAM_PUBLISHING_FILTER,
       include: {
         publishing: {
           include: {

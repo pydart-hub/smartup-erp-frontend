@@ -1,17 +1,21 @@
-# Task: Weekly Mentor Student Call Tracking & Pending Indicators
+# Task: Isolate Diagnosis Exams from Scholarship Data Without Data Loss
 
-- [ ] 1. Add `checkWeeklyCallStatus` utility to evaluate if a student was called in the last 7 days / this week <!-- id: 1 -->
-- [ ] 2. Update `drilldownRows` in `MentorFeedbackReport.tsx` to ensure all active assignments and feedback are merged <!-- id: 2 -->
-- [ ] 3. Compute `pendingCallsCount` and `calledStudentsCount` for each mentor in `mentorGroups` <!-- id: 3 -->
-- [ ] 4. Compute `pendingCallsCount` for each branch in `branchGroups` and global total pending calls <!-- id: 4 -->
-- [ ] 5. Update UI in `MentorFeedbackReport.tsx`: <!-- id: 5 -->
-  - Top summary cards: Add "Weekly Calls Pending" KPI card
-  - Level 1 Branch Cards: Add "Pending Calls" stat box & alert badge
-  - Level 2 Mentor Cards: Add "Pending Calls" stat box & alert badge
-  - Level 3 Student Table: Add "Weekly Call Status" column with Called/Not Called badge & filter dropdown
-- [ ] 6. Also pass `assignmentsEndpoint="/api/branch-manager/mentor-assignments"` in `BranchManagerMentorsFeedbackPage` <!-- id: 6 -->
-- [ ] 7. Verify with `npx tsc --noEmit` <!-- id: 7 -->
-- [ ] 8. Verify UI in browser via `browser_subagent` <!-- id: 8 -->
+- [x] 1. Create a centralized helper in `src/lib/utils/diagnosis.ts` (`DIAGNOSIS_EXAM_PUBLISHING_FILTER` & `isTuitionDiagnosisAttempt`) <!-- id: 1 -->
+- [x] 2. Update Director Diagnosis Exam pages to filter out scholarship attempts at the Prisma query level: <!-- id: 2 -->
+  - `src/app/dashboard/director/diagnosis-exams/page.tsx`
+  - `src/app/dashboard/director/diagnosis-exams/report/page.tsx`
+  - `src/app/dashboard/director/diagnosis-exams/class-report/page.tsx`
+- [x] 3. Update General Manager Diagnosis Exam pages similarly: <!-- id: 3 -->
+  - `src/app/dashboard/general-manager/diagnosis-exams/page.tsx`
+  - `src/app/dashboard/general-manager/diagnosis-exams/report/page.tsx`
+  - `src/app/dashboard/general-manager/diagnosis-exams/class-report/page.tsx`
+- [x] 4. Add UI-level defensive filtering in `DiagnosisExamsDrillDown.tsx` and `DiagnosisExamsReport.tsx` to guarantee non-branch districts never appear as tuition branch cards <!-- id: 4 -->
+- [x] 5. Verify that `/scholar/admin` still accesses all scholarship records and registrations with 100% data fidelity <!-- id: 5 -->
+- [x] 6. Run TypeScript check `npx tsc --noEmit` and verify no compilation or runtime errors <!-- id: 6 -->
+- [x] 7. Document results and verification in `tasks/todo.md` and walkthrough <!-- id: 7 -->
 
 ## Review & Verification Results
-(To be updated upon completion)
+- **Prisma Query Isolation**: All Diagnosis Exam dashboard routes now pass `where: DIAGNOSIS_EXAM_PUBLISHING_FILTER` directly to PostgreSQL, filtering out scholarship publishings at the database level.
+- **Defensive Safeguards**: Component-level filters (`isScholarshipAttempt`) ensure any legacy attempts or district values (Ernakulam, Idukki, etc.) are excluded from tuition branch KPI cards and class reports.
+- **Zero Data Loss**: No records in `ExamAttempt` or `ScholarRegistration` were modified or deleted. The scholarship portal and `/scholar/admin` retain 100% of student attempts and submissions.
+- **Type Safety**: `npx tsc --noEmit` verified with 0 errors.

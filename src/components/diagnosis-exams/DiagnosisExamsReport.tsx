@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   GraduationCap,
   Download,
@@ -21,6 +21,7 @@ import {
   getAttemptLevelBreakdown,
   getOrdinalSuffix,
 } from "@/lib/public-exam/diagnostics";
+import { isScholarshipAttempt } from "@/lib/utils/diagnosis";
 
 interface DiagnosisExamsReportProps {
   attempts: AttemptWithPublishing[];
@@ -34,9 +35,13 @@ export function DiagnosisExamsReport({ attempts, title, restrictToBranch }: Diag
   const [selectedBranch, setSelectedBranch] = useState<string>("all");
   const [downloadMenuOpen, setDownloadMenuOpen] = useState(false);
 
+  const safeAttempts: AttemptWithPublishing[] = useMemo(() => {
+    return attempts.filter((a: AttemptWithPublishing) => !isScholarshipAttempt(a));
+  }, [attempts]);
+
   // Group attempts by classLevel
   const classGroupsMap = new Map<string, AttemptWithPublishing[]>();
-  attempts.forEach((a) => {
+  safeAttempts.forEach((a) => {
     const group = classGroupsMap.get(a.classLevel) || [];
     group.push(a);
     classGroupsMap.set(a.classLevel, group);
