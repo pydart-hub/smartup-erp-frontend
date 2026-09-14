@@ -43,7 +43,7 @@ async function frappeGet(
   limitPageLength = 0,
 ): Promise<Record<string, unknown>[]> {
   const pageSize = 500;
-  const maxRecords = limitPageLength > 0 ? limitPageLength : 10000;
+  const maxRecords = limitPageLength > 0 ? limitPageLength : 50000;
   let allData: Record<string, unknown>[] = [];
   let offset = 0;
 
@@ -121,6 +121,19 @@ interface ClassDetailBranchRow {
   pendingFee: number;
 }
 
+interface FrappeInvoice {
+  name?: string;
+  company?: string;
+  student?: string;
+  customer?: string;
+  grand_total?: number;
+  outstanding_amount?: number;
+  posting_date?: string;
+  due_date?: string;
+  status?: string;
+  is_return?: number;
+}
+
 // ── Handlers ──
 
 export async function getAllBranchesSummary(fromDate?: string, toDate?: string): Promise<BranchRow[]> {
@@ -133,11 +146,20 @@ export async function getAllBranchesSummary(fromDate?: string, toDate?: string):
   // 2. Fetch all students once
   const allStudents = await frappeGet(
     "Student",
-    ["name", "custom_branch", "enabled", "joining_date"],
+    ["name", "student_name", "custom_branch", "enabled", "joining_date"],
     [],
     undefined,
     0,
   );
+
+  // Map student_name -> student.name for invoices where student is empty
+  const customerToStudentId = new Map<string, string>();
+  for (const s of allStudents) {
+    if (s.student_name) {
+      const clean = String(s.student_name).trim().toLowerCase().replace(/\s+/g, " ");
+      customerToStudentId.set(clean, String(s.name));
+    }
+  }
 
   // Filter students by admission/joining date if range provided
   const students = allStudents.filter((s) => {
@@ -158,16 +180,30 @@ export async function getAllBranchesSummary(fromDate?: string, toDate?: string):
     0,
   );
 
-  // 4. Fetch all submitted invoices once
-  const invoices = await frappeGet(
-    "Sales Invoice",
-    ["company", "student", "grand_total", "outstanding_amount"],
-    [["docstatus", "=", 1]],
-    undefined,
-    0,
-  );
+  // 4. Fetch all submitted invoices filtered by posting_date to match Frappe General Ledger
+  const invoiceFilters: (string | number | string[])[][] = [["docstatus", "=", 1]];
+  if (fromDate) invoiceFilters.push(["posting_date", ">=", fromDate]);
+  if (toDate) invoiceFilters.push(["posting_date", "<=", toDate]);
 
-  // 5. Aggregate per branch
+  const rawInvoices = (await frappeGet(
+    "Sales Invoice",
+    ["company", "student", "customer", "grand_total", "outstanding_amount", "posting_date", "is_return"],
+    invoiceFilters,
+    "name asc",
+    0,
+  )) as unknown as FrappeInvoice[];
+
+  // Resolve invoices where student field was empty using customer name
+  const invoices: FrappeInvoice[] = rawInvoices.map((inv) => {
+    let sid = inv.student ? String(inv.student) : "";
+    if (!sid && inv.customer) {
+      const cleanCust = String(inv.customer).trim().toLowerCase().replace(/\s+/g, " ");
+      sid = customerToStudentId.get(cleanCust) || "";
+    }
+    return { ...inv, student: sid };
+  });
+
+  // 5. Aggregate per branch matching Frappe General Ledger
   const result: BranchRow[] = branches.map((branch) => {
     const branchStudents = students.filter((s) => s.custom_branch === branch);
     const total = branchStudents.length;
@@ -176,8 +212,9 @@ export async function getAllBranchesSummary(fromDate?: string, toDate?: string):
 
     const staff = employees.filter((e) => e.company === branch).length;
 
+    // Gross positive invoices posted for this branch (matches Frappe GL Credit column)
     const branchInvoices = invoices.filter(
-      (inv) => inv.company === branch && studentSet.has(String(inv.student ?? "")),
+      (inv) => inv.company === branch && !inv.is_return && (Number(inv.grand_total) || 0) > 0,
     );
     const totalFee = branchInvoices.reduce((sum, inv) => sum + (Number(inv.grand_total) || 0), 0);
     const pendingFee = branchInvoices.reduce((sum, inv) => sum + (Number(inv.outstanding_amount) || 0), 0);
@@ -205,11 +242,20 @@ export async function getBranchDetail(branch: string, fromDate?: string, toDate?
   // Students for this branch
   const allStudents = await frappeGet(
     "Student",
-    ["name", "enabled", "joining_date"],
+    ["name", "student_name", "enabled", "joining_date"],
     [["custom_branch", "=", branch]],
     undefined,
     0,
   );
+
+  // Map student_name -> student.name for invoices where student is empty
+  const customerToStudentId = new Map<string, string>();
+  for (const s of allStudents) {
+    if (s.student_name) {
+      const clean = String(s.student_name).trim().toLowerCase().replace(/\s+/g, " ");
+      customerToStudentId.set(clean, String(s.name));
+    }
+  }
 
   const students = allStudents.filter((s) => {
     const jd = String(s.joining_date ?? "");
@@ -227,19 +273,37 @@ export async function getBranchDetail(branch: string, fromDate?: string, toDate?
     0,
   );
 
-  // Invoices
-  const allInvoices = await frappeGet(
+  // Invoices filtered by branch and posting_date to match Frappe General Ledger
+  const invoiceFilters: (string | number | string[])[][] = [
+    ["docstatus", "=", 1],
+    ["company", "=", branch],
+  ];
+  if (fromDate) invoiceFilters.push(["posting_date", ">=", fromDate]);
+  if (toDate) invoiceFilters.push(["posting_date", "<=", toDate]);
+
+  const rawInvoices = (await frappeGet(
     "Sales Invoice",
-    ["student", "grand_total", "outstanding_amount"],
-    [["docstatus", "=", 1], ["company", "=", branch]],
-    undefined,
+    ["name", "student", "customer", "grand_total", "outstanding_amount", "posting_date", "is_return"],
+    invoiceFilters,
+    "name asc",
     0,
-  );
+  )) as unknown as FrappeInvoice[];
+
+  // Resolve invoices where student field was empty using customer name
+  const allResolvedInvoices: FrappeInvoice[] = rawInvoices.map((inv) => {
+    let sid = inv.student ? String(inv.student) : "";
+    if (!sid && inv.customer) {
+      const cleanCust = String(inv.customer).trim().toLowerCase().replace(/\s+/g, " ");
+      sid = customerToStudentId.get(cleanCust) || "";
+    }
+    return { ...inv, student: sid };
+  });
+
+  // Gross positive invoices posted for this branch (matches Frappe GL Credit column)
+  const invoices = allResolvedInvoices.filter((inv) => !inv.is_return && (Number(inv.grand_total) || 0) > 0);
 
   const studentNames = students.map((s) => String(s.name));
   const studentSet = new Set(studentNames);
-
-  const invoices = allInvoices.filter((inv) => studentSet.has(String(inv.student ?? "")));
 
   const totalStudents = students.length;
   const discontinued = students.filter((s) => Number(s.enabled) === 0).length;
@@ -345,11 +409,19 @@ export async function getAllClassesSummary(fromDate?: string, toDate?: string): 
   // All students
   const allStudents = await frappeGet(
     "Student",
-    ["name", "custom_branch", "enabled", "joining_date"],
+    ["name", "student_name", "custom_branch", "enabled", "joining_date"],
     [],
     undefined,
     0,
   );
+
+  const customerToStudentId = new Map<string, string>();
+  for (const s of allStudents) {
+    if (s.student_name) {
+      const clean = String(s.student_name).trim().toLowerCase().replace(/\s+/g, " ");
+      customerToStudentId.set(clean, String(s.name));
+    }
+  }
 
   const students = allStudents.filter((s) => {
     const jd = String(s.joining_date ?? "");
@@ -389,16 +461,29 @@ export async function getAllClassesSummary(fromDate?: string, toDate?: string): 
     if (!studentProgram.has(sid)) studentProgram.set(sid, String(e.program));
   }
 
-  // All submitted invoices
-  const allInvoices = await frappeGet(
-    "Sales Invoice",
-    ["student", "grand_total", "outstanding_amount"],
-    [["docstatus", "=", 1]],
-    undefined,
-    0,
-  );
+  // All submitted invoices filtered by posting_date
+  const invoiceFilters: (string | number | string[])[][] = [["docstatus", "=", 1]];
+  if (fromDate) invoiceFilters.push(["posting_date", ">=", fromDate]);
+  if (toDate) invoiceFilters.push(["posting_date", "<=", toDate]);
 
-  const invoices = allInvoices.filter((inv) => studentSet.has(String(inv.student ?? "")));
+  const rawInvoices = (await frappeGet(
+    "Sales Invoice",
+    ["name", "student", "customer", "grand_total", "outstanding_amount", "posting_date", "is_return"],
+    invoiceFilters,
+    "name asc",
+    0,
+  )) as unknown as FrappeInvoice[];
+
+  const allResolvedInvoices: FrappeInvoice[] = rawInvoices.map((inv) => {
+    let sid = inv.student ? String(inv.student) : "";
+    if (!sid && inv.customer) {
+      const cleanCust = String(inv.customer).trim().toLowerCase().replace(/\s+/g, " ");
+      sid = customerToStudentId.get(cleanCust) || "";
+    }
+    return { ...inv, student: sid };
+  });
+
+  const invoices = allResolvedInvoices.filter((inv) => !inv.is_return && (Number(inv.grand_total) || 0) > 0);
 
   // Invoice lookup by student
   const invoiceByStudent = new Map<string, { total: number; outstanding: number }>();
@@ -464,11 +549,19 @@ export async function getClassDetail(program: string, fromDate?: string, toDate?
   // All students
   const allStudents = await frappeGet(
     "Student",
-    ["name", "custom_branch", "enabled", "joining_date"],
+    ["name", "student_name", "custom_branch", "enabled", "joining_date"],
     [],
     undefined,
     0,
   );
+
+  const customerToStudentId = new Map<string, string>();
+  for (const s of allStudents) {
+    if (s.student_name) {
+      const clean = String(s.student_name).trim().toLowerCase().replace(/\s+/g, " ");
+      customerToStudentId.set(clean, String(s.name));
+    }
+  }
 
   const students = allStudents.filter((s) => {
     const jd = String(s.joining_date ?? "");
@@ -513,15 +606,29 @@ export async function getClassDetail(program: string, fromDate?: string, toDate?
     (s) => studentProgram.get(String(s.name)) === program,
   );
 
-  // Invoices
-  const allInvoices = await frappeGet(
+  // Invoices filtered by posting_date
+  const invoiceFilters: (string | number | string[])[][] = [["docstatus", "=", 1]];
+  if (fromDate) invoiceFilters.push(["posting_date", ">=", fromDate]);
+  if (toDate) invoiceFilters.push(["posting_date", "<=", toDate]);
+
+  const rawInvoices = (await frappeGet(
     "Sales Invoice",
-    ["student", "grand_total", "outstanding_amount"],
-    [["docstatus", "=", 1]],
-    undefined,
+    ["name", "student", "customer", "grand_total", "outstanding_amount", "posting_date", "is_return"],
+    invoiceFilters,
+    "name asc",
     0,
-  );
-  const invoices = allInvoices.filter((inv) => studentSet.has(String(inv.student ?? "")));
+  )) as unknown as FrappeInvoice[];
+
+  const allResolvedInvoices: FrappeInvoice[] = rawInvoices.map((inv) => {
+    let sid = inv.student ? String(inv.student) : "";
+    if (!sid && inv.customer) {
+      const cleanCust = String(inv.customer).trim().toLowerCase().replace(/\s+/g, " ");
+      sid = customerToStudentId.get(cleanCust) || "";
+    }
+    return { ...inv, student: sid };
+  });
+
+  const invoices = allResolvedInvoices.filter((inv) => !inv.is_return && (Number(inv.grand_total) || 0) > 0);
 
   const invoiceByStudent = new Map<string, { total: number; outstanding: number }>();
   for (const inv of invoices) {

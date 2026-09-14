@@ -9,6 +9,7 @@ import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import {
   AlertCircle,
   Building2,
@@ -17,12 +18,62 @@ import {
   PhoneCall,
   Search,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   ArrowLeft,
   User,
   GraduationCap,
   Sparkles,
 } from "lucide-react";
 import type { MentorFeedback, MentorStudentAssignment } from "@/lib/types/mentor";
+
+interface WeeklyCallStatus {
+  isCalledThisWeek: boolean;
+  daysSinceLastCall: number | null;
+  statusLabel: string;
+}
+
+function checkWeeklyCallStatus(latestLogAt?: string): WeeklyCallStatus {
+  if (!latestLogAt) {
+    return {
+      isCalledThisWeek: false,
+      daysSinceLastCall: null,
+      statusLabel: "Never Called",
+    };
+  }
+
+  const logDate = new Date(latestLogAt);
+  if (isNaN(logDate.getTime())) {
+    return {
+      isCalledThisWeek: false,
+      daysSinceLastCall: null,
+      statusLabel: "Never Called",
+    };
+  }
+
+  const now = new Date();
+  const diffMs = now.getTime() - logDate.getTime();
+  const diffDays = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+
+  // Current calendar week start (Monday 00:00)
+  const day = now.getDay();
+  const diffToMonday = (day === 0 ? -6 : 1) - day;
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(now.getDate() + diffToMonday);
+  startOfWeek.setHours(0, 0, 0, 0);
+
+  const isCalledThisWeek = diffDays <= 7 || logDate.getTime() >= startOfWeek.getTime();
+
+  let timeAgoLabel = `${diffDays}d ago`;
+  if (diffDays === 0) timeAgoLabel = "Today";
+  else if (diffDays === 1) timeAgoLabel = "Yesterday";
+
+  return {
+    isCalledThisWeek,
+    daysSinceLastCall: diffDays,
+    statusLabel: isCalledThisWeek ? `Called (${timeAgoLabel})` : `Not Called (${timeAgoLabel})`,
+  };
+}
 
 export function MentorFeedbackReport(props: {
   title: string;
@@ -71,7 +122,8 @@ function MentorFeedbackReportContent({
   const [studentProgramFilter, setStudentProgramFilter] = useState("all");
   const [studentTypeFilter, setStudentTypeFilter] = useState("all");
   const [studentPlanFilter, setStudentPlanFilter] = useState("all");
-  const [studentSort, setStudentSort] = useState<"az" | "attendance" | "score">("az");
+  const [studentCallStatusFilter, setStudentCallStatusFilter] = useState<"all" | "pending" | "called">("all");
+  const [studentSort, setStudentSort] = useState<"az" | "attendance" | "score" | "call_status">("az");
   const [studentSortDirection, setStudentSortDirection] = useState<"asc" | "desc">("asc");
 
   const searchParams = useSearchParams();
@@ -79,6 +131,10 @@ function MentorFeedbackReportContent({
   const [selectedMentor, setSelectedMentor] = useState<string | null>(null);
   const effectiveSelectedBranch = selectedBranch ?? (hideBranchLevel ? lockedBranch || null : null);
   const effectiveSelectedMentor = selectedMentor ?? mentorParam;
+
+  const [mentorSubView, setMentorSubView] = useState<"feedback" | "students">("feedback");
+  const [expandedStudentId, setExpandedStudentId] = useState<string | null>(null);
+
 
   const { data, isLoading, isError, error } = useQuery<MentorFeedback[]>({
     queryKey: ["mentor-feedback-report", endpoint, hideBranchLevel ? lockedBranch : undefined],
@@ -115,25 +171,38 @@ function MentorFeedbackReportContent({
   });
 
   const drilldownRows = useMemo<MentorFeedback[]>(() => {
-    if ((data ?? []).length > 0) return data ?? [];
-    return assignments.map((assignment) => ({
-      name: "assignment-" + assignment.name,
-      student: assignment.student,
-      student_name: assignment.student_name || assignment.student,
-      student_type: assignment.student_type,
-      program: assignment.program,
-      custom_plan: assignment.custom_plan,
-      attendance_pct: assignment.attendance_pct,
-      average_score: assignment.average_score,
-      mentor_profile: assignment.mentor_profile,
-      mentor_user: assignment.mentor_user,
-      branch: assignment.branch,
-      call_datetime: assignment.modified || assignment.assigned_on || assignment.creation || "",
-      call_status: "Not Logged Yet",
-      discussion_category: "Pending Feedback",
-      action_required: 0,
-      creation: assignment.creation,
-    }));
+    const feedbackList = data ?? [];
+    if (!assignments || assignments.length === 0) return feedbackList;
+
+    // Track students already present in feedbackList
+    const studentsWithFeedback = new Set(feedbackList.map((f) => f.student).filter(Boolean));
+
+    const placeholderRows: MentorFeedback[] = [];
+    for (const assignment of assignments) {
+      if (assignment.status && assignment.status !== "Active") continue;
+      if (!studentsWithFeedback.has(assignment.student)) {
+        placeholderRows.push({
+          name: "assignment-" + assignment.name,
+          student: assignment.student,
+          student_name: assignment.student_name || assignment.student,
+          student_type: assignment.student_type,
+          program: assignment.program,
+          custom_plan: assignment.custom_plan,
+          attendance_pct: assignment.attendance_pct,
+          average_score: assignment.average_score,
+          mentor_profile: assignment.mentor_profile,
+          mentor_user: assignment.mentor_user,
+          branch: assignment.branch,
+          call_datetime: "",
+          call_status: "Not Logged Yet",
+          discussion_category: "Pending Feedback",
+          action_required: 0,
+          creation: assignment.creation,
+        });
+      }
+    }
+
+    return [...feedbackList, ...placeholderRows];
   }, [assignments, data]);
 
   // Flat filtering for Global View
@@ -158,7 +227,21 @@ function MentorFeedbackReportContent({
     );
   }, [data, search]);
 
-  // 1. Group by branch
+  // Global map of each student's most recent call/log timestamp
+  const studentLatestCallMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const row of drilldownRows) {
+      if (row.name.startsWith("assignment-")) continue;
+      if (!row.student || !row.call_datetime) continue;
+      const prev = map.get(row.student);
+      if (!prev || row.call_datetime > prev) {
+        map.set(row.student, row.call_datetime);
+      }
+    }
+    return map;
+  }, [drilldownRows]);
+
+  // 1. Group by branch with weekly call tracking
   const branchGroups = useMemo(() => {
     const rawData = drilldownRows;
     const groups: Record<string, {
@@ -166,6 +249,9 @@ function MentorFeedbackReportContent({
       logsCount: number;
       actionRequiredCount: number;
       mentors: Set<string>;
+      students: Set<string>;
+      pendingCallsCount: number;
+      calledStudentsCount: number;
     }> = {};
 
     rawData.forEach((row) => {
@@ -176,6 +262,9 @@ function MentorFeedbackReportContent({
           logsCount: 0,
           actionRequiredCount: 0,
           mentors: new Set(),
+          students: new Set(),
+          pendingCallsCount: 0,
+          calledStudentsCount: 0,
         };
       }
       const isAssignmentPlaceholder = row.name.startsWith("assignment-");
@@ -188,12 +277,32 @@ function MentorFeedbackReportContent({
       if (row.mentor_user) {
         groups[b].mentors.add(row.mentor_user);
       }
+      if (row.student) {
+        groups[b].students.add(row.student);
+      }
+    });
+
+    // Compute weekly pending vs called for each branch across unique students
+    Object.values(groups).forEach((g) => {
+      let pending = 0;
+      let called = 0;
+      g.students.forEach((studentId) => {
+        const latestCall = studentLatestCallMap.get(studentId);
+        const { isCalledThisWeek } = checkWeeklyCallStatus(latestCall);
+        if (isCalledThisWeek) {
+          called++;
+        } else {
+          pending++;
+        }
+      });
+      g.pendingCallsCount = pending;
+      g.calledStudentsCount = called;
     });
 
     return Object.values(groups).sort((a, b) => a.branchName.localeCompare(b.branchName));
-  }, [drilldownRows]);
+  }, [drilldownRows, studentLatestCallMap]);
 
-  // 2. Group by mentor (for selected branch)
+  // 2. Group by mentor (for selected branch) with weekly call tracking
   const mentorGroups = useMemo(() => {
     if (!effectiveSelectedBranch) return [];
     const rawData = drilldownRows;
@@ -205,6 +314,8 @@ function MentorFeedbackReportContent({
       logsCount: number;
       assignedStudentsCount: number;
       students: Set<string>;
+      pendingCallsCount: number;
+      calledStudentsCount: number;
     }> = {};
 
     branchData.forEach((row) => {
@@ -216,6 +327,8 @@ function MentorFeedbackReportContent({
           logsCount: 0,
           assignedStudentsCount: 0,
           students: new Set(),
+          pendingCallsCount: 0,
+          calledStudentsCount: 0,
         };
       }
       const isAssignmentPlaceholder = row.name.startsWith("assignment-");
@@ -232,10 +345,23 @@ function MentorFeedbackReportContent({
 
     Object.values(groups).forEach((group) => {
       group.assignedStudentsCount = group.students.size;
+      let pending = 0;
+      let called = 0;
+      group.students.forEach((studentId) => {
+        const latestCall = studentLatestCallMap.get(studentId);
+        const { isCalledThisWeek } = checkWeeklyCallStatus(latestCall);
+        if (isCalledThisWeek) {
+          called++;
+        } else {
+          pending++;
+        }
+      });
+      group.pendingCallsCount = pending;
+      group.calledStudentsCount = called;
     });
 
     return Object.values(groups).sort((a, b) => a.mentorUser.localeCompare(b.mentorUser));
-  }, [drilldownRows, effectiveSelectedBranch]);
+  }, [drilldownRows, effectiveSelectedBranch, studentLatestCallMap]);
 
   // 3. Filtered logs for selected mentor and branch
   const drilldownFilteredLogs = useMemo(() => {
@@ -246,6 +372,46 @@ function MentorFeedbackReportContent({
       return b === effectiveSelectedBranch && m === effectiveSelectedMentor;
     });
   }, [drilldownRows, effectiveSelectedBranch, effectiveSelectedMentor]);
+
+  const actualFeedbackLogs = useMemo(() => {
+    return drilldownFilteredLogs
+      .filter((row) => !row.name.startsWith("assignment-"))
+      .sort(
+        (a, b) =>
+          new Date(b.call_datetime || b.creation || 0).getTime() -
+          new Date(a.call_datetime || a.creation || 0).getTime()
+      );
+  }, [drilldownFilteredLogs]);
+
+  const searchedFeedbackLogs = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return actualFeedbackLogs;
+    return actualFeedbackLogs.filter((row) =>
+      [
+        row.student_name,
+        row.student,
+        row.call_status,
+        row.discussion_category,
+        row.overall_feedback,
+        row.academic_notes,
+        row.fee_notes,
+        row.contact_notes,
+      ]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(query))
+    );
+  }, [actualFeedbackLogs, search]);
+
+  const studentFeedbackMap = useMemo(() => {
+    const map = new Map<string, MentorFeedback[]>();
+    actualFeedbackLogs.forEach((log) => {
+      const list = map.get(log.student) || [];
+      list.push(log);
+      map.set(log.student, list);
+    });
+    return map;
+  }, [actualFeedbackLogs]);
+
 
   const mentorStudentGroups = useMemo(() => {
     const groups = new Map<string, {
@@ -260,6 +426,7 @@ function MentorFeedbackReportContent({
       latestLogAt?: string;
       hasPreviousLog: boolean;
       actionRequiredCount: number;
+      weeklyCall: WeeklyCallStatus;
     }>();
 
     for (const row of drilldownFilteredLogs) {
@@ -267,6 +434,11 @@ function MentorFeedbackReportContent({
       const existing = groups.get(studentId);
       const isAssignmentPlaceholder = row.name.startsWith("assignment-");
       if (!existing) {
+        const latestLogAt = isAssignmentPlaceholder
+          ? studentLatestCallMap.get(studentId)
+          : row.call_datetime;
+        const weeklyCall = checkWeeklyCallStatus(latestLogAt);
+
         groups.set(studentId, {
           studentId,
           studentName: row.student_name || studentId,
@@ -276,9 +448,10 @@ function MentorFeedbackReportContent({
           attendancePct: row.attendance_pct,
           averageScore: row.average_score,
           logsCount: isAssignmentPlaceholder ? 0 : 1,
-          latestLogAt: isAssignmentPlaceholder ? undefined : row.call_datetime,
-          hasPreviousLog: !isAssignmentPlaceholder,
+          latestLogAt,
+          hasPreviousLog: !isAssignmentPlaceholder || Boolean(latestLogAt),
           actionRequiredCount: !isAssignmentPlaceholder && row.action_required ? 1 : 0,
+          weeklyCall,
         });
         continue;
       }
@@ -288,6 +461,7 @@ function MentorFeedbackReportContent({
         existing.actionRequiredCount += row.action_required ? 1 : 0;
         if (!existing.latestLogAt || (row.call_datetime && row.call_datetime > existing.latestLogAt)) {
           existing.latestLogAt = row.call_datetime;
+          existing.weeklyCall = checkWeeklyCallStatus(row.call_datetime);
         }
         existing.hasPreviousLog = true;
       }
@@ -299,7 +473,7 @@ function MentorFeedbackReportContent({
     }
 
     return Array.from(groups.values()).sort((a, b) => a.studentName.localeCompare(b.studentName));
-  }, [drilldownFilteredLogs]);
+  }, [drilldownFilteredLogs, studentLatestCallMap]);
 
   const studentPrograms = useMemo(() => {
     return Array.from(
@@ -356,6 +530,12 @@ function MentorFeedbackReportContent({
       if (studentPlanFilter !== "all" && (row.customPlan || "") !== studentPlanFilter) {
         return false;
       }
+      if (studentCallStatusFilter === "pending" && row.weeklyCall.isCalledThisWeek) {
+        return false;
+      }
+      if (studentCallStatusFilter === "called" && !row.weeklyCall.isCalledThisWeek) {
+        return false;
+      }
       return true;
     });
 
@@ -366,6 +546,7 @@ function MentorFeedbackReportContent({
         row.studentType,
         row.program,
         row.customPlan,
+        row.weeklyCall.statusLabel,
       ]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(query)),
@@ -380,20 +561,28 @@ function MentorFeedbackReportContent({
         const result = (a.averageScore ?? -1) - (b.averageScore ?? -1) || a.studentName.localeCompare(b.studentName);
         return studentSortDirection === "asc" ? result : -result;
       }
+      if (studentSort === "call_status") {
+        // Pending first (isCalledThisWeek === false) or vice versa
+        const aVal = a.weeklyCall.isCalledThisWeek ? 1 : 0;
+        const bVal = b.weeklyCall.isCalledThisWeek ? 1 : 0;
+        const result = aVal - bVal || a.studentName.localeCompare(b.studentName);
+        return studentSortDirection === "asc" ? result : -result;
+      }
       const result = a.studentName.localeCompare(b.studentName);
       return studentSortDirection === "asc" ? result : -result;
     });
-  }, [mentorStudentGroups, search, studentPlanFilter, studentProgramFilter, studentSort, studentSortDirection, studentTypeFilter]);
+  }, [mentorStudentGroups, search, studentCallStatusFilter, studentPlanFilter, studentProgramFilter, studentSort, studentSortDirection, studentTypeFilter]);
 
   const hasStudentFiltersApplied = useMemo(() => {
     return (
       studentProgramFilter !== "all" ||
       studentTypeFilter !== "all" ||
       studentPlanFilter !== "all" ||
+      studentCallStatusFilter !== "all" ||
       studentSort !== "az" ||
       studentSortDirection !== "asc"
     );
-  }, [studentPlanFilter, studentProgramFilter, studentSort, studentSortDirection, studentTypeFilter]);
+  }, [studentCallStatusFilter, studentPlanFilter, studentProgramFilter, studentSort, studentSortDirection, studentTypeFilter]);
 
   const getPerformanceColor = (value?: number | null) => {
     if (value == null) return "#64748b";
@@ -471,8 +660,22 @@ function MentorFeedbackReportContent({
                 </div>
               </div>
 
-              <div className={`grid grid-cols-1 ${hideBranchLevel ? "sm:grid-cols-2" : "sm:grid-cols-3"} gap-3`}>
+              <div className={`grid grid-cols-1 ${hideBranchLevel ? "sm:grid-cols-3" : "sm:grid-cols-4"} gap-3`}>
                 <MetricCard label="Total Feedback Logs" value={data?.length ?? 0} tone="default" />
+                <MetricCard
+                  label="Weekly Calls Pending"
+                  value={(() => {
+                    const uniqueStudents = new Set(drilldownRows.map((r) => r.student).filter(Boolean));
+                    let pendingCount = 0;
+                    uniqueStudents.forEach((studentId) => {
+                      const latestCall = studentLatestCallMap.get(studentId);
+                      const { isCalledThisWeek } = checkWeeklyCallStatus(latestCall);
+                      if (!isCalledThisWeek) pendingCount++;
+                    });
+                    return pendingCount;
+                  })()}
+                  tone="rose"
+                />
                 <MetricCard label="Action Required" value={(data ?? []).filter((row) => row.action_required).length} tone="amber" />
                 {!hideBranchLevel && (
                   <MetricCard label="Branches Covered" value={new Set(drilldownRows.map((row) => row.branch).filter(Boolean)).size} tone="mint" />
@@ -612,14 +815,24 @@ function MentorFeedbackReportContent({
                                 </div>
                               </div>
 
-                              <div className="grid grid-cols-2 gap-3">
-                                <div className="rounded-[20px] border border-white/80 bg-white/80 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
-                                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">Feedback Logs</p>
-                                  <p className="mt-2 text-2xl font-bold text-slate-900">{b.logsCount}</p>
+                              <div className="grid grid-cols-3 gap-2.5">
+                                <div className="rounded-[18px] border border-white/80 bg-white/80 p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+                                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">Feedback Logs</p>
+                                  <p className="mt-1.5 text-xl font-bold text-slate-900">{b.logsCount}</p>
                                 </div>
-                                <div className="rounded-[20px] border border-white/80 bg-[linear-gradient(180deg,rgba(236,249,245,0.95),rgba(229,245,238,0.95))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
-                                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">Mentors</p>
-                                  <p className="mt-2 text-2xl font-bold text-primary">{b.mentors.size}</p>
+                                <div className="rounded-[18px] border border-white/80 bg-[linear-gradient(180deg,rgba(236,249,245,0.95),rgba(229,245,238,0.95))] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+                                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">Mentors</p>
+                                  <p className="mt-1.5 text-xl font-bold text-primary">{b.mentors.size}</p>
+                                </div>
+                                <div className={`rounded-[18px] border border-white/80 p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] ${
+                                  b.pendingCallsCount > 0
+                                    ? "bg-[linear-gradient(180deg,rgba(255,241,242,0.95),rgba(255,228,230,0.95))]"
+                                    : "bg-[linear-gradient(180deg,rgba(240,253,244,0.95),rgba(220,252,231,0.95))]"
+                                }`}>
+                                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">Pending Calls</p>
+                                  <p className={`mt-1.5 text-xl font-bold ${b.pendingCallsCount > 0 ? "text-rose-600" : "text-emerald-700"}`}>
+                                    {b.pendingCallsCount}
+                                  </p>
                                 </div>
                               </div>
 
@@ -627,15 +840,20 @@ function MentorFeedbackReportContent({
                                 <Badge variant="outline" className="bg-white/80 text-[11px]">
                                   {b.mentors.size} mentors
                                 </Badge>
+                                {b.pendingCallsCount > 0 ? (
+                                  <Badge variant="error" className="text-[11px] shadow-sm">
+                                    {b.pendingCallsCount} Calls Pending
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="success" className="text-[11px] shadow-sm">
+                                    All Called this week
+                                  </Badge>
+                                )}
                                 {b.actionRequiredCount > 0 ? (
                                   <Badge variant="warning" className="text-[11px] shadow-sm">
                                     {b.actionRequiredCount} Action Needed
                                   </Badge>
-                                ) : (
-                                  <Badge variant="success" className="text-[11px] shadow-sm">
-                                    No pending action
-                                  </Badge>
-                                )}
+                                ) : null}
                               </div>
                             </div>
                             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200/80 bg-white/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)]">
@@ -708,15 +926,66 @@ function MentorFeedbackReportContent({
                                 </div>
                               </div>
 
-                              <div className="grid grid-cols-2 gap-3">
-                                <div className="rounded-[20px] border border-white/80 bg-white/80 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
-                                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">Logs</p>
-                                  <p className="mt-2 text-2xl font-bold text-slate-900">{m.logsCount}</p>
+                              <div className="grid grid-cols-3 gap-2.5">
+                                <div className="rounded-[18px] border border-white/80 bg-white/80 p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+                                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">Logs</p>
+                                  <p className="mt-1.5 text-xl font-bold text-slate-900">{m.logsCount}</p>
                                 </div>
-                                <div className="rounded-[20px] border border-white/80 bg-[linear-gradient(180deg,rgba(236,249,245,0.95),rgba(229,245,238,0.95))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
-                                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">Assigned Students</p>
-                                  <p className="mt-2 text-2xl font-bold text-primary">{m.assignedStudentsCount}</p>
+                                <div className="rounded-[18px] border border-white/80 bg-[linear-gradient(180deg,rgba(236,249,245,0.95),rgba(229,245,238,0.95))] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+                                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">Assigned</p>
+                                  <p className="mt-1.5 text-xl font-bold text-primary">{m.assignedStudentsCount}</p>
                                 </div>
+                                <div className={`rounded-[18px] border border-white/80 p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] ${
+                                  m.pendingCallsCount > 0
+                                    ? "bg-[linear-gradient(180deg,rgba(255,241,242,0.95),rgba(255,228,230,0.95))]"
+                                    : "bg-[linear-gradient(180deg,rgba(240,253,244,0.95),rgba(220,252,231,0.95))]"
+                                }`}>
+                                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">Pending Calls</p>
+                                  <p className={`mt-1.5 text-xl font-bold ${m.pendingCallsCount > 0 ? "text-rose-600" : "text-emerald-700"}`}>
+                                    {m.pendingCallsCount}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="space-y-1.5 rounded-[18px] border border-slate-200/70 bg-white/70 p-3 shadow-sm">
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="font-semibold text-slate-600">Weekly Call Coverage</span>
+                                  <span className={`font-bold ${m.pendingCallsCount > 0 ? "text-rose-600" : "text-emerald-600"}`}>
+                                    {m.assignedStudentsCount > 0
+                                      ? `${Math.round((m.calledStudentsCount / m.assignedStudentsCount) * 100)}% (${m.calledStudentsCount}/${m.assignedStudentsCount} called)`
+                                      : "0 assigned"}
+                                  </span>
+                                </div>
+                                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                                  <div
+                                    className={`h-full transition-all duration-300 ${
+                                      m.pendingCallsCount === 0 && m.assignedStudentsCount > 0
+                                        ? "bg-emerald-500"
+                                        : m.calledStudentsCount > 0
+                                        ? "bg-amber-500"
+                                        : "bg-rose-500"
+                                    }`}
+                                    style={{
+                                      width: `${
+                                        m.assignedStudentsCount > 0
+                                          ? Math.min(100, Math.round((m.calledStudentsCount / m.assignedStudentsCount) * 100))
+                                          : 0
+                                      }%`,
+                                    }}
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2 flex-wrap">
+                                {m.pendingCallsCount > 0 ? (
+                                  <Badge variant="error" className="text-[11px] shadow-sm">
+                                    ⚠️ {m.pendingCallsCount} of {m.assignedStudentsCount} Students Not Called This Week
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="success" className="text-[11px] shadow-sm">
+                                    ✓ All Students Called This Week
+                                  </Badge>
+                                )}
                               </div>
                             </div>
                             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200/80 bg-white/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)]">
@@ -760,201 +1029,381 @@ function MentorFeedbackReportContent({
                     </div>
                   </div>
 
+                  {/* View Mode Switcher: Feedback Logs vs Assigned Students */}
+                  <div className="flex gap-2 p-1.5 rounded-2xl border border-slate-200/80 bg-white/85 shadow-sm max-w-md">
+                    <button
+                      type="button"
+                      onClick={() => setMentorSubView("feedback")}
+                      className={`flex flex-1 items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 ${
+                        mentorSubView === "feedback"
+                          ? "bg-[linear-gradient(135deg,#673AB7,#7E57C2)] text-white shadow-md"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                      }`}
+                    >
+                      <ClipboardList className="h-3.5 w-3.5" />
+                      <span>Logged Feedback ({actualFeedbackLogs.length})</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMentorSubView("students")}
+                      className={`flex flex-1 items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 ${
+                        mentorSubView === "students"
+                          ? "bg-[linear-gradient(135deg,#673AB7,#7E57C2)] text-white shadow-md"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                      }`}
+                    >
+                      <GraduationCap className="h-3.5 w-3.5" />
+                      <span>Assigned Students ({searchedStudentGroups.length})</span>
+                    </button>
+                  </div>
+
+                  {/* 1. MENTOR LOGGED FEEDBACK LIST */}
+                  {mentorSubView === "feedback" && (
                     <Card className="overflow-hidden border border-slate-200/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(244,248,250,0.95))] shadow-[0_28px_50px_-32px_rgba(15,23,42,0.38)]">
-                    <CardHeader>
-                      <div className="space-y-4">
-                        <div className="flex items-start justify-between gap-4 flex-wrap">
-                          <div className="space-y-2">
+                      <CardHeader>
+                        <div className="flex items-center justify-between gap-4 flex-wrap">
+                          <div>
                             <CardTitle className="flex items-center gap-2">
-                              <GraduationCap className="h-5 w-5 text-primary" />
-                              Assigned Students for {effectiveSelectedMentor}
+                              <ClipboardList className="h-5 w-5 text-primary" />
+                              Logged Feedback for {effectiveSelectedMentor}
                             </CardTitle>
-                            <div className="flex items-center gap-2 flex-wrap text-xs text-slate-500">
-                              <span>{searchedStudentGroups.length} students shown</span>
-                              <span className="text-slate-300">|</span>
-                              <span>Sort: {studentSort === "az" ? "A - Z" : studentSort === "attendance" ? "Attendance Rate" : "Academic Score"}</span>
-                              {hasStudentFiltersApplied ? (
-                                <>
-                                  <span className="text-slate-300">|</span>
-                                  <span className="font-medium text-primary">Custom filters active</span>
-                                </>
-                              ) : null}
-                            </div>
+                            <p className="text-xs text-text-secondary mt-1">
+                              Showing {searchedFeedbackLogs.length} call and session logs recorded by this mentor
+                            </p>
                           </div>
-                          {hasStudentFiltersApplied ? (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setStudentProgramFilter("all");
-                                setStudentTypeFilter("all");
-                                setStudentPlanFilter("all");
-                                setStudentSort("az");
-                                setStudentSortDirection("asc");
-                              }}
-                              className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10"
-                            >
-                              Clear Filters
-                            </button>
+                          {actualFeedbackLogs.some((l) => l.action_required) ? (
+                            <Badge variant="warning" className="text-xs">
+                              {actualFeedbackLogs.filter((l) => l.action_required).length} Action Required
+                            </Badge>
                           ) : null}
                         </div>
-                        <div className="flex gap-3 flex-wrap">
-                          <div className="space-y-1">
-                            <label className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Program Filter</label>
-                            <select
-                              value={studentProgramFilter}
-                              onChange={(e) => setStudentProgramFilter(e.target.value)}
-                              className="h-10 min-w-40 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)]"
-                            >
-                              <option value="all">All Programs</option>
-                              {studentPrograms.map((program) => (
-                                <option key={program} value={program}>{program}</option>
-                              ))}
-                            </select>
+                      </CardHeader>
+                      <CardContent>
+                        {searchedFeedbackLogs.length === 0 ? (
+                          <div className="text-center py-12 text-text-secondary bg-surface rounded-2xl border border-border-light">
+                            No mentor feedback logs recorded yet for this mentor.
                           </div>
-                          <div className="space-y-1">
-                            <label className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Student Type</label>
-                            <select
-                              value={studentTypeFilter}
-                              onChange={(e) => setStudentTypeFilter(e.target.value)}
-                              className="h-10 min-w-40 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)]"
-                            >
-                              <option value="all">All Types</option>
-                              {studentTypes.map((studentType) => (
-                                <option key={studentType} value={studentType}>{studentType}</option>
-                              ))}
-                            </select>
+                        ) : (
+                          <div className="space-y-3">
+                            {searchedFeedbackLogs.map((row) => (
+                              <FeedbackLogCard key={row.name} row={row} studentDetailHref={studentDetailHref} />
+                            ))}
                           </div>
-                          <div className="space-y-1">
-                            <label className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Plan Filter</label>
-                            <select
-                              value={studentPlanFilter}
-                              onChange={(e) => setStudentPlanFilter(e.target.value)}
-                              className="h-10 min-w-40 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)]"
-                            >
-                              <option value="all">All Plans</option>
-                              {studentPlans.map((plan) => (
-                                <option key={plan} value={plan}>{plan}</option>
-                              ))}
-                            </select>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* 2. ASSIGNED STUDENTS OVERVIEW */}
+                  {mentorSubView === "students" && (
+                    <Card className="overflow-hidden border border-slate-200/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(244,248,250,0.95))] shadow-[0_28px_50px_-32px_rgba(15,23,42,0.38)]">
+                      <CardHeader>
+                        <div className="space-y-4">
+                          <div className="flex items-start justify-between gap-4 flex-wrap">
+                            <div className="space-y-2">
+                              <CardTitle className="flex items-center gap-2">
+                                <GraduationCap className="h-5 w-5 text-primary" />
+                                Assigned Students for {effectiveSelectedMentor}
+                              </CardTitle>
+                              <div className="flex items-center gap-2 flex-wrap text-xs text-slate-500">
+                                <span>{searchedStudentGroups.length} students shown</span>
+                                <span className="text-slate-300">|</span>
+                                <span>Sort: {studentSort === "az" ? "A - Z" : studentSort === "attendance" ? "Attendance Rate" : "Academic Score"}</span>
+                                {hasStudentFiltersApplied ? (
+                                  <>
+                                    <span className="text-slate-300">|</span>
+                                    <span className="font-medium text-primary">Custom filters active</span>
+                                  </>
+                                ) : null}
+                              </div>
+                            </div>
+                            {hasStudentFiltersApplied ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setStudentProgramFilter("all");
+                                  setStudentTypeFilter("all");
+                                  setStudentPlanFilter("all");
+                                  setStudentCallStatusFilter("all");
+                                  setStudentSort("az");
+                                  setStudentSortDirection("asc");
+                                }}
+                                className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10"
+                              >
+                                Clear Filters
+                              </button>
+                            ) : null}
                           </div>
-                          <div className="space-y-1">
-                            <label className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Sort By</label>
-                            <select
-                              value={studentSort}
-                              onChange={(e) => setStudentSort(e.target.value as "az" | "attendance" | "score")}
-                              className="h-10 min-w-44 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)]"
-                            >
-                              <option value="az">A - Z</option>
-                              <option value="attendance">Attendance Rate</option>
-                              <option value="score">Academic Score</option>
-                            </select>
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Direction</label>
-                            <select
-                              value={studentSortDirection}
-                              onChange={(e) => setStudentSortDirection(e.target.value as "asc" | "desc")}
-                              className="h-10 min-w-40 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)]"
-                            >
-                              <option value="asc">
-                                {studentSort === "az" ? "A to Z" : "Ascending"}
-                              </option>
-                              <option value="desc">
-                                {studentSort === "az" ? "Z to A" : "Descending"}
-                              </option>
-                            </select>
+                          <div className="flex gap-3 flex-wrap">
+                            <div className="space-y-1">
+                              <label className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Call Status</label>
+                              <select
+                                value={studentCallStatusFilter}
+                                onChange={(e) => setStudentCallStatusFilter(e.target.value as "all" | "pending" | "called")}
+                                className="h-10 min-w-44 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)] font-medium"
+                              >
+                                <option value="all">All Call Statuses</option>
+                                <option value="pending">⚠️ Pending Call (Not Called)</option>
+                                <option value="called">✓ Called This Week</option>
+                              </select>
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Program Filter</label>
+                              <select
+                                value={studentProgramFilter}
+                                onChange={(e) => setStudentProgramFilter(e.target.value)}
+                                className="h-10 min-w-40 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)]"
+                              >
+                                <option value="all">All Programs</option>
+                                {studentPrograms.map((program) => (
+                                  <option key={program} value={program}>{program}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Student Type</label>
+                              <select
+                                value={studentTypeFilter}
+                                onChange={(e) => setStudentTypeFilter(e.target.value)}
+                                className="h-10 min-w-40 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)]"
+                              >
+                                <option value="all">All Types</option>
+                                {studentTypes.map((studentType) => (
+                                  <option key={studentType} value={studentType}>{studentType}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Plan Filter</label>
+                              <select
+                                value={studentPlanFilter}
+                                onChange={(e) => setStudentPlanFilter(e.target.value)}
+                                className="h-10 min-w-40 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)]"
+                              >
+                                <option value="all">All Plans</option>
+                                {studentPlans.map((plan) => (
+                                  <option key={plan} value={plan}>{plan}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Sort By</label>
+                              <select
+                                value={studentSort}
+                                onChange={(e) => setStudentSort(e.target.value as "az" | "attendance" | "score" | "call_status")}
+                                className="h-10 min-w-44 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)]"
+                              >
+                                <option value="az">A - Z</option>
+                                <option value="call_status">Weekly Call Status</option>
+                                <option value="attendance">Attendance Rate</option>
+                                <option value="score">Academic Score</option>
+                              </select>
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Direction</label>
+                              <select
+                                value={studentSortDirection}
+                                onChange={(e) => setStudentSortDirection(e.target.value as "asc" | "desc")}
+                                className="h-10 min-w-40 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)]"
+                              >
+                                <option value="asc">
+                                  {studentSort === "az" ? "A to Z" : studentSort === "call_status" ? "Pending First" : "Ascending"}
+                                </option>
+                                <option value="desc">
+                                  {studentSort === "az" ? "Z to A" : studentSort === "call_status" ? "Called First" : "Descending"}
+                                </option>
+                              </select>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      {searchedStudentGroups.length === 0 ? (
-                        <p className="text-sm text-text-secondary">No assigned students found matching your filters.</p>
-                      ) : (
-                        <div className="overflow-hidden rounded-[24px] border border-slate-200/80 bg-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)]">
-                          <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-slate-200/80">
-                              <thead className="bg-[linear-gradient(180deg,rgba(244,250,248,0.96),rgba(236,246,250,0.94))]">
-                                <tr>
-                                  <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Student</th>
-                                  <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Program</th>
-                                  <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Logs Count</th>
-                                  <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Attendance Rate</th>
-                                  <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Academic Score</th>
-                                  <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Latest Log</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-slate-200/70 bg-white/80">
-                                {searchedStudentGroups.map((row) => {
-                                  const href = studentDetailHref ? studentDetailHref(row.studentId) : null;
-                                  return (
-                                    <tr
-                                      key={row.studentId}
-                                      onClick={() => {
-                                        if (href) router.push(href);
-                                      }}
-                                      className={`transition-colors ${href ? "cursor-pointer hover:bg-[linear-gradient(90deg,rgba(103,58,183,0.05),rgba(130,195,91,0.04))]" : ""}`}
-                                    >
-                                      <td className="px-5 py-4 align-top">
-                                        <div className="space-y-1">
-                                          <div className={`text-sm font-bold ${href ? "text-slate-900 hover:text-primary" : "text-slate-900"}`}>
-                                            {row.studentName}
-                                          </div>
-                                          <div className="flex items-center gap-2 flex-wrap text-xs text-slate-500">
-                                            <span className="font-mono">{row.studentId}</span>
-                                            {row.studentType ? (
-                                              <Badge variant="outline" className="text-[10px]">
-                                                {row.studentType}
-                                              </Badge>
-                                            ) : null}
-                                            {row.customPlan ? (
-                                              <Badge variant="outline" className="text-[10px]">
-                                                {row.customPlan}
-                                              </Badge>
-                                            ) : null}
-                                            {row.actionRequiredCount > 0 ? <Badge variant="warning">{row.actionRequiredCount} action items</Badge> : null}
-                                          </div>
-                                        </div>
-                                      </td>
-                                      <td className="px-5 py-4 text-sm font-medium text-slate-700">
-                                        {row.program || "N/A"}
-                                      </td>
-                                      <td className="px-5 py-4">
-                                        <span className="inline-flex min-w-16 justify-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm font-semibold text-slate-700">
-                                          {row.logsCount}
-                                        </span>
-                                      </td>
-                                      <td
-                                        className="px-5 py-4 text-sm font-semibold"
-                                        style={{ color: getPerformanceColor(row.attendancePct) }}
-                                      >
-                                        {row.attendancePct != null ? `${row.attendancePct}%` : "N/A"}
-                                      </td>
-                                      <td
-                                        className="px-5 py-4 text-sm font-semibold"
-                                        style={{ color: getPerformanceColor(row.averageScore) }}
-                                      >
-                                        {row.averageScore != null ? `${row.averageScore}%` : "N/A"}
-                                      </td>
-                                      <td className="px-5 py-4 text-sm text-slate-500">
-                                        {row.hasPreviousLog && row.latestLogAt ? (
-                                          row.latestLogAt.replace("T", " ").slice(0, 16)
-                                        ) : (
-                                          <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
-                                            No previous log
-                                          </span>
+                      </CardHeader>
+                      <CardContent>
+                        {searchedStudentGroups.length === 0 ? (
+                          <p className="text-sm text-text-secondary">No assigned students found matching your filters.</p>
+                        ) : (
+                          <div className="overflow-hidden rounded-[24px] border border-slate-200/80 bg-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)]">
+                            <div className="overflow-x-auto">
+                              <table className="min-w-full divide-y divide-slate-200/80">
+                                <thead className="bg-[linear-gradient(180deg,rgba(244,250,248,0.96),rgba(236,246,250,0.94))]">
+                                  <tr>
+                                    <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Student</th>
+                                    <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Program</th>
+                                    <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Weekly Call Status</th>
+                                    <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Logs Count</th>
+                                    <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Attendance Rate</th>
+                                    <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Academic Score</th>
+                                    <th className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Latest Log</th>
+                                    <th className="px-5 py-4 text-right text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Feedback Details</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-200/70 bg-white/80">
+                                  {searchedStudentGroups.map((row) => {
+                                    const href = studentDetailHref ? studentDetailHref(row.studentId) : null;
+                                    const isExpanded = expandedStudentId === row.studentId;
+                                    const studentLogs = studentFeedbackMap.get(row.studentId) || [];
+
+                                    return (
+                                      <React.Fragment key={row.studentId}>
+                                        <tr
+                                          onClick={() => {
+                                            if (row.logsCount > 0) {
+                                              setExpandedStudentId(isExpanded ? null : row.studentId);
+                                            } else if (href) {
+                                              router.push(href);
+                                            }
+                                          }}
+                                          className={`transition-colors cursor-pointer hover:bg-[linear-gradient(90deg,rgba(103,58,183,0.05),rgba(130,195,91,0.04))] ${
+                                            isExpanded ? "bg-purple-50/30" : ""
+                                          }`}
+                                        >
+                                          <td className="px-5 py-4 align-top">
+                                            <div className="space-y-1">
+                                              <div className={`text-sm font-bold ${href ? "text-slate-900 hover:text-primary" : "text-slate-900"}`}>
+                                                {row.studentName}
+                                              </div>
+                                              <div className="flex items-center gap-2 flex-wrap text-xs text-slate-500">
+                                                <span className="font-mono">{row.studentId}</span>
+                                                {row.studentType ? (
+                                                  <Badge variant="outline" className="text-[10px]">
+                                                    {row.studentType}
+                                                  </Badge>
+                                                ) : null}
+                                                {row.customPlan ? (
+                                                  <Badge variant="outline" className="text-[10px]">
+                                                    {row.customPlan}
+                                                  </Badge>
+                                                ) : null}
+                                                {row.actionRequiredCount > 0 ? <Badge variant="warning">{row.actionRequiredCount} action items</Badge> : null}
+                                              </div>
+                                            </div>
+                                          </td>
+                                          <td className="px-5 py-4 text-sm font-medium text-slate-700">
+                                            {row.program || "N/A"}
+                                          </td>
+                                          <td className="px-5 py-4 align-top">
+                                            {row.weeklyCall.isCalledThisWeek ? (
+                                              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 shadow-sm">
+                                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                                                {row.weeklyCall.statusLabel}
+                                              </span>
+                                            ) : (
+                                              <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 shadow-sm">
+                                                <span className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-pulse" />
+                                                {row.weeklyCall.statusLabel}
+                                              </span>
+                                            )}
+                                          </td>
+                                          <td className="px-5 py-4">
+                                            <span className="inline-flex min-w-16 justify-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm font-semibold text-slate-700">
+                                              {row.logsCount}
+                                            </span>
+                                          </td>
+                                          <td
+                                            className="px-5 py-4 text-sm font-semibold"
+                                            style={{ color: getPerformanceColor(row.attendancePct) }}
+                                          >
+                                            {row.attendancePct != null ? `${row.attendancePct}%` : "N/A"}
+                                          </td>
+                                          <td
+                                            className="px-5 py-4 text-sm font-semibold"
+                                            style={{ color: getPerformanceColor(row.averageScore) }}
+                                          >
+                                            {row.averageScore != null ? `${row.averageScore}%` : "N/A"}
+                                          </td>
+                                          <td className="px-5 py-4 text-sm text-slate-500">
+                                            {row.hasPreviousLog && row.latestLogAt ? (
+                                              row.latestLogAt.replace("T", " ").slice(0, 16)
+                                            ) : (
+                                              <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
+                                                No previous log
+                                              </span>
+                                            )}
+                                          </td>
+                                          <td className="px-5 py-4 text-right align-top">
+                                            <div className="flex items-center justify-end gap-2">
+                                              {row.logsCount > 0 ? (
+                                                <Button
+                                                  size="sm"
+                                                  variant="outline"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setExpandedStudentId(isExpanded ? null : row.studentId);
+                                                  }}
+                                                  className={`h-8 px-2.5 text-xs flex items-center gap-1.5 rounded-xl border transition-all ${
+                                                    isExpanded
+                                                      ? "bg-primary text-white border-primary shadow-sm"
+                                                      : "border-primary/30 text-primary bg-primary/5 hover:bg-primary/10"
+                                                  }`}
+                                                >
+                                                  <span>{row.logsCount} Log{row.logsCount > 1 ? "s" : ""}</span>
+                                                  {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                                                </Button>
+                                              ) : (
+                                                <span className="text-xs text-text-tertiary">No logs</span>
+                                              )}
+                                              {href ? (
+                                                <Button
+                                                  size="sm"
+                                                  variant="ghost"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    router.push(href);
+                                                  }}
+                                                  className="h-8 w-8 p-0 text-slate-500 hover:text-primary rounded-xl"
+                                                  title="Open Student Details Page"
+                                                >
+                                                  <ExternalLink className="h-3.5 w-3.5" />
+                                                </Button>
+                                              ) : null}
+                                            </div>
+                                          </td>
+                                        </tr>
+
+                                        {/* Inline Expanded Feedback Logs */}
+                                        {isExpanded && (
+                                          <tr className="bg-slate-50/80">
+                                            <td colSpan={7} className="p-4 border-b border-slate-200/80">
+                                              <div className="space-y-3 rounded-2xl bg-white/95 p-5 border border-primary/20 shadow-md">
+                                                <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-slate-100">
+                                                  <div className="flex items-center gap-2">
+                                                    <ClipboardList className="h-4 w-4 text-primary" />
+                                                    <h5 className="text-sm font-bold text-slate-900">
+                                                      Feedback Logs for {row.studentName} ({studentLogs.length})
+                                                    </h5>
+                                                  </div>
+                                                  {href && (
+                                                    <Link
+                                                      href={href}
+                                                      className="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
+                                                    >
+                                                      Open Full Student Page <ExternalLink className="h-3 w-3" />
+                                                    </Link>
+                                                  )}
+                                                </div>
+                                                {studentLogs.length === 0 ? (
+                                                  <p className="text-xs text-text-secondary py-2">No feedback notes recorded for this student.</p>
+                                                ) : (
+                                                  <div className="space-y-3 pt-1">
+                                                    {studentLogs.map((log) => (
+                                                      <FeedbackLogCard key={log.name} row={log} studentDetailHref={studentDetailHref} />
+                                                    ))}
+                                                  </div>
+                                                )}
+                                              </div>
+                                            </td>
+                                          </tr>
                                         )}
-                                      </td>
-                                    </tr>
-                                  );
-                                })}
-                              </tbody>
-                            </table>
+                                      </React.Fragment>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
                 </div>
               )}
             </>
@@ -1084,18 +1533,19 @@ function MetricCard({
 }: {
   label: string;
   value: number;
-  tone?: "default" | "amber" | "mint";
+  tone?: "default" | "amber" | "mint" | "rose";
 }) {
   const tones = {
     default: "from-white/95 to-slate-50/92",
     amber: "from-amber-50/95 to-orange-50/92",
     mint: "from-emerald-50/95 to-teal-50/92",
+    rose: "from-rose-50/95 to-red-50/92",
   };
 
   return (
     <div className={`rounded-[24px] border border-white/80 bg-gradient-to-br ${tones[tone]} p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.92),0_16px_30px_-24px_rgba(15,23,42,0.42)]`}>
       <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">{label}</p>
-      <p className="mt-3 text-2xl font-bold text-slate-900">{value}</p>
+      <p className={`mt-3 text-2xl font-bold ${tone === "rose" && value > 0 ? "text-rose-600" : "text-slate-900"}`}>{value}</p>
     </div>
   );
 }

@@ -11,6 +11,7 @@ export default function BranchManagerMentorsFeedbackPage() {
     <MentorFeedbackReport
       title="Student Feedback"
       endpoint="/api/branch-manager/mentor-feedback"
+      assignmentsEndpoint="/api/branch-manager/mentor-assignments"
       hideBranchLevel={true}
       lockedBranch={defaultCompany || undefined}
       backHref="/dashboard/branch-manager/mentors"

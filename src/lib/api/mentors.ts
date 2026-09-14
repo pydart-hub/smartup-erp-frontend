@@ -120,6 +120,17 @@ export async function getDirectorMentorStudentDetail(id: string): Promise<Mentor
   return json.data;
 }
 
+export async function getGMMentorStudentDetail(id: string): Promise<MentorStudentDetail> {
+  const res = await fetch(`/api/general-manager/mentor-students/${encodeURIComponent(id)}`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || "Failed to fetch GM mentor student detail");
+  return json.data;
+}
+
+
 export async function getMentorFeedback(params?: {
   branch?: string;
   mentor_user?: string;
