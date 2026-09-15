@@ -286,46 +286,29 @@ export default function ScholarRegistrationPage() {
             </p>
 
             {/* Visual Hero Area: Perfectly Aligned Student Image & Floating Badges */}
-            <div className="relative w-full max-w-[520px] mx-auto lg:mx-0 flex justify-center items-end pt-2 pb-0">
+            <div className="relative w-full max-w-[560px] mx-auto lg:mx-0 lg:-ml-6 -mt-4 sm:-mt-6 lg:-mt-10 flex justify-center items-end pt-0 pb-0">
               {/* Circular Soft Purple Glow Backdrop */}
-              <div className="absolute w-84 h-84 sm:w-[400px] sm:h-[400px] rounded-full bg-[#EFEBFA]/90 -z-10 bottom-2 left-1/2 -translate-x-1/2" />
-              <div className="absolute w-[460px] h-[460px] rounded-full bg-purple-100/35 -z-20 blur-3xl bottom-0 left-1/2 -translate-x-1/2" />
+              <div className="absolute w-84 h-84 sm:w-[420px] sm:h-[420px] rounded-full bg-[#EFEBFA]/90 -z-10 bottom-2 left-1/2 -translate-x-1/2" />
+              <div className="absolute w-[480px] h-[480px] rounded-full bg-purple-100/35 -z-20 blur-3xl bottom-0 left-1/2 -translate-x-1/2" />
 
               {/* Student Cutout Image */}
-              <div className="relative w-[350px] h-[410px] sm:w-[420px] sm:h-[480px]">
+              <div className="relative w-[370px] h-[430px] sm:w-[450px] sm:h-[510px]">
                 <Image
                   src="/rd.webp"
                   alt="SmartUp Student"
                   fill
                   priority
                   className="object-contain object-bottom drop-shadow-sm"
-                  sizes="(max-width: 640px) 350px, 420px"
+                  sizes="(max-width: 640px) 370px, 450px"
                 />
               </div>
-
-              {/* Left Floating Badge: Learn Grow Achieve */}
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-                className="absolute left-1 bottom-14 sm:bottom-16 bg-white px-4 py-3 rounded-2xl shadow-xl shadow-purple-950/8 border border-slate-100 flex items-center gap-3.5 z-10"
-              >
-                <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-[#5C34A4] shrink-0">
-                  <BarChart2 className="w-5 h-5 stroke-[2.2]" />
-                </div>
-                <div className="flex flex-col text-left leading-tight">
-                  <span className="text-[12px] font-semibold text-slate-700">Learn</span>
-                  <span className="text-[12px] font-semibold text-slate-700">Grow</span>
-                  <span className="text-[12px] font-bold text-[#5C34A4]">Achieve</span>
-                </div>
-              </motion.div>
 
               {/* Right Floating Badge: Graduation Cap Circle */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.5, delay: 0.3 }}
-                className="absolute right-3 sm:right-6 top-14 sm:top-16 w-14 h-14 rounded-full bg-white shadow-xl shadow-purple-950/8 border border-slate-100 flex items-center justify-center text-[#5C34A4] z-10"
+                className="absolute right-4 sm:right-8 top-10 sm:top-12 w-14 h-14 rounded-full bg-white shadow-xl shadow-purple-950/8 border border-slate-100 flex items-center justify-center text-[#5C34A4] z-10"
               >
                 <GraduationCap className="w-7 h-7 stroke-[2]" />
               </motion.div>
