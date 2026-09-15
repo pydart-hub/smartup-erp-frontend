@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/public-exam/db";
 import { finalizeExpiredAttemptIfNeeded } from "@/lib/public-exam/attempts";
 import { randomUUID } from "crypto";
+import { validateFullE164PhoneStrict } from "@/lib/constants/countries";
 
 export async function POST(request: NextRequest) {
   try {
     const { name, phone, selectedClass, district, syllabus, registrationId } = await request.json();
-    const normalizedPhone = typeof phone === "string" ? phone.replace(/\D/g, "") : "";
+    const normalizedPhone = typeof phone === "string" ? phone.replace(/[^\d+]/g, "") : "";
 
     if (!name?.trim() || !normalizedPhone || !selectedClass) {
       return NextResponse.json({ error: "Missing required student details" }, { status: 400 });
@@ -14,8 +15,12 @@ export async function POST(request: NextRequest) {
 
     const selectedSyllabus = syllabus === "CBSE" ? "CBSE" : "State";
 
-    if (!/^\d{10}$/.test(normalizedPhone)) {
-      return NextResponse.json({ error: "Please enter a valid 10-digit phone number" }, { status: 400 });
+    const phoneValidation = validateFullE164PhoneStrict(normalizedPhone);
+    if (!phoneValidation.isValid) {
+      return NextResponse.json(
+        { error: phoneValidation.error || "Please enter a valid mobile number." },
+        { status: 400 }
+      );
     }
 
     // Map class label to class level

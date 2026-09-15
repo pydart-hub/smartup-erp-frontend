@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import {
@@ -12,31 +12,25 @@ import {
   BarChart2,
   CheckCircle2,
   ChevronDown,
+  Sparkles,
+  RefreshCw,
 } from "lucide-react";
 import ScholarAdminModal from "@/components/scholar/ScholarAdminModal";
+import CountryPhoneInput from "@/components/common/CountryPhoneInput";
+import {
+  DEFAULT_COUNTRY,
+  COUNTRIES,
+  CountryConfig,
+  validatePhoneNumberStrict,
+  formatE164,
+  getCountryByDialCode,
+} from "@/lib/constants/countries";
 
 // Official SmartUp Colors & Theme:
 // Primary Brand Purple: #5C34A4 / #673AB7 (Gradient & Buttons)
 // Light Purple Bg: #FAF9FD / White
 // Class pill active: #5B32A3
 // Scholarship Exam Portal 2026-27 Production Release
-
-const KERALA_DISTRICTS = [
-  "Ernakulam",
-  "Thiruvananthapuram",
-  "Kollam",
-  "Pathanamthitta",
-  "Alappuzha",
-  "Kottayam",
-  "Idukki",
-  "Thrissur",
-  "Palakkad",
-  "Malappuram",
-  "Kozhikode",
-  "Wayanad",
-  "Kannur",
-  "Kasaragod",
-];
 
 const CLASSES = [
   { id: "Class 8", label: "Class 8" },
@@ -48,23 +42,113 @@ const CLASSES = [
 
 export default function ScholarRegistrationPage() {
   const [name, setName] = useState("");
+  const [selectedCountry, setSelectedCountry] = useState<CountryConfig>(DEFAULT_COUNTRY);
   const [phone, setPhone] = useState("");
   const [selectedClass, setSelectedClass] = useState("Class 10");
   const [syllabus, setSyllabus] = useState<"State" | "CBSE">("State");
-  const [district, setDistrict] = useState("Ernakulam");
+  const [district, setDistrict] = useState(DEFAULT_COUNTRY.regions[0]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isStartingExam, setIsStartingExam] = useState(false);
   const [registrationId, setRegistrationId] = useState<string | null>(null);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
 
+  // Returning Student Auto-Lookup State
+  const [isExistingStudent, setIsExistingStudent] = useState(false);
+  const [isCheckingPhone, setIsCheckingPhone] = useState(false);
+  const [returningStudent, setReturningStudent] = useState<{
+    name: string;
+    phone: string;
+    classLevel: string;
+    syllabus: string;
+    district: string;
+    registrationId: string;
+    attemptId?: string | null;
+  } | null>(null);
+
+  // Check LocalStorage on initial load for returning student on same device
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("smartup_scholar_student");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.phone) {
+          fetch(`/api/scholar/check?phone=${encodeURIComponent(parsed.phone)}`)
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.registered) {
+                setReturningStudent({
+                  name: data.studentName,
+                  phone: parsed.phone,
+                  classLevel: data.classLevel,
+                  syllabus: data.syllabus || "State",
+                  district: data.district,
+                  registrationId: data.registrationId,
+                  attemptId: data.attemptId,
+                });
+                setRegistrationId(data.registrationId);
+                setName(data.studentName);
+                setSelectedClass(data.classLevel);
+                if (data.syllabus) setSyllabus(data.syllabus);
+              }
+            })
+            .catch((err) => console.warn("Auto-lookup error:", err));
+        }
+      }
+    } catch (e) {
+      console.warn("Could not parse saved student details:", e);
+    }
+  }, []);
+
+  // Live Phone Auto-Lookup when complete phone number is typed
+  useEffect(() => {
+    if (phone.length === selectedCountry.digitLength) {
+      const validation = validatePhoneNumberStrict(phone, selectedCountry);
+      if (validation.isValid) {
+        const fullPhone = formatE164(selectedCountry.dialCode, phone);
+        setIsCheckingPhone(true);
+        fetch(`/api/scholar/check?phone=${encodeURIComponent(fullPhone)}`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.registered) {
+              setName(data.studentName);
+              setSelectedClass(data.classLevel);
+              if (data.syllabus) setSyllabus(data.syllabus);
+              setRegistrationId(data.registrationId);
+              setIsExistingStudent(true);
+            } else {
+              setIsExistingStudent(false);
+            }
+          })
+          .catch((err) => console.warn("Live phone check error:", err))
+          .finally(() => setIsCheckingPhone(false));
+      }
+    } else {
+      setIsExistingStudent(false);
+    }
+  }, [phone, selectedCountry]);
+
+  const handleCountryChange = (country: CountryConfig) => {
+    setSelectedCountry(country);
+    setPhone("");
+    setDistrict(country.regions[0]);
+    setIsExistingStudent(false);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanPhone = phone.replace(/\D/g, "");
-    if (!name.trim() || cleanPhone.length < 10) {
-      alert("Please enter a valid student name and 10-digit mobile number.");
+    if (!name.trim()) {
+      alert("Please enter a valid student name.");
       return;
     }
+
+    const validation = validatePhoneNumberStrict(phone, selectedCountry);
+    if (!validation.isValid) {
+      alert(validation.error || "Please enter a valid mobile number.");
+      return;
+    }
+
+    const fullFormattedPhone = formatE164(selectedCountry.dialCode, phone);
 
     try {
       setIsSubmitting(true);
@@ -73,10 +157,10 @@ export default function ScholarRegistrationPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: name.trim(),
-          phone: cleanPhone,
+          phone: fullFormattedPhone,
           selectedClass,
           syllabus,
-          district,
+          district: `${district} (${selectedCountry.code})`,
         }),
       });
 
@@ -89,6 +173,19 @@ export default function ScholarRegistrationPage() {
         setRegistrationId(data.registrationId);
       }
 
+      // Save to localStorage for seamless device persistence
+      localStorage.setItem(
+        "smartup_scholar_student",
+        JSON.stringify({
+          name: name.trim(),
+          phone: fullFormattedPhone,
+          selectedClass,
+          syllabus,
+          district: `${district} (${selectedCountry.code})`,
+          registrationId: data.registrationId,
+        })
+      );
+
       setIsSubmitted(true);
     } catch (err: any) {
       alert(err.message || "Something went wrong while registering.");
@@ -98,19 +195,22 @@ export default function ScholarRegistrationPage() {
   };
 
   const handleStartScholarshipExam = async () => {
-    const cleanPhone = phone.replace(/\D/g, "");
+    const fullFormattedPhone = returningStudent
+      ? returningStudent.phone
+      : formatE164(selectedCountry.dialCode, phone);
+
     try {
       setIsStartingExam(true);
       const res = await fetch("/api/scholar/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: name.trim(),
-          phone: cleanPhone,
-          selectedClass,
-          syllabus,
-          district,
-          registrationId,
+          name: returningStudent ? returningStudent.name : name.trim(),
+          phone: fullFormattedPhone,
+          selectedClass: returningStudent ? returningStudent.classLevel : selectedClass,
+          syllabus: returningStudent ? returningStudent.syllabus : syllabus,
+          district: returningStudent ? returningStudent.district : `${district} (${selectedCountry.code})`,
+          registrationId: returningStudent ? returningStudent.registrationId : registrationId,
         }),
       });
 
@@ -176,8 +276,8 @@ export default function ScholarRegistrationPage() {
 
             {/* Headline */}
             <h1 className="text-4xl sm:text-5xl lg:text-[56px] font-black text-slate-900 tracking-tight leading-[1.12] mb-3">
-              Your Potential <br />
-              <span className="text-[#5C34A4]">Our Support</span>
+              Make Parents <br />
+              <span className="text-[#5C34A4]">Proud</span>
             </h1>
 
             {/* Subtitle */}
@@ -194,7 +294,7 @@ export default function ScholarRegistrationPage() {
               {/* Student Cutout Image */}
               <div className="relative w-[310px] h-[370px] sm:w-[360px] sm:h-[420px]">
                 <Image
-                  src="/scholar-hero-student.png"
+                  src="/rd.webp"
                   alt="SmartUp Student"
                   fill
                   priority
@@ -249,6 +349,37 @@ export default function ScholarRegistrationPage() {
                   Free Exam Slot Registration
                 </p>
               </div>
+
+              {/* Returning Student Auto-Detect Banner */}
+              {returningStudent && !isSubmitted && (
+                <div className="mb-5 p-4 rounded-2xl bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200/80 text-xs text-slate-800 space-y-2.5 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-[#5C34A4] font-extrabold text-sm">
+                      <Sparkles className="w-4 h-4 text-amber-500 fill-amber-400" />
+                      <span>Welcome Back, {returningStudent.name}!</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setReturningStudent(null)}
+                      className="text-[10px] text-slate-400 hover:text-slate-600 underline font-medium"
+                    >
+                      New Student?
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-slate-600 leading-relaxed">
+                    You registered previously for <strong>{returningStudent.classLevel}</strong>. You don't need to register again!
+                  </p>
+                  <button
+                    type="button"
+                    disabled={isStartingExam}
+                    onClick={handleStartScholarshipExam}
+                    className="w-full py-2.5 px-4 font-bold text-xs text-white bg-[#5C34A4] hover:bg-[#4E2B8E] active:bg-[#43237E] disabled:opacity-70 rounded-full transition-all shadow-md shadow-purple-900/20 flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <span>{isStartingExam ? "Starting Scholarship Exam..." : "Start / Resume Exam Now"}</span>
+                    {!isStartingExam && <ArrowRight className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              )}
 
               {isSubmitted ? (
                 <div className="py-6 text-center space-y-4">
@@ -374,33 +505,26 @@ export default function ScholarRegistrationPage() {
                     </div>
                   </div>
 
-                  {/* Phone Number & District */}
+                  {/* Phone Number & Location Region */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {/* Phone Number */}
+                    {/* Phone Number with Country Select */}
                     <div className="space-y-1.5">
                       <label className="text-[11px] font-bold text-slate-700 tracking-wide">
                         Phone Number <span className="text-red-500">*</span>
                       </label>
-                      <div className="flex rounded-xl border border-slate-200/90 overflow-hidden focus-within:ring-2 focus-within:ring-[#5C34A4]/20 focus-within:border-[#5C34A4] transition">
-                        <span className="inline-flex items-center px-3 text-xs font-semibold bg-slate-50 text-slate-600 border-r border-slate-200/80">
-                          +91
-                        </span>
-                        <input
-                          type="tel"
-                          required
-                          maxLength={10}
-                          placeholder="10 digits"
-                          value={phone}
-                          onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
-                          className="w-full px-3 py-2.5 bg-white text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none"
-                        />
-                      </div>
+                      <CountryPhoneInput
+                        selectedCountry={selectedCountry}
+                        onCountryChange={handleCountryChange}
+                        phone={phone}
+                        onPhoneChange={setPhone}
+                        required
+                      />
                     </div>
 
-                    {/* District */}
+                    {/* District / Emirate / Location */}
                     <div className="space-y-1.5">
                       <label className="text-[11px] font-bold text-slate-700 tracking-wide">
-                        District <span className="text-red-500">*</span>
+                        {selectedCountry.regionLabel} <span className="text-red-500">*</span>
                       </label>
                       <div className="relative">
                         <select
@@ -408,9 +532,9 @@ export default function ScholarRegistrationPage() {
                           onChange={(e) => setDistrict(e.target.value)}
                           className="w-full appearance-none px-3.5 py-2.5 bg-white border border-slate-200/90 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-[#5C34A4]/20 focus:border-[#5C34A4] transition cursor-pointer pr-9"
                         >
-                          {KERALA_DISTRICTS.map((d) => (
-                            <option key={d} value={d}>
-                              {d}
+                          {selectedCountry.regions.map((r) => (
+                            <option key={r} value={r}>
+                              {r}
                             </option>
                           ))}
                         </select>
@@ -419,15 +543,36 @@ export default function ScholarRegistrationPage() {
                     </div>
                   </div>
 
+                  {/* Existing Registration Notice */}
+                  {isExistingStudent && (
+                    <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200/80 text-[11px] text-emerald-900 space-y-1">
+                      <div className="flex items-center gap-1.5 font-bold text-emerald-700">
+                        <CheckCircle2 className="w-4 h-4 shrink-0" />
+                        <span>Existing Registration Detected</span>
+                      </div>
+                      <p className="text-[10px] text-emerald-700 leading-snug">
+                        Welcome back, <strong>{name}</strong>! Your details for <strong>{selectedClass}</strong> were auto-fetched. Click below to continue directly to your exam.
+                      </p>
+                    </div>
+                  )}
+
                   {/* Register for Exam Button */}
                   <div className="pt-2">
                     <button
                       type="submit"
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || isCheckingPhone}
                       className="w-full py-3 px-6 font-bold text-sm text-white bg-[#5C34A4] hover:bg-[#4E2B8E] active:bg-[#43237E] disabled:opacity-70 rounded-full transition-all shadow-lg shadow-purple-900/25 flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
                     >
-                      <span>{isSubmitting ? "Registering..." : "Register for Exam"}</span>
-                      {!isSubmitting && <ArrowRight className="w-4 h-4" />}
+                      <span>
+                        {isSubmitting
+                          ? "Proceeding..."
+                          : isCheckingPhone
+                          ? "Checking Registration..."
+                          : isExistingStudent
+                          ? `Continue to Exam as ${name.split(" ")[0]}`
+                          : "Register for Exam"}
+                      </span>
+                      {!isSubmitting && !isCheckingPhone && <ArrowRight className="w-4 h-4" />}
                     </button>
                   </div>
 

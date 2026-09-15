@@ -1,15 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/public-exam/db";
+import { validateFullE164PhoneStrict } from "@/lib/constants/countries";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { name, phone, selectedClass, district, syllabus } = body;
 
-    const normalizedPhone = typeof phone === "string" ? phone.replace(/\D/g, "") : "";
-    if (!name?.trim() || !normalizedPhone || normalizedPhone.length < 10) {
+    const normalizedPhone = typeof phone === "string" ? phone.replace(/[^\d+]/g, "") : "";
+    if (!name?.trim()) {
       return NextResponse.json(
-        { error: "Please enter a valid student name and 10-digit mobile number." },
+        { error: "Please enter a valid student name." },
+        { status: 400 }
+      );
+    }
+
+    const phoneValidation = validateFullE164PhoneStrict(normalizedPhone);
+    if (!phoneValidation.isValid) {
+      return NextResponse.json(
+        { error: phoneValidation.error || "Please enter a valid mobile number." },
         { status: 400 }
       );
     }
@@ -29,17 +38,38 @@ export async function POST(request: NextRequest) {
 
     const targetLevel = classLevelMap[selectedClass] || selectedClass;
 
-    // Save Registration Record with syllabus
-    const registration = await db.scholarRegistration.create({
-      data: {
-        studentName: name.trim(),
-        phone: normalizedPhone,
-        classLevel: selectedClass,
-        syllabus: selectedSyllabus,
-        district: district || "Ernakulam",
-        status: "registered",
-      },
+    // Check for existing registration to prevent duplicates
+    const existingRegistration = await db.scholarRegistration.findFirst({
+      where: { phone: normalizedPhone },
+      orderBy: { createdAt: "desc" },
     });
+
+    let registration;
+    if (existingRegistration) {
+      // Upsert: update existing registration details
+      registration = await db.scholarRegistration.update({
+        where: { id: existingRegistration.id },
+        data: {
+          studentName: name.trim(),
+          classLevel: selectedClass,
+          syllabus: selectedSyllabus,
+          district: district || existingRegistration.district,
+          status: "registered",
+        },
+      });
+    } else {
+      // Save new Registration Record
+      registration = await db.scholarRegistration.create({
+        data: {
+          studentName: name.trim(),
+          phone: normalizedPhone,
+          classLevel: selectedClass,
+          syllabus: selectedSyllabus,
+          district: district || "Ernakulam",
+          status: "registered",
+        },
+      });
+    }
 
     // Check if an active Scholarship exam publishing exists for this class
     const activePublishing = await db.examPublishing.findFirst({

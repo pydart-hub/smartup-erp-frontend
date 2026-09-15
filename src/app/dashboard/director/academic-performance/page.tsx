@@ -72,6 +72,7 @@ function AcademicPerformanceDashboard() {
   const [subjectViewMode, setSubjectViewMode] = useState<"chart" | "progress">("chart");
   const [hoveredSubject, setHoveredSubject] = useState<string | null>(null);
   const [branchSearch, setBranchSearch] = useState<string>("");
+  const [chartType, setChartType] = useState<"line" | "bar">("line");
 
   // 1. Fetch master branch list
   const { data: branchesData, isLoading: loadingBranches } = useQuery({
@@ -446,10 +447,12 @@ function AcademicPerformanceDashboard() {
                   <BarChart3 className="h-5 w-5 text-primary" />
                   <div>
                     <h3 className="font-extrabold text-base sm:text-lg text-text-primary">
-                      {selectedBranch} — All Classes Performance Timeline
+                      {selectedBranch} — All Classes Performance {chartType === "bar" ? "Comparison" : "Timeline"}
                     </h3>
                     <p className="text-xs text-text-tertiary">
-                      Clean multi-class trajectory comparison without overlapping labels
+                      {chartType === "bar"
+                        ? "Grouped bars per exam — one bar per class · hover for details"
+                        : "Clean multi-class trajectory comparison without overlapping labels"}
                     </p>
                   </div>
                 </div>
@@ -549,7 +552,7 @@ function AcademicPerformanceDashboard() {
                         type="button"
                         onClick={() =>
                           router.push(
-                            `/dashboard/branch-manager/class-performance?branch=${encodeURIComponent(
+                            `/dashboard/director/academic-performance/class?branch=${encodeURIComponent(
                               selectedBranch,
                             )}&program=${encodeURIComponent(selectedClass)}`,
                           )
@@ -572,7 +575,7 @@ function AcademicPerformanceDashboard() {
                 </div>
               )}
 
-              {/* Clean SVG Graph */}
+              {/* Graph — conditionally renders Line or Bar */}
               {filteredTimeline.length === 0 ? (
                 <div className="py-14 border border-dashed border-border-light rounded-xl text-center bg-app-bg/50">
                   <Layers className="h-8 w-8 text-text-tertiary mx-auto mb-2 opacity-50" />
@@ -583,10 +586,49 @@ function AcademicPerformanceDashboard() {
                 </div>
               ) : (
                 <div className="relative bg-surface rounded-xl border border-border-light p-4">
+                  {/* Chart Type Switcher — top-right corner of graph */}
+                  <div className="absolute top-3 right-3 z-10 flex items-center p-0.5 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm rounded-lg border border-border-light shadow-sm">
+                    <button
+                      type="button"
+                      onClick={() => setChartType("line")}
+                      title="Line Graph"
+                      className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-bold transition-all ${
+                        chartType === "line"
+                          ? "bg-primary text-white shadow-xs"
+                          : "text-text-tertiary hover:text-text-primary"
+                      }`}
+                    >
+                      <TrendingUp className="w-3 h-3" />
+                      Line
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setChartType("bar")}
+                      title="Bar Chart"
+                      className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-bold transition-all ${
+                        chartType === "bar"
+                          ? "bg-primary text-white shadow-xs"
+                          : "text-text-tertiary hover:text-text-primary"
+                      }`}
+                    >
+                      <BarChart3 className="w-3 h-3" />
+                      Bar
+                    </button>
+                  </div>
+
                   <div className="w-full overflow-x-auto no-scrollbar">
                     <svg
                       viewBox={`0 0 ${svgViewWidth} ${chartHeight}`}
-                      className="w-full h-[270px] select-none"
+                      className="w-full h-[270px] select-none cursor-crosshair"
+                      onDoubleClick={() => {
+                        if (selectedClass !== "all") {
+                          router.push(
+                            `/dashboard/director/academic-performance/class?branch=${encodeURIComponent(
+                              selectedBranch,
+                            )}&program=${encodeURIComponent(selectedClass)}`,
+                          );
+                        }
+                      }}
                     >
                       <defs>
                         <linearGradient id={`grad-unified-${selectedBranch.replace(/\s+/g, "_")}`} x1="0" y1="0" x2="0" y2="1">
@@ -595,174 +637,272 @@ function AcademicPerformanceDashboard() {
                         </linearGradient>
                       </defs>
 
-                      {/* Y-axis guidelines */}
+                      {/* Y-axis guidelines — shared by both views */}
                       {[100, 75, 50, 25, 0].map((val) => {
                         const effectiveHeight = chartHeight - chartPaddingTop - chartPaddingBottom;
                         const y = chartHeight - chartPaddingBottom - (val / 100) * effectiveHeight;
                         return (
                           <g key={val}>
                             <line
-                              x1={chartPaddingLeft}
-                              y1={y}
-                              x2={svgViewWidth - chartPaddingRight}
-                              y2={y}
+                              x1={chartPaddingLeft} y1={y}
+                              x2={svgViewWidth - chartPaddingRight} y2={y}
                               stroke="#e2e8f0"
                               strokeDasharray={val === 0 ? undefined : "3 3"}
                               strokeWidth="1"
                               className="dark:stroke-slate-800"
                             />
-                            <text
-                              x={chartPaddingLeft - 8}
-                              y={y + 3}
-                              fontSize="9"
-                              textAnchor="end"
-                              fill="#94a3b8"
-                              fontFamily="monospace"
-                            >
+                            <text x={chartPaddingLeft - 8} y={y + 3} fontSize="9" textAnchor="end" fill="#94a3b8" fontFamily="monospace">
                               {val}%
                             </text>
                           </g>
                         );
                       })}
 
-                      {/* Subtle Area Gradient for Branch Average */}
-                      {svgPoints.length > 1 && (
-                        <path d={areaPath} fill={`url(#grad-unified-${selectedBranch.replace(/\s+/g, "_")})`} />
+                      {/* ══════════════════ LINE GRAPH VIEW ══════════════════ */}
+                      {chartType === "line" && (
+                        <>
+                          {/* Subtle Area Gradient for Branch Average */}
+                          {svgPoints.length > 1 && (
+                            <path d={areaPath} fill={`url(#grad-unified-${selectedBranch.replace(/\s+/g, "_")})`} />
+                          )}
+
+                          {/* Vertical hover guide */}
+                          {svgPoints.map((pt, idx) => {
+                            const isHovered = hoveredExam?.exam_key === pt.exam.exam_key;
+                            if (!isHovered) return null;
+                            return (
+                              <line
+                                key={`v-line-${idx}`}
+                                x1={pt.x} y1={chartPaddingTop}
+                                x2={pt.x} y2={chartHeight - chartPaddingBottom}
+                                stroke="#cbd5e1" strokeDasharray="2 2" strokeWidth="1.5"
+                              />
+                            );
+                          })}
+
+                          {/* Individual Colored Trajectory Lines per Class */}
+                          {classLines.map((cl) => {
+                            return (
+                              <g
+                                key={`class-line-${cl.className}`}
+                                opacity={cl.isMuted ? 0.2 : 1}
+                                style={{ cursor: cl.isIsolated ? "pointer" : "crosshair" }}
+                              >
+                                {cl.isIsolated && cl.points.length > 0 && (
+                                  <>
+                                    <title>{`Double-click to open ${cl.className} batch-wise exam page`}</title>
+                                    <text
+                                      x={cl.points[Math.floor(cl.points.length / 2)].x}
+                                      y={cl.points[Math.floor(cl.points.length / 2)].y - 14}
+                                      fontSize="9" fontWeight="700" textAnchor="middle"
+                                      fill={cl.color.stroke} opacity="0.9"
+                                      style={{ pointerEvents: "none" }}
+                                    >
+                                      ⤢ Double-click to open batch view
+                                    </text>
+                                  </>
+                                )}
+                                {cl.points.length > 1 && (
+                                  <path
+                                    d={cl.path} fill="none"
+                                    stroke={cl.color.stroke}
+                                    strokeWidth={cl.isIsolated ? "4" : "3"}
+                                    strokeLinecap="round" strokeLinejoin="round"
+                                    className="transition-all"
+                                  />
+                                )}
+                                {cl.points.map((pt, pIdx) => {
+                                  const isHovered = hoveredExam?.exam_key === pt.exam.exam_key;
+                                  return (
+                                    <circle
+                                      key={`c-pt-${cl.className}-${pIdx}`}
+                                      cx={pt.x} cy={pt.y}
+                                      r={isHovered ? "6" : "4.5"}
+                                      fill="#ffffff" stroke={cl.color.stroke}
+                                      strokeWidth={isHovered ? "3" : "2"}
+                                      className="transition-all"
+                                    />
+                                  );
+                                })}
+                              </g>
+                            );
+                          })}
+
+                          {/* Branch Benchmark Dashed Line */}
+                          {svgPoints.length > 1 && (
+                            <path
+                              d={linePath} fill="none"
+                              stroke="#4f46e5" strokeWidth="2"
+                              strokeDasharray="4 4" strokeLinecap="round" strokeLinejoin="round"
+                              opacity={selectedClass !== "all" ? 0.35 : 0.75}
+                            />
+                          )}
+
+                          {/* Hover nodes — sit on top */}
+                          {svgPoints.map((pt, idx) => {
+                            const isHovered = hoveredExam?.exam_key === pt.exam.exam_key;
+                            const avgColor = pt.exam.percentage >= 80 ? "#10b981" : pt.exam.percentage >= 50 ? "#4f46e5" : "#ef4444";
+                            return (
+                              <g key={idx} className="cursor-pointer"
+                                onMouseEnter={() => setHoveredExam(pt.exam)}
+                                onMouseLeave={() => setHoveredExam(null)}
+                              >
+                                <rect x={pt.x - pointGap / 2} y={chartPaddingTop} width={pointGap} height={chartHeight - chartPaddingTop - chartPaddingBottom} fill="transparent" />
+                                <circle cx={pt.x} cy={pt.y} r={isHovered ? "7" : "5"} fill="#ffffff" stroke="#4f46e5" strokeWidth={isHovered ? "3.5" : "2"} />
+                                <text x={pt.x} y={chartHeight - 18} fontSize="10" fontWeight="700" textAnchor="middle" fill="#1e293b" className="dark:fill-slate-100">
+                                  {pt.exam.exam_title.length > 18 ? `${pt.exam.exam_title.slice(0, 16)}…` : pt.exam.exam_title}
+                                </text>
+                                <text x={pt.x} y={chartHeight - 5} fontSize="8.5" fontWeight="500" textAnchor="middle" fill="#94a3b8">
+                                  {formatDate(pt.exam.schedule_date)}
+                                </text>
+                              </g>
+                            );
+                          })}
+                        </>
                       )}
 
-                      {/* Vertical Date Grid Lines on hover */}
-                      {svgPoints.map((pt, idx) => {
-                        const isHovered = hoveredExam?.exam_key === pt.exam.exam_key;
-                        if (!isHovered) return null;
-                        return (
-                          <line
-                            key={`v-line-${idx}`}
-                            x1={pt.x}
-                            y1={chartPaddingTop}
-                            x2={pt.x}
-                            y2={chartHeight - chartPaddingBottom}
-                            stroke="#cbd5e1"
-                            strokeDasharray="2 2"
-                            strokeWidth="1.5"
-                          />
-                        );
-                      })}
+                      {/* ══════════════════ BAR CHART VIEW ══════════════════ */}
+                      {chartType === "bar" && (() => {
+                        const numExams    = filteredTimeline.length;
+                        const numClasses  = classesList.length;
+                        const effectiveW  = svgViewWidth - chartPaddingLeft - chartPaddingRight;
+                        const effectiveH  = chartHeight - chartPaddingTop - chartPaddingBottom;
+                        const groupW      = effectiveW / numExams;
+                        const barPad      = 0.18; // 18% of group width as padding each side
+                        const usableW     = groupW * (1 - barPad * 2);
+                        const barW        = numClasses > 0 ? Math.max(4, usableW / numClasses - 2) : 8;
+                        const bottomY     = chartHeight - chartPaddingBottom;
 
-                      {/* Individual Colored Trajectory Lines per Class */}
-                      {classLines.map((cl) => {
                         return (
-                          <g key={`class-line-${cl.className}`} opacity={cl.isMuted ? 0.2 : 1}>
-                            {/* The Curve Line */}
-                            {cl.points.length > 1 && (
-                              <path
-                                d={cl.path}
-                                fill="none"
-                                stroke={cl.color.stroke}
-                                strokeWidth={cl.isIsolated ? "4" : "3"}
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                className="transition-all"
-                              />
-                            )}
+                          <>
+                            {filteredTimeline.map((exam, examIdx) => {
+                              const groupCenterX = chartPaddingLeft + examIdx * groupW + groupW / 2;
+                              const groupStartX  = groupCenterX - (numClasses / 2) * (barW + 2) + 1;
+                              const isHovGroup   = hoveredExam?.exam_key === exam.exam_key;
 
-                            {/* Crisp Clean Data Points (NO clumping text pills) */}
-                            {cl.points.map((pt, pIdx) => {
-                              const isHovered = hoveredExam?.exam_key === pt.exam.exam_key;
                               return (
-                                <circle
-                                  key={`c-pt-${cl.className}-${pIdx}`}
-                                  cx={pt.x}
-                                  cy={pt.y}
-                                  r={isHovered ? "6" : "4.5"}
-                                  fill="#ffffff"
-                                  stroke={cl.color.stroke}
-                                  strokeWidth={isHovered ? "3" : "2"}
-                                  className="transition-all"
-                                />
+                                <g
+                                  key={`bar-group-${examIdx}`}
+                                  onMouseEnter={() => setHoveredExam(exam)}
+                                  onMouseLeave={() => setHoveredExam(null)}
+                                  className="cursor-pointer"
+                                >
+                                  {/* Hover highlight background */}
+                                  {isHovGroup && (
+                                    <rect
+                                      x={chartPaddingLeft + examIdx * groupW}
+                                      y={chartPaddingTop}
+                                      width={groupW}
+                                      height={effectiveH}
+                                      fill="#f1f5f9"
+                                      rx="4"
+                                      className="dark:fill-slate-800/50"
+                                      style={{ pointerEvents: "none" }}
+                                    />
+                                  )}
+
+                                  {/* Invisible hit area */}
+                                  <rect
+                                    x={chartPaddingLeft + examIdx * groupW}
+                                    y={chartPaddingTop}
+                                    width={groupW}
+                                    height={effectiveH + chartPaddingBottom - 2}
+                                    fill="transparent"
+                                  />
+
+                                  {/* One bar per class */}
+                                  {classesList.map((cls, clsIdx) => {
+                                    const cInfo   = classColorMap.get(cls) || classColorPalette[clsIdx % classColorPalette.length];
+                                    const cScore  = exam.class_scores ? exam.class_scores[cls] : null;
+                                    const pct     = cScore?.percentage ?? 0;
+                                    const barH    = Math.max(2, (pct / 100) * effectiveH);
+                                    const barX    = groupStartX + clsIdx * (barW + 2);
+                                    const barY    = bottomY - barH;
+                                    const isMuted = selectedClass !== "all" && selectedClass !== cls;
+                                    const isIsolated = selectedClass === cls;
+
+                                    return (
+                                      <g key={`bar-${examIdx}-${cls}`} opacity={isMuted ? 0.15 : 1} className="transition-all">
+                                        {/* Bar body */}
+                                        <rect
+                                          x={barX}
+                                          y={barY}
+                                          width={barW}
+                                          height={barH}
+                                          rx="3" ry="3"
+                                          fill={cInfo.stroke}
+                                          opacity={isIsolated ? 1 : 0.82}
+                                        />
+                                        {/* Percentage chip on top — show when isolated class or on hover */}
+                                        {(isIsolated || (isHovGroup && numClasses <= 4)) && pct > 0 && (
+                                          <>
+                                            <rect
+                                              x={barX + barW / 2 - 14}
+                                              y={barY - 17}
+                                              width="28" height="14"
+                                              rx="7"
+                                              fill={cInfo.stroke}
+                                              opacity="0.9"
+                                            />
+                                            <text
+                                              x={barX + barW / 2}
+                                              y={barY - 7}
+                                              fontSize="8" fontWeight="800"
+                                              textAnchor="middle" fill="#ffffff"
+                                              style={{ pointerEvents: "none" }}
+                                            >
+                                              {pct}%
+                                            </text>
+                                          </>
+                                        )}
+                                      </g>
+                                    );
+                                  })}
+
+                                  {/* Exam label at bottom */}
+                                  <text
+                                    x={groupCenterX}
+                                    y={chartHeight - 18}
+                                    fontSize="9.5" fontWeight="700"
+                                    textAnchor="middle"
+                                    fill={isHovGroup ? "#1e293b" : "#475569"}
+                                    className="dark:fill-slate-300"
+                                    style={{ pointerEvents: "none" }}
+                                  >
+                                    {exam.exam_title.length > 14 ? `${exam.exam_title.slice(0, 12)}…` : exam.exam_title}
+                                  </text>
+                                  <text
+                                    x={groupCenterX}
+                                    y={chartHeight - 5}
+                                    fontSize="8.5" fontWeight="500"
+                                    textAnchor="middle" fill="#94a3b8"
+                                    style={{ pointerEvents: "none" }}
+                                  >
+                                    {formatDate(exam.schedule_date)}
+                                  </text>
+                                </g>
                               );
                             })}
-                          </g>
+
+                            {/* Class color legend at bottom-right */}
+                            <g style={{ pointerEvents: "none" }}>
+                              {classesList.slice(0, 5).map((cls, clsIdx) => {
+                                const cInfo = classColorMap.get(cls) || classColorPalette[clsIdx % classColorPalette.length];
+                                const legendX = svgViewWidth - chartPaddingRight - 8;
+                                const legendY = chartPaddingTop + clsIdx * 14;
+                                return (
+                                  <g key={`legend-${cls}`}>
+                                    <rect x={legendX - 70} y={legendY} width="8" height="8" rx="2" fill={cInfo.stroke} />
+                                    <text x={legendX - 58} y={legendY + 7} fontSize="8" fontWeight="600" fill="#64748b">
+                                      {cls.length > 12 ? `${cls.slice(0, 10)}…` : cls}
+                                    </text>
+                                  </g>
+                                );
+                              })}
+                            </g>
+                          </>
                         );
-                      })}
-
-                      {/* Branch Benchmark Dashed Line */}
-                      {svgPoints.length > 1 && (
-                        <path
-                          d={linePath}
-                          fill="none"
-                          stroke="#4f46e5"
-                          strokeWidth="2"
-                          strokeDasharray="4 4"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          opacity={selectedClass !== "all" ? 0.35 : 0.75}
-                        />
-                      )}
-
-                      {/* Interactive Hover Nodes on X-Axis & Benchmark */}
-                      {svgPoints.map((pt, idx) => {
-                        const isHovered = hoveredExam?.exam_key === pt.exam.exam_key;
-                        const color =
-                          pt.exam.percentage >= 80
-                            ? "#10b981"
-                            : pt.exam.percentage >= 50
-                            ? "#4f46e5"
-                            : "#ef4444";
-
-                        return (
-                          <g
-                            key={idx}
-                            className="cursor-pointer"
-                            onMouseEnter={() => setHoveredExam(pt.exam)}
-                            onMouseLeave={() => setHoveredExam(null)}
-                          >
-                            {/* Generous hit area for easy hover */}
-                            <rect
-                              x={pt.x - pointGap / 2}
-                              y={chartPaddingTop}
-                              width={pointGap}
-                              height={chartHeight - chartPaddingTop - chartPaddingBottom}
-                              fill="transparent"
-                            />
-
-                            {/* Benchmark average node */}
-                            <circle
-                              cx={pt.x}
-                              cy={pt.y}
-                              r={isHovered ? "7" : "5"}
-                              fill="#ffffff"
-                              stroke="#4f46e5"
-                              strokeWidth={isHovered ? "3.5" : "2"}
-                            />
-
-                            {/* Clean Date and Exam Label */}
-                            <text
-                              x={pt.x}
-                              y={chartHeight - 18}
-                              fontSize="10"
-                              fontWeight="700"
-                              textAnchor="middle"
-                              fill="#1e293b"
-                              className="dark:fill-slate-100"
-                            >
-                              {pt.exam.exam_title.length > 18
-                                ? `${pt.exam.exam_title.slice(0, 16)}…`
-                                : pt.exam.exam_title}
-                            </text>
-
-                            <text
-                              x={pt.x}
-                              y={chartHeight - 5}
-                              fontSize="8.5"
-                              fontWeight="500"
-                              textAnchor="middle"
-                              fill="#94a3b8"
-                            >
-                              {formatDate(pt.exam.schedule_date)}
-                            </text>
-                          </g>
-                        );
-                      })}
+                      })()}
                     </svg>
                   </div>
 
@@ -914,13 +1054,13 @@ function AcademicPerformanceDashboard() {
                           onClick={(e) => {
                             e.stopPropagation();
                             router.push(
-                              `/dashboard/branch-manager/class-performance?branch=${encodeURIComponent(
+                              `/dashboard/director/academic-performance/class?branch=${encodeURIComponent(
                                 selectedBranch,
                               )}&program=${encodeURIComponent(cs.className)}`,
                             );
                           }}
                           className="px-2 py-0.5 rounded-md bg-primary/10 hover:bg-primary text-primary hover:text-white transition-all flex items-center gap-1 font-semibold text-[10px]"
-                          title={`Open full ${cs.className} performance page with exam graphs`}
+                          title={`Open ${cs.className} batch-wise exam graph page`}
                         >
                           <span>Open Class</span>
                           <ExternalLink className="w-2.5 h-2.5" />

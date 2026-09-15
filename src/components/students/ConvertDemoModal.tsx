@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -61,12 +61,33 @@ const PLAN_OPTIONS = [
   { value: "Advanced", label: "Advanced", description: "Premium programme" },
 ];
 
-const INSTALMENT_OPTIONS = [
-  { value: 1, label: "One-Time", sublabel: "Single full payment" },
-  { value: 4, label: "Quarterly", sublabel: "4 instalments" },
-  { value: 6, label: "6 Months", sublabel: "6 instalments" },
-  { value: 8, label: "8 Months", sublabel: "8 instalments" },
-];
+interface InstalmentOption {
+  value: number;
+  label: string;
+  sublabel: string;
+}
+
+function getInstalmentOptionsForConfig(config: FeeConfigEntry | null): InstalmentOption[] {
+  if (!config) {
+    return [{ value: 1, label: "One-Time", sublabel: "Single full payment" }];
+  }
+  const is5Inst = Boolean(
+    config.inst5_schedule || config.inst1 || config.instalments_count === 5,
+  );
+  if (is5Inst) {
+    return [
+      { value: 1, label: "One-Time", sublabel: "Single full payment" },
+      { value: 5, label: "5 Months", sublabel: "5 instalments" },
+    ];
+  }
+  return [
+    { value: 1, label: "One-Time", sublabel: "Single full payment" },
+    { value: 4, label: "Quarterly", sublabel: "4 instalments" },
+    { value: 6, label: "6 Months", sublabel: "6 instalments" },
+    { value: 8, label: "8 Months", sublabel: "8 instalments" },
+  ];
+}
+
 
 function buildSchedulePreview(
   config: FeeConfigEntry,
@@ -140,7 +161,7 @@ export function ConvertDemoModal({ student, onClose, onSuccess }: Props) {
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   const [plan, setPlan] = useState("Basic");
-  const [instalments, setInstalments] = useState(4);
+  const [instalments, setInstalments] = useState(5);
   const [schedulePreview, setSchedulePreview] = useState<SchedulePreviewRow[]>([]);
   const [converting, setConverting] = useState(false);
   const [resultError, setResultError] = useState<string | null>(null);
@@ -209,6 +230,23 @@ export function ConvertDemoModal({ student, onClose, onSuccess }: Props) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [plan]);
+
+  // Dynamic instalment options based on feeConfig
+  const instalmentOptions = useMemo(
+    () => getInstalmentOptionsForConfig(feeConfig),
+    [feeConfig],
+  );
+
+  // Sync instalments selection whenever feeConfig / instalmentOptions change
+  useEffect(() => {
+    if (instalmentOptions.length === 0) return;
+    const currentValid = instalmentOptions.some((o) => o.value === instalments);
+    if (!currentValid) {
+      // Pick 5 if available, otherwise second option (e.g. quarterly or 5 months), or fallback to first (One-Time)
+      const defaultOption = instalmentOptions.find((o) => o.value === 5) ?? instalmentOptions[1] ?? instalmentOptions[0];
+      setInstalments(defaultOption.value);
+    }
+  }, [instalmentOptions, instalments]);
 
   // Recompute preview when plan/instalments/feeConfig changes
   useEffect(() => {
@@ -295,6 +333,9 @@ export function ConvertDemoModal({ student, onClose, onSuccess }: Props) {
   const hasInvoiceIssue = Boolean(resultData?.invoiceError);
 
   function isPlanDisabled(planValue: string): boolean {
+    if (isRestrictedBranch) {
+      return planValue !== "Advanced";
+    }
     return false;
   }
 
@@ -522,7 +563,7 @@ export function ConvertDemoModal({ student, onClose, onSuccess }: Props) {
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-text-secondary">Payment Schedule</label>
                   <div className="grid grid-cols-2 gap-2">
-                    {INSTALMENT_OPTIONS.map((opt) => (
+                    {instalmentOptions.map((opt) => (
                       <button
                         key={opt.value}
                         onClick={() => setInstalments(opt.value)}
