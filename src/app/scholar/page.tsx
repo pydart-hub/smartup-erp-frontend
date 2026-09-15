@@ -286,20 +286,20 @@ export default function ScholarRegistrationPage() {
             </p>
 
             {/* Visual Hero Area: Perfectly Aligned Student Image & Floating Badges */}
-            <div className="relative w-full max-w-[460px] mx-auto lg:mx-0 flex justify-center items-end pt-2 pb-0">
+            <div className="relative w-full max-w-[520px] mx-auto lg:mx-0 flex justify-center items-end pt-2 pb-0">
               {/* Circular Soft Purple Glow Backdrop */}
-              <div className="absolute w-80 h-80 sm:w-[350px] sm:h-[350px] rounded-full bg-[#EFEBFA]/90 -z-10 bottom-2 left-1/2 -translate-x-1/2" />
-              <div className="absolute w-[420px] h-[420px] rounded-full bg-purple-100/35 -z-20 blur-3xl bottom-0 left-1/2 -translate-x-1/2" />
+              <div className="absolute w-84 h-84 sm:w-[400px] sm:h-[400px] rounded-full bg-[#EFEBFA]/90 -z-10 bottom-2 left-1/2 -translate-x-1/2" />
+              <div className="absolute w-[460px] h-[460px] rounded-full bg-purple-100/35 -z-20 blur-3xl bottom-0 left-1/2 -translate-x-1/2" />
 
               {/* Student Cutout Image */}
-              <div className="relative w-[310px] h-[370px] sm:w-[360px] sm:h-[420px]">
+              <div className="relative w-[350px] h-[410px] sm:w-[420px] sm:h-[480px]">
                 <Image
                   src="/rd.webp"
                   alt="SmartUp Student"
                   fill
                   priority
                   className="object-contain object-bottom drop-shadow-sm"
-                  sizes="(max-width: 640px) 310px, 360px"
+                  sizes="(max-width: 640px) 350px, 420px"
                 />
               </div>
 
