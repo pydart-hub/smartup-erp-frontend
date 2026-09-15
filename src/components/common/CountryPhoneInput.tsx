@@ -67,15 +67,15 @@ export default function CountryPhoneInput({
             onChange={handleCountrySelect}
             disabled={disabled}
             aria-label="Select Country Code"
-            className="appearance-none bg-transparent pl-3 pr-7 py-2.5 text-xs font-semibold text-slate-700 cursor-pointer focus:outline-none disabled:cursor-not-allowed"
+            className="appearance-none bg-transparent pl-3 pr-6 py-2.5 text-xs font-bold text-slate-800 cursor-pointer focus:outline-none disabled:cursor-not-allowed"
           >
             {COUNTRIES.map((c) => (
               <option key={c.code} value={c.code}>
-                {c.flag} {c.dialCode} ({c.code})
+                {c.flag} {c.dialCode} ({c.name})
               </option>
             ))}
           </select>
-          <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2 pointer-events-none" />
+          <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-1.5 pointer-events-none" />
         </div>
 
         {/* Mobile Phone Number Input */}
@@ -87,7 +87,7 @@ export default function CountryPhoneInput({
           placeholder={selectedCountry.placeholder}
           value={phone}
           onChange={handlePhoneInput}
-          className="w-full px-3.5 py-2.5 bg-white text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none disabled:bg-slate-50 disabled:text-slate-500 font-mono tracking-wider"
+          className="w-full px-3.5 py-2.5 bg-white text-slate-900 text-base font-bold placeholder:text-slate-400 placeholder:text-xs placeholder:font-normal focus:outline-none disabled:bg-slate-50 disabled:text-slate-500 font-mono tracking-widest"
         />
       </div>
 

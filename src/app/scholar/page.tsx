@@ -488,41 +488,38 @@ export default function ScholarRegistrationPage() {
                     </div>
                   </div>
 
-                  {/* Phone Number & Location Region */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {/* Phone Number with Country Select */}
-                    <div className="space-y-1.5">
-                      <label className="text-[11px] font-bold text-slate-700 tracking-wide">
-                        Phone Number <span className="text-red-500">*</span>
-                      </label>
-                      <CountryPhoneInput
-                        selectedCountry={selectedCountry}
-                        onCountryChange={handleCountryChange}
-                        phone={phone}
-                        onPhoneChange={setPhone}
-                        required
-                      />
-                    </div>
+                  {/* Phone Number Field (Full Width) */}
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-slate-700 tracking-wide">
+                      Phone Number <span className="text-red-500">*</span>
+                    </label>
+                    <CountryPhoneInput
+                      selectedCountry={selectedCountry}
+                      onCountryChange={handleCountryChange}
+                      phone={phone}
+                      onPhoneChange={setPhone}
+                      required
+                    />
+                  </div>
 
-                    {/* District / Emirate / Location */}
-                    <div className="space-y-1.5">
-                      <label className="text-[11px] font-bold text-slate-700 tracking-wide">
-                        {selectedCountry.regionLabel} <span className="text-red-500">*</span>
-                      </label>
-                      <div className="relative">
-                        <select
-                          value={district}
-                          onChange={(e) => setDistrict(e.target.value)}
-                          className="w-full appearance-none px-3.5 py-2.5 bg-white border border-slate-200/90 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-[#5C34A4]/20 focus:border-[#5C34A4] transition cursor-pointer pr-9"
-                        >
-                          {selectedCountry.regions.map((r) => (
-                            <option key={r} value={r}>
-                              {r}
-                            </option>
-                          ))}
-                        </select>
-                        <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                      </div>
+                  {/* District / Emirate / Location Field (Full Width) */}
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-slate-700 tracking-wide">
+                      {selectedCountry.regionLabel} <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={district}
+                        onChange={(e) => setDistrict(e.target.value)}
+                        className="w-full appearance-none px-3.5 py-2.5 bg-white border border-slate-200/90 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-[#5C34A4]/20 focus:border-[#5C34A4] transition cursor-pointer pr-9"
+                      >
+                        {selectedCountry.regions.map((r) => (
+                          <option key={r} value={r}>
+                            {r}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                     </div>
                   </div>
 
