@@ -1,17 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import {
-  AlertCircle,
-  Download,
-  FileSpreadsheet,
-  FileText,
-  CalendarCheck,
-} from "lucide-react";
-import { Button } from "@/components/ui/Button";
-import { toast } from "sonner";
+import { AlertCircle, CalendarCheck } from "lucide-react";
 import type { AttendanceBranchRow } from "@/lib/reports/summary-types";
+import { ShareReportMenu } from "@/components/reports/ShareReportMenu";
 
 async function fetchData(
   fromDate?: string,
@@ -37,44 +30,28 @@ interface Props {
 }
 
 export function AttendanceBranchSummary({ fromDate, toDate, onDrillDown }: Props) {
-  const [loading, setLoading] = useState<"xlsx" | "csv" | null>(null);
   const { data: rows, isLoading, isError } = useQuery({
     queryKey: ["report-attendance", "branch", "all", fromDate, toDate],
     queryFn: () => fetchData(fromDate, toDate),
     staleTime: 60_000,
   });
 
-  const handleExport = async (format: "xlsx" | "csv") => {
-    setLoading(format);
-    try {
-      const res = await fetch("/api/director/report-attendance-export", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode: "branch", fromDate, toDate, format }),
-        credentials: "include",
-      });
-      if (!res.ok)
-        throw new Error(
-          (await res.json().catch(() => ({}))).error || "Export failed",
-        );
-      const disposition = res.headers.get("Content-Disposition") ?? "";
-      const filename =
-        disposition.match(/filename="?([^"]+)"?/)?.[1] ?? `report.${format}`;
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      toast.success(`${format.toUpperCase()} downloaded`);
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Export failed");
-    } finally {
-      setLoading(null);
-    }
+  const handleFetchExport = async (format: "xlsx" | "csv") => {
+    const res = await fetch("/api/director/report-attendance-export", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode: "branch", fromDate, toDate, format }),
+      credentials: "include",
+    });
+    if (!res.ok)
+      throw new Error(
+        (await res.json().catch(() => ({}))).error || "Export failed",
+      );
+    const disposition = res.headers.get("Content-Disposition") ?? "";
+    const filename =
+      disposition.match(/filename="?([^"]+)"?/)?.[1] ?? `Attendance_Branch_Report.${format}`;
+    const blob = await res.blob();
+    return { blob, filename };
   };
 
   if (isLoading)
@@ -103,14 +80,11 @@ export function AttendanceBranchSummary({ fromDate, toDate, onDrillDown }: Props
     }),
     { totalSessions: 0, present: 0, absent: 0, leave: 0, students: 0 },
   );
-  const totalPct =
-    totals.totalSessions > 0
-      ? Math.round((totals.present / totals.totalSessions) * 100)
-      : 0;
+  const totalPct = totals.totalSessions > 0 ? Math.round((totals.present / totals.totalSessions) * 100) : 0;
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between p-4 bg-surface rounded-[14px] border border-border-light">
+      <div className="flex items-center justify-between p-4 bg-surface rounded-[14px] border border-border-light flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-full bg-brand-wash flex items-center justify-center">
             <CalendarCheck className="h-5 w-5 text-primary" />
@@ -124,34 +98,11 @@ export function AttendanceBranchSummary({ fromDate, toDate, onDrillDown }: Props
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => handleExport("xlsx")}
-            disabled={loading !== null}
-          >
-            {loading === "xlsx" ? (
-              <span className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin inline-block" />
-            ) : (
-              <FileSpreadsheet className="h-4 w-4" />
-            )}
-            Excel <Download className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleExport("csv")}
-            disabled={loading !== null}
-          >
-            {loading === "csv" ? (
-              <span className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin inline-block" />
-            ) : (
-              <FileText className="h-4 w-4" />
-            )}
-            CSV <Download className="h-3.5 w-3.5" />
-          </Button>
-        </div>
+        <ShareReportMenu
+          title="Attendance Report - Branch Wise"
+          subtitle={`${rows.length} branches · Total Sessions: ${totals.totalSessions.toLocaleString()}`}
+          onExport={handleFetchExport}
+        />
       </div>
 
       {rows.length === 0 ? (

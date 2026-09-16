@@ -1,20 +1,15 @@
 "use client";
 
 import { GifLoader } from "@/components/ui/GifLoader";
-import React, { useState } from "react";
+import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Loader2,
   AlertCircle,
-  Download,
-  FileSpreadsheet,
-  FileText,
   ChevronRight,
   AlertTriangle,
 } from "lucide-react";
-import { Button } from "@/components/ui/Button";
-import { toast } from "sonner";
 import type { OverdueBranchRow } from "@/lib/reports/summary-types";
+import { ShareReportMenu } from "@/components/reports/ShareReportMenu";
 
 function fmt(n: number): string {
   return "₹" + n.toLocaleString("en-IN");
@@ -36,7 +31,6 @@ interface Props {
 }
 
 export function OverdueBranchSummary({ onSelect }: Props) {
-  const [loading, setLoading] = useState<"xlsx" | "csv" | null>(null);
   const { data: rows, isLoading, isError } = useQuery({
     queryKey: ["report-overdue", "branch", "all"],
     queryFn: fetchData,
@@ -60,39 +54,21 @@ export function OverdueBranchSummary({ onSelect }: Props) {
       ? Math.round((totals.overdueAmount / totals.totalFee) * 100)
       : 0;
 
-  const handleExport = async (format: "xlsx" | "csv") => {
-    setLoading(format);
-    try {
-      const res = await fetch("/api/director/report-overdue-export", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode: "branch", format }),
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Export failed");
-      const disposition = res.headers.get("Content-Disposition") ?? "";
-      const filename = disposition.match(/filename="?([^"]+)"?/)?.[1] ?? `report.${format}`;
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      toast.success(`${format.toUpperCase()} downloaded`);
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Export failed");
-    } finally {
-      setLoading(null);
-    }
+  const handleFetchExport = async (format: "xlsx" | "csv") => {
+    const res = await fetch("/api/director/report-overdue-export", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode: "branch", format }),
+      credentials: "include",
+    });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Export failed");
+    const disposition = res.headers.get("Content-Disposition") ?? "";
+    const filename = disposition.match(/filename="?([^"]+)"?/)?.[1] ?? `Overdue_Branch_Report.${format}`;
+    const blob = await res.blob();
+    return { blob, filename };
   };
 
-  if (isLoading)
-    return (
-      <GifLoader />
-    );
+  if (isLoading) return <GifLoader />;
   if (isError || !rows)
     return (
       <div className="flex flex-col items-center justify-center h-48 gap-2">
@@ -101,47 +77,23 @@ export function OverdueBranchSummary({ onSelect }: Props) {
       </div>
     );
 
-  // Only show branches that actually have overdue
   const overdueRows = rows.filter((r) => r.overdueAmount > 0);
 
   return (
     <div className="space-y-4">
-      {/* Summary bar */}
-      <div className="flex items-center justify-between p-4 bg-surface rounded-[14px] border border-border-light">
+      {/* Summary & Share bar */}
+      <div className="flex items-center justify-between p-4 bg-surface rounded-[14px] border border-border-light flex-wrap gap-3">
         <p className="text-sm text-text-secondary font-medium">
           {overdueRows.length} branches &middot;{" "}
           <span className="text-error font-semibold">{totals?.overdueStudents ?? 0} overdue students</span>
           {" "}&middot;{" "}
           <span className="text-error font-semibold">{fmt(totals?.overdueAmount ?? 0)} overdue</span>
         </p>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => handleExport("xlsx")}
-            disabled={loading !== null}
-          >
-            {loading === "xlsx" ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <FileSpreadsheet className="h-4 w-4" />
-            )}
-            Excel <Download className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleExport("csv")}
-            disabled={loading !== null}
-          >
-            {loading === "csv" ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <FileText className="h-4 w-4" />
-            )}
-            CSV <Download className="h-3.5 w-3.5" />
-          </Button>
-        </div>
+        <ShareReportMenu
+          title="Overdue Branch Summary Report"
+          subtitle={`${overdueRows.length} branches · ${totals?.overdueStudents ?? 0} overdue students (${fmt(totals?.overdueAmount ?? 0)})`}
+          onExport={handleFetchExport}
+        />
       </div>
 
       {/* Table */}

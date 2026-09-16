@@ -83,7 +83,7 @@ function DirectorClassContent() {
   const [hoveredExam, setHoveredExam]               = useState<any | null>(null);
   const [selectedSubject, setSelectedSubject]       = useState<string>("all");
   const [subjectViewMode, setSubjectViewMode]       = useState<"chart" | "progress" | "list">("chart");
-  const [chartType, setChartType]                   = useState<"line" | "bar">("line");
+  const [chartType, setChartType]                   = useState<"line" | "bar">("bar");
   const subjectSectionRef = useRef<HTMLDivElement>(null);
 
   // ── Data fetch ──
@@ -734,92 +734,96 @@ function DirectorClassContent() {
                         );
                       })()}
 
-                      {/* Overall average dashed line */}
-                      {svgPoints.length > 1 && (
-                        <path
-                          d={linePath}
-                          fill="none"
-                          stroke="#4f46e5"
-                          strokeWidth={!selectedBatch && batchLines.length > 0 ? "2" : "3.5"}
-                          strokeDasharray={!selectedBatch && batchLines.length > 0 ? "5 4" : undefined}
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          opacity={!selectedBatch && batchLines.length > 0 ? 0.6 : 1}
-                        />
+                      {/* Overall average line & points — LINE view only */}
+                      {chartType === "line" && (
+                        <>
+                          {svgPoints.length > 1 && (
+                            <path
+                              d={linePath}
+                              fill="none"
+                              stroke="#4f46e5"
+                              strokeWidth={!selectedBatch && batchLines.length > 0 ? "2" : "3.5"}
+                              strokeDasharray={!selectedBatch && batchLines.length > 0 ? "5 4" : undefined}
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              opacity={!selectedBatch && batchLines.length > 0 ? 0.6 : 1}
+                            />
+                          )}
+
+                          {/* Main exam data points (overall avg) */}
+                          {svgPoints.map((pt, idx) => {
+                            const isHov = hoveredExam?.exam_key === pt.exam.exam_key;
+                            const color =
+                              pt.exam.percentage >= 80 ? "#10b981"
+                              : pt.exam.percentage >= 50 ? "#4f46e5"
+                              : "#ef4444";
+                            return (
+                              <g
+                                key={idx}
+                                className="cursor-pointer"
+                                onMouseEnter={() => setHoveredExam(pt.exam)}
+                                onMouseLeave={() => setHoveredExam(null)}
+                              >
+                                <circle cx={pt.x} cy={pt.y} r="18" fill="transparent" />
+
+                                {isHov && (
+                                  <circle
+                                    cx={pt.x} cy={pt.y} r="12"
+                                    fill={color} opacity="0.15"
+                                    className="animate-ping"
+                                  />
+                                )}
+
+                                <circle
+                                  cx={pt.x} cy={pt.y}
+                                  r={isHov ? "7" : "5"}
+                                  fill="#ffffff"
+                                  stroke={color}
+                                  strokeWidth={isHov ? "3.5" : "2.5"}
+                                  className="transition-all"
+                                />
+
+                                {/* Score pill */}
+                                <rect
+                                  x={pt.x - 30} y={pt.y - 32}
+                                  width="60" height="16"
+                                  rx="8"
+                                  fill="#ffffff" stroke={color}
+                                  strokeWidth="1.5"
+                                  className="dark:fill-slate-900"
+                                />
+                                <text
+                                  x={pt.x} y={pt.y - 21}
+                                  fontSize="9" fontWeight="700"
+                                  textAnchor="middle" fill={color}
+                                >
+                                  Avg {pt.exam.percentage}%
+                                </text>
+
+                                {/* Exam title */}
+                                <text
+                                  x={pt.x} y={chartHeight - 18}
+                                  fontSize="10" fontWeight="700"
+                                  textAnchor="middle"
+                                  fill="#1e293b"
+                                  className="dark:fill-slate-100"
+                                >
+                                  {pt.exam.exam_title.length > 16
+                                    ? `${pt.exam.exam_title.slice(0, 14)}…`
+                                    : pt.exam.exam_title}
+                                </text>
+                                <text
+                                  x={pt.x} y={chartHeight - 5}
+                                  fontSize="8.5" fontWeight="500"
+                                  textAnchor="middle" fill="#94a3b8"
+                                >
+                                  {formatDate(pt.exam.schedule_date)}
+                                </text>
+                              </g>
+                            );
+                          })}
+                        </>
                       )}
-
-                      {/* Main exam data points (overall avg) */}
-                      {svgPoints.map((pt, idx) => {
-                        const isHov = hoveredExam?.exam_key === pt.exam.exam_key;
-                        const color =
-                          pt.exam.percentage >= 80 ? "#10b981"
-                          : pt.exam.percentage >= 50 ? "#4f46e5"
-                          : "#ef4444";
-                        return (
-                          <g
-                            key={idx}
-                            className="cursor-pointer"
-                            onMouseEnter={() => setHoveredExam(pt.exam)}
-                            onMouseLeave={() => setHoveredExam(null)}
-                          >
-                            <circle cx={pt.x} cy={pt.y} r="18" fill="transparent" />
-
-                            {isHov && (
-                              <circle
-                                cx={pt.x} cy={pt.y} r="12"
-                                fill={color} opacity="0.15"
-                                className="animate-ping"
-                              />
-                            )}
-
-                            <circle
-                              cx={pt.x} cy={pt.y}
-                              r={isHov ? "7" : "5"}
-                              fill="#ffffff"
-                              stroke={color}
-                              strokeWidth={isHov ? "3.5" : "2.5"}
-                              className="transition-all"
-                            />
-
-                            {/* Score pill */}
-                            <rect
-                              x={pt.x - 30} y={pt.y - 32}
-                              width="60" height="16"
-                              rx="8"
-                              fill="#ffffff" stroke={color}
-                              strokeWidth="1.5"
-                              className="dark:fill-slate-900"
-                            />
-                            <text
-                              x={pt.x} y={pt.y - 21}
-                              fontSize="9" fontWeight="700"
-                              textAnchor="middle" fill={color}
-                            >
-                              Avg {pt.exam.percentage}%
-                            </text>
-
-                            {/* Exam title */}
-                            <text
-                              x={pt.x} y={chartHeight - 18}
-                              fontSize="10" fontWeight="700"
-                              textAnchor="middle"
-                              fill="#1e293b"
-                              className="dark:fill-slate-100"
-                            >
-                              {pt.exam.exam_title.length > 16
-                                ? `${pt.exam.exam_title.slice(0, 14)}…`
-                                : pt.exam.exam_title}
-                            </text>
-                            <text
-                              x={pt.x} y={chartHeight - 5}
-                              fontSize="8.5" fontWeight="500"
-                              textAnchor="middle" fill="#94a3b8"
-                            >
-                              {formatDate(pt.exam.schedule_date)}
-                            </text>
-                          </g>
-                        );
-                      })}
                     </svg>
                   </div>
 

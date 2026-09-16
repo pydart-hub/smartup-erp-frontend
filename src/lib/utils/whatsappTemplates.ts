@@ -386,6 +386,55 @@ export function buildPaymentDoneWithPdf(
   };
 }
 
+export interface ReportDeliveryParams {
+  recipientName: string;
+  reportTitle: string;
+  reportType: string;
+  date: string;
+  summary: string;
+  mediaId?: string;
+  documentUrl?: string;
+  filename: string;
+}
+
+/**
+ * Builds template options for smartup_report_delivery (Document header + 5 body parameters)
+ */
+export function buildReportDeliveryWithDocument(
+  phone: string,
+  p: ReportDeliveryParams
+): SendTemplateOptions {
+  const docParam = p.mediaId
+    ? { id: p.mediaId, filename: p.filename }
+    : { link: p.documentUrl, filename: p.filename };
+
+  return {
+    to: phone,
+    templateName: "smartup_report_delivery",
+    components: [
+      {
+        type: "header",
+        parameters: [
+          {
+            type: "document",
+            document: docParam,
+          },
+        ],
+      },
+      {
+        type: "body",
+        parameters: [
+          txt(p.recipientName),
+          txt(p.reportTitle),
+          txt(p.reportType),
+          txt(p.date),
+          txt(p.summary),
+        ],
+      },
+    ],
+  };
+}
+
 export function buildPaymentReceipt(
   phone: string,
   p: PaymentReceiptParams,

@@ -72,7 +72,7 @@ function AcademicPerformanceDashboard() {
   const [subjectViewMode, setSubjectViewMode] = useState<"chart" | "progress">("chart");
   const [hoveredSubject, setHoveredSubject] = useState<string | null>(null);
   const [branchSearch, setBranchSearch] = useState<string>("");
-  const [chartType, setChartType] = useState<"line" | "bar">("line");
+  const [chartType, setChartType] = useState<"line" | "bar">("bar");
 
   // 1. Fetch master branch list
   const { data: branchesData, isLoading: loadingBranches } = useQuery({

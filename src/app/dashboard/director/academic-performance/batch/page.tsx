@@ -73,7 +73,7 @@ function BatchSubjectContent() {
   const [selectedExamGroup, setSelectedExamGroup] = useState<string>("all");
   const [hoveredExam, setHoveredExam]             = useState<any | null>(null);
   const [subjectViewMode, setSubjectViewMode]     = useState<"chart" | "progress" | "list">("chart");
-  const [chartType, setChartType]                 = useState<"line" | "bar">("line");
+  const [chartType, setChartType]                 = useState<"line" | "bar">("bar");
 
   // ── Fetch ──
   const { data, isLoading } = useQuery<ClassPerformanceResponse>({
@@ -581,8 +581,8 @@ function BatchSubjectContent() {
                         </g>
                       ))}
 
-                      {/* Overall dashed average (shown only in all-subjects view) */}
-                      {selectedSubject === "all" && overallPoints.length > 1 && (
+                      {/* Overall dashed average (shown only in all-subjects line view) */}
+                      {chartType === "line" && selectedSubject === "all" && overallPoints.length > 1 && (
                         <path
                           d={overallLinePath}
                           fill="none"

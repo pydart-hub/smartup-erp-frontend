@@ -28,7 +28,7 @@ export interface TemplateParameter {
   text?: string;
   currency?: { fallback_value: string; code: string; amount_1000: number };
   date_time?: { fallback_value: string };
-  document?: { link: string; filename?: string };
+  document?: { link?: string; id?: string; filename?: string };
 }
 
 /** A single component passed when sending a template message */
@@ -234,4 +234,38 @@ export async function listTemplates(): Promise<TemplateInfo[]> {
 
   const json = (await res.json()) as { data: TemplateInfo[] };
   return json.data;
+}
+
+/**
+ * Upload a document directly to Meta WhatsApp Media API and return its media ID.
+ */
+export async function uploadMedia(
+  buffer: Buffer,
+  filename: string,
+  mimeType: string = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+): Promise<string> {
+  assertConfigured();
+
+  const blob = new Blob([new Uint8Array(buffer)], { type: mimeType });
+  const formData = new FormData();
+  formData.append("file", blob, filename);
+  formData.append("messaging_product", "whatsapp");
+  formData.append("type", mimeType);
+
+  const res = await fetch(`${BASE_URL}/${PHONE_NUMBER_ID}/media`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${ACCESS_TOKEN}`,
+    },
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    const errMsg = (err as { error?: { message?: string } })?.error?.message;
+    throw new Error(`Meta media upload failed: ${res.status} — ${errMsg || res.statusText}`);
+  }
+
+  const json = (await res.json()) as { id: string };
+  return json.id;
 }

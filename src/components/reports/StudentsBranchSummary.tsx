@@ -1,19 +1,11 @@
 "use client";
 
 import { GifLoader } from "@/components/ui/GifLoader";
-import React, { useState } from "react";
+import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Loader2,
-  AlertCircle,
-  Download,
-  FileSpreadsheet,
-  FileText,
-  ChevronRight,
-} from "lucide-react";
-import { Button } from "@/components/ui/Button";
-import { toast } from "sonner";
+import { AlertCircle, ChevronRight } from "lucide-react";
 import type { StudentsBranchRow } from "@/lib/reports/summary-types";
+import { ShareReportMenu } from "@/components/reports/ShareReportMenu";
 
 async function fetchData(fromDate?: string, toDate?: string): Promise<StudentsBranchRow[]> {
   const res = await fetch("/api/director/report-students", {
@@ -36,7 +28,6 @@ interface Props {
 }
 
 export function StudentsBranchSummary({ fromDate, toDate, onSelect }: Props) {
-  const [loading, setLoading] = useState<"xlsx" | "csv" | null>(null);
   const { data: rows, isLoading, isError } = useQuery({
     queryKey: ["report-students", "branch", "all", fromDate, toDate],
     queryFn: () => fetchData(fromDate, toDate),
@@ -58,33 +49,18 @@ export function StudentsBranchSummary({ fromDate, toDate, onSelect }: Props) {
     { totalStudents: 0, active: 0, discontinued: 0, basic: 0, intermediate: 0, advanced: 0, male: 0, female: 0, newThisMonth: 0 },
   );
 
-  const handleExport = async (format: "xlsx" | "csv") => {
-    setLoading(format);
-    try {
-      const res = await fetch("/api/director/report-students-export", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode: "branch", fromDate, toDate, format }),
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Export failed");
-      const disposition = res.headers.get("Content-Disposition") ?? "";
-      const filename = disposition.match(/filename="?([^"]+)"?/)?.[1] ?? `report.${format}`;
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      toast.success(`${format.toUpperCase()} downloaded`);
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Export failed");
-    } finally {
-      setLoading(null);
-    }
+  const handleFetchExport = async (format: "xlsx" | "csv") => {
+    const res = await fetch("/api/director/report-students-export", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode: "branch", fromDate, toDate, format }),
+      credentials: "include",
+    });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Export failed");
+    const disposition = res.headers.get("Content-Disposition") ?? "";
+    const filename = disposition.match(/filename="?([^"]+)"?/)?.[1] ?? `Student_Branch_Summary_Report.${format}`;
+    const blob = await res.blob();
+    return { blob, filename };
   };
 
   if (isLoading) return <GifLoader />;
@@ -92,20 +68,15 @@ export function StudentsBranchSummary({ fromDate, toDate, onSelect }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between p-4 bg-surface rounded-[14px] border border-border-light">
+      <div className="flex items-center justify-between p-4 bg-surface rounded-[14px] border border-border-light flex-wrap gap-3">
         <p className="text-sm text-text-secondary font-medium">
           {rows.length} branches &middot; {totals?.totalStudents.toLocaleString()} total students
         </p>
-        <div className="flex items-center gap-2">
-          <Button variant="primary" size="sm" onClick={() => handleExport("xlsx")} disabled={loading !== null}>
-            {loading === "xlsx" ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
-            Excel <Download className="h-3.5 w-3.5" />
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => handleExport("csv")} disabled={loading !== null}>
-            {loading === "csv" ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-            CSV <Download className="h-3.5 w-3.5" />
-          </Button>
-        </div>
+        <ShareReportMenu
+          title="Student Branch Summary Report"
+          subtitle={`${rows.length} branches · ${totals?.totalStudents.toLocaleString()} total students`}
+          onExport={handleFetchExport}
+        />
       </div>
 
       <div className="overflow-x-auto rounded-[10px] border border-border-light">
