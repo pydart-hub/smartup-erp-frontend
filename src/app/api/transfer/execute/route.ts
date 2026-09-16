@@ -1080,8 +1080,19 @@ function buildTransferSISchedule(
 
   const dueDates = generateInstalmentDueDates(instalments, academicYear, enrollmentDate);
   const labels4 = ["Q1", "Q2", "Q3", "Q4"];
-  const per = Math.floor(total / instalments);
-  const last = total - per * (instalments - 1);
+
+  let per = Math.floor(total / instalments);
+  let last = total - per * (instalments - 1);
+
+  if (instalments === 8) {
+    // 8-month plan unequal split: 7 main instalments + 1 final remainder instalment
+    // e.g. 19000 -> 7 * 2500 + 1500
+    const roundedPer = Math.ceil(total / 8 / 100) * 100;
+    if (roundedPer * 7 < total) {
+      per = roundedPer;
+      last = total - per * 7;
+    }
+  }
 
   return dueDates.map((dueDate, i) => ({
     label: instalments === 4 ? labels4[i] : `Inst ${i + 1}`,
