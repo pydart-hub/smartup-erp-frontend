@@ -19,7 +19,7 @@ import type { StudentBranchTransfer } from "@/lib/types/transfer";
 
 export default function TransferDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { defaultCompany, role } = useAuth();
+  const { defaultCompany, allowedCompanies, role } = useAuth();
   const queryClient = useQueryClient();
   const router = useRouter();
 
@@ -38,7 +38,12 @@ export default function TransferDetailPage() {
     enabled: !!id,
   });
 
-  const canRespond = transfer?.to_branch === defaultCompany && transfer?.status === "Pending";
+  const userCompanies = allowedCompanies?.length ? allowedCompanies : (defaultCompany ? [defaultCompany] : []);
+
+  const canRespond =
+    (userCompanies.includes(transfer?.to_branch || "") ||
+      ["Director", "Administrator", "System Manager"].includes(role || "")) &&
+    transfer?.status === "Pending";
 
   // Show retry button if:
   //  - Approved but execute chain never ran (execute crashed before starting)
@@ -46,7 +51,10 @@ export default function TransferDetailPage() {
   // Visible to the receiver BM (to_branch), sender BM (from_branch), or Director/Admin
   const isStaffOrDirector = ["Branch Manager", "Director", "Administrator", "System Manager"].includes(role || "");
   const isBranchInvolved =
-    transfer?.to_branch === defaultCompany || transfer?.from_branch === defaultCompany;
+    userCompanies.length === 0 ||
+    userCompanies.includes(transfer?.to_branch || "") ||
+    userCompanies.includes(transfer?.from_branch || "") ||
+    ["Director", "Administrator", "System Manager"].includes(role || "");
   const canRetryExecute =
     isStaffOrDirector &&
     isBranchInvolved &&
