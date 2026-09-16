@@ -46,18 +46,9 @@ export async function GET(
 
     const transfer = (await res.json()).data;
 
-    // Access check: user must own from_branch or to_branch, or be admin/director
-    const isAdmin =
-      session.roles?.includes("Director") ||
-      session.roles?.includes("Administrator") ||
-      session.roles?.includes("System Manager");
-    const allowed = session.allowed_companies || [];
-
-    if (
-      !isAdmin &&
-      !allowed.includes(transfer.from_branch) &&
-      !allowed.includes(transfer.to_branch)
-    ) {
+    // Access check: user with staff roles (Branch Manager, Director, Admin, GM, etc.) can view
+    const isStaff = STAFF_ROLES.some((r) => session.roles?.includes(r));
+    if (!isStaff) {
       return NextResponse.json(
         { error: "You do not have access to this transfer" },
         { status: 403 },

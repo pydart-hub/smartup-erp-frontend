@@ -81,13 +81,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate receiver BM owns the target branch
+    // Validate receiver BM or staff manager owns the target branch
     const allowed = session.allowed_companies || [];
+    const isStaffManager =
+      session.roles?.includes("Branch Manager") ||
+      session.roles?.includes("Director") ||
+      session.roles?.includes("Administrator") ||
+      session.roles?.includes("System Manager");
     if (
-      !allowed.includes(transfer.to_branch) &&
-      !session.roles?.includes("Director") &&
-      !session.roles?.includes("Administrator") &&
-      !session.roles?.includes("System Manager")
+      !isStaffManager &&
+      allowed.length > 0 &&
+      !allowed.includes(transfer.to_branch)
     ) {
       return NextResponse.json(
         { error: "You can only respond to transfers for your own branch" },
