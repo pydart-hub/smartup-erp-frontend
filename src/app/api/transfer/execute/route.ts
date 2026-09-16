@@ -1051,7 +1051,8 @@ function buildTransferSISchedule(
   if (config) {
     // ── Use real fee-config amounts (unequal splits) ──
     const rawEntries = generateInstalmentSchedule(config, instalments, academicYear, enrollmentDate);
-    if (rawEntries.length > 0) {
+    const validRawTotal = rawEntries.reduce((sum, e) => sum + (e.amount || 0), 0);
+    if (rawEntries.length > 0 && validRawTotal > 0) {
       // Deduct amountAlreadyPaid from last instalment backward
       let remaining = Math.max(0, Math.round(amountAlreadyPaid));
       const adjusted = rawEntries.map(e => ({ label: e.label, amount: e.amount, dueDate: e.dueDate }));
@@ -1061,7 +1062,10 @@ function buildTransferSISchedule(
         remaining -= deduct;
       }
       // Drop fully-covered instalments
-      return adjusted.filter(e => e.amount > 0);
+      const nonZeroSchedule = adjusted.filter(e => e.amount > 0);
+      if (nonZeroSchedule.length > 0) {
+        return nonZeroSchedule;
+      }
     }
   }
 
