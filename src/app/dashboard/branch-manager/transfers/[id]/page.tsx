@@ -19,7 +19,7 @@ import type { StudentBranchTransfer } from "@/lib/types/transfer";
 
 export default function TransferDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { defaultCompany, allowedCompanies, role } = useAuth();
+  const { user, defaultCompany, allowedCompanies, role, activeRole } = useAuth();
   const queryClient = useQueryClient();
   const router = useRouter();
 
@@ -38,23 +38,30 @@ export default function TransferDetailPage() {
     enabled: !!id,
   });
 
+  const userRoles = user?.roles || (role ? [role] : []);
+  if (activeRole && !userRoles.includes(activeRole)) {
+    userRoles.push(activeRole);
+  }
+
   const userCompanies = allowedCompanies?.length ? allowedCompanies : (defaultCompany ? [defaultCompany] : []);
 
   const canRespond =
     (userCompanies.includes(transfer?.to_branch || "") ||
-      ["Director", "Administrator", "System Manager"].includes(role || "")) &&
+      userRoles.some((r) => ["Director", "Administrator", "System Manager"].includes(r))) &&
     transfer?.status === "Pending";
 
   // Show retry button if:
   //  - Approved but execute chain never ran (execute crashed before starting)
   //  - Failed — transfer was previously attempted but errored partway through
-  // Visible to the receiver BM (to_branch), sender BM (from_branch), or Director/Admin
-  const isStaffOrDirector = ["Branch Manager", "Director", "Administrator", "System Manager"].includes(role || "");
+  // Visible to the receiver BM (to_branch), sender BM (from_branch), or Director/Admin/Staff
+  const isStaffOrDirector = userRoles.some((r) =>
+    ["Branch Manager", "Director", "Administrator", "System Manager", "General Manager", "Curriculum Dept", "Academic Planning Dept"].includes(r)
+  );
   const isBranchInvolved =
     userCompanies.length === 0 ||
     userCompanies.includes(transfer?.to_branch || "") ||
     userCompanies.includes(transfer?.from_branch || "") ||
-    ["Director", "Administrator", "System Manager"].includes(role || "");
+    userRoles.some((r) => ["Director", "Administrator", "System Manager"].includes(r));
   const canRetryExecute =
     isStaffOrDirector &&
     isBranchInvolved &&
