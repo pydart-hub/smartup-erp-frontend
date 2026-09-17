@@ -24,6 +24,13 @@ import {
   ShieldCheck,
   CalendarDays,
   Sparkles,
+  Download,
+  FileSpreadsheet,
+  Loader2,
+  MapPin,
+  BarChart3,
+  Hourglass,
+  Bell,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -37,6 +44,10 @@ import {
   BranchChecklistEntry,
   evaluateSubmissionTimeliness,
 } from "@/lib/api/branchChecklists";
+import {
+  exportBranchChecklistsExcel,
+  exportBranchChecklistsPdf,
+} from "@/lib/reports/branch-checklist-export";
 import { toast } from "sonner";
 
 interface ChecklistItemDef {
@@ -73,6 +84,30 @@ const DEFAULT_BRANCHES = [
   "Smart Up Moolamkuzhi",
 ];
 
+// Helper to get friendly location for branches
+const getBranchLocation = (name: string): string => {
+  const lower = name.toLowerCase();
+  if (lower.includes("edappally")) return "Edappally, Kochi";
+  if (lower.includes("vennala")) return "Vennala, Kochi";
+  if (lower.includes("kadavanthara")) return "Kadavanthara, Kochi";
+  if (lower.includes("fortkochi") || lower.includes("fort kochi")) return "Fort Kochi, Kochi";
+  if (lower.includes("eraveli")) return "Eraveli, Kochi";
+  if (lower.includes("chullickal")) return "Chullickal, Kochi";
+  if (lower.includes("palluruthy")) return "Palluruthy, Kochi";
+  if (lower.includes("thopumpadi") || lower.includes("thoppumpady")) return "Thoppumpady, Kochi";
+  if (lower.includes("moolamkuzhi")) return "Moolamkuzhi, Kochi";
+  return "Kochi, Kerala";
+};
+
+// Helper to get branch image banner
+const getBranchImage = (name: string): string => {
+  const lower = name.toLowerCase();
+  if (lower.includes("edappally")) return "/images/smartup-edappally.jpg";
+  if (lower.includes("vennala")) return "/images/smartup-vennala.jpg";
+  if (lower.includes("kadavanthara")) return "/images/smartup-kadavanthara.jpg";
+  return "/images/smartup-branch-facade.jpg";
+};
+
 export default function GeneralManagerBranchChecklistsPage() {
   const { user, allowedCompanies } = useAuth();
   const queryClient = useQueryClient();
@@ -82,13 +117,25 @@ export default function GeneralManagerBranchChecklistsPage() {
 
   // Filters
   const [branchSearch, setBranchSearch] = useState("");
-  const [branchFilterPill, setBranchFilterPill] = useState<"ALL" | "LOGGED_TODAY" | "PENDING_REVIEW" | "HAS_LATE">("ALL");
+  const [branchFilterPill, setBranchFilterPill] = useState<"ALL" | "LOGGED_TODAY" | "LOGGER_PENDING" | "PENDING_REVIEW" | "HAS_LATE">("ALL");
+  const [sortBy, setSortBy] = useState<"LATEST" | "NAME" | "PENDING" | "LATE">("LATEST");
+  const [directoryFromDate, setDirectoryFromDate] = useState("");
+  const [directoryToDate, setDirectoryToDate] = useState("");
   const [filterDate, setFilterDate] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>(""); // "", "Submitted", "Verified", "Late"
 
   // Expanded checklist & remarks
   const [expandedChecklist, setExpandedChecklist] = useState<string | null>(null);
   const [reviewRemarks, setReviewRemarks] = useState<Record<string, string>>({});
+
+  // Report Modal & Export State
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [reportTimeframe, setReportTimeframe] = useState<"THIS_WEEK" | "THIS_MONTH" | "LAST_MONTH" | "CUSTOM">("THIS_MONTH");
+  const [reportBranch, setReportBranch] = useState<string>("ALL");
+  const [reportStatusFilter, setReportStatusFilter] = useState<string>("");
+  const [reportCustomFrom, setReportCustomFrom] = useState<string>("");
+  const [reportCustomTo, setReportCustomTo] = useState<string>("");
+  const [isExporting, setIsExporting] = useState<"excel" | "pdf" | null>(null);
 
   // Query all checklists for GM
   const { data: checklists = [], isLoading } = useQuery({
@@ -108,7 +155,16 @@ export default function GeneralManagerBranchChecklistsPage() {
   // Compute branch-level statistics
   const branchSummaries = useMemo(() => {
     return allBranches.map((branch) => {
-      const branchItems = checklists.filter((c) => c.branch === branch);
+      let branchItems = checklists.filter((c) => c.branch === branch);
+      
+      // Filter by date range if selected
+      if (directoryFromDate) {
+        branchItems = branchItems.filter((c) => c.date >= directoryFromDate);
+      }
+      if (directoryToDate) {
+        branchItems = branchItems.filter((c) => c.date <= directoryToDate);
+      }
+
       const todayItem = branchItems.find((c) => c.date === todayStr);
       const pendingCount = branchItems.filter((c) => c.status === "Submitted").length;
       const verifiedCount = branchItems.filter((c) => c.status === "Verified").length;
@@ -139,7 +195,7 @@ export default function GeneralManagerBranchChecklistsPage() {
         latestDate,
       };
     });
-  }, [allBranches, checklists, todayStr]);
+  }, [allBranches, checklists, todayStr, directoryFromDate, directoryToDate]);
 
   // Overall GM Metrics
   const totalChecklistsCount = checklists.length;
@@ -152,6 +208,7 @@ export default function GeneralManagerBranchChecklistsPage() {
     }, 0);
   }, [checklists]);
   const branchesLoggedTodayCount = branchSummaries.filter((b) => b.hasLoggedToday).length;
+  const branchesPendingTodayCount = branchSummaries.filter((b) => !b.hasLoggedToday).length;
 
   // Verify Mutation
   const verifyMutation = useMutation({
@@ -175,18 +232,36 @@ export default function GeneralManagerBranchChecklistsPage() {
     verifyMutation.mutate({ id, remarks: reviewRemarks[id] });
   };
 
-  // Filtered branches for Directory View
+  // Filtered and sorted branches for Directory View
   const filteredBranches = useMemo(() => {
-    return branchSummaries.filter((b) => {
+    let result = branchSummaries.filter((b) => {
       if (branchSearch && !b.name.toLowerCase().includes(branchSearch.toLowerCase())) {
         return false;
       }
       if (branchFilterPill === "LOGGED_TODAY" && !b.hasLoggedToday) return false;
+      if (branchFilterPill === "LOGGER_PENDING" && b.hasLoggedToday) return false;
       if (branchFilterPill === "PENDING_REVIEW" && b.pendingCount === 0) return false;
       if (branchFilterPill === "HAS_LATE" && b.lateCount === 0) return false;
       return true;
     });
-  }, [branchSummaries, branchSearch, branchFilterPill]);
+
+    return [...result].sort((a, b) => {
+      if (sortBy === "NAME") {
+        return a.name.localeCompare(b.name);
+      }
+      if (sortBy === "PENDING") {
+        return b.pendingCount - a.pendingCount;
+      }
+      if (sortBy === "LATE") {
+        return b.lateCount - a.lateCount;
+      }
+      // "LATEST": sort by latestDate descending, then name
+      const dateA = a.latestDate ? new Date(a.latestDate).getTime() : 0;
+      const dateB = b.latestDate ? new Date(b.latestDate).getTime() : 0;
+      if (dateB !== dateA) return dateB - dateA;
+      return a.name.localeCompare(b.name);
+    });
+  }, [branchSummaries, branchSearch, branchFilterPill, sortBy]);
 
   // Filtered date-wise checklists when a branch is selected
   const selectedBranchChecklists = useMemo(() => {
@@ -223,6 +298,111 @@ export default function GeneralManagerBranchChecklistsPage() {
     }
   };
 
+  // Compute Active Dates for Report Range
+  const resolvedReportDateRange = useMemo(() => {
+    const now = new Date();
+    const todayISO = now.toISOString().split("T")[0];
+
+    if (reportTimeframe === "THIS_WEEK") {
+      // Current week starting from Monday (or past 7 days)
+      const currentDay = now.getDay();
+      const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+      const monday = new Date(now);
+      monday.setDate(now.getDate() + diffToMonday);
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+
+      return {
+        from: monday.toISOString().split("T")[0],
+        to: todayISO,
+        label: "This Week",
+      };
+    }
+
+    if (reportTimeframe === "THIS_MONTH") {
+      const year = now.getFullYear();
+      const month = now.getMonth();
+      const firstDay = new Date(year, month, 1).toISOString().split("T")[0];
+      return {
+        from: firstDay,
+        to: todayISO,
+        label: `${now.toLocaleDateString("en-IN", { month: "long" })} ${year}`,
+      };
+    }
+
+    if (reportTimeframe === "LAST_MONTH") {
+      const year = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+      const month = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
+      const firstDay = new Date(year, month, 1).toISOString().split("T")[0];
+      const lastDay = new Date(year, month + 1, 0).toISOString().split("T")[0];
+      const monthName = new Date(year, month, 1).toLocaleDateString("en-IN", { month: "long" });
+      return {
+        from: firstDay,
+        to: lastDay,
+        label: `${monthName} ${year}`,
+      };
+    }
+
+    return {
+      from: reportCustomFrom || todayISO,
+      to: reportCustomTo || todayISO,
+      label: "Custom Date Range",
+    };
+  }, [reportTimeframe, reportCustomFrom, reportCustomTo]);
+
+  // Handle Export Trigger
+  const handleExport = async (format: "excel" | "pdf") => {
+    try {
+      setIsExporting(format);
+
+      // Fetch or filter relevant data
+      let exportItems: BranchChecklistEntry[] = [];
+
+      // Query complete range from backend to ensure all branches & dates in timeframe are included
+      exportItems = await getBranchChecklists({
+        branch: reportBranch === "ALL" ? undefined : reportBranch,
+        from_date: resolvedReportDateRange.from,
+        to_date: resolvedReportDateRange.to,
+        limit: 1000,
+      });
+
+      // Status filter
+      if (reportStatusFilter === "Late") {
+        exportItems = exportItems.filter((c) => evaluateSubmissionTimeliness(c.date, c.creation).isLate);
+      } else if (reportStatusFilter) {
+        exportItems = exportItems.filter((c) => c.status === reportStatusFilter);
+      }
+
+      if (exportItems.length === 0) {
+        toast.error("No checklist logs found for the selected branch and date range.");
+        return;
+      }
+
+      const options = {
+        branch: reportBranch,
+        allBranches,
+        fromDate: resolvedReportDateRange.from,
+        toDate: resolvedReportDateRange.to,
+        statusFilter: reportStatusFilter,
+      };
+
+      if (format === "excel") {
+        await exportBranchChecklistsExcel(exportItems, options);
+        toast.success("Excel report downloaded successfully!");
+      } else {
+        await exportBranchChecklistsPdf(exportItems, options);
+        toast.success("PDF report downloaded successfully!");
+      }
+
+      setIsReportModalOpen(false);
+    } catch (error) {
+      console.error("Export error:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to generate report.");
+    } finally {
+      setIsExporting(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Top Breadcrumb & GM Role Header */}
@@ -245,7 +425,23 @@ export default function GeneralManagerBranchChecklistsPage() {
           ) : null}
           <BreadcrumbNav />
         </div>
-        <div>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              // Pre-select active branch if user is currently inside a branch
+              if (selectedBranch) {
+                setReportBranch(selectedBranch);
+              }
+              setIsReportModalOpen(true);
+            }}
+            className="rounded-xl border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary font-semibold text-xs flex items-center gap-2 shadow-xs transition-all"
+          >
+            <Download className="h-4 w-4 text-primary" />
+            <span>Download Report</span>
+          </Button>
+
           <Badge
             variant="outline"
             className="px-3.5 py-1.5 bg-white/70 dark:bg-dark-card/70 backdrop-blur-md flex items-center gap-1.5 border-primary/20 shadow-sm"
@@ -258,254 +454,417 @@ export default function GeneralManagerBranchChecklistsPage() {
         </div>
       </div>
 
-      {/* Top High-Level Metrics (Always visible) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-indigo-50/80 to-blue-50/80 border-blue-100/80 dark:from-slate-900 dark:to-slate-800 shadow-sm rounded-2xl">
-          <CardContent className="p-5 flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Total Checklists</p>
-              <h3 className="text-3xl font-bold text-blue-600 mt-1">{totalChecklistsCount}</h3>
-              <p className="text-[11px] text-text-tertiary mt-0.5">{allBranches.length} Total Branches</p>
-            </div>
-            <div className="w-12 h-12 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center shadow-inner">
-              <ClipboardCheck className="h-6 w-6" />
-            </div>
-          </CardContent>
-        </Card>
+      {/* Hero Header Section (Compact) */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-50/70 via-purple-50/40 to-blue-50/50 dark:from-slate-900/90 dark:via-purple-950/20 dark:to-slate-900/90 border border-purple-100/60 dark:border-purple-900/30 px-5 py-4 md:px-6 md:py-4 shadow-xs">
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          {/* Left Title & Subtitle */}
+          <div className="space-y-0.5">
+            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+              Branch Checklists
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
+              Track and manage branch checklist status in one place
+            </p>
+          </div>
 
-        <Card className="bg-gradient-to-br from-emerald-50/80 to-teal-50/80 border-emerald-100/80 dark:from-slate-900 dark:to-slate-800 shadow-sm rounded-2xl">
-          <CardContent className="p-5 flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Logged Today</p>
-              <h3 className="text-3xl font-bold text-emerald-600 mt-1">
-                {branchesLoggedTodayCount}{" "}
-                <span className="text-sm font-medium text-emerald-700/60">/ {allBranches.length}</span>
-              </h3>
-              <p className="text-[11px] text-emerald-700/70 mt-0.5">
-                {allBranches.length - branchesLoggedTodayCount > 0
-                  ? `${allBranches.length - branchesLoggedTodayCount} branches pending today`
-                  : "All branches logged today!"}
+          {/* Right Motivational Quote & 3D Illustration Graphic */}
+          <div className="flex items-center gap-4 sm:gap-6 self-start sm:self-auto">
+            <div className="hidden md:block text-right">
+              <p className="italic text-xs sm:text-sm font-semibold text-purple-700/90 dark:text-purple-300 font-serif leading-snug">
+                &ldquo;Consistent branches<br />create brighter futures&rdquo;
               </p>
             </div>
-            <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center shadow-inner">
-              <CheckCircle2 className="h-6 w-6" />
-            </div>
-          </CardContent>
-        </Card>
 
-        <Card className="bg-gradient-to-br from-amber-50/80 to-orange-50/80 border-orange-100/80 dark:from-slate-900 dark:to-slate-800 shadow-sm rounded-2xl">
-          <CardContent className="p-5 flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Pending Review</p>
-              <h3 className="text-3xl font-bold text-amber-600 mt-1">{totalPendingCount}</h3>
-              <p className="text-[11px] text-amber-700/70 mt-0.5">{totalVerifiedCount} already verified</p>
+            {/* Compact Decorative Floating Badge */}
+            <div className="relative flex items-center gap-2.5 bg-white/85 dark:bg-slate-800/85 backdrop-blur-md px-3.5 py-2 rounded-xl border border-purple-100 dark:border-purple-800/40 shadow-xs">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-purple-600 to-indigo-500 text-white flex items-center justify-center shadow-xs">
+                <ClipboardCheck className="h-4 w-4" />
+              </div>
+              <div>
+                <div className="flex items-center gap-1">
+                  <span className="text-sm font-extrabold text-slate-900 dark:text-white">
+                    {allBranches.length}
+                  </span>
+                  <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Branches</span>
+                </div>
+                <p className="text-[10px] font-medium text-purple-600 dark:text-purple-400 leading-tight">
+                  All on track for a better tomorrow.
+                </p>
+              </div>
             </div>
-            <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center shadow-inner">
-              <AlertCircle className="h-6 w-6" />
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card className="bg-gradient-to-br from-rose-50/80 to-red-50/80 border-rose-100/80 dark:from-slate-900 dark:to-slate-800 shadow-sm rounded-2xl">
-          <CardContent className="p-5 flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold text-rose-600/90 uppercase tracking-wider">Late Submissions</p>
-              <h3 className="text-3xl font-bold text-rose-600 mt-1">{totalLateCount}</h3>
-              <p className="text-[11px] text-rose-600/70 mt-0.5">Submitted after report date</p>
+        {/* Soft atmospheric background glow */}
+        <div className="absolute -right-10 -top-10 w-44 h-44 bg-purple-200/30 dark:bg-purple-900/20 rounded-full blur-2xl pointer-events-none" />
+        <div className="absolute right-1/3 -bottom-10 w-32 h-32 bg-blue-200/20 dark:bg-blue-900/20 rounded-full blur-xl pointer-events-none" />
+      </div>
+
+      {/* Top High-Level Metrics (4 Clean Modern 3D/Glass Cards) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Card 1: Total Checklists */}
+        <div className="relative overflow-hidden bg-white/95 dark:bg-slate-900/90 border border-slate-100 dark:border-slate-800/80 shadow-sm hover:shadow-md transition-shadow rounded-3xl p-5 flex items-center justify-between">
+          <div className="space-y-1 z-10">
+            <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-2">
+              <FileText className="h-5 w-5" />
             </div>
-            <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center shadow-inner">
-              <Clock className="h-6 w-6" />
+            <p className="text-xs font-bold text-slate-500 dark:text-slate-400">Total Checklists</p>
+            <h3 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+              {totalChecklistsCount}
+            </h3>
+            <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
+              {allBranches.length} Total Branches
+            </p>
+          </div>
+          {/* Subtle Mini Bar Chart Graphic on right */}
+          <div className="relative flex items-end gap-1.5 h-16 w-16 justify-end pr-1 opacity-80">
+            <div className="w-2.5 h-7 rounded-full bg-blue-300 dark:bg-blue-700/60" />
+            <div className="w-2.5 h-11 rounded-full bg-blue-400 dark:bg-blue-600/70" />
+            <div className="w-2.5 h-14 rounded-full bg-gradient-to-t from-blue-500 to-indigo-500" />
+          </div>
+        </div>
+
+        {/* Card 2: Logged Today */}
+        <div className="relative overflow-hidden bg-white/95 dark:bg-slate-900/90 border border-slate-100 dark:border-slate-800/80 shadow-sm hover:shadow-md transition-shadow rounded-3xl p-5 flex items-center justify-between">
+          <div className="space-y-1 z-10">
+            <div className="w-10 h-10 rounded-2xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-2">
+              <Clock className="h-5 w-5" />
             </div>
-          </CardContent>
-        </Card>
+            <p className="text-xs font-bold text-slate-500 dark:text-slate-400">Logged Today</p>
+            <h3 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+              {branchesLoggedTodayCount}{" "}
+              <span className="text-lg font-medium text-slate-400">/ {allBranches.length}</span>
+            </h3>
+            <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
+              {branchesPendingTodayCount} branches pending
+            </p>
+          </div>
+          {/* Subtle Calendar Graphic on right */}
+          <div className="w-14 h-14 rounded-2xl bg-purple-50 dark:bg-purple-950/30 border border-purple-100 dark:border-purple-800/30 flex flex-col items-center justify-center shadow-xs">
+            <div className="w-8 h-2 bg-purple-500 rounded-full mb-1" />
+            <CalendarDays className="h-6 w-6 text-purple-500 dark:text-purple-400" />
+          </div>
+        </div>
+
+        {/* Card 3: Pending Review */}
+        <div className="relative overflow-hidden bg-white/95 dark:bg-slate-900/90 border border-slate-100 dark:border-slate-800/80 shadow-sm hover:shadow-md transition-shadow rounded-3xl p-5 flex items-center justify-between">
+          <div className="space-y-1 z-10">
+            <div className="w-10 h-10 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-2">
+              <Hourglass className="h-5 w-5" />
+            </div>
+            <p className="text-xs font-bold text-slate-500 dark:text-slate-400">Pending Review</p>
+            <h3 className="text-3xl font-extrabold text-amber-600 dark:text-amber-400 tracking-tight">
+              {totalPendingCount}
+            </h3>
+            <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
+              {totalVerifiedCount} already verified
+            </p>
+          </div>
+          {/* Subtle 3D-styled Hourglass icon on right */}
+          <div className="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-800/30 flex items-center justify-center shadow-xs">
+            <Hourglass className="h-7 w-7 text-amber-500 dark:text-amber-400 animate-pulse" />
+          </div>
+        </div>
+
+        {/* Card 4: Late Submissions */}
+        <div className="relative overflow-hidden bg-white/95 dark:bg-slate-900/90 border border-slate-100 dark:border-slate-800/80 shadow-sm hover:shadow-md transition-shadow rounded-3xl p-5 flex items-center justify-between">
+          <div className="space-y-1 z-10">
+            <div className="w-10 h-10 rounded-2xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 flex items-center justify-center mb-2">
+              <AlertCircle className="h-5 w-5" />
+            </div>
+            <p className="text-xs font-bold text-rose-600 dark:text-rose-400">Late Submissions</p>
+            <h3 className="text-3xl font-extrabold text-rose-600 dark:text-rose-400 tracking-tight">
+              {totalLateCount}
+            </h3>
+            <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
+              Submitted after report date
+            </p>
+          </div>
+          {/* Subtle Notification Bell icon on right */}
+          <div className="w-14 h-14 rounded-2xl bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-800/30 flex items-center justify-center shadow-xs">
+            <Bell className="h-7 w-7 text-rose-500 dark:text-rose-400" />
+          </div>
+        </div>
       </div>
 
       {/* ======================================================== */}
       {/* LEVEL 1: BRANCH DIRECTORY VIEW (When no branch selected) */}
       {/* ======================================================== */}
       {!selectedBranch ? (
-        <div className="space-y-5">
+        <div className="space-y-6">
           {/* Search & Filter Bar */}
-          <Card className="border-border bg-white/80 dark:bg-dark-card/80 backdrop-blur-md rounded-2xl shadow-sm">
-            <CardContent className="p-4 flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="relative w-full md:w-80">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-text-tertiary pointer-events-none" />
+          <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-4">
+            {/* Search Input */}
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 flex-1">
+              <div className="relative flex-1 sm:w-80 sm:flex-none">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
                 <Input
                   type="text"
                   placeholder="Search branch name..."
                   value={branchSearch}
                   onChange={(e) => setBranchSearch(e.target.value)}
-                  className="pl-10 rounded-xl bg-background text-sm"
+                  className="pl-11 rounded-full bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-sm h-11 shadow-xs focus:ring-2 focus:ring-purple-500/20"
                 />
               </div>
 
-              {/* Filter Pills */}
-              <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-                <Button
-                  variant={branchFilterPill === "ALL" ? "primary" : "outline"}
-                  size="sm"
-                  onClick={() => setBranchFilterPill("ALL")}
-                  className="rounded-xl text-xs h-9"
-                >
-                  All ({branchSummaries.length})
-                </Button>
-                <Button
-                  variant={branchFilterPill === "LOGGED_TODAY" ? "primary" : "outline"}
-                  size="sm"
-                  onClick={() => setBranchFilterPill("LOGGED_TODAY")}
-                  className="rounded-xl text-xs h-9 flex items-center gap-1.5"
-                >
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
-                  Logged Today ({branchesLoggedTodayCount})
-                </Button>
-                <Button
-                  variant={branchFilterPill === "PENDING_REVIEW" ? "primary" : "outline"}
-                  size="sm"
-                  onClick={() => setBranchFilterPill("PENDING_REVIEW")}
-                  className="rounded-xl text-xs h-9 flex items-center gap-1.5"
-                >
-                  <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
-                  Pending Review ({branchSummaries.filter((b) => b.pendingCount > 0).length})
-                </Button>
-                <Button
-                  variant={branchFilterPill === "HAS_LATE" ? "primary" : "outline"}
-                  size="sm"
-                  onClick={() => setBranchFilterPill("HAS_LATE")}
-                  className="rounded-xl text-xs h-9 flex items-center gap-1.5 text-rose-600 border-rose-200 hover:bg-rose-50 dark:hover:bg-rose-950/20"
-                >
-                  <Clock className="h-3.5 w-3.5" />
-                  Late Submissions ({branchSummaries.filter((b) => b.lateCount > 0).length})
-                </Button>
+              {/* Date Range Filter */}
+              <div className="flex items-center gap-2 bg-white dark:bg-slate-900 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-800 shadow-xs">
+                <Calendar className="h-3.5 w-3.5 text-purple-600 shrink-0" />
+                <span className="text-xs text-slate-500 font-medium hidden sm:inline">Range:</span>
+                <input
+                  type="date"
+                  value={directoryFromDate}
+                  onChange={(e) => setDirectoryFromDate(e.target.value)}
+                  className="text-xs bg-transparent text-slate-700 dark:text-slate-300 focus:outline-none w-28"
+                  placeholder="From"
+                  title="From Date"
+                />
+                <span className="text-xs text-slate-400">to</span>
+                <input
+                  type="date"
+                  value={directoryToDate}
+                  onChange={(e) => setDirectoryToDate(e.target.value)}
+                  className="text-xs bg-transparent text-slate-700 dark:text-slate-300 focus:outline-none w-28"
+                  placeholder="To"
+                  title="To Date"
+                />
+                {(directoryFromDate || directoryToDate) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDirectoryFromDate("");
+                      setDirectoryToDate("");
+                    }}
+                    className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5"
+                    title="Clear date range"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+
+            {/* Filter Pills with Exact Styling from Design */}
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setBranchFilterPill("ALL")}
+                className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${
+                  branchFilterPill === "ALL"
+                    ? "bg-purple-600 text-white shadow-md shadow-purple-600/20"
+                    : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-50"
+                }`}
+              >
+                All ({branchSummaries.length})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setBranchFilterPill("LOGGED_TODAY")}
+                className={`px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-all ${
+                  branchFilterPill === "LOGGED_TODAY"
+                    ? "bg-purple-600 text-white shadow-md shadow-purple-600/20"
+                    : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-50"
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-purple-600 inline-block" />
+                Logged Today ({branchesLoggedTodayCount})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setBranchFilterPill("LOGGER_PENDING")}
+                className={`px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-all ${
+                  branchFilterPill === "LOGGER_PENDING"
+                    ? "bg-amber-600 text-white shadow-md shadow-amber-600/20"
+                    : "bg-white dark:bg-slate-900 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/40 hover:bg-amber-50"
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
+                Logger Pending ({branchesPendingTodayCount})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setBranchFilterPill("PENDING_REVIEW")}
+                className={`px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-all ${
+                  branchFilterPill === "PENDING_REVIEW"
+                    ? "bg-amber-500 text-white shadow-md shadow-amber-500/20"
+                    : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-50"
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
+                Pending Review ({branchSummaries.filter((b) => b.pendingCount > 0).length})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setBranchFilterPill("HAS_LATE")}
+                className={`px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-all ${
+                  branchFilterPill === "HAS_LATE"
+                    ? "bg-rose-600 text-white shadow-md shadow-rose-600/20"
+                    : "bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/40 hover:bg-rose-50"
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-rose-500 inline-block" />
+                Late Submissions ({branchSummaries.filter((b) => b.lateCount > 0).length})
+              </button>
+            </div>
+          </div>
+
+          {/* Section Header: Branch Overview + Sort Selector */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-purple-600 text-white flex items-center justify-center shadow-md shadow-purple-600/20">
+                <Building className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-lg font-extrabold text-slate-900 dark:text-white tracking-tight">
+                  Branch Overview
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                  Select a branch to view date-wise checklists
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 text-xs">
+              <span className="text-slate-500 font-medium">
+                Showing <strong className="text-slate-800 dark:text-slate-200">{filteredBranches.length}</strong> of {branchSummaries.length} branches
+              </span>
+
+              {/* Sort by Dropdown */}
+              <div className="relative">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  className="appearance-none bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-1.5 pr-8 text-xs font-semibold text-slate-700 dark:text-slate-200 shadow-xs hover:border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500/20 cursor-pointer"
+                >
+                  <option value="LATEST">Sort by Latest</option>
+                  <option value="NAME">Sort by Name</option>
+                  <option value="PENDING">Sort by Pending Review</option>
+                  <option value="LATE">Sort by Late Submissions</option>
+                </select>
+                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+              </div>
+            </div>
+          </div>
 
           {/* Branch Directory Grid */}
           <div>
-            <div className="flex items-center justify-between mb-3 px-1">
-              <h2 className="text-base font-bold text-text-primary flex items-center gap-2">
-                <Building className="h-4 w-4 text-primary" />
-                Select a Branch to View Date-Wise Checklists
-              </h2>
-              <span className="text-xs text-text-secondary font-medium">
-                Showing {filteredBranches.length} of {branchSummaries.length} branches
-              </span>
-            </div>
-
             {isLoading ? (
-              <div className="p-16 text-center text-text-secondary flex flex-col items-center gap-3">
-                <div className="w-7 h-7 border-3 border-primary border-t-transparent rounded-full animate-spin" />
-                <p className="text-sm font-medium">Loading branch checklist records...</p>
+              <div className="p-20 text-center text-slate-500 flex flex-col items-center gap-3">
+                <div className="w-8 h-8 border-3 border-purple-600 border-t-transparent rounded-full animate-spin" />
+                <p className="text-sm font-semibold">Loading branch records...</p>
               </div>
             ) : filteredBranches.length === 0 ? (
-              <Card className="border-dashed p-10 text-center text-text-secondary rounded-2xl">
-                <Building className="h-10 w-10 text-text-tertiary mx-auto mb-3 opacity-40" />
-                <p className="font-semibold text-sm">No branches match your filter</p>
-                <p className="text-xs mt-1">Try clearing your search query or switching tabs.</p>
+              <Card className="border-dashed p-12 text-center text-slate-500 rounded-3xl">
+                <Building className="h-10 w-10 text-slate-400 mx-auto mb-3 opacity-40" />
+                <p className="font-bold text-sm text-slate-700 dark:text-slate-300">No branches match your filter</p>
+                <p className="text-xs mt-1 text-slate-400">Try clearing your search query or switching tabs.</p>
               </Card>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredBranches.map((branch) => {
+                  const branchImg = getBranchImage(branch.name);
+                  const locationText = getBranchLocation(branch.name);
+
                   return (
                     <motion.div
                       key={branch.name}
-                      whileHover={{ y: -3, scale: 1.01 }}
-                      transition={{ duration: 0.18 }}
+                      whileHover={{ y: -4 }}
+                      transition={{ duration: 0.2 }}
                     >
-                      <Card
+                      <div
                         onClick={() => setSelectedBranch(branch.name)}
-                        className="cursor-pointer border-border hover:border-primary/40 hover:shadow-lg transition-all rounded-2xl overflow-hidden bg-white/90 dark:bg-dark-card/90 group"
+                        className="cursor-pointer group bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/80 hover:border-purple-300 dark:hover:border-purple-700 rounded-3xl p-6 shadow-sm hover:shadow-xl transition-all flex flex-col justify-between space-y-4"
                       >
-                        <CardContent className="p-5 space-y-4">
-                          {/* Header with Icon & Today Status */}
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex items-center gap-3">
-                              <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-white transition-colors duration-200">
-                                <Building className="h-5 w-5" />
-                              </div>
-                              <div>
-                                <h3 className="font-bold text-sm text-text-primary group-hover:text-primary transition-colors">
-                                  {branch.name}
-                                </h3>
-                                <p className="text-xs text-text-secondary mt-0.5">
-                                  {branch.latestDate ? (
-                                    <span>
-                                      Latest:{" "}
-                                      <strong>
-                                        {new Date(branch.latestDate).toLocaleDateString("en-IN", {
-                                          day: "numeric",
-                                          month: "short",
-                                        })}
-                                      </strong>
-                                    </span>
-                                  ) : (
-                                    <span className="italic text-text-tertiary">No checklists yet</span>
-                                  )}
-                                </p>
+                        {/* Header with Icon, Name, Location & Today Status Badge */}
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-3.5">
+                            <div className="w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 group-hover:bg-purple-600 group-hover:text-white transition-colors duration-200 shadow-xs">
+                              <Building className="h-6 w-6" />
+                            </div>
+                            <div>
+                              <h3 className="font-extrabold text-base text-slate-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                                {branch.name}
+                              </h3>
+                              <div className="flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500 mt-1">
+                                <MapPin className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                                <span>{locationText}</span>
                               </div>
                             </div>
+                          </div>
 
-                            {/* Today status indicator */}
+                          {/* Today Status Badge */}
+                          <div className="shrink-0">
                             {branch.hasLoggedToday ? (
-                              <Badge
-                                variant={branch.todayStatus === "Verified" ? "success" : "info"}
-                                className="text-[10px] px-2 py-0.5 font-bold uppercase tracking-wider shrink-0"
+                              <span
+                                className={`px-3 py-1 rounded-full text-[11px] font-bold shadow-xs ${
+                                  branch.todayStatus === "Verified"
+                                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/40"
+                                    : "bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800/40"
+                                }`}
                               >
                                 Today {branch.todayStatus}
-                              </Badge>
+                              </span>
                             ) : (
-                              <Badge
-                                variant="warning"
-                                className="text-[10px] px-2 py-0.5 font-semibold bg-amber-50 text-amber-700 border-amber-200 shrink-0"
-                              >
+                              <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800/40 shadow-xs">
                                 Today Pending
-                              </Badge>
+                              </span>
                             )}
                           </div>
+                        </div>
 
-                          {/* Quick Counters Row */}
-                          <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border/60 text-center">
-                            <div className="bg-slate-50 dark:bg-slate-800/50 p-2 rounded-xl">
-                              <p className="text-[10px] font-semibold text-text-secondary uppercase">Total</p>
-                              <p className="text-base font-bold text-text-primary mt-0.5">{branch.total}</p>
+                          {/* Clean 3-Metric Block */}
+                          <div className="grid grid-cols-3 gap-2 bg-slate-50/70 dark:bg-slate-800/40 p-3 rounded-2xl border border-slate-100/80 dark:border-slate-800/50 text-center">
+                            <div>
+                              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total</p>
+                              <p className="text-lg font-extrabold text-slate-800 dark:text-slate-200 mt-0.5">
+                                {branch.total}
+                              </p>
                             </div>
-                            <div
-                              className={`p-2 rounded-xl ${
-                                branch.pendingCount > 0
-                                  ? "bg-amber-50/80 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400"
-                                  : "bg-slate-50 dark:bg-slate-800/50 text-text-secondary"
-                              }`}
-                            >
-                              <p className="text-[10px] font-semibold uppercase">Review</p>
-                              <p className="text-base font-bold mt-0.5">{branch.pendingCount}</p>
+                            <div>
+                              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Review</p>
+                              <p
+                                className={`text-lg font-extrabold mt-0.5 ${
+                                  branch.pendingCount > 0 ? "text-amber-600" : "text-slate-800 dark:text-slate-200"
+                                }`}
+                              >
+                                {branch.pendingCount}
+                              </p>
                             </div>
-                            <div
-                              className={`p-2 rounded-xl ${
-                                branch.lateCount > 0
-                                  ? "bg-rose-50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-400"
-                                  : "bg-slate-50 dark:bg-slate-800/50 text-text-secondary"
-                              }`}
-                            >
-                              <p className="text-[10px] font-semibold uppercase">Late</p>
-                              <p className="text-base font-bold mt-0.5">{branch.lateCount}</p>
+                            <div>
+                              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Late</p>
+                              <p
+                                className={`text-lg font-extrabold mt-0.5 ${
+                                  branch.lateCount > 0 ? "text-rose-600" : "text-slate-800 dark:text-slate-200"
+                                }`}
+                              >
+                                {branch.lateCount}
+                              </p>
                             </div>
                           </div>
 
-                          {/* Critical Issues / Alert Banner inside card */}
+                          {/* Critical Issues Banner if applicable */}
                           {branch.criticalCount > 0 ? (
-                            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 text-[11px] font-semibold">
-                              <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-rose-600" />
-                              <span>{branch.criticalCount} Critical Issue(s) Escalated</span>
+                            <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/30 text-rose-700 dark:text-rose-300 text-xs font-bold">
+                              <div className="flex items-center gap-1.5">
+                                <AlertTriangle className="h-3.5 w-3.5 text-rose-600 shrink-0" />
+                                <span>{branch.criticalCount} Critical Issue(s) Escalated</span>
+                              </div>
+                              <ChevronDown className="h-3.5 w-3.5 -rotate-90 text-rose-500" />
                             </div>
                           ) : null}
 
-                          {/* Action Button Link */}
-                          <div className="pt-2 flex items-center justify-between text-xs font-semibold text-primary group-hover:translate-x-1 transition-transform">
+                          {/* Footer: Open Link with Arrow */}
+                          <div className="pt-2 flex items-center justify-between text-xs font-bold text-purple-600 dark:text-purple-400 border-t border-slate-100 dark:border-slate-800/80">
                             <span>Open Date-Wise Checklists</span>
-                            <ArrowRight className="h-4 w-4" />
+                            <div className="w-7 h-7 rounded-full bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 flex items-center justify-center group-hover:bg-purple-600 group-hover:text-white transition-colors duration-200">
+                              <ArrowRight className="h-3.5 w-3.5" />
+                            </div>
                           </div>
-                        </CardContent>
-                      </Card>
+                      </div>
                     </motion.div>
                   );
                 })}
@@ -893,6 +1252,237 @@ export default function GeneralManagerBranchChecklistsPage() {
           </div>
         </div>
       )}
+      {/* ======================================================== */}
+      {/* REPORT DOWNLOAD CONFIGURATION MODAL                     */}
+      {/* ======================================================== */}
+      <AnimatePresence>
+        {isReportModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="w-full max-w-lg bg-white dark:bg-dark-card border border-border rounded-3xl shadow-2xl overflow-hidden"
+            >
+              {/* Modal Header */}
+              <div className="p-6 bg-gradient-to-r from-indigo-600 via-indigo-700 to-primary text-white flex items-center justify-between">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center">
+                      <Download className="h-4 w-4 text-white" />
+                    </div>
+                    <h3 className="text-lg font-bold">Download Checklists Report</h3>
+                  </div>
+                  <p className="text-xs text-indigo-100/80">
+                    Export date-wise branch operational logs with submission & verification timeliness.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsReportModalOpen(false)}
+                  className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
+                {/* 1. Branch Selector */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-text-secondary uppercase tracking-wider flex items-center gap-1.5">
+                    <Building className="h-3.5 w-3.5 text-primary" />
+                    Branch Scope
+                  </label>
+                  <select
+                    value={reportBranch}
+                    onChange={(e) => setReportBranch(e.target.value)}
+                    className="w-full h-11 px-3.5 rounded-xl border border-input bg-background text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 font-medium"
+                  >
+                    <option value="ALL">All Branches ({allBranches.length} branches)</option>
+                    {allBranches.map((b) => (
+                      <option key={b} value={b}>
+                        {b}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[11px] text-text-tertiary">
+                    Select "All Branches" to aggregate all branches in a single date-wise report.
+                  </p>
+                </div>
+
+                {/* 2. Timeframe Selection */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-text-secondary uppercase tracking-wider flex items-center gap-1.5">
+                    <Calendar className="h-3.5 w-3.5 text-primary" />
+                    Reporting Period
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setReportTimeframe("THIS_WEEK")}
+                      className={`px-3 py-2.5 rounded-xl border text-xs font-semibold transition-all flex flex-col items-start gap-0.5 ${
+                        reportTimeframe === "THIS_WEEK"
+                          ? "border-primary bg-primary/10 text-primary shadow-xs"
+                          : "border-border hover:bg-slate-50 dark:hover:bg-slate-800 text-text-secondary"
+                      }`}
+                    >
+                      <span>This Week</span>
+                      <span className="text-[10px] font-normal text-text-tertiary">Weekly date breakdown</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setReportTimeframe("THIS_MONTH")}
+                      className={`px-3 py-2.5 rounded-xl border text-xs font-semibold transition-all flex flex-col items-start gap-0.5 ${
+                        reportTimeframe === "THIS_MONTH"
+                          ? "border-primary bg-primary/10 text-primary shadow-xs"
+                          : "border-border hover:bg-slate-50 dark:hover:bg-slate-800 text-text-secondary"
+                      }`}
+                    >
+                      <span>This Month</span>
+                      <span className="text-[10px] font-normal text-text-tertiary">Current month to date</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setReportTimeframe("LAST_MONTH")}
+                      className={`px-3 py-2.5 rounded-xl border text-xs font-semibold transition-all flex flex-col items-start gap-0.5 ${
+                        reportTimeframe === "LAST_MONTH"
+                          ? "border-primary bg-primary/10 text-primary shadow-xs"
+                          : "border-border hover:bg-slate-50 dark:hover:bg-slate-800 text-text-secondary"
+                      }`}
+                    >
+                      <span>Last Month</span>
+                      <span className="text-[10px] font-normal text-text-tertiary">Full previous calendar month</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setReportTimeframe("CUSTOM")}
+                      className={`px-3 py-2.5 rounded-xl border text-xs font-semibold transition-all flex flex-col items-start gap-0.5 ${
+                        reportTimeframe === "CUSTOM"
+                          ? "border-primary bg-primary/10 text-primary shadow-xs"
+                          : "border-border hover:bg-slate-50 dark:hover:bg-slate-800 text-text-secondary"
+                      }`}
+                    >
+                      <span>Custom Range</span>
+                      <span className="text-[10px] font-normal text-text-tertiary">Specify start & end dates</span>
+                    </button>
+                  </div>
+
+                  {/* Custom Date Inputs */}
+                  {reportTimeframe === "CUSTOM" && (
+                    <div className="grid grid-cols-2 gap-3 pt-2">
+                      <div>
+                        <label className="text-[11px] font-medium text-text-tertiary mb-1 block">From Date</label>
+                        <Input
+                          type="date"
+                          value={reportCustomFrom}
+                          onChange={(e) => setReportCustomFrom(e.target.value)}
+                          className="rounded-xl text-xs h-9"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-medium text-text-tertiary mb-1 block">To Date</label>
+                        <Input
+                          type="date"
+                          value={reportCustomTo}
+                          onChange={(e) => setReportCustomTo(e.target.value)}
+                          className="rounded-xl text-xs h-9"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Active Selected Range Preview */}
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-border/80 flex items-center justify-between text-xs">
+                    <span className="text-text-secondary font-medium">Active Date Range:</span>
+                    <span className="font-bold text-primary">
+                      {resolvedReportDateRange.from} → {resolvedReportDateRange.to} ({resolvedReportDateRange.label})
+                    </span>
+                  </div>
+                </div>
+
+                {/* 3. Status Filter */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-text-secondary uppercase tracking-wider flex items-center gap-1.5">
+                    <Filter className="h-3.5 w-3.5 text-primary" />
+                    Status Filter
+                  </label>
+                  <select
+                    value={reportStatusFilter}
+                    onChange={(e) => setReportStatusFilter(e.target.value)}
+                    className="w-full h-10 px-3.5 rounded-xl border border-input bg-background text-xs text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/30 font-medium"
+                  >
+                    <option value="">All Statuses (Submitted, Verified & Late)</option>
+                    <option value="Submitted">Submitted Only (Pending Review)</option>
+                    <option value="Verified">Verified Only</option>
+                    <option value="Late">Late Submissions Only</option>
+                  </select>
+                </div>
+
+                {/* Information Callout */}
+                <div className="p-3.5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/40 text-xs text-indigo-900 dark:text-indigo-200 space-y-1">
+                  <p className="font-semibold flex items-center gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
+                    What will be included in the report?
+                  </p>
+                  <p className="text-[11px] leading-relaxed text-indigo-800/80 dark:text-indigo-300">
+                    • All dates chronologically for each branch.<br />
+                    • Exact status: <strong>Submitted</strong>, <strong>Verified</strong>, or <strong>Late Submission</strong> (with days late and submission time).<br />
+                    • Checkpoints compliance score (14/14) and escalated critical issues.
+                  </p>
+                </div>
+              </div>
+
+              {/* Modal Footer with Actions */}
+              <div className="p-5 bg-slate-50 dark:bg-slate-900/50 border-t border-border flex items-center justify-between gap-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsReportModalOpen(false)}
+                  className="rounded-xl text-xs"
+                >
+                  Cancel
+                </Button>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={isExporting !== null}
+                    onClick={() => handleExport("pdf")}
+                    className="rounded-xl text-xs border-indigo-200 text-indigo-700 hover:bg-indigo-50 dark:border-indigo-800 dark:text-indigo-300 flex items-center gap-1.5"
+                  >
+                    {isExporting === "pdf" ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <FileText className="h-3.5 w-3.5 text-indigo-600" />
+                    )}
+                    <span>Download PDF</span>
+                  </Button>
+
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    disabled={isExporting !== null}
+                    onClick={() => handleExport("excel")}
+                    className="rounded-xl text-xs bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5 shadow-sm"
+                  >
+                    {isExporting === "excel" ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <FileSpreadsheet className="h-3.5 w-3.5" />
+                    )}
+                    <span>Download Excel (.xlsx)</span>
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

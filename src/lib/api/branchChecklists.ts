@@ -49,7 +49,10 @@ export async function createBranchChecklist(data: Partial<BranchChecklistEntry>)
 export async function getBranchChecklists(params?: {
   branch?: string;
   date?: string;
+  from_date?: string;
+  to_date?: string;
   status?: string;
+  limit?: number;
 }): Promise<BranchChecklistEntry[]> {
   try {
     const response = await axios.get(API_ENDPOINT, { params });

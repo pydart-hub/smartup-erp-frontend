@@ -141,7 +141,11 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const branch = searchParams.get("branch");
     const date = searchParams.get("date");
+    const fromDate = searchParams.get("from_date");
+    const toDate = searchParams.get("to_date");
     const status = searchParams.get("status");
+    const limitParam = searchParams.get("limit");
+    const limit = limitParam ? Math.min(Math.max(parseInt(limitParam, 10) || 200, 1), 2000) : 1000;
 
     const filterList: any[] = [];
     if (branch && branch !== "ALL") {
@@ -150,12 +154,18 @@ export async function GET(req: NextRequest) {
     if (date) {
       filterList.push(["date", "=", date]);
     }
+    if (fromDate) {
+      filterList.push(["date", ">=", fromDate]);
+    }
+    if (toDate) {
+      filterList.push(["date", "<=", toDate]);
+    }
     if (status) {
       filterList.push(["status", "=", status]);
     }
 
     const filters = JSON.stringify(filterList);
-    const url = `${FRAPPE_URL}/api/resource/Branch Manager Daily Checklist?filters=${encodeURIComponent(filters)}&fields=${encodeURIComponent(BM_CHECKLIST_FIELDS)}&order_by=date desc, creation desc&limit_page_length=200`;
+    const url = `${FRAPPE_URL}/api/resource/Branch Manager Daily Checklist?filters=${encodeURIComponent(filters)}&fields=${encodeURIComponent(BM_CHECKLIST_FIELDS)}&order_by=date desc, creation desc&limit_page_length=${limit}`;
 
     const res = await fetch(url, {
       headers: {
