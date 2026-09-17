@@ -1,10 +1,7 @@
-# Task: Push to Git and Deploy Clustered ERP Frontend to Server
+# Tasks: 7th Standard One-to-One Admission in Edappally
 
-- [ ] 1. Stage and commit local changes (report sharing features, academic performance updates, WhatsApp sharing utilities) <!-- id: 1 -->
-- [ ] 2. Push commit to remote GitHub repository (`origin/main`) <!-- id: 2 -->
-- [ ] 3. Execute safe clustered deployment script on the production server (`smartup-portal`) <!-- id: 3 -->
-- [ ] 4. Verify all 4 clustered ERP instances (`smartup-erp-1` through `smartup-erp-4` on ports 3001, 3005, 3006, 3007) and public domain `smartuplearning.net` <!-- id: 4 -->
-- [ ] 5. Check PM2 cluster logs and confirm healthy zero-downtime operation <!-- id: 5 -->
-
-## Review & Results
-<!-- Document verification and deployment results here -->
+- [ ] Step 1: Create Program '7th' in Frappe with child course 'Common Subjects' <!-- id: 0 -->
+- [ ] Step 2: Update O2O rate tables in `src/lib/utils/o2oFeeRates.ts` and `src/lib/server/o2oRateDefaults.ts` <!-- id: 1 -->
+- [ ] Step 3: Update `src/app/dashboard/sales-user/admit-one-to-one/page.tsx` for 7th std dropdown and direct batch resolution without requiring common student group <!-- id: 2 -->
+- [ ] Step 4: Run type-check (`npx tsc --noEmit`) to verify zero compilation errors <!-- id: 3 -->
+- [ ] Step 5: Verify admission wizard behavior and document in `walkthrough.md` <!-- id: 4 -->

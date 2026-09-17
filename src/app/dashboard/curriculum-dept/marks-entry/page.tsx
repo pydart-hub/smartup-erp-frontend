@@ -79,30 +79,43 @@ export default function CurriculumMarksEntryPage() {
   const { data: allExams = [], isLoading: examsLoading } = useQuery({
     queryKey: ["assessment-plans-curriculum-all"],
     queryFn: async () => {
-      const res = await fetch("/api/curriculum-dept/admin-proxy", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          path: "resource/Assessment Plan",
-          method: "GET",
-          payload: {
-            fields: JSON.stringify([
-              "name",
-              "student_group",
-              "assessment_name",
-              "course",
-              "schedule_date",
-              "maximum_assessment_score",
-              "custom_branch",
-              "assessment_group"
-            ]),
-            filters: JSON.stringify([["docstatus", "=", 1]]),
-            order_by: "schedule_date desc",
-            limit_page_length: "1000"
-          }
-        })
-      }).then(r => r.json());
-      return res.data ?? [];
+      let plans: any[] = [];
+      let start = 0;
+      let hasMore = true;
+      while (hasMore) {
+        const res = await fetch("/api/curriculum-dept/admin-proxy", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            path: "resource/Assessment Plan",
+            method: "GET",
+            payload: {
+              fields: JSON.stringify([
+                "name",
+                "student_group",
+                "assessment_name",
+                "course",
+                "schedule_date",
+                "maximum_assessment_score",
+                "custom_branch",
+                "assessment_group"
+              ]),
+              filters: JSON.stringify([["docstatus", "=", 1]]),
+              order_by: "schedule_date desc",
+              limit_start: String(start),
+              limit_page_length: "1000"
+            }
+          })
+        }).then(r => r.json());
+        const items = res.data ?? [];
+        plans.push(...items);
+        if (items.length < 1000 || plans.length >= 5000) {
+          hasMore = false;
+        } else {
+          start += 1000;
+        }
+      }
+      return plans;
     },
     staleTime: 30_000,
   });
@@ -111,21 +124,35 @@ export default function CurriculumMarksEntryPage() {
   const { data: enteredPlans = new Set<string>(), isLoading: enteredLoading } = useQuery({
     queryKey: ["assessment-results-entered-plans"],
     queryFn: async () => {
-      const res = await fetch("/api/curriculum-dept/admin-proxy", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          path: "resource/Assessment Result",
-          method: "GET",
-          payload: {
-            fields: JSON.stringify(["assessment_plan"]),
-            filters: JSON.stringify([["docstatus", "=", 1]]),
-            group_by: "assessment_plan",
-            limit_page_length: "1000"
-          }
-        })
-      }).then(r => r.json());
-      return new Set<string>(res.data?.map((r: any) => r.assessment_plan) ?? []);
+      let plans: string[] = [];
+      let start = 0;
+      let hasMore = true;
+      while (hasMore) {
+        const res = await fetch("/api/curriculum-dept/admin-proxy", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            path: "resource/Assessment Result",
+            method: "GET",
+            payload: {
+              fields: JSON.stringify(["assessment_plan"]),
+              filters: JSON.stringify([["docstatus", "=", 1]]),
+              group_by: "assessment_plan",
+              order_by: "assessment_plan desc",
+              limit_start: String(start),
+              limit_page_length: "1000"
+            }
+          })
+        }).then(r => r.json());
+        const items = res.data ?? [];
+        plans.push(...items.map((r: any) => r.assessment_plan).filter(Boolean));
+        if (items.length < 1000 || plans.length >= 5000) {
+          hasMore = false;
+        } else {
+          start += 1000;
+        }
+      }
+      return new Set<string>(plans);
     },
     staleTime: 30_000,
   });
@@ -155,6 +182,10 @@ export default function CurriculumMarksEntryPage() {
             <ExamMarksEntryEditor
               examId={selectedExamId}
               onBack={() => setSelectedExamId(null)}
+              onSavedComplete={() => {
+                setSelectedExamId(null);
+                setViewMode("completed");
+              }}
             />
           </motion.div>
         ) : viewMode === "dashboard" ? (
@@ -473,7 +504,15 @@ function ExamSelector({
 // ----------------------------------------------------------------------
 // EXAM MARKS ENTRY EDITOR
 // ----------------------------------------------------------------------
-function ExamMarksEntryEditor({ examId, onBack }: { examId: string; onBack: () => void }) {
+function ExamMarksEntryEditor({
+  examId,
+  onBack,
+  onSavedComplete,
+}: {
+  examId: string;
+  onBack: () => void;
+  onSavedComplete?: () => void;
+}) {
   const queryClient = useQueryClient();
   const [marks, setMarks] = useState<{ student: string; student_name: string; score: string }[]>([]);
 
@@ -519,9 +558,39 @@ function ExamMarksEntryEditor({ examId, onBack }: { examId: string; onBack: () =
   const saveMutation = useMutation({
     mutationFn: (data: any) => saveMarks(data),
     onSuccess: (result) => {
-      if (result.created > 0) toast.success(`Marks saved for ${result.created} students`);
-      if (result.errors?.length) for (const err of result.errors) toast.error(err);
+      if (result.created > 0) {
+        toast.success(`Marks saved for ${result.created} students`, {
+          action: onSavedComplete
+            ? {
+                label: "View Completed",
+                onClick: onSavedComplete,
+              }
+            : undefined,
+        });
+      }
+      if (result.errors?.length) {
+        for (const err of result.errors) toast.error(err);
+      }
+
+      // Optimistically add examId to entered plans cache so UI updates immediately
+      queryClient.setQueryData(["assessment-results-entered-plans"], (prev: Set<string> | undefined) => {
+        const next = new Set<string>(prev ? Array.from(prev) : []);
+        next.add(examId);
+        return next;
+      });
+
+      queryClient.setQueryData(["submitted-assessment-plan-names"], (prev: Set<string> | undefined) => {
+        const next = new Set<string>(prev ? Array.from(prev) : []);
+        next.add(examId);
+        return next;
+      });
+
+      // Background invalidate all related queries
       queryClient.invalidateQueries({ queryKey: ["exam-results", examId] });
+      queryClient.invalidateQueries({ queryKey: ["assessment-results-entered-plans"] });
+      queryClient.invalidateQueries({ queryKey: ["assessment-plans-curriculum-all"] });
+      queryClient.invalidateQueries({ queryKey: ["submitted-assessment-plan-names"] });
+      queryClient.invalidateQueries({ queryKey: ["assessment-plans"] });
     },
     onError: (error: Error) => toast.error(error.message || "Failed to save marks"),
   });
@@ -562,6 +631,8 @@ function ExamMarksEntryEditor({ examId, onBack }: { examId: string; onBack: () =
   if (planLoading || sgLoading) return <GifLoader />;
   if (!plan) return <p>Exam not found.</p>;
 
+  const hasRecordedMarks = (existingResults?.data?.length ?? 0) > 0;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -569,13 +640,27 @@ function ExamMarksEntryEditor({ examId, onBack }: { examId: string; onBack: () =
           <button onClick={onBack} className="flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary mb-2">
             <ArrowLeft className="h-4 w-4" /> Back to selection
           </button>
-          <h1 className="text-2xl font-bold text-text-primary">{plan.course} Mark Entry</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-text-primary">{plan.course} Mark Entry</h1>
+            {hasRecordedMarks ? (
+              <Badge variant="success" className="gap-1 text-xs">
+                <CheckCircle2 className="h-3.5 w-3.5" /> Marks Recorded ({existingResults?.data?.length} students)
+              </Badge>
+            ) : null}
+          </div>
           <p className="text-sm text-text-secondary mt-0.5">{plan.assessment_group} | {plan.student_group}</p>
         </div>
-        <Button variant="primary" size="md" onClick={handleSave} disabled={saveMutation.isPending || marks.length === 0}>
-          {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          {saveMutation.isPending ? "Saving..." : "Save Marks"}
-        </Button>
+        <div className="flex items-center gap-2">
+          {hasRecordedMarks && onSavedComplete ? (
+            <Button variant="outline" size="md" onClick={onSavedComplete}>
+              View in Completed List
+            </Button>
+          ) : null}
+          <Button variant="primary" size="md" onClick={handleSave} disabled={saveMutation.isPending || marks.length === 0}>
+            {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {saveMutation.isPending ? "Saving..." : "Save Marks"}
+          </Button>
+        </div>
       </div>
 
       <Card>

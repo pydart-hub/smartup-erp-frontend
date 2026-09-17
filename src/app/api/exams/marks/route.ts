@@ -211,6 +211,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    if (created === 0 && errors.length > 0) {
+      return NextResponse.json(
+        {
+          error: `Failed to save marks: ${errors[0]}`,
+          created: 0,
+          errors,
+        },
+        { status: 422 },
+      );
+    }
+
     return NextResponse.json({ created, errors });
   } catch (error: unknown) {
     const err = error as { message?: string };

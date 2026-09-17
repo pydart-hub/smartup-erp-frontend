@@ -137,8 +137,22 @@ export default function ExamMarkEntryPage() {
       if (result.errors?.length) {
         for (const err of result.errors) toast.error(err);
       }
+
+      queryClient.setQueryData(["submitted-assessment-plan-names"], (prev: Set<string> | undefined) => {
+        const next = new Set<string>(prev ? Array.from(prev) : []);
+        next.add(examId);
+        return next;
+      });
+      queryClient.setQueryData(["assessment-results-entered-plans"], (prev: Set<string> | undefined) => {
+        const next = new Set<string>(prev ? Array.from(prev) : []);
+        next.add(examId);
+        return next;
+      });
+
       queryClient.invalidateQueries({ queryKey: ["exam-results", examId] });
       queryClient.invalidateQueries({ queryKey: ["assessment-plans"] });
+      queryClient.invalidateQueries({ queryKey: ["submitted-assessment-plan-names"] });
+      queryClient.invalidateQueries({ queryKey: ["assessment-results-entered-plans"] });
     },
     onError: (error: Error) => {
       toast.error(error.message || "Failed to save marks");

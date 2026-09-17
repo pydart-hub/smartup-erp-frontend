@@ -4,7 +4,7 @@
  * Rate is determined by the student's program (class level).
  *
  * Plus One / Plus Two  → ₹300/hr
- * 8th / 9th / 10th     → ₹200/hr
+ * 7th / 8th / 9th / 10th → ₹200/hr
  */
 
 export const O2O_RATE_PER_HOUR: Record<string, number> = {
@@ -28,6 +28,9 @@ export const O2O_RATE_PER_HOUR: Record<string, number> = {
   // 8th
   "8th State":           200,
   "8th CBSE":            200,
+
+  // 7th
+  "7th":                 200,
 };
 
 /** Returns the hourly rate for a given program, defaulting to ₹200 */

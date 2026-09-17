@@ -10,6 +10,7 @@ export const BACKEND_O2O_DEFAULT_RATE_PER_HOUR: Record<string, number> = {
   "9th CBSE": 200,
   "8th State": 200,
   "8th CBSE": 200,
+  "7th": 200,
 };
 
 export function getBackendDefaultO2ORate(program: string): number {

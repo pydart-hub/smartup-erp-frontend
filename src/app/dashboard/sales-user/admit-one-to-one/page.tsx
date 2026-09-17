@@ -20,7 +20,7 @@ import {
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { admitStudent, getAcademicYears, getBranches, getStudentGroups } from "@/lib/api/enrollment";
+import { admitStudent, getAcademicYears, getBranches, getStudentBatchNames, getStudentGroups } from "@/lib/api/enrollment";
 import apiClient from "@/lib/api/client";
 import { parseO2OHourlyRate } from "@/lib/utils/o2oFeeRates";
 import { toast } from "sonner";
@@ -213,6 +213,13 @@ function O2OAdmitContent() {
     staleTime: 60_000,
   });
 
+  const { data: allBatchNamesRes } = useQuery({
+    queryKey: ["student-batch-names"],
+    queryFn: getStudentBatchNames,
+    staleTime: 60_000,
+  });
+  const allBatchNames = (allBatchNamesRes ?? []).map((b) => b.name);
+
   const { data: batchGroupsRes, isFetching: loadingBatchGroups } = useQuery({
     queryKey: ["o2o-batch-groups", form.custom_branch, form.program, form.academic_year],
     queryFn: () =>
@@ -226,9 +233,23 @@ function O2OAdmitContent() {
     staleTime: 30_000,
   });
 
-  const resolvedBatchGroup = (batchGroupsRes?.data ?? [])
+  const existingBatchGroup = (batchGroupsRes?.data ?? [])
     .filter((group) => group.name && group.batch && !group.disabled)
     .sort((a, b) => a.name.localeCompare(b.name))[0];
+
+  // Resolve batch: either from an existing batch group OR directly by matching branch name (e.g. Edappally 26-27)
+  const resolvedBatch = (() => {
+    if (existingBatchGroup?.batch) return existingBatchGroup.batch;
+    if (!form.custom_branch) return null;
+    const branchWord = form.custom_branch.replace(/^Smart\s+Up\s+/i, "").trim().toLowerCase();
+    const matched = allBatchNames.find((b) => b.toLowerCase().includes(branchWord));
+    return matched ?? null;
+  })();
+
+  const resolvedBatchGroup = existingBatchGroup ?? (resolvedBatch ? {
+    name: undefined,
+    batch: resolvedBatch,
+  } : undefined);
 
   // ── Helpers ──────────────────────────────────────────────────
   function set<K extends keyof O2OFormState>(key: K, value: O2OFormState[K]) {
@@ -286,8 +307,8 @@ function O2OAdmitContent() {
       } else if (!manualRatePerHour) {
         errs.hourly_rate = "Enter a valid hourly rate";
       }
-      if (form.custom_branch && form.program && form.academic_year && !loadingBatchGroups && !resolvedBatchGroup) {
-        errs.program = "No active batch group exists for this branch, class, and academic year";
+      if (form.custom_branch && form.program && form.academic_year && !loadingBatchGroups && !resolvedBatchGroup?.batch) {
+        errs.program = "No active academic batch is configured for this branch";
       }
     }
 
@@ -317,9 +338,9 @@ function O2OAdmitContent() {
       const matchedGroup = resolvedBatchGroup;
       const finalRatePerHour = parseO2OHourlyRate(form.hourly_rate);
 
-      if (!matchedGroup?.name || !matchedGroup.batch) {
+      if (!matchedGroup?.batch) {
         throw new Error(
-          "No active batch group is configured for this branch, class, and academic year. Create one first, then retry One-to-One admission."
+          "No active academic batch is configured for this branch. Create one first, then retry One-to-One admission."
         );
       }
       if (!finalRatePerHour) {
@@ -782,6 +803,9 @@ function O2OAdmitContent() {
                     <option value="8th State">8th State</option>
                     <option value="8th CBSE">8th CBSE</option>
                   </optgroup>
+                  <optgroup label="7th">
+                    <option value="7th">7th</option>
+                  </optgroup>
                 </select>
               </SelectField>
 
@@ -822,12 +846,18 @@ function O2OAdmitContent() {
                       <Loader2 className="h-4 w-4 animate-spin" />
                       Resolving academic batch for this one-to-one admission...
                     </div>
-                  ) : resolvedBatchGroup ? (
+                  ) : resolvedBatchGroup?.batch ? (
                     <div className="space-y-1 text-violet-900">
                       <p className="font-medium">Admission batch will be linked automatically</p>
-                      <p>
-                        Batch group: <span className="font-semibold">{resolvedBatchGroup.name}</span>
-                      </p>
+                      {resolvedBatchGroup.name ? (
+                        <p>
+                          Batch group: <span className="font-semibold">{resolvedBatchGroup.name}</span>
+                        </p>
+                      ) : (
+                        <p className="text-xs text-violet-700">
+                          Dedicated individual tuition enrollment (no common student group).
+                        </p>
+                      )}
                       <p>
                         Batch code: <span className="font-semibold">{resolvedBatchGroup.batch}</span>
                       </p>
@@ -836,7 +866,7 @@ function O2OAdmitContent() {
                     <div className="flex items-start gap-2 text-red-700">
                       <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
                       <p>
-                        No active batch group was found for this branch, class, and academic year.
+                        No active batch was found for this branch and academic year.
                         One-to-One admission cannot complete until one exists.
                       </p>
                     </div>
