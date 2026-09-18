@@ -23,8 +23,9 @@ git reset --hard "origin/${BRANCH}"
 echo "📦 [3/6] Installing dependencies..."
 npm install
 
-# Step 4: Generate database client bindings (Prisma)
-echo "💎 [4/6] Generating Prisma Client..."
+# Step 4: Sync database schema & generate client bindings (Prisma)
+echo "💎 [4/6] Syncing database schema & generating Prisma Client..."
+npx prisma db push
 npx prisma generate
 
 # Step 5: Build Next.js project
