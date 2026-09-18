@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
-  HelpCircle,
   RefreshCw,
   Trash2,
   X,
@@ -33,60 +32,21 @@ export function ScholarDeletePuzzleModal({
   onClose,
   onConfirmDelete,
 }: ScholarDeletePuzzleModalProps) {
-  const [num1, setNum1] = useState(0);
-  const [num2, setNum2] = useState(0);
-  const [operator, setOperator] = useState<"+" | "-" | "×">("+");
-  const [expectedAnswer, setExpectedAnswer] = useState<number>(0);
-  const [userAnswer, setUserAnswer] = useState("");
   const [typedConfirmation, setTypedConfirmation] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // Generate a random math challenge whenever target or modal opens
-  const generatePuzzle = () => {
-    setUserAnswer("");
-    setTypedConfirmation("");
-    setErrorMsg("");
-
-    const ops: Array<"+" | "-" | "×"> = ["+", "-", "×"];
-    const op = ops[Math.floor(Math.random() * ops.length)];
-    setOperator(op);
-
-    let n1 = 0;
-    let n2 = 0;
-    let ans = 0;
-
-    if (op === "+") {
-      n1 = Math.floor(Math.random() * 40) + 11; // 11 - 50
-      n2 = Math.floor(Math.random() * 30) + 7;  // 7 - 36
-      ans = n1 + n2;
-    } else if (op === "-") {
-      n1 = Math.floor(Math.random() * 50) + 30; // 30 - 79
-      n2 = Math.floor(Math.random() * 20) + 5;  // 5 - 24
-      ans = n1 - n2;
-    } else {
-      // multiplication (small numbers)
-      n1 = Math.floor(Math.random() * 8) + 4; // 4 - 11
-      n2 = Math.floor(Math.random() * 8) + 3; // 3 - 10
-      ans = n1 * n2;
-    }
-
-    setNum1(n1);
-    setNum2(n2);
-    setExpectedAnswer(ans);
-  };
-
   useEffect(() => {
     if (isOpen && target) {
-      generatePuzzle();
+      setTypedConfirmation("");
+      setErrorMsg("");
     }
   }, [isOpen, target]);
 
   if (!isOpen || !target) return null;
 
-  const isMathCorrect = parseInt(userAnswer.trim(), 10) === expectedAnswer;
   const isTypeCorrect = typedConfirmation.trim().toUpperCase() === "DELETE";
-  const canSubmit = isMathCorrect && isTypeCorrect && !isDeleting;
+  const canSubmit = isTypeCorrect && !isDeleting;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,7 +59,6 @@ export function ScholarDeletePuzzleModal({
       onClose();
     } catch (err: any) {
       setErrorMsg(err?.message || "Failed to delete entry. Please try again.");
-      generatePuzzle();
     } finally {
       setIsDeleting(false);
     }
@@ -124,7 +83,7 @@ export function ScholarDeletePuzzleModal({
           <button
             onClick={onClose}
             disabled={isDeleting}
-            className="absolute top-4 right-4 p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-white transition-colors"
+            className="absolute top-4 right-4 p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-white transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -159,75 +118,32 @@ export function ScholarDeletePuzzleModal({
             </div>
           )}
 
-          {/* Verification Challenge Puzzle Container */}
-          <div className="border border-purple-100 bg-purple-50/50 rounded-2xl p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-[#5C34A4]">
-                <HelpCircle className="w-4 h-4" />
-                <span>Security Puzzle Verification</span>
-              </div>
-              <button
-                type="button"
-                onClick={generatePuzzle}
-                disabled={isDeleting}
-                title="Generate another puzzle"
-                className="text-[11px] font-semibold text-[#5C34A4] hover:text-[#452084] flex items-center gap-1 hover:underline cursor-pointer"
-              >
-                <RefreshCw className="w-3 h-3" />
-                <span>New puzzle</span>
-              </button>
-            </div>
-
-            <p className="text-[11px] text-slate-600 leading-relaxed">
-              To prevent accidental deletion, solve the math puzzle and type <strong>DELETE</strong> below:
+          {/* Type DELETE confirmation container */}
+          <div className="border border-rose-100 bg-rose-50/40 rounded-2xl p-4 space-y-2.5">
+            <p className="text-xs text-slate-600 leading-relaxed">
+              To prevent accidental deletion, please type{" "}
+              <strong className="font-mono text-rose-600 font-extrabold tracking-wide">DELETE</strong>{" "}
+              in the box below to confirm:
             </p>
-
-            {/* Puzzle Equation Box */}
-            <div className="flex items-center gap-3">
-              <div className="px-4 py-2 bg-white border border-purple-200 rounded-xl font-mono text-base font-extrabold text-[#5C34A4] tracking-wider shadow-xs select-none">
-                {num1} {operator} {num2} = ?
-              </div>
-              <div className="relative flex-1">
-                <input
-                  type="number"
-                  placeholder="Answer"
-                  value={userAnswer}
-                  onChange={(e) => setUserAnswer(e.target.value)}
-                  disabled={isDeleting}
-                  required
-                  className={`w-full px-3 py-2 text-sm font-bold rounded-xl border bg-white focus:outline-none transition-all ${
-                    userAnswer
-                      ? isMathCorrect
-                        ? "border-emerald-500 ring-2 ring-emerald-500/20 text-emerald-800"
-                        : "border-rose-400 ring-2 ring-rose-400/20 text-rose-700"
-                      : "border-slate-200 focus:border-[#5C34A4] focus:ring-2 focus:ring-purple-200"
-                  }`}
-                />
-                {userAnswer && isMathCorrect && (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                )}
-              </div>
-            </div>
-
-            {/* Type DELETE confirmation */}
-            <div className="space-y-1 pt-1">
-              <label className="text-[11px] font-bold text-slate-700">
-                Type <span className="font-mono text-rose-600 font-extrabold">DELETE</span> to confirm:
-              </label>
+            <div className="relative">
               <input
                 type="text"
-                placeholder="Type DELETE"
+                placeholder="TYPE DELETE"
                 value={typedConfirmation}
                 onChange={(e) => setTypedConfirmation(e.target.value)}
                 disabled={isDeleting}
-                className={`w-full px-3 py-2 text-xs font-bold rounded-xl border bg-white focus:outline-none transition-all uppercase tracking-wider ${
+                autoFocus
+                className={`w-full px-3.5 py-2.5 text-xs font-bold rounded-xl border bg-white focus:outline-none transition-all uppercase tracking-wider ${
                   typedConfirmation
                     ? isTypeCorrect
-                      ? "border-emerald-500 ring-2 ring-emerald-500/20 text-emerald-800"
+                      ? "border-emerald-500 ring-2 ring-emerald-500/20 text-emerald-800 pr-9"
                       : "border-rose-400 ring-2 ring-rose-400/20 text-rose-700"
-                    : "border-slate-200 focus:border-[#5C34A4] focus:ring-2 focus:ring-purple-200"
+                    : "border-slate-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-100"
                 }`}
               />
+              {typedConfirmation && isTypeCorrect && (
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              )}
             </div>
           </div>
 
