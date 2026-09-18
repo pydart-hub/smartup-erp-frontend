@@ -96,6 +96,7 @@ model ExamAttempt {
   publishingId       String
   publishing         ExamPublishing   @relation(fields: [publishingId], references: [id])
   studentName        String           // Manually entered
+  schoolName         String?          // Manually entered school name
   studentBranch      String?          // Manually selected branch
   studentPhone       String?          // Manually entered phone number
   classLevel         String           // Manually selected ("8", "9", "10")
@@ -157,6 +158,7 @@ model PlusTwoPredictorSubmission {
 model ScholarRegistration {
   id           String        @id @default(uuid())
   studentName  String
+  schoolName   String?       // Candidate school name
   phone        String
   classLevel   String        // "Class 8", "Class 9", "Class 10", "Plus One (+1)", "Plus Two (+2)"
   syllabus     String?       @default("State") // "State" | "CBSE"

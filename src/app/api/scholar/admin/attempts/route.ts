@@ -72,13 +72,15 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // Check linked registration for official district
+      // Check linked registration for official district & school
       const matchedReg = regByAttemptId.get(a.id) || (a.studentPhone ? regByPhone.get(a.studentPhone) : null);
       const districtValue = matchedReg?.district || a.studentBranch || "Not specified";
+      const schoolNameValue = a.schoolName || matchedReg?.schoolName || "Not specified";
 
       return {
         id: a.id,
         studentName: a.studentName,
+        schoolName: schoolNameValue,
         studentPhone: a.studentPhone,
         district: districtValue,
         studentBranch: a.studentBranch || matchedReg?.district || null,
@@ -104,6 +106,7 @@ export async function GET(request: NextRequest) {
     const formattedRegistrations = registrations.map((r) => ({
       id: r.id,
       studentName: r.studentName,
+      schoolName: r.schoolName || "Not specified",
       studentPhone: r.phone,
       district: r.district,
       classLevel: r.classLevel,

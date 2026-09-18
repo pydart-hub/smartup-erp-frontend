@@ -44,6 +44,7 @@ export async function GET(request: NextRequest) {
       registered: true,
       registrationId: registration.id,
       studentName: registration.studentName,
+      schoolName: registration.schoolName || "",
       classLevel: registration.classLevel,
       syllabus: registration.syllabus || "State",
       district: registration.district,

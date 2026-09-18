@@ -20,6 +20,7 @@ import {
   ArrowLeft,
   Calendar,
   Phone,
+  School,
   MapPin,
   FileSpreadsheet,
   BarChart3,
@@ -29,6 +30,7 @@ import {
 interface AttemptRecord {
   id: string;
   studentName: string;
+  schoolName?: string;
   studentPhone: string | null;
   district: string;
   classLevel: string;
@@ -50,6 +52,7 @@ interface AttemptRecord {
 interface RegistrationRecord {
   id: string;
   studentName: string;
+  schoolName?: string;
   studentPhone: string;
   district: string;
   classLevel: string;
@@ -159,6 +162,7 @@ export default function ScholarAdminPage() {
   const filteredAttempts = attempts.filter((item) => {
     const matchesSearch =
       item.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.schoolName && item.schoolName.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (item.studentPhone && item.studentPhone.includes(searchQuery)) ||
       item.district.toLowerCase().includes(searchQuery.toLowerCase());
 
@@ -177,6 +181,7 @@ export default function ScholarAdminPage() {
   const filteredRegistrations = registrations.filter((r) => {
     const matchesSearch =
       r.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (r.schoolName && r.schoolName.toLowerCase().includes(searchQuery.toLowerCase())) ||
       r.studentPhone.includes(searchQuery) ||
       r.district.toLowerCase().includes(searchQuery.toLowerCase());
 
@@ -190,6 +195,7 @@ export default function ScholarAdminPage() {
     const rows = [
       [
         "Student Name",
+        "School",
         "Phone Number",
         "Class",
         "Syllabus",
@@ -207,6 +213,7 @@ export default function ScholarAdminPage() {
       ],
       ...filteredAttempts.map((a) => [
         `"${a.studentName.replace(/"/g, '""')}"`,
+        `"${(a.schoolName || "").replace(/"/g, '""')}"`,
         `"${a.studentPhone || ""}"`,
         `"Class ${a.classLevel}"`,
         `"${a.syllabus}"`,
@@ -548,6 +555,7 @@ export default function ScholarAdminPage() {
                   <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold sticky top-0 z-10">
                     <tr>
                       <th className="py-3 px-4">Student</th>
+                      <th className="py-3 px-4">School</th>
                       <th className="py-3 px-4">Class &amp; Syllabus</th>
                       <th className="py-3 px-4">Exam Paper</th>
                       <th className="py-3 px-4">District / Branch</th>
@@ -569,6 +577,12 @@ export default function ScholarAdminPage() {
                             <div className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
                               <Phone className="w-3 h-3" />
                               <span>{item.studentPhone || "No phone"}</span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 max-w-[170px]">
+                            <div className="font-semibold text-slate-800 truncate flex items-center gap-1.5" title={item.schoolName || "Not specified"}>
+                              <School className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                              <span className="truncate">{item.schoolName || "—"}</span>
                             </div>
                           </td>
                           <td className="py-3 px-4">
@@ -670,6 +684,7 @@ export default function ScholarAdminPage() {
                   <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold sticky top-0 z-10">
                     <tr>
                       <th className="py-3 px-4">Student</th>
+                      <th className="py-3 px-4">School</th>
                       <th className="py-3 px-4">Phone</th>
                       <th className="py-3 px-4">Class</th>
                       <th className="py-3 px-4">Syllabus</th>
@@ -682,6 +697,12 @@ export default function ScholarAdminPage() {
                     {filteredRegistrations.map((reg) => (
                       <tr key={reg.id} className="hover:bg-slate-50/70 transition-colors">
                         <td className="py-3 px-4 font-bold text-slate-900">{reg.studentName}</td>
+                        <td className="py-3 px-4 max-w-[170px]">
+                          <div className="font-medium text-slate-700 truncate flex items-center gap-1.5" title={reg.schoolName || "Not specified"}>
+                            <School className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            <span className="truncate">{reg.schoolName || "—"}</span>
+                          </div>
+                        </td>
                         <td className="py-3 px-4 text-slate-600 font-mono">{reg.studentPhone}</td>
                         <td className="py-3 px-4 font-semibold text-slate-800">{reg.classLevel}</td>
                         <td className="py-3 px-4 font-bold text-[#5C34A4]">{reg.syllabus}</td>

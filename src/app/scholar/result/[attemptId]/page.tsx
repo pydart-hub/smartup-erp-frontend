@@ -110,6 +110,7 @@ export default async function ScholarResultPage({ params }: PageProps) {
       attempt={{
         id: hydratedAttempt.id,
         studentName: hydratedAttempt.studentName,
+        schoolName: hydratedAttempt.schoolName,
         studentPhone: hydratedAttempt.studentPhone,
         classLevel: hydratedAttempt.classLevel,
         studentBranch: hydratedAttempt.studentBranch,

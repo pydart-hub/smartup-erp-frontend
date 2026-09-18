@@ -7,6 +7,7 @@ import {
   GraduationCap,
   Trophy,
   User,
+  School,
   ArrowRight,
   Lock,
   BarChart2,
@@ -42,6 +43,7 @@ const CLASSES = [
 
 export default function ScholarRegistrationPage() {
   const [name, setName] = useState("");
+  const [schoolName, setSchoolName] = useState("");
   const [selectedCountry, setSelectedCountry] = useState<CountryConfig>(DEFAULT_COUNTRY);
   const [phone, setPhone] = useState("");
   const [selectedClass, setSelectedClass] = useState("Class 10");
@@ -58,6 +60,7 @@ export default function ScholarRegistrationPage() {
   const [isCheckingPhone, setIsCheckingPhone] = useState(false);
   const [returningStudent, setReturningStudent] = useState<{
     name: string;
+    schoolName?: string;
     phone: string;
     classLevel: string;
     syllabus: string;
@@ -79,6 +82,7 @@ export default function ScholarRegistrationPage() {
               if (data.registered) {
                 setReturningStudent({
                   name: data.studentName,
+                  schoolName: data.schoolName || parsed.schoolName || "",
                   phone: parsed.phone,
                   classLevel: data.classLevel,
                   syllabus: data.syllabus || "State",
@@ -88,6 +92,9 @@ export default function ScholarRegistrationPage() {
                 });
                 setRegistrationId(data.registrationId);
                 setName(data.studentName);
+                if (data.schoolName || parsed.schoolName) {
+                  setSchoolName(data.schoolName || parsed.schoolName);
+                }
                 setSelectedClass(data.classLevel);
                 if (data.syllabus) setSyllabus(data.syllabus);
               }
@@ -112,6 +119,9 @@ export default function ScholarRegistrationPage() {
           .then((data) => {
             if (data.registered) {
               setName(data.studentName);
+              if (data.schoolName) {
+                setSchoolName(data.schoolName);
+              }
               setSelectedClass(data.classLevel);
               if (data.syllabus) setSyllabus(data.syllabus);
               setRegistrationId(data.registrationId);
@@ -157,6 +167,7 @@ export default function ScholarRegistrationPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: name.trim(),
+          schoolName: schoolName.trim(),
           phone: fullFormattedPhone,
           selectedClass,
           syllabus,
@@ -178,6 +189,7 @@ export default function ScholarRegistrationPage() {
         "smartup_scholar_student",
         JSON.stringify({
           name: name.trim(),
+          schoolName: schoolName.trim(),
           phone: fullFormattedPhone,
           selectedClass,
           syllabus,
@@ -206,6 +218,7 @@ export default function ScholarRegistrationPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: returningStudent ? returningStudent.name : name.trim(),
+          schoolName: returningStudent?.schoolName || schoolName.trim(),
           phone: fullFormattedPhone,
           selectedClass: returningStudent ? returningStudent.classLevel : selectedClass,
           syllabus: returningStudent ? returningStudent.syllabus : syllabus,
@@ -471,6 +484,12 @@ export default function ScholarRegistrationPage() {
                       <span className="text-slate-500">Number:</span>
                       <span className="font-mono font-bold">+91 {phone}</span>
                     </div>
+                    {schoolName && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">School:</span>
+                        <span className="font-bold text-slate-800 truncate max-w-[200px]">{schoolName}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between">
                       <span className="text-slate-500">Syllabus:</span>
                       <span className="font-bold text-[#5C34A4]">{syllabus === "State" ? "State Syllabus" : "CBSE Board"}</span>
@@ -518,6 +537,24 @@ export default function ScholarRegistrationPage() {
                         placeholder="Enter student name"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50/50 hover:bg-white border border-slate-200/90 rounded-xl text-slate-900 text-sm placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5C34A4]/20 focus:border-[#5C34A4] transition"
+                      />
+                    </div>
+                  </div>
+
+                  {/* School Name */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-800 tracking-wide">
+                      School Name <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <School className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        required
+                        placeholder="Enter your school name"
+                        value={schoolName}
+                        onChange={(e) => setSchoolName(e.target.value)}
                         className="w-full pl-10 pr-4 py-2.5 bg-slate-50/50 hover:bg-white border border-slate-200/90 rounded-xl text-slate-900 text-sm placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5C34A4]/20 focus:border-[#5C34A4] transition"
                       />
                     </div>

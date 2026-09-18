@@ -10,6 +10,7 @@ import {
   User,
   GraduationCap,
   MapPin,
+  School,
   FileCheck2,
   Printer,
   Download,
@@ -37,6 +38,7 @@ type ScholarResultViewProps = {
   attempt: {
     id: string;
     studentName: string;
+    schoolName?: string | null;
     studentPhone: string | null;
     classLevel: string;
     studentBranch: string | null;
@@ -189,12 +191,21 @@ export default function ScholarResultView({ attempt }: ScholarResultViewProps) {
           </div>
 
           {/* Student & Assessment Details Bar */}
-          <div className="relative z-10 grid grid-cols-2 sm:grid-cols-4 gap-3 print:gap-1.5 bg-slate-50/90 backdrop-blur-sm p-4 print:p-2 rounded-2xl print:rounded-xl border border-slate-100 text-xs print:text-[9.5px]">
+          <div className="relative z-10 grid grid-cols-2 sm:grid-cols-5 gap-3 print:gap-1.5 bg-slate-50/90 backdrop-blur-sm p-4 print:p-2 rounded-2xl print:rounded-xl border border-slate-100 text-xs print:text-[9.5px]">
             <div className="space-y-0.5">
               <span className="text-slate-400 font-medium flex items-center gap-1">
                 <User className="w-3.5 h-3.5 print:w-3 print:h-3" /> Student Name
               </span>
               <p className="font-bold text-slate-900 truncate">{attempt.studentName}</p>
+            </div>
+
+            <div className="space-y-0.5">
+              <span className="text-slate-400 font-medium flex items-center gap-1">
+                <School className="w-3.5 h-3.5 print:w-3 print:h-3" /> School
+              </span>
+              <p className="font-bold text-slate-900 truncate" title={attempt.schoolName || "Not specified"}>
+                {attempt.schoolName || "Not specified"}
+              </p>
             </div>
 
             <div className="space-y-0.5">

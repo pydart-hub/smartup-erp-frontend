@@ -19,11 +19,13 @@ import {
   Award,
   BookOpen,
   Filter,
+  School,
 } from "lucide-react";
 
 interface AttemptRecord {
   id: string;
   studentName: string;
+  schoolName?: string;
   studentPhone: string | null;
   district: string;
   classLevel: string;
@@ -45,6 +47,7 @@ interface AttemptRecord {
 interface RegistrationRecord {
   id: string;
   studentName: string;
+  schoolName?: string;
   studentPhone: string;
   district: string;
   classLevel: string;
@@ -155,10 +158,11 @@ export default function ScholarAdminModal({ isOpen, onClose }: ScholarAdminModal
     }
   };
 
-  // Filtered lists
+  // Filtered attempts
   const filteredAttempts = attempts.filter((item) => {
     const matchesSearch =
       item.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.schoolName && item.schoolName.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (item.studentPhone && item.studentPhone.includes(searchQuery)) ||
       item.district.toLowerCase().includes(searchQuery.toLowerCase());
 
@@ -177,6 +181,7 @@ export default function ScholarAdminModal({ isOpen, onClose }: ScholarAdminModal
     const rows = [
       [
         "Student Name",
+        "School",
         "Phone Number",
         "Class",
         "Syllabus",
@@ -193,6 +198,7 @@ export default function ScholarAdminModal({ isOpen, onClose }: ScholarAdminModal
       ],
       ...filteredAttempts.map((a) => [
         `"${a.studentName.replace(/"/g, '""')}"`,
+        `"${(a.schoolName || "").replace(/"/g, '""')}"`,
         `"${a.studentPhone || ""}"`,
         `"Class ${a.classLevel}"`,
         `"${a.syllabus}"`,
@@ -424,6 +430,7 @@ export default function ScholarAdminModal({ isOpen, onClose }: ScholarAdminModal
                   <thead className="bg-slate-50/80 sticky top-0 border-b border-slate-200 text-slate-500 font-bold z-10">
                     <tr>
                       <th className="py-3 px-4">Student</th>
+                      <th className="py-3 px-4">School</th>
                       <th className="py-3 px-4">Class & Syllabus</th>
                       <th className="py-3 px-4">District</th>
                       <th className="py-3 px-4 text-center">Status</th>
@@ -442,6 +449,12 @@ export default function ScholarAdminModal({ isOpen, onClose }: ScholarAdminModal
                           <td className="py-3 px-4">
                             <div className="font-bold text-slate-900">{item.studentName}</div>
                             <div className="text-[11px] text-slate-400">{item.studentPhone || "No phone"}</div>
+                          </td>
+                          <td className="py-3 px-4 max-w-[150px]">
+                            <div className="font-semibold text-slate-800 truncate flex items-center gap-1.5" title={item.schoolName || "Not specified"}>
+                              <School className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                              <span className="truncate">{item.schoolName || "—"}</span>
+                            </div>
                           </td>
                           <td className="py-3 px-4">
                             <div className="font-semibold text-slate-800">Class {item.classLevel}</div>
