@@ -126,3 +126,78 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error?.message || "Internal Server Error" }, { status: 500 });
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const authHeader = request.headers.get("authorization");
+    const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.substring(7) : null;
+    const cookieToken = request.cookies.get("scholar_admin_token")?.value;
+
+    const token = bearerToken || cookieToken;
+
+    if (!verifyAdminToken(token)) {
+      return NextResponse.json({ error: "Unauthorized. Please log in again." }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const body = await request.json().catch(() => ({}));
+
+    const id = body.id || searchParams.get("id");
+    const type = body.type || searchParams.get("type") || "attempt";
+
+    if (!id || typeof id !== "string") {
+      return NextResponse.json({ error: "Entry ID is required." }, { status: 400 });
+    }
+
+    if (type === "attempt") {
+      // Check attempt exists
+      const existing = await db.examAttempt.findUnique({
+        where: { id },
+        select: { id: true, studentName: true },
+      });
+
+      if (!existing) {
+        return NextResponse.json({ error: "Exam attempt record not found." }, { status: 404 });
+      }
+
+      // Unlink any registration pointing to this attemptId
+      await db.scholarRegistration.updateMany({
+        where: { attemptId: id },
+        data: { attemptId: null, status: "registered" },
+      });
+
+      // Delete the attempt (Prisma schema has onDelete: Cascade for AttemptAnswer)
+      await db.examAttempt.delete({
+        where: { id },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: `Exam attempt for "${existing.studentName}" deleted successfully.`,
+      });
+    } else if (type === "registration") {
+      const existing = await db.scholarRegistration.findUnique({
+        where: { id },
+        select: { id: true, studentName: true },
+      });
+
+      if (!existing) {
+        return NextResponse.json({ error: "Registration record not found." }, { status: 404 });
+      }
+
+      await db.scholarRegistration.delete({
+        where: { id },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: `Registration record for "${existing.studentName}" deleted successfully.`,
+      });
+    } else {
+      return NextResponse.json({ error: "Invalid entry type specified." }, { status: 400 });
+    }
+  } catch (error: any) {
+    console.error("[api/scholar/admin/attempts DELETE] Error:", error);
+    return NextResponse.json({ error: error?.message || "Failed to delete entry" }, { status: 500 });
+  }
+}

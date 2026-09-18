@@ -20,7 +20,12 @@ import {
   BookOpen,
   Filter,
   School,
+  Trash2,
 } from "lucide-react";
+import {
+  ScholarDeletePuzzleModal,
+  DeleteTarget,
+} from "@/components/scholar/ScholarDeletePuzzleModal";
 
 interface AttemptRecord {
   id: string;
@@ -84,6 +89,10 @@ export default function ScholarAdminModal({ isOpen, onClose }: ScholarAdminModal
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [classFilter, setClassFilter] = useState<string>("all");
 
+  // Deletion modal state
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
   // Check existing session on mount
   useEffect(() => {
     const savedToken = sessionStorage.getItem("scholar_admin_token");
@@ -103,20 +112,19 @@ export default function ScholarAdminModal({ isOpen, onClose }: ScholarAdminModal
       const res = await fetch("/api/scholar/admin/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username: username.trim(), password }),
       });
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Authentication failed.");
+        throw new Error(data.error || "Authentication failed. Please check credentials.");
       }
 
       sessionStorage.setItem("scholar_admin_token", data.token);
       setToken(data.token);
       setIsAuthenticated(true);
       setPassword("");
-      onClose();
-      window.location.href = "/scholar/admin";
+      fetchData(data.token);
     } catch (err: any) {
       setLoginError(err.message || "Invalid credentials.");
     } finally {
@@ -156,6 +164,36 @@ export default function ScholarAdminModal({ isOpen, onClose }: ScholarAdminModal
     } finally {
       setIsLoadingData(false);
     }
+  };
+
+  const openDeleteModal = (target: DeleteTarget) => {
+    setDeleteTarget(target);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async (target: DeleteTarget) => {
+    if (!token) {
+      throw new Error("Admin session expired. Please log in again.");
+    }
+
+    const res = await fetch("/api/scholar/admin/attempts", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        id: target.id,
+        type: target.type,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || "Failed to delete the selected entry.");
+    }
+
+    await fetchData(token);
   };
 
   // Filtered attempts
@@ -515,15 +553,35 @@ export default function ScholarAdminModal({ isOpen, onClose }: ScholarAdminModal
                             })}
                           </td>
                           <td className="py-3 px-4 text-center">
-                            <a
-                              href={`/scholar/result/${item.id}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center gap-1 text-[11px] font-bold text-[#5C34A4] hover:underline"
-                            >
-                              <span>View Result</span>
-                              <ExternalLink className="w-3 h-3" />
-                            </a>
+                            <div className="flex items-center justify-center gap-1.5">
+                              <a
+                                href={`/scholar/result/${item.id}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1 text-[11px] font-bold text-[#5C34A4] hover:underline"
+                              >
+                                <span>View Result</span>
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  openDeleteModal({
+                                    id: item.id,
+                                    type: "attempt",
+                                    studentName: item.studentName,
+                                    phone: item.studentPhone,
+                                    classLevel: `Class ${item.classLevel} (${item.syllabus})`,
+                                    district: item.district,
+                                    details: `Score: ${item.scoreObtained}/${item.totalMarks} (${item.percentage}%)`,
+                                  })
+                                }
+                                title="Delete this entry"
+                                className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -535,6 +593,17 @@ export default function ScholarAdminModal({ isOpen, onClose }: ScholarAdminModal
           </div>
         )}
       </motion.div>
+
+      {/* Delete Puzzle Modal */}
+      <ScholarDeletePuzzleModal
+        isOpen={isDeleteModalOpen}
+        target={deleteTarget}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setDeleteTarget(null);
+        }}
+        onConfirmDelete={handleConfirmDelete}
+      />
     </div>
   );
 }

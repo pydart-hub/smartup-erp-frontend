@@ -25,7 +25,12 @@ import {
   FileSpreadsheet,
   BarChart3,
   Layers,
+  Trash2,
 } from "lucide-react";
+import {
+  ScholarDeletePuzzleModal,
+  DeleteTarget,
+} from "@/components/scholar/ScholarDeletePuzzleModal";
 
 interface AttemptRecord {
   id: string;
@@ -84,6 +89,11 @@ export default function ScholarAdminPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [classFilter, setClassFilter] = useState<string>("all");
+
+  // Deletion modal state
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [actionNotice, setActionNotice] = useState<{ text: string; type: "success" | "error" } | null>(null);
 
   // Check existing session
   useEffect(() => {
@@ -156,6 +166,46 @@ export default function ScholarAdminPage() {
     } finally {
       setIsLoadingData(false);
     }
+  };
+
+  const openDeleteModal = (target: DeleteTarget) => {
+    setDeleteTarget(target);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async (target: DeleteTarget) => {
+    if (!token) {
+      throw new Error("Admin session expired. Please log in again.");
+    }
+
+    const res = await fetch("/api/scholar/admin/attempts", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        id: target.id,
+        type: target.type,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || "Failed to delete the selected entry.");
+    }
+
+    // Refresh dashboard data
+    await fetchData(token);
+
+    // Show temporary success feedback
+    setActionNotice({
+      text: data.message || `Entry for ${target.studentName} deleted successfully.`,
+      type: "success",
+    });
+    setTimeout(() => {
+      setActionNotice(null);
+    }, 4500);
   };
 
   // Filtered attempts
@@ -428,6 +478,28 @@ export default function ScholarAdminPage() {
           </div>
         </div>
 
+        {/* Action Notice (e.g. after deletion) */}
+        {actionNotice && (
+          <div
+            className={`p-4 rounded-2xl border flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-300 ${
+              actionNotice.type === "success"
+                ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                : "bg-rose-50 border-rose-200 text-rose-800"
+            }`}
+          >
+            <div className="flex items-center gap-2 text-xs font-bold">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <span>{actionNotice.text}</span>
+            </div>
+            <button
+              onClick={() => setActionNotice(null)}
+              className="text-xs font-bold underline opacity-70 hover:opacity-100 cursor-pointer"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
         {/* Metric Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
@@ -654,15 +726,35 @@ export default function ScholarAdminPage() {
                             })}
                           </td>
                           <td className="py-3 px-4 text-center">
-                            <a
-                              href={`/scholar/result/${item.id}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-[#5C34A4] hover:text-[#452084] font-bold text-[11px] bg-purple-50 hover:bg-purple-100 px-2.5 py-1.5 rounded-lg transition-colors"
-                            >
-                              <span>View Result</span>
-                              <ExternalLink className="w-3 h-3" />
-                            </a>
+                            <div className="flex items-center justify-center gap-1.5">
+                              <a
+                                href={`/scholar/result/${item.id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-[#5C34A4] hover:text-[#452084] font-bold text-[11px] bg-purple-50 hover:bg-purple-100 px-2.5 py-1.5 rounded-lg transition-colors"
+                              >
+                                <span>View Result</span>
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  openDeleteModal({
+                                    id: item.id,
+                                    type: "attempt",
+                                    studentName: item.studentName,
+                                    phone: item.studentPhone,
+                                    classLevel: `Class ${item.classLevel} (${item.syllabus})`,
+                                    district: item.district,
+                                    details: `Score: ${item.scoreObtained}/${item.totalMarks} (${item.percentage}%)`,
+                                  })
+                                }
+                                title="Delete this student's exam attempt"
+                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -691,6 +783,7 @@ export default function ScholarAdminPage() {
                       <th className="py-3 px-4">District</th>
                       <th className="py-3 px-4">Registered Date</th>
                       <th className="py-3 px-4 text-center">Attempt Status</th>
+                      <th className="py-3 px-4 text-center">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -730,6 +823,26 @@ export default function ScholarAdminPage() {
                             <span className="text-slate-400 text-[11px]">Registered Only</span>
                           )}
                         </td>
+                        <td className="py-3 px-4 text-center">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              openDeleteModal({
+                                id: reg.id,
+                                type: "registration",
+                                studentName: reg.studentName,
+                                phone: reg.studentPhone,
+                                classLevel: `${reg.classLevel} (${reg.syllabus})`,
+                                district: reg.district,
+                                details: reg.schoolName ? `School: ${reg.schoolName}` : undefined,
+                              })
+                            }
+                            title="Delete this registration"
+                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -739,6 +852,17 @@ export default function ScholarAdminPage() {
           )}
         </div>
       </main>
+
+      {/* Delete Puzzle Modal */}
+      <ScholarDeletePuzzleModal
+        isOpen={isDeleteModalOpen}
+        target={deleteTarget}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setDeleteTarget(null);
+        }}
+        onConfirmDelete={handleConfirmDelete}
+      />
     </div>
   );
 }
