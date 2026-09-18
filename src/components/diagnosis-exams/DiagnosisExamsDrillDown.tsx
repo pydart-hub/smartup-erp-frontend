@@ -25,6 +25,11 @@ import {
   Search,
   AlertCircle,
   MessageSquare,
+  Download,
+  FileSpreadsheet,
+  FileText,
+  Loader2,
+  BarChart2,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -37,6 +42,13 @@ import {
 } from "@/lib/public-exam/diagnostics";
 import { getCanonicalBranchName } from "@/lib/utils/constants";
 import { isScholarshipAttempt } from "@/lib/utils/diagnosis";
+import {
+  exportDiagnosisClassMatrixExcel,
+  exportDiagnosisClassMatrixPdf,
+  exportDiagnosisAttemptsRegisterExcel,
+  exportDiagnosisAttemptsRegisterCsv,
+  exportStudentDiagnosticCardPdf,
+} from "@/lib/reports/diagnosis-exams-export";
 
 interface DiagnosisExamsDrillDownProps {
   attempts: AttemptWithPublishing[];
@@ -168,11 +180,14 @@ export function DiagnosisExamsDrillDown({
   const [searchQuery, setSearchQuery] = useState("");
   const [attendanceFilter, setAttendanceFilter] = useState<"all" | "full" | "partial" | "single">("all");
   const [expandedStudentKeys, setExpandedStudentKeys] = useState<Record<string, boolean>>({});
+  const [downloadMenuOpen, setDownloadMenuOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState<string | null>(null);
 
   // Reset search and attendance filter when navigating branch or class
   React.useEffect(() => {
     setSearchQuery("");
     setAttendanceFilter("all");
+    setDownloadMenuOpen(false);
   }, [selectedBranch, selectedClass]);
 
   const toggleStudentExpand = (key: string) => {
@@ -331,6 +346,119 @@ export function DiagnosisExamsDrillDown({
     });
   }, [studentGroups, searchQuery, attendanceFilter, totalClassSubjects]);
 
+  // Unique subjects present in the current class view
+  const classSubjects = React.useMemo(() => {
+    const subjects = new Set<string>();
+    filteredAttempts.forEach((a) => {
+      if (a.publishing?.subject?.name) {
+        subjects.add(a.publishing.subject.name);
+      }
+    });
+    return Array.from(subjects).sort();
+  }, [filteredAttempts]);
+
+  const getFilterLabel = () => {
+    if (attendanceFilter === "full") return "Full Attended Only";
+    if (attendanceFilter === "partial") return "Partial Attended Only";
+    if (attendanceFilter === "single") return "1 Attempt Only";
+    if (searchQuery.trim()) return `Search: "${searchQuery}"`;
+    return "All Students";
+  };
+
+  const handleExportMatrixExcel = async () => {
+    if (!selectedClass || !selectedBranch) return;
+    setIsExporting("matrix-excel");
+    try {
+      await exportDiagnosisClassMatrixExcel({
+        classLevel: selectedClass,
+        branchName: selectedBranch,
+        students: filteredStudentGroups,
+        subjects: classSubjects,
+        totalClassSubjects,
+        filterLabel: getFilterLabel(),
+      });
+    } catch (err) {
+      console.error("Excel matrix export failed:", err);
+      alert("Failed to export Excel report. Please check the console.");
+    } finally {
+      setIsExporting(null);
+    }
+  };
+
+  const handleExportMatrixPdf = async () => {
+    if (!selectedClass || !selectedBranch) return;
+    setIsExporting("matrix-pdf");
+    try {
+      await exportDiagnosisClassMatrixPdf({
+        classLevel: selectedClass,
+        branchName: selectedBranch,
+        students: filteredStudentGroups,
+        subjects: classSubjects,
+        totalClassSubjects,
+        filterLabel: getFilterLabel(),
+      });
+    } catch (err) {
+      console.error("PDF matrix export failed:", err);
+      alert("Failed to export PDF report. Please check the console.");
+    } finally {
+      setIsExporting(null);
+    }
+  };
+
+  const handleExportRegisterExcel = async () => {
+    if (!selectedClass || !selectedBranch) return;
+    setIsExporting("reg-excel");
+    try {
+      await exportDiagnosisAttemptsRegisterExcel({
+        classLevel: selectedClass,
+        branchName: selectedBranch,
+        students: filteredStudentGroups,
+        subjects: classSubjects,
+        totalClassSubjects,
+        filterLabel: getFilterLabel(),
+      });
+    } catch (err) {
+      console.error("Excel register export failed:", err);
+      alert("Failed to export Excel register. Please check the console.");
+    } finally {
+      setIsExporting(null);
+    }
+  };
+
+  const handleExportRegisterCsv = () => {
+    if (!selectedClass || !selectedBranch) return;
+    try {
+      exportDiagnosisAttemptsRegisterCsv({
+        classLevel: selectedClass,
+        branchName: selectedBranch,
+        students: filteredStudentGroups,
+        subjects: classSubjects,
+        totalClassSubjects,
+        filterLabel: getFilterLabel(),
+      });
+    } catch (err) {
+      console.error("CSV register export failed:", err);
+      alert("Failed to export CSV. Please check the console.");
+    }
+  };
+
+  const handleExportStudentCard = async (student: typeof selectedStudentForSummary) => {
+    if (!student || !selectedBranch || !selectedClass) return;
+    setIsExporting("student-pdf");
+    try {
+      await exportStudentDiagnosticCardPdf({
+        student,
+        branchName: selectedBranch,
+        classLevel: selectedClass,
+      });
+    } catch (err) {
+      console.error("Student scorecard PDF export failed:", err);
+      alert("Failed to export Student Diagnostic Card PDF.");
+    } finally {
+      setIsExporting(null);
+    }
+  };
+
   // Helper to extract clean student identifier key
   const getStudentKey = (attempt: AttemptWithPublishing) => {
     return (attempt.studentPhone ? attempt.studentPhone.replace(/\D/g, "") : "") || attempt.studentName.toLowerCase().trim();
@@ -428,6 +556,15 @@ export function DiagnosisExamsDrillDown({
           <p className="text-sm text-text-secondary mt-1 max-w-2xl leading-relaxed">
             Real-time analytics and student attempts from the standalone exam database. Grouped by branch and class.
           </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link
+            href={`${detailUrlPrefix}/report`}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold bg-white dark:bg-[#0E1526] border border-slate-200/80 dark:border-slate-800 text-text-primary hover:border-[#5f2ea8]/40 hover:text-[#5f2ea8] shadow-xs transition-all"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-[#5f2ea8]" />
+            <span>Class-Wise Reports</span>
+          </Link>
         </div>
       </div>
 
@@ -652,19 +789,147 @@ export function DiagnosisExamsDrillDown({
       {selectedBranch && selectedClass && (
         <section className="space-y-4">
           <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSelectedClass(null)}
-                className="rounded-xl"
-              >
-                <ArrowLeft className="w-4 h-4 mr-1" />
-                <span>Back</span>
-              </Button>
-              <h2 className="text-xl font-bold text-text-primary tracking-tight">
-                {selectedBranch} — Class {selectedClass} Attempts
-              </h2>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedClass(null)}
+                  className="rounded-xl"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-1" />
+                  <span>Back</span>
+                </Button>
+                <h2 className="text-xl font-bold text-text-primary tracking-tight">
+                  {selectedBranch} — Class {selectedClass} Attempts
+                </h2>
+              </div>
+
+              {/* Action Buttons: Class Analytics Link & Download Report Dropdown */}
+              <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+                <Link
+                  href={`${detailUrlPrefix}/class-report?class=${selectedClass}${selectedBranch ? `&branch=${encodeURIComponent(selectedBranch)}` : ""}`}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-[#5f2ea8] bg-violet-50 hover:bg-violet-100 dark:bg-violet-950/20 dark:hover:bg-violet-950/40 border border-violet-200/60 dark:border-violet-800/30 rounded-xl transition-all shadow-2xs cursor-pointer"
+                  title="View detailed diagnostic level distribution analytics"
+                >
+                  <BarChart2 className="w-3.5 h-3.5" />
+                  <span>Class Analytics</span>
+                </Link>
+
+                {/* Download Report Dropdown */}
+                <div className="relative">
+                  <Button
+                    onClick={() => setDownloadMenuOpen(!downloadMenuOpen)}
+                    disabled={!!isExporting}
+                    className="rounded-xl font-bold bg-[#5f2ea8] hover:bg-[#4d238c] text-white flex items-center gap-1.5 shadow-sm px-4 py-2 text-xs h-[36px] cursor-pointer"
+                  >
+                    {isExporting ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Download className="w-4 h-4" />
+                    )}
+                    <span>Download Report</span>
+                    <ChevronDown className="w-3.5 h-3.5 ml-0.5" />
+                  </Button>
+
+                  {downloadMenuOpen && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-20"
+                        onClick={() => setDownloadMenuOpen(false)}
+                      />
+                      <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-[#0E1526] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl py-2 z-30 animate-in fade-in slide-in-from-top-2 duration-150 divide-y divide-slate-100 dark:divide-slate-800/60">
+                        {/* Scope Header */}
+                        <div className="px-3.5 py-2">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-text-tertiary">
+                            Export Scope
+                          </p>
+                          <p className="text-xs font-black text-text-primary mt-0.5">
+                            Class {selectedClass} • {filteredStudentGroups.length} {filteredStudentGroups.length === 1 ? "Student" : "Students"}
+                          </p>
+                          <p className="text-[10px] text-text-secondary mt-0.5">
+                            Filter: {getFilterLabel()}
+                          </p>
+                        </div>
+
+                        {/* Performance Matrix Options */}
+                        <div className="py-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDownloadMenuOpen(false);
+                              handleExportMatrixExcel();
+                            }}
+                            className="w-full text-left px-3.5 py-2 text-xs font-semibold text-text-primary hover:bg-slate-50 dark:hover:bg-slate-900/50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                          >
+                            <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40">
+                              <FileSpreadsheet className="w-3.5 h-3.5" />
+                            </div>
+                            <div>
+                              <div className="font-bold text-text-primary">Performance Matrix</div>
+                              <div className="text-[10px] text-text-tertiary">Excel spreadsheet (.xlsx)</div>
+                            </div>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDownloadMenuOpen(false);
+                              handleExportMatrixPdf();
+                            }}
+                            className="w-full text-left px-3.5 py-2 text-xs font-semibold text-text-primary hover:bg-slate-50 dark:hover:bg-slate-900/50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                          >
+                            <div className="p-1.5 rounded-lg bg-rose-50 text-rose-600 dark:bg-rose-950/40">
+                              <FileText className="w-3.5 h-3.5" />
+                            </div>
+                            <div>
+                              <div className="font-bold text-text-primary">Class Summary Report</div>
+                              <div className="text-[10px] text-text-tertiary">Landscape Document (.pdf)</div>
+                            </div>
+                          </button>
+                        </div>
+
+                        {/* Attempts Register Options */}
+                        <div className="py-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDownloadMenuOpen(false);
+                              handleExportRegisterExcel();
+                            }}
+                            className="w-full text-left px-3.5 py-2 text-xs font-semibold text-text-primary hover:bg-slate-50 dark:hover:bg-slate-900/50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                          >
+                            <div className="p-1.5 rounded-lg bg-violet-50 text-[#5f2ea8] dark:bg-violet-950/40">
+                              <FileSpreadsheet className="w-3.5 h-3.5" />
+                            </div>
+                            <div>
+                              <div className="font-bold text-text-primary">Attempts Register</div>
+                              <div className="text-[10px] text-text-tertiary">Detailed row log (.xlsx)</div>
+                            </div>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDownloadMenuOpen(false);
+                              handleExportRegisterCsv();
+                            }}
+                            className="w-full text-left px-3.5 py-2 text-xs font-semibold text-text-primary hover:bg-slate-50 dark:hover:bg-slate-900/50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                          >
+                            <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/40">
+                              <FileText className="w-3.5 h-3.5" />
+                            </div>
+                            <div>
+                              <div className="font-bold text-text-primary">Attempts Register</div>
+                              <div className="text-[10px] text-text-tertiary">Raw data format (.csv)</div>
+                            </div>
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Attendance Filter Tabs & Search Bar */}
@@ -1071,12 +1336,29 @@ export function DiagnosisExamsDrillDown({
                   {selectedStudentForSummary.studentName}
                 </h3>
               </div>
-              <button
-                onClick={() => setSelectedStudentForSummary(null)}
-                className="rounded-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:bg-slate-100 text-text-secondary transition-all"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleExportStudentCard(selectedStudentForSummary)}
+                  disabled={isExporting === "student-pdf"}
+                  className="rounded-xl text-xs font-bold text-[#5f2ea8] border-[#5f2ea8]/30 hover:bg-[#5f2ea8]/5 flex items-center gap-1.5 h-[34px] cursor-pointer"
+                >
+                  {isExporting === "student-pdf" ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Download className="w-3.5 h-3.5" />
+                  )}
+                  <span>Download Card (PDF)</span>
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedStudentForSummary(null)}
+                  className="rounded-full p-2 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:bg-slate-100 text-text-secondary transition-all cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             {/* Modal Content */}
