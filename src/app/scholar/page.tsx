@@ -274,19 +274,8 @@ export default function ScholarRegistrationPage() {
             </div>
           </a>
 
-          {/* Top Right: Already Registered? Login Button */}
-          <div className="flex items-center gap-3">
-            <span className="hidden sm:inline-block text-xs font-semibold text-indigo-950/70">
-              Already Registered?
-            </span>
-            <a
-              href="/scholar/admin"
-              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-[#5C34A4] bg-white hover:bg-purple-50 border border-purple-200/80 rounded-full shadow-sm hover:shadow transition-all group"
-            >
-              <span>Login</span>
-              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-            </a>
-          </div>
+          {/* Top Right Header Space / Optional Actions */}
+          <div className="flex items-center gap-3"></div>
         </div>
       </header>
 
