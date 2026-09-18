@@ -351,92 +351,105 @@ export function buildReceiptHtml(ctx: ReceiptContext): string {
 
   const instalmentLabel =
     ctx.totalInstalments > 1
-      ? `Instalment ${ctx.instalmentIndex} of ${ctx.totalInstalments}`
-      : inv ? "Full Payment" : "Payment Entry";
+      ? `Installment ${ctx.instalmentIndex} of ${ctx.totalInstalments}`
+      : inv ? "Full Payment" : "Payment Receipt";
 
   return `
-<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 640px; margin: 0 auto; background-color: #ffffff;">
+<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #e5e7eb;">
 
-  <!-- Header -->
-  <div style="background: linear-gradient(135deg, #1e3a5f 0%, #2d6aa0 100%); padding: 28px 32px; border-radius: 8px 8px 0 0;">
-    <h1 style="margin: 0; color: #ffffff; font-size: 22px; font-weight: 700;">SmartUp Learning Ventures</h1>
-    <p style="margin: 4px 0 0; color: #cce0f5; font-size: 13px;">
-      Kochi, Kerala &nbsp;|&nbsp; academiqedullp@gmail.com &nbsp;|&nbsp; +91 81290 35498
-    </p>
+  <!-- Header Banner -->
+  <div style="background-color: #58269e; background: linear-gradient(135deg, #4f218e 0%, #632da8 100%); padding: 24px 28px; color: #ffffff;">
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr>
+        <td style="vertical-align: middle;">
+          <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">smartup</h1>
+          <p style="margin: 4px 0 0; color: #dfcdfa; font-size: 8.5px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;">
+            LEARNING FOR A BRIGHTER TOMORROW
+          </p>
+        </td>
+        <td style="text-align: right; vertical-align: middle;">
+          <span style="font-family: Georgia, serif; font-style: italic; font-size: 18px; color: #ffffff;">
+            Make Parents Proud
+          </span>
+        </td>
+      </tr>
+    </table>
   </div>
 
-  <!-- Payment Receipt Banner -->
-  <div style="background-color: #e8f5e9; padding: 16px 32px; border-bottom: 2px solid #4caf50;">
-    <table style="width: 100%;">
+  <!-- Status Bar (Green Payment Completed) -->
+  <div style="background-color: #f0fdf4; padding: 14px 28px; border-bottom: 1px solid #bbf7d0;">
+    <table style="width: 100%; border-collapse: collapse;">
       <tr>
-        <td>
-          <span style="font-size: 16px; font-weight: 700; color: #2e7d32;">✓ PAYMENT RECEIPT</span>
+        <td style="vertical-align: middle;">
+          <span style="font-size: 14px; font-weight: 800; color: #15803d;">✓ PAYMENT COMPLETED</span>
         </td>
-        <td style="text-align: right; color: #555; font-size: 13px;">
+        <td style="text-align: right; color: #4b5563; font-size: 13px; font-weight: 700;">
           ${instalmentLabel}
         </td>
       </tr>
     </table>
   </div>
 
-  <div style="padding: 24px 32px;">
+  <div style="padding: 24px 28px;">
 
     <!-- Greeting -->
-    <p style="margin: 0 0 16px; color: #333; font-size: 15px;">
+    <p style="margin: 0 0 12px; color: #111827; font-size: 15px;">
       Dear <strong>${ctx.guardianName}</strong>,
     </p>
-    <p style="margin: 0 0 20px; color: #555; font-size: 14px;">
-      We have received a payment for <strong>${ctx.studentName}</strong>. Here is the summary:
+    <p style="margin: 0 0 20px; color: #4b5563; font-size: 13.5px; line-height: 1.5;">
+      We have received a payment for <strong>${ctx.studentName}</strong>. Thank you for your timely payment!
     </p>
 
-    <!-- Details -->
-    <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px;">
-      ${inv ? `
-      <tr>
-        <td style="padding: 6px 0; color: #777; width: 160px;">Invoice No:</td>
-        <td style="padding: 6px 0; font-weight: 600; color: #333;">${inv.name}</td>
-      </tr>
-      <tr>
-        <td style="padding: 6px 0; color: #777;">Invoice Date:</td>
-        <td style="padding: 6px 0; color: #333;">${inv.posting_date || "—"}</td>
-      </tr>
-      <tr>
-        <td style="padding: 6px 0; color: #777;">Due Date:</td>
-        <td style="padding: 6px 0; color: #333;">${inv.due_date || "—"}</td>
-      </tr>
-      ${inv.academic_year ? `<tr><td style="padding: 6px 0; color: #777;">Academic Year:</td><td style="padding: 6px 0; color: #333;">${inv.academic_year}</td></tr>` : ""}
-      ` : `
-      <tr>
-        <td style="padding: 6px 0; color: #777; width: 160px;">Payment Entry:</td>
-        <td style="padding: 6px 0; font-weight: 600; color: #333;">${ctx.paymentEntry?.name || "—"}</td>
-      </tr>
-      <tr>
-        <td style="padding: 6px 0; color: #777;">Payment Date:</td>
-        <td style="padding: 6px 0; color: #333;">${paymentDate}</td>
-      </tr>
-      `}
-    </table>
-
-    <!-- Amount Breakdown -->
-    <div style="background-color: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-      <h3 style="margin: 0 0 14px; font-size: 14px; color: #1e3a5f; text-transform: uppercase; letter-spacing: 0.5px;">
-        Payment Breakdown
-      </h3>
-      <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+    <!-- Details Card -->
+    <div style="background-color: #fbfbfe; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px 18px; margin-bottom: 20px;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
         ${inv ? `
         <tr>
-          <td style="padding: 8px 0; color: #555;">Instalment Amount</td>
-          <td style="padding: 8px 0; text-align: right; font-weight: 600; color: #333;">${fmt(inv.grand_total || 0)}</td>
+          <td style="padding: 5px 0; color: #6b7280; width: 140px;">Invoice No:</td>
+          <td style="padding: 5px 0; font-weight: 700; color: #111827;">${inv.name}</td>
+        </tr>
+        <tr>
+          <td style="padding: 5px 0; color: #6b7280;">Invoice Date:</td>
+          <td style="padding: 5px 0; color: #374151;">${inv.posting_date || "—"}</td>
+        </tr>
+        <tr>
+          <td style="padding: 5px 0; color: #6b7280;">Due Date:</td>
+          <td style="padding: 5px 0; color: #374151;">${inv.due_date || "—"}</td>
+        </tr>
+        ${inv.academic_year ? `<tr><td style="padding: 5px 0; color: #6b7280;">Academic Year:</td><td style="padding: 5px 0; color: #374151;">${inv.academic_year}</td></tr>` : ""}
+        ` : `
+        <tr>
+          <td style="padding: 5px 0; color: #6b7280; width: 140px;">Payment Entry:</td>
+          <td style="padding: 5px 0; font-weight: 700; color: #111827;">${ctx.paymentEntry?.name || "—"}</td>
+        </tr>
+        <tr>
+          <td style="padding: 5px 0; color: #6b7280;">Payment Date:</td>
+          <td style="padding: 5px 0; color: #374151;">${paymentDate}</td>
+        </tr>
+        `}
+      </table>
+    </div>
+
+    <!-- Amount Breakdown (This Installment) -->
+    <div style="background-color: #f2faf5; border: 1.5px solid #bbf7d0; border-radius: 10px; padding: 16px 20px; margin-bottom: 20px;">
+      <h3 style="margin: 0 0 12px; font-size: 13px; color: #16a34a; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">
+        Payment Breakdown
+      </h3>
+      <table style="width: 100%; border-collapse: collapse; font-size: 13.5px;">
+        ${inv ? `
+        <tr>
+          <td style="padding: 6px 0; color: #4b5563;">Installment Amount</td>
+          <td style="padding: 6px 0; text-align: right; font-weight: 600; color: #111827;">${fmt(inv.grand_total || 0)}</td>
         </tr>
         ` : ""}
         <tr>
-          <td style="padding: 8px 0; color: #555;">Amount Paid</td>
-          <td style="padding: 8px 0; text-align: right; font-weight: 600; color: #2e7d32;">${fmt(paidOnInvoice)}</td>
+          <td style="padding: 6px 0; color: #4b5563;">Amount Paid</td>
+          <td style="padding: 6px 0; text-align: right; font-weight: 700; color: #16a34a;">${fmt(paidOnInvoice)}</td>
         </tr>
         ${inv ? `
-        <tr style="border-top: 1px dashed #ccc;">
-          <td style="padding: 10px 0 4px; color: #555; font-weight: 600;">Balance Remaining</td>
-          <td style="padding: 10px 0 4px; text-align: right; font-weight: 700; color: ${balanceOnInvoice > 0 ? "#e65100" : "#2e7d32"}; font-size: 16px;">
+        <tr style="border-top: 1px dashed #cbd5e1;">
+          <td style="padding: 10px 0 4px; color: #111827; font-weight: 700;">Balance</td>
+          <td style="padding: 10px 0 4px; text-align: right; font-weight: 800; color: ${balanceOnInvoice > 0 ? "#ea580c" : "#16a34a"}; font-size: 15px;">
             ${balanceOnInvoice > 0 ? fmt(balanceOnInvoice) : "Fully Paid ✓"}
           </td>
         </tr>
@@ -444,24 +457,24 @@ export function buildReceiptHtml(ctx: ReceiptContext): string {
       </table>
     </div>
 
-    <!-- Overall Fee Summary -->
+    <!-- Overall Fee Summary (Purple card) -->
     ${ctx.totalInstalments > 1 ? `
-    <div style="background-color: #f0f4ff; border: 1px solid #c5cae9; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-      <h3 style="margin: 0 0 14px; font-size: 14px; color: #1e3a5f; text-transform: uppercase; letter-spacing: 0.5px;">
+    <div style="background-color: #f8f6fd; border: 1.5px solid #e7ddfb; border-radius: 10px; padding: 16px 20px; margin-bottom: 20px;">
+      <h3 style="margin: 0 0 12px; font-size: 13px; color: #58269e; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">
         Overall Fee Summary
       </h3>
-      <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 13.5px;">
         <tr>
-          <td style="padding: 8px 0; color: #555;">Total Course Fee</td>
-          <td style="padding: 8px 0; text-align: right; font-weight: 600; color: #333;">${fmt(ctx.totalCourseFee)}</td>
+          <td style="padding: 6px 0; color: #4b5563;">Total Course Fee</td>
+          <td style="padding: 6px 0; text-align: right; font-weight: 600; color: #111827;">${fmt(ctx.totalCourseFee)}</td>
         </tr>
         <tr>
-          <td style="padding: 8px 0; color: #555;">Total Paid So Far</td>
-          <td style="padding: 8px 0; text-align: right; font-weight: 600; color: #2e7d32;">${fmt(ctx.totalPaidSoFar)}</td>
+          <td style="padding: 6px 0; color: #4b5563;">Total Paid So Far</td>
+          <td style="padding: 6px 0; text-align: right; font-weight: 700; color: #16a34a;">${fmt(ctx.totalPaidSoFar)}</td>
         </tr>
-        <tr style="border-top: 1px dashed #ccc;">
-          <td style="padding: 10px 0 4px; color: #555; font-weight: 600;">Total Outstanding</td>
-          <td style="padding: 10px 0 4px; text-align: right; font-weight: 700; color: ${ctx.totalOutstanding > 0 ? "#e65100" : "#2e7d32"}; font-size: 16px;">
+        <tr style="border-top: 1px dashed #cbd5e1;">
+          <td style="padding: 10px 0 4px; color: #111827; font-weight: 700;">Total Outstanding</td>
+          <td style="padding: 10px 0 4px; text-align: right; font-weight: 800; color: ${ctx.totalOutstanding > 0 ? "#ea580c" : "#16a34a"}; font-size: 15px;">
             ${ctx.totalOutstanding > 0 ? fmt(ctx.totalOutstanding) : "All Clear ✓"}
           </td>
         </tr>
@@ -470,48 +483,48 @@ export function buildReceiptHtml(ctx: ReceiptContext): string {
     ` : ""}
 
     <!-- Payment Details -->
-    <div style="background-color: #fff8e1; border: 1px solid #ffe082; border-radius: 8px; padding: 16px 20px; margin-bottom: 24px;">
-      <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+    <div style="background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px 18px; margin-bottom: 20px;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 12.5px;">
         <tr>
-          <td style="padding: 4px 0; color: #777;">Payment Reference:</td>
-          <td style="padding: 4px 0; color: #333; font-weight: 600;">${paymentRef}</td>
+          <td style="padding: 4px 0; color: #6b7280;">Payment Reference:</td>
+          <td style="padding: 4px 0; color: #111827; font-weight: 600;">${paymentRef}</td>
         </tr>
         <tr>
-          <td style="padding: 4px 0; color: #777;">Mode of Payment:</td>
-          <td style="padding: 4px 0; color: #333;">${paymentMode}</td>
+          <td style="padding: 4px 0; color: #6b7280;">Mode of Payment:</td>
+          <td style="padding: 4px 0; color: #111827;">${paymentMode}</td>
         </tr>
         <tr>
-          <td style="padding: 4px 0; color: #777;">Payment Date:</td>
-          <td style="padding: 4px 0; color: #333;">${paymentDate}</td>
+          <td style="padding: 4px 0; color: #6b7280;">Payment Date:</td>
+          <td style="padding: 4px 0; color: #111827;">${paymentDate}</td>
         </tr>
       </table>
     </div>
 
     <!-- PDF note -->
-    <p style="margin: 0 0 24px; color: #555; font-size: 13px; text-align: center; font-style: italic;">
-      📎 The detailed receipt PDF is attached to this email.
+    <p style="margin: 0 0 20px; color: #6b7280; font-size: 12.5px; text-align: center;">
+      📎 The branded receipt PDF is attached to this email.
     </p>
 
     <!-- Divider -->
-    <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+    <hr style="border: none; border-top: 1px solid #f3f4f6; margin: 16px 0;">
 
     <!-- Footer -->
-    <p style="margin: 0 0 4px; color: #555; font-size: 13px;">Thank you for your timely payment.</p>
-    <p style="margin: 0 0 16px; color: #555; font-size: 13px;">
+    <p style="margin: 0 0 4px; color: #4b5563; font-size: 13px;">Thank you for your timely payment.</p>
+    <p style="margin: 0 0 16px; color: #6b7280; font-size: 12.5px;">
       For queries, reply to this email or contact us at
-      <a href="mailto:academiqedullp@gmail.com" style="color: #2d6aa0;">academiqedullp@gmail.com</a>
+      <a href="mailto:academiqedullp@gmail.com" style="color: #58269e; text-decoration: none; font-weight: 600;">academiqedullp@gmail.com</a>
       / <strong>+91 81290 35498</strong>
     </p>
 
-    <p style="margin: 0; color: #333; font-size: 14px;">
+    <p style="margin: 0; color: #111827; font-size: 13.5px;">
       Warm regards,<br/>
-      <strong>SmartUp Learning Ventures</strong>
+      <strong style="color: #58269e;">SmartUp Learning Ventures</strong>
     </p>
   </div>
 
   <!-- Bottom bar -->
-  <div style="background-color: #f5f5f5; padding: 12px 32px; border-radius: 0 0 8px 8px; text-align: center;">
-    <p style="margin: 0; color: #999; font-size: 11px;">
+  <div style="background-color: #f9fafb; padding: 12px 28px; border-top: 1px solid #f3f4f6; text-align: center;">
+    <p style="margin: 0; color: #9ca3af; font-size: 11px;">
       This is an automated receipt. Please do not reply to report payment issues — contact the branch office directly.
     </p>
   </div>

@@ -233,9 +233,9 @@ export default function ScholarRegistrationPage() {
   return (
     <div className="min-h-screen bg-[#FBFBFE] text-slate-800 flex flex-col justify-between selection:bg-[#5C34A4] selection:text-white font-sans relative overflow-x-hidden">
       {/* Top Navigation Bar */}
-      <header className="w-full bg-transparent py-6 px-6 sm:px-12 lg:px-20">
+      <header className="w-full bg-transparent py-5 px-6 sm:px-12 lg:px-20 z-20">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          {/* Brand Logo & Title (Navigates to Dedicated Admin Control Page) */}
+          {/* Brand Logo & Title */}
           <a
             href="/scholar/admin"
             className="flex items-center gap-3.5 group cursor-pointer text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5C34A4] rounded-xl p-1 -m-1 transition-transform active:scale-95"
@@ -260,58 +260,97 @@ export default function ScholarRegistrationPage() {
               </span>
             </div>
           </a>
+
+          {/* Top Right: Already Registered? Login Button */}
+          <div className="flex items-center gap-3">
+            <span className="hidden sm:inline-block text-xs font-semibold text-indigo-950/70">
+              Already Registered?
+            </span>
+            <a
+              href="/scholar/admin"
+              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-[#5C34A4] bg-white hover:bg-purple-50 border border-purple-200/80 rounded-full shadow-sm hover:shadow transition-all group"
+            >
+              <span>Login</span>
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+            </a>
+          </div>
         </div>
       </header>
 
       {/* Main Hero Container */}
-      <main className="max-w-7xl mx-auto px-6 sm:px-12 lg:px-20 py-4 lg:py-8 w-full flex-1 flex items-center">
-        <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
+      <main className="max-w-7xl mx-auto px-6 sm:px-12 lg:px-20 py-4 lg:py-6 w-full flex-1 flex items-center">
+        <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
           
           {/* Left Column: Headline, Subtitle & Student Graphic */}
-          <div className="lg:col-span-7 flex flex-col justify-center">
+          <div className="lg:col-span-7 flex flex-col justify-center relative">
+            {/* Background Soft Purple Circle Shapes */}
+            <div className="absolute -left-16 -top-12 w-36 h-36 rounded-full bg-purple-100/60 pointer-events-none -z-10 blur-xl" />
+            <div className="absolute -left-8 top-1/2 w-16 h-16 rounded-full bg-purple-200/40 pointer-events-none -z-10 blur-md" />
+
             {/* Tag / Eyebrow */}
-            <div className="text-[11px] font-bold tracking-[0.16em] text-[#7C5CB7] uppercase mb-3">
-              SmartUp Scholarship Exam
+            <div className="text-[11px] font-extrabold tracking-[0.22em] text-[#6C42B8] uppercase mb-3">
+              SMARTUP SCHOLARSHIP EXAM
             </div>
 
             {/* Headline */}
-            <h1 className="text-4xl sm:text-5xl lg:text-[56px] font-black text-slate-900 tracking-tight leading-[1.12] mb-3">
+            <h1 className="text-4xl sm:text-5xl lg:text-[58px] font-black text-slate-900 tracking-tight leading-[1.08] mb-3">
               Make Parents <br />
               <span className="text-[#5C34A4]">Proud</span>
             </h1>
 
             {/* Subtitle */}
-            <p className="text-[15px] sm:text-base text-slate-500 max-w-lg font-normal leading-relaxed mb-6">
-              Take the <strong className="text-slate-700 font-semibold">SmartUp Scholarship Exam</strong> for Classes 8, 9, 10, +1 &amp; +2.
+            <p className="text-[15px] sm:text-base text-slate-500 max-w-lg font-normal leading-relaxed mb-4">
+              Take the <strong className="text-slate-800 font-semibold">SmartUp Scholarship Exam</strong> for Classes 8, 9, 10, +1 &amp; +2.
             </p>
 
-            {/* Visual Hero Area: Perfectly Aligned Student Image & Floating Badges */}
-            <div className="relative w-full max-w-[560px] mx-auto lg:mx-0 lg:-ml-6 -mt-4 sm:-mt-6 lg:-mt-10 flex justify-center items-end pt-0 pb-0">
-              {/* Circular Soft Purple Glow Backdrop */}
-              <div className="absolute w-84 h-84 sm:w-[420px] sm:h-[420px] rounded-full bg-[#EFEBFA]/90 -z-10 bottom-2 left-1/2 -translate-x-1/2" />
-              <div className="absolute w-[480px] h-[480px] rounded-full bg-purple-100/35 -z-20 blur-3xl bottom-0 left-1/2 -translate-x-1/2" />
-
-              {/* Student Cutout Image */}
-              <div className="relative w-[370px] h-[430px] sm:w-[450px] sm:h-[510px]">
-                <Image
-                  src="/rd.webp"
-                  alt="SmartUp Student"
-                  fill
-                  priority
-                  className="object-contain object-bottom drop-shadow-sm"
-                  sizes="(max-width: 640px) 370px, 450px"
-                />
+            {/* Visual Hero Area: Student Graphic & Handwritten Slogan */}
+            <div className="relative w-full max-w-[560px] mx-auto lg:mx-0 flex justify-center items-end pt-4 pb-0">
+              {/* Handwritten Slanted Script: Learn Grow Succeed */}
+              <div className="absolute right-6 sm:right-12 top-6 z-10 select-none pointer-events-none transform -rotate-12">
+                <div className="flex flex-col items-center leading-tight font-serif italic text-[#7E88A6] drop-shadow-sm text-sm sm:text-base tracking-wide opacity-90">
+                  <span className="text-[18px] sm:text-[20px] font-normal tracking-wide text-[#6C7895]" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>
+                    Learn
+                  </span>
+                  <span className="text-[19px] sm:text-[21px] font-normal tracking-wide text-[#6C7895] -mt-1" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>
+                    Grow
+                  </span>
+                  <span className="text-[20px] sm:text-[22px] font-medium tracking-wide text-[#5C34A4] -mt-1" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>
+                    Succeed
+                  </span>
+                </div>
               </div>
 
-              {/* Right Floating Badge: Graduation Cap Circle */}
+              {/* Floating Mini Cap Badge on the Right */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.5, delay: 0.3 }}
-                className="absolute right-4 sm:right-8 top-10 sm:top-12 w-14 h-14 rounded-full bg-white shadow-xl shadow-purple-950/8 border border-slate-100 flex items-center justify-center text-[#5C34A4] z-10"
+                className="absolute right-14 sm:right-20 top-28 sm:top-32 w-12 h-12 rounded-full bg-white shadow-lg shadow-purple-950/8 border border-purple-100/80 flex items-center justify-center text-[#5C34A4] z-10"
               >
-                <GraduationCap className="w-7 h-7 stroke-[2]" />
+                <GraduationCap className="w-6 h-6 stroke-[2]" />
               </motion.div>
+
+              {/* Circular Soft Purple Glow Backdrop */}
+              <div className="absolute w-80 h-80 sm:w-[420px] sm:h-[420px] rounded-full bg-[#EFEBFA]/80 -z-10 bottom-0 left-1/2 -translate-x-1/2" />
+              <div className="absolute w-[460px] h-[460px] rounded-full bg-purple-100/30 -z-20 blur-3xl bottom-0 left-1/2 -translate-x-1/2" />
+
+              {/* Student Cutout Image with Bottom Gradient Fade */}
+              <div
+                className="relative w-[360px] h-[380px] sm:w-[440px] sm:h-[430px]"
+                style={{
+                  maskImage: "linear-gradient(to bottom, black 72%, transparent 98%)",
+                  WebkitMaskImage: "linear-gradient(to bottom, black 72%, transparent 98%)",
+                }}
+              >
+                <Image
+                  src="/rd.webp"
+                  alt="SmartUp Mentors"
+                  fill
+                  priority
+                  className="object-contain object-bottom"
+                  sizes="(max-width: 640px) 360px, 440px"
+                />
+              </div>
             </div>
           </div>
 
@@ -321,8 +360,57 @@ export default function ScholarRegistrationPage() {
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}
-              className="w-full max-w-[420px] bg-white rounded-[26px] p-7 sm:p-8 shadow-xl shadow-purple-950/5 border border-slate-100"
+              className="relative w-full max-w-[440px] bg-white rounded-[28px] p-7 sm:p-8 shadow-2xl shadow-purple-950/10 border border-slate-100"
             >
+              {/* Floating 3D Graduation Cap Icon at top-right corner of card */}
+              <div className="absolute -top-6 -right-2 sm:-right-4 w-20 h-20 sm:w-24 sm:h-24 pointer-events-none select-none z-20">
+                <svg viewBox="0 0 120 120" className="w-full h-full drop-shadow-md" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  {/* Decorative Sparkles */}
+                  <path d="M22 45L24 38L31 36L24 34L22 27L20 34L13 36L20 38L22 45Z" fill="#C4B5FD" opacity="0.8" />
+                  <path d="M102 24L103.5 19L108 17.5L103.5 16L102 11L100.5 16L96 17.5L100.5 19L102 24Z" fill="#A78BFA" opacity="0.9" />
+                  <circle cx="18" cy="58" r="2.5" fill="#DDD6FE" />
+                  <circle cx="108" cy="38" r="2" fill="#C4B5FD" />
+                  
+                  {/* 3D Cap Diamond Top */}
+                  <g filter="url(#capShadow)">
+                    <path
+                      d="M62 26L102 44L62 62L22 44L62 26Z"
+                      fill="url(#capGradient)"
+                    />
+                    {/* Cap Rim / Thickness */}
+                    <path
+                      d="M22 44L62 62L102 44L102 48L62 66L22 48Z"
+                      fill="#5C34A4"
+                    />
+                    {/* Skullcap / Beanie Underneath */}
+                    <path
+                      d="M38 56C38 56 42 76 62 76C82 76 86 56 86 56L80 54C80 70 68 71 62 71C56 71 44 70 44 54L38 56Z"
+                      fill="#4E2B8E"
+                    />
+                    {/* Tassel Button */}
+                    <ellipse cx="62" cy="44" rx="4" ry="2.5" fill="#A78BFA" />
+                    {/* Tassel Cord & Fringe */}
+                    <path
+                      d="M62 44C76 45 92 52 94 65L96 82C96 82 98 83 98 86C98 89 94 89 94 86L92 65"
+                      stroke="#8B5CF6"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      fill="#8B5CF6"
+                    />
+                  </g>
+                  <defs>
+                    <linearGradient id="capGradient" x1="22" y1="26" x2="102" y2="62" gradientUnits="userSpaceOnUse">
+                      <stop stopColor="#9B78DC" />
+                      <stop offset="0.5" stopColor="#7C50C7" />
+                      <stop offset="1" stopColor="#673AB7" />
+                    </linearGradient>
+                    <filter id="capShadow" x="12" y="18" width="98" height="78" filterUnits="userSpaceOnUse">
+                      <feDropShadow dx="0" dy="4" stdDeviation="5" floodColor="#4C1D95" floodOpacity="0.25" />
+                    </filter>
+                  </defs>
+                </svg>
+              </div>
+
               {/* Form Title & Subtitle */}
               <div className="mb-5">
                 <h2 className="text-2xl font-black text-slate-900 tracking-tight">
@@ -335,16 +423,16 @@ export default function ScholarRegistrationPage() {
 
               {/* Returning Student Auto-Detect Banner */}
               {returningStudent && !isSubmitted && (
-                <div className="mb-5 p-4 rounded-2xl bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200/80 text-xs text-slate-800 space-y-2.5 shadow-sm">
+                <div className="mb-5 p-4 rounded-2xl bg-gradient-to-r from-purple-50 to-indigo-50/60 border border-purple-200/80 text-xs text-slate-800 space-y-2.5 shadow-sm">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-[#5C34A4] font-extrabold text-sm">
-                      <Sparkles className="w-4 h-4 text-amber-500 fill-amber-400" />
+                    <div className="flex items-center gap-1.5 text-[#5C34A4] font-extrabold text-sm">
+                      <span className="text-base">👋</span>
                       <span>Welcome Back, {returningStudent.name}!</span>
                     </div>
                     <button
                       type="button"
                       onClick={() => setReturningStudent(null)}
-                      className="text-[10px] text-slate-400 hover:text-slate-600 underline font-medium"
+                      className="text-[11px] text-[#5C34A4] hover:underline font-semibold"
                     >
                       New Student?
                     </button>
@@ -356,7 +444,7 @@ export default function ScholarRegistrationPage() {
                     type="button"
                     disabled={isStartingExam}
                     onClick={handleStartScholarshipExam}
-                    className="w-full py-2.5 px-4 font-bold text-xs text-white bg-[#5C34A4] hover:bg-[#4E2B8E] active:bg-[#43237E] disabled:opacity-70 rounded-full transition-all shadow-md shadow-purple-900/20 flex items-center justify-center gap-2 cursor-pointer"
+                    className="w-full py-2.5 px-4 font-bold text-xs text-white bg-[#5C34A4] hover:bg-[#4E2B8E] active:bg-[#43237E] disabled:opacity-70 rounded-xl transition-all shadow-md shadow-purple-900/20 flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <span>{isStartingExam ? "Starting Scholarship Exam..." : "Start / Resume Exam Now"}</span>
                     {!isStartingExam && <ArrowRight className="w-3.5 h-3.5" />}
@@ -419,7 +507,7 @@ export default function ScholarRegistrationPage() {
                 <form onSubmit={handleSubmit} className="space-y-4">
                   {/* Student Name */}
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-bold text-slate-700 tracking-wide">
+                    <label className="text-xs font-bold text-slate-800 tracking-wide">
                       Student Name <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
@@ -430,14 +518,14 @@ export default function ScholarRegistrationPage() {
                         placeholder="Enter student name"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200/90 rounded-xl text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5C34A4]/20 focus:border-[#5C34A4] transition"
+                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50/50 hover:bg-white border border-slate-200/90 rounded-xl text-slate-900 text-sm placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5C34A4]/20 focus:border-[#5C34A4] transition"
                       />
                     </div>
                   </div>
 
                   {/* Class / Grade */}
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-bold text-slate-700 tracking-wide">
+                    <label className="text-xs font-bold text-slate-800 tracking-wide">
                       Class / Grade <span className="text-red-500">*</span>
                     </label>
                     <div className="grid grid-cols-5 gap-2">
@@ -448,10 +536,10 @@ export default function ScholarRegistrationPage() {
                             key={c.id}
                             type="button"
                             onClick={() => setSelectedClass(c.id)}
-                            className={`py-2 px-1 text-center rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+                            className={`py-2 px-1 text-center rounded-xl text-xs font-bold transition-all cursor-pointer ${
                               isSelected
                                 ? "bg-[#5C34A4] text-white shadow-md shadow-purple-900/25"
-                                : "bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/70"
+                                : "bg-slate-50/60 hover:bg-slate-100 text-slate-700 border border-slate-200/80"
                             }`}
                           >
                             {c.label}
@@ -463,10 +551,10 @@ export default function ScholarRegistrationPage() {
 
                   {/* Syllabus / Board */}
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-bold text-slate-700 tracking-wide">
+                    <label className="text-xs font-bold text-slate-800 tracking-wide">
                       Syllabus / Board <span className="text-red-500">*</span>
                     </label>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-2.5">
                       {(["State", "CBSE"] as const).map((s) => {
                         const isSelected = syllabus === s;
                         return (
@@ -474,10 +562,10 @@ export default function ScholarRegistrationPage() {
                             key={s}
                             type="button"
                             onClick={() => setSyllabus(s)}
-                            className={`py-2 px-3 text-center rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                            className={`py-2.5 px-3 text-center rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
                               isSelected
                                 ? "bg-[#5C34A4] text-white shadow-md shadow-purple-900/20"
-                                : "bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200/70"
+                                : "bg-slate-50/60 hover:bg-slate-100 text-slate-700 border border-slate-200/80"
                             }`}
                           >
                             <span>{s === "State" ? "State Syllabus" : "CBSE Board"}</span>
@@ -488,9 +576,9 @@ export default function ScholarRegistrationPage() {
                     </div>
                   </div>
 
-                  {/* Phone Number Field (Full Width) */}
+                  {/* Phone Number Field */}
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-bold text-slate-700 tracking-wide">
+                    <label className="text-xs font-bold text-slate-800 tracking-wide">
                       Phone Number <span className="text-red-500">*</span>
                     </label>
                     <CountryPhoneInput
@@ -500,27 +588,6 @@ export default function ScholarRegistrationPage() {
                       onPhoneChange={setPhone}
                       required
                     />
-                  </div>
-
-                  {/* District / Emirate / Location Field (Full Width) */}
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-bold text-slate-700 tracking-wide">
-                      {selectedCountry.regionLabel} <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <select
-                        value={district}
-                        onChange={(e) => setDistrict(e.target.value)}
-                        className="w-full appearance-none px-3.5 py-2.5 bg-white border border-slate-200/90 rounded-xl text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-[#5C34A4]/20 focus:border-[#5C34A4] transition cursor-pointer pr-9"
-                      >
-                        {selectedCountry.regions.map((r) => (
-                          <option key={r} value={r}>
-                            {r}
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    </div>
                   </div>
 
                   {/* Existing Registration Notice */}
@@ -541,7 +608,7 @@ export default function ScholarRegistrationPage() {
                     <button
                       type="submit"
                       disabled={isSubmitting || isCheckingPhone}
-                      className="w-full py-3 px-6 font-bold text-sm text-white bg-[#5C34A4] hover:bg-[#4E2B8E] active:bg-[#43237E] disabled:opacity-70 rounded-full transition-all shadow-lg shadow-purple-900/25 flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
+                      className="w-full py-3.5 px-6 font-bold text-sm text-white bg-[#5C34A4] hover:bg-[#4E2B8E] active:bg-[#43237E] disabled:opacity-70 rounded-xl transition-all shadow-lg shadow-purple-900/25 flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
                     >
                       <span>
                         {isSubmitting
@@ -550,16 +617,10 @@ export default function ScholarRegistrationPage() {
                           ? "Checking Registration..."
                           : isExistingStudent
                           ? `Continue to Exam as ${name.split(" ")[0]}`
-                          : "Register for Exam"}
+                          : "Register & Continue"}
                       </span>
                       {!isSubmitting && !isCheckingPhone && <ArrowRight className="w-4 h-4" />}
                     </button>
-                  </div>
-
-                  {/* Security Note */}
-                  <div className="flex items-center justify-center gap-1.5 text-xs text-slate-400 pt-1">
-                    <Lock className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Your information is secure</span>
                   </div>
                 </form>
               )}
