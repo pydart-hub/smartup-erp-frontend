@@ -816,119 +816,20 @@ export function DiagnosisExamsDrillDown({
                   <span>Class Analytics</span>
                 </Link>
 
-                {/* Download Report Dropdown */}
-                <div className="relative">
-                  <Button
-                    onClick={() => setDownloadMenuOpen(!downloadMenuOpen)}
-                    disabled={!!isExporting}
-                    className="rounded-xl font-bold bg-[#5f2ea8] hover:bg-[#4d238c] text-white flex items-center gap-1.5 shadow-sm px-4 py-2 text-xs h-[36px] cursor-pointer"
-                  >
-                    {isExporting ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Download className="w-4 h-4" />
-                    )}
-                    <span>Download Report</span>
-                    <ChevronDown className="w-3.5 h-3.5 ml-0.5" />
-                  </Button>
-
-                  {downloadMenuOpen && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-20"
-                        onClick={() => setDownloadMenuOpen(false)}
-                      />
-                      <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-[#0E1526] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl py-2 z-30 animate-in fade-in slide-in-from-top-2 duration-150 divide-y divide-slate-100 dark:divide-slate-800/60">
-                        {/* Scope Header */}
-                        <div className="px-3.5 py-2">
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-text-tertiary">
-                            Export Scope
-                          </p>
-                          <p className="text-xs font-black text-text-primary mt-0.5">
-                            Class {selectedClass} • {filteredStudentGroups.length} {filteredStudentGroups.length === 1 ? "Student" : "Students"}
-                          </p>
-                          <p className="text-[10px] text-text-secondary mt-0.5">
-                            Filter: {getFilterLabel()}
-                          </p>
-                        </div>
-
-                        {/* Performance Matrix Options */}
-                        <div className="py-1">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setDownloadMenuOpen(false);
-                              handleExportMatrixExcel();
-                            }}
-                            className="w-full text-left px-3.5 py-2 text-xs font-semibold text-text-primary hover:bg-slate-50 dark:hover:bg-slate-900/50 flex items-center gap-2.5 transition-colors cursor-pointer"
-                          >
-                            <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40">
-                              <FileSpreadsheet className="w-3.5 h-3.5" />
-                            </div>
-                            <div>
-                              <div className="font-bold text-text-primary">Performance Matrix</div>
-                              <div className="text-[10px] text-text-tertiary">Excel spreadsheet (.xlsx)</div>
-                            </div>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setDownloadMenuOpen(false);
-                              handleExportMatrixPdf();
-                            }}
-                            className="w-full text-left px-3.5 py-2 text-xs font-semibold text-text-primary hover:bg-slate-50 dark:hover:bg-slate-900/50 flex items-center gap-2.5 transition-colors cursor-pointer"
-                          >
-                            <div className="p-1.5 rounded-lg bg-rose-50 text-rose-600 dark:bg-rose-950/40">
-                              <FileText className="w-3.5 h-3.5" />
-                            </div>
-                            <div>
-                              <div className="font-bold text-text-primary">Class Summary Report</div>
-                              <div className="text-[10px] text-text-tertiary">Landscape Document (.pdf)</div>
-                            </div>
-                          </button>
-                        </div>
-
-                        {/* Attempts Register Options */}
-                        <div className="py-1">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setDownloadMenuOpen(false);
-                              handleExportRegisterExcel();
-                            }}
-                            className="w-full text-left px-3.5 py-2 text-xs font-semibold text-text-primary hover:bg-slate-50 dark:hover:bg-slate-900/50 flex items-center gap-2.5 transition-colors cursor-pointer"
-                          >
-                            <div className="p-1.5 rounded-lg bg-violet-50 text-[#5f2ea8] dark:bg-violet-950/40">
-                              <FileSpreadsheet className="w-3.5 h-3.5" />
-                            </div>
-                            <div>
-                              <div className="font-bold text-text-primary">Attempts Register</div>
-                              <div className="text-[10px] text-text-tertiary">Detailed row log (.xlsx)</div>
-                            </div>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setDownloadMenuOpen(false);
-                              handleExportRegisterCsv();
-                            }}
-                            className="w-full text-left px-3.5 py-2 text-xs font-semibold text-text-primary hover:bg-slate-50 dark:hover:bg-slate-900/50 flex items-center gap-2.5 transition-colors cursor-pointer"
-                          >
-                            <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/40">
-                              <FileText className="w-3.5 h-3.5" />
-                            </div>
-                            <div>
-                              <div className="font-bold text-text-primary">Attempts Register</div>
-                              <div className="text-[10px] text-text-tertiary">Raw data format (.csv)</div>
-                            </div>
-                          </button>
-                        </div>
-                      </div>
-                    </>
+                {/* Download Class Summary Report (PDF) */}
+                <Button
+                  onClick={handleExportMatrixPdf}
+                  disabled={!!isExporting}
+                  className="rounded-xl font-bold bg-[#5f2ea8] hover:bg-[#4d238c] text-white flex items-center gap-1.5 shadow-sm px-4 py-2 text-xs h-[36px] cursor-pointer"
+                  title="Download Class Summary Report as PDF"
+                >
+                  {isExporting === "matrix-pdf" ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Download className="w-4 h-4" />
                   )}
-                </div>
+                  <span>Class Summary Report (PDF)</span>
+                </Button>
               </div>
             </div>
 

@@ -1,4 +1,4 @@
-import { type AttemptWithPublishing, getAttemptLevelBreakdown } from "@/lib/public-exam/diagnostics";
+import { type AttemptWithPublishing, getAttemptLevelBreakdown, getOrdinalSuffix } from "@/lib/public-exam/diagnostics";
 
 export interface StudentGroupExportData {
   key: string;
@@ -138,17 +138,11 @@ export async function exportDiagnosisClassMatrixExcel({
       if (!attempt) return "Not Attended";
 
       const isSubmitted = attempt.status === "submitted" || attempt.status === "auto_submitted";
-      const { diagnosedLevel, diagnosedCorrect, diagnosedTotal } = getAttemptLevelBreakdown(attempt);
+      const { diagnosedLevel } = getAttemptLevelBreakdown(attempt);
+      const level = diagnosedLevel || getOrdinalSuffix(attempt.classLevel);
+      const liveSuffix = isSubmitted ? "" : " (Live)";
 
-      if (diagnosedLevel) {
-        const liveSuffix = isSubmitted ? "" : " (Live)";
-        const scoreSuffix = diagnosedCorrect !== null && diagnosedTotal !== null ? ` [${diagnosedCorrect}/${diagnosedTotal}]` : ` [${attempt.scoreObtained}/${attempt.totalMarks}]`;
-        return `${diagnosedLevel}${liveSuffix}${scoreSuffix}`;
-      }
-
-      return isSubmitted
-        ? `Score: ${attempt.scoreObtained}/${attempt.totalMarks} (${attempt.percentage}%)`
-        : `In Progress (${attempt.scoreObtained}/${attempt.totalMarks})`;
+      return `${level}${liveSuffix} [${attempt.scoreObtained}/${attempt.totalMarks}]`;
     });
 
     // Calculate student overall average percentage across submitted attempts
@@ -302,17 +296,14 @@ export async function exportDiagnosisClassMatrixPdf({
       if (!attempt) return "Not Attended";
 
       const isSubmitted = attempt.status === "submitted" || attempt.status === "auto_submitted";
-      const { diagnosedLevel, diagnosedCorrect, diagnosedTotal } = getAttemptLevelBreakdown(attempt);
+      const { diagnosedLevel } = getAttemptLevelBreakdown(attempt);
+      const level = diagnosedLevel || getOrdinalSuffix(attempt.classLevel);
 
-      if (diagnosedLevel) {
-        const liveStr = isSubmitted ? "" : " (Live)";
-        const scoreStr = diagnosedCorrect !== null && diagnosedTotal !== null ? `\n(${diagnosedCorrect}/${diagnosedTotal})` : `\n(${attempt.scoreObtained}/${attempt.totalMarks})`;
-        return `${diagnosedLevel}${liveStr}${scoreStr}`;
+      if (isSubmitted) {
+        return `${level}\n${attempt.scoreObtained} / ${attempt.totalMarks}`;
+      } else {
+        return `${level} (Live)\n${attempt.scoreObtained} / ${attempt.totalMarks}`;
       }
-
-      return isSubmitted
-        ? `${attempt.scoreObtained}/${attempt.totalMarks}\n(${attempt.percentage}%)`
-        : `Live\n(${attempt.scoreObtained}/${attempt.totalMarks})`;
     });
 
     const submitted = student.attempts.filter((a) => a.status === "submitted" || a.status === "auto_submitted");
