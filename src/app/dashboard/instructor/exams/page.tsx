@@ -188,14 +188,12 @@ export default function InstructorExamsPage() {
 
     // Pre-populate standard / desired ones
     [
+      "Diagnosis Exam",
       "Weekly Exam",
       "Annual Exam",
       "Onam Exam",
       "Half Yearly Exam",
       "Quarterly Exam",
-      "Test",
-      "Unit Test 1",
-      "Unit Test 2",
       "CWC Exam 1",
       "CWC Exam 2",
       "CWC Exam 3",
@@ -220,14 +218,12 @@ export default function InstructorExamsPage() {
 
     // Desired display priority
     const desiredOrder = [
+      "Diagnosis Exam",
       "Weekly Exam",
       "Annual Exam",
       "Onam Exam",
       "Half Yearly Exam",
       "Quarterly Exam",
-      "Test",
-      "Unit Test 1",
-      "Unit Test 2",
       "CWC Exam 1",
       "CWC Exam 2",
       "CWC Exam 3",

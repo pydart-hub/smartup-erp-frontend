@@ -38,7 +38,7 @@ export default function ClassPerformancePage() {
   const [selectedBranch, setSelectedBranch] = useState("");
   const [selectedClass, setSelectedClass] = useState(""); // ID of Student Group
   const [selectedClassName, setSelectedClassName] = useState(""); // User-facing name
-  const [selectedExamGroup, setSelectedExamGroup] = useState("Test"); // Selected Assessment Group
+  const [selectedExamGroup, setSelectedExamGroup] = useState("Weekly Exam"); // Selected Assessment Group
   const [selectedFilterSubject, setSelectedFilterSubject] = useState<string | null>(null); // Subject filter for rank list
 
   // Helper to determine tailwind classes based on pass rate percentage
