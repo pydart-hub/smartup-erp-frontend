@@ -70,6 +70,9 @@ async function fetchEnrollmentMap(
 
 async function fetchFeeMap(
   customers: string[],
+  branch?: string,
+  dateFrom?: string,
+  dateTo?: string,
 ): Promise<Record<string, { total: number; pending: number }>> {
   if (!customers.length) return {};
   const map: Record<string, { total: number; pending: number }> = {};
@@ -77,10 +80,21 @@ async function fetchFeeMap(
   for (let i = 0; i < customers.length; i += chunkSize) {
     const chunk = customers.slice(i, i + chunkSize);
     try {
+      const filters: (string | number | string[])[][] = [
+        ["docstatus", "=", 1],
+        ["is_return", "=", 0],
+        ["customer", "in", chunk],
+      ];
+      if (branch) {
+        filters.push(["company", "=", branch]);
+      }
+      if (dateFrom) filters.push(["posting_date", ">=", dateFrom]);
+      if (dateTo) filters.push(["posting_date", "<=", dateTo]);
+
       const { data } = await apiClient.get("/resource/Sales Invoice", {
         params: {
           fields: JSON.stringify(["customer", "sum(grand_total) as total_fee", "sum(outstanding_amount) as pending_fee"]),
-          filters: JSON.stringify([["docstatus", "=", 1], ["customer", "in", chunk]]),
+          filters: JSON.stringify(filters),
           group_by: "customer",
           limit_page_length: chunk.length,
         },
@@ -243,8 +257,8 @@ export default function DirectorAllStudentsPage() {
   // Fee map (total + pending) for current page
   const customerIds = students.map((s) => s.customer).filter(Boolean) as string[];
   const { data: feeMap = {} } = useQuery({
-    queryKey: ["director-all-fee-map", customerIds],
-    queryFn: () => fetchFeeMap(customerIds),
+    queryKey: ["director-all-fee-map", customerIds, branchFilter, dateFrom, dateTo],
+    queryFn: () => fetchFeeMap(customerIds, branchFilter, dateFrom, dateTo),
     enabled: customerIds.length > 0,
     staleTime: 60_000,
   });
@@ -300,7 +314,9 @@ export default function DirectorAllStudentsPage() {
     const enrMap = await fetchEnrollmentMap(ids);
     // Fetch fees for all
     const custIds = allStudents.map((s) => s.customer).filter(Boolean) as string[];
-    const fees = custIds.length ? await fetchFeeMap(custIds) : {} as Record<string, { total: number; pending: number }>;
+    const fees = custIds.length
+      ? await fetchFeeMap(custIds, branchFilter, dateFrom, dateTo)
+      : ({} as Record<string, { total: number; pending: number }>);
     // Fetch guardian info for all
     const gInfo = ids.length ? await fetchGuardianMap(ids) : {} as Record<string, { parentName: string; parentMobile: string }>;
     return { students: allStudents, enrollments: enrMap, fees, guardianInfo: gInfo };
