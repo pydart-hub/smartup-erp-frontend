@@ -428,16 +428,46 @@ export async function getInstructorsWithCourses(branch: string): Promise<Instruc
 // Create / Update Employee Attendance
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Helper to post Employee Checkin doc into Frappe */
-async function postEmployeeCheckin(employee: string, time: string, logType: "IN" | "OUT") {
-  try {
-    await apiClient.post("/resource/Employee Checkin", {
-      employee,
-      time,
-      log_type: logType,
-    });
-  } catch (err) {
-    console.warn(`Failed to create Employee Checkin (${logType}) for ${employee}:`, err);
+/** Helper to post Employee Checkin doc into Frappe with retry logic for deadlocks */
+async function postEmployeeCheckin(
+  employee: string,
+  time: string,
+  logType: "IN" | "OUT",
+  maxRetries = 3
+) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      await apiClient.post("/resource/Employee Checkin", {
+        employee,
+        time,
+        log_type: logType,
+      });
+      return; // Success
+    } catch (err: unknown) {
+      const isLastAttempt = attempt === maxRetries;
+      const errorObj = err as {
+        response?: { data?: { exception?: string; message?: string; _server_messages?: string } };
+      };
+      const errorStr = JSON.stringify(errorObj?.response?.data || "").toLowerCase();
+      const isDeadlockOrTransient =
+        errorStr.includes("deadlock") ||
+        errorStr.includes("1213") ||
+        errorStr.includes("querydeadlockerror") ||
+        errorStr.includes("lock wait timeout");
+
+      if (isDeadlockOrTransient && !isLastAttempt) {
+        // Exponential backoff with jitter: 200ms, 400ms, 800ms + random jitter
+        const delay = Math.pow(2, attempt) * 100 + Math.floor(Math.random() * 150);
+        console.warn(
+          `[Deadlock detected] Retrying Employee Checkin (${logType}) for ${employee} in ${delay}ms (attempt ${attempt}/${maxRetries})...`
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        continue;
+      }
+
+      console.warn(`Failed to create Employee Checkin (${logType}) for ${employee} (attempt ${attempt}/${maxRetries}):`, err);
+      if (isLastAttempt) break;
+    }
   }
 }
 

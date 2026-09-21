@@ -16,7 +16,7 @@ const BASE = env.NEXT_PUBLIC_FRAPPE_URL;
 const API_KEY = env.FRAPPE_API_KEY;
 const API_SECRET = env.FRAPPE_API_SECRET;
 const DOCTYPE_NAME = "Employee Daily Checklist";
-
+\
 const headers = {
   Authorization: `token ${API_KEY}:${API_SECRET}`,
   Accept: "application/json",
@@ -106,6 +106,7 @@ async function verifyList() {
     throw new Error("DocType exists but list query failed");
   }
 }
+
 
 await ensureDocType();
 await verifyList();

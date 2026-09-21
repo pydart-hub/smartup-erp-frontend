@@ -508,7 +508,7 @@ export default function StaffAttendancePage() {
         setSaving(false);
         return;
       }
-      const promises = entries.map(async ([key, change]) => {
+      const saveSingleEntry = async ([key, change]: [string, StaffAttendanceChange]): Promise<SaveResult | undefined> => {
         const inTimeISO = change.in_time ? `${selectedDate} ${change.in_time}:00` : undefined;
         const outTimeISO = change.out_time ? `${selectedDate} ${change.out_time}:00` : undefined;
 
@@ -516,7 +516,7 @@ export default function StaffAttendancePage() {
         if (key.startsWith("visiting_")) {
           const empId = key.replace("visiting_", "");
           const v = visitingInstructors.find((vi) => vi.employee === empId);
-          if (!v) return;
+          if (!v) return undefined;
           const existing = visitingAttMap.get(empId);
           const isNoTimeStatus = change.status === "At Head Office" || change.status === "Holiday" || change.status === "Absent" || change.status === "On Leave";
           const effectiveTime = getEmployeeEffectiveClassTime(empId, true).time;
@@ -543,7 +543,7 @@ export default function StaffAttendancePage() {
         const empId = key;
         const existing = attMap.get(empId);
         const emp = employees.find((e) => e.name === empId);
-        if (!emp) return;
+        if (!emp) return undefined;
         const isNoTimeStatus = change.status === "At Head Office" || change.status === "Holiday" || change.status === "Absent" || change.status === "On Leave";
         const effectiveTime = getEmployeeEffectiveClassTime(empId, false).time;
         const payload = {
@@ -563,20 +563,26 @@ export default function StaffAttendancePage() {
           await createEmployeeAttendance(payload);
         }
         return { key, employee: empId, status: change.status, in_time: inTimeISO, out_time: outTimeISO, kind: "employee" } as SaveResult;
-      });
+      };
 
-      const results = await Promise.allSettled(promises);
+      // Process in small batches of 4 to prevent MariaDB gap-lock deadlocks on naming series
+      const BATCH_SIZE = 4;
       const failed: Array<{ key: string; reason: unknown }> = [];
       const succeeded: SaveResult[] = [];
       const nextPending: Record<string, StaffAttendanceChange> = {};
-      for (let i = 0; i < results.length; i += 1) {
-        const result = results[i];
-        const [key, change] = entries[i];
-        if (result.status === "rejected") {
-          failed.push({ key, reason: result.reason });
-          nextPending[key] = change;
-        } else if (result.value) {
-          succeeded.push(result.value);
+
+      for (let i = 0; i < entries.length; i += BATCH_SIZE) {
+        const batch = entries.slice(i, i + BATCH_SIZE);
+        const batchResults = await Promise.allSettled(batch.map((entry) => saveSingleEntry(entry)));
+        for (let j = 0; j < batchResults.length; j += 1) {
+          const result = batchResults[j];
+          const [key, change] = batch[j];
+          if (result.status === "rejected") {
+            failed.push({ key, reason: result.reason });
+            nextPending[key] = change;
+          } else if (result.value) {
+            succeeded.push(result.value);
+          }
         }
       }
 
