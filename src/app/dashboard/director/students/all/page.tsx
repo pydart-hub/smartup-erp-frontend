@@ -75,42 +75,18 @@ async function fetchFeeMap(
   dateTo?: string,
 ): Promise<Record<string, { total: number; pending: number }>> {
   if (!customers.length) return {};
-  const map: Record<string, { total: number; pending: number }> = {};
-  const chunkSize = 50;
-  for (let i = 0; i < customers.length; i += chunkSize) {
-    const chunk = customers.slice(i, i + chunkSize);
-    try {
-      const filters: (string | number | string[])[][] = [
-        ["docstatus", "=", 1],
-        ["is_return", "=", 0],
-        ["customer", "in", chunk],
-      ];
-      if (branch) {
-        filters.push(["company", "=", branch]);
-      }
-      if (dateFrom) filters.push(["posting_date", ">=", dateFrom]);
-      if (dateTo) filters.push(["posting_date", "<=", dateTo]);
-
-      const { data } = await apiClient.get("/resource/Sales Invoice", {
-        params: {
-          fields: JSON.stringify(["customer", "sum(grand_total) as total_fee", "sum(outstanding_amount) as pending_fee"]),
-          filters: JSON.stringify(filters),
-          group_by: "customer",
-          limit_page_length: chunk.length,
-        },
-      });
-      for (const row of data.data ?? []) {
-        if (!map[row.customer]) {
-          map[row.customer] = { total: 0, pending: 0 };
-        }
-        map[row.customer].total += row.total_fee ?? 0;
-        map[row.customer].pending += row.pending_fee ?? 0;
-      }
-    } catch {
-      // skip chunk on error, continue with rest
-    }
+  try {
+    const res = await fetch("/api/director/student-fees", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ customerIds: customers, branch, dateFrom, dateTo }),
+    });
+    if (!res.ok) return {};
+    return res.json();
+  } catch {
+    return {};
   }
-  return map;
 }
 
 // Detect demo->regular converted students by Sales Order history.
