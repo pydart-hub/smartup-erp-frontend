@@ -212,9 +212,9 @@ export default function StudentViewPage() {
     queryFn: async () => {
       const { data } = await apiClient.get("/resource/Program Enrollment", {
         params: {
-          filters: JSON.stringify([["student", "=", id], ["docstatus", "!=", 2]]),
+          filters: JSON.stringify([["student", "=", id]]),
           fields: JSON.stringify(["name", "program", "academic_year", "student_batch_name", "enrollment_date", "custom_fee_structure", "custom_plan", "custom_no_of_instalments", "docstatus"]),
-          order_by: "docstatus desc, enrollment_date desc",
+          order_by: "docstatus asc, enrollment_date desc",
           limit_page_length: 1,
         },
       });

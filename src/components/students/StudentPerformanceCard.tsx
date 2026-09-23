@@ -4,6 +4,7 @@ import React, { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   BarChart3,
+  LineChart,
   TrendingUp,
   Award,
   Layers,
@@ -63,6 +64,7 @@ function getGradeBadgeVariant(pct: number): "success" | "info" | "warning" | "er
 }
 
 export function StudentPerformanceCard({ studentId }: StudentPerformanceCardProps) {
+  const [viewMode, setViewMode] = useState<"bar" | "line">("bar");
   const [selectedGroup, setSelectedGroup] = useState<string>("all");
   const [hoveredExam, setHoveredExam] = useState<StudentExamAggregate | null>(null);
   const [showAllExams, setShowAllExams] = useState<boolean>(false);
@@ -186,6 +188,12 @@ export function StudentPerformanceCard({ studentId }: StudentPerformanceCardProp
       ? `${linePath} L ${svgPoints[svgPoints.length - 1].x} ${chartHeight - chartPaddingBottom} L ${svgPoints[0].x} ${chartHeight - chartPaddingBottom} Z`
       : "";
 
+  // Bar chart geometry calculations
+  const usableWidth = totalWidth - chartPaddingLeft - chartPaddingRight;
+  const barSlotWidth = pointsCount > 0 ? usableWidth / pointsCount : usableWidth;
+  // Dynamic bar width: wider when few bars, narrower when many
+  const barWidth = Math.min(54, Math.max(22, barSlotWidth * 0.45));
+
   return (
     <Card className="overflow-hidden">
       <CardContent className="p-5">
@@ -203,6 +211,36 @@ export function StudentPerformanceCard({ studentId }: StudentPerformanceCardProp
                 Overall aggregate marks across all subjects for each exam (Weekly, Onam, CWC, Unit Tests)
               </p>
             </div>
+          </div>
+
+          {/* View mode toggle: Bar (Default) vs Line */}
+          <div className="inline-flex items-center bg-app-bg p-1 rounded-lg border border-border-light self-start sm:self-center">
+            <button
+              type="button"
+              onClick={() => setViewMode("bar")}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all ${
+                viewMode === "bar"
+                  ? "bg-surface text-primary shadow-xs font-bold"
+                  : "text-text-tertiary hover:text-text-primary"
+              }`}
+              title="Bar Chart View (Default)"
+            >
+              <BarChart3 className="h-3.5 w-3.5" />
+              <span>Bar</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("line")}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all ${
+                viewMode === "line"
+                  ? "bg-surface text-primary shadow-xs font-bold"
+                  : "text-text-tertiary hover:text-text-primary"
+              }`}
+              title="Line Chart View"
+            >
+              <LineChart className="h-3.5 w-3.5" />
+              <span>Line</span>
+            </button>
           </div>
         </div>
 
@@ -366,109 +404,210 @@ export function StudentPerformanceCard({ studentId }: StudentPerformanceCardProp
                   );
                 })}
 
-                {/* Area Gradient Fill */}
-                {svgPoints.length > 1 && (
-                  <path d={areaPath} fill="url(#overallChartGrad)" />
+                {/* Area Gradient Fill & Main Trend Line (Only in Line mode) */}
+                {viewMode === "line" && svgPoints.length > 1 && (
+                  <>
+                    <path d={areaPath} fill="url(#overallChartGrad)" />
+                    <path
+                      d={linePath}
+                      fill="none"
+                      stroke="#4f46e5"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </>
                 )}
 
-                {/* Main Trend Line */}
-                {svgPoints.length > 1 && (
-                  <path
-                    d={linePath}
-                    fill="none"
-                    stroke="#4f46e5"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                )}
+                {/* Bar Chart Mode (Default View) */}
+                {viewMode === "bar" &&
+                  filteredExams.map((exam, idx) => {
+                    const isHovered = hoveredExam?.exam_key === exam.exam_key;
+                    const color =
+                      exam.percentage >= 80
+                        ? "#10b981"
+                        : exam.percentage >= 50
+                        ? "#4f46e5"
+                        : "#ef4444";
 
-                {/* Exam Data Points */}
-                {svgPoints.map((pt, idx) => {
-                  const isHovered = hoveredExam?.exam_key === pt.exam.exam_key;
-                  const color =
-                    pt.exam.percentage >= 80
-                      ? "#10b981"
-                      : pt.exam.percentage >= 50
-                      ? "#4f46e5"
-                      : "#ef4444";
+                    // Center each bar in its slot
+                    const slotCenterX =
+                      chartPaddingLeft + idx * barSlotWidth + barSlotWidth / 2;
+                    const barX = slotCenterX - barWidth / 2;
 
-                  return (
-                    <g
-                      key={idx}
-                      className="cursor-pointer"
-                      onMouseEnter={() => setHoveredExam(pt.exam)}
-                      onMouseLeave={() => setHoveredExam(null)}
-                      onClick={() =>
-                        setExpandedExamKey(
-                          expandedExamKey === pt.exam.exam_key ? null : pt.exam.exam_key
-                        )
-                      }
-                    >
-                      {/* Hit target */}
-                      <circle cx={pt.x} cy={pt.y} r="16" fill="transparent" />
+                    const effectiveHeight =
+                      chartHeight - chartPaddingTop - chartPaddingBottom;
+                    const barHeight = Math.max(
+                      4,
+                      (exam.percentage / 100) * effectiveHeight
+                    );
+                    const barY =
+                      chartHeight - chartPaddingBottom - barHeight;
 
-                      {/* Ping pulse on hover */}
-                      {isHovered && (
+                    return (
+                      <g
+                        key={`bar-${exam.exam_key || idx}`}
+                        className="cursor-pointer"
+                        onMouseEnter={() => setHoveredExam(exam)}
+                        onMouseLeave={() => setHoveredExam(null)}
+                        onClick={() =>
+                          setExpandedExamKey(
+                            expandedExamKey === exam.exam_key ? null : exam.exam_key
+                          )
+                        }
+                      >
+                        {/* Background column slot (100% full height track) */}
+                        <rect
+                          x={barX}
+                          y={chartPaddingTop}
+                          width={barWidth}
+                          height={effectiveHeight}
+                          rx="6"
+                          ry="6"
+                          fill="currentColor"
+                          className="text-slate-100 dark:text-slate-800/40"
+                          opacity={isHovered ? 0.9 : 0.45}
+                        />
+
+                        {/* Value Bar with rounded top caps */}
+                        <rect
+                          x={barX}
+                          y={barY}
+                          width={barWidth}
+                          height={barHeight}
+                          rx="6"
+                          ry="6"
+                          fill={color}
+                          opacity={isHovered ? 1 : 0.88}
+                          className="transition-all duration-200"
+                        />
+
+                        {/* Percentage Label on Top of Bar */}
+                        <text
+                          x={slotCenterX}
+                          y={barY - 8}
+                          fontSize="9.5"
+                          fontWeight="700"
+                          textAnchor="middle"
+                          fill={color}
+                        >
+                          {exam.percentage}%
+                        </text>
+
+                        {/* Exam Title & Date beneath X-axis */}
+                        <text
+                          x={slotCenterX}
+                          y={chartHeight - 20}
+                          fontSize="8.5"
+                          fontWeight="600"
+                          textAnchor="middle"
+                          fill="#334155"
+                          className="dark:fill-slate-300 truncate"
+                        >
+                          {exam.exam_title.length > 22
+                            ? `${exam.exam_title.slice(0, 20)}…`
+                            : exam.exam_title}
+                        </text>
+                        <text
+                          x={slotCenterX}
+                          y={chartHeight - 8}
+                          fontSize="7.5"
+                          textAnchor="middle"
+                          fill="#94a3b8"
+                        >
+                          {formatDate(exam.schedule_date)}
+                        </text>
+                      </g>
+                    );
+                  })}
+
+                {/* Exam Data Points for Line Chart Mode */}
+                {viewMode === "line" &&
+                  svgPoints.map((pt, idx) => {
+                    const isHovered = hoveredExam?.exam_key === pt.exam.exam_key;
+                    const color =
+                      pt.exam.percentage >= 80
+                        ? "#10b981"
+                        : pt.exam.percentage >= 50
+                        ? "#4f46e5"
+                        : "#ef4444";
+
+                    return (
+                      <g
+                        key={`point-${idx}`}
+                        className="cursor-pointer"
+                        onMouseEnter={() => setHoveredExam(pt.exam)}
+                        onMouseLeave={() => setHoveredExam(null)}
+                        onClick={() =>
+                          setExpandedExamKey(
+                            expandedExamKey === pt.exam.exam_key ? null : pt.exam.exam_key
+                          )
+                        }
+                      >
+                        {/* Hit target */}
+                        <circle cx={pt.x} cy={pt.y} r="16" fill="transparent" />
+
+                        {/* Ping pulse on hover */}
+                        {isHovered && (
+                          <circle
+                            cx={pt.x}
+                            cy={pt.y}
+                            r="10"
+                            fill={color}
+                            opacity="0.25"
+                            className="animate-ping"
+                          />
+                        )}
+
+                        {/* Point marker */}
                         <circle
                           cx={pt.x}
                           cy={pt.y}
-                          r="10"
-                          fill={color}
-                          opacity="0.25"
-                          className="animate-ping"
+                          r={isHovered ? "7" : "5"}
+                          fill="#ffffff"
+                          stroke={color}
+                          strokeWidth={isHovered ? "3.5" : "2.5"}
+                          className="transition-all"
                         />
-                      )}
 
-                      {/* Point marker */}
-                      <circle
-                        cx={pt.x}
-                        cy={pt.y}
-                        r={isHovered ? "7" : "5"}
-                        fill="#ffffff"
-                        stroke={color}
-                        strokeWidth={isHovered ? "3.5" : "2.5"}
-                        className="transition-all"
-                      />
+                        {/* Score Percentage Label above node */}
+                        <text
+                          x={pt.x}
+                          y={pt.y - 11}
+                          fontSize="9.5"
+                          fontWeight="700"
+                          textAnchor="middle"
+                          fill={color}
+                        >
+                          {pt.exam.percentage}%
+                        </text>
 
-                      {/* Score Percentage Label above node */}
-                      <text
-                        x={pt.x}
-                        y={pt.y - 11}
-                        fontSize="9.5"
-                        fontWeight="700"
-                        textAnchor="middle"
-                        fill={color}
-                      >
-                        {pt.exam.percentage}%
-                      </text>
-
-                      {/* Exam Title & Date beneath X-axis */}
-                      <text
-                        x={pt.x}
-                        y={chartHeight - 20}
-                        fontSize="8.5"
-                        fontWeight="600"
-                        textAnchor="middle"
-                        fill="#334155"
-                        className="dark:fill-slate-300 truncate"
-                      >
-                        {pt.exam.exam_title.length > 14
-                          ? `${pt.exam.exam_title.slice(0, 12)}…`
-                          : pt.exam.exam_title}
-                      </text>
-                      <text
-                        x={pt.x}
-                        y={chartHeight - 8}
-                        fontSize="7.5"
-                        textAnchor="middle"
-                        fill="#94a3b8"
-                      >
-                        {formatDate(pt.exam.schedule_date)}
-                      </text>
-                    </g>
-                  );
-                })}
+                        {/* Exam Title & Date beneath X-axis */}
+                        <text
+                          x={pt.x}
+                          y={chartHeight - 20}
+                          fontSize="8.5"
+                          fontWeight="600"
+                          textAnchor="middle"
+                          fill="#334155"
+                          className="dark:fill-slate-300 truncate"
+                        >
+                          {pt.exam.exam_title.length > 22
+                            ? `${pt.exam.exam_title.slice(0, 20)}…`
+                            : pt.exam.exam_title}
+                        </text>
+                        <text
+                          x={pt.x}
+                          y={chartHeight - 8}
+                          fontSize="7.5"
+                          textAnchor="middle"
+                          fill="#94a3b8"
+                        >
+                          {formatDate(pt.exam.schedule_date)}
+                        </text>
+                      </g>
+                    );
+                  })}
               </svg>
             </div>
 

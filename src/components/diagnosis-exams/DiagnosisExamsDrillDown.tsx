@@ -816,6 +816,21 @@ export function DiagnosisExamsDrillDown({
                   <span>Class Analytics</span>
                 </Link>
 
+                {/* Download Class Summary Report (Excel) */}
+                <Button
+                  onClick={handleExportMatrixExcel}
+                  disabled={!!isExporting}
+                  className="rounded-xl font-bold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5 shadow-sm px-4 py-2 text-xs h-[36px] cursor-pointer"
+                  title="Download Class Summary Report as Excel (.xlsx)"
+                >
+                  {isExporting === "matrix-excel" ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <FileSpreadsheet className="w-4 h-4" />
+                  )}
+                  <span>Class Summary Report (Excel)</span>
+                </Button>
+
                 {/* Download Class Summary Report (PDF) */}
                 <Button
                   onClick={handleExportMatrixPdf}

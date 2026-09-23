@@ -8,6 +8,7 @@ import {
   UserCheck, BookOpen, BarChart3, Calendar,
   CheckCircle2, Clock, Users, TrendingUp,
 } from "lucide-react";
+import { InstructorReviewList } from "@/components/instructor-review/InstructorReviewList";
 
 const container = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.06 } } };
 const item = { hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } };
@@ -191,6 +192,14 @@ export default function InstructorPerformancePage() {
             </motion.div>
           ))}
         </motion.div>
+      </div>
+
+      {/* Student Reviews & Ratings */}
+      <div className="pt-2">
+        <InstructorReviewList
+          instructorId={instructorName || undefined}
+          title="Student Feedback & Ratings"
+        />
       </div>
 
       {/* Encouragement Card */}

@@ -207,6 +207,7 @@ export const BRANCH_MANAGER_NAV: NavItem[] = [
     ],
   },
   { label: "Complaints", href: "/dashboard/branch-manager/complaints", icon: "MessageSquareWarning", emoji: "⚠️" },
+  { label: "Instructor Reviews", href: "/dashboard/branch-manager/instructor-reviews", icon: "Star", emoji: "⭐" },
   { label: "Transfers", href: "/dashboard/branch-manager/transfers", icon: "ArrowRightLeft", emoji: "🔄" },
 ];
 
@@ -281,6 +282,7 @@ export const DIRECTOR_NAV: NavItem[] = [
   { label: "Leaderboard", href: "/dashboard/director/leaderboard", icon: "Trophy", emoji: "🏆" },
   { label: "Work Assignments", href: "/dashboard/director/work-assignments", icon: "ClipboardList", emoji: "🗂️" },
   { label: "Reports", href: "/dashboard/director/reports", icon: "FileBarChart", emoji: "📈" },
+  { label: "Instructor Reviews", href: "/dashboard/director/instructor-reviews", icon: "Star", emoji: "⭐" },
   { label: "Mentor Feedback", href: "/dashboard/director/mentor-feedback", icon: "ClipboardList", emoji: "📞" },
   { label: "Complaints", href: "/dashboard/director/complaints", icon: "MessageSquareWarning", emoji: "⚠️" },
   { label: "Transfers", href: "/dashboard/branch-manager/transfers", icon: "ArrowRightLeft", emoji: "🔄" },
@@ -316,6 +318,7 @@ export const PARENT_NAV: NavItem[] = [
   { label: "Performance", href: "/dashboard/parent/performance", icon: "Trophy", emoji: "🏆" },
   { label: "Consolidated Report", href: "/dashboard/parent/consolidated-report", icon: "FileText", emoji: "📋" },
   { label: "Fees", href: "/dashboard/parent/fees", icon: "IndianRupee", emoji: "💰" },
+  { label: "Teacher Feedback", href: "/dashboard/parent/instructor-reviews", icon: "Star", emoji: "⭐" },
   { label: "Complaints", href: "/dashboard/parent/complaints", icon: "MessageSquareWarning", emoji: "⚠️" },
 ];
 

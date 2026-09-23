@@ -22,6 +22,7 @@ import { selectPrimarySalesOrder, sortSalesOrdersForDisplay } from "@/lib/utils/
 import { formatDate } from "@/lib/utils/formatters";
 import { SendReceiptModal, type ReceiptItemOption } from "@/components/fees/SendReceiptModal";
 import { StudentTransactionHistory } from "@/components/fees/StudentTransactionHistory";
+import { StudentPerformanceCard } from "@/components/students/StudentPerformanceCard";
 import type { StudentTransactionHistoryRow } from "@/lib/api/fees";
 
 function initials(name: string) {
@@ -420,6 +421,9 @@ export default function SalesUserStudentDetailPage() {
           )}
         </SectionCard>
       </div>
+
+      {/* Student Academic & Exam Performance Graph Card */}
+      <StudentPerformanceCard studentId={id} />
 
       {/* Fee & Payments Section */}
       {((salesOrdersRes?.length ?? 0) > 0 || (salesInvoicesRes?.length ?? 0) > 0) && (

@@ -642,11 +642,24 @@ async function proxyRequest(request: NextRequest, method: string) {
       decodedPath.startsWith("resource/GM Study Material Subject") ||
       decodedPath.startsWith("resource/GM Study Material Link");
 
+    // Guardian reads — Sales Users, Instructors, or BMs might not have explicit Frappe doc read
+    // permissions on the Guardian doctype, causing guardian info in student profiles to fail with 403.
+    const isGuardianRead =
+      method === "GET" &&
+      (decodedPath.startsWith("resource/Guardian/") ||
+        decodedPath.startsWith("resource/Guardian"));
+
     // Sales Order writes/submits during student admission (e.g. by Sales Users or Branch Managers)
     const isSalesOrderWrite =
       (method === "POST" || method === "PUT") &&
       (decodedPath.startsWith("resource/Sales Order") ||
         decodedPath.startsWith("resource/Sales Order/"));
+
+    // Fee Structure reads — Some staff roles lack doctype-level read access in Frappe.
+    const isFeeStructureRead =
+      method === "GET" &&
+      (decodedPath.startsWith("resource/Fee Structure/") ||
+        decodedPath.startsWith("resource/Fee Structure"));
 
     const useAdminToken =
       ((isBranchManager || isHRManager) && !isAdmin) ||
@@ -660,6 +673,8 @@ async function proxyRequest(request: NextRequest, method: string) {
       isCourseScheduleRead ||
       isStudentRead ||
       isProgramEnrollmentRead ||
+      isGuardianRead ||
+      isFeeStructureRead ||
       isGMVideoReadOrWrite ||
       isSalesOrderWrite;
 

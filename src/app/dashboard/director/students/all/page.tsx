@@ -71,8 +71,6 @@ async function fetchEnrollmentMap(
 async function fetchFeeMap(
   customers: string[],
   branch?: string,
-  dateFrom?: string,
-  dateTo?: string,
 ): Promise<Record<string, { total: number; pending: number }>> {
   if (!customers.length) return {};
   try {
@@ -80,7 +78,7 @@ async function fetchFeeMap(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ customerIds: customers, branch, dateFrom, dateTo }),
+      body: JSON.stringify({ customerIds: customers, branch }),
     });
     if (!res.ok) return {};
     return res.json();
@@ -233,8 +231,8 @@ export default function DirectorAllStudentsPage() {
   // Fee map (total + pending) for current page
   const customerIds = students.map((s) => s.customer).filter(Boolean) as string[];
   const { data: feeMap = {} } = useQuery({
-    queryKey: ["director-all-fee-map", customerIds, branchFilter, dateFrom, dateTo],
-    queryFn: () => fetchFeeMap(customerIds, branchFilter, dateFrom, dateTo),
+    queryKey: ["director-all-fee-map", customerIds, branchFilter],
+    queryFn: () => fetchFeeMap(customerIds, branchFilter),
     enabled: customerIds.length > 0,
     staleTime: 60_000,
   });
@@ -265,150 +263,51 @@ export default function DirectorAllStudentsPage() {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  // ── Export: fetch ALL matching students (not just current page) ──
-  const fetchAllForExport = useCallback(async () => {
-    const allStudents: Student[] = [];
-    let offset = 0;
-    const batchSize = 100;
-    // Fetch all pages
-    while (true) {
-      const res = await getStudents({
-        search: search || undefined,
-        enabled: getEnabledParam(statusFilter),
-        extraFilters: getExtraFilters(statusFilter, typeFilter, dateFrom, dateTo),
-        custom_branch: branchFilter || undefined,
-        limit_start: offset,
-        limit_page_length: batchSize,
-        order_by: "student_name asc",
-      });
-      allStudents.push(...(res.data ?? []));
-      if ((res.data ?? []).length < batchSize) break;
-      offset += batchSize;
-    }
-    // Fetch enrollments for all
-    const ids = allStudents.map((s) => s.name);
-    const enrMap = await fetchEnrollmentMap(ids);
-    // Fetch fees for all
-    const custIds = allStudents.map((s) => s.customer).filter(Boolean) as string[];
-    const fees = custIds.length
-      ? await fetchFeeMap(custIds, branchFilter, dateFrom, dateTo)
-      : ({} as Record<string, { total: number; pending: number }>);
-    // Fetch guardian info for all
-    const gInfo = ids.length ? await fetchGuardianMap(ids) : {} as Record<string, { parentName: string; parentMobile: string }>;
-    return { students: allStudents, enrollments: enrMap, fees, guardianInfo: gInfo };
-  }, [search, statusFilter, branchFilter, typeFilter, dateFrom, dateTo]);
-
-  const handleExportExcel = useCallback(async () => {
+  // ── Trigger Server-Side Export (Excel / PDF) ──
+  const triggerExport = useCallback(async (format: "excel" | "pdf") => {
     setExporting(true);
     setExportOpen(false);
     try {
-      const { students: all, enrollments, fees, guardianInfo } = await fetchAllForExport();
-      const excelMod = await import("exceljs");
-      const ExcelJS = excelMod.default ?? excelMod;
-      const wb = new ExcelJS.Workbook();
-      const ws = wb.addWorksheet("Students");
-      ws.columns = [
-        { header: "Student Name", key: "name", width: 25 },
-        { header: "Student ID", key: "id", width: 20 },
-        { header: "Type", key: "type", width: 12 },
-        { header: "Class", key: "class", width: 18 },
-        { header: "Batch", key: "batch", width: 15 },
-        { header: "Branch", key: "branch", width: 18 },
-        { header: "Parent Name", key: "parent_name", width: 22 },
-        { header: "Parent Mobile", key: "parent_mobile", width: 16 },
-        { header: "Total Fee", key: "total_fee", width: 14 },
-        { header: "Pending Fee", key: "pending_fee", width: 14 },
-        { header: "Mobile", key: "mobile", width: 16 },
-        { header: "Joined", key: "joined", width: 14 },
-        { header: "Status", key: "status", width: 14 },
-      ];
-      // Style header
-      ws.getRow(1).font = { bold: true };
-      ws.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE0F5F2" } };
-      for (const s of all) {
-        const enr = enrollments[s.name];
-        const fee = s.customer ? fees[s.customer] : undefined;
-        ws.addRow({
-          name: s.student_name,
-          id: s.name,
-          type: s.custom_student_type ?? "",
-          class: enr?.program ?? "",
-          batch: enr?.student_batch_name ?? "",
-          branch: (s.custom_branch ?? "").replace("Smart Up ", ""),
-          parent_name: guardianInfo[s.name]?.parentName ?? "",
-          parent_mobile: guardianInfo[s.name]?.parentMobile ?? "",
-          total_fee: fee?.total ?? 0,
-          pending_fee: fee?.pending ?? 0,
-          mobile: s.student_mobile_number ?? "",
-          joined: s.joining_date ?? "",
-          status: s.enabled === 1 ? "Active" : s.custom_discontinuation_date ? "Discontinued" : "Inactive",
-        });
+      const res = await fetch("/api/director/export-students", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          search,
+          statusFilter,
+          branchFilter,
+          typeFilter,
+          dateFrom,
+          dateTo,
+          format,
+        }),
+      });
+
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error || `Export failed with status ${res.status}`);
       }
-      // Format currency columns
-      ws.getColumn("total_fee").numFmt = '₹#,##0';
-      ws.getColumn("pending_fee").numFmt = '₹#,##0';
-      const buf = await wb.xlsx.writeBuffer();
-      const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+
+      const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `SmartUp_Students_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      const ext = format === "excel" ? "xlsx" : "pdf";
+      a.download = `SmartUp_Students_${new Date().toISOString().slice(0, 10)}.${ext}`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error("Excel export failed:", err);
-      alert("Excel export failed. Check console for details.");
+    } catch (err: unknown) {
+      console.error("Export failed:", err);
+      alert(err instanceof Error ? err.message : "Export failed. Please try again.");
     } finally {
       setExporting(false);
     }
-  }, [fetchAllForExport]);
+  }, [search, statusFilter, branchFilter, typeFilter, dateFrom, dateTo]);
 
-  const handleExportPDF = useCallback(async () => {
-    setExporting(true);
-    setExportOpen(false);
-    try {
-      const { students: all, enrollments, fees, guardianInfo } = await fetchAllForExport();
-      const { jsPDF } = await import("jspdf");
-      const autoTableMod = await import("jspdf-autotable");
-      const autoTable = autoTableMod.default ?? autoTableMod.autoTable;
-      const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-      doc.setFontSize(16);
-      doc.text("SmartUp \u2014 All Students", 14, 15);
-      doc.setFontSize(9);
-      doc.setTextColor(100);
-      doc.text(`Exported: ${new Date().toLocaleDateString("en-IN")} | ${all.length} students`, 14, 21);
-      const rows = all.map((s) => {
-        const enr = enrollments[s.name];
-        const fee = s.customer ? fees[s.customer] : undefined;
-        return [
-          s.student_name,
-          enr?.program ?? "",
-          (s.custom_branch ?? "").replace("Smart Up ", ""),
-          guardianInfo[s.name]?.parentName ?? "",
-          guardianInfo[s.name]?.parentMobile ?? "",
-          fee?.total ? formatCurrency(fee.total) : "",
-          fee?.pending ? (fee.pending > 0 ? formatCurrency(fee.pending) : "Paid") : "",
-          s.enabled === 1 ? "Active" : s.custom_discontinuation_date ? "Disc." : "Inactive",
-        ];
-      });
-      autoTable(doc, {
-        startY: 25,
-        head: [["Student", "Class", "Branch", "Parent Name", "Parent Mobile", "Total Fee", "Pending", "Status"]],
-        body: rows,
-        styles: { fontSize: 8, cellPadding: 2 },
-        headStyles: { fillColor: [26, 158, 143], textColor: 255, fontStyle: "bold" },
-        alternateRowStyles: { fillColor: [245, 250, 249] },
-      });
-      doc.save(`SmartUp_Students_${new Date().toISOString().slice(0, 10)}.pdf`);
-    } catch (err) {
-      console.error("PDF export failed:", err);
-      alert("PDF export failed. Check console for details.");
-    } finally {
-      setExporting(false);
-    }
-  }, [fetchAllForExport]);
+  const handleExportExcel = useCallback(() => triggerExport("excel"), [triggerExport]);
+  const handleExportPDF = useCallback(() => triggerExport("pdf"), [triggerExport]);
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
@@ -642,9 +541,12 @@ export default function DirectorAllStudentsPage() {
                               </div>
                               <div className="min-w-0">
                                 <div className="flex items-center gap-1.5 flex-wrap">
-                                  <p className="font-medium text-text-primary truncate">
+                                  <Link
+                                    href={`/dashboard/director/students/${encodeURIComponent(student.name)}`}
+                                    className="font-medium text-text-primary hover:text-primary hover:underline transition-colors truncate"
+                                  >
                                     {student.student_name}
-                                  </p>
+                                  </Link>
                                   {enr?.custom_plan && (
                                     <Badge
                                       variant="outline"

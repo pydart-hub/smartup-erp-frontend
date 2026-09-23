@@ -60,38 +60,30 @@ export async function POST(request: NextRequest) {
     }> = {};
 
     // Chunk requests to avoid URL length limits.
-    // Some records can be pending/draft, so fall back to the broader query if
-    // the submitted-docs filter returns no enrollment rows for a student.
+    // Order by docstatus asc (docstatus=1 submitted comes before docstatus=2 cancelled),
+    // and enrollment_date desc so active/latest submitted enrollments take precedence,
+    // while discontinued students with cancelled enrollments (docstatus=2) still get their class & batch.
     const chunkSize = 50;
     for (let i = 0; i < studentIds.length; i += chunkSize) {
       const chunk = studentIds.slice(i, i + chunkSize);
-      const baseParams = new URLSearchParams({
-        fields: JSON.stringify(["student", "program", "student_batch_name", "custom_plan", "custom_fee_structure"]),
-        order_by: "enrollment_date desc",
+      const params = new URLSearchParams({
+        fields: JSON.stringify(["student", "program", "student_batch_name", "custom_plan", "custom_fee_structure", "docstatus"]),
+        filters: JSON.stringify([["student", "in", chunk]]),
+        order_by: "docstatus asc, enrollment_date desc",
         limit_page_length: String(chunk.length * 8),
       });
 
-      const tryQuery = async (docstatusFilter?: [string, string, number | string]) => {
-        const params = new URLSearchParams(baseParams);
-        const filters: Array<[string, string, string | number | string[]]> = [["student", "in", chunk]];
-        if (docstatusFilter) filters.push(docstatusFilter);
-        params.set("filters", JSON.stringify(filters));
+      const res = await fetch(
+        `${FRAPPE_URL}/api/resource/Program%20Enrollment?${params}`,
+        { headers: { Authorization: adminAuth, Accept: "application/json" }, cache: "no-store" }
+      );
 
-        const res = await fetch(
-          `${FRAPPE_URL}/api/resource/Program%20Enrollment?${params}`,
-          { headers: { Authorization: adminAuth, Accept: "application/json" }, cache: "no-store" }
-        );
+      if (!res.ok) continue;
 
-        if (!res.ok) return [];
+      const json = await res.json();
+      const rows = Array.isArray(json?.data) ? json.data : [];
 
-        const json = await res.json();
-        return Array.isArray(json?.data) ? json.data : [];
-      };
-
-      const rows = await tryQuery(["docstatus", "=", 1]);
-      const fallbackRows = rows.length ? rows : await tryQuery();
-
-      for (const row of fallbackRows) {
+      for (const row of rows) {
         if (!row?.student) continue;
 
         const current = map[row.student];

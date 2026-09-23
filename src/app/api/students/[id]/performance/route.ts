@@ -121,20 +121,61 @@ export async function GET(
 
     for (const r of rawResults) {
       const plan = planMap.get(r.assessment_plan);
-      const group = r.assessment_group || plan?.assessment_group || "Other";
+      let group = r.assessment_group || plan?.assessment_group || "Other";
       const planTitle = plan?.assessment_name || "";
       const date = plan?.schedule_date || r.creation?.split(" ")[0] || "";
 
-      // Normalize exam key: if plan has specific exam event title (e.g. "Onam Exam 2026", "CWC Exam 1")
-      // or group name ("Weekly Exam" with date / plan title)
-      let examTitle = group;
-      if (planTitle && !planTitle.toLowerCase().includes(r.course.toLowerCase())) {
-        examTitle = planTitle;
-      } else if (group.toLowerCase().includes("weekly")) {
-        examTitle = planTitle || `${group} (${date})`;
-      }
+      // Check if this is a Weekly Exam
+      const isWeekly =
+        group.toLowerCase().includes("weekly") ||
+        planTitle.toLowerCase().includes("weekly") ||
+        (r.assessment_plan || "").toLowerCase().includes("weekly");
 
-      const examKey = `${group}::${examTitle}`;
+      let examTitle = group;
+      let examKey = `${group}::${examTitle}`;
+
+      if (isWeekly) {
+        group = "Weekly Exam";
+        let weekKey = "weekly_general";
+        let weekTitle = "Weekly Exam";
+
+        if (date) {
+          try {
+            const dt = new Date(date + "T00:00:00");
+            if (!isNaN(dt.getTime())) {
+              const day = dt.getDay(); // 0: Sunday, 1: Monday ... 6: Saturday
+              const diffToMonday = day === 0 ? -6 : 1 - day;
+              const monday = new Date(dt);
+              monday.setDate(dt.getDate() + diffToMonday);
+
+              const sunday = new Date(monday);
+              sunday.setDate(monday.getDate() + 6);
+
+              const monStr = monday.toISOString().split("T")[0];
+              const monMonth = monday.toLocaleDateString("en-US", { month: "short" });
+              const sunMonth = sunday.toLocaleDateString("en-US", { month: "short" });
+              const monDay = monday.getDate();
+              const sunDay = sunday.getDate();
+
+              weekKey = `Weekly Exam::Week_${monStr}`;
+              if (monMonth === sunMonth) {
+                weekTitle = `Weekly Exam (${monDay}-${sunDay} ${monMonth})`;
+              } else {
+                weekTitle = `Weekly Exam (${monDay} ${monMonth} - ${sunDay} ${sunMonth})`;
+              }
+            }
+          } catch {
+            weekKey = `Weekly Exam::${date}`;
+            weekTitle = `Weekly Exam (${date})`;
+          }
+        }
+
+        examTitle = weekTitle;
+        examKey = weekKey;
+      } else if (planTitle && !planTitle.toLowerCase().includes(r.course.toLowerCase())) {
+        examTitle = planTitle;
+        examKey = `${group}::${examTitle}`;
+      }
 
       if (!examMap.has(examKey)) {
         examMap.set(examKey, {
