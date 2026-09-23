@@ -14,7 +14,6 @@ import {
   Sparkles,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
-import ExamSecurityGuard from "@/components/public-exam/ExamSecurityGuard";
 
 type Question = {
   id: string;
@@ -89,56 +88,79 @@ export default function ExamPlayer({
         return next;
       });
 
-      const token = sessionStorage.getItem(`exam_token_${attemptId}`) || "";
+      const getSessionToken = () => {
+        let t = sessionStorage.getItem(`exam_token_${attemptId}`) || "";
+        if (!t) {
+          try {
+            t = localStorage.getItem(`exam_token_${attemptId}`) || "";
+          } catch {}
+        }
+        return t;
+      };
+
+      const token = getSessionToken();
 
       flushPromiseRef.current = (async () => {
-        try {
-          const res = await fetch(`/api/public-exam/attempt/${attemptId}/answers`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "x-exam-session-token": token,
-            },
-            body: JSON.stringify({ answers: payload }),
-            keepalive: options.keepalive,
-          });
+        let attemptsLeft = 3;
+        let lastError: any = null;
 
-          if (!res.ok) {
-            throw new Error("Bulk save failed");
-          }
+        while (attemptsLeft > 0) {
+          try {
+            const currentToken = getSessionToken();
+            const res = await fetch(`/api/public-exam/attempt/${attemptId}/answers`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "x-exam-session-token": currentToken,
+              },
+              body: JSON.stringify({ answers: payload }),
+              keepalive: options.keepalive,
+            });
 
-          setSavingMap((prev) => {
-            const next = { ...prev };
-            for (const answer of payload) {
-              if (pendingAnswersRef.current[answer.questionId] === undefined) {
-                next[answer.questionId] = "saved";
+            if (!res.ok) {
+              const errBody = await res.json().catch(() => ({}));
+              throw new Error(errBody.error || `Bulk save failed (status ${res.status})`);
+            }
+
+            setSavingMap((prev) => {
+              const next = { ...prev };
+              for (const answer of payload) {
+                if (pendingAnswersRef.current[answer.questionId] === undefined) {
+                  next[answer.questionId] = "saved";
+                }
               }
-            }
-            return next;
-          });
+              return next;
+            });
 
-          return true;
-        } catch (error) {
-          console.error(error);
-          for (const answer of payload) {
-            if (pendingAnswersRef.current[answer.questionId] === undefined) {
-              pendingAnswersRef.current[answer.questionId] = answer.selectedOption;
+            return true;
+          } catch (error) {
+            lastError = error;
+            attemptsLeft--;
+            if (attemptsLeft > 0) {
+              await new Promise((resolve) => setTimeout(resolve, 800));
             }
           }
-
-          setSavingMap((prev) => {
-            const next = { ...prev };
-            for (const answer of payload) {
-              next[answer.questionId] = "error";
-            }
-            return next;
-          });
-
-          return false;
-        } finally {
-          flushPromiseRef.current = null;
         }
-      })();
+
+        console.error("Autosave failed after 3 attempts:", lastError);
+        for (const answer of payload) {
+          if (pendingAnswersRef.current[answer.questionId] === undefined) {
+            pendingAnswersRef.current[answer.questionId] = answer.selectedOption;
+          }
+        }
+
+        setSavingMap((prev) => {
+          const next = { ...prev };
+          for (const answer of payload) {
+            next[answer.questionId] = "error";
+          }
+          return next;
+        });
+
+        return false;
+      })().finally(() => {
+        flushPromiseRef.current = null;
+      });
 
       const result = await flushPromiseRef.current;
       if (!result) {
@@ -154,15 +176,21 @@ export default function ExamPlayer({
       clearTimeout(flushTimerRef.current);
     }
 
+    // Reduced from 2500ms to 800ms for fast responsive saving
     flushTimerRef.current = setTimeout(() => {
       void flushPendingAnswers();
-    }, 2500);
+    }, 800);
   };
 
   const handleAutoSubmit = async () => {
     setSubmitting(true);
     const flushed = await flushPendingAnswers();
-    const token = sessionStorage.getItem(`exam_token_${attemptId}`) || "";
+    let token = sessionStorage.getItem(`exam_token_${attemptId}`) || "";
+    if (!token) {
+      try {
+        token = localStorage.getItem(`exam_token_${attemptId}`) || "";
+      } catch {}
+    }
 
     try {
       if (flushed) {
@@ -255,7 +283,12 @@ export default function ExamPlayer({
   const handleFinalSubmit = async () => {
     setSubmitting(true);
     setSubmitError(null);
-    const token = sessionStorage.getItem(`exam_token_${attemptId}`) || "";
+    let token = sessionStorage.getItem(`exam_token_${attemptId}`) || "";
+    if (!token) {
+      try {
+        token = localStorage.getItem(`exam_token_${attemptId}`) || "";
+      } catch {}
+    }
 
     try {
       const flushed = await flushPendingAnswers();
@@ -295,13 +328,7 @@ export default function ExamPlayer({
   const progress = questions.length ? Math.round((answeredCount / questions.length) * 100) : 0;
 
   return (
-    <ExamSecurityGuard
-      studentName={studentName}
-      studentPhone={studentPhone}
-      attemptId={attemptId}
-      onAutoSubmit={handleAutoSubmit}
-    >
-      <div className="min-h-screen bg-app-bg text-text-primary relative overflow-hidden selection:bg-primary-light selection:text-primary">
+    <div className="min-h-screen bg-app-bg text-text-primary relative overflow-hidden selection:bg-primary-light selection:text-primary">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(103,58,183,0.16),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(130,195,91,0.12),transparent_26%)] dark:bg-[radial-gradient(circle_at_top_left,rgba(126,87,194,0.22),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(96,165,250,0.18),transparent_28%)]" />
 
       <header className="sticky top-0 z-20 border-b border-border-light bg-surface/85 backdrop-blur-xl">
@@ -490,7 +517,6 @@ export default function ExamPlayer({
         </div>
       ) : null}
       </div>
-    </ExamSecurityGuard>
   );
 }
 

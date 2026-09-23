@@ -46,6 +46,9 @@ export function NextExamButton({
       }
 
       sessionStorage.setItem(`exam_token_${data.attemptId}`, data.sessionToken);
+      try {
+        localStorage.setItem(`exam_token_${data.attemptId}`, data.sessionToken);
+      } catch {}
       router.push(`/exam-site/attempt/${data.attemptId}`);
     } catch (error) {
       console.error(error);

@@ -38,8 +38,9 @@ export function getAttemptDeadline(startedAt: Date, durationMinutes: number): Da
   return new Date(startedAt.getTime() + durationMinutes * 60 * 1000);
 }
 
-export function isAttemptExpired(startedAt: Date, durationMinutes: number, now = new Date()): boolean {
-  return now.getTime() >= getAttemptDeadline(startedAt, durationMinutes).getTime();
+// Allow a 2-minute grace period so in-flight answers and final submit aren't prematurely locked out
+export function isAttemptExpired(startedAt: Date, durationMinutes: number, now = new Date(), graceMinutes = 2): boolean {
+  return now.getTime() >= (getAttemptDeadline(startedAt, durationMinutes).getTime() + graceMinutes * 60 * 1000);
 }
 
 async function finalizeAttempt(

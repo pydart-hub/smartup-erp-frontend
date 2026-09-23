@@ -360,6 +360,9 @@ export default function ExamSiteLandingPage() {
       }
 
       sessionStorage.setItem(`exam_token_${data.attemptId}`, data.sessionToken);
+      try {
+        localStorage.setItem(`exam_token_${data.attemptId}`, data.sessionToken);
+      } catch {}
       router.push(`/exam-site/attempt/${data.attemptId}`);
     } catch (err) {
       console.error(err);
