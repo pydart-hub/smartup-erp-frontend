@@ -236,6 +236,7 @@ export const DIRECTOR_NAV: NavItem[] = [
   },
   { label: "Actions Needed", href: "/dashboard/director/actions-needed", icon: "MessageSquareWarning", emoji: "⚠️" },
   { label: "Course Schedule", href: "/dashboard/director/course-schedule", icon: "CalendarDays", emoji: "📅" },
+  { label: "Portion Completion", href: "/dashboard/director/portion-completion", icon: "BookOpen", emoji: "📖" },
   { label: "Fees", href: "/dashboard/director/fees", icon: "IndianRupee", emoji: "💰" },
   { label: "Fee Follow-Up", href: "/dashboard/director/fee-followup", icon: "Phone", emoji: "📞" },
   {
@@ -378,6 +379,7 @@ export const GENERAL_MANAGER_NAV: NavItem[] = [
   },
   { label: "Course Schedule", href: "/dashboard/general-manager/course-schedule", icon: "CalendarDays", emoji: "📅" },
   { label: "Instructors", href: "/dashboard/general-manager/instructors", icon: "UserCheck", emoji: "👨‍🏫" },
+  { label: "Instructor Reviews", href: "/dashboard/general-manager/instructor-reviews", icon: "Star", emoji: "⭐" },
   { label: "Topic Coverage", href: "/dashboard/general-manager/topic-coverage", icon: "BookOpen", emoji: "📖" },
   { label: "Reports", href: "/dashboard/general-manager/reports", icon: "FileBarChart", emoji: "📈" },
   { label: "Mentor Feedback", href: "/dashboard/general-manager/mentor-feedback", icon: "ClipboardList", emoji: "📞" },

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { frappeAdminGet, frappeAdminPost } from "@/lib/server/frappeAdmin";
 import { parseSession } from "@/lib/utils/apiAuth";
+import { isCanonicalBatchGroup } from "@/lib/utils/studentGroupUtils";
 
 export const dynamic = "force-dynamic";
 
@@ -67,10 +68,12 @@ export async function GET(request: NextRequest) {
     });
 
     const statuses: any[] = statusesRes?.data ?? [];
+    // Filter out 1:1 and subject-wise tuition groups so statistics reflect true canonical class cohorts
+    const canonicalStatuses = statuses.filter((st) => isCanonicalBatchGroup(st.student_group));
 
     // 3. Aggregate branch statuses per portion
     const statusByPortion: Record<string, any[]> = {};
-    for (const st of statuses) {
+    for (const st of canonicalStatuses) {
       if (!statusByPortion[st.portion_ref]) {
         statusByPortion[st.portion_ref] = [];
       }
@@ -149,7 +152,9 @@ export async function POST(request: NextRequest) {
       limit_page_length: "500",
     });
 
-    const groups: any[] = studentGroupsRes?.data ?? [];
+    const rawGroups: any[] = studentGroupsRes?.data ?? [];
+    // Only schedule across canonical whole-class batch groups (excludes subject tuition and 1:1)
+    const groups = rawGroups.filter((g) => isCanonicalBatchGroup(g.name));
 
     let branchStatusPromises: Promise<any>[] = [];
 

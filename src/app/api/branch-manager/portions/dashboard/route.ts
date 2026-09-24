@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { frappeAdminGet } from "@/lib/server/frappeAdmin";
 import { parseSession } from "@/lib/utils/apiAuth";
+import { isCanonicalBatchGroup, extractBatchName } from "@/lib/utils/studentGroupUtils";
 
 export const dynamic = "force-dynamic";
 
@@ -89,8 +90,38 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Process all portion status records
-    for (const r of records) {
+    // Filter out 1:1 and subject-wise tuition groups, keeping only canonical whole-class batch groups
+    const canonicalRecords = records.filter((r) => isCanonicalBatchGroup(r.student_group));
+
+    // Deduplicate canonical portion records per batch to prevent inflated counts
+    const dedupMap = new Map<string, any>();
+    for (const r of canonicalRecords) {
+      const btc = extractBatchName(r.student_group);
+      const portionKey = r.portion_ref || `${r.course}-${r.portion_title}`;
+      const uniqueKey = `${r.branch || "Smart Up"}__${r.class_level || ""}__${btc}__${portionKey}`;
+
+      if (!dedupMap.has(uniqueKey)) {
+        dedupMap.set(uniqueKey, r);
+      } else {
+        const existing = dedupMap.get(uniqueKey)!;
+        const currentPct = r.remarks?.match(/\[progress:(\d+)%\]/)?.[1]
+          ? parseInt(r.remarks.match(/\[progress:(\d+)%\]/)[1], 10)
+          : r.status === "Completed" ? 100 : 0;
+        const existingPct = existing.remarks?.match(/\[progress:(\d+)%\]/)?.[1]
+          ? parseInt(existing.remarks.match(/\[progress:(\d+)%\]/)[1], 10)
+          : existing.status === "Completed" ? 100 : 0;
+
+        if (currentPct > existingPct) {
+          dedupMap.set(uniqueKey, r);
+        } else if (currentPct === existingPct) {
+          const isCurrentCanonical = r.student_group?.toLowerCase().includes((r.class_level || "").toLowerCase());
+          if (isCurrentCanonical) dedupMap.set(uniqueKey, r);
+        }
+      }
+    }
+
+    // Process all deduplicated canonical portion records
+    for (const r of Array.from(dedupMap.values())) {
       const b = r.branch || "Smart Up";
       if (!branchMap.has(b)) {
         branchMap.set(b, {
@@ -132,7 +163,7 @@ export async function GET(request: NextRequest) {
       }
 
       if (r.class_level) entry.classes.add(r.class_level);
-      if (r.student_group) entry.batches.add(r.student_group);
+      if (r.student_group) entry.batches.add(extractBatchName(r.student_group));
     }
 
     // Convert into clean, minimal dashboard summary list

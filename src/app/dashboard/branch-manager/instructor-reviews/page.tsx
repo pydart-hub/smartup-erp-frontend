@@ -7,7 +7,7 @@ import { InstructorReviewList } from "@/components/instructor-review/InstructorR
 import { UnderDevelopmentView } from "@/components/common/UnderDevelopmentView";
 import { useAuth } from "@/lib/hooks/useAuth";
 
-const IS_UNDER_DEVELOPMENT = true;
+const IS_UNDER_DEVELOPMENT = false;
 
 export default function BranchManagerInstructorReviewsPage() {
   const { defaultCompany } = useAuth();
@@ -42,6 +42,7 @@ export default function BranchManagerInstructorReviewsPage() {
       <InstructorReviewList
         branch={defaultCompany}
         title={`Branch Instructor Reviews · ${defaultCompany || ""}`}
+        hideStrengthsWeaknesses={true}
       />
     </div>
   );

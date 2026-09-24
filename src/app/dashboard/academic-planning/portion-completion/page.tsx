@@ -31,6 +31,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { getPrograms, getAcademicYears } from "@/lib/api/enrollment";
+import { isCanonicalBatchGroup } from "@/lib/utils/studentGroupUtils";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -112,7 +113,11 @@ function getSubjectEmoji(subject: PortionSubject): { emoji: string; cleanName: s
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
-export default function APDPortionCompletionPage() {
+export default function APDPortionCompletionPage({
+  hideBreadcrumbs = false,
+}: {
+  hideBreadcrumbs?: boolean;
+} = {}) {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<"curriculum" | "branches">("curriculum");
@@ -304,7 +309,7 @@ export default function APDPortionCompletionPage() {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-      <BreadcrumbNav />
+      {!hideBreadcrumbs && <BreadcrumbNav />}
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -1833,7 +1838,9 @@ function BranchMatrixModal({
   onClose: () => void;
 }) {
   const [filterQuery, setFilterQuery] = useState("");
-  const statuses = portion.branchStatuses || [];
+  const statuses = useMemo(() => {
+    return (portion.branchStatuses || []).filter((st) => isCanonicalBatchGroup(st.student_group));
+  }, [portion.branchStatuses]);
 
   // Group statuses by Branch (Clean and Organized)
   const branchGroups = useMemo(() => {

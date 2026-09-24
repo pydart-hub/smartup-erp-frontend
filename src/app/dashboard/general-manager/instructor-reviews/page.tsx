@@ -4,9 +4,6 @@ import React, { useState } from "react";
 import { Star, School } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { InstructorReviewList } from "@/components/instructor-review/InstructorReviewList";
-import { UnderDevelopmentView } from "@/components/common/UnderDevelopmentView";
-
-const IS_UNDER_DEVELOPMENT = false;
 
 const BRANCH_OPTIONS = [
   "All",
@@ -21,24 +18,8 @@ const BRANCH_OPTIONS = [
   "Smart Up Moolamkuzhi",
 ];
 
-export default function DirectorInstructorReviewsPage() {
+export default function GeneralManagerInstructorReviewsPage() {
   const [selectedBranch, setSelectedBranch] = useState("All");
-
-  if (IS_UNDER_DEVELOPMENT) {
-    return (
-      <UnderDevelopmentView
-        title="Instructor Reviews & Ratings"
-        subtitle="Module In Development"
-        description="Currently undergoing upgrades with verified branch performance metrics, multi-dimensional student feedback, and automated faculty analytics. Scheduled for release in an upcoming portal update."
-        expectedFeatureList={[
-          "Multi-Category Verified Student Reviews",
-          "Branch-Wise & Individual Faculty Analytics",
-          "Strengths & Areas of Growth Identification",
-          "Historical Rating Trends & Sentiment Insights",
-        ]}
-      />
-    );
-  }
 
   return (
     <div className="p-4 sm:p-6 space-y-6 max-w-6xl mx-auto">
@@ -49,7 +30,7 @@ export default function DirectorInstructorReviewsPage() {
             <Star className="w-6 h-6 text-amber-500 fill-current" /> Instructor Reviews & Ratings
           </h1>
           <p className="text-xs text-text-tertiary mt-1">
-            Comprehensive overview of student ratings, top strengths, and areas for improvement across branches.
+            Executive overview of all branch ratings, top faculty strengths, and areas for improvement.
           </p>
         </div>
 

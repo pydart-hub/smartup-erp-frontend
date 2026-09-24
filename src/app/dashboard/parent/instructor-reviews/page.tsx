@@ -10,7 +10,7 @@ import { UnderDevelopmentView } from "@/components/common/UnderDevelopmentView";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useParentData } from "@/app/dashboard/parent/page";
 
-const IS_UNDER_DEVELOPMENT = true;
+const IS_UNDER_DEVELOPMENT = false;
 
 export default function ParentInstructorReviewsPage() {
   const [activeTab, setActiveTab] = useState<string>("submit");

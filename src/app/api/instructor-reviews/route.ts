@@ -80,12 +80,15 @@ export async function GET(request: NextRequest) {
     let reviews = res?.data ?? [];
 
     // Privacy masking for anonymous reviews & rating normalization (max 5)
+    // Only mask for individual instructors viewing their feedback; Branch Managers & management see student name & class
+    const canViewStudentIdentity = isBM || isSuperUser;
+
     reviews = reviews.map((r: any) => {
       const rawRating = Number(r.rating) || 0;
       // If legacy 10-star rating was entered (> 5), scale down (e.g. 8 -> 4, 9 -> 4.5) or cap
       const normalizedRating = rawRating > 5 ? Math.round((rawRating / 2) * 10) / 10 : Math.max(1, rawRating || 5);
       const isAnon = Number(r.is_anonymous) === 1 || r.is_anonymous === true;
-      if (isAnon) {
+      if (isAnon && !canViewStudentIdentity) {
         return {
           ...r,
           rating: normalizedRating,

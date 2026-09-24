@@ -22,6 +22,11 @@ import {
   ChevronRight,
   ChevronDown,
   ArrowLeft,
+  Trophy,
+  TrendingDown,
+  TrendingUp,
+  CheckCircle2,
+  GraduationCap,
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -32,6 +37,7 @@ interface Props {
   branch?: string;
   title?: string;
   showAnalytics?: boolean;
+  hideStrengthsWeaknesses?: boolean;
 }
 
 export function InstructorReviewList({
@@ -39,11 +45,17 @@ export function InstructorReviewList({
   branch,
   title = "Student Reviews & Feedback",
   showAnalytics = true,
+  hideStrengthsWeaknesses = false,
 }: Props) {
+  const isBranchScoped = Boolean(branch && branch !== "All");
   const [ratingFilter, setRatingFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [activeView, setActiveView] = useState<"branch" | "faculty" | "feed">("branch");
-  const [drilldownBranch, setDrilldownBranch] = useState<string | null>(null);
+  const [activeView, setActiveView] = useState<"branch" | "faculty" | "feed">(
+    isBranchScoped ? "faculty" : "branch"
+  );
+  const [drilldownBranch, setDrilldownBranch] = useState<string | null>(
+    isBranchScoped ? branch! : null
+  );
   const [drilldownInstructor, setDrilldownInstructor] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>("all");
 
@@ -221,6 +233,7 @@ export function InstructorReviewList({
         branch: string;
         reviewCount: number;
         totalRating: number;
+        students: Set<string>;
         strengths: Record<string, number>;
         weaknesses: Record<string, number>;
       }
@@ -239,14 +252,20 @@ export function InstructorReviewList({
           branch: r.branch || "",
           reviewCount: 0,
           totalRating: 0,
+          students: new Set<string>(),
           strengths: {},
           weaknesses: {},
         });
       }
       const entry = map.get(id)!;
       entry.reviewCount += 1;
-      // Cap rating at 5 for score display safety
-      entry.totalRating += Math.min(5, Number(r.rating) || 0);
+      const score = Math.min(5, Number(r.rating) || 0);
+      entry.totalRating += score;
+      // Track student identity if available, otherwise track review identifier
+      const studentIdentifier = r.student || r.student_name || r.name;
+      if (studentIdentifier) {
+        entry.students.add(studentIdentifier);
+      }
 
       if (r.strengths) {
         r.strengths
@@ -272,7 +291,9 @@ export function InstructorReviewList({
     return Array.from(map.values())
       .map((f) => ({
         ...f,
+        studentCount: Math.max(f.students.size, f.reviewCount),
         avgRating: f.reviewCount > 0 ? (f.totalRating / f.reviewCount).toFixed(1) : "0",
+        totalScorePoints: Math.round(f.totalRating * 10) / 10,
       }))
       .sort((a, b) => Number(b.avgRating) - Number(a.avgRating));
   }, [reviews, drilldownBranch]);
@@ -306,7 +327,7 @@ export function InstructorReviewList({
 
   return (
     <div className="space-y-5">
-      {/* Analytics Summary Cards (Shown for Director/Management/Instructors) */}
+      {/* Analytics Summary Cards */}
       {showAnalytics && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Average Rating Score & Quick Bar Breakdown */}
@@ -349,69 +370,179 @@ export function InstructorReviewList({
             </div>
           </Card>
 
-          {/* Top Strengths */}
-          <Card className="border border-emerald-500/20 p-5 rounded-2xl bg-white dark:bg-slate-900 shadow-xs flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between mb-2.5">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
-                  <ThumbsUp className="w-3.5 h-3.5 text-emerald-600" /> Key Strengths
-                </div>
-                <span className="text-[10px] text-slate-400 font-medium">{topStrengths.length} categories</span>
-              </div>
-              {topStrengths.length > 0 ? (
-                <div className="flex flex-wrap gap-1.5">
-                  {topStrengths.map(([item, count]) => (
-                    <button
-                      key={item}
-                      type="button"
-                      onClick={() => setSearchQuery(item)}
-                      title={`Filter by ${item}`}
-                      className="text-xs px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 font-semibold border border-emerald-200/60 dark:border-emerald-800/40 hover:bg-emerald-100/70 transition-colors flex items-center gap-1"
-                    >
-                      <span>✓ {item}</span>
-                      <span className="text-[10px] bg-emerald-600 text-white rounded-full px-1.5 py-0">
-                        {count}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-xs text-slate-400 italic">No strengths recorded yet</p>
-              )}
-            </div>
-          </Card>
+          {hideStrengthsWeaknesses ? (
+            <>
+              {/* TOP RATED INSTRUCTORS CARD */}
+              <Card className="border border-emerald-500/20 p-5 rounded-2xl bg-white dark:bg-slate-900 shadow-xs flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
+                      <Trophy className="w-4 h-4 text-emerald-600" /> Top Rated (Highest)
+                    </div>
+                    <span className="text-[10px] bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 font-semibold px-2 py-0.5 rounded-full border border-emerald-200/50">
+                      Rank 1
+                    </span>
+                  </div>
 
-          {/* Top Areas for Growth */}
-          <Card className="border border-amber-500/20 p-5 rounded-2xl bg-white dark:bg-slate-900 shadow-xs flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between mb-2.5">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">
-                  <ThumbsDown className="w-3.5 h-3.5 text-amber-600" /> Areas for Growth
+                  {facultySummary.length > 0 ? (
+                    (() => {
+                      const topFac = facultySummary[0];
+                      return (
+                        <div className="space-y-2.5">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h4 className="font-bold text-base text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                                <User className="w-4 h-4 text-emerald-600" /> {topFac.name}
+                              </h4>
+                              <p className="text-xs text-slate-400 mt-0.5">
+                                Rated by <strong>{topFac.studentCount}</strong> students ({topFac.reviewCount} total reviews)
+                              </p>
+                            </div>
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-black bg-emerald-600 text-white shadow-xs">
+                              <Star className="w-3.5 h-3.5 fill-current" /> {topFac.avgRating} / 5
+                            </span>
+                          </div>
+                          <div className="pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-500 flex items-center justify-between">
+                            <span>Total Score Points: <strong>{topFac.totalScorePoints} pts</strong></span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setDrilldownInstructor(topFac.name);
+                                setActiveView("feed");
+                              }}
+                              className="font-bold text-brand-primary hover:underline"
+                            >
+                              View Reviews →
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })()
+                  ) : (
+                    <p className="text-xs text-slate-400 italic">No instructor reviews recorded</p>
+                  )}
                 </div>
-                <span className="text-[10px] text-slate-400 font-medium">{topWeaknesses.length} flagged</span>
-              </div>
-              {topWeaknesses.length > 0 ? (
-                <div className="flex flex-wrap gap-1.5">
-                  {topWeaknesses.map(([item, count]) => (
-                    <button
-                      key={item}
-                      type="button"
-                      onClick={() => setSearchQuery(item)}
-                      title={`Filter by ${item}`}
-                      className="text-xs px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 font-semibold border border-amber-200/60 dark:border-amber-800/40 hover:bg-amber-100/70 transition-colors flex items-center gap-1"
-                    >
-                      <span>△ {item}</span>
-                      <span className="text-[10px] bg-amber-600 text-white rounded-full px-1.5 py-0">
-                        {count}
-                      </span>
-                    </button>
-                  ))}
+              </Card>
+
+              {/* LOWEST RATED INSTRUCTORS CARD */}
+              <Card className="border border-rose-500/20 p-5 rounded-2xl bg-white dark:bg-slate-900 shadow-xs flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-rose-700 dark:text-rose-400 uppercase tracking-wider">
+                      <TrendingDown className="w-4 h-4 text-rose-600" /> Bottom Rated (Needs Focus)
+                    </div>
+                    <span className="text-[10px] bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 font-semibold px-2 py-0.5 rounded-full border border-rose-200/50">
+                      Lowest
+                    </span>
+                  </div>
+
+                  {facultySummary.length > 0 ? (
+                    (() => {
+                      const bottomFac = facultySummary[facultySummary.length - 1];
+                      return (
+                        <div className="space-y-2.5">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h4 className="font-bold text-base text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                                <User className="w-4 h-4 text-rose-600" /> {bottomFac.name}
+                              </h4>
+                              <p className="text-xs text-slate-400 mt-0.5">
+                                Rated by <strong>{bottomFac.studentCount}</strong> students ({bottomFac.reviewCount} total reviews)
+                              </p>
+                            </div>
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-black bg-rose-600 text-white shadow-xs">
+                              <Star className="w-3.5 h-3.5 fill-current" /> {bottomFac.avgRating} / 5
+                            </span>
+                          </div>
+                          <div className="pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-500 flex items-center justify-between">
+                            <span>Total Score Points: <strong>{bottomFac.totalScorePoints} pts</strong></span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setDrilldownInstructor(bottomFac.name);
+                                setActiveView("feed");
+                              }}
+                              className="font-bold text-brand-primary hover:underline"
+                            >
+                              View Reviews →
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })()
+                  ) : (
+                    <p className="text-xs text-slate-400 italic">No instructor reviews recorded</p>
+                  )}
                 </div>
-              ) : (
-                <p className="text-xs text-slate-400 italic">No growth areas recorded yet</p>
-              )}
-            </div>
-          </Card>
+              </Card>
+            </>
+          ) : (
+            <>
+              {/* Top Strengths */}
+              <Card className="border border-emerald-500/20 p-5 rounded-2xl bg-white dark:bg-slate-900 shadow-xs flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-2.5">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
+                      <ThumbsUp className="w-3.5 h-3.5 text-emerald-600" /> Key Strengths
+                    </div>
+                    <span className="text-[10px] text-slate-400 font-medium">{topStrengths.length} categories</span>
+                  </div>
+                  {topStrengths.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {topStrengths.map(([item, count]) => (
+                        <button
+                          key={item}
+                          type="button"
+                          onClick={() => setSearchQuery(item)}
+                          title={`Filter by ${item}`}
+                          className="text-xs px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 font-semibold border border-emerald-200/60 dark:border-emerald-800/40 hover:bg-emerald-100/70 transition-colors flex items-center gap-1"
+                        >
+                          <span>✓ {item}</span>
+                          <span className="text-[10px] bg-emerald-600 text-white rounded-full px-1.5 py-0">
+                            {count}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-400 italic">No strengths recorded yet</p>
+                  )}
+                </div>
+              </Card>
+
+              {/* Top Areas for Growth */}
+              <Card className="border border-amber-500/20 p-5 rounded-2xl bg-white dark:bg-slate-900 shadow-xs flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-2.5">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">
+                      <ThumbsDown className="w-3.5 h-3.5 text-amber-600" /> Areas for Growth
+                    </div>
+                    <span className="text-[10px] text-slate-400 font-medium">{topWeaknesses.length} flagged</span>
+                  </div>
+                  {topWeaknesses.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {topWeaknesses.map(([item, count]) => (
+                        <button
+                          key={item}
+                          type="button"
+                          onClick={() => setSearchQuery(item)}
+                          title={`Filter by ${item}`}
+                          className="text-xs px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 font-semibold border border-amber-200/60 dark:border-amber-800/40 hover:bg-amber-100/70 transition-colors flex items-center gap-1"
+                        >
+                          <span>△ {item}</span>
+                          <span className="text-[10px] bg-amber-600 text-white rounded-full px-1.5 py-0">
+                            {count}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-400 italic">No growth areas recorded yet</p>
+                  )}
+                </div>
+              </Card>
+            </>
+          )}
         </div>
       )}
 
@@ -432,21 +563,23 @@ export function InstructorReviewList({
             {/* View Switcher: Branch Hierarchy vs Faculty vs All Reviews */}
             {showAnalytics && (
               <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200/60 dark:border-slate-700 shrink-0 self-start sm:self-auto">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveView("branch");
-                    setDrilldownBranch(null);
-                    setDrilldownInstructor(null);
-                  }}
-                  className={`px-3 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                    activeView === "branch"
-                      ? "bg-white dark:bg-slate-900 text-brand-primary shadow-xs"
-                      : "text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
-                  }`}
-                >
-                  <Building2 className="w-3.5 h-3.5" /> Branch-Wise ({branchSummary.length})
-                </button>
+                {!isBranchScoped && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveView("branch");
+                      setDrilldownBranch(null);
+                      setDrilldownInstructor(null);
+                    }}
+                    className={`px-3 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                      activeView === "branch"
+                        ? "bg-white dark:bg-slate-900 text-brand-primary shadow-xs"
+                        : "text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
+                    }`}
+                  >
+                    <Building2 className="w-3.5 h-3.5" /> All Branches ({branchSummary.length})
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => {
@@ -459,13 +592,13 @@ export function InstructorReviewList({
                       : "text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
                   }`}
                 >
-                  <Users className="w-3.5 h-3.5" /> All Instructors ({facultySummary.length})
+                  <Users className="w-3.5 h-3.5" /> {isBranchScoped ? "Branch Instructors" : "All Instructors"} ({facultySummary.length})
                 </button>
                 <button
                   type="button"
                   onClick={() => {
                     setActiveView("feed");
-                    setDrilldownBranch(null);
+                    if (!isBranchScoped) setDrilldownBranch(null);
                     setDrilldownInstructor(null);
                   }}
                   className={`px-3 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all ${
@@ -481,21 +614,27 @@ export function InstructorReviewList({
           </div>
 
           {/* Drilldown Navigation Breadcrumb / Active scope indicator */}
-          {(drilldownBranch || drilldownInstructor) && (
+          {((!isBranchScoped && drilldownBranch) || drilldownInstructor) && (
             <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-brand-primary/5 border border-brand-primary/20 text-xs font-semibold text-brand-primary">
               <span className="text-slate-400 font-normal">Active Scope:</span>
-              <button
-                type="button"
-                onClick={() => {
-                  setDrilldownBranch(null);
-                  setDrilldownInstructor(null);
-                  setActiveView("branch");
-                }}
-                className="hover:underline flex items-center gap-1"
-              >
-                <Building2 className="w-3 h-3" /> All Branches
-              </button>
-              {drilldownBranch && (
+              {!isBranchScoped ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDrilldownBranch(null);
+                    setDrilldownInstructor(null);
+                    setActiveView("branch");
+                  }}
+                  className="hover:underline flex items-center gap-1"
+                >
+                  <Building2 className="w-3 h-3" /> All Branches
+                </button>
+              ) : (
+                <span className="flex items-center gap-1 text-slate-700 dark:text-slate-200">
+                  <School className="w-3 h-3" /> {branch}
+                </span>
+              )}
+              {drilldownBranch && !isBranchScoped && (
                 <>
                   <ChevronRight className="w-3 h-3 text-slate-400" />
                   <span className="text-slate-900 dark:text-slate-100 font-bold">{drilldownBranch}</span>
@@ -510,9 +649,15 @@ export function InstructorReviewList({
               <button
                 type="button"
                 onClick={() => {
-                  setDrilldownBranch(null);
-                  setDrilldownInstructor(null);
-                  setActiveView("branch");
+                  if (isBranchScoped) {
+                    setDrilldownBranch(branch!);
+                    setDrilldownInstructor(null);
+                    setActiveView("faculty");
+                  } else {
+                    setDrilldownBranch(null);
+                    setDrilldownInstructor(null);
+                    setActiveView("branch");
+                  }
                 }}
                 className="ml-auto text-[11px] px-2 py-0.5 rounded bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary font-bold transition-colors"
               >
@@ -772,6 +917,11 @@ export function InstructorReviewList({
                               <School className="w-3 h-3" /> {fac.branch}
                             </p>
                           )}
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                            <span>Rated by <strong>{fac.studentCount}</strong> {fac.studentCount === 1 ? "student" : "students"}</span>
+                            <span>•</span>
+                            <span>Total Score: <strong>{fac.totalScorePoints} pts</strong></span>
+                          </div>
                         </div>
 
                         <div className="text-right shrink-0">
@@ -786,35 +936,37 @@ export function InstructorReviewList({
                         </div>
                       </div>
 
-                      {/* Top tags for this teacher */}
-                      <div className="space-y-1.5 text-xs pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
-                        {strengthEntries.length > 0 && (
-                          <div className="flex flex-wrap items-center gap-1">
-                            <span className="text-[10px] font-bold text-emerald-600 uppercase">Pros:</span>
-                            {strengthEntries.map(([s, count]) => (
-                              <span
-                                key={s}
-                                className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-medium"
-                              >
-                                {s} ({count})
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                        {weaknessEntries.length > 0 && (
-                          <div className="flex flex-wrap items-center gap-1">
-                            <span className="text-[10px] font-bold text-amber-600 uppercase">Growth:</span>
-                            {weaknessEntries.map(([w, count]) => (
-                              <span
-                                key={w}
-                                className="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-300 font-medium"
-                              >
-                                {w} ({count})
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                      {/* Top tags for this teacher (Hidden when hideStrengthsWeaknesses is true) */}
+                      {!hideStrengthsWeaknesses && (strengthEntries.length > 0 || weaknessEntries.length > 0) && (
+                        <div className="space-y-1.5 text-xs pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
+                          {strengthEntries.length > 0 && (
+                            <div className="flex flex-wrap items-center gap-1">
+                              <span className="text-[10px] font-bold text-emerald-600 uppercase">Pros:</span>
+                              {strengthEntries.map(([s, count]) => (
+                                <span
+                                  key={s}
+                                  className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-medium"
+                                >
+                                  {s} ({count})
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          {weaknessEntries.length > 0 && (
+                            <div className="flex flex-wrap items-center gap-1">
+                              <span className="text-[10px] font-bold text-amber-600 uppercase">Growth:</span>
+                              {weaknessEntries.map(([w, count]) => (
+                                <span
+                                  key={w}
+                                  className="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-300 font-medium"
+                                >
+                                  {w} ({count})
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                       <button
                         type="button"
@@ -823,7 +975,7 @@ export function InstructorReviewList({
                           setDrilldownInstructor(fac.name);
                           setActiveView("feed");
                         }}
-                        className="w-full text-center text-xs font-semibold text-brand-primary hover:underline pt-1 flex items-center justify-center gap-1"
+                        className="w-full text-center text-xs font-semibold text-brand-primary hover:underline pt-1 flex items-center justify-center gap-1 border-t border-slate-200/40 dark:border-slate-700/40"
                       >
                         View all {fac.reviewCount} reviews for {fac.name} →
                       </button>
@@ -984,18 +1136,29 @@ export function InstructorReviewList({
                     <div key={rev.name} className="py-4 first:pt-0 last:pb-0 space-y-2.5">
                       <div className="flex items-start justify-between gap-3">
                         <div className="space-y-1">
-                          {/* Main Title: Instructor Name */}
-                          <div className="flex items-center gap-2">
-                            <User className="w-4 h-4 text-brand-primary shrink-0" />
-                            <span className="font-bold text-base text-slate-900 dark:text-slate-100">
-                              {rev.instructor_name || "Faculty Member"}
+                          {/* Student Info & Instructor Context */}
+                          <div className="flex flex-wrap items-center gap-2">
+                            {/* Student Name */}
+                            <div className="flex items-center gap-1.5 font-bold text-sm text-slate-900 dark:text-slate-100">
+                              <User className="w-3.5 h-3.5 text-brand-primary shrink-0" />
+                              <span>{rev.student_name && rev.student_name !== "Anonymous Student" ? rev.student_name : (rev.student || "Student")}</span>
+                            </div>
+
+                            {/* Class / Program Badge */}
+                            {(rev.program || rev.course) && (
+                              <Badge
+                                variant="outline"
+                                className="text-[11px] px-2 py-0 border-brand-primary/30 text-brand-primary bg-brand-primary/5 font-semibold flex items-center gap-1"
+                              >
+                                <GraduationCap className="w-3 h-3" />
+                                {rev.program || rev.course}
+                              </Badge>
+                            )}
+
+                            {/* Instructor Name (shown when browsing all reviews or for clarity) */}
+                            <span className="text-xs text-slate-400 font-medium">
+                              reviewed <strong>{rev.instructor_name || "Faculty"}</strong>
                             </span>
-                            <Badge
-                              variant="outline"
-                              className="text-[10px] px-2 py-0 border-slate-200 dark:border-slate-700 text-slate-500 font-medium"
-                            >
-                              Anonymous Student Feedback
-                            </Badge>
                           </div>
 
                           {/* Meta Information */}
@@ -1005,7 +1168,7 @@ export function InstructorReviewList({
                                 <School className="w-3.5 h-3.5 text-slate-400" /> {rev.branch}
                               </span>
                             )}
-                            {rev.course && (
+                            {rev.course && rev.program && (
                               <span className="flex items-center gap-1">
                                 <BookOpen className="w-3.5 h-3.5 text-slate-400" /> {rev.course}
                               </span>
@@ -1042,8 +1205,8 @@ export function InstructorReviewList({
                         </div>
                       </div>
 
-                      {/* Strengths & Weaknesses chips */}
-                      {(strengthArr.length > 0 || weaknessArr.length > 0) && (
+                      {/* Strengths & Weaknesses chips (Hidden when hideStrengthsWeaknesses is true) */}
+                      {!hideStrengthsWeaknesses && (strengthArr.length > 0 || weaknessArr.length > 0) && (
                         <div className="flex flex-wrap gap-1.5 pt-0.5">
                           {strengthArr.map((str: string) => (
                             <span

@@ -177,6 +177,8 @@ async function handleExport(request: NextRequest, isGet = false) {
           ["is_return", "=", 0],
         ];
         if (branchFilter) feeFilters.push(["company", "=", branchFilter]);
+        if (dateFrom) feeFilters.push(["posting_date", ">=", dateFrom]);
+        if (dateTo) feeFilters.push(["posting_date", "<=", dateTo]);
 
         const feeParams = new URLSearchParams({
           fields: JSON.stringify([

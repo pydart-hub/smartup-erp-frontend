@@ -253,6 +253,7 @@ export async function resolveReceiptContext(
       const peParams = new URLSearchParams({
         filters: JSON.stringify([
           ["Payment Entry Reference", "reference_name", "=", invoiceId],
+          ["Payment Entry", "docstatus", "=", 1],
         ]),
         fields: JSON.stringify([
           "name",
@@ -262,7 +263,7 @@ export async function resolveReceiptContext(
           "mode_of_payment",
           "posting_date",
         ]),
-        order_by: "`tabPayment Entry`.creation desc",
+        order_by: "posting_date desc",
         limit_page_length: "1",
       });
       const entries = await safeFetchList(
@@ -286,14 +287,16 @@ export async function resolveReceiptContext(
       const siParams = new URLSearchParams({
         filters: JSON.stringify([
           ["Sales Invoice Item", "sales_order", "=", soName],
+          ["docstatus", "=", 1],
         ]),
         fields: JSON.stringify([
           "name",
           "grand_total",
           "outstanding_amount",
           "posting_date",
+          "due_date",
         ]),
-        order_by: "posting_date asc, name asc",
+        order_by: "due_date asc, name asc",
         limit_page_length: "100",
       });
       const allInvoices = await safeFetchList(
@@ -449,7 +452,7 @@ export function buildReceiptHtml(ctx: ReceiptContext): string {
         ${inv ? `
         <tr style="border-top: 1px dashed #cbd5e1;">
           <td style="padding: 10px 0 4px; color: #111827; font-weight: 700;">Balance</td>
-          <td style="padding: 10px 0 4px; text-align: right; font-weight: 800; color: ${balanceOnInvoice > 0 ? "#ea580c" : "#16a34a"}; font-size: 15px;">
+          <td style="padding: 10px 0 4px; text-align: right; font-weight: 800; color: ${balanceOnInvoice > 0 ? "#dc2626" : "#16a34a"}; font-size: 15px;">
             ${balanceOnInvoice > 0 ? fmt(balanceOnInvoice) : "Fully Paid ✓"}
           </td>
         </tr>
@@ -474,7 +477,7 @@ export function buildReceiptHtml(ctx: ReceiptContext): string {
         </tr>
         <tr style="border-top: 1px dashed #cbd5e1;">
           <td style="padding: 10px 0 4px; color: #111827; font-weight: 700;">Total Outstanding</td>
-          <td style="padding: 10px 0 4px; text-align: right; font-weight: 800; color: ${ctx.totalOutstanding > 0 ? "#ea580c" : "#16a34a"}; font-size: 15px;">
+          <td style="padding: 10px 0 4px; text-align: right; font-weight: 800; color: ${ctx.totalOutstanding > 0 ? "#dc2626" : "#16a34a"}; font-size: 15px;">
             ${ctx.totalOutstanding > 0 ? fmt(ctx.totalOutstanding) : "All Clear ✓"}
           </td>
         </tr>
@@ -513,7 +516,7 @@ export function buildReceiptHtml(ctx: ReceiptContext): string {
     <p style="margin: 0 0 16px; color: #6b7280; font-size: 12.5px;">
       For queries, reply to this email or contact us at
       <a href="mailto:academiqedullp@gmail.com" style="color: #58269e; text-decoration: none; font-weight: 600;">academiqedullp@gmail.com</a>
-      / <strong>+91 81290 35498</strong>
+      / <strong>+91 73560 72098 / +91 73560 72108 / +91 73560 72139</strong>
     </p>
 
     <p style="margin: 0; color: #111827; font-size: 13.5px;">

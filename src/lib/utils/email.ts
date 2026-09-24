@@ -14,7 +14,14 @@
  */
 
 import nodemailer from "nodemailer";
+import dns from "dns";
 
+// Ensure Node defaults to IPv4 resolution first, preventing IPv6 timeouts on local/ISP networks
+try {
+  dns.setDefaultResultOrder("ipv4first");
+} catch {
+  // Ignore in environments where setDefaultResultOrder is not supported
+}
 /* ------------------------------------------------------------------ */
 /*  SMTP account types & loading                                      */
 /* ------------------------------------------------------------------ */
@@ -87,7 +94,12 @@ function getTransporter(account: SmtpAccount): nodemailer.Transporter {
       port: account.port,
       secure: account.port === 465,
       auth: { user: account.user, pass: account.pass },
-    });
+      // Force IPv4 to avoid connect ETIMEDOUT when ISP has unroutable IPv6
+      family: 4,
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
+    } as nodemailer.TransportOptions);
     _transporters.set(account.user, t);
   }
   return t;

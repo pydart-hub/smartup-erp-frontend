@@ -94,7 +94,7 @@ export default function BranchManagerPortionCompletionPage() {
   const [selectedBatch, setSelectedBatch] = useState<string | null>(null);
 
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "Incomplete" | "Completed">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "Overdue" | "Incomplete" | "Completed">("all");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   // Local drag values for smooth slider dragging before commit
@@ -309,8 +309,12 @@ export default function BranchManagerPortionCompletionPage() {
       if (btc !== selectedBatch) return false;
 
       const pct = getPortionPercentage(p);
-      if (statusFilter === "Completed" && pct !== 100) return false;
-      if (statusFilter === "Incomplete" && pct === 100) return false;
+      const isDone = pct === 100;
+      const isOverdue = !isDone && p.target_date && p.target_date < todayStr;
+
+      if (statusFilter === "Completed" && !isDone) return false;
+      if (statusFilter === "Incomplete" && isDone) return false;
+      if (statusFilter === "Overdue" && !isOverdue) return false;
 
       if (search) {
         const q = search.toLowerCase();
@@ -329,7 +333,19 @@ export default function BranchManagerPortionCompletionPage() {
     });
 
     return groups;
-  }, [portions, selectedClass, selectedBatch, statusFilter, search]);
+  }, [portions, selectedClass, selectedBatch, statusFilter, search, todayStr]);
+
+  // Overdue count inside selected class & batch
+  const overdueCountInBatch = useMemo(() => {
+    if (!selectedClass || !selectedBatch) return 0;
+    return portions.filter((p) => {
+      const cls = p.class_level || "Other Class";
+      const btc = extractBatchName(p.student_group);
+      if (cls !== selectedClass || btc !== selectedBatch) return false;
+      const pct = getPortionPercentage(p);
+      return pct < 100 && p.target_date && p.target_date < todayStr;
+    }).length;
+  }, [portions, selectedClass, selectedBatch, todayStr]);
 
   return (
     <div className="space-y-5 pb-16">
@@ -562,6 +578,19 @@ export default function BranchManagerPortionCompletionPage() {
                             style={{ width: `${classPct}%` }}
                           />
                         </div>
+                        <div className="flex items-center justify-between text-[11px] pt-0.5 text-text-tertiary">
+                          <span>
+                            {item.overdue > 0 ? (
+                              <span className="text-rose-600 font-semibold flex items-center gap-1">
+                                <AlertCircle className="w-3 h-3 text-rose-600 shrink-0" />
+                                {item.overdue} overdue
+                              </span>
+                            ) : (
+                              <span className="text-emerald-600 font-medium">On track</span>
+                            )}
+                          </span>
+                          <span>{item.inProgress} in progress</span>
+                        </div>
                       </div>
                     </button>
                   );
@@ -666,6 +695,19 @@ export default function BranchManagerPortionCompletionPage() {
                             style={{ width: `${batchPct}%` }}
                           />
                         </div>
+                        <div className="flex items-center justify-between text-[11px] pt-0.5 text-text-tertiary">
+                          <span>
+                            {batch.overdue > 0 ? (
+                              <span className="text-rose-600 font-semibold flex items-center gap-1">
+                                <AlertCircle className="w-3 h-3 text-rose-600 shrink-0" />
+                                {batch.overdue} overdue
+                              </span>
+                            ) : (
+                              <span className="text-emerald-600 font-medium">On track</span>
+                            )}
+                          </span>
+                          <span>{batch.inProgress} in progress</span>
+                        </div>
                       </div>
                     </button>
                   );
@@ -707,19 +749,59 @@ export default function BranchManagerPortionCompletionPage() {
 
                   {/* Status filter toggle */}
                   <div className="inline-flex rounded-xl p-0.5 bg-muted/40 border border-border/60">
-                    {(["all", "Incomplete", "Completed"] as const).map((st) => (
-                      <button
-                        key={st}
-                        onClick={() => setStatusFilter(st)}
-                        className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
-                          statusFilter === st
-                            ? "bg-surface text-text-primary shadow-xs font-semibold"
-                            : "text-text-tertiary hover:text-text-secondary"
-                        }`}
-                      >
-                        {st === "all" ? "All" : st}
-                      </button>
-                    ))}
+                    <button
+                      onClick={() => setStatusFilter("all")}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+                        statusFilter === "all"
+                          ? "bg-surface text-text-primary shadow-xs font-semibold"
+                          : "text-text-tertiary hover:text-text-secondary"
+                      }`}
+                    >
+                      All
+                    </button>
+                    <button
+                      onClick={() => setStatusFilter("Overdue")}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
+                        statusFilter === "Overdue"
+                          ? "bg-rose-600 text-white shadow-xs font-semibold"
+                          : overdueCountInBatch > 0
+                          ? "text-rose-600 font-semibold hover:bg-rose-50"
+                          : "text-text-tertiary hover:text-text-secondary"
+                      }`}
+                    >
+                      <span>Overdue</span>
+                      {overdueCountInBatch > 0 && (
+                        <span
+                          className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                            statusFilter === "Overdue"
+                              ? "bg-white text-rose-600"
+                              : "bg-rose-100 text-rose-700"
+                          }`}
+                        >
+                          {overdueCountInBatch}
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => setStatusFilter("Incomplete")}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+                        statusFilter === "Incomplete"
+                          ? "bg-surface text-text-primary shadow-xs font-semibold"
+                          : "text-text-tertiary hover:text-text-secondary"
+                      }`}
+                    >
+                      Incomplete
+                    </button>
+                    <button
+                      onClick={() => setStatusFilter("Completed")}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+                        statusFilter === "Completed"
+                          ? "bg-surface text-text-primary shadow-xs font-semibold"
+                          : "text-text-tertiary hover:text-text-secondary"
+                      }`}
+                    >
+                      Completed
+                    </button>
                   </div>
 
                   <button
@@ -730,6 +812,24 @@ export default function BranchManagerPortionCompletionPage() {
                   </button>
                 </div>
               </div>
+
+              {/* Overdue Alert Banner if this batch has overdue portions */}
+              {overdueCountInBatch > 0 && (
+                <div className="bg-rose-50/70 dark:bg-rose-950/20 border border-rose-200/80 dark:border-rose-900/40 rounded-xl p-3 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2 text-rose-700 dark:text-rose-300 font-medium">
+                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                    <span>
+                      <strong>{overdueCountInBatch} portion{overdueCountInBatch > 1 ? "s" : ""}</strong> are past target completion date for this batch.
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setStatusFilter(statusFilter === "Overdue" ? "all" : "Overdue")}
+                    className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-semibold text-[11px] transition-colors shadow-2xs"
+                  >
+                    {statusFilter === "Overdue" ? "Show All Portions" : "View Overdue Only"}
+                  </button>
+                </div>
+              )}
 
               {/* Subject Cards */}
               {Object.keys(subjectsMap).length === 0 ? (

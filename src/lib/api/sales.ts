@@ -612,17 +612,23 @@ export interface SalesStats {
 
 /** Summary stats for the current branch */
 export async function getSalesStats(company?: string): Promise<SalesStats> {
-  const companyFilter = company
+  const soCompanyFilter = company
     ? `&filters=[["company","=","${encodeURIComponent(company)}"]]`
     : "";
 
+  const invFilters: Array<[string, string, string | number]> = [["docstatus", "=", 1]];
+  if (company) invFilters.push(["company", "=", company]);
+  const invQuery = new URLSearchParams({
+    fields: JSON.stringify(["sum(grand_total) as invoiced", "sum(outstanding_amount) as outstanding"]),
+    limit_page_length: "1",
+    filters: JSON.stringify(invFilters),
+  });
+
   const [ordersRes, invoicesRes] = await Promise.all([
     apiClient.get(
-      `/resource/Sales Order?fields=["count(name) as cnt","sum(grand_total) as total"]&limit_page_length=1${companyFilter}`
+      `/resource/Sales Order?fields=["count(name) as cnt","sum(grand_total) as total"]&limit_page_length=1${soCompanyFilter}`
     ),
-    apiClient.get(
-      `/resource/Sales Invoice?fields=["sum(grand_total) as invoiced","sum(outstanding_amount) as outstanding"]&limit_page_length=1${companyFilter}`
-    ),
+    apiClient.get(`/resource/Sales Invoice?${invQuery.toString()}`),
   ]);
 
   const orderData = ordersRes.data.data?.[0] ?? {};

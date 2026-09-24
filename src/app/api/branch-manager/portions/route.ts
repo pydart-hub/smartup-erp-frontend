@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { frappeAdminGet, frappeAdminPut } from "@/lib/server/frappeAdmin";
 import { parseSession } from "@/lib/utils/apiAuth";
+import { isCanonicalBatchGroup, extractBatchName } from "@/lib/utils/studentGroupUtils";
 
 export const dynamic = "force-dynamic";
 
@@ -51,7 +52,27 @@ export async function GET(request: NextRequest) {
       limit_page_length: "500",
     });
 
-    return NextResponse.json({ data: res?.data ?? [] });
+    const rawList: any[] = res?.data ?? [];
+    const canonical = rawList.filter((item) => isCanonicalBatchGroup(item.student_group));
+
+    // Deduplicate per batch & portion
+    const dedupMap = new Map<string, any>();
+    for (const item of canonical) {
+      const btc = extractBatchName(item.student_group);
+      const portionKey = item.portion_ref || `${item.course}-${item.portion_title}`;
+      const uniqueKey = `${item.branch}__${item.class_level}__${btc}__${portionKey}`;
+
+      if (!dedupMap.has(uniqueKey)) {
+        dedupMap.set(uniqueKey, item);
+      } else {
+        const existing = dedupMap.get(uniqueKey)!;
+        if (item.status === "Completed" && existing.status !== "Completed") {
+          dedupMap.set(uniqueKey, item);
+        }
+      }
+    }
+
+    return NextResponse.json({ data: Array.from(dedupMap.values()) });
   } catch (error: any) {
     console.error("Error in GET /api/branch-manager/portions:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });

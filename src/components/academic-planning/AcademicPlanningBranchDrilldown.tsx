@@ -37,32 +37,20 @@ export interface PortionRecord {
   completed_on?: string;
 }
 
-// Helper to detect if a student group represents an individual student (One-to-One), e.g. "karthik (STU-SU EDPLY-26-025)"
-export function isOneToOneStudentGroup(studentGroup: string): boolean {
-  if (!studentGroup) return false;
-  const trimmed = studentGroup.trim();
-  // Check for student ID patterns: "(STU-" or "STU-"
-  if (/STU-[A-Z0-9-]+/i.test(trimmed)) return true;
-  // Check for explicit one-to-one indicators
-  if (/one[-_\s]?to[-_\s]?one|1[-_\s]?to[-_\s]?1|1:1/i.test(trimmed)) return true;
-  return false;
-}
+import {
+  isOneToOneStudentGroup,
+  isSubjectWiseStudentGroup,
+  isCanonicalBatchGroup,
+  extractBatchName,
+} from "@/lib/utils/studentGroupUtils";
 
-// Helper to extract a friendly batch name, e.g. "Palluruthy-10th State-A" -> "Batch A"
-function extractBatchName(studentGroup: string): string {
-  if (!studentGroup) return "General";
-  const trimmed = studentGroup.trim();
-  const dashMatch = trimmed.match(/-([A-Za-z0-9]+)$/);
-  if (dashMatch && dashMatch[1]) {
-    const code = dashMatch[1].toUpperCase();
-    return code.length <= 2 ? `Batch ${code}` : dashMatch[1];
-  }
-  const batchMatch = trimmed.match(/batch\s*([A-Za-z0-9]+)/i);
-  if (batchMatch && batchMatch[1]) {
-    return `Batch ${batchMatch[1].toUpperCase()}`;
-  }
-  return trimmed;
-}
+// Re-export helpers for backwards compatibility
+export {
+  isOneToOneStudentGroup,
+  isSubjectWiseStudentGroup,
+  isCanonicalBatchGroup,
+  extractBatchName,
+};
 
 // Helper to parse completion percentage
 function getPortionPercentage(item: PortionRecord): number {
@@ -90,7 +78,7 @@ export function AcademicPlanningBranchDrilldown({
   const [selectedBatch, setSelectedBatch] = useState<string | null>(null);
 
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "Incomplete" | "Completed">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "Overdue" | "Incomplete" | "Completed">("all");
 
   // Keep state synced if parent dropdown changes branch
   React.useEffect(() => {
@@ -115,9 +103,35 @@ export function AcademicPlanningBranchDrilldown({
 
   const todayStr = useMemo(() => new Date().toISOString().split("T")[0], []);
 
-  // Filter out one-to-one student groups (e.g. "karthik (STU-SU EDPLY-26-025)")
+  // Filter out one-to-one AND subject-wise tuition groups, and deduplicate milestones per batch
   const batchRecords = useMemo(() => {
-    return records.filter((p) => !isOneToOneStudentGroup(p.student_group));
+    // 1. Exclude 1:1 and subject-wise tuition groups (keep only canonical whole-class batch groups)
+    const valid = records.filter((p) => isCanonicalBatchGroup(p.student_group));
+
+    // 2. Canonical milestone deduplication: ensure each portion appears exactly once per batch
+    const dedupMap = new Map<string, PortionRecord>();
+    for (const item of valid) {
+      const btc = extractBatchName(item.student_group);
+      const portionKey = item.portion_ref || `${item.course}-${item.portion_title}`;
+      const uniqueKey = `${item.branch || "Smart Up"}__${item.class_level || ""}__${btc}__${portionKey}`;
+
+      if (!dedupMap.has(uniqueKey)) {
+        dedupMap.set(uniqueKey, item);
+      } else {
+        const existing = dedupMap.get(uniqueKey)!;
+        const currentPct = getPortionPercentage(item);
+        const existingPct = getPortionPercentage(existing);
+
+        if (currentPct > existingPct) {
+          dedupMap.set(uniqueKey, item);
+        } else if (currentPct === existingPct) {
+          const isCurrentCanonical = item.student_group.toLowerCase().includes((item.class_level || "").toLowerCase());
+          if (isCurrentCanonical) dedupMap.set(uniqueKey, item);
+        }
+      }
+    }
+
+    return Array.from(dedupMap.values());
   }, [records]);
 
   // ─────────────────────────────────────────────────────────────
@@ -177,7 +191,7 @@ export function AcademicPlanningBranchDrilldown({
     if (!search.trim() || selectedBranch) return list;
     const q = search.trim().toLowerCase();
     return list.filter((b) => b.branch.toLowerCase().includes(q));
-  }, [records, todayStr, search, selectedBranch]);
+  }, [batchRecords, todayStr, search, selectedBranch]);
 
   // ─────────────────────────────────────────────────────────────
   // LEVEL 2: Class Summaries inside selectedBranch
@@ -312,8 +326,12 @@ export function AcademicPlanningBranchDrilldown({
       if (extractBatchName(p.student_group) !== selectedBatch) return false;
 
       const pct = getPortionPercentage(p);
-      if (statusFilter === "Completed" && pct !== 100) return false;
-      if (statusFilter === "Incomplete" && pct === 100) return false;
+      const isDone = pct === 100;
+      const isOverdue = !isDone && p.target_date && p.target_date < todayStr;
+
+      if (statusFilter === "Completed" && !isDone) return false;
+      if (statusFilter === "Incomplete" && isDone) return false;
+      if (statusFilter === "Overdue" && !isOverdue) return false;
 
       if (search.trim()) {
         const q = search.trim().toLowerCase();
@@ -332,7 +350,19 @@ export function AcademicPlanningBranchDrilldown({
     });
 
     return groups;
-  }, [batchRecords, selectedBranch, selectedClass, selectedBatch, statusFilter, search]);
+  }, [batchRecords, selectedBranch, selectedClass, selectedBatch, statusFilter, search, todayStr]);
+
+  // Overdue count inside selected batch
+  const overdueCountInBatch = useMemo(() => {
+    if (!selectedBranch || !selectedClass || !selectedBatch) return 0;
+    return batchRecords.filter((p) => {
+      if ((p.branch || "Smart Up") !== selectedBranch) return false;
+      if ((p.class_level || "Other Class") !== selectedClass) return false;
+      if (extractBatchName(p.student_group) !== selectedBatch) return false;
+      const pct = getPortionPercentage(p);
+      return pct < 100 && p.target_date && p.target_date < todayStr;
+    }).length;
+  }, [batchRecords, selectedBranch, selectedClass, selectedBatch, todayStr]);
 
   // Active level calculation
   const activeLevel = selectedBatch ? 4 : selectedClass ? 3 : selectedBranch ? 2 : 1;
@@ -691,6 +721,19 @@ export function AcademicPlanningBranchDrilldown({
                               style={{ width: `${classPct}%` }}
                             />
                           </div>
+                          <div className="flex items-center justify-between text-[11px] pt-0.5 text-text-tertiary">
+                            <span>
+                              {item.overdue > 0 ? (
+                                <span className="text-rose-600 font-semibold flex items-center gap-1">
+                                  <AlertTriangle className="w-3 h-3 text-rose-600 shrink-0" />
+                                  {item.overdue} overdue
+                                </span>
+                              ) : (
+                                <span className="text-emerald-600 font-medium">On track</span>
+                              )}
+                            </span>
+                            <span>{item.inProgress} in progress</span>
+                          </div>
                         </div>
                       </button>
                     );
@@ -818,6 +861,19 @@ export function AcademicPlanningBranchDrilldown({
                               style={{ width: `${batchPct}%` }}
                             />
                           </div>
+                          <div className="flex items-center justify-between text-[11px] pt-0.5 text-text-tertiary">
+                            <span>
+                              {batch.overdue > 0 ? (
+                                <span className="text-rose-600 font-semibold flex items-center gap-1">
+                                  <AlertTriangle className="w-3 h-3 text-rose-600 shrink-0" />
+                                  {batch.overdue} overdue
+                                </span>
+                              ) : (
+                                <span className="text-emerald-600 font-medium">On track</span>
+                              )}
+                            </span>
+                            <span>{batch.inProgress} in progress</span>
+                          </div>
                         </div>
                       </button>
                     );
@@ -859,22 +915,80 @@ export function AcademicPlanningBranchDrilldown({
 
                   {/* Status filter toggle */}
                   <div className="inline-flex rounded-xl p-0.5 bg-muted/40 border border-border/60">
-                    {(["all", "Incomplete", "Completed"] as const).map((st) => (
-                      <button
-                        key={st}
-                        onClick={() => setStatusFilter(st)}
-                        className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
-                          statusFilter === st
-                            ? "bg-surface text-text-primary shadow-xs font-semibold"
-                            : "text-text-tertiary hover:text-text-secondary"
-                        }`}
-                      >
-                        {st === "all" ? "All" : st}
-                      </button>
-                    ))}
+                    <button
+                      onClick={() => setStatusFilter("all")}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+                        statusFilter === "all"
+                          ? "bg-surface text-text-primary shadow-xs font-semibold"
+                          : "text-text-tertiary hover:text-text-secondary"
+                      }`}
+                    >
+                      All
+                    </button>
+                    <button
+                      onClick={() => setStatusFilter("Overdue")}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
+                        statusFilter === "Overdue"
+                          ? "bg-rose-600 text-white shadow-xs font-semibold"
+                          : overdueCountInBatch > 0
+                          ? "text-rose-600 font-semibold hover:bg-rose-50"
+                          : "text-text-tertiary hover:text-text-secondary"
+                      }`}
+                    >
+                      <span>Overdue</span>
+                      {overdueCountInBatch > 0 && (
+                        <span
+                          className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                            statusFilter === "Overdue"
+                              ? "bg-white text-rose-600"
+                              : "bg-rose-100 text-rose-700"
+                          }`}
+                        >
+                          {overdueCountInBatch}
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => setStatusFilter("Incomplete")}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+                        statusFilter === "Incomplete"
+                          ? "bg-surface text-text-primary shadow-xs font-semibold"
+                          : "text-text-tertiary hover:text-text-secondary"
+                      }`}
+                    >
+                      Incomplete
+                    </button>
+                    <button
+                      onClick={() => setStatusFilter("Completed")}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+                        statusFilter === "Completed"
+                          ? "bg-surface text-text-primary shadow-xs font-semibold"
+                          : "text-text-tertiary hover:text-text-secondary"
+                      }`}
+                    >
+                      Completed
+                    </button>
                   </div>
                 </div>
               </div>
+
+              {/* Overdue Alert Banner if this batch has overdue portions */}
+              {overdueCountInBatch > 0 && (
+                <div className="bg-rose-50/70 dark:bg-rose-950/20 border border-rose-200/80 dark:border-rose-900/40 rounded-xl p-3 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2 text-rose-700 dark:text-rose-300 font-medium">
+                    <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                    <span>
+                      <strong>{overdueCountInBatch} portion{overdueCountInBatch > 1 ? "s" : ""}</strong> are past target completion date for this batch.
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setStatusFilter(statusFilter === "Overdue" ? "all" : "Overdue")}
+                    className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-semibold text-[11px] transition-colors shadow-2xs"
+                  >
+                    {statusFilter === "Overdue" ? "Show All Portions" : "View Overdue Only"}
+                  </button>
+                </div>
+              )}
 
               {/* Subject Cards */}
               {Object.keys(subjectsMap).length === 0 ? (

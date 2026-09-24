@@ -1,19 +1,34 @@
-# Fix Class and Batch Display for Discontinued Students
+# Add Academic Planning Portion Completion to Director Role & Fix Duplicates
 
 ## Background
-On `/dashboard/director/students/all`, discontinued students (e.g. `AADIDEV NITHIN`) showed `—` for Class and Batch.
-When a student is discontinued in Frappe, their `Program Enrollment` is marked as cancelled (`docstatus: 2`).
+The Director role needs full visibility into curriculum and syllabus progression across all campus branches. Academic Planning Department currently possesses two key tools:
+1. `AcademicPlanningBranchDrilldown` (Campus Overview & 4-level drilldown: Branch -> Class -> Batch -> Subject/Topic).
+2. `APDPortionCompletionPage` (Class & Subject Portion Management: Class-wise & Subject-wise curriculum milestones + All-Branches Dashboard + Branch Status Matrix Inspector).
 
-In `/api/director/student-enrollments`:
-- Querying for submitted program enrollments (`docstatus: 1`) returned rows for active students in that chunk (e.g. 24 rows).
-- Because `rows.length > 0`, the chunk never fell back to querying without the `docstatus` filter (`fallbackRows = rows.length ? rows : await tryQuery()`). Therefore discontinued students with cancelled program enrollments (`docstatus: 2`) received no enrollment data.
-- Similarly, in `/api/director/export-students`, the query hardcoded `["docstatus", "=", 1]`, omitting discontinued students' program and batch from exported reports.
+We added "Portion Completion" as a first-class new sidebar navigation item to the Director role, backed by a comprehensive Director Portion Completion view that provides both Campus Overview drilldowns and Class-Wise Curriculum Portion tracking.
+
+Additionally, in Plus One (11th) and Plus Two (12th), portions were appearing twice because subject-wise tuition groups (e.g. `Phy-Chem-11-A`, `Chemistry-11-A`) and 1:1 groups were generating separate portion status records that mapped to the same batch ("Batch A"). We resolved this by filtering out subject-wise and 1:1 groups, keeping only canonical whole-class batch cohorts, and deduplicating portions per batch.
 
 ## Todo List
-- [x] 1. Update `/api/director/student-enrollments/route.ts` to order by `docstatus asc, enrollment_date desc` (preferring docstatus 1 submitted over cancelled 2, but including both) and map enrollment data for all students.
-- [x] 2. Update `/api/director/export-students/route.ts` to fetch program enrollments with `order_by: "docstatus asc, enrollment_date desc"` and without the docstatus=1 restriction so export PDF/Excel files also contain class & batch for discontinued students.
-- [x] 3. Make student name clickable link to `/dashboard/director/students/${encodeURIComponent(student.name)}` in `all/page.tsx`.
-- [x] 4. Update student detail page query to also support discontinued students' latest enrollment data.
-- [x] 5. Verify with TypeScript typecheck (`npx tsc --noEmit`).
-- [x] 6. Fix student fee calculation when date filter is applied (separate student joining date filter from invoice sums in export-students and all/page.tsx so future instalments are not excluded).
-- [x] 7. Redesign placeholder into modern, elegant Under Development UI without 'We are' phrasing across Director, Branch Manager, and Parent roles.
+- [x] 1. Add "Portion Completion" to `DIRECTOR_NAV` in `src/lib/utils/constants.ts` with icon `BookOpen` / emoji `📖`.
+- [x] 2. Create the Director Portion Completion page at `src/app/dashboard/director/portion-completion/page.tsx`.
+  - Executive Director header with tab switcher:
+    - Tab 1: **Campus Drilldown** (`AcademicPlanningBranchDrilldown` with quick branch filter).
+    - Tab 2: **Curriculum & Milestones** (`APDPortionCompletionPage` with syllabus matrix and modals).
+- [x] 3. Create shared student group utility `src/lib/utils/studentGroupUtils.ts`:
+  - `isOneToOneStudentGroup` (filters out `STU-` and 1:1 records).
+  - `isSubjectWiseStudentGroup` (filters out `Phy-Chem`, `Chem-Maths`, `Chemistry`, `Physics`, `Maths`, `Biology` tuition groups).
+  - `isCanonicalBatchGroup` (strictly retains whole-class cohorts).
+  - `extractBatchName` (maps batch identifiers cleanly).
+- [x] 4. Update `AcademicPlanningBranchDrilldown.tsx`:
+  - Exclude 1:1 and subject-wise tuition groups from batch records.
+  - Implement batch-level portion deduplication (`branch__class__batch__portionKey`) to guarantee each milestone appears once.
+- [x] 5. Update `/api/branch-manager/portions/dashboard/route.ts` & `/api/branch-manager/portions/route.ts`:
+  - Exclude 1:1 and subject-wise groups and deduplicate so network rollups and branch counts are not inflated.
+- [x] 6. Update `/api/academic-planning/portions/route.ts` & `APDPortionCompletionPage`:
+  - Exclude non-canonical groups in `GET` statistics aggregation and prevent future assignment to non-canonical groups in `POST`.
+- [x] 7. Verify with `npx tsc --noEmit` (passed with 0 errors).
+- [x] 8. Fix overdue tracking and visibility:
+  - Add overdue badges to Class cards (Level 2) and Batch cards (Level 3) in both Director/APD drilldown and Branch Manager portion completion.
+  - Add dedicated `[ Overdue (X) ]` status filter tab to isolate and view only overdue portions in Level 4.
+  - Add overdue alert banner with a single-click "View Overdue Only" shortcut.
