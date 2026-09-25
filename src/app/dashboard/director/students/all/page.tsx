@@ -19,6 +19,7 @@ import { getStudents } from "@/lib/api/students";
 import { getAllBranches, getActiveStudentCount } from "@/lib/api/director";
 import { getStudentCount } from "@/lib/api/students";
 import apiClient from "@/lib/api/client";
+import { formatDate } from "@/lib/utils/formatters";
 import type { Student } from "@/lib/types/student";
 
 const PAGE_SIZE = 25;
@@ -502,13 +503,14 @@ export default function DirectorAllStudentsPage() {
                   <th className="text-right px-5 py-3 font-semibold text-text-secondary">Pending</th>
                   <th className="text-left px-5 py-3 font-semibold text-text-secondary hidden lg:table-cell">Joined</th>
                   <th className="text-center px-5 py-3 font-semibold text-text-secondary">Status</th>
+                  <th className="text-center px-5 py-3 font-semibold text-text-secondary">Discontinuation Date</th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading
                   ? Array.from({ length: 8 }).map((_, i) => (
                       <tr key={i} className="border-b border-border-light">
-                        {Array.from({ length: 11 }).map((_, j) => (
+                        {Array.from({ length: 12 }).map((_, j) => (
                           <td key={j} className="px-5 py-3">
                             <div className="h-4 w-full bg-border-light rounded animate-pulse" />
                           </td>
@@ -518,7 +520,7 @@ export default function DirectorAllStudentsPage() {
                   : students.length === 0
                   ? (
                       <tr>
-                        <td colSpan={11} className="px-5 py-16 text-center text-text-tertiary text-sm">
+                        <td colSpan={12} className="px-5 py-16 text-center text-text-tertiary text-sm">
                           No students found{search ? ` matching "${search}"` : ""}.
                         </td>
                       </tr>
@@ -660,6 +662,27 @@ export default function DirectorAllStudentsPage() {
                                 ? "Discontinued"
                                 : "Inactive"}
                             </Badge>
+                          </td>
+
+                          {/* Discontinuation Date */}
+                          <td className="px-5 py-3 text-center text-text-secondary text-xs">
+                            {student.enabled !== 1 && student.custom_discontinuation_date ? (
+                              <span
+                                className="font-medium text-error"
+                                title={student.custom_discontinuation_reason ? `Reason: ${student.custom_discontinuation_reason}` : undefined}
+                              >
+                                {formatDate(student.custom_discontinuation_date, "dd MMM yyyy")}
+                              </span>
+                            ) : student.enabled === 1 ? (
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] px-2 py-0.5 border-slate-200 text-slate-500 bg-slate-50/80 font-normal"
+                              >
+                                Continuing
+                              </Badge>
+                            ) : (
+                              <span className="text-text-tertiary">—</span>
+                            )}
                           </td>
                         </motion.tr>
                       );

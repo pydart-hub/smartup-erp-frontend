@@ -269,6 +269,7 @@ async function handleExport(request: NextRequest, isGet = false) {
         { header: "Mobile", key: "mobile", width: 16 },
         { header: "Joined", key: "joined", width: 14 },
         { header: "Status", key: "status", width: 14 },
+        { header: "Discontinuation Date", key: "discontinuation_date", width: 20 },
       ];
 
       ws.getRow(1).font = { bold: true };
@@ -295,6 +296,7 @@ async function handleExport(request: NextRequest, isGet = false) {
           mobile: s.student_mobile_number ?? "",
           joined: s.joining_date ?? "",
           status: s.enabled === 1 ? "Active" : s.custom_discontinuation_date ? "Discontinued" : "Inactive",
+          discontinuation_date: s.enabled !== 1 && s.custom_discontinuation_date ? s.custom_discontinuation_date : "",
         });
       }
 
