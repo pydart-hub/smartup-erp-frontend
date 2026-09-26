@@ -13,6 +13,8 @@ import {
   BookOpen,
   ArrowLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   FileCheck2,
   GraduationCap,
   Sparkles,
@@ -80,6 +82,7 @@ export function AcademicPerformanceBatchView({
   const [hoveredExam, setHoveredExam]             = useState<any | null>(null);
   const [subjectViewMode, setSubjectViewMode]     = useState<"chart" | "progress" | "list">("chart");
   const [chartType, setChartType]                 = useState<"line" | "bar">("bar");
+  const [showAllStudents, setShowAllStudents]     = useState<boolean>(false);
 
   // ── Fetch ──
   const { data, isLoading } = useQuery<ClassPerformanceResponse>({
@@ -956,7 +959,7 @@ export function AcademicPerformanceBatchView({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border-light">
-                      {students.slice(0, 25).map((st) => (
+                      {(showAllStudents ? students : students.slice(0, 25)).map((st) => (
                         <tr key={st.student} className="hover:bg-app-bg/40 transition-colors">
                           <td className="px-4 py-2.5 font-bold text-primary">#{st.rank}</td>
                           <td className="px-4 py-2.5">
@@ -988,9 +991,30 @@ export function AcademicPerformanceBatchView({
                     </tbody>
                   </table>
                   {students.length > 25 && (
-                    <p className="text-center text-[11px] text-text-tertiary py-3 border-t border-border-light">
-                      Showing top 25 of {students.length} students
-                    </p>
+                    <div className="p-3 border-t border-border-light bg-app-bg/40 flex flex-col sm:flex-row items-center justify-between gap-2.5">
+                      <p className="text-xs text-text-tertiary">
+                        {showAllStudents
+                          ? `Showing all ${students.length} students`
+                          : `Showing top 25 of ${students.length} students (${students.length - 25} more)`}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setShowAllStudents((prev) => !prev)}
+                        className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl border border-border-light bg-surface hover:bg-app-bg text-primary font-bold text-xs shadow-2xs hover:shadow-xs transition-all cursor-pointer"
+                      >
+                        {showAllStudents ? (
+                          <>
+                            <ChevronUp className="w-3.5 h-3.5 text-primary" />
+                            <span>Show Top 25 Only</span>
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown className="w-3.5 h-3.5 text-primary" />
+                            <span>Show More Students ({students.length - 25} remaining)</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                   )}
                 </div>
               </CardContent>

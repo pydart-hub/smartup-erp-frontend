@@ -17,6 +17,8 @@ import {
   BookOpen,
   Sparkles,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   School,
   ArrowRight,
 } from "lucide-react";
@@ -90,6 +92,7 @@ export function AcademicPerformanceClassView({
   const [selectedSubject, setSelectedSubject]       = useState<string>("all");
   const [subjectViewMode, setSubjectViewMode]       = useState<"chart" | "progress" | "list">("chart");
   const [chartType, setChartType]                   = useState<"line" | "bar">("bar");
+  const [showAllStudents, setShowAllStudents]       = useState<boolean>(false);
   const subjectSectionRef = useRef<HTMLDivElement>(null);
 
   // ── Data fetch ──
@@ -1176,7 +1179,7 @@ export function AcademicPerformanceClassView({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border-light">
-                      {filteredStudents.slice(0, 30).map((st) => (
+                      {(showAllStudents ? filteredStudents : filteredStudents.slice(0, 30)).map((st) => (
                         <tr key={st.student} className="hover:bg-app-bg/40 transition-colors">
                           <td className="px-4 py-2.5 font-bold text-primary">#{st.rank}</td>
                           <td className="px-4 py-2.5">
@@ -1211,9 +1214,30 @@ export function AcademicPerformanceClassView({
                     </tbody>
                   </table>
                   {filteredStudents.length > 30 && (
-                    <p className="text-center text-[11px] text-text-tertiary py-3 border-t border-border-light">
-                      Showing top 30 of {filteredStudents.length} students
-                    </p>
+                    <div className="p-3 border-t border-border-light bg-app-bg/40 flex flex-col sm:flex-row items-center justify-between gap-2.5">
+                      <p className="text-xs text-text-tertiary">
+                        {showAllStudents
+                          ? `Showing all ${filteredStudents.length} students`
+                          : `Showing top 30 of ${filteredStudents.length} students (${filteredStudents.length - 30} more)`}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setShowAllStudents((prev) => !prev)}
+                        className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl border border-border-light bg-surface hover:bg-app-bg text-primary font-bold text-xs shadow-2xs hover:shadow-xs transition-all cursor-pointer"
+                      >
+                        {showAllStudents ? (
+                          <>
+                            <ChevronUp className="w-3.5 h-3.5 text-primary" />
+                            <span>Show Top 30 Only</span>
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown className="w-3.5 h-3.5 text-primary" />
+                            <span>Show More Students ({filteredStudents.length - 30} remaining)</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                   )}
                 </div>
               </CardContent>
