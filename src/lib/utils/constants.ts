@@ -124,6 +124,7 @@ export const CURRICULUM_DEPT_NAV: NavItem[] = [
       { label: "Branch Wise Ranking", href: "/dashboard/curriculum-dept/cwc-corner/branch-ranking", icon: "School", emoji: "🏫" },
       { label: "Subject Wise Ranking", href: "/dashboard/curriculum-dept/cwc-corner/subject-ranking", icon: "BookOpen", emoji: "📚" },
       { label: "SmartUp Ranking", href: "/dashboard/curriculum-dept/cwc-corner/smartup-ranking", icon: "Trophy", emoji: "🏆" },
+      { label: "Instructor Leaderboard", href: "/dashboard/curriculum-dept/cwc-corner/instructor-ranking", icon: "Users", emoji: "👥" },
     ],
   },
   { label: "Teacher Ranking", href: "/dashboard/curriculum-dept/subject-performance", icon: "BookOpen", emoji: "📖" },
@@ -362,7 +363,16 @@ export const GENERAL_MANAGER_NAV: NavItem[] = [
     ],
   },
   { label: "Learning Hub", href: "/dashboard/general-manager/learning-hub", icon: "BookOpen", emoji: "✨" },
-  { label: "Academics", href: "/dashboard/general-manager/academics", icon: "BarChart3", emoji: "📈" },
+  {
+    label: "Academics",
+    href: "/dashboard/general-manager/academics",
+    icon: "BarChart3",
+    emoji: "📈",
+    children: [
+      { label: "Academic Performance", href: "/dashboard/general-manager/academic-performance", icon: "TrendingUp", emoji: "📊" },
+      { label: "Overview", href: "/dashboard/general-manager/academics", icon: "BarChart3", emoji: "📈" },
+    ],
+  },
   { label: "Attendance", href: "/dashboard/general-manager/attendance", icon: "ClipboardCheck", emoji: "✅" },
   { label: "Actions Needed", href: "/dashboard/general-manager/actions-needed", icon: "MessageSquareWarning", emoji: "⚠️" },
   {

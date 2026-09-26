@@ -197,7 +197,29 @@ export async function getBranchStudentsOverdueData(branch: string, todayDate: st
     })
   );
 
-  // Step 3.5: Fetch Student Groups for this branch → map each student to their batch
+  // Step 3.5: Fetch Program Enrollment in chunks of 50 to obtain exact program (class) for each student
+  await Promise.all(
+    idChunks.map(async (ids) => {
+      try {
+        const peRes = await frappeGet("resource/Program Enrollment", {
+          filters: JSON.stringify([
+            ["student", "in", ids],
+            ["docstatus", "!=", 2],
+          ]),
+          fields: JSON.stringify(["student", "program"]),
+          order_by: "creation desc",
+          limit_page_length: "200",
+        });
+        for (const pe of (peRes.data ?? []) as { student: string; program?: string }[]) {
+          if (pe.student && pe.program && !studentClassMap.has(pe.student)) {
+            studentClassMap.set(pe.student, pe.program);
+          }
+        }
+      } catch { /* skip bad chunk */ }
+    })
+  );
+
+  // Step 3.6: Fetch Student Groups for this branch → map each student to their batch & fallback class
   const studentBatchMap = new Map<string, string>(); // studentId → batch display name
   try {
     const sgListRes = await frappeGet("resource/Student Group", {
@@ -214,9 +236,14 @@ export async function getBranchStudentsOverdueData(branch: string, todayDate: st
           const sgStudents: { student: string }[] = sgDoc?.data?.students ?? [];
           for (const s of sgStudents) {
             if (studentIdSet.has(s.student)) {
+              // Fallback student class from group's program if not yet identified
+              if (sg.program && !studentClassMap.has(s.student)) {
+                studentClassMap.set(s.student, sg.program);
+              }
+
               const cls = studentClassMap.get(s.student);
               const prog = cls ? cls.replace(" Tuition Fee", "") : "";
-              if (sg.program === prog) {
+              if (sg.program && sg.program === prog) {
                 studentBatchMap.set(s.student, sg.student_group_name || sg.name);
               } else if (!studentBatchMap.has(s.student)) {
                 studentBatchMap.set(s.student, sg.student_group_name || sg.name);

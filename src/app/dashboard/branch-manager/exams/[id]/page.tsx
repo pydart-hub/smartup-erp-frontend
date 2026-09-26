@@ -107,6 +107,9 @@ export default function ExamMarkEntryPage() {
     staleTime: 30_000,
   });
 
+  const initializedRef = React.useRef(false);
+  const dirtyStudentsRef = React.useRef<Set<string>>(new Set());
+
   useEffect(() => {
     if (!sgData?.students) return;
 
@@ -119,23 +122,46 @@ export default function ExamMarkEntryPage() {
       }
     }
 
-    setMarks(
-      activeStudents.map((s: { student: string; student_name?: string }) => ({
-        student: s.student,
-        student_name: s.student_name ?? s.student,
-        score: existingMap.has(s.student) ? String(existingMap.get(s.student)) : "",
-      })),
-    );
+    setMarks((prev) => {
+      if (!initializedRef.current || prev.length === 0) {
+        initializedRef.current = true;
+        return activeStudents.map((s: { student: string; student_name?: string }) => ({
+          student: s.student,
+          student_name: s.student_name ?? s.student,
+          score: existingMap.has(s.student) ? String(existingMap.get(s.student)) : "",
+        }));
+      }
+
+      const currentScores = new Map(prev.map((m) => [m.student, m.score]));
+      return activeStudents.map((s: { student: string; student_name?: string }) => {
+        const isDirty = dirtyStudentsRef.current.has(s.student);
+        const currentScore = currentScores.get(s.student);
+        const score = isDirty && currentScore !== undefined
+          ? currentScore
+          : existingMap.has(s.student)
+            ? String(existingMap.get(s.student))
+            : currentScore ?? "";
+        return {
+          student: s.student,
+          student_name: s.student_name ?? s.student,
+          score,
+        };
+      });
+    });
   }, [sgData, existingResults]);
 
   const saveMutation = useMutation({
     mutationFn: (data: { assessment_plan: string; marks: { student: string; score: number }[] }) => saveMarks(data),
-    onSuccess: (result) => {
-      if (result.created > 0) {
-        toast.success(`Marks saved for ${result.created} students`);
-      }
+    onSuccess: (result: { created: number; errors?: string[]; hasErrors?: boolean }) => {
+      dirtyStudentsRef.current.clear();
       if (result.errors?.length) {
-        for (const err of result.errors) toast.error(err);
+        toast.warning(
+          `Saved marks for ${result.created} students, but ${result.errors.length} student(s) failed.`,
+          { duration: 8000 }
+        );
+        for (const err of result.errors) toast.error(err, { duration: 6000 });
+      } else if (result.created > 0) {
+        toast.success(`Marks saved for ${result.created} students`);
       }
 
       queryClient.setQueryData(["submitted-assessment-plan-names"], (prev: Set<string> | undefined) => {
@@ -176,7 +202,10 @@ export default function ExamMarkEntryPage() {
   function handleScoreChange(idx: number, value: string) {
     setMarks((prev) => {
       const next = [...prev];
-      next[idx] = { ...next[idx], score: value };
+      if (next[idx]) {
+        dirtyStudentsRef.current.add(next[idx].student);
+        next[idx] = { ...next[idx], score: value };
+      }
       return next;
     });
   }

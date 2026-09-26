@@ -13,6 +13,7 @@ import {
   MessageSquareWarning,
   ArrowUpRight,
   Sparkles,
+  TrendingUp,
 } from "lucide-react";
 
 interface CardItem {
@@ -30,6 +31,19 @@ interface CardItem {
 }
 
 const cards: CardItem[] = [
+  {
+    title: "Academic Performance",
+    desc: "Cross-branch exam comparison & analytics",
+    icon: TrendingUp,
+    href: "/dashboard/general-manager/academic-performance",
+    theme: {
+      bg: "bg-purple-50/70 dark:bg-purple-950/30",
+      border: "border-purple-100 dark:border-purple-900/40",
+      hoverBorder: "hover:border-purple-400 dark:hover:border-purple-500",
+      iconColor: "text-purple-600 dark:text-purple-400",
+      glow: "rgba(147, 51, 234, 0.18)",
+    },
+  },
   {
     title: "Academics",
     desc: "All branches overview with drill-down",

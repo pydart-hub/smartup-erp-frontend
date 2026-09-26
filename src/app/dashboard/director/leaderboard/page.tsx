@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
-import { Trophy, School, Users, Star, ChevronRight, Sparkles, CalendarDays } from "lucide-react";
+import { Trophy, School, Users, Star, ChevronRight, Sparkles, CalendarDays, Award } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { useRef, useState, useCallback, useEffect } from "react";
 import { useTheme } from "next-themes";
@@ -52,6 +52,22 @@ const OPTIONS = [
     badgeColor: "from-[#0D9488] to-[#115E59]",
     particleColor: "#14B8A6",
     rank: "3rd",
+  },
+  {
+    id: "cwc",
+    type: "single",
+    title: "CWC Leaderboard",
+    subtitle: "Instructor Leaderboard (CWC)",
+    tag: "Under Development",
+    description: "Instructor and branch performance standings based on Continuous Weekly Assessments.",
+    href: "/dashboard/director/leaderboard/cwc",
+    icon: Award,
+    gradient: "from-[#F59E0B] via-[#EA580C] to-[#C2410C]",
+    glow: "rgba(245,158,11,0.28)",
+    glowHover: "rgba(245,158,11,0.52)",
+    badgeColor: "from-[#F59E0B] to-[#EA580C]",
+    particleColor: "#F59E0B",
+    rank: "4th",
   },
 ];
 
@@ -192,12 +208,24 @@ function TiltCard({ option, index }: { option: any; index: number }) {
 
         {/* Content */}
         <div style={{ transform: "translateZ(15px)" }} className="flex-1 flex flex-col pointer-events-none">
+          {option.tag && (
+            <div className="mb-2">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 text-[10px] font-extrabold uppercase tracking-wider border border-amber-500/30">
+                {option.tag}
+              </span>
+            </div>
+          )}
           <h2
-            className="text-xl md:text-2xl font-black mb-2 leading-tight"
+            className="text-xl md:text-2xl font-black mb-1.5 leading-tight"
             style={{ color: isDark ? "#ffffff" : "#111827" }}
           >
             {option.title}
           </h2>
+          {option.subtitle && (
+            <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 mb-2">
+              {option.subtitle}
+            </p>
+          )}
           <p
             className="text-sm leading-relaxed mb-6"
             style={{ color: isDark ? "rgba(255,255,255,0.65)" : "#4B5563" }}
@@ -313,7 +341,7 @@ export default function DirectorLeaderboardIndexPage() {
       <BackgroundOrb x="60%" y="20%" size={350} color="#7E57C2" delay={2} />
       <BackgroundOrb x="70%" y="60%" size={450} color="#673AB7" delay={4} />
 
-      <div className="relative max-w-5xl mx-auto space-y-8 z-10">
+      <div className="relative max-w-7xl mx-auto space-y-8 z-10">
         {/* Header */}
         <div className="space-y-4">
           <BreadcrumbNav />
@@ -369,7 +397,7 @@ export default function DirectorLeaderboardIndexPage() {
         </div>
 
         {/* Cards grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 items-stretch mt-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch mt-8">
           {OPTIONS.map((option, index) => (
             <TiltCard key={option.id} option={option} index={index} />
           ))}

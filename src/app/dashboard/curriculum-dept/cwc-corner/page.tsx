@@ -5,7 +5,7 @@ import Link from "next/link";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { Award, School, Trophy, ChevronRight, Sparkles, BookOpen } from "lucide-react";
+import { Award, School, Trophy, ChevronRight, Sparkles, BookOpen, Users } from "lucide-react";
 
 export default function CwcCornerPage() {
   return (
@@ -22,7 +22,7 @@ export default function CwcCornerPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-4">
         {/* Card 1: Branch Wise Ranking */}
         <Link href="/dashboard/curriculum-dept/cwc-corner/branch-ranking">
           <Card className="border-2 border-transparent hover:border-amber-500/40 hover:shadow-xl transition-all duration-300 cursor-pointer group overflow-hidden bg-surface relative h-full flex flex-col justify-between">
@@ -122,6 +122,41 @@ export default function CwcCornerPage() {
               <div className="pt-3 flex items-center gap-4 text-xs font-semibold text-text-tertiary border-t border-border/50">
                 <span className="flex items-center gap-1.5">
                   <Sparkles className="h-4 w-4 text-purple-500" /> Network Top Achievers
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        {/* Card 4: Instructor Leaderboard */}
+        <Link href="/dashboard/curriculum-dept/cwc-corner/instructor-ranking">
+          <Card className="border-2 border-transparent hover:border-orange-500/40 hover:shadow-xl transition-all duration-300 cursor-pointer group overflow-hidden bg-surface relative h-full flex flex-col justify-between">
+            <div className="h-2 bg-gradient-to-r from-orange-500 to-amber-500 w-full" />
+            <CardContent className="p-7 space-y-6 flex-1 flex flex-col justify-between">
+              <div className="space-y-5">
+                <div className="flex items-start justify-between">
+                  <div className="p-3.5 rounded-2xl bg-orange-500/10 text-orange-600 group-hover:scale-110 transition-transform duration-300">
+                    <Users className="h-8 w-8" />
+                  </div>
+                  <Badge variant="outline" className="border-orange-500/30 text-orange-600 font-medium px-2.5 py-1 text-xs">
+                    Under Development
+                  </Badge>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-bold text-text-primary group-hover:text-orange-600 transition-colors flex items-center gap-1.5">
+                    4. Instructor Leaderboard
+                    <ChevronRight className="h-4 w-4 text-text-tertiary group-hover:translate-x-1 transition-transform" />
+                  </h3>
+                  <p className="text-xs text-text-secondary mt-2 leading-relaxed">
+                    Continuous Weekly Assessment rankings and leaderboard portal for instructors across branches.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-3 flex items-center gap-4 text-xs font-semibold text-text-tertiary border-t border-border/50">
+                <span className="flex items-center gap-1.5">
+                  <Award className="h-4 w-4 text-orange-500" /> Instructor CWC Leaderboard
                 </span>
               </div>
             </CardContent>

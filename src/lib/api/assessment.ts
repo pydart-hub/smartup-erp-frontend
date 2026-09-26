@@ -241,8 +241,8 @@ export async function getSubmittedAssessmentPlanNames(): Promise<Set<string>> {
     "/resource/Assessment Result",
     {
       params: {
-        fields: JSON.stringify(["assessment_plan"]),
-        filters: JSON.stringify([["docstatus", "=", 1]]),
+        fields: JSON.stringify(["distinct assessment_plan"]),
+        filters: JSON.stringify([["docstatus", "!=", 2]]),
         limit_page_length: 0,
       },
     },

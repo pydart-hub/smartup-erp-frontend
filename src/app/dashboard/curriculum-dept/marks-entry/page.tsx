@@ -124,35 +124,25 @@ export default function CurriculumMarksEntryPage() {
   const { data: enteredPlans = new Set<string>(), isLoading: enteredLoading } = useQuery({
     queryKey: ["assessment-results-entered-plans"],
     queryFn: async () => {
-      let plans: string[] = [];
-      let start = 0;
-      let hasMore = true;
-      while (hasMore) {
-        const res = await fetch("/api/curriculum-dept/admin-proxy", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            path: "resource/Assessment Result",
-            method: "GET",
-            payload: {
-              fields: JSON.stringify(["assessment_plan"]),
-              filters: JSON.stringify([["docstatus", "=", 1]]),
-              group_by: "assessment_plan",
-              order_by: "assessment_plan desc",
-              limit_start: String(start),
-              limit_page_length: "1000"
-            }
-          })
-        }).then(r => r.json());
-        const items = res.data ?? [];
-        plans.push(...items.map((r: any) => r.assessment_plan).filter(Boolean));
-        if (items.length < 1000 || plans.length >= 5000) {
-          hasMore = false;
-        } else {
-          start += 1000;
-        }
-      }
-      return new Set<string>(plans);
+      const res = await fetch("/api/curriculum-dept/admin-proxy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          path: "resource/Assessment Result",
+          method: "GET",
+          payload: {
+            fields: JSON.stringify(["distinct assessment_plan"]),
+            filters: JSON.stringify([["docstatus", "!=", 2]]),
+            limit_page_length: 0,
+          },
+        }),
+      }).then((r) => r.json());
+      const items = res.data ?? [];
+      const set = new Set<string>();
+      items.forEach((r: any) => {
+        if (r.assessment_plan) set.add(r.assessment_plan);
+      });
+      return set;
     },
     staleTime: 30_000,
   });
@@ -539,6 +529,9 @@ function ExamMarksEntryEditor({
     staleTime: 30_000,
   });
 
+  const initializedRef = React.useRef(false);
+  const dirtyStudentsRef = React.useRef<Set<string>>(new Set());
+
   useEffect(() => {
     if (!sgData?.students) return;
     const activeStudents = sgData.students.filter((s: any) => s.active !== 0);
@@ -546,19 +539,46 @@ function ExamMarksEntryEditor({
     if (existingResults?.data) {
       for (const r of existingResults.data) existingMap.set(r.student, r.total_score);
     }
-    setMarks(
-      activeStudents.map((s: any) => ({
-        student: s.student,
-        student_name: s.student_name ?? s.student,
-        score: existingMap.has(s.student) ? String(existingMap.get(s.student)) : "",
-      }))
-    );
+
+    setMarks((prev) => {
+      if (!initializedRef.current || prev.length === 0) {
+        initializedRef.current = true;
+        return activeStudents.map((s: any) => ({
+          student: s.student,
+          student_name: s.student_name ?? s.student,
+          score: existingMap.has(s.student) ? String(existingMap.get(s.student)) : "",
+        }));
+      }
+
+      const currentScores = new Map(prev.map((m) => [m.student, m.score]));
+      return activeStudents.map((s: any) => {
+        const isDirty = dirtyStudentsRef.current.has(s.student);
+        const currentScore = currentScores.get(s.student);
+        const score = isDirty && currentScore !== undefined
+          ? currentScore
+          : existingMap.has(s.student)
+            ? String(existingMap.get(s.student))
+            : currentScore ?? "";
+        return {
+          student: s.student,
+          student_name: s.student_name ?? s.student,
+          score,
+        };
+      });
+    });
   }, [sgData, existingResults]);
 
   const saveMutation = useMutation({
     mutationFn: (data: any) => saveMarks(data),
     onSuccess: (result) => {
-      if (result.created > 0) {
+      dirtyStudentsRef.current.clear();
+      if (result.errors?.length) {
+        toast.warning(
+          `Saved marks for ${result.created} students, but ${result.errors.length} student(s) failed.`,
+          { duration: 8000 }
+        );
+        for (const err of result.errors) toast.error(err, { duration: 6000 });
+      } else if (result.created > 0) {
         toast.success(`Marks saved for ${result.created} students`, {
           action: onSavedComplete
             ? {
@@ -567,9 +587,6 @@ function ExamMarksEntryEditor({
               }
             : undefined,
         });
-      }
-      if (result.errors?.length) {
-        for (const err of result.errors) toast.error(err);
       }
 
       // Optimistically add examId to entered plans cache so UI updates immediately
@@ -598,7 +615,10 @@ function ExamMarksEntryEditor({
   function handleScoreChange(idx: number, value: string) {
     setMarks((prev) => {
       const next = [...prev];
-      next[idx] = { ...next[idx], score: value };
+      if (next[idx]) {
+        dirtyStudentsRef.current.add(next[idx].student);
+        next[idx] = { ...next[idx], score: value };
+      }
       return next;
     });
   }
@@ -609,7 +629,7 @@ function ExamMarksEntryEditor({
     const errors: string[] = [];
 
     for (const m of marks) {
-      if (!m.score) continue;
+      if (m.score === "" || m.score === null || m.score === undefined) continue;
       const num = Number(m.score);
       if (isNaN(num) || num < 0) {
         errors.push(`${m.student_name}: invalid score`);

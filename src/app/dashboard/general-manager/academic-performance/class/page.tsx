@@ -3,7 +3,7 @@
 import { Suspense } from "react";
 import { AcademicPerformanceClassView } from "@/components/academic-performance/AcademicPerformanceClassView";
 
-export default function DirectorClassPerformancePage() {
+export default function GeneralManagerClassPerformancePage() {
   return (
     <Suspense
       fallback={
@@ -14,8 +14,8 @@ export default function DirectorClassPerformancePage() {
       }
     >
       <AcademicPerformanceClassView
-        basePath="/dashboard/director/academic-performance"
-        rolePrefix="/dashboard/director"
+        basePath="/dashboard/general-manager/academic-performance"
+        rolePrefix="/dashboard/general-manager"
       />
     </Suspense>
   );

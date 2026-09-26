@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
       `${FRAPPE_URL}/api/resource/Assessment%20Result?${new URLSearchParams({
         filters: JSON.stringify([
           ["assessment_plan", "=", planName],
-          ["docstatus", "=", 1],
+          ["docstatus", "!=", 2],
         ]),
         fields: JSON.stringify([
           "name", "student", "student_name", "total_score", "maximum_score", "grade",

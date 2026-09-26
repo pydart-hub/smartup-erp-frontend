@@ -3,7 +3,7 @@
 import React from "react";
 import { AcademicPerformanceBatchView } from "@/components/academic-performance/AcademicPerformanceBatchView";
 
-export default function DirectorBatchPerformancePage() {
+export default function GeneralManagerBatchPerformancePage() {
   return (
     <React.Suspense
       fallback={
@@ -14,8 +14,8 @@ export default function DirectorBatchPerformancePage() {
       }
     >
       <AcademicPerformanceBatchView
-        basePath="/dashboard/director/academic-performance"
-        rolePrefix="/dashboard/director"
+        basePath="/dashboard/general-manager/academic-performance"
+        rolePrefix="/dashboard/general-manager"
       />
     </React.Suspense>
   );

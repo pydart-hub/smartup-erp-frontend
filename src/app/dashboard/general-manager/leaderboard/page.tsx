@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
-import { Trophy, Users, Star, ChevronRight, Lock, Sparkles } from "lucide-react";
+import { Trophy, Users, Star, ChevronRight, Lock, Sparkles, Award } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { useRef, useState, useCallback, useEffect } from "react";
 import { useTheme } from "next-themes";
@@ -34,6 +34,20 @@ const OPTIONS = [
     badgeColor: "from-[#0D9488] to-[#115E59]",
     particleColor: "#14B8A6",
     status: "Active",
+    disabled: false,
+  },
+  {
+    id: "cwc-leaderboard",
+    title: "CWC Leaderboard",
+    description: "Instructor and branch performance standings based on Continuous Weekly Assessments.",
+    href: "/dashboard/general-manager/leaderboard/cwc",
+    icon: Award,
+    gradient: "from-[#F59E0B] via-[#EA580C] to-[#C2410C]",
+    glow: "rgba(245,158,11,0.28)",
+    glowHover: "rgba(245,158,11,0.52)",
+    badgeColor: "from-[#F59E0B] to-[#EA580C]",
+    particleColor: "#F59E0B",
+    status: "Under Dev",
     disabled: false,
   },
 ];
@@ -351,7 +365,7 @@ export default function GMLeaderboardsSelectorPage() {
         </div>
 
         {/* Cards grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 items-stretch mt-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 items-stretch mt-8">
           {OPTIONS.map((option, index) => (
             <TiltCard key={option.id} option={option} index={index} />
           ))}

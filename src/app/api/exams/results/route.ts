@@ -29,11 +29,11 @@ export async function GET(request: NextRequest) {
       `${FRAPPE_URL}/api/resource/Assessment%20Result?${new URLSearchParams({
         filters: JSON.stringify([
           ["assessment_plan", "=", assessmentPlan],
-          ["docstatus", "=", 1],
+          ["docstatus", "!=", 2],
         ]),
         fields: JSON.stringify([
           "name", "student", "student_name", "total_score",
-          "maximum_score", "grade", "course", "assessment_group",
+          "maximum_score", "grade", "course", "assessment_group", "docstatus",
         ]),
         limit_page_length: "500",
         order_by: "total_score desc",
@@ -46,7 +46,24 @@ export async function GET(request: NextRequest) {
     }
 
     const json = await res.json();
-    return NextResponse.json({ data: json.data ?? [] });
+    const results = json.data ?? [];
+
+    // Auto-heal any stranded drafts in the background so they become submitted
+    for (const r of results) {
+      if (r.docstatus === 0 && r.name) {
+        fetch(
+          `${FRAPPE_URL}/api/resource/Assessment%20Result/${encodeURIComponent(r.name)}`,
+          {
+            method: "PUT",
+            headers: { Authorization: auth, "Content-Type": "application/json" },
+            body: JSON.stringify({ docstatus: 1 }),
+            cache: "no-store",
+          },
+        ).catch(() => {});
+      }
+    }
+
+    return NextResponse.json({ data: results });
   } catch (error: unknown) {
     const err = error as { message?: string };
     console.error("[exams/results] Error:", err.message);

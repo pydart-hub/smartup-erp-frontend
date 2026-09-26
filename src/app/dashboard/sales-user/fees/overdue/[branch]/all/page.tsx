@@ -68,6 +68,20 @@ function formatDate(iso: string): string {
   }
 }
 
+function resolveStudentClass(className?: string, batchName?: string): string {
+  if (className && className.trim()) {
+    return className.replace(" Tuition Fee", "").trim();
+  }
+  if (batchName && batchName.includes("-")) {
+    const parts = batchName.split("-");
+    // e.g. "Eraveli-10th State-B" -> "10th State"
+    if (parts.length >= 2) {
+      return parts.slice(1, parts.length > 2 ? parts.length - 1 : 2).join("-").trim();
+    }
+  }
+  return "—";
+}
+
 export default function BranchAllStudentsPage() {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -133,7 +147,8 @@ export default function BranchAllStudentsPage() {
     for (const s of students ?? []) {
       if (s.plan) plans.add(s.plan);
       if (s.no_of_instalments) freqs.add(s.no_of_instalments);
-      if (s.class_name) classes.add(s.class_name);
+      const cls = resolveStudentClass(s.class_name, s.batch_name);
+      if (cls && cls !== "—") classes.add(cls);
       if (s.batch_name) batches.add(s.batch_name);
     }
     return {
@@ -148,9 +163,10 @@ export default function BranchAllStudentsPage() {
     if (!students) return [];
     const q = search.toLowerCase().trim();
     return students.filter((s) => {
+      const studentResolvedClass = resolveStudentClass(s.class_name, s.batch_name);
       if (planFilter !== "all" && s.plan !== planFilter) return false;
       if (frequencyFilter !== "all" && s.no_of_instalments !== frequencyFilter) return false;
-      if (classFilter !== "all" && s.class_name !== classFilter) return false;
+      if (classFilter !== "all" && studentResolvedClass !== classFilter) return false;
       if (batchFilter !== "all" && s.batch_name !== batchFilter) return false;
       if (q && !s.student_name.toLowerCase().includes(q) && !s.student_id.toLowerCase().includes(q)) return false;
       return true;
@@ -181,13 +197,13 @@ export default function BranchAllStudentsPage() {
           `${i + 1}`,
           s.student_name,
           s.student_id,
-          (s.class_name ?? "").replace(" Tuition Fee", ""),
+          resolveStudentClass(s.class_name, s.batch_name),
           s.batch_name ?? "",
           s.plan ?? "",
           PAYMENT_OPTION_LABELS[s.no_of_instalments] ?? s.no_of_instalments ?? "",
           s.guardian_name ?? "",
           s.guardian_phone ?? "",
-          `?${s.total_dues.toLocaleString("en-IN")}`,
+          `₹${s.total_dues.toLocaleString("en-IN")}`,
         ]);
 
         autoTable(doc, {
@@ -217,16 +233,16 @@ export default function BranchAllStudentsPage() {
     });
 
     // ── Row 1: Title Header Bar ──
-    sheet.mergeCells("A1:P1");
+    sheet.mergeCells("A1:R1");
     const titleCell = sheet.getCell("A1");
-    titleCell.value = "Inst. Status";
+    titleCell.value = `${shortBranch} — All Overdue Students Report`;
     titleCell.font = { name: "Segoe UI", size: 13, bold: true, color: { argb: "FFFFFFFF" } };
     titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF4A154B" } };
     titleCell.alignment = { vertical: "middle", horizontal: "center" };
     sheet.getRow(1).height = 30;
 
     // ── Row 2: Sub-Banner Line ──
-    sheet.mergeCells("A2:P2");
+    sheet.mergeCells("A2:R2");
     const subCell = sheet.getCell("A2");
     const todayFormatted = new Date().toLocaleDateString("en-IN", {
       day: "2-digit",
@@ -249,6 +265,8 @@ export default function BranchAllStudentsPage() {
       { header: "#", key: "idx", width: 6 },
       { header: "Student ID", key: "student_id", width: 22 },
       { header: "Student Name", key: "name", width: 28 },
+      { header: "Class", key: "class_name", width: 18 },
+      { header: "Student Group", key: "batch_name", width: 24 },
       { header: "Fee Plan", key: "plan", width: 14 },
       { header: "Frequency", key: "freq", width: 22 },
       { header: "Total Fee (₹)", key: "total_fee", width: 16 },
@@ -270,6 +288,8 @@ export default function BranchAllStudentsPage() {
       "#",
       "Student ID",
       "Student Name",
+      "Class",
+      "Student Group",
       "Fee Plan",
       "Frequency",
       "Total Fee (₹)",
@@ -304,12 +324,16 @@ export default function BranchAllStudentsPage() {
       isEvenStudent = !isEvenStudent;
 
       const invs = s.overdue_invoices ?? [];
+      const cleanClassName = resolveStudentClass(s.class_name, s.batch_name);
+      const batchName = s.batch_name || "—";
 
       if (invs.length === 0) {
         const addedRow = sheet.addRow({
           idx: idx + 1,
           student_id: s.student_id,
           name: s.student_name,
+          class_name: cleanClassName,
+          batch_name: batchName,
           plan: s.plan || "Basic",
           freq: PAYMENT_OPTION_LABELS[s.no_of_instalments] || s.no_of_instalments || "—",
           total_fee: s.total_fee ?? 0,
@@ -351,6 +375,8 @@ export default function BranchAllStudentsPage() {
             idx: invIdx === 0 ? idx + 1 : "",
             student_id: invIdx === 0 ? s.student_id : "",
             name: invIdx === 0 ? s.student_name : "",
+            class_name: invIdx === 0 ? cleanClassName : "",
+            batch_name: invIdx === 0 ? batchName : "",
             plan: invIdx === 0 ? (s.plan || "Basic") : "",
             freq: invIdx === 0 ? (PAYMENT_OPTION_LABELS[s.no_of_instalments] || s.no_of_instalments || "—") : "",
             total_fee: invIdx === 0 ? (s.total_fee ?? 0) : "",
@@ -731,9 +757,9 @@ export default function BranchAllStudentsPage() {
                             </span>
                             {student.student_name}
                           </p>
-                          {student.class_name && (
+                          {resolveStudentClass(student.class_name, student.batch_name) !== "—" && (
                             <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                              {student.class_name.replace(" Tuition Fee", "")}
+                              {resolveStudentClass(student.class_name, student.batch_name)}
                             </span>
                           )}
                           {student.batch_name && (

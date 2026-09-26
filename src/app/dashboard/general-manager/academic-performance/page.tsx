@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { AcademicPerformanceDashboard } from "@/components/academic-performance/AcademicPerformanceDashboard";
 
-export default function DirectorAcademicPerformancePage() {
+export default function GeneralManagerAcademicPerformancePage() {
   return (
     <Suspense
       fallback={
@@ -15,8 +15,8 @@ export default function DirectorAcademicPerformancePage() {
       }
     >
       <AcademicPerformanceDashboard
-        basePath="/dashboard/director/academic-performance"
-        roleTitle="Director"
+        basePath="/dashboard/general-manager/academic-performance"
+        roleTitle="General Manager"
       />
     </Suspense>
   );

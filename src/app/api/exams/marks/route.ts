@@ -89,57 +89,86 @@ export async function POST(request: NextRequest) {
       const maxScore = plan.maximum_assessment_score;
       const percentage = maxScore > 0 ? (mark.score / maxScore) * 100 : 0;
       const grade = getGrade(percentage);
+      const criteriaName = plan.assessment_criteria?.[0]?.assessment_criteria || "Theory";
 
       const existing = existingMap.get(mark.student);
 
       try {
-        if (existing) {
-          // If submitted, amend (cancel then delete)
-          if (existing.docstatus === 1) {
-            // Cancel existing
-            const cancelRes = await fetch(
-              `${FRAPPE_URL}/api/resource/Assessment%20Result/${encodeURIComponent(existing.name)}`,
-              {
-                method: "PUT",
-                headers: { Authorization: auth, "Content-Type": "application/json" },
-                body: JSON.stringify({ docstatus: 2 }),
-                cache: "no-store",
-              },
-            );
-            if (!cancelRes.ok) {
-              const errText = await cancelRes.text();
-              errors.push(`${mark.student} (cancel): ${errText.slice(0, 200)}`);
-              continue;
-            }
-            // Delete the cancelled document to avoid naming conflicts or database clutter
-            await fetch(
-              `${FRAPPE_URL}/api/resource/Assessment%20Result/${encodeURIComponent(existing.name)}`,
-              {
-                method: "DELETE",
-                headers: { Authorization: auth },
-                cache: "no-store",
-              },
-            );
-          } else {
-            // Delete draft
-            const deleteRes = await fetch(
-              `${FRAPPE_URL}/api/resource/Assessment%20Result/${encodeURIComponent(existing.name)}`,
-              {
-                method: "DELETE",
-                headers: { Authorization: auth },
-                cache: "no-store",
-              },
-            );
-            if (!deleteRes.ok) {
-              const errText = await deleteRes.text();
-              errors.push(`${mark.student} (delete): ${errText.slice(0, 200)}`);
-              continue;
-            }
+        // CASE A: Existing result is already a Draft (docstatus: 0)
+        // Update it directly in-place and submit — no deletion needed!
+        if (existing && existing.docstatus === 0) {
+          const updateRes = await fetch(
+            `${FRAPPE_URL}/api/resource/Assessment%20Result/${encodeURIComponent(existing.name)}`,
+            {
+              method: "PUT",
+              headers: { Authorization: auth, "Content-Type": "application/json" },
+              body: JSON.stringify({
+                maximum_score: maxScore,
+                total_score: mark.score,
+                grade,
+                details: [
+                  {
+                    assessment_criteria: criteriaName,
+                    maximum_score: maxScore,
+                    score: mark.score,
+                    grade,
+                  },
+                ],
+              }),
+              cache: "no-store",
+            },
+          );
+
+          if (!updateRes.ok) {
+            const errText = await updateRes.text();
+            errors.push(`${mark.student} (update draft): ${errText.slice(0, 200)}`);
+            continue;
           }
+
+          // Submit the updated draft
+          const submitRes = await fetch(
+            `${FRAPPE_URL}/api/resource/Assessment%20Result/${encodeURIComponent(existing.name)}`,
+            {
+              method: "PUT",
+              headers: { Authorization: auth, "Content-Type": "application/json" },
+              body: JSON.stringify({ docstatus: 1 }),
+              cache: "no-store",
+            },
+          );
+
+          if (!submitRes.ok) {
+            const errText = await submitRes.text();
+            // Note: Keep the draft intact so mark is not lost!
+            errors.push(`${mark.student} (submit): ${errText.slice(0, 200)}`);
+            continue;
+          }
+
+          created++;
+          continue;
+        }
+
+        // CASE B: Existing result was submitted (docstatus: 1)
+        // Cancel it first to allow new result creation, but DO NOT delete it until new one is verified!
+        let cancelledDocName: string | null = null;
+        if (existing && existing.docstatus === 1) {
+          const cancelRes = await fetch(
+            `${FRAPPE_URL}/api/resource/Assessment%20Result/${encodeURIComponent(existing.name)}`,
+            {
+              method: "PUT",
+              headers: { Authorization: auth, "Content-Type": "application/json" },
+              body: JSON.stringify({ docstatus: 2 }),
+              cache: "no-store",
+            },
+          );
+          if (!cancelRes.ok) {
+            const errText = await cancelRes.text();
+            errors.push(`${mark.student} (cancel): ${errText.slice(0, 200)}`);
+            continue;
+          }
+          cancelledDocName = existing.name;
         }
 
         // Create new result
-        const criteriaName = plan.assessment_criteria?.[0]?.assessment_criteria || "Theory";
         const resultData = {
           assessment_plan,
           student: mark.student,
@@ -178,7 +207,7 @@ export async function POST(request: NextRequest) {
 
         const createdResult = (await createRes.json()).data;
 
-        // Submit the result
+        // Submit the new result
         const submitRes = await fetch(
           `${FRAPPE_URL}/api/resource/Assessment%20Result/${encodeURIComponent(createdResult.name)}`,
           {
@@ -192,16 +221,21 @@ export async function POST(request: NextRequest) {
         if (!submitRes.ok) {
           const errText = await submitRes.text();
           errors.push(`${mark.student} (submit): ${errText.slice(0, 200)}`);
-          // Clean up the draft result that failed to submit
+          // DO NOT delete the draft! Keep it so the entered score is preserved.
+          continue;
+        }
+
+        // Only after the new result is successfully created AND submitted:
+        // Safely remove the old cancelled document to avoid naming clutter
+        if (cancelledDocName) {
           await fetch(
-            `${FRAPPE_URL}/api/resource/Assessment%20Result/${encodeURIComponent(createdResult.name)}`,
+            `${FRAPPE_URL}/api/resource/Assessment%20Result/${encodeURIComponent(cancelledDocName)}`,
             {
               method: "DELETE",
               headers: { Authorization: auth },
               cache: "no-store",
             },
-          );
-          continue;
+          ).catch(() => {});
         }
 
         created++;
@@ -222,7 +256,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ created, errors });
+    return NextResponse.json({
+      created,
+      errors,
+      hasErrors: errors.length > 0,
+      totalRequested: marks.length,
+    });
   } catch (error: unknown) {
     const err = error as { message?: string };
     console.error("[exams/marks] Error:", err.message);
