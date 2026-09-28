@@ -3,8 +3,9 @@
 import React, { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
+import Link from "next/link";
 import {
-  Search, GraduationCap, Users, School, ChevronLeft, ChevronRight,
+  Search, GraduationCap, Users, School, ChevronLeft, ChevronRight, Eye,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Input } from "@/components/ui/Input";
@@ -146,28 +147,33 @@ export default function ClassInchargeStudentsPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.02 }}
             >
-              <Card>
-                <CardContent className="p-4 flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-brand-wash flex items-center justify-center shrink-0">
-                    <GraduationCap className="h-5 w-5 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-text-primary truncate">{student.student_name}</p>
-                    <p className="text-xs text-text-tertiary font-mono">{student.name}</p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {student.custom_branch_abbr && (
-                      <Badge variant="info" className="text-[10px]">{student.custom_branch_abbr}</Badge>
-                    )}
-                    <Badge
-                      variant={student.enabled ? "success" : "error"}
-                      className="text-[10px]"
-                    >
-                      {student.enabled ? "Active" : "Inactive"}
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
+              <Link href={`/dashboard/class-incharge/students/${encodeURIComponent(student.name)}`}>
+                <Card className="hover:border-primary/40 hover:shadow-sm transition-all cursor-pointer">
+                  <CardContent className="p-4 flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full bg-brand-wash flex items-center justify-center shrink-0">
+                      <GraduationCap className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-text-primary truncate">{student.student_name}</p>
+                      <p className="text-xs text-text-tertiary font-mono">{student.name}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {student.custom_branch_abbr && (
+                        <Badge variant="info" className="text-[10px]">{student.custom_branch_abbr}</Badge>
+                      )}
+                      <Badge
+                        variant={student.enabled ? "success" : "error"}
+                        className="text-[10px]"
+                      >
+                        {student.enabled ? "Active" : "Inactive"}
+                      </Badge>
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center text-text-tertiary hover:text-primary transition-colors">
+                        <Eye className="h-4 w-4" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
             </motion.div>
           ))}
         </div>

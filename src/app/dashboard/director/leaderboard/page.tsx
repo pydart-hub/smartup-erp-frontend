@@ -58,7 +58,6 @@ const OPTIONS = [
     type: "single",
     title: "CWC Leaderboard",
     subtitle: "Instructor Leaderboard (CWC)",
-    tag: "Under Development",
     description: "Instructor and branch performance standings based on Continuous Weekly Assessments.",
     href: "/dashboard/director/leaderboard/cwc",
     icon: Award,

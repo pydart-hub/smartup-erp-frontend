@@ -15,10 +15,11 @@ import { getBranches } from "@/lib/api/enrollment";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Badge } from "@/components/ui/Badge";
 import { AcademicPlanningBranchDrilldown } from "@/components/academic-planning/AcademicPlanningBranchDrilldown";
+import { AcademicPlanningClassDrilldown } from "@/components/academic-planning/AcademicPlanningClassDrilldown";
 import APDPortionCompletionPage from "@/app/dashboard/academic-planning/portion-completion/page";
 
 export default function DirectorPortionCompletionPage() {
-  const [activeTab, setActiveTab] = useState<"drilldown" | "matrix">("drilldown");
+  const [activeTab, setActiveTab] = useState<"class" | "drilldown" | "matrix">("class");
   const [selectedBranch, setSelectedBranch] = useState<string>("all");
 
   // Fetch branches for quick filter
@@ -50,7 +51,7 @@ export default function DirectorPortionCompletionPage() {
                 </Badge>
               </div>
               <p className="text-sm text-text-secondary mt-0.5">
-                Centralized syllabus progression and milestone coverage across all campus branches.
+                Centralized syllabus progression and milestone coverage across all classes, subjects, and campus branches.
               </p>
             </div>
           </div>
@@ -60,6 +61,18 @@ export default function DirectorPortionCompletionPage() {
         <div className="flex flex-wrap items-center gap-2.5">
           {/* Main View Mode Toggle */}
           <div className="inline-flex rounded-xl p-1 bg-surface border border-border text-xs shadow-2xs">
+            <button
+              type="button"
+              onClick={() => setActiveTab("class")}
+              className={`px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
+                activeTab === "class"
+                  ? "bg-primary text-white shadow-xs font-semibold"
+                  : "text-text-secondary hover:text-text-primary hover:bg-muted/50"
+              }`}
+            >
+              <GraduationCap className="w-3.5 h-3.5" />
+              <span>Class Drilldown</span>
+            </button>
             <button
               type="button"
               onClick={() => setActiveTab("drilldown")}
@@ -109,7 +122,17 @@ export default function DirectorPortionCompletionPage() {
 
       {/* Main Content Area */}
       <AnimatePresence mode="wait">
-        {activeTab === "drilldown" ? (
+        {activeTab === "class" ? (
+          <motion.div
+            key="class-tab"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.18 }}
+          >
+            <AcademicPlanningClassDrilldown />
+          </motion.div>
+        ) : activeTab === "drilldown" ? (
           <motion.div
             key="drilldown-tab"
             initial={{ opacity: 0, y: 6 }}

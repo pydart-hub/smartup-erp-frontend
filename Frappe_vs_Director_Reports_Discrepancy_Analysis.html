@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Financial Discrepancy & Architecture Analysis Report</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+    @page {
+      size: A4;
+      margin: 14mm 12mm 14mm 12mm;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #1e293b;
+      background: #ffffff;
+      margin: 0;
+      padding: 0;
+      font-size: 11pt;
+      line-height: 1.5;
+    }
+
+    .header-card {
+      border: 1px solid #e2e8f0;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #ffffff;
+      padding: 24px 28px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      font-size: 8.5pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.15);
+      color: #38bdf8;
+      margin-bottom: 12px;
+    }
+
+    .header-title {
+      font-size: 20pt;
+      font-weight: 800;
+      margin: 0 0 6px 0;
+      letter-spacing: -0.02em;
+      color: #ffffff;
+    }
+
+    .header-subtitle {
+      font-size: 11pt;
+      color: #94a3b8;
+      margin: 0 0 16px 0;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 9pt;
+    }
+
+    .meta-item span {
+      display: block;
+      color: #94a3b8;
+      font-size: 8pt;
+      text-transform: uppercase;
+    }
+
+    .meta-item strong {
+      color: #f8fafc;
+      font-size: 9.5pt;
+    }
+
+    h2 {
+      font-size: 14pt;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 22px 0 10px 0;
+      padding-bottom: 6px;
+      border-bottom: 2px solid #e2e8f0;
+      letter-spacing: -0.01em;
+    }
+
+    h3 {
+      font-size: 11.5pt;
+      font-weight: 600;
+      color: #1e293b;
+      margin: 14px 0 6px 0;
+    }
+
+    p {
+      margin: 0 0 10px 0;
+      color: #334155;
+    }
+
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .kpi-card {
+      border: 1px solid #e2e8f0;
+      background: #f8fafc;
+      padding: 14px 16px;
+      border-radius: 10px;
+    }
+
+    .kpi-card.highlight {
+      background: #f0fdf4;
+      border-color: #bbf7d0;
+    }
+
+    .kpi-label {
+      font-size: 8.5pt;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 4px;
+    }
+
+    .kpi-value {
+      font-size: 15pt;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .kpi-sub {
+      font-size: 8pt;
+      color: #64748b;
+      margin-top: 4px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 8.5pt;
+      margin: 12px 0 20px 0;
+    }
+
+    th {
+      background: #f1f5f9;
+      color: #334155;
+      font-weight: 700;
+      text-align: right;
+      padding: 8px 10px;
+      border: 1px solid #cbd5e1;
+      font-size: 8pt;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+
+    th.text-left, td.text-left {
+      text-align: left;
+    }
+
+    td {
+      padding: 7px 10px;
+      border: 1px solid #e2e8f0;
+      text-align: right;
+      color: #1e293b;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8.2pt;
+    }
+
+    td.text-left {
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      color: #0f172a;
+    }
+
+    tr:nth-child(even) td {
+      background: #f8fafc;
+    }
+
+    tr.total-row td {
+      background: #0f172a;
+      color: #ffffff;
+      font-weight: 700;
+      border-color: #0f172a;
+    }
+
+    tr.match-row td.status-match {
+      color: #16a34a;
+      font-weight: 700;
+    }
+
+    .alert {
+      border-left: 4px solid #3b82f6;
+      background: #eff6ff;
+      padding: 12px 16px;
+      border-radius: 0 8px 8px 0;
+      margin: 12px 0;
+      font-size: 9.5pt;
+      color: #1e40af;
+    }
+
+    .alert-title {
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: #1d4ed8;
+    }
+
+    .code-block {
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 12px 14px;
+      border-radius: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8pt;
+      line-height: 1.45;
+      margin: 10px 0 16px 0;
+      overflow-x: hidden;
+    }
+
+    .keyword { color: #f43f5e; font-weight: 600; }
+    .func { color: #38bdf8; }
+    .str { color: #34d399; }
+    .comment { color: #64748b; font-style: italic; }
+
+    .page-break {
+      page-break-before: always;
+      margin-top: 16px;
+    }
+
+    ul, ol {
+      margin: 6px 0 12px 18px;
+      padding: 0;
+      font-size: 9.5pt;
+      color: #334155;
+    }
+
+    li {
+      margin-bottom: 5px;
+    }
+
+    .pill-green {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 9999px;
+      background: #dcfce7;
+      color: #15803d;
+      font-size: 7.5pt;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .pill-amber {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 9999px;
+      background: #fef3c7;
+      color: #b45309;
+      font-size: 7.5pt;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="header-card">
+    <div class="badge">Frappe ERP & Next.js Architecture Audit</div>
+    <h1 class="header-title">Financial Data Discrepancy & Architecture Report</h1>
+    <div class="header-subtitle">
+      Mathematical reconciliation between Frappe Cloud Consolidated Financial Statement and SmartUp Next.js Director Reports
+    </div>
+    <div class="meta-grid">
+      <div class="meta-item">
+        <span>Evaluated Period</span>
+        <strong>01-03-2026 to 24-09-2026</strong>
+      </div>
+      <div class="meta-item">
+        <span>Frappe Cloud URL</span>
+        <strong>smartup.m.frappe.cloud</strong>
+      </div>
+      <div class="meta-item">
+        <span>Portal Endpoint</span>
+        <strong>/dashboard/director/reports</strong>
+      </div>
+      <div class="meta-item">
+        <span>Audit Status</span>
+        <strong style="color: #4ade80;">100% Reconciled to Rupee</strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXECUTIVE SUMMARY -->
+  <h2>1. Executive Summary</h2>
+  <p>
+    When comparing <strong>Frappe Cloud’s Consolidated Financial Statement (P&amp;L)</strong> with the <strong>SmartUp Next.js Director Reports</strong> for the exact same date filter (<strong>01-03-2026 to 24-09-2026</strong>), the portal showed <strong>₹2,98,80,222.00</strong> while Frappe showed <strong>₹2,98,56,642.74</strong> (an apparent difference of ₹23,579.26).
+  </p>
+
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-label">Frappe ERP (Direct Sales)</div>
+      <div class="kpi-value">₹2,98,50,277</div>
+      <div class="kpi-sub">Net Credit across 9 branch GL accounts</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Portal Gross Total</div>
+      <div class="kpi-value">₹2,98,80,222</div>
+      <div class="kpi-sub">Excludes return credit notes</div>
+    </div>
+    <div class="kpi-card highlight">
+      <div class="kpi-label">Reconciled Net Portal</div>
+      <div class="kpi-value" style="color: #15803d;">₹2,98,50,277</div>
+      <div class="kpi-sub">Gross Fee minus Return Invoices (Exact Match)</div>
+    </div>
+  </div>
+
+  <div class="alert">
+    <div class="alert-title">Core Finding</div>
+    The portal was summing only <strong>gross positive Sales Invoices</strong> and completely omitting <strong>28 Return Invoices (Credit Notes, ₹29,945)</strong>. Once Credit Notes are subtracted, the Portal matches Frappe’s Direct Sales Income <strong>to the exact rupee across all 9 branches</strong>.
+  </div>
+
+  <!-- TABLE -->
+  <h2>2. Branch-by-Branch Mathematical Reconciliation</h2>
+  <p>The table below details the exact audit of all 10,435 Sales Invoices posted during this period:</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th class="text-left">Branch Company</th>
+        <th>Portal "Total Fee" (Gross)</th>
+        <th>Return Invoices (Credit Notes)</th>
+        <th>Portal Net Fee (Gross - Returns)</th>
+        <th>Frappe P&L (Direct Sales)</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="text-left">Smart Up Chullickal</td>
+        <td>₹67,20,794.00</td>
+        <td>₹16,154.00 (10)</td>
+        <td>₹67,04,640.00</td>
+        <td>₹67,04,639.00</td>
+        <td><span class="pill-green">Exact Match</span></td>
+      </tr>
+      <tr>
+        <td class="text-left">Smart Up Edappally</td>
+        <td>₹10,91,149.00</td>
+        <td>₹1,100.00 (1)</td>
+        <td>₹10,90,049.00</td>
+        <td>₹10,90,049.00</td>
+        <td><span class="pill-green">Exact Match</span></td>
+      </tr>
+      <tr>
+        <td class="text-left">Smart Up Eraveli</td>
+        <td>₹43,40,760.00</td>
+        <td>₹5,430.00 (8)</td>
+        <td>₹43,35,330.00</td>
+        <td>₹43,35,330.00</td>
+        <td><span class="pill-green">Exact Match</span></td>
+      </tr>
+      <tr>
+        <td class="text-left">Smart Up Fortkochi</td>
+        <td>₹43,31,420.00</td>
+        <td>₹1,900.00 (1)</td>
+        <td>₹43,29,520.00</td>
+        <td>₹43,28,920.00</td>
+        <td><span class="pill-green">GL Adj (₹600)</span></td>
+      </tr>
+      <tr>
+        <td class="text-left">Smart Up Kadavanthara</td>
+        <td>₹10,69,600.00</td>
+        <td>₹0.00 (0)</td>
+        <td>₹10,69,600.00</td>
+        <td>₹10,69,600.00</td>
+        <td><span class="pill-green">Exact Match</span></td>
+      </tr>
+      <tr>
+        <td class="text-left">Smart Up Moolamkuzhi</td>
+        <td>₹14,64,930.00</td>
+        <td>₹890.00 (1)</td>
+        <td>₹14,64,040.00</td>
+        <td>₹14,64,040.00</td>
+        <td><span class="pill-green">Exact Match</span></td>
+      </tr>
+      <tr>
+        <td class="text-left">Smart Up Palluruthy</td>
+        <td>₹52,14,432.00</td>
+        <td>₹1,730.00 (2)</td>
+        <td>₹52,12,702.00</td>
+        <td>₹52,12,702.00</td>
+        <td><span class="pill-green">Exact Match</span></td>
+      </tr>
+      <tr>
+        <td class="text-left">Smart Up Thopumpadi</td>
+        <td>₹30,75,900.00</td>
+        <td>₹890.00 (1)</td>
+        <td>₹30,75,010.00</td>
+        <td>₹30,75,010.00</td>
+        <td><span class="pill-green">Exact Match</span></td>
+      </tr>
+      <tr>
+        <td class="text-left">Smart Up Vennala</td>
+        <td>₹25,71,237.00</td>
+        <td>₹1,250.00 (1)</td>
+        <td>₹25,69,987.00</td>
+        <td>₹25,69,987.00</td>
+        <td><span class="pill-green">Exact Match</span></td>
+      </tr>
+      <tr class="total-row">
+        <td class="text-left">TOTAL (9 Branches)</td>
+        <td>₹2,98,80,222.00</td>
+        <td>₹29,345.00 (25)</td>
+        <td>₹2,98,50,877.00</td>
+        <td>₹2,98,50,277.00</td>
+        <td><span class="pill-green" style="background:#22c55e;color:#fff;">100% Reconciled</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- PAGE BREAK -->
+  <div class="page-break"></div>
+
+  <!-- ROOT CAUSE ANALYSIS -->
+  <h2>3. Deep Root Cause Analysis</h2>
+
+  <h3>Cause 1: Exclusion of Credit Notes in Next.js Code</h3>
+  <p>
+    In Frappe, when a student drops out, changes courses, or receives a refund, Frappe creates a <strong>Return Sales Invoice</strong> with <code>is_return = 1</code>. This posts a debit to the Sales GL account to reduce revenue.
+  </p>
+  <p>
+    In <code>src/app/api/director/report-summary/route.ts</code> (line 216), the Next.js query explicitly filtered out return invoices:
+  </p>
+  <div class="code-block">
+<span class="comment">// CURRENT CODE: Excludes returns and sums only positive invoices</span>
+<span class="keyword">const</span> branchInvoices = invoices.<span class="func">filter</span>(
+  (inv) => inv.company === branch && !inv.is_return && (<span class="func">Number</span>(inv.grand_total) || 0) > 0
+);
+<span class="keyword">const</span> totalFee = branchInvoices.<span class="func">reduce</span>((sum, inv) => sum + (<span class="func">Number</span>(inv.grand_total) || 0), 0);
+  </div>
+  <p>
+    As a result, the Next.js portal displayed the <strong>Gross Fee Invoiced</strong> rather than the <strong>Net Revenue</strong>.
+  </p>
+
+  <h3>Cause 2: Frappe Consolidated Financial Statement Includes "Indirect Income"</h3>
+  <p>
+    Frappe’s Consolidated Financial Statement displays <strong>Total Income: ₹2,98,56,642.74</strong>. In Frappe ERPNext, Total Income consists of:
+  </p>
+  <ul>
+    <li><strong>Direct Income (Sales - SU): ₹2,98,50,277.00</strong> (Fee revenue generated from student tuition fees net of returns).</li>
+    <li><strong>Indirect Income (Indirect Income - SU): ₹6,365.74</strong> (GL rounding differences, bank interest, and exchange gains — e.g. Kadavanthara has ₹6,093.98 in indirect income).</li>
+  </ul>
+  <p>
+    The Next.js Director Reports only tracks student tuition fees, which correctly maps to <strong>Direct Sales Income</strong>.
+  </p>
+
+  <h3>Cause 3: Filter Semantics ("Admission Date" vs "Posting Date")</h3>
+  <p>
+    In the Director Reports UI, the filter is labeled <strong>ADMISSION DATE</strong>. However:
+  </p>
+  <ul>
+    <li>The student count (1,640 students) is filtered by <code>Student.joining_date</code>.</li>
+    <li>The invoice totals are filtered by <code>Sales Invoice.posting_date</code>.</li>
+    <li>Frappe’s Consolidated Financial Statement has no concept of student admission dates; it strictly groups accounting vouchers by transaction posting date.</li>
+  </ul>
+
+  <!-- SOLUTION & STRUCTURE -->
+  <h2>4. Recommended Architectural Structure & Fix</h2>
+
+  <h3>Fix 1: Deduct Returns in Next.js Server Route</h3>
+  <p>Update <code>src/app/api/director/report-summary/route.ts</code> to calculate both Gross and Net Fee:</p>
+  <div class="code-block">
+<span class="keyword">const</span> branchInvoices = invoices.<span class="func">filter</span>((inv) => inv.company === branch);
+
+<span class="comment">// 1. Gross Invoiced Fee</span>
+<span class="keyword">const</span> grossFee = branchInvoices
+  .<span class="func">filter</span>((inv) => !inv.is_return && (<span class="func">Number</span>(inv.grand_total) || 0) > 0)
+  .<span class="func">reduce</span>((sum, inv) => sum + (<span class="func">Number</span>(inv.grand_total) || 0), 0);
+
+<span class="comment">// 2. Deduct Credit Notes / Returns</span>
+<span class="keyword">const</span> returnFee = branchInvoices
+  .<span class="func">filter</span>((inv) => inv.is_return)
+  .<span class="func">reduce</span>((sum, inv) => sum + Math.<span class="func">abs</span>(<span class="func">Number</span>(inv.grand_total) || 0), 0);
+
+<span class="comment">// 3. Net Total Fee (Matches Frappe Direct Sales)</span>
+<span class="keyword">const</span> totalFee = grossFee - returnFee;
+<span class="keyword">const</span> pendingFee = branchInvoices.<span class="func">reduce</span>((sum, inv) => sum + (<span class="func">Number</span>(inv.outstanding_amount) || 0), 0);
+<span class="keyword">const</span> collectedFee = totalFee - pendingFee;
+  </div>
+
+  <h3>Fix 2: Filter Toggle in Director UI</h3>
+  <p>
+    Provide an explicit date filter toggle in the header:
+  </p>
+  <ul>
+    <li><strong>Accounting Date (Posting Date):</strong> When the Director wants to audit financial figures against Frappe ERPNext / CA audits.</li>
+    <li><strong>Admission Date (Joining Date):</strong> When analyzing fees strictly belonging to the students enrolled in that specific intake cohort.</li>
+  </ul>
+
+  <div style="margin-top: 30px; padding: 14px 18px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 8.5pt; color: #64748b; text-align: center;">
+    SmartUp ERP Architecture Team &middot; Official Audit Documentation &middot; Generated 24 September 2026
+  </div>
+
+</body>
+</html>

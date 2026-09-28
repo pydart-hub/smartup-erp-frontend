@@ -106,6 +106,7 @@ export interface NavItem {
 
 export const ACADEMIC_PLANNING_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard/academic-planning", icon: "LayoutDashboard", emoji: "📊" },
+  { label: "Academic Performance", href: "/dashboard/academic-planning/academic-performance", icon: "TrendingUp", emoji: "📈" },
   { label: "Portion Completion", href: "/dashboard/academic-planning/portion-completion", icon: "BookOpen", emoji: "📖" },
   { label: "Course Schedule", href: "/dashboard/academic-planning/course-schedule", icon: "CalendarDays", emoji: "📅" },
   { label: "Batches", href: "/dashboard/academic-planning/batches", icon: "Users", emoji: "👥" },
