@@ -1,0 +1,17 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "SmartUp ERP Director Intelligence",
+  "name_for_model": "smartup_erp_director",
+  "description_for_human": "Real-time executive intelligence for SmartUp ERP: student metrics, fee collections & pending dues, branch health, and attendance.",
+  "description_for_model": "Plugin for accessing real-time SmartUp ERP data for the Director and Management. Allows checking total and active students (1549 active, 103 discontinued across 9 branches), fee collections (total billed ₹30M, collected ₹13.8M, pending ₹16.2M), branch breakdowns, and 360-degree student lookups.",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://smartuplearning.net/api/ai/openapi.json"
+  },
+  "logo_url": "https://smartuplearning.net/smartup-logo-v2.png",
+  "contact_email": "support@smartuplearning.net",
+  "legal_info_url": "https://smartuplearning.net"
+}
