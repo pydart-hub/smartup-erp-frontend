@@ -108,6 +108,19 @@ async function getCount(
   }
 }
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, x-ai-agent-key",
+};
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: corsHeaders,
+  });
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { authorized, identity } = verifyAccess(request);
@@ -118,7 +131,7 @@ export async function GET(request: NextRequest) {
           message:
             "Provide valid Authorization Bearer token, x-ai-agent-key header, or log in with Director privileges.",
         },
-        { status: 401 }
+        { status: 401, headers: corsHeaders }
       );
     }
 
@@ -333,9 +346,9 @@ export async function GET(request: NextRequest) {
       };
     }
 
-    return NextResponse.json({ success: true, data: responsePayload });
+    return NextResponse.json({ success: true, data: responsePayload }, { headers: corsHeaders });
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : "Internal Server Error";
-    return NextResponse.json({ success: false, error: msg }, { status: 500 });
+    return NextResponse.json({ success: false, error: msg }, { status: 500, headers: corsHeaders });
   }
 }
