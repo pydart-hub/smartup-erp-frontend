@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   const schema = {
-    openapi: "3.1.0",
+    openapi: "3.0.1",
     info: {
       title: "SmartUp ERP Director Context API",
       description:
