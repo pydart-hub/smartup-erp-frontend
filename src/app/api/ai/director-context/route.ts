@@ -10,6 +10,14 @@ const AI_AGENT_SECRET_KEY = process.env.AI_AGENT_SECRET_KEY || "smartup-ai-agent
 const adminAuth = `token ${FRAPPE_API_KEY}:${FRAPPE_API_SECRET}`;
 
 function verifyAccess(request: NextRequest): { authorized: boolean; identity: string } {
+  // 1. Check Query parameter (?key= or ?api_key=) for browser / simple AI agent access
+  const { searchParams } = new URL(request.url);
+  const queryKey = searchParams.get("api_key") || searchParams.get("key");
+  if (queryKey && queryKey === AI_AGENT_SECRET_KEY) {
+    return { authorized: true, identity: "ai_agent_query_param" };
+  }
+
+  // 2. Check AI Agent Authorization Header
   const authHeader = request.headers.get("authorization");
   const agentKey = request.headers.get("x-ai-agent-key");
 
