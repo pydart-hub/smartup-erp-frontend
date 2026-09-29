@@ -186,30 +186,35 @@ async function frappeGet(
   fields: string[],
   filters: (string | number | string[])[][] = [],
   orderBy?: string,
-  limitPageLength = 200
+  limitPageLength = 200,
+  retries = 2
 ): Promise<Record<string, unknown>[]> {
-  try {
-    const params = new URLSearchParams({
-      fields: JSON.stringify(fields),
-      filters: JSON.stringify(filters),
-      limit_page_length: String(limitPageLength),
-      ...(orderBy ? { order_by: orderBy } : {}),
-    });
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const params = new URLSearchParams({
+        fields: JSON.stringify(fields),
+        filters: JSON.stringify(filters),
+        limit_page_length: String(limitPageLength),
+        ...(orderBy ? { order_by: orderBy } : {}),
+      });
 
-    const res = await fetch(`${FRAPPE_URL}/api/resource/${encodeURIComponent(doctype)}?${params}`, {
-      headers: { Authorization: adminAuth, Accept: "application/json" },
-      cache: "no-store",
-    });
+      const res = await fetch(`${FRAPPE_URL}/api/resource/${encodeURIComponent(doctype)}?${params}`, {
+        headers: { Authorization: adminAuth, Accept: "application/json" },
+        cache: "no-store",
+      });
 
-    if (!res.ok) {
-      return [];
+      if (!res.ok) {
+        return [];
+      }
+
+      const data = await res.json();
+      return (data.data || []) as Record<string, unknown>[];
+    } catch {
+      if (attempt === retries) return [];
+      await new Promise((r) => setTimeout(r, 300));
     }
-
-    const data = await res.json();
-    return (data.data || []) as Record<string, unknown>[];
-  } catch {
-    return [];
   }
+  return [];
 }
 
 async function getCount(
@@ -448,7 +453,7 @@ export async function GET(request: NextRequest) {
         getCount("Student", discFilters),
         frappeGet(
           "Student",
-          ["name", "first_name", "last_name", "student_name", "custom_branch", "student_email_id", "custom_program_enrolled"],
+          ["name", "first_name", "last_name", "student_name", "custom_branch", "student_email_id", "joining_date", "enabled"],
           studentFilters,
           "creation desc",
           limit
@@ -583,20 +588,22 @@ export async function GET(request: NextRequest) {
 
     // 5. INDIVIDUAL STUDENT LOOKUP (360° Profile)
     if (searchQuery) {
+      const studentFields = [
+        "name",
+        "first_name",
+        "last_name",
+        "student_name",
+        "custom_branch",
+        "student_email_id",
+        "joining_date",
+        "enabled",
+        "customer",
+        "custom_student_type",
+      ];
+
       let matchedStudents = await frappeGet(
         "Student",
-        [
-          "name",
-          "first_name",
-          "last_name",
-          "student_name",
-          "custom_branch",
-          "student_email_id",
-          "student_mobile_number",
-          "enabled",
-          "date_of_joining",
-          "custom_program_enrolled",
-        ],
+        studentFields,
         [["name", "like", `%${searchQuery}%`]],
         "creation desc",
         10
@@ -605,18 +612,7 @@ export async function GET(request: NextRequest) {
       if (matchedStudents.length === 0) {
         matchedStudents = await frappeGet(
           "Student",
-          [
-            "name",
-            "first_name",
-            "last_name",
-            "student_name",
-            "custom_branch",
-            "student_email_id",
-            "student_mobile_number",
-            "enabled",
-            "date_of_joining",
-            "custom_program_enrolled",
-          ],
+          studentFields,
           [["student_name", "like", `%${searchQuery}%`]],
           "creation desc",
           10
@@ -625,20 +621,20 @@ export async function GET(request: NextRequest) {
 
       if (matchedStudents.length > 0) {
         const topStudent = matchedStudents[0];
-        const studentIdentifier = String(topStudent.student_name || topStudent.name);
+        const studentCustomer = String(topStudent.customer || topStudent.student_name || topStudent.name);
 
         const [invoices, payments, attendance] = await Promise.all([
           frappeGet(
             "Sales Invoice",
             ["name", "customer", "customer_name", "company", "grand_total", "outstanding_amount", "status", "posting_date", "due_date"],
-            [["customer", "=", studentIdentifier]],
+            [["customer", "=", studentCustomer]],
             "posting_date desc",
             20
           ),
           frappeGet(
             "Payment Entry",
             ["name", "party", "party_name", "paid_amount", "received_amount", "posting_date", "mode_of_payment"],
-            [["party", "=", studentIdentifier]],
+            [["party", "=", studentCustomer]],
             "posting_date desc",
             20
           ),
