@@ -34,7 +34,7 @@ async function run() {
     let sinvData = await sinvRes.json();
     console.log('=== SALES INVOICES ===');
     console.log(JSON.stringify(sinvData.data, null, 2));
-
+    
     if (sinvData.data) {
       for (let inv of sinvData.data) {
         let singleInvRes = await fetch(`${baseUrl}/api/resource/Sales Invoice/${inv.name}`, { headers });

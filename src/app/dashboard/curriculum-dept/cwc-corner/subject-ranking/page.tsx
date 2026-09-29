@@ -462,12 +462,27 @@ export default function SubjectRankingPage() {
     // Sort branches according to chosen criteria
     activeBranchesList.sort((a, b) => {
       if (rankingSortBy === "passRate") {
-        return b.passRate - a.passRate || b.avgScorePct - a.avgScorePct || b.totalStudents - a.totalStudents;
+        return (
+          b.passRate - a.passRate ||
+          b.fullMarksCount - a.fullMarksCount ||
+          b.p90Count - a.p90Count ||
+          b.avgScorePct - a.avgScorePct ||
+          b.totalStudents - a.totalStudents
+        );
       }
       if (rankingSortBy === "averageScore") {
-        return b.avgScorePct - a.avgScorePct || b.passRate - a.passRate;
+        return (
+          b.avgScorePct - a.avgScorePct ||
+          b.fullMarksCount - a.fullMarksCount ||
+          b.passRate - a.passRate
+        );
       }
-      return b.fullMarksCount - a.fullMarksCount || b.p90Count - a.p90Count || b.passRate - a.passRate;
+      return (
+        b.fullMarksCount - a.fullMarksCount ||
+        b.p90Count - a.p90Count ||
+        b.passRate - a.passRate ||
+        b.avgScorePct - a.avgScorePct
+      );
     });
 
     // Assign rank

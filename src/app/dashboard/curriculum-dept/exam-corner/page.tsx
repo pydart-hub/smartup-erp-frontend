@@ -1,0 +1,133 @@
+"use client";
+
+import React from "react";
+import Link from "next/link";
+import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
+import { Card, CardContent } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { GraduationCap, School, Trophy, ChevronRight, BookOpen } from "lucide-react";
+
+export default function ExamCornerPage() {
+  return (
+    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+      <BreadcrumbNav />
+
+      <div className="space-y-2">
+        <h1 className="text-2xl font-bold text-text-primary flex items-center gap-2.5">
+          <GraduationCap className="h-7 w-7 text-indigo-500" />
+          Exam Corner
+        </h1>
+        <p className="text-sm text-text-secondary">
+          Academic Exam analytics, comparative rankings, and leaderboard portal across branches and the SmartUp network. Choose any exam to inspect performance.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
+        {/* Card 1: Branch Wise Ranking */}
+        <Link href="/dashboard/curriculum-dept/exam-corner/branch-ranking">
+          <Card className="border-2 border-transparent hover:border-amber-500/40 hover:shadow-xl transition-all duration-300 cursor-pointer group overflow-hidden bg-surface relative h-full flex flex-col justify-between">
+            <div className="h-2 bg-gradient-to-r from-amber-500 to-orange-500 w-full" />
+            <CardContent className="p-7 space-y-6 flex-1 flex flex-col justify-between">
+              <div className="space-y-5">
+                <div className="flex items-start justify-between">
+                  <div className="p-3.5 rounded-2xl bg-amber-500/10 text-amber-600 group-hover:scale-110 transition-transform duration-300">
+                    <School className="h-8 w-8" />
+                  </div>
+                  <Badge variant="outline" className="border-amber-500/30 text-amber-600 font-medium px-2.5 py-1 text-xs">
+                    Branch Rankings
+                  </Badge>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-bold text-text-primary group-hover:text-amber-600 transition-colors flex items-center gap-1.5">
+                    1. Branch Wise Ranking
+                    <ChevronRight className="h-4 w-4 text-text-tertiary group-hover:translate-x-1 transition-transform" />
+                  </h3>
+                  <p className="text-xs text-text-secondary mt-2 leading-relaxed">
+                    Compare branch performance pass rates, batch standings, and detailed student results for chosen exams.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-3 flex items-center gap-4 text-xs font-semibold text-text-tertiary border-t border-border/50">
+                <span className="flex items-center gap-1.5">
+                  <School className="h-4 w-4 text-amber-500" /> Branch Breakdown & Metrics
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        {/* Card 2: Subject Wise Ranking */}
+        <Link href="/dashboard/curriculum-dept/exam-corner/subject-ranking">
+          <Card className="border-2 border-transparent hover:border-emerald-500/40 hover:shadow-xl transition-all duration-300 cursor-pointer group overflow-hidden bg-surface relative h-full flex flex-col justify-between">
+            <div className="h-2 bg-gradient-to-r from-emerald-500 to-teal-500 w-full" />
+            <CardContent className="p-7 space-y-6 flex-1 flex flex-col justify-between">
+              <div className="space-y-5">
+                <div className="flex items-start justify-between">
+                  <div className="p-3.5 rounded-2xl bg-emerald-500/10 text-emerald-600 group-hover:scale-110 transition-transform duration-300">
+                    <BookOpen className="h-8 w-8" />
+                  </div>
+                  <Badge variant="outline" className="border-emerald-500/30 text-emerald-600 font-medium px-2.5 py-1 text-xs">
+                    Subject & Class
+                  </Badge>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-bold text-text-primary group-hover:text-emerald-600 transition-colors flex items-center gap-1.5">
+                    2. Subject Wise Ranking
+                    <ChevronRight className="h-4 w-4 text-text-tertiary group-hover:translate-x-1 transition-transform" />
+                  </h3>
+                  <p className="text-xs text-text-secondary mt-2 leading-relaxed">
+                    Compare all branches across specific subjects and classes (e.g. 10th Physics, Mathematics) for chosen exams.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-3 flex items-center gap-4 text-xs font-semibold text-text-tertiary border-t border-border/50">
+                <span className="flex items-center gap-1.5">
+                  <BookOpen className="h-4 w-4 text-emerald-500" /> Branch Subject Leaderboard
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        {/* Card 3: SmartUp Ranking */}
+        <Link href="/dashboard/curriculum-dept/exam-corner/smartup-ranking">
+          <Card className="border-2 border-transparent hover:border-purple-500/40 hover:shadow-xl transition-all duration-300 cursor-pointer group overflow-hidden bg-surface relative h-full flex flex-col justify-between">
+            <div className="h-2 bg-gradient-to-r from-purple-500 to-indigo-600 w-full" />
+            <CardContent className="p-7 space-y-6 flex-1 flex flex-col justify-between">
+              <div className="space-y-5">
+                <div className="flex items-start justify-between">
+                  <div className="p-3.5 rounded-2xl bg-purple-500/10 text-purple-600 group-hover:scale-110 transition-transform duration-300">
+                    <Trophy className="h-8 w-8" />
+                  </div>
+                  <Badge variant="outline" className="border-purple-500/30 text-purple-600 font-medium px-2.5 py-1 text-xs">
+                    Overall Leaderboard
+                  </Badge>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-bold text-text-primary group-hover:text-purple-600 transition-colors flex items-center gap-1.5">
+                    3. SmartUp Ranking
+                    <ChevronRight className="h-4 w-4 text-text-tertiary group-hover:translate-x-1 transition-transform" />
+                  </h3>
+                  <p className="text-xs text-text-secondary mt-2 leading-relaxed">
+                    Overall institute-wide student rankings and top achiever leaderboards across all SmartUp branches for chosen exams.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-3 flex items-center gap-4 text-xs font-semibold text-text-tertiary border-t border-border/50">
+                <span className="flex items-center gap-1.5">
+                  <Trophy className="h-4 w-4 text-purple-500" /> Network Top Achievers
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+      </div>
+    </div>
+  );
+}

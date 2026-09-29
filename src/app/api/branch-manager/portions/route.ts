@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
     const updatePayload: Record<string, any> = {
       status: finalStatus,
       completed_on: isCompleted ? todayStr : null,
-      completed_by: isCompleted ? session.email || "Branch Manager" : null,
+      completed_by: isCompleted ? session.email || session.full_name || "Staff" : null,
       remarks: updatedRemarks,
     };
 

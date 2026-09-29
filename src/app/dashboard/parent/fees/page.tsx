@@ -87,18 +87,18 @@ export default function ParentFeesPage() {
   const totalFeeStructure = allFeeStructures.reduce((s, fs) => s + fs.total_amount, 0);
 
   // Best available source for summary:
-  // SO = full fee commitment, invoices = what's been billed from backend
+  // Invoices = exact active installment breakdown, SO = fallback order commitment
   let displayTotal: number;
   let displayOutstanding: number;
   let displayPaid: number;
-  if (totalSO > 0) {
-    displayTotal = totalSO;
-    displayPaid = totalInvoiced > 0 ? totalInvoiced - totalInvOutstanding : 0;
-    displayOutstanding = totalSO - displayPaid;
-  } else if (totalInvoiced > 0) {
+  if (totalInvoiced > 0) {
     displayTotal = totalInvoiced;
-    displayPaid = totalInvoiced - totalInvOutstanding;
     displayOutstanding = totalInvOutstanding;
+    displayPaid = totalInvoiced - totalInvOutstanding;
+  } else if (totalSO > 0) {
+    displayTotal = totalSO;
+    displayPaid = 0;
+    displayOutstanding = totalSO;
   } else {
     displayTotal = totalFeeStructure;
     displayPaid = 0;
@@ -216,6 +216,7 @@ function ChildFeeCard({
   const hasFeeStructures = childFeeStructures.length > 0;
 
   const soTotal = childSOs.reduce((s, so) => s + so.grand_total, 0);
+  const invTotal = childInvoices.reduce((s, inv) => s + inv.grand_total, 0);
   const invPaid = childInvoices.reduce((s, inv) => s + (inv.grand_total - inv.outstanding_amount), 0);
 
   // Build instalment items from invoices, sorted by due date
@@ -295,18 +296,18 @@ function ChildFeeCard({
           )}
 
           {/* SO summary header */}
-          {!isFreeAccess && hasSOs && (
+          {!isFreeAccess && (hasSOs || hasInvoices) && (
             <div className="flex items-center justify-between rounded-[12px] border border-border-light bg-app-bg p-4">
               <div>
-                <p className="text-xs text-text-secondary">Fee Order</p>
-                <p className="text-sm font-medium text-text-primary">{childSOs[0].name}</p>
+                <p className="text-xs text-text-secondary">Fee Plan</p>
+                <p className="text-sm font-medium text-text-primary">{childSOs[0]?.name || "Tuition Invoices"}</p>
                 {enrollment?.academic_year && (
                   <p className="text-xs text-text-tertiary mt-0.5">{enrollment.academic_year}</p>
                 )}
               </div>
               <div className="text-right">
                 <p className="text-xs text-text-secondary">Total Fee</p>
-                <p className="text-lg font-bold text-primary">{formatCurrency(soTotal)}</p>
+                <p className="text-lg font-bold text-primary">{formatCurrency(invTotal > 0 ? invTotal : soTotal)}</p>
                 {invPaid > 0 && (
                   <p className="text-xs text-success">Paid: {formatCurrency(invPaid)}</p>
                 )}

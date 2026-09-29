@@ -26,7 +26,6 @@ const quickLinks = [
   { title: "Marks Entry", desc: "Enter marks and calculate grades", icon: Edit3, href: "/dashboard/curriculum-dept/marks-entry", color: "text-primary bg-primary/5 border-primary/10" },
   { title: "Class Performance", desc: "Branch-wise subject analysis & toppers", icon: Users, href: "/dashboard/curriculum-dept/class-performance", color: "text-success bg-success/5 border-success/10" },
   { title: "Teacher Ranking", desc: "Average marks and highest scores", icon: BookOpen, href: "/dashboard/curriculum-dept/subject-performance", color: "text-info bg-info/5 border-info/10" },
-  { title: "Teacher Performance", desc: "Teacher ranking & performance scores", icon: UserCheck, href: "/dashboard/curriculum-dept/teacher-performance", color: "text-purple-600 bg-purple-50 border-purple-100 dark:bg-purple-950/20 dark:border-purple-900/30" },
   { title: "Student Dashboard", desc: "Individual student diagnosis & ranking", icon: GraduationCap, href: "/dashboard/curriculum-dept/student-dashboard", color: "text-orange-600 bg-orange-50 border-orange-100 dark:bg-orange-950/20 dark:border-orange-900/30" },
   { title: "Branch Wise Performance", desc: "Smart Up branch ranking & analytics", icon: BarChart3, href: "/dashboard/curriculum-dept/consolidated-dashboard", color: "text-teal-600 bg-teal-50 border-teal-100 dark:bg-teal-950/20 dark:border-teal-900/30" },
 ];

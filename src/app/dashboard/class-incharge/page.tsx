@@ -10,6 +10,7 @@ import {
   School,
   ArrowRight,
   AlertCircle,
+  CheckCircle2,
 } from "lucide-react";
 import Link from "next/link";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
@@ -79,6 +80,13 @@ export default function ClassInchargeDashboard() {
       color: "bg-brand-wash text-primary",
     },
     {
+      label: "Portion Completion",
+      description: "Track and update chapter progress for your branch",
+      href: "/dashboard/class-incharge/portion-completion",
+      icon: CheckCircle2,
+      color: "bg-indigo-50 text-indigo-600 dark:bg-indigo-950/30",
+    },
+    {
       label: "Students",
       description: "View students across all classes",
       href: "/dashboard/class-incharge/students",
@@ -141,7 +149,7 @@ export default function ClassInchargeDashboard() {
       </div>
 
       {/* Quick actions */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {quickActions.map((a, i) => (
           <motion.div key={a.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.06 }}>
             <Link href={a.href}>

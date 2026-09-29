@@ -128,8 +128,18 @@ export const CURRICULUM_DEPT_NAV: NavItem[] = [
       { label: "Instructor Leaderboard", href: "/dashboard/curriculum-dept/cwc-corner/instructor-ranking", icon: "Users", emoji: "👥" },
     ],
   },
+  {
+    label: "Exam Corner",
+    href: "/dashboard/curriculum-dept/exam-corner",
+    icon: "GraduationCap",
+    emoji: "📝",
+    children: [
+      { label: "Branch Wise Ranking", href: "/dashboard/curriculum-dept/exam-corner/branch-ranking", icon: "School", emoji: "🏫" },
+      { label: "Subject Wise Ranking", href: "/dashboard/curriculum-dept/exam-corner/subject-ranking", icon: "BookOpen", emoji: "📚" },
+      { label: "SmartUp Ranking", href: "/dashboard/curriculum-dept/exam-corner/smartup-ranking", icon: "Trophy", emoji: "🏆" },
+    ],
+  },
   { label: "Teacher Ranking", href: "/dashboard/curriculum-dept/subject-performance", icon: "BookOpen", emoji: "📖" },
-  { label: "Teacher Performance", href: "/dashboard/curriculum-dept/teacher-performance", icon: "UserCheck", emoji: "👨‍🏫" },
   { label: "Branch Wise Performance", href: "/dashboard/curriculum-dept/consolidated-dashboard", icon: "FileBarChart", emoji: "📈" },
   { label: "Consolidated Report", href: "/dashboard/curriculum-dept/consolidated-report", icon: "Award", emoji: "🎖️" },
 ];
@@ -296,6 +306,7 @@ export const CLASS_INCHARGE_NAV: NavItem[] = [
   { label: "Daily Checklist", href: "/dashboard/class-incharge/checklist", icon: "ClipboardList", emoji: "📋" },
   { label: "Attendance", href: "/dashboard/class-incharge/attendance", icon: "ClipboardCheck", emoji: "✅" },
   { label: "Absent Details", href: "/dashboard/class-incharge/absent", icon: "UserX", emoji: "🚫" },
+  { label: "Portion Completion", href: "/dashboard/class-incharge/portion-completion", icon: "CheckCircle2", emoji: "🎯" },
   { label: "Students", href: "/dashboard/class-incharge/students", icon: "GraduationCap", emoji: "👨‍🎓" },
 ];
 
