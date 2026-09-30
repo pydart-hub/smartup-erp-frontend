@@ -37,6 +37,12 @@
 - [x] Connect `fetchLiveBranchData()` in `src/lib/server/aiErpEngine.ts` directly to `getAllBranchesSummary()`, ensuring 100% data consistency between the web dashboard and AI MCP endpoints.
 - [x] Add `staff` count per branch and `total_staff` to `get_executive_kpis` and `get_fees_and_collections`.
 - [x] Test and verify locally with `scripts/test-kpi-metrics.mjs` (verified exact match down to the rupee and student count).
-- [ ] Commit and push changes to `origin/main`.
-- [ ] Deploy to production server (`76.13.244.60`), build, and reload PM2 cluster (`smartup-erp-1` to `smartup-erp-4`).
-- [ ] Verify live production MCP responses match Director Reports dashboard.
+- [x] Commit and push changes to `origin/main` (`82fde95`).
+- [x] Deploy to production server (`76.13.244.60`), build, and reload PM2 cluster (`smartup-erp-1` to `smartup-erp-4`).
+- [x] Verify live production MCP responses match Director Reports dashboard (`/dashboard/director/reports`).
+  - Total Students: 1,656 (Active: 1,552, Discontinued: 104, Staff: 92)
+  - Total Fee (Billed): ₹3,00,83,822
+  - Collected: ₹1,39,07,413
+  - Outstanding: ₹1,61,76,409
+  - Collection Rate: 46.2%
+  - Branch breakdown (e.g. Chullickal billed ₹66,88,364, collected ₹32,20,651, pending ₹34,67,713, 364 students, 15 staff) 100% matched down to the rupee.

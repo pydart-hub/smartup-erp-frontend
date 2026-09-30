@@ -60,10 +60,44 @@ async function testProd() {
       params: { name: 'get_top_students', arguments: { exam_name: 'CWC', limit: 3 } }
     })
   });
-  const topData = await topRes.json();
-  const topContent = JSON.parse(topData.result?.content?.[0]?.text || '{}');
-  console.log('\n--- Production Top Students ---');
-  console.log('Top 3 students:', topContent.top_students?.slice(0, 3)?.map(s => `${s.student_name} (${s.branch}, ${s.overall_percentage}%)`));
+  // 5. get_executive_kpis
+  const kpiRes = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: 5,
+      method: 'tools/call',
+      params: { name: 'get_executive_kpis', arguments: {} }
+    })
+  });
+  const kpiData = await kpiRes.json();
+  const kpiContent = JSON.parse(kpiData.result?.content?.[0]?.text || '{}');
+  console.log('\n--- Production Executive KPIs ---');
+  console.log('Total Students:', kpiContent.total_students);
+  console.log('Active Students:', kpiContent.active_students);
+  console.log('Discontinued Students:', kpiContent.discontinued_students);
+  console.log('Total Staff:', kpiContent.total_staff);
+  console.log('Total Billed:', kpiContent.total_billed);
+  console.log('Total Collected:', kpiContent.total_collected);
+  console.log('Total Outstanding:', kpiContent.total_outstanding);
+  console.log('Collection Rate:', kpiContent.collection_rate);
+
+  // 6. get_fees_and_collections
+  const feeRes = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: 6,
+      method: 'tools/call',
+      params: { name: 'get_fees_and_collections', arguments: {} }
+    })
+  });
+  const feeData = await feeRes.json();
+  const feeContent = JSON.parse(feeData.result?.content?.[0]?.text || '{}');
+  console.log('\n--- Production Fees Summary ---');
+  console.log(feeContent.summary);
 }
 
 testProd();
