@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   corsHeaders,
   getLiveFeesData,
+  getLiveDailyCollections,
+  getLiveExpensesData,
+  getLiveExamToppers,
+  getLiveFeeDefaulters,
   getLiveStudentsData,
   getLiveOrdersData,
   getLiveAttendanceData,
@@ -33,12 +37,76 @@ const MCP_TOOLS = [
   {
     name: "get_fees_and_collections",
     description:
-      "Get real-time financial metrics: total invoiced, total collected, pending dues, overdue invoices list, and branch-by-branch fee comparisons.",
+      "Get real-time financial metrics: total invoiced, total collected, pending dues, overdue invoices list, exact day-wise collections, and branch-by-branch fee comparisons.",
     inputSchema: {
       type: "object",
       properties: {
         branch: { type: "string", description: "Optional branch name" },
         limit: { type: "number", description: "Max invoice sample records (default 50)" },
+        date: { type: "string", description: "Optional date in YYYY-MM-DD format (e.g. '2026-09-29')" },
+        from_date: { type: "string", description: "Start date in YYYY-MM-DD format" },
+        to_date: { type: "string", description: "End date in YYYY-MM-DD format" },
+      },
+    },
+  },
+  {
+    name: "get_daily_collections",
+    description:
+      "Get exact real-time fee collections for a specific date (e.g. yesterday, today, or date range '2026-09-29'). Returns grand total collections, payment count, branch-wise totals, payment modes (Cash, Bank Transfer, CoFee), and individual payments.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        date: { type: "string", description: "Target date in YYYY-MM-DD format (e.g. '2026-09-29')" },
+        from_date: { type: "string", description: "Start date in YYYY-MM-DD format" },
+        to_date: { type: "string", description: "End date in YYYY-MM-DD format" },
+        branch: { type: "string", description: "Optional branch name filter" },
+      },
+    },
+  },
+  {
+    name: "get_expenses",
+    description:
+      "Get real-time operational and branch expenses from ERP General Ledger (GL) for a specific date or date range (e.g. yesterday, today). Returns total expenses, breakdown by branch, expense account categories (office expense, rent, salaries, utilities), and transaction vouchers.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        date: { type: "string", description: "Target date in YYYY-MM-DD format (e.g. '2026-09-29')" },
+        from_date: { type: "string", description: "Start date in YYYY-MM-DD format" },
+        to_date: { type: "string", description: "End date in YYYY-MM-DD format" },
+        branch: { type: "string", description: "Optional branch name filter" },
+      },
+    },
+  },
+  {
+    name: "get_exam_toppers",
+    description:
+      "Get student toppers, rankings, and exam scores for CWC exams (CWC Exam 1, CWC Exam 2, etc.), weekly exams, or online diagnosis exams. Returns top scoring students overall and per branch with student ID, name, marks, and percentage.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        exam_name: {
+          type: "string",
+          description: "Exam type or name (e.g. 'CWC Exam 1', 'CWC', 'weekly', 'diagnosis')",
+        },
+        branch: { type: "string", description: "Optional branch name" },
+        limit: { type: "number", description: "Max toppers per branch (default 10)" },
+      },
+    },
+  },
+  {
+    name: "get_fee_defaulters",
+    description:
+      "Get students with unpaid or zero fee payments from start to end (100% outstanding fee dues). Returns student name, ID, branch, total billed, amount unpaid, and due dates, sorted by highest outstanding dues.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        branch: { type: "string", description: "Optional branch name filter" },
+        zero_paid_only: {
+          type: "boolean",
+          description: "If true, only returns students who have paid ZERO rupees (default true)",
+        },
+        min_due: { type: "number", description: "Minimum due amount filter" },
+        limit: { type: "number", description: "Max defaulters to return (default 50)" },
       },
     },
   },
@@ -78,7 +146,7 @@ const MCP_TOOLS = [
   {
     name: "get_exam_metrics",
     description:
-      "Get diagnosis exam statistics: published papers, published exams, and total student attempts.",
+      "Get diagnosis and CWC exam statistics: published papers, published exams, and total student attempts.",
     inputSchema: {
       type: "object",
       properties: {},
@@ -95,7 +163,7 @@ const MCP_TOOLS = [
   {
     name: "lookup_student_360",
     description:
-      "360-degree comprehensive student search by name, student ID (e.g. STU-SU CHL-26-303), or phone number. Returns student profile, sales orders, invoices, payments, attendance, and dues.",
+      "360-degree comprehensive student search by name, student ID (e.g. STU-SU CHL-26-303), or phone number. Returns student profile, sales orders, invoices, payments, attendance, program enrollments, and exam results.",
     inputSchema: {
       type: "object",
       properties: {
@@ -284,7 +352,52 @@ export async function POST(request: NextRequest) {
         }
 
         case "get_fees_and_collections": {
-          toolOutput = await getLiveFeesData(args.branch, args.limit || 50);
+          toolOutput = await getLiveFeesData(
+            args.branch,
+            args.limit || 50,
+            args.date,
+            args.from_date,
+            args.to_date
+          );
+          break;
+        }
+
+        case "get_daily_collections": {
+          toolOutput = await getLiveDailyCollections(
+            args.date,
+            args.from_date,
+            args.to_date,
+            args.branch
+          );
+          break;
+        }
+
+        case "get_expenses": {
+          toolOutput = await getLiveExpensesData(
+            args.date,
+            args.from_date,
+            args.to_date,
+            args.branch
+          );
+          break;
+        }
+
+        case "get_exam_toppers": {
+          toolOutput = await getLiveExamToppers(
+            args.exam_name || "cwc",
+            args.branch,
+            args.limit || 10
+          );
+          break;
+        }
+
+        case "get_fee_defaulters": {
+          toolOutput = await getLiveFeeDefaulters(
+            args.branch,
+            args.min_due || 0,
+            args.zero_paid_only !== false,
+            args.limit || 50
+          );
           break;
         }
 

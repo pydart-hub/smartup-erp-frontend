@@ -279,7 +279,13 @@ export function matchBranchInList(
 }
 
 // ── LIVE FEES ──
-export async function getLiveFeesData(branchName?: string, limit = 50) {
+export async function getLiveFeesData(
+  branchName?: string,
+  limit = 50,
+  date?: string,
+  fromDate?: string,
+  toDate?: string
+) {
   const invFilters: (string | number | string[])[][] = [["docstatus", "=", 1]];
   if (branchName) invFilters.push(["company", "=", branchName]);
 
@@ -289,40 +295,61 @@ export async function getLiveFeesData(branchName?: string, limit = 50) {
   ];
   if (branchName) peFilters.push(["company", "=", branchName]);
 
-  const [recentInvoices, recentPayments, feeStructures, branchMeta] = await Promise.all([
-    frappeGet(
-      "Sales Invoice",
-      [
-        "name",
-        "customer",
-        "customer_name",
-        "company",
-        "grand_total",
-        "outstanding_amount",
-        "status",
-        "posting_date",
-        "due_date",
-      ],
-      invFilters,
-      "posting_date desc",
-      limit
-    ),
-    frappeGet(
-      "Payment Entry",
-      ["name", "party", "party_name", "company", "paid_amount", "received_amount", "posting_date", "mode_of_payment"],
-      peFilters,
-      "posting_date desc",
-      limit
-    ),
-    frappeGet(
-      "Fee Structure",
-      ["name", "academic_year", "company", "total_amount", "program"],
-      branchName ? [["company", "=", branchName]] : [],
-      "creation desc",
-      30
-    ),
-    fetchLiveBranchData(),
-  ]);
+  const hasDateFilter = Boolean(date || fromDate || toDate);
+  const targetDateFrom = fromDate || date;
+  const targetDateTo = toDate || date;
+
+  if (targetDateFrom && targetDateTo) {
+    peFilters.push(["posting_date", ">=", targetDateFrom]);
+    peFilters.push(["posting_date", "<=", targetDateTo]);
+  }
+
+  const [recentInvoices, recentPayments, feeStructures, branchMeta, dailyCollections] =
+    await Promise.all([
+      frappeGet(
+        "Sales Invoice",
+        [
+          "name",
+          "customer",
+          "customer_name",
+          "company",
+          "grand_total",
+          "outstanding_amount",
+          "status",
+          "posting_date",
+          "due_date",
+        ],
+        invFilters,
+        "posting_date desc",
+        limit
+      ),
+      frappeGet(
+        "Payment Entry",
+        [
+          "name",
+          "party",
+          "party_name",
+          "company",
+          "paid_amount",
+          "received_amount",
+          "posting_date",
+          "mode_of_payment",
+          "reference_no",
+        ],
+        peFilters,
+        "posting_date desc",
+        hasDateFilter ? 500 : limit
+      ),
+      frappeGet(
+        "Fee Structure",
+        ["name", "academic_year", "company", "total_amount", "program"],
+        branchName ? [["company", "=", branchName]] : [],
+        "creation desc",
+        30
+      ),
+      fetchLiveBranchData(),
+      hasDateFilter ? getLiveDailyCollections(date, fromDate, toDate, branchName) : null,
+    ]);
 
   const matched = matchBranchInList(branchName, branchMeta.liveBranchList);
 
@@ -360,8 +387,393 @@ export async function getLiveFeesData(branchName?: string, limit = 50) {
     branch_breakdown: matched ? [matched] : branchMeta.liveBranchList,
     overdue_invoices: overdueList,
     recent_invoices_sample: recentInvoices.slice(0, 20),
-    recent_payments_sample: recentPayments.slice(0, 15),
+    recent_payments: recentPayments,
     fee_structures_count: feeStructures.length,
+    daily_collections: dailyCollections,
+  };
+}
+
+// ── DAILY COLLECTIONS BY EXACT DATE ──
+export async function getLiveDailyCollections(
+  date?: string,
+  fromDate?: string,
+  toDate?: string,
+  branchName?: string
+) {
+  const targetFrom = fromDate || date || new Date().toISOString().slice(0, 10);
+  const targetTo = toDate || date || new Date().toISOString().slice(0, 10);
+
+  const filters: (string | number | string[])[][] = [
+    ["docstatus", "=", 1],
+    ["payment_type", "=", "Receive"],
+    ["posting_date", ">=", targetFrom],
+    ["posting_date", "<=", targetTo],
+  ];
+
+  if (branchName) {
+    filters.push(["company", "=", branchName]);
+  }
+
+  const payments = await frappeGet(
+    "Payment Entry",
+    [
+      "name",
+      "party",
+      "party_name",
+      "company",
+      "posting_date",
+      "paid_amount",
+      "mode_of_payment",
+      "reference_no",
+    ],
+    filters,
+    "posting_date desc",
+    1000
+  );
+
+  const grandTotal = payments.reduce((sum, p) => sum + Number(p.paid_amount || 0), 0);
+
+  const branchMap: Record<string, { branch: string; total: number; count: number }> = {};
+  const modeMap: Record<string, { mode: string; total: number; count: number }> = {};
+
+  for (const p of payments) {
+    const bName = String(p.company || "Unknown");
+    const mName = String(p.mode_of_payment || "Unspecified");
+    const amt = Number(p.paid_amount || 0);
+
+    if (!branchMap[bName]) branchMap[bName] = { branch: bName, total: 0, count: 0 };
+    branchMap[bName].total += amt;
+    branchMap[bName].count += 1;
+
+    if (!modeMap[mName]) modeMap[mName] = { mode: mName, total: 0, count: 0 };
+    modeMap[mName].total += amt;
+    modeMap[mName].count += 1;
+  }
+
+  return {
+    date_range: { from: targetFrom, to: targetTo },
+    grand_total_collections: grandTotal,
+    payment_count: payments.length,
+    branch_breakdown: Object.values(branchMap).sort((a, b) => b.total - a.total),
+    mode_of_payment_breakdown: Object.values(modeMap).sort((a, b) => b.total - a.total),
+    payments: payments.map((p) => ({
+      payment_id: p.name,
+      student_id: p.party,
+      student_name: p.party_name,
+      branch: p.company,
+      amount: p.paid_amount,
+      mode: p.mode_of_payment,
+      reference_no: p.reference_no,
+      date: p.posting_date,
+    })),
+  };
+}
+
+// ── EXPENSES BY DATE & BRANCH ──
+export async function getLiveExpensesData(
+  date?: string,
+  fromDate?: string,
+  toDate?: string,
+  branchName?: string
+) {
+  const targetFrom = fromDate || date || new Date().toISOString().slice(0, 10);
+  const targetTo = toDate || date || new Date().toISOString().slice(0, 10);
+
+  // 1. Fetch non-group expense accounts
+  const expenseAccounts = await frappeGet(
+    "Account",
+    ["name", "company", "account_name"],
+    [
+      ["root_type", "=", "Expense"],
+      ["is_group", "=", 0],
+    ],
+    undefined,
+    1000
+  );
+
+  const expAccountSet = new Set(expenseAccounts.map((a) => String(a.name)));
+  const expAccountNameMap = new Map(expenseAccounts.map((a) => [String(a.name), String(a.account_name)]));
+
+  // 2. Fetch GL Entries
+  const glFilters: (string | number | string[])[][] = [
+    ["is_cancelled", "=", 0],
+    ["debit", ">", 0],
+    ["posting_date", ">=", targetFrom],
+    ["posting_date", "<=", targetTo],
+  ];
+
+  if (branchName) {
+    glFilters.push(["company", "=", branchName]);
+  }
+
+  const rawEntries = await frappeGet(
+    "GL Entry",
+    ["name", "posting_date", "account", "debit", "voucher_type", "voucher_no", "remarks", "company"],
+    glFilters,
+    "posting_date desc",
+    1000
+  );
+
+  const expenseEntries = rawEntries.filter((e) => expAccountSet.has(String(e.account)));
+  const totalExpense = expenseEntries.reduce((sum, e) => sum + Number(e.debit || 0), 0);
+
+  const branchMap: Record<string, { branch: string; total: number; count: number }> = {};
+  const categoryMap: Record<string, { category: string; total: number; count: number }> = {};
+
+  for (const e of expenseEntries) {
+    const bName = String(e.company || "Unknown");
+    const catName = expAccountNameMap.get(String(e.account)) || String(e.account);
+    const amt = Number(e.debit || 0);
+
+    if (!branchMap[bName]) branchMap[bName] = { branch: bName, total: 0, count: 0 };
+    branchMap[bName].total += amt;
+    branchMap[bName].count += 1;
+
+    if (!categoryMap[catName]) categoryMap[catName] = { category: catName, total: 0, count: 0 };
+    categoryMap[catName].total += amt;
+    categoryMap[catName].count += 1;
+  }
+
+  return {
+    date_range: { from: targetFrom, to: targetTo },
+    total_expense: totalExpense,
+    entries_count: expenseEntries.length,
+    branch_breakdown: Object.values(branchMap).sort((a, b) => b.total - a.total),
+    category_breakdown: Object.values(categoryMap).sort((a, b) => b.total - a.total),
+    transactions: expenseEntries.map((e) => ({
+      gl_entry: e.name,
+      date: e.posting_date,
+      account: expAccountNameMap.get(String(e.account)) || e.account,
+      branch: e.company,
+      amount: e.debit,
+      voucher_type: e.voucher_type,
+      voucher_no: e.voucher_no,
+      remarks: e.remarks,
+    })),
+  };
+}
+
+// ── CWC & REGULAR EXAM TOPPERS ──
+export async function getLiveExamToppers(
+  examType = "cwc",
+  branchName?: string,
+  limit = 10
+) {
+  const isCwc = examType.toLowerCase().includes("cwc");
+  const planFilters: (string | number | string[])[][] = [["docstatus", "=", 1]];
+  if (isCwc) {
+    planFilters.push(["assessment_group", "like", "%CWC%"]);
+  }
+
+  const plans = await frappeGet(
+    "Assessment Plan",
+    ["name", "assessment_group", "assessment_name", "student_group", "course", "maximum_assessment_score"],
+    planFilters,
+    "creation desc",
+    300
+  );
+
+  if (plans.length === 0) {
+    return {
+      exam_type: examType,
+      message: `No assessment plans found matching "${examType}".`,
+      toppers_by_branch: {},
+      overall_top_students: [],
+    };
+  }
+
+  const planNames = plans.map((p) => String(p.name));
+  const planMap = new Map(plans.map((p) => [String(p.name), p]));
+
+  const results = await frappeGet(
+    "Assessment Result",
+    ["name", "student", "student_name", "assessment_plan", "total_score", "maximum_score"],
+    [
+      ["docstatus", "=", 1],
+      ["assessment_plan", "in", planNames.slice(0, 80)],
+    ],
+    "total_score desc",
+    500
+  );
+
+  const studentMap: Record<
+    string,
+    {
+      student_id: string;
+      student_name: string;
+      branch: string;
+      exams_taken: number;
+      total_score: number;
+      total_max_score: number;
+      percentage: number;
+      exam_name: string;
+    }
+  > = {};
+
+  for (const r of results) {
+    const sId = String(r.student || "");
+    const sName = String(r.student_name || "Unknown");
+    const plan = planMap.get(String(r.assessment_plan));
+    const maxScore = Number(r.maximum_score || plan?.maximum_assessment_score || 0);
+    const score = Number(r.total_score || 0);
+
+    let branch = "Smart Up General";
+    if (sId.includes("CHL")) branch = "Smart Up Chullickal";
+    else if (sId.includes("PLR")) branch = "Smart Up Palluruthy";
+    else if (sId.includes("ERV")) branch = "Smart Up Eraveli";
+    else if (sId.includes("FTK")) branch = "Smart Up Fortkochi";
+    else if (sId.includes("THP")) branch = "Smart Up Thopumpadi";
+    else if (sId.includes("VNL")) branch = "Smart Up Vennala";
+    else if (sId.includes("MMK") || sId.includes("MKZ")) branch = "Smart Up Moolamkuzhi";
+    else if (sId.includes("EDPLY") || sId.includes("EDP")) branch = "Smart Up Edappally";
+    else if (sId.includes("KDV")) branch = "Smart Up Kadavanthara";
+    else if (plan?.student_group) {
+      const g = String(plan.student_group).split("-")[0];
+      if (g) branch = `Smart Up ${g}`;
+    }
+
+    if (branchName) {
+      const cleanBranch = branchName.toLowerCase().replace(/[-_]/g, " ");
+      if (!branch.toLowerCase().includes(cleanBranch)) continue;
+    }
+
+    if (!studentMap[sId]) {
+      studentMap[sId] = {
+        student_id: sId,
+        student_name: sName,
+        branch,
+        exams_taken: 0,
+        total_score: 0,
+        total_max_score: 0,
+        percentage: 0,
+        exam_name: String(plan?.assessment_group || plan?.assessment_name || "CWC Exam"),
+      };
+    }
+
+    studentMap[sId].exams_taken += 1;
+    studentMap[sId].total_score += score;
+    studentMap[sId].total_max_score += maxScore;
+    studentMap[sId].percentage =
+      studentMap[sId].total_max_score > 0
+        ? Number(
+            (
+              (studentMap[sId].total_score / studentMap[sId].total_max_score) *
+              100
+            ).toFixed(1)
+          )
+        : 0;
+  }
+
+  const allScored = Object.values(studentMap).sort((a, b) => b.percentage - a.percentage);
+
+  const toppersByBranch: Record<string, typeof allScored> = {};
+  for (const st of allScored) {
+    if (!toppersByBranch[st.branch]) toppersByBranch[st.branch] = [];
+    if (toppersByBranch[st.branch].length < limit) {
+      toppersByBranch[st.branch].push(st);
+    }
+  }
+
+  return {
+    exam_type: examType,
+    total_evaluated_students: allScored.length,
+    toppers_by_branch: toppersByBranch,
+    overall_top_students: allScored.slice(0, limit),
+  };
+}
+
+// ── STUDENTS WITH UNPAID / ZERO FEE PAYMENTS ──
+export async function getLiveFeeDefaulters(
+  branchName?: string,
+  minDue = 0,
+  zeroPaidOnly = true,
+  limit = 50
+) {
+  const invFilters: (string | number | string[])[][] = [
+    ["docstatus", "=", 1],
+    ["outstanding_amount", ">", minDue],
+  ];
+
+  if (branchName) {
+    invFilters.push(["company", "=", branchName]);
+  }
+
+  const invoices = await frappeGet(
+    "Sales Invoice",
+    [
+      "name",
+      "customer",
+      "customer_name",
+      "company",
+      "grand_total",
+      "outstanding_amount",
+      "posting_date",
+      "due_date",
+    ],
+    invFilters,
+    "outstanding_amount desc",
+    500
+  );
+
+  const filtered = zeroPaidOnly
+    ? invoices.filter(
+        (inv) => Math.abs(Number(inv.outstanding_amount || 0) - Number(inv.grand_total || 0)) < 1
+      )
+    : invoices;
+
+  const totalUnpaid = filtered.reduce((s, i) => s + Number(i.outstanding_amount || 0), 0);
+
+  const studentMap: Record<
+    string,
+    {
+      student_name: string;
+      branch: string;
+      total_invoiced: number;
+      total_unpaid: number;
+      invoice_count: number;
+      invoices: string[];
+      oldest_due_date: string;
+    }
+  > = {};
+
+  for (const inv of filtered) {
+    const cust = String(inv.customer_name || inv.customer || "Unknown");
+    const amt = Number(inv.outstanding_amount || 0);
+    const total = Number(inv.grand_total || 0);
+    const invName = String(inv.name);
+    const dueDate = String(inv.due_date || inv.posting_date || "");
+
+    if (!studentMap[cust]) {
+      studentMap[cust] = {
+        student_name: cust,
+        branch: String(inv.company || "Unknown"),
+        total_invoiced: 0,
+        total_unpaid: 0,
+        invoice_count: 0,
+        invoices: [],
+        oldest_due_date: dueDate,
+      };
+    }
+
+    studentMap[cust].total_invoiced += total;
+    studentMap[cust].total_unpaid += amt;
+    studentMap[cust].invoice_count += 1;
+    studentMap[cust].invoices.push(invName);
+    if (dueDate && dueDate < studentMap[cust].oldest_due_date) {
+      studentMap[cust].oldest_due_date = dueDate;
+    }
+  }
+
+  const defaultersList = Object.values(studentMap)
+    .sort((a, b) => b.total_unpaid - a.total_unpaid)
+    .slice(0, limit);
+
+  return {
+    filter_zero_paid_only: zeroPaidOnly,
+    defaulters_count: Object.keys(studentMap).length,
+    total_unpaid_amount: Math.round(totalUnpaid),
+    branch: branchName || "All Branches",
+    students_with_unpaid_fees: defaultersList,
   };
 }
 
@@ -588,53 +1000,68 @@ export async function lookupStudent360(query: string) {
   const topStudent = matchedStudents[0];
   const studentCustomer = String(topStudent.customer || topStudent.student_name || topStudent.name);
 
-  const [invoices, payments, attendance, orders, complaints] = await Promise.all([
-    frappeGet(
-      "Sales Invoice",
-      [
-        "name",
-        "customer",
-        "customer_name",
-        "company",
-        "grand_total",
-        "outstanding_amount",
-        "status",
-        "posting_date",
-        "due_date",
-      ],
-      [["customer", "=", studentCustomer]],
-      "posting_date desc",
-      20
-    ),
-    frappeGet(
-      "Payment Entry",
-      ["name", "party", "party_name", "paid_amount", "received_amount", "posting_date", "mode_of_payment"],
-      [["party", "=", studentCustomer]],
-      "posting_date desc",
-      20
-    ),
-    frappeGet(
-      "Student Attendance",
-      ["name", "student", "student_name", "date", "status", "student_group"],
-      [["student", "=", String(topStudent.name)]],
-      "date desc",
-      20
-    ),
-    frappeGet(
-      "Sales Order",
-      ["name", "customer", "customer_name", "grand_total", "status", "transaction_date"],
-      [["customer", "=", studentCustomer]],
-      "transaction_date desc",
-      10
-    ),
-    frappeGet(
-      "SmartUp Complaint",
-      ["name", "subject", "category", "priority", "status", "description", "creation"],
-      [["student_name", "=", studentCustomer]],
-      "creation desc",
-      10
-    ),
-  ]);
+  const [invoices, payments, attendance, orders, complaints, enrollments, examResults] =
+    await Promise.all([
+      frappeGet(
+        "Sales Invoice",
+        [
+          "name",
+          "customer",
+          "customer_name",
+          "company",
+          "grand_total",
+          "outstanding_amount",
+          "status",
+          "posting_date",
+          "due_date",
+        ],
+        [["customer", "=", studentCustomer]],
+        "posting_date desc",
+        20
+      ),
+      frappeGet(
+        "Payment Entry",
+        ["name", "party", "party_name", "paid_amount", "received_amount", "posting_date", "mode_of_payment"],
+        [["party", "=", studentCustomer]],
+        "posting_date desc",
+        20
+      ),
+      frappeGet(
+        "Student Attendance",
+        ["name", "student", "student_name", "date", "status", "student_group"],
+        [["student", "=", String(topStudent.name)]],
+        "date desc",
+        20
+      ),
+      frappeGet(
+        "Sales Order",
+        ["name", "customer", "customer_name", "grand_total", "status", "transaction_date"],
+        [["customer", "=", studentCustomer]],
+        "transaction_date desc",
+        10
+      ),
+      frappeGet(
+        "SmartUp Complaint",
+        ["name", "subject", "category", "priority", "status", "description", "creation"],
+        [["student_name", "=", studentCustomer]],
+        "creation desc",
+        10
+      ),
+      frappeGet(
+        "Program Enrollment",
+        ["name", "program", "academic_year", "student_batch_name", "enrollment_date"],
+        [["student", "=", String(topStudent.name)]],
+        "creation desc",
+        5
+      ),
+      frappeGet(
+        "Assessment Result",
+        ["name", "assessment_plan", "total_score", "maximum_score", "creation"],
+        [["student", "=", String(topStudent.name)], ["docstatus", "=", 1]],
+        "creation desc",
+        20
+      ),
+    ]);
 
   const totalBilled = invoices.reduce((s, i) => s + Number(i.grand_total || 0), 0);
   const totalPaid = payments.reduce(
@@ -657,6 +1084,18 @@ export async function lookupStudent360(query: string) {
     sales_orders: orders,
     attendance,
     complaints,
+    program_enrollments: enrollments,
+    exam_results: examResults.map((r) => ({
+      result_id: r.name,
+      plan: r.assessment_plan,
+      total_score: r.total_score,
+      maximum_score: r.maximum_score,
+      percentage:
+        Number(r.maximum_score || 0) > 0
+          ? `${(((Number(r.total_score || 0)) / Number(r.maximum_score)) * 100).toFixed(1)}%`
+          : "N/A",
+      date: r.creation,
+    })),
     other_matches: matchedStudents.slice(1),
   };
 }
