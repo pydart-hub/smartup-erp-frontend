@@ -354,21 +354,15 @@ export default function LevelUpRegistrationPage() {
               <div className="absolute w-80 h-80 sm:w-[420px] sm:h-[420px] rounded-full bg-[#EFEBFA]/80 -z-10 bottom-0 left-1/2 -translate-x-1/2" />
               <div className="absolute w-[460px] h-[460px] rounded-full bg-purple-100/30 -z-20 blur-3xl bottom-0 left-1/2 -translate-x-1/2" />
 
-              {/* Student Cutout Image with Bottom Gradient Fade */}
-              <div
-                className="relative w-[360px] h-[380px] sm:w-[440px] sm:h-[430px]"
-                style={{
-                  maskImage: "linear-gradient(to bottom, black 72%, transparent 98%)",
-                  WebkitMaskImage: "linear-gradient(to bottom, black 72%, transparent 98%)",
-                }}
-              >
+              {/* Poster Image with clean border and elegant drop shadow */}
+              <div className="relative w-full max-w-[460px] aspect-square rounded-[32px] overflow-hidden shadow-2xl shadow-blue-950/20 border-4 border-white">
                 <Image
-                  src="/rd.webp"
-                  alt="SmartUp Mentors"
+                  src="/sclr.jpeg"
+                  alt="SmartUp GCC Scholarship Level Up Exam"
                   fill
                   priority
-                  className="object-contain object-bottom"
-                  sizes="(max-width: 640px) 360px, 440px"
+                  className="object-cover"
+                  sizes="(max-width: 640px) 100vw, 460px"
                 />
               </div>
             </div>
