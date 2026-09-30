@@ -13,6 +13,7 @@ import {
   ArrowRight,
   Lock,
   CheckCircle2,
+  Sparkles,
 } from "lucide-react";
 import CountryPhoneInput from "@/components/common/CountryPhoneInput";
 import {
@@ -255,9 +256,14 @@ export default function LevelUpRegistrationPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FBFBFE] text-slate-800 flex flex-col justify-between selection:bg-[#5C34A4] selection:text-white font-sans relative overflow-x-hidden">
-      {/* Top Navigation Bar */}
-      <header className="w-full bg-transparent py-5 px-6 sm:px-12 lg:px-20 z-20">
+    <div className="min-h-screen bg-gradient-to-br from-[#FAF8FF] via-[#F3EEFF] to-[#EFF4FD] text-slate-800 flex flex-col justify-between selection:bg-[#5C34A4] selection:text-white font-sans relative overflow-x-hidden">
+      {/* Background Ambient Glow Orbs for Glassmorphic Depth */}
+      <div className="fixed top-[-10%] left-[-10%] w-[520px] h-[520px] rounded-full bg-gradient-to-tr from-purple-400/25 to-indigo-300/20 blur-[130px] pointer-events-none -z-10" />
+      <div className="fixed bottom-[-10%] right-[-5%] w-[620px] h-[620px] rounded-full bg-gradient-to-bl from-violet-400/25 to-fuchsia-300/20 blur-[150px] pointer-events-none -z-10" />
+      <div className="fixed top-[28%] right-[25%] w-[380px] h-[380px] rounded-full bg-gradient-to-r from-blue-300/20 to-purple-300/20 blur-[110px] pointer-events-none -z-10" />
+
+      {/* Top Navigation Bar with Frosted Glass Effect */}
+      <header className="w-full bg-white/45 backdrop-blur-md border-b border-white/60 py-4 px-6 sm:px-12 lg:px-20 z-20 sticky top-0 shadow-sm shadow-purple-950/5">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           {/* Brand Logo & Title */}
           <a
@@ -265,7 +271,7 @@ export default function LevelUpRegistrationPage() {
             className="flex items-center gap-3.5 group cursor-pointer text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5C34A4] rounded-xl p-1 -m-1 transition-transform active:scale-95"
             title="LevelUp GCC Admin Center"
           >
-            <div className="relative w-11 h-11 flex items-center justify-center shrink-0 group-hover:opacity-90 transition-opacity">
+            <div className="relative w-11 h-11 flex items-center justify-center shrink-0 group-hover:opacity-90 transition-opacity drop-shadow-sm">
               <Image
                 src="/smartup-logo-v2.png"
                 alt="SmartUp LevelUp GCC"
@@ -289,7 +295,7 @@ export default function LevelUpRegistrationPage() {
           <div className="flex items-center gap-3">
             <a
               href="/levelup/admin"
-              className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-[#5C34A4] transition-colors"
+              className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-white/60 hover:bg-white/90 border border-white/80 shadow-sm text-slate-600 hover:text-[#5C34A4] transition-all backdrop-blur-sm"
             >
               <Lock className="w-3.5 h-3.5" /> GCC Admin
             </a>
@@ -298,83 +304,58 @@ export default function LevelUpRegistrationPage() {
       </header>
 
       {/* Main Hero Container */}
-      <main className="max-w-7xl mx-auto px-6 sm:px-12 lg:px-20 py-4 lg:py-6 w-full flex-1 flex items-center">
+      <main className="max-w-7xl mx-auto px-6 sm:px-12 lg:px-20 py-6 lg:py-8 w-full flex-1 flex items-center">
         <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
           
-          {/* Left Column: Headline, Subtitle & Student Graphic */}
+          {/* Left Column: Headline, Subtitle & Poster Graphic */}
           <div className="lg:col-span-7 flex flex-col justify-center relative">
-            {/* Background Soft Purple Circle Shapes */}
-            <div className="absolute -left-16 -top-12 w-36 h-36 rounded-full bg-purple-100/60 pointer-events-none -z-10 blur-xl" />
-            <div className="absolute -left-8 top-1/2 w-16 h-16 rounded-full bg-purple-200/40 pointer-events-none -z-10 blur-md" />
-
             {/* Tag / Eyebrow */}
-            <div className="text-[11px] font-extrabold tracking-[0.22em] text-[#6C42B8] uppercase mb-3">
-              SMARTUP SCHOLARSHIP EXAM
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/60 backdrop-blur-md border border-white/80 shadow-sm text-[11px] font-extrabold tracking-[0.2em] text-[#6C42B8] uppercase mb-4 w-fit">
+              <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+              <span>SMARTUP SCHOLARSHIP EXAM</span>
             </div>
 
             {/* Headline */}
             <h1 className="text-4xl sm:text-5xl lg:text-[58px] font-black text-slate-900 tracking-tight leading-[1.08] mb-3">
               Make Parents <br />
-              <span className="text-[#5C34A4]">Proud</span>
+              <span className="bg-gradient-to-r from-[#5C34A4] to-[#7C3AED] bg-clip-text text-transparent">
+                Proud
+              </span>
             </h1>
 
             {/* Subtitle */}
-            <p className="text-[15px] sm:text-base text-slate-500 max-w-lg font-normal leading-relaxed mb-4">
-              Take the <strong className="text-slate-800 font-semibold">SmartUp Scholarship Exam</strong> for Classes 8, 9, 10, +1 &amp; +2.
+            <p className="text-[15px] sm:text-base text-slate-600 max-w-lg font-normal leading-relaxed mb-6">
+              Take the <strong className="text-slate-900 font-semibold">SmartUp Scholarship Exam</strong> for Classes 8, 9, 10, +1 &amp; +2.
             </p>
 
-            {/* Visual Hero Area: Student Graphic & Handwritten Slogan */}
-            <div className="relative w-full max-w-[560px] mx-auto lg:mx-0 flex justify-center items-end pt-4 pb-0">
-              {/* Handwritten Slanted Script: Learn Grow Succeed */}
-              <div className="absolute right-6 sm:right-12 top-6 z-10 select-none pointer-events-none transform -rotate-12">
-                <div className="flex flex-col items-center leading-tight font-serif italic text-[#7E88A6] drop-shadow-sm text-sm sm:text-base tracking-wide opacity-90">
-                  <span className="text-[18px] sm:text-[20px] font-normal tracking-wide text-[#6C7895]" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>
-                    Learn
-                  </span>
-                  <span className="text-[19px] sm:text-[21px] font-normal tracking-wide text-[#6C7895] -mt-1" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>
-                    Grow
-                  </span>
-                  <span className="text-[20px] sm:text-[22px] font-medium tracking-wide text-[#5C34A4] -mt-1" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>
-                    Succeed
-                  </span>
+            {/* Visual Hero Area: Poster Image with Layered Glass Frame */}
+            <div className="relative w-full max-w-[480px] mx-auto lg:mx-0 flex justify-center items-center pt-2">
+              {/* Soft Ambient Glow Backdrop */}
+              <div className="absolute w-80 h-80 sm:w-[420px] sm:h-[420px] rounded-full bg-purple-300/35 blur-3xl -z-10" />
+
+              {/* Poster Image with Glassmorphic Border and Elevation */}
+              <div className="relative w-full max-w-[440px] aspect-square rounded-[32px] p-2.5 bg-white/40 backdrop-blur-xl border border-white/70 shadow-[0_20px_50px_rgba(79,70,229,0.16)]">
+                <div className="relative w-full h-full rounded-[24px] overflow-hidden shadow-inner">
+                  <Image
+                    src="/sclr.jpeg"
+                    alt="SmartUp GCC Scholarship Level Up Exam"
+                    fill
+                    priority
+                    className="object-cover"
+                    sizes="(max-width: 640px) 100vw, 440px"
+                  />
                 </div>
-              </div>
-
-              {/* Floating Mini Cap Badge on the Right */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, delay: 0.3 }}
-                className="absolute right-14 sm:right-20 top-28 sm:top-32 w-12 h-12 rounded-full bg-white shadow-lg shadow-purple-950/8 border border-purple-100/80 flex items-center justify-center text-[#5C34A4] z-10"
-              >
-                <GraduationCap className="w-6 h-6 stroke-[2]" />
-              </motion.div>
-
-              {/* Circular Soft Purple Glow Backdrop */}
-              <div className="absolute w-80 h-80 sm:w-[420px] sm:h-[420px] rounded-full bg-[#EFEBFA]/80 -z-10 bottom-0 left-1/2 -translate-x-1/2" />
-              <div className="absolute w-[460px] h-[460px] rounded-full bg-purple-100/30 -z-20 blur-3xl bottom-0 left-1/2 -translate-x-1/2" />
-
-              {/* Poster Image with clean border and elegant drop shadow */}
-              <div className="relative w-full max-w-[460px] aspect-square rounded-[32px] overflow-hidden shadow-2xl shadow-blue-950/20 border-4 border-white">
-                <Image
-                  src="/sclr.jpeg"
-                  alt="SmartUp GCC Scholarship Level Up Exam"
-                  fill
-                  priority
-                  className="object-cover"
-                  sizes="(max-width: 640px) 100vw, 460px"
-                />
               </div>
             </div>
           </div>
 
-          {/* Right Column: Register Now Form Card */}
+          {/* Right Column: Register Now Form Card (Glassmorphic) */}
           <div className="lg:col-span-5 flex justify-center lg:justify-end">
             <motion.div
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}
-              className="relative w-full max-w-[440px] bg-white rounded-[28px] p-7 sm:p-8 shadow-2xl shadow-purple-950/10 border border-slate-100"
+              className="relative w-full max-w-[450px] bg-white/75 backdrop-blur-2xl rounded-[32px] p-7 sm:p-8 shadow-[0_20px_60px_-15px_rgba(76,29,149,0.18)] border border-white/80"
             >
               {/* Floating 3D Graduation Cap Icon at top-right corner of card */}
               <div className="absolute -top-6 -right-2 sm:-right-4 w-20 h-20 sm:w-24 sm:h-24 pointer-events-none select-none z-20">
@@ -424,14 +405,14 @@ export default function LevelUpRegistrationPage() {
                 <h2 className="text-2xl font-black text-slate-900 tracking-tight">
                   Register Now
                 </h2>
-                <p className="text-xs sm:text-[13px] text-slate-400 mt-1 font-medium">
+                <p className="text-xs sm:text-[13px] text-slate-500 mt-1 font-medium">
                   Free Exam Slot Registration
                 </p>
               </div>
 
               {/* Returning Student Auto-Detect Banner */}
               {returningStudent && !isSubmitted && (
-                <div className="mb-5 p-4 rounded-2xl bg-gradient-to-r from-purple-50 to-indigo-50/60 border border-purple-200/80 text-xs text-slate-800 space-y-2.5 shadow-sm">
+                <div className="mb-5 p-4 rounded-2xl bg-white/70 backdrop-blur-md border border-purple-200/80 text-xs text-slate-800 space-y-2.5 shadow-sm">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5 text-[#5C34A4] font-extrabold text-sm">
                       <span className="text-base">👋</span>
@@ -462,7 +443,7 @@ export default function LevelUpRegistrationPage() {
 
               {isSubmitted ? (
                 <div className="py-6 text-center space-y-4">
-                  <div className="w-16 h-16 rounded-full bg-[#EFEBFA] text-[#5C34A4] flex items-center justify-center mx-auto">
+                  <div className="w-16 h-16 rounded-full bg-purple-100 text-[#5C34A4] flex items-center justify-center mx-auto shadow-sm">
                     <Trophy className="w-8 h-8" />
                   </div>
 
@@ -474,24 +455,24 @@ export default function LevelUpRegistrationPage() {
                     </p>
                   </div>
 
-                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-700 space-y-1.5 text-left">
-                    <div className="flex justify-between">
+                  <div className="p-4 rounded-2xl bg-white/70 backdrop-blur-md border border-white/80 text-xs text-slate-700 space-y-2 text-left shadow-sm">
+                    <div className="flex justify-between pb-1.5 border-b border-slate-200/50">
                       <span className="text-slate-500">Number:</span>
                       <span className="font-mono font-bold">{selectedCountry.dialCode} {phone}</span>
                     </div>
                     {email && (
-                      <div className="flex justify-between">
+                      <div className="flex justify-between pb-1.5 border-b border-slate-200/50">
                         <span className="text-slate-500">Email:</span>
                         <span className="font-medium text-slate-800 truncate max-w-[200px]">{email}</span>
                       </div>
                     )}
                     {schoolName && (
-                      <div className="flex justify-between">
+                      <div className="flex justify-between pb-1.5 border-b border-slate-200/50">
                         <span className="text-slate-500">School:</span>
                         <span className="font-bold text-slate-800 truncate max-w-[200px]">{schoolName}</span>
                       </div>
                     )}
-                    <div className="flex justify-between">
+                    <div className="flex justify-between pb-1.5 border-b border-slate-200/50">
                       <span className="text-slate-500">Syllabus:</span>
                       <span className="font-bold text-[#5C34A4]">{syllabus === "State" ? "State Syllabus" : "CBSE Board"}</span>
                     </div>
@@ -501,7 +482,7 @@ export default function LevelUpRegistrationPage() {
                     </div>
                   </div>
 
-                  <div className="p-2.5 rounded-xl bg-purple-50 text-[11px] text-[#5C34A4] text-left flex items-start gap-2">
+                  <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-[11px] text-[#5C34A4] text-left flex items-start gap-2">
                     <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                     <span>Your registration is saved in the LevelUp portal database.</span>
                   </div>
@@ -510,7 +491,7 @@ export default function LevelUpRegistrationPage() {
                     type="button"
                     disabled={isStartingExam}
                     onClick={() => handleStartExam()}
-                    className="w-full py-3 px-6 font-bold text-sm text-white bg-[#5C34A4] hover:bg-[#4E2B8E] active:bg-[#43237E] disabled:opacity-70 rounded-full transition-all shadow-lg shadow-purple-900/25 flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
+                    className="w-full py-3.5 px-6 font-bold text-sm text-white bg-[#5C34A4] hover:bg-[#4E2B8E] active:bg-[#43237E] disabled:opacity-70 rounded-xl transition-all shadow-lg shadow-purple-900/25 flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
                   >
                     <span>{isStartingExam ? "Starting Scholarship Exam..." : "Take Scholarship Exam Now"}</span>
                     {!isStartingExam && <ArrowRight className="w-4 h-4" />}
@@ -538,7 +519,7 @@ export default function LevelUpRegistrationPage() {
                         placeholder="Enter student name"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50/50 hover:bg-white border border-slate-200/90 rounded-xl text-slate-900 text-sm placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5C34A4]/20 focus:border-[#5C34A4] transition"
+                        className="w-full pl-10 pr-4 py-2.5 bg-white/70 hover:bg-white/95 border border-white/90 rounded-xl text-slate-900 text-sm placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5C34A4]/25 focus:border-[#5C34A4] shadow-sm transition"
                       />
                     </div>
                   </div>
@@ -555,7 +536,7 @@ export default function LevelUpRegistrationPage() {
                         placeholder="Enter email address (optional)"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50/50 hover:bg-white border border-slate-200/90 rounded-xl text-slate-900 text-sm placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5C34A4]/20 focus:border-[#5C34A4] transition"
+                        className="w-full pl-10 pr-4 py-2.5 bg-white/70 hover:bg-white/95 border border-white/90 rounded-xl text-slate-900 text-sm placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5C34A4]/25 focus:border-[#5C34A4] shadow-sm transition"
                       />
                     </div>
                   </div>
@@ -573,7 +554,7 @@ export default function LevelUpRegistrationPage() {
                         placeholder="Enter your school name"
                         value={schoolName}
                         onChange={(e) => setSchoolName(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50/50 hover:bg-white border border-slate-200/90 rounded-xl text-slate-900 text-sm placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5C34A4]/20 focus:border-[#5C34A4] transition"
+                        className="w-full pl-10 pr-4 py-2.5 bg-white/70 hover:bg-white/95 border border-white/90 rounded-xl text-slate-900 text-sm placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5C34A4]/25 focus:border-[#5C34A4] shadow-sm transition"
                       />
                     </div>
                   </div>
@@ -593,8 +574,8 @@ export default function LevelUpRegistrationPage() {
                             onClick={() => setSelectedClass(c.id)}
                             className={`py-2 px-1 text-center rounded-xl text-xs font-bold transition-all cursor-pointer ${
                               isSelected
-                                ? "bg-[#5C34A4] text-white shadow-md shadow-purple-900/25"
-                                : "bg-slate-50/60 hover:bg-slate-100 text-slate-700 border border-slate-200/80"
+                                ? "bg-[#5C34A4] text-white shadow-md shadow-purple-900/30"
+                                : "bg-white/60 hover:bg-white/90 text-slate-700 border border-white/80 shadow-sm"
                             }`}
                           >
                             {c.label}
@@ -619,8 +600,8 @@ export default function LevelUpRegistrationPage() {
                             onClick={() => setSyllabus(s)}
                             className={`py-2.5 px-3 text-center rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
                               isSelected
-                                ? "bg-[#5C34A4] text-white shadow-md shadow-purple-900/20"
-                                : "bg-slate-50/60 hover:bg-slate-100 text-slate-700 border border-slate-200/80"
+                                ? "bg-[#5C34A4] text-white shadow-md shadow-purple-900/25"
+                                : "bg-white/60 hover:bg-white/90 text-slate-700 border border-white/80 shadow-sm"
                             }`}
                           >
                             <span>{s === "CBSE" ? "CBSE Board" : "State Syllabus"}</span>
@@ -647,7 +628,7 @@ export default function LevelUpRegistrationPage() {
 
                   {/* Existing Registration Notice */}
                   {isExistingStudent && (
-                    <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200/80 text-[11px] text-emerald-900 space-y-1">
+                    <div className="p-3 rounded-xl bg-emerald-500/10 backdrop-blur-sm border border-emerald-500/30 text-[11px] text-emerald-900 space-y-1">
                       <div className="flex items-center gap-1.5 font-bold text-emerald-700">
                         <CheckCircle2 className="w-4 h-4 shrink-0" />
                         <span>Existing Registration Detected</span>
@@ -686,7 +667,7 @@ export default function LevelUpRegistrationPage() {
       </main>
 
       {/* Footer */}
-      <footer className="py-2 text-center text-xs text-slate-400">
+      <footer className="py-3 text-center text-xs text-slate-500 bg-white/20 backdrop-blur-sm border-t border-white/40">
         © 2026 SmartUp Learning Ventures • levelup.smartuplearning.net
       </footer>
     </div>
