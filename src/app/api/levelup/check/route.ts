@@ -44,6 +44,7 @@ export async function GET(request: NextRequest) {
       registered: true,
       registrationId: registration.id,
       studentName: registration.studentName,
+      email: registration.email || "",
       schoolName: registration.schoolName || "",
       classLevel: registration.classLevel,
       curriculum: registration.curriculum || "CBSE",

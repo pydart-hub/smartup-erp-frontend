@@ -7849,6 +7849,7 @@ export namespace Prisma {
   export type LevelUpRegistrationMinAggregateOutputType = {
     id: string | null
     studentName: string | null
+    email: string | null
     schoolName: string | null
     phone: string | null
     country: string | null
@@ -7864,6 +7865,7 @@ export namespace Prisma {
   export type LevelUpRegistrationMaxAggregateOutputType = {
     id: string | null
     studentName: string | null
+    email: string | null
     schoolName: string | null
     phone: string | null
     country: string | null
@@ -7879,6 +7881,7 @@ export namespace Prisma {
   export type LevelUpRegistrationCountAggregateOutputType = {
     id: number
     studentName: number
+    email: number
     schoolName: number
     phone: number
     country: number
@@ -7896,6 +7899,7 @@ export namespace Prisma {
   export type LevelUpRegistrationMinAggregateInputType = {
     id?: true
     studentName?: true
+    email?: true
     schoolName?: true
     phone?: true
     country?: true
@@ -7911,6 +7915,7 @@ export namespace Prisma {
   export type LevelUpRegistrationMaxAggregateInputType = {
     id?: true
     studentName?: true
+    email?: true
     schoolName?: true
     phone?: true
     country?: true
@@ -7926,6 +7931,7 @@ export namespace Prisma {
   export type LevelUpRegistrationCountAggregateInputType = {
     id?: true
     studentName?: true
+    email?: true
     schoolName?: true
     phone?: true
     country?: true
@@ -8014,6 +8020,7 @@ export namespace Prisma {
   export type LevelUpRegistrationGroupByOutputType = {
     id: string
     studentName: string
+    email: string | null
     schoolName: string | null
     phone: string
     country: string
@@ -8046,6 +8053,7 @@ export namespace Prisma {
   export type LevelUpRegistrationSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     studentName?: boolean
+    email?: boolean
     schoolName?: boolean
     phone?: boolean
     country?: boolean
@@ -8061,6 +8069,7 @@ export namespace Prisma {
   export type LevelUpRegistrationSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     studentName?: boolean
+    email?: boolean
     schoolName?: boolean
     phone?: boolean
     country?: boolean
@@ -8076,6 +8085,7 @@ export namespace Prisma {
   export type LevelUpRegistrationSelectScalar = {
     id?: boolean
     studentName?: boolean
+    email?: boolean
     schoolName?: boolean
     phone?: boolean
     country?: boolean
@@ -8095,6 +8105,7 @@ export namespace Prisma {
     scalars: $Extensions.GetPayloadResult<{
       id: string
       studentName: string
+      email: string | null
       schoolName: string | null
       phone: string
       country: string
@@ -8500,6 +8511,7 @@ export namespace Prisma {
   interface LevelUpRegistrationFieldRefs {
     readonly id: FieldRef<"LevelUpRegistration", 'String'>
     readonly studentName: FieldRef<"LevelUpRegistration", 'String'>
+    readonly email: FieldRef<"LevelUpRegistration", 'String'>
     readonly schoolName: FieldRef<"LevelUpRegistration", 'String'>
     readonly phone: FieldRef<"LevelUpRegistration", 'String'>
     readonly country: FieldRef<"LevelUpRegistration", 'String'>
@@ -8832,6 +8844,7 @@ export namespace Prisma {
     id: string | null
     publishingId: string | null
     studentName: string | null
+    email: string | null
     schoolName: string | null
     studentPhone: string | null
     country: string | null
@@ -8856,6 +8869,7 @@ export namespace Prisma {
     id: string | null
     publishingId: string | null
     studentName: string | null
+    email: string | null
     schoolName: string | null
     studentPhone: string | null
     country: string | null
@@ -8880,6 +8894,7 @@ export namespace Prisma {
     id: number
     publishingId: number
     studentName: number
+    email: number
     schoolName: number
     studentPhone: number
     country: number
@@ -8926,6 +8941,7 @@ export namespace Prisma {
     id?: true
     publishingId?: true
     studentName?: true
+    email?: true
     schoolName?: true
     studentPhone?: true
     country?: true
@@ -8950,6 +8966,7 @@ export namespace Prisma {
     id?: true
     publishingId?: true
     studentName?: true
+    email?: true
     schoolName?: true
     studentPhone?: true
     country?: true
@@ -8974,6 +8991,7 @@ export namespace Prisma {
     id?: true
     publishingId?: true
     studentName?: true
+    email?: true
     schoolName?: true
     studentPhone?: true
     country?: true
@@ -9087,6 +9105,7 @@ export namespace Prisma {
     id: string
     publishingId: string
     studentName: string
+    email: string | null
     schoolName: string | null
     studentPhone: string | null
     country: string | null
@@ -9132,6 +9151,7 @@ export namespace Prisma {
     id?: boolean
     publishingId?: boolean
     studentName?: boolean
+    email?: boolean
     schoolName?: boolean
     studentPhone?: boolean
     country?: boolean
@@ -9161,6 +9181,7 @@ export namespace Prisma {
     id?: boolean
     publishingId?: boolean
     studentName?: boolean
+    email?: boolean
     schoolName?: boolean
     studentPhone?: boolean
     country?: boolean
@@ -9188,6 +9209,7 @@ export namespace Prisma {
     id?: boolean
     publishingId?: boolean
     studentName?: boolean
+    email?: boolean
     schoolName?: boolean
     studentPhone?: boolean
     country?: boolean
@@ -9229,6 +9251,7 @@ export namespace Prisma {
       id: string
       publishingId: string
       studentName: string
+      email: string | null
       schoolName: string | null
       studentPhone: string | null
       country: string | null
@@ -9647,6 +9670,7 @@ export namespace Prisma {
     readonly id: FieldRef<"LevelUpAttempt", 'String'>
     readonly publishingId: FieldRef<"LevelUpAttempt", 'String'>
     readonly studentName: FieldRef<"LevelUpAttempt", 'String'>
+    readonly email: FieldRef<"LevelUpAttempt", 'String'>
     readonly schoolName: FieldRef<"LevelUpAttempt", 'String'>
     readonly studentPhone: FieldRef<"LevelUpAttempt", 'String'>
     readonly country: FieldRef<"LevelUpAttempt", 'String'>
@@ -11049,6 +11073,7 @@ export namespace Prisma {
   export const LevelUpRegistrationScalarFieldEnum: {
     id: 'id',
     studentName: 'studentName',
+    email: 'email',
     schoolName: 'schoolName',
     phone: 'phone',
     country: 'country',
@@ -11068,6 +11093,7 @@ export namespace Prisma {
     id: 'id',
     publishingId: 'publishingId',
     studentName: 'studentName',
+    email: 'email',
     schoolName: 'schoolName',
     studentPhone: 'studentPhone',
     country: 'country',
@@ -11671,6 +11697,7 @@ export namespace Prisma {
     NOT?: LevelUpRegistrationWhereInput | LevelUpRegistrationWhereInput[]
     id?: StringFilter<"LevelUpRegistration"> | string
     studentName?: StringFilter<"LevelUpRegistration"> | string
+    email?: StringNullableFilter<"LevelUpRegistration"> | string | null
     schoolName?: StringNullableFilter<"LevelUpRegistration"> | string | null
     phone?: StringFilter<"LevelUpRegistration"> | string
     country?: StringFilter<"LevelUpRegistration"> | string
@@ -11686,6 +11713,7 @@ export namespace Prisma {
   export type LevelUpRegistrationOrderByWithRelationInput = {
     id?: SortOrder
     studentName?: SortOrder
+    email?: SortOrderInput | SortOrder
     schoolName?: SortOrderInput | SortOrder
     phone?: SortOrder
     country?: SortOrder
@@ -11704,6 +11732,7 @@ export namespace Prisma {
     OR?: LevelUpRegistrationWhereInput[]
     NOT?: LevelUpRegistrationWhereInput | LevelUpRegistrationWhereInput[]
     studentName?: StringFilter<"LevelUpRegistration"> | string
+    email?: StringNullableFilter<"LevelUpRegistration"> | string | null
     schoolName?: StringNullableFilter<"LevelUpRegistration"> | string | null
     phone?: StringFilter<"LevelUpRegistration"> | string
     country?: StringFilter<"LevelUpRegistration"> | string
@@ -11719,6 +11748,7 @@ export namespace Prisma {
   export type LevelUpRegistrationOrderByWithAggregationInput = {
     id?: SortOrder
     studentName?: SortOrder
+    email?: SortOrderInput | SortOrder
     schoolName?: SortOrderInput | SortOrder
     phone?: SortOrder
     country?: SortOrder
@@ -11740,6 +11770,7 @@ export namespace Prisma {
     NOT?: LevelUpRegistrationScalarWhereWithAggregatesInput | LevelUpRegistrationScalarWhereWithAggregatesInput[]
     id?: StringWithAggregatesFilter<"LevelUpRegistration"> | string
     studentName?: StringWithAggregatesFilter<"LevelUpRegistration"> | string
+    email?: StringNullableWithAggregatesFilter<"LevelUpRegistration"> | string | null
     schoolName?: StringNullableWithAggregatesFilter<"LevelUpRegistration"> | string | null
     phone?: StringWithAggregatesFilter<"LevelUpRegistration"> | string
     country?: StringWithAggregatesFilter<"LevelUpRegistration"> | string
@@ -11759,6 +11790,7 @@ export namespace Prisma {
     id?: StringFilter<"LevelUpAttempt"> | string
     publishingId?: StringFilter<"LevelUpAttempt"> | string
     studentName?: StringFilter<"LevelUpAttempt"> | string
+    email?: StringNullableFilter<"LevelUpAttempt"> | string | null
     schoolName?: StringNullableFilter<"LevelUpAttempt"> | string | null
     studentPhone?: StringNullableFilter<"LevelUpAttempt"> | string | null
     country?: StringNullableFilter<"LevelUpAttempt"> | string | null
@@ -11787,6 +11819,7 @@ export namespace Prisma {
     id?: SortOrder
     publishingId?: SortOrder
     studentName?: SortOrder
+    email?: SortOrderInput | SortOrder
     schoolName?: SortOrderInput | SortOrder
     studentPhone?: SortOrderInput | SortOrder
     country?: SortOrderInput | SortOrder
@@ -11818,6 +11851,7 @@ export namespace Prisma {
     NOT?: LevelUpAttemptWhereInput | LevelUpAttemptWhereInput[]
     publishingId?: StringFilter<"LevelUpAttempt"> | string
     studentName?: StringFilter<"LevelUpAttempt"> | string
+    email?: StringNullableFilter<"LevelUpAttempt"> | string | null
     schoolName?: StringNullableFilter<"LevelUpAttempt"> | string | null
     studentPhone?: StringNullableFilter<"LevelUpAttempt"> | string | null
     country?: StringNullableFilter<"LevelUpAttempt"> | string | null
@@ -11846,6 +11880,7 @@ export namespace Prisma {
     id?: SortOrder
     publishingId?: SortOrder
     studentName?: SortOrder
+    email?: SortOrderInput | SortOrder
     schoolName?: SortOrderInput | SortOrder
     studentPhone?: SortOrderInput | SortOrder
     country?: SortOrderInput | SortOrder
@@ -11880,6 +11915,7 @@ export namespace Prisma {
     id?: StringWithAggregatesFilter<"LevelUpAttempt"> | string
     publishingId?: StringWithAggregatesFilter<"LevelUpAttempt"> | string
     studentName?: StringWithAggregatesFilter<"LevelUpAttempt"> | string
+    email?: StringNullableWithAggregatesFilter<"LevelUpAttempt"> | string | null
     schoolName?: StringNullableWithAggregatesFilter<"LevelUpAttempt"> | string | null
     studentPhone?: StringNullableWithAggregatesFilter<"LevelUpAttempt"> | string | null
     country?: StringNullableWithAggregatesFilter<"LevelUpAttempt"> | string | null
@@ -12420,6 +12456,7 @@ export namespace Prisma {
   export type LevelUpRegistrationCreateInput = {
     id?: string
     studentName: string
+    email?: string | null
     schoolName?: string | null
     phone: string
     country: string
@@ -12435,6 +12472,7 @@ export namespace Prisma {
   export type LevelUpRegistrationUncheckedCreateInput = {
     id?: string
     studentName: string
+    email?: string | null
     schoolName?: string | null
     phone: string
     country: string
@@ -12450,6 +12488,7 @@ export namespace Prisma {
   export type LevelUpRegistrationUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     studentName?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
     schoolName?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: StringFieldUpdateOperationsInput | string
     country?: StringFieldUpdateOperationsInput | string
@@ -12465,6 +12504,7 @@ export namespace Prisma {
   export type LevelUpRegistrationUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     studentName?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
     schoolName?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: StringFieldUpdateOperationsInput | string
     country?: StringFieldUpdateOperationsInput | string
@@ -12480,6 +12520,7 @@ export namespace Prisma {
   export type LevelUpRegistrationCreateManyInput = {
     id?: string
     studentName: string
+    email?: string | null
     schoolName?: string | null
     phone: string
     country: string
@@ -12495,6 +12536,7 @@ export namespace Prisma {
   export type LevelUpRegistrationUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
     studentName?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
     schoolName?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: StringFieldUpdateOperationsInput | string
     country?: StringFieldUpdateOperationsInput | string
@@ -12510,6 +12552,7 @@ export namespace Prisma {
   export type LevelUpRegistrationUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
     studentName?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
     schoolName?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: StringFieldUpdateOperationsInput | string
     country?: StringFieldUpdateOperationsInput | string
@@ -12525,6 +12568,7 @@ export namespace Prisma {
   export type LevelUpAttemptCreateInput = {
     id?: string
     studentName: string
+    email?: string | null
     schoolName?: string | null
     studentPhone?: string | null
     country?: string | null
@@ -12553,6 +12597,7 @@ export namespace Prisma {
     id?: string
     publishingId: string
     studentName: string
+    email?: string | null
     schoolName?: string | null
     studentPhone?: string | null
     country?: string | null
@@ -12579,6 +12624,7 @@ export namespace Prisma {
   export type LevelUpAttemptUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     studentName?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
     schoolName?: NullableStringFieldUpdateOperationsInput | string | null
     studentPhone?: NullableStringFieldUpdateOperationsInput | string | null
     country?: NullableStringFieldUpdateOperationsInput | string | null
@@ -12607,6 +12653,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     publishingId?: StringFieldUpdateOperationsInput | string
     studentName?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
     schoolName?: NullableStringFieldUpdateOperationsInput | string | null
     studentPhone?: NullableStringFieldUpdateOperationsInput | string | null
     country?: NullableStringFieldUpdateOperationsInput | string | null
@@ -12634,6 +12681,7 @@ export namespace Prisma {
     id?: string
     publishingId: string
     studentName: string
+    email?: string | null
     schoolName?: string | null
     studentPhone?: string | null
     country?: string | null
@@ -12659,6 +12707,7 @@ export namespace Prisma {
   export type LevelUpAttemptUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
     studentName?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
     schoolName?: NullableStringFieldUpdateOperationsInput | string | null
     studentPhone?: NullableStringFieldUpdateOperationsInput | string | null
     country?: NullableStringFieldUpdateOperationsInput | string | null
@@ -12685,6 +12734,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     publishingId?: StringFieldUpdateOperationsInput | string
     studentName?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
     schoolName?: NullableStringFieldUpdateOperationsInput | string | null
     studentPhone?: NullableStringFieldUpdateOperationsInput | string | null
     country?: NullableStringFieldUpdateOperationsInput | string | null
@@ -13200,6 +13250,7 @@ export namespace Prisma {
   export type LevelUpRegistrationCountOrderByAggregateInput = {
     id?: SortOrder
     studentName?: SortOrder
+    email?: SortOrder
     schoolName?: SortOrder
     phone?: SortOrder
     country?: SortOrder
@@ -13215,6 +13266,7 @@ export namespace Prisma {
   export type LevelUpRegistrationMaxOrderByAggregateInput = {
     id?: SortOrder
     studentName?: SortOrder
+    email?: SortOrder
     schoolName?: SortOrder
     phone?: SortOrder
     country?: SortOrder
@@ -13230,6 +13282,7 @@ export namespace Prisma {
   export type LevelUpRegistrationMinOrderByAggregateInput = {
     id?: SortOrder
     studentName?: SortOrder
+    email?: SortOrder
     schoolName?: SortOrder
     phone?: SortOrder
     country?: SortOrder
@@ -13316,6 +13369,7 @@ export namespace Prisma {
     id?: SortOrder
     publishingId?: SortOrder
     studentName?: SortOrder
+    email?: SortOrder
     schoolName?: SortOrder
     studentPhone?: SortOrder
     country?: SortOrder
@@ -13351,6 +13405,7 @@ export namespace Prisma {
     id?: SortOrder
     publishingId?: SortOrder
     studentName?: SortOrder
+    email?: SortOrder
     schoolName?: SortOrder
     studentPhone?: SortOrder
     country?: SortOrder
@@ -13375,6 +13430,7 @@ export namespace Prisma {
     id?: SortOrder
     publishingId?: SortOrder
     studentName?: SortOrder
+    email?: SortOrder
     schoolName?: SortOrder
     studentPhone?: SortOrder
     country?: SortOrder
@@ -15028,6 +15084,7 @@ export namespace Prisma {
   export type LevelUpAttemptCreateWithoutPublishingInput = {
     id?: string
     studentName: string
+    email?: string | null
     schoolName?: string | null
     studentPhone?: string | null
     country?: string | null
@@ -15054,6 +15111,7 @@ export namespace Prisma {
   export type LevelUpAttemptUncheckedCreateWithoutPublishingInput = {
     id?: string
     studentName: string
+    email?: string | null
     schoolName?: string | null
     studentPhone?: string | null
     country?: string | null
@@ -15176,6 +15234,7 @@ export namespace Prisma {
     id?: StringFilter<"LevelUpAttempt"> | string
     publishingId?: StringFilter<"LevelUpAttempt"> | string
     studentName?: StringFilter<"LevelUpAttempt"> | string
+    email?: StringNullableFilter<"LevelUpAttempt"> | string | null
     schoolName?: StringNullableFilter<"LevelUpAttempt"> | string | null
     studentPhone?: StringNullableFilter<"LevelUpAttempt"> | string | null
     country?: StringNullableFilter<"LevelUpAttempt"> | string | null
@@ -15324,6 +15383,7 @@ export namespace Prisma {
   export type LevelUpAttemptCreateWithoutAnswersInput = {
     id?: string
     studentName: string
+    email?: string | null
     schoolName?: string | null
     studentPhone?: string | null
     country?: string | null
@@ -15351,6 +15411,7 @@ export namespace Prisma {
     id?: string
     publishingId: string
     studentName: string
+    email?: string | null
     schoolName?: string | null
     studentPhone?: string | null
     country?: string | null
@@ -15392,6 +15453,7 @@ export namespace Prisma {
   export type LevelUpAttemptUpdateWithoutAnswersInput = {
     id?: StringFieldUpdateOperationsInput | string
     studentName?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
     schoolName?: NullableStringFieldUpdateOperationsInput | string | null
     studentPhone?: NullableStringFieldUpdateOperationsInput | string | null
     country?: NullableStringFieldUpdateOperationsInput | string | null
@@ -15419,6 +15481,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     publishingId?: StringFieldUpdateOperationsInput | string
     studentName?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
     schoolName?: NullableStringFieldUpdateOperationsInput | string | null
     studentPhone?: NullableStringFieldUpdateOperationsInput | string | null
     country?: NullableStringFieldUpdateOperationsInput | string | null
@@ -15740,6 +15803,7 @@ export namespace Prisma {
   export type LevelUpAttemptCreateManyPublishingInput = {
     id?: string
     studentName: string
+    email?: string | null
     schoolName?: string | null
     studentPhone?: string | null
     country?: string | null
@@ -15765,6 +15829,7 @@ export namespace Prisma {
   export type LevelUpAttemptUpdateWithoutPublishingInput = {
     id?: StringFieldUpdateOperationsInput | string
     studentName?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
     schoolName?: NullableStringFieldUpdateOperationsInput | string | null
     studentPhone?: NullableStringFieldUpdateOperationsInput | string | null
     country?: NullableStringFieldUpdateOperationsInput | string | null
@@ -15791,6 +15856,7 @@ export namespace Prisma {
   export type LevelUpAttemptUncheckedUpdateWithoutPublishingInput = {
     id?: StringFieldUpdateOperationsInput | string
     studentName?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
     schoolName?: NullableStringFieldUpdateOperationsInput | string | null
     studentPhone?: NullableStringFieldUpdateOperationsInput | string | null
     country?: NullableStringFieldUpdateOperationsInput | string | null
@@ -15817,6 +15883,7 @@ export namespace Prisma {
   export type LevelUpAttemptUncheckedUpdateManyWithoutPublishingInput = {
     id?: StringFieldUpdateOperationsInput | string
     studentName?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
     schoolName?: NullableStringFieldUpdateOperationsInput | string | null
     studentPhone?: NullableStringFieldUpdateOperationsInput | string | null
     country?: NullableStringFieldUpdateOperationsInput | string | null

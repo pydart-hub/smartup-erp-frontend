@@ -5,7 +5,7 @@ import { validateFullE164PhoneStrict } from "@/lib/constants/countries";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, schoolName, phone, selectedClass, country, emirateCity, curriculum } = body;
+    const { name, email, schoolName, phone, selectedClass, country, emirateCity, curriculum } = body;
 
     const normalizedPhone = typeof phone === "string" ? phone.replace(/[^\d+]/g, "") : "";
     if (!name?.trim()) {
@@ -51,6 +51,7 @@ export async function POST(request: NextRequest) {
         where: { id: existingRegistration.id },
         data: {
           studentName: name.trim(),
+          email: typeof email === "string" ? email.trim() : existingRegistration.email,
           schoolName: typeof schoolName === "string" ? schoolName.trim() : existingRegistration.schoolName,
           classLevel: selectedClass,
           curriculum: selectedCurriculum,
@@ -63,6 +64,7 @@ export async function POST(request: NextRequest) {
       registration = await levelupDb.levelUpRegistration.create({
         data: {
           studentName: name.trim(),
+          email: typeof email === "string" ? email.trim() : null,
           schoolName: typeof schoolName === "string" ? schoolName.trim() : null,
           phone: normalizedPhone,
           country: selectedCountry,

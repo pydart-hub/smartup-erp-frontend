@@ -187,6 +187,7 @@ exports.Prisma.LevelUpPublishingScalarFieldEnum = {
 exports.Prisma.LevelUpRegistrationScalarFieldEnum = {
   id: 'id',
   studentName: 'studentName',
+  email: 'email',
   schoolName: 'schoolName',
   phone: 'phone',
   country: 'country',
@@ -203,6 +204,7 @@ exports.Prisma.LevelUpAttemptScalarFieldEnum = {
   id: 'id',
   publishingId: 'publishingId',
   studentName: 'studentName',
+  email: 'email',
   schoolName: 'schoolName',
   studentPhone: 'studentPhone',
   country: 'country',

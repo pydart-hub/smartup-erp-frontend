@@ -68,6 +68,7 @@ export async function GET(request: NextRequest) {
       return {
         id: a.id,
         studentName: a.studentName,
+        email: a.email || matchedReg?.email || null,
         schoolName: schoolNameValue,
         studentPhone: a.studentPhone,
         country: countryVal,
@@ -92,6 +93,7 @@ export async function GET(request: NextRequest) {
     const formattedRegistrations = registrations.map((r) => ({
       id: r.id,
       studentName: r.studentName,
+      email: r.email || null,
       schoolName: r.schoolName || "Not specified",
       phone: r.phone,
       country: r.country,

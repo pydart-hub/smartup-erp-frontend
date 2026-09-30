@@ -9,6 +9,7 @@ import {
   Trophy,
   User,
   School,
+  Mail,
   ArrowRight,
   Lock,
   CheckCircle2,
@@ -36,6 +37,7 @@ const CLASSES = [
 export default function LevelUpRegistrationPage() {
   const router = useRouter();
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [schoolName, setSchoolName] = useState("");
   const [selectedCountry, setSelectedCountry] = useState<CountryConfig>(GCC_DEFAULT_COUNTRY);
   const [phone, setPhone] = useState("");
@@ -52,6 +54,7 @@ export default function LevelUpRegistrationPage() {
   const [isCheckingPhone, setIsCheckingPhone] = useState(false);
   const [returningStudent, setReturningStudent] = useState<{
     name: string;
+    email?: string;
     schoolName?: string;
     phone: string;
     classLevel: string;
@@ -75,6 +78,7 @@ export default function LevelUpRegistrationPage() {
               if (data.registered) {
                 setReturningStudent({
                   name: data.studentName,
+                  email: data.email || parsed.email || "",
                   schoolName: data.schoolName || parsed.schoolName || "",
                   phone: parsed.phone,
                   classLevel: data.classLevel,
@@ -86,6 +90,9 @@ export default function LevelUpRegistrationPage() {
                 });
                 setRegistrationId(data.registrationId);
                 setName(data.studentName);
+                if (data.email || parsed.email) {
+                  setEmail(data.email || parsed.email);
+                }
                 if (data.schoolName || parsed.schoolName) {
                   setSchoolName(data.schoolName || parsed.schoolName);
                 }
@@ -115,6 +122,9 @@ export default function LevelUpRegistrationPage() {
           .then((data) => {
             if (data.registered) {
               setName(data.studentName);
+              if (data.email) {
+                setEmail(data.email);
+              }
               if (data.schoolName) {
                 setSchoolName(data.schoolName);
               }
@@ -157,6 +167,7 @@ export default function LevelUpRegistrationPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: returningStudent ? returningStudent.name : name.trim(),
+          email: returningStudent?.email || email.trim(),
           schoolName: returningStudent?.schoolName || schoolName.trim(),
           phone: fullFormattedPhone,
           selectedClass: returningStudent ? returningStudent.classLevel : selectedClass,
@@ -205,6 +216,7 @@ export default function LevelUpRegistrationPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: name.trim(),
+          email: email.trim(),
           schoolName: schoolName.trim(),
           phone: fullPhone,
           selectedClass,
@@ -224,6 +236,7 @@ export default function LevelUpRegistrationPage() {
         "levelup_student",
         JSON.stringify({
           name: name.trim(),
+          email: email.trim(),
           schoolName: schoolName.trim(),
           phone: fullPhone,
           classLevel: selectedClass,
@@ -472,6 +485,12 @@ export default function LevelUpRegistrationPage() {
                       <span className="text-slate-500">Number:</span>
                       <span className="font-mono font-bold">{selectedCountry.dialCode} {phone}</span>
                     </div>
+                    {email && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Email:</span>
+                        <span className="font-medium text-slate-800 truncate max-w-[200px]">{email}</span>
+                      </div>
+                    )}
                     {schoolName && (
                       <div className="flex justify-between">
                         <span className="text-slate-500">School:</span>
@@ -525,6 +544,23 @@ export default function LevelUpRegistrationPage() {
                         placeholder="Enter student name"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50/50 hover:bg-white border border-slate-200/90 rounded-xl text-slate-900 text-sm placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5C34A4]/20 focus:border-[#5C34A4] transition"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Email Address */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-800 tracking-wide">
+                      Email Address
+                    </label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="email"
+                        placeholder="Enter email address (optional)"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
                         className="w-full pl-10 pr-4 py-2.5 bg-slate-50/50 hover:bg-white border border-slate-200/90 rounded-xl text-slate-900 text-sm placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5C34A4]/20 focus:border-[#5C34A4] transition"
                       />
                     </div>

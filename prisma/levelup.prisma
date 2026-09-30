@@ -95,6 +95,7 @@ model LevelUpPublishing {
 model LevelUpRegistration {
   id           String        @id @default(uuid())
   studentName  String
+  email        String?       // Candidate email address
   schoolName   String?       // Candidate school name in GCC
   phone        String        // E.164 phone (+971..., +966..., +974..., +91..., etc.)
   country      String        // UAE, Saudi Arabia, Qatar, Oman, Kuwait, Bahrain, India, etc.
@@ -107,6 +108,7 @@ model LevelUpRegistration {
   updatedAt    DateTime      @updatedAt
 
   @@index([phone])
+  @@index([email])
   @@index([country])
   @@index([classLevel])
   @@index([createdAt])
@@ -118,6 +120,7 @@ model LevelUpAttempt {
   publishingId       String
   publishing         LevelUpPublishing     @relation(fields: [publishingId], references: [id])
   studentName        String
+  email              String?
   schoolName         String?
   studentPhone       String?
   country            String?

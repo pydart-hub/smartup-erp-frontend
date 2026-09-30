@@ -20,6 +20,7 @@ import {
 interface AttemptRecord {
   id: string;
   studentName: string;
+  email?: string | null;
   schoolName?: string;
   studentPhone: string | null;
   country: string;
@@ -42,6 +43,7 @@ interface AttemptRecord {
 interface RegistrationRecord {
   id: string;
   studentName: string;
+  email?: string | null;
   schoolName?: string;
   phone: string;
   country: string;
@@ -122,6 +124,7 @@ export default function LevelUpAdminPage() {
         ? attempts.map((a) => [
             a.id,
             a.studentName,
+            a.email || "",
             a.studentPhone || "",
             a.schoolName || "",
             a.country,
@@ -138,6 +141,7 @@ export default function LevelUpAdminPage() {
         : registrations.map((r) => [
             r.id,
             r.studentName,
+            r.email || "",
             r.phone,
             r.schoolName || "",
             r.country,
@@ -154,6 +158,7 @@ export default function LevelUpAdminPage() {
         ? [
             "Attempt ID",
             "Student Name",
+            "Email",
             "Phone",
             "School",
             "Country",
@@ -170,6 +175,7 @@ export default function LevelUpAdminPage() {
         : [
             "Registration ID",
             "Student Name",
+            "Email",
             "Phone",
             "School",
             "Country",
@@ -198,13 +204,13 @@ export default function LevelUpAdminPage() {
   };
 
   const filteredAttempts = attempts.filter((a) =>
-    `${a.studentName} ${a.studentPhone} ${a.schoolName} ${a.country} ${a.emirateCity} ${a.classLevel}`
+    `${a.studentName} ${a.email || ""} ${a.studentPhone} ${a.schoolName} ${a.country} ${a.emirateCity} ${a.classLevel}`
       .toLowerCase()
       .includes(searchQuery.toLowerCase())
   );
 
   const filteredRegistrations = registrations.filter((r) =>
-    `${r.studentName} ${r.phone} ${r.schoolName} ${r.country} ${r.emirateCity} ${r.classLevel}`
+    `${r.studentName} ${r.email || ""} ${r.phone} ${r.schoolName} ${r.country} ${r.emirateCity} ${r.classLevel}`
       .toLowerCase()
       .includes(searchQuery.toLowerCase())
   );
@@ -394,6 +400,7 @@ export default function LevelUpAdminPage() {
                     <tr key={att.id} className="hover:bg-slate-800/30 transition-all">
                       <td className="py-3 px-4">
                         <div className="font-bold text-white">{att.studentName}</div>
+                        {att.email && <div className="text-[11px] text-emerald-400 font-mono">{att.email}</div>}
                         <div className="text-[11px] text-slate-500">{att.studentPhone}</div>
                       </td>
                       <td className="py-3 px-4">
@@ -455,7 +462,10 @@ export default function LevelUpAdminPage() {
                 <tbody className="divide-y divide-slate-800/60">
                   {filteredRegistrations.map((reg) => (
                     <tr key={reg.id} className="hover:bg-slate-800/30 transition-all">
-                      <td className="py-3 px-4 font-bold text-white">{reg.studentName}</td>
+                      <td className="py-3 px-4">
+                        <div className="font-bold text-white">{reg.studentName}</div>
+                        {reg.email && <div className="text-[11px] text-emerald-400 font-mono">{reg.email}</div>}
+                      </td>
                       <td className="py-3 px-4 font-mono text-slate-300">{reg.phone}</td>
                       <td className="py-3 px-4 text-slate-400">{reg.schoolName || "—"}</td>
                       <td className="py-3 px-4">
