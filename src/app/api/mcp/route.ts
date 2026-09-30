@@ -39,7 +39,7 @@ const MCP_TOOLS = [
   {
     name: "get_fees_and_collections",
     description:
-      "Get real-time financial metrics: total invoiced (₹3,00,83,822 across branches), total collected (₹1,39,07,413), collection rate (46.2%), pending dues (₹1,61,76,409), total overdue fees (approx ₹42.3L - ₹42.4L across 909 students matching Director portal), overdue invoices count, exact day-wise collections, and branch fee comparisons.",
+      "Get real-time financial metrics: total invoiced (₹3,00,83,822 across branches), total collected (₹1,39,07,413), collection rate (46.2%), pending dues (₹1,61,76,409), total overdue fees (approx ₹42.3L - ₹42.4L across 909 students matching Director portal), overdue invoices count, exact collections for ANY date range (e.g. Sept 1 to 20 via from_date='2026-09-01' and to_date='2026-09-20'), and branch fee comparisons. To get fee collections for specific dates, provide from_date and to_date or use get_fees_collected_by_date.",
     inputSchema: {
       type: "object",
       properties: {
@@ -66,15 +66,38 @@ const MCP_TOOLS = [
     },
   },
   {
+    name: "get_fees_collected_by_date",
+    description:
+      "Get exact real-time fee collections for ANY specific date or date range (e.g. 'Sept 1 to 20', 'September 1-20', yesterday, last week, last month, or a custom period). Pass from_date='YYYY-MM-DD' and to_date='YYYY-MM-DD' (or date='YYYY-MM-DD' for a single day). Returns grand total collections in rupees, payment count, branch-wise collections breakdown, and payment modes.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        from_date: {
+          type: "string",
+          description: "Start date in YYYY-MM-DD format (e.g. '2026-09-01')",
+        },
+        to_date: {
+          type: "string",
+          description: "End date in YYYY-MM-DD format (e.g. '2026-09-20')",
+        },
+        date: {
+          type: "string",
+          description: "Single target date in YYYY-MM-DD format (e.g. '2026-09-29')",
+        },
+        branch: { type: "string", description: "Optional branch name filter" },
+      },
+    },
+  },
+  {
     name: "get_daily_collections",
     description:
-      "Get exact real-time fee collections for a specific date (e.g. yesterday, today, or date range '2026-09-29'). Returns grand total collections, payment count, branch-wise totals, payment modes (Cash, Bank Transfer, CoFee), and individual payments.",
+      "Alias for get_fees_collected_by_date. Get exact real-time fee collections for a specific date or date range (e.g. yesterday, Sept 1-20, from_date, to_date). Returns total amount collected, branch totals, and payment count.",
     inputSchema: {
       type: "object",
       properties: {
         date: { type: "string", description: "Target date in YYYY-MM-DD format (e.g. '2026-09-29')" },
-        from_date: { type: "string", description: "Start date in YYYY-MM-DD format" },
-        to_date: { type: "string", description: "End date in YYYY-MM-DD format" },
+        from_date: { type: "string", description: "Start date in YYYY-MM-DD format (e.g. '2026-09-01')" },
+        to_date: { type: "string", description: "End date in YYYY-MM-DD format (e.g. '2026-09-20')" },
         branch: { type: "string", description: "Optional branch name filter" },
       },
     },
@@ -423,6 +446,7 @@ export async function POST(request: NextRequest) {
           break;
         }
 
+        case "get_fees_collected_by_date":
         case "get_daily_collections": {
           toolOutput = await getLiveDailyCollections(
             args.date,

@@ -403,6 +403,16 @@ export async function getLiveFeesData(
     recent_payments: recentPayments,
     fee_structures_count: feeStructures.length,
     daily_collections: dailyCollections,
+    period_collections: dailyCollections
+      ? {
+          from_date: targetDateFrom,
+          to_date: targetDateTo,
+          total_collected: dailyCollections.grand_total_collections,
+          payment_count: dailyCollections.payment_count,
+          branch_breakdown: dailyCollections.branch_breakdown,
+          payment_modes: dailyCollections.mode_of_payment_breakdown,
+        }
+      : null,
   };
 }
 
