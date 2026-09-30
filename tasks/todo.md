@@ -32,4 +32,11 @@
 - **Top Students & CWC Toppers:** Top performers overall and per branch are exposed:
   - ARON JOSEPH (100%), MOHAMMED ZAYAN V Z (100%), FATHIMA NASNI PN (100%), RAYONA KR (100%), AISWARYA SUNIL (100%), ALEENA JOSEPH (100%).
   - Branch toppers across all 9 branches (Chullickal, Fortkochi, Eraveli, Palluruthy, Thopumpadi, Edappally, Moolamkuzhi, Vennala, Kadavanthara).
-- **Backward Compatibility:** Embedded into existing `get_exam_metrics` and `get_fees_and_collections` so even ongoing Claude sessions that have not refreshed tools get the correct, detailed data immediately.
+## 6. Align Executive KPIs & Branch Metrics with Director Reports Dashboard
+- [x] Identify discrepancy between raw Sales Invoice queries (₹3,00,55,897 / ₹1,38,71,988) and official Director Reports GL aggregation (`getAllBranchesSummary()`: ₹3,00,83,822 billed, ₹1,39,07,413 collected, ₹1,61,76,409 pending, 1,656 students, 1,552 active, 104 discontinued, 92 staff).
+- [x] Connect `fetchLiveBranchData()` in `src/lib/server/aiErpEngine.ts` directly to `getAllBranchesSummary()`, ensuring 100% data consistency between the web dashboard and AI MCP endpoints.
+- [x] Add `staff` count per branch and `total_staff` to `get_executive_kpis` and `get_fees_and_collections`.
+- [x] Test and verify locally with `scripts/test-kpi-metrics.mjs` (verified exact match down to the rupee and student count).
+- [ ] Commit and push changes to `origin/main`.
+- [ ] Deploy to production server (`76.13.244.60`), build, and reload PM2 cluster (`smartup-erp-1` to `smartup-erp-4`).
+- [ ] Verify live production MCP responses match Director Reports dashboard.

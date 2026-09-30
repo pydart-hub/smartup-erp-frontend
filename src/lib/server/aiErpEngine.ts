@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAllBranchesSummary } from "@/app/api/director/report-summary/route";
 
 export const dynamic = "force-dynamic";
 
@@ -140,6 +141,7 @@ export interface LiveBranchStat {
   total_outstanding: number;
   collection_rate: string;
   invoice_count: number;
+  staff?: number;
 }
 
 export async function fetchLiveBranchData(): Promise<{
@@ -147,109 +149,45 @@ export async function fetchLiveBranchData(): Promise<{
   admissionTypes: Record<string, number>;
   totalBatches: number;
   totalPrograms: number;
+  totalStaff: number;
 }> {
-  const [
-    branchStudentRows,
-    branchInvoiceRows,
-    studentTypeRows,
-    totalBatchesCount,
-    totalProgramsCount,
-  ] = await Promise.all([
-    frappeGet(
-      "Student",
-      ["custom_branch", "enabled", "count(name) as student_count"],
-      [],
-      undefined,
-      100,
-      "custom_branch,enabled"
-    ),
-    frappeGet(
-      "Sales Invoice",
-      [
-        "company",
-        "sum(grand_total) as total_invoiced",
-        "sum(outstanding_amount) as total_outstanding",
-        "count(name) as invoice_count",
-      ],
-      [["docstatus", "=", 1]],
-      undefined,
-      100,
-      "company"
-    ),
-    frappeGet(
-      "Student",
-      ["custom_student_type", "count(name) as type_count"],
-      [],
-      undefined,
-      50,
-      "custom_student_type"
-    ),
-    getCount("Student Group", [["disabled", "=", 0]]),
-    getCount("Program", []),
-  ]);
+  const [directorSummary, studentTypeRows, totalBatchesCount, totalProgramsCount] =
+    await Promise.all([
+      getAllBranchesSummary(),
+      frappeGet(
+        "Student",
+        ["custom_student_type", "count(name) as type_count"],
+        [],
+        undefined,
+        50,
+        "custom_student_type"
+      ),
+      getCount("Student Group", [["disabled", "=", 0]]),
+      getCount("Program", []),
+    ]);
 
-  const branchMap = new Map<string, LiveBranchStat>();
-
-  for (const row of branchStudentRows) {
-    const branchName = String(row.custom_branch || "").trim();
-    if (!branchName) continue;
-    if (!branchMap.has(branchName)) {
+  const liveBranchList: LiveBranchStat[] = directorSummary
+    .map((r) => {
+      const branchName = r.branch;
       const shortName = branchName.replace(/^Smart\s*Up\s*/i, "").trim() || branchName;
-      branchMap.set(branchName, {
+      const collectionRate =
+        r.totalFee > 0 ? `${((r.collectedFee / r.totalFee) * 100).toFixed(1)}%` : "0.0%";
+
+      return {
         branch: branchName,
         short_name: shortName,
-        total_students: 0,
-        active_students: 0,
-        discontinued_students: 0,
-        total_invoiced: 0,
-        total_collected: 0,
-        total_outstanding: 0,
-        collection_rate: "0.0%",
+        total_students: r.totalStudents,
+        active_students: r.active,
+        discontinued_students: r.discontinued,
+        total_invoiced: r.totalFee,
+        total_collected: r.collectedFee,
+        total_outstanding: r.pendingFee,
+        collection_rate: collectionRate,
         invoice_count: 0,
-      });
-    }
-    const stat = branchMap.get(branchName)!;
-    const count = Number(row.student_count || 0);
-    if (Number(row.enabled) === 1) {
-      stat.active_students += count;
-    } else {
-      stat.discontinued_students += count;
-    }
-    stat.total_students = stat.active_students + stat.discontinued_students;
-  }
-
-  for (const row of branchInvoiceRows) {
-    const companyName = String(row.company || "").trim();
-    if (!companyName) continue;
-    if (!branchMap.has(companyName)) {
-      const shortName = companyName.replace(/^Smart\s*Up\s*/i, "").trim() || companyName;
-      branchMap.set(companyName, {
-        branch: companyName,
-        short_name: shortName,
-        total_students: 0,
-        active_students: 0,
-        discontinued_students: 0,
-        total_invoiced: 0,
-        total_collected: 0,
-        total_outstanding: 0,
-        collection_rate: "0.0%",
-        invoice_count: 0,
-      });
-    }
-    const stat = branchMap.get(companyName)!;
-    stat.total_invoiced = Math.round(Number(row.total_invoiced || 0));
-    stat.total_outstanding = Math.round(Number(row.total_outstanding || 0));
-    stat.total_collected = Math.max(0, stat.total_invoiced - stat.total_outstanding);
-    stat.collection_rate =
-      stat.total_invoiced > 0
-        ? `${((stat.total_collected / stat.total_invoiced) * 100).toFixed(1)}%`
-        : "0.0%";
-    stat.invoice_count = Number(row.invoice_count || 0);
-  }
-
-  const liveBranchList = Array.from(branchMap.values()).sort((a, b) =>
-    a.branch.localeCompare(b.branch)
-  );
+        staff: r.staff,
+      };
+    })
+    .sort((a, b) => a.branch.localeCompare(b.branch));
 
   const admissionTypes: Record<string, number> = {};
   for (const row of studentTypeRows) {
@@ -257,11 +195,14 @@ export async function fetchLiveBranchData(): Promise<{
     admissionTypes[typeKey] = Number(row.type_count || 0);
   }
 
+  const totalStaff = directorSummary.reduce((sum, r) => sum + r.staff, 0);
+
   return {
     liveBranchList,
     admissionTypes,
     totalBatches: totalBatchesCount,
     totalPrograms: totalProgramsCount,
+    totalStaff,
   };
 }
 
@@ -435,7 +376,10 @@ export async function getLiveFeesData(
     (sum, b) => sum + b.total_outstanding,
     0
   );
-  const systemTotalCollected = Math.max(0, systemTotalInvoiced - systemTotalOutstanding);
+  const systemTotalCollected = branchMeta.liveBranchList.reduce(
+    (sum, b) => sum + b.total_collected,
+    0
+  );
   const systemCollectionRate =
     systemTotalInvoiced > 0
       ? `${((systemTotalCollected / systemTotalInvoiced) * 100).toFixed(1)}%`

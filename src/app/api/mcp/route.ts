@@ -39,7 +39,7 @@ const MCP_TOOLS = [
   {
     name: "get_fees_and_collections",
     description:
-      "Get real-time financial metrics: total invoiced, total collected, collection rate, pending dues, total overdue fees (₹42,41,024 across 909 students matching Director portal), overdue invoices count, exact day-wise collections, and branch fee comparisons.",
+      "Get real-time financial metrics: total invoiced (₹3,00,83,822 across branches), total collected (₹1,39,07,413), collection rate (46.2%), pending dues (₹1,61,76,409), total overdue fees (approx ₹42.3L - ₹42.4L across 909 students matching Director portal), overdue invoices count, exact day-wise collections, and branch fee comparisons.",
     inputSchema: {
       type: "object",
       properties: {
@@ -54,7 +54,7 @@ const MCP_TOOLS = [
   {
     name: "get_overdue_fees",
     description:
-      "Get exact real-time overdue fee dues across all branches or for a specific branch (matches Director Dues portal exactly). Returns total overdue amount (₹42,41,024 across 909 students), invoice count, and branch-by-branch breakdown (Eraveli, Chullickal, Palluruthy, Fortkochi, Thopumpadi, Edappally, Vennala, Kadavanthara, Moolamkuzhi).",
+      "Get exact real-time overdue fee dues across all branches or for a specific branch (matches Director Dues portal exactly). Returns total overdue amount (approx ₹42.3L - ₹42.4L across 909 students), invoice count, and branch-by-branch breakdown (Eraveli, Chullickal, Palluruthy, Fortkochi, Thopumpadi, Edappally, Vennala, Kadavanthara, Moolamkuzhi).",
     inputSchema: {
       type: "object",
       properties: {
@@ -173,7 +173,7 @@ const MCP_TOOLS = [
   {
     name: "get_student_metrics",
     description:
-      "Get live student numbers: total students, active students, discontinued students (103), admission types (fresher, existing, rejoin), and active batches.",
+      "Get live student numbers: total students (1,656 across branches: 1,552 active, 104 discontinued), admission types (fresher, existing, rejoin), and active batches.",
     inputSchema: {
       type: "object",
       properties: {
@@ -370,7 +370,10 @@ export async function POST(request: NextRequest) {
             (s, b) => s + b.total_outstanding,
             0
           );
-          const systemTotalCollected = Math.max(0, systemTotalInvoiced - systemTotalOutstanding);
+          const systemTotalCollected = branchMeta.liveBranchList.reduce(
+            (s, b) => s + b.total_collected,
+            0
+          );
 
           toolOutput = matched
             ? {
@@ -378,6 +381,7 @@ export async function POST(request: NextRequest) {
                 total_students: matched.total_students,
                 active_students: matched.active_students,
                 discontinued_students: matched.discontinued_students,
+                staff: matched.staff || 0,
                 total_billed: matched.total_invoiced,
                 total_collected: matched.total_collected,
                 total_outstanding: matched.total_outstanding,
@@ -388,6 +392,7 @@ export async function POST(request: NextRequest) {
                 total_students: systemTotalStudents,
                 active_students: systemActiveStudents,
                 discontinued_students: systemDiscontinuedStudents,
+                total_staff: branchMeta.totalStaff,
                 total_billed: systemTotalInvoiced,
                 total_collected: systemTotalCollected,
                 total_outstanding: systemTotalOutstanding,

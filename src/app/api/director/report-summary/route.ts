@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-const FRAPPE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL;
-const FRAPPE_API_KEY = process.env.FRAPPE_API_KEY;
-const FRAPPE_API_SECRET = process.env.FRAPPE_API_SECRET;
+const FRAPPE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL || "https://smartup.m.frappe.cloud";
+const FRAPPE_API_KEY = process.env.FRAPPE_API_KEY || "03330270e330d49";
+const FRAPPE_API_SECRET = process.env.FRAPPE_API_SECRET || "9c2261ae11ac2d2";
 
 // ── Auth helper ──
 
