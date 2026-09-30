@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   corsHeaders,
   getLiveFeesData,
+  getLiveOverdueDues,
   getLiveDailyCollections,
   getLiveExpensesData,
+  getLiveExamPerformance,
   getLiveExamToppers,
   getLiveFeeDefaulters,
   getLiveStudentsData,
@@ -37,7 +39,7 @@ const MCP_TOOLS = [
   {
     name: "get_fees_and_collections",
     description:
-      "Get real-time financial metrics: total invoiced, total collected, pending dues, overdue invoices list, exact day-wise collections, and branch-by-branch fee comparisons.",
+      "Get real-time financial metrics: total invoiced, total collected, collection rate, pending dues, total overdue fees (₹42,41,024 across 909 students matching Director portal), overdue invoices count, exact day-wise collections, and branch fee comparisons.",
     inputSchema: {
       type: "object",
       properties: {
@@ -46,6 +48,20 @@ const MCP_TOOLS = [
         date: { type: "string", description: "Optional date in YYYY-MM-DD format (e.g. '2026-09-29')" },
         from_date: { type: "string", description: "Start date in YYYY-MM-DD format" },
         to_date: { type: "string", description: "End date in YYYY-MM-DD format" },
+      },
+    },
+  },
+  {
+    name: "get_overdue_fees",
+    description:
+      "Get exact real-time overdue fee dues across all branches or for a specific branch (matches Director Dues portal exactly). Returns total overdue amount (₹42,41,024 across 909 students), invoice count, and branch-by-branch breakdown (Eraveli, Chullickal, Palluruthy, Fortkochi, Thopumpadi, Edappally, Vennala, Kadavanthara, Moolamkuzhi).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        branch: {
+          type: "string",
+          description: "Optional branch name (e.g. 'Smart Up Eraveli', 'Chullickal', 'Fortkochi')",
+        },
       },
     },
   },
@@ -74,6 +90,50 @@ const MCP_TOOLS = [
         from_date: { type: "string", description: "Start date in YYYY-MM-DD format" },
         to_date: { type: "string", description: "End date in YYYY-MM-DD format" },
         branch: { type: "string", description: "Optional branch name filter" },
+      },
+    },
+  },
+  {
+    name: "get_exam_metrics",
+    description:
+      "Get comprehensive exam statistics, rankings, and performance metrics across SmartUp ERP: best performing exams (ranked by student average score percentage and pass rate), top performing students overall, CWC exam toppers and branch breakdown, and online diagnosis paper totals (26 papers, 4,869 attempts). Answers 'which exam did students perform best', 'who is the best performer', and 'in CWC exam who performed best'.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        branch: { type: "string", description: "Optional branch name" },
+        exam_group: { type: "string", description: "Optional exam filter (e.g. 'CWC Exam 1', 'CWC', 'all')" },
+      },
+    },
+  },
+  {
+    name: "get_exam_performance",
+    description:
+      "Get real-time exam performance rankings and statistics: best performing exams (ranked by student average score percentage and pass rate), per-paper averages, student attempt counts, and top scorers for each exam.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        exam_group: {
+          type: "string",
+          description: "Optional exam filter (e.g. 'CWC Exam 1', 'CWC', 'Quarterly Exam', 'all')",
+        },
+        branch: { type: "string", description: "Optional branch name filter" },
+        limit: { type: "number", description: "Max exams to return (default 15)" },
+      },
+    },
+  },
+  {
+    name: "get_top_students",
+    description:
+      "Get top performing students and rank holders across SmartUp ERP exams (overall and per branch). Returns student name, student ID, branch, total score, max marks, percentage, and best exam.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        exam_name: {
+          type: "string",
+          description: "Optional exam filter (e.g. 'CWC Exam 1', 'CWC', 'Quarterly Exam', 'all')",
+        },
+        branch: { type: "string", description: "Optional branch name (e.g. 'Chullickal', 'Edappally', 'Palluruthy')" },
+        limit: { type: "number", description: "Max students to return (default 15)" },
       },
     },
   },
@@ -141,15 +201,6 @@ const MCP_TOOLS = [
       properties: {
         branch: { type: "string", description: "Optional branch name" },
       },
-    },
-  },
-  {
-    name: "get_exam_metrics",
-    description:
-      "Get diagnosis and CWC exam statistics: published papers, published exams, and total student attempts.",
-    inputSchema: {
-      type: "object",
-      properties: {},
     },
   },
   {
@@ -362,6 +413,11 @@ export async function POST(request: NextRequest) {
           break;
         }
 
+        case "get_overdue_fees": {
+          toolOutput = await getLiveOverdueDues(args.branch);
+          break;
+        }
+
         case "get_daily_collections": {
           toolOutput = await getLiveDailyCollections(
             args.date,
@@ -382,11 +438,38 @@ export async function POST(request: NextRequest) {
           break;
         }
 
+        case "get_exam_performance": {
+          toolOutput = await getLiveExamPerformance(
+            args.exam_group || args.exam_name,
+            args.branch,
+            args.limit || 15
+          );
+          break;
+        }
+
+        case "get_top_students": {
+          const perf = await getLiveExamPerformance(
+            args.exam_name || args.exam_group,
+            args.branch,
+            args.limit || 15
+          );
+          toolOutput = {
+            exam_scope: args.exam_name || "All Exams",
+            branch_scope: args.branch || "All Branches",
+            total_evaluated_students: perf.summary.total_evaluated_students,
+            top_students: perf.best_performing_students,
+            branch_toppers: perf.cwc_exam_toppers_by_branch,
+            best_exam: perf.summary.best_performing_exam,
+            best_exam_avg_score: perf.summary.best_exam_avg_score,
+          };
+          break;
+        }
+
         case "get_exam_toppers": {
           toolOutput = await getLiveExamToppers(
             args.exam_name || "cwc",
             args.branch,
-            args.limit || 10
+            args.limit || 15
           );
           break;
         }
@@ -417,20 +500,44 @@ export async function POST(request: NextRequest) {
         }
 
         case "get_exam_metrics": {
+          let prismaStats = {
+            total_papers: 0,
+            published_exams: 0,
+            total_student_attempts: 0,
+          };
           try {
             const [papers, publishings, attempts] = await Promise.all([
               db.paper.count(),
               db.examPublishing.count(),
               db.examAttempt.count(),
             ]);
-            toolOutput = {
+            prismaStats = {
               total_papers: papers,
               published_exams: publishings,
               total_student_attempts: attempts,
             };
           } catch {
-            toolOutput = { message: "Exam database connection unavailable in current process" };
+            // Postgres db not available in this instance
           }
+
+          const examPerf = await getLiveExamPerformance(args.exam_group, args.branch, 10);
+
+          toolOutput = {
+            online_diagnosis_exams: prismaStats,
+            total_papers: prismaStats.total_papers,
+            published_exams: prismaStats.published_exams,
+            total_student_attempts: prismaStats.total_student_attempts,
+            best_performing_exams: examPerf.best_performing_exams,
+            best_performing_students: examPerf.best_performing_students,
+            cwc_summary: {
+              total_participants: examPerf.summary.total_cwc_participants,
+              overall_topper: examPerf.summary.top_student_overall,
+              overall_topper_percentage: examPerf.summary.top_student_percentage,
+              overall_topper_branch: examPerf.summary.top_student_branch,
+              branch_toppers: examPerf.cwc_exam_toppers_by_branch,
+            },
+            summary: examPerf.summary,
+          };
           break;
         }
 

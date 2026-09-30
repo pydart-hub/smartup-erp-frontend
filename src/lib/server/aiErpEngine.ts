@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-const FRAPPE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL;
-const FRAPPE_API_KEY = process.env.FRAPPE_API_KEY;
-const FRAPPE_API_SECRET = process.env.FRAPPE_API_SECRET;
+const FRAPPE_URL = process.env.NEXT_PUBLIC_FRAPPE_URL || "https://smartup.m.frappe.cloud";
+const FRAPPE_API_KEY = process.env.FRAPPE_API_KEY || "03330270e330d49";
+const FRAPPE_API_SECRET = process.env.FRAPPE_API_SECRET || "9c2261ae11ac2d2";
 const AI_AGENT_SECRET_KEY = process.env.AI_AGENT_SECRET_KEY || "smartup-ai-agent-key-2026";
 
 const adminAuth = `token ${FRAPPE_API_KEY}:${FRAPPE_API_SECRET}`;
@@ -278,6 +278,82 @@ export function matchBranchInList(
   });
 }
 
+// ── LIVE OVERDUE DUES (MATCHING DIRECTOR PORTAL EXACTLY) ──
+export async function getLiveOverdueDues(branchName?: string) {
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  // 1. Fetch discontinued customer IDs
+  const discFilters: (string | number | string[])[][] = [
+    ["enabled", "=", 0],
+    ["custom_discontinuation_date", "is", "set"],
+  ];
+  if (branchName) {
+    discFilters.push(["custom_branch", "=", branchName]);
+  }
+  const discRes = await frappeGet("Student", ["customer"], discFilters, undefined, 500);
+  const discCustomers = discRes.map((s) => String(s.customer || "")).filter(Boolean);
+
+  const invFilters: (string | number | string[])[][] = [
+    ["docstatus", "=", 1],
+    ["outstanding_amount", ">", 0],
+    ["due_date", "<=", todayStr],
+  ];
+  if (discCustomers.length > 0) {
+    invFilters.push(["customer", "not in", discCustomers]);
+  }
+  if (branchName) {
+    invFilters.push(["company", "=", branchName]);
+  }
+
+  const [branchRows, totalRows] = await Promise.all([
+    frappeGet(
+      "Sales Invoice",
+      [
+        "company",
+        "sum(outstanding_amount) as total_dues",
+        "count(name) as invoice_count",
+        "count(distinct customer) as student_count",
+      ],
+      invFilters,
+      "total_dues desc",
+      100,
+      "company"
+    ),
+    frappeGet(
+      "Sales Invoice",
+      [
+        "sum(outstanding_amount) as total_dues",
+        "count(name) as invoice_count",
+        "count(distinct customer) as student_count",
+      ],
+      invFilters,
+      undefined,
+      1
+    ),
+  ]);
+
+  const totalRow = totalRows[0] || {};
+  const totalOverdue = Math.round(Number(totalRow.total_dues || 0));
+  const studentCount = Number(totalRow.student_count || 0);
+  const invoiceCount = Number(totalRow.invoice_count || 0);
+
+  const branchBreakdown = branchRows.map((r) => ({
+    branch: String(r.company || "Unknown"),
+    total_overdue: Math.round(Number(r.total_dues || 0)),
+    student_count: Number(r.student_count || 0),
+    invoice_count: Number(r.invoice_count || 0),
+  }));
+
+  return {
+    as_of_date: todayStr,
+    scope: branchName || "All Branches (Consolidated)",
+    total_overdue: totalOverdue,
+    students_with_overdue: studentCount,
+    overdue_invoices_count: invoiceCount,
+    branch_breakdown: branchBreakdown,
+  };
+}
+
 // ── LIVE FEES ──
 export async function getLiveFeesData(
   branchName?: string,
@@ -304,7 +380,7 @@ export async function getLiveFeesData(
     peFilters.push(["posting_date", "<=", targetDateTo]);
   }
 
-  const [recentInvoices, recentPayments, feeStructures, branchMeta, dailyCollections] =
+  const [recentInvoices, recentPayments, feeStructures, branchMeta, dailyCollections, overdueData] =
     await Promise.all([
       frappeGet(
         "Sales Invoice",
@@ -349,6 +425,7 @@ export async function getLiveFeesData(
       ),
       fetchLiveBranchData(),
       hasDateFilter ? getLiveDailyCollections(date, fromDate, toDate, branchName) : null,
+      getLiveOverdueDues(branchName),
     ]);
 
   const matched = matchBranchInList(branchName, branchMeta.liveBranchList);
@@ -364,16 +441,6 @@ export async function getLiveFeesData(
       ? `${((systemTotalCollected / systemTotalInvoiced) * 100).toFixed(1)}%`
       : "0.0%";
 
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const overdueList = recentInvoices
-    .filter((inv) => Number(inv.outstanding_amount || 0) > 0 && String(inv.due_date) < todayStr)
-    .slice(0, 25);
-
-  const totalOverdueAmount = overdueList.reduce(
-    (sum, inv) => sum + Number(inv.outstanding_amount || 0),
-    0
-  );
-
   return {
     summary: {
       scope: matched ? matched.branch : "All Branches (Consolidated)",
@@ -381,11 +448,13 @@ export async function getLiveFeesData(
       total_collected: matched ? matched.total_collected : systemTotalCollected,
       total_outstanding: matched ? matched.total_outstanding : systemTotalOutstanding,
       collection_rate: matched ? matched.collection_rate : systemCollectionRate,
-      overdue_sample_amount: Math.round(totalOverdueAmount),
-      overdue_invoices_count: overdueList.length,
+      total_overdue: overdueData.total_overdue,
+      students_with_overdue: overdueData.students_with_overdue,
+      overdue_invoices_count: overdueData.overdue_invoices_count,
     },
+    overdue_summary: overdueData,
     branch_breakdown: matched ? [matched] : branchMeta.liveBranchList,
-    overdue_invoices: overdueList,
+    overdue_by_branch: overdueData.branch_breakdown,
     recent_invoices_sample: recentInvoices.slice(0, 20),
     recent_payments: recentPayments,
     fee_structures_count: feeStructures.length,
@@ -553,50 +622,86 @@ export async function getLiveExpensesData(
   };
 }
 
-// ── CWC & REGULAR EXAM TOPPERS ──
-export async function getLiveExamToppers(
-  examType = "cwc",
+// ── EXAM PERFORMANCE & RANKING ENGINE ──
+export async function getLiveExamPerformance(
+  examGroup?: string,
   branchName?: string,
-  limit = 10
+  limit = 15
 ) {
-  const isCwc = examType.toLowerCase().includes("cwc");
-  const planFilters: (string | number | string[])[][] = [["docstatus", "=", 1]];
-  if (isCwc) {
-    planFilters.push(["assessment_group", "like", "%CWC%"]);
+  // 1. Fetch Assessment Plans (both CWC-specific and general plans)
+  const isCwcExplicit = examGroup && examGroup.toLowerCase().includes("cwc");
+  const cwcFilter: (string | number | string[])[][] = [
+    ["docstatus", "=", 1],
+    ["assessment_group", "like", "%CWC%"],
+  ];
+  const generalFilter: (string | number | string[])[][] = [["docstatus", "=", 1]];
+  if (examGroup && examGroup.toLowerCase() !== "all" && !isCwcExplicit) {
+    generalFilter.push(["assessment_group", "like", `%${examGroup}%`]);
   }
 
-  const plans = await frappeGet(
-    "Assessment Plan",
-    ["name", "assessment_group", "assessment_name", "student_group", "course", "maximum_assessment_score"],
-    planFilters,
-    "creation desc",
-    300
-  );
+  const [cwcPlans, allPlans, results] = await Promise.all([
+    frappeGet(
+      "Assessment Plan",
+      ["name", "assessment_group", "assessment_name", "student_group", "course", "maximum_assessment_score"],
+      cwcFilter,
+      "creation desc",
+      500
+    ),
+    frappeGet(
+      "Assessment Plan",
+      ["name", "assessment_group", "assessment_name", "student_group", "course", "maximum_assessment_score"],
+      generalFilter,
+      "creation desc",
+      1000
+    ),
+    frappeGet(
+      "Assessment Result",
+      ["name", "student", "student_name", "assessment_plan", "total_score", "maximum_score"],
+      [["docstatus", "=", 1]],
+      "total_score desc",
+      2500
+    ),
+  ]);
 
-  if (plans.length === 0) {
-    return {
-      exam_type: examType,
-      message: `No assessment plans found matching "${examType}".`,
-      toppers_by_branch: {},
-      overall_top_students: [],
-    };
+  const planMap = new Map<string, Record<string, unknown>>();
+  for (const p of allPlans) planMap.set(String(p.name), p);
+  for (const p of cwcPlans) planMap.set(String(p.name), p);
+
+  function resolveBranch(studentId: string, studentGroup?: unknown) {
+    const sId = String(studentId || "");
+    if (sId.includes("CHL")) return "Smart Up Chullickal";
+    if (sId.includes("PLR")) return "Smart Up Palluruthy";
+    if (sId.includes("ERV")) return "Smart Up Eraveli";
+    if (sId.includes("FTK") || sId.includes("FKO")) return "Smart Up Fortkochi";
+    if (sId.includes("THP")) return "Smart Up Thopumpadi";
+    if (sId.includes("VNL") || sId.includes("VYT")) return "Smart Up Vennala";
+    if (sId.includes("MMK") || sId.includes("MKZ")) return "Smart Up Moolamkuzhi";
+    if (sId.includes("EDPLY") || sId.includes("EDP")) return "Smart Up Edappally";
+    if (sId.includes("KDV")) return "Smart Up Kadavanthara";
+    if (studentGroup) {
+      const g = String(studentGroup).split("-")[0];
+      if (g) return `Smart Up ${g}`;
+    }
+    return "Smart Up General";
   }
 
-  const planNames = plans.map((p) => String(p.name));
-  const planMap = new Map(plans.map((p) => [String(p.name), p]));
+  const examAgg = new Map<
+    string,
+    {
+      exam_name: string;
+      course: string;
+      group: string;
+      attempts: number;
+      total_score: number;
+      total_max_score: number;
+      pass_count: number;
+      top_score: number;
+      top_student: string;
+      top_student_branch: string;
+    }
+  >();
 
-  const results = await frappeGet(
-    "Assessment Result",
-    ["name", "student", "student_name", "assessment_plan", "total_score", "maximum_score"],
-    [
-      ["docstatus", "=", 1],
-      ["assessment_plan", "in", planNames.slice(0, 80)],
-    ],
-    "total_score desc",
-    500
-  );
-
-  const studentMap: Record<
+  const studentAgg = new Map<
     string,
     {
       student_id: string;
@@ -605,80 +710,164 @@ export async function getLiveExamToppers(
       exams_taken: number;
       total_score: number;
       total_max_score: number;
-      percentage: number;
-      exam_name: string;
+      best_exam: string;
+      best_score: number;
+      best_percentage: number;
+      is_cwc_participant: boolean;
     }
-  > = {};
+  >();
 
   for (const r of results) {
-    const sId = String(r.student || "");
-    const sName = String(r.student_name || "Unknown");
     const plan = planMap.get(String(r.assessment_plan));
-    const maxScore = Number(r.maximum_score || plan?.maximum_assessment_score || 0);
-    const score = Number(r.total_score || 0);
-
-    let branch = "Smart Up General";
-    if (sId.includes("CHL")) branch = "Smart Up Chullickal";
-    else if (sId.includes("PLR")) branch = "Smart Up Palluruthy";
-    else if (sId.includes("ERV")) branch = "Smart Up Eraveli";
-    else if (sId.includes("FTK")) branch = "Smart Up Fortkochi";
-    else if (sId.includes("THP")) branch = "Smart Up Thopumpadi";
-    else if (sId.includes("VNL")) branch = "Smart Up Vennala";
-    else if (sId.includes("MMK") || sId.includes("MKZ")) branch = "Smart Up Moolamkuzhi";
-    else if (sId.includes("EDPLY") || sId.includes("EDP")) branch = "Smart Up Edappally";
-    else if (sId.includes("KDV")) branch = "Smart Up Kadavanthara";
-    else if (plan?.student_group) {
-      const g = String(plan.student_group).split("-")[0];
-      if (g) branch = `Smart Up ${g}`;
+    if (examGroup && examGroup.toLowerCase() !== "all" && !plan) {
+      continue;
     }
+
+    const examName = String(plan?.assessment_name || plan?.assessment_group || "General Assessment");
+    const group = String(plan?.assessment_group || "Assessment");
+    const course = String(plan?.course || "General");
+    const maxScore = Number(r.maximum_score || plan?.maximum_assessment_score || 100);
+    const score = Number(r.total_score || 0);
+    const pct = maxScore > 0 ? (score / maxScore) * 100 : 0;
+    const branch = resolveBranch(String(r.student || ""), plan?.student_group);
 
     if (branchName) {
       const cleanBranch = branchName.toLowerCase().replace(/[-_]/g, " ");
       if (!branch.toLowerCase().includes(cleanBranch)) continue;
     }
 
-    if (!studentMap[sId]) {
-      studentMap[sId] = {
+    // Exam aggregator
+    if (!examAgg.has(examName)) {
+      examAgg.set(examName, {
+        exam_name: examName,
+        course,
+        group,
+        attempts: 0,
+        total_score: 0,
+        total_max_score: 0,
+        pass_count: 0,
+        top_score: 0,
+        top_student: "",
+        top_student_branch: "",
+      });
+    }
+    const ea = examAgg.get(examName)!;
+    ea.attempts++;
+    ea.total_score += score;
+    ea.total_max_score += maxScore;
+    if (pct >= 40) ea.pass_count++;
+    if (score > ea.top_score) {
+      ea.top_score = score;
+      ea.top_student = String(r.student_name || r.student);
+      ea.top_student_branch = branch;
+    }
+
+    // Student aggregator
+    const sId = String(r.student || "");
+    if (!studentAgg.has(sId)) {
+      studentAgg.set(sId, {
         student_id: sId,
-        student_name: sName,
+        student_name: String(r.student_name || sId),
         branch,
         exams_taken: 0,
         total_score: 0,
         total_max_score: 0,
-        percentage: 0,
-        exam_name: String(plan?.assessment_group || plan?.assessment_name || "CWC Exam"),
-      };
+        best_exam: examName,
+        best_score: score,
+        best_percentage: pct,
+        is_cwc_participant: group.toLowerCase().includes("cwc"),
+      });
     }
-
-    studentMap[sId].exams_taken += 1;
-    studentMap[sId].total_score += score;
-    studentMap[sId].total_max_score += maxScore;
-    studentMap[sId].percentage =
-      studentMap[sId].total_max_score > 0
-        ? Number(
-            (
-              (studentMap[sId].total_score / studentMap[sId].total_max_score) *
-              100
-            ).toFixed(1)
-          )
-        : 0;
+    const sa = studentAgg.get(sId)!;
+    sa.exams_taken++;
+    sa.total_score += score;
+    sa.total_max_score += maxScore;
+    if (group.toLowerCase().includes("cwc")) sa.is_cwc_participant = true;
+    if (score > sa.best_score || (score === sa.best_score && pct > sa.best_percentage)) {
+      sa.best_score = score;
+      sa.best_percentage = Number(pct.toFixed(1));
+      sa.best_exam = examName;
+    }
   }
 
-  const allScored = Object.values(studentMap).sort((a, b) => b.percentage - a.percentage);
+  // Format best performing exams
+  const bestExams = Array.from(examAgg.values())
+    .map((e) => ({
+      exam_name: e.exam_name,
+      course: e.course,
+      group: e.group,
+      student_attempts: e.attempts,
+      average_percentage:
+        e.total_max_score > 0 ? Number(((e.total_score / e.total_max_score) * 100).toFixed(1)) : 0,
+      pass_rate: e.attempts > 0 ? `${((e.pass_count / e.attempts) * 100).toFixed(1)}%` : "0%",
+      top_performer: e.top_student,
+      top_score: e.top_score,
+      top_performer_branch: e.top_student_branch,
+    }))
+    .filter((e) => e.student_attempts >= 3)
+    .sort((a, b) => b.average_percentage - a.average_percentage);
 
-  const toppersByBranch: Record<string, typeof allScored> = {};
-  for (const st of allScored) {
-    if (!toppersByBranch[st.branch]) toppersByBranch[st.branch] = [];
-    if (toppersByBranch[st.branch].length < limit) {
-      toppersByBranch[st.branch].push(st);
+  // Format top students
+  const topStudents = Array.from(studentAgg.values())
+    .map((s) => ({
+      student_id: s.student_id,
+      student_name: s.student_name,
+      branch: s.branch,
+      exams_taken: s.exams_taken,
+      total_score: s.total_score,
+      total_max_score: s.total_max_score,
+      overall_percentage:
+        s.total_max_score > 0 ? Number(((s.total_score / s.total_max_score) * 100).toFixed(1)) : 0,
+      best_exam: s.best_exam,
+      best_score: s.best_score,
+      best_percentage: s.best_percentage,
+      is_cwc: s.is_cwc_participant,
+    }))
+    .sort((a, b) => b.overall_percentage - a.overall_percentage);
+
+  // CWC Toppers by Branch
+  const cwcStudents = topStudents.filter((s) => s.is_cwc);
+  const branchCwcToppers: Record<string, typeof topStudents> = {};
+  for (const s of cwcStudents) {
+    if (!branchCwcToppers[s.branch]) branchCwcToppers[s.branch] = [];
+    if (branchCwcToppers[s.branch].length < 5) {
+      branchCwcToppers[s.branch].push(s);
     }
   }
 
   return {
+    filter_exam_group: examGroup || "All Exams",
+    filter_branch: branchName || "All Branches",
+    summary: {
+      total_evaluated_students: topStudents.length,
+      total_exams_evaluated: bestExams.length,
+      total_cwc_participants: cwcStudents.length,
+      best_performing_exam: bestExams[0]?.exam_name || "N/A",
+      best_exam_avg_score: bestExams[0]?.average_percentage ? `${bestExams[0].average_percentage}%` : "N/A",
+      top_student_overall: topStudents[0]?.student_name || "N/A",
+      top_student_percentage: topStudents[0]?.overall_percentage ? `${topStudents[0].overall_percentage}%` : "N/A",
+      top_student_branch: topStudents[0]?.branch || "N/A",
+    },
+    best_performing_exams: bestExams.slice(0, limit),
+    best_performing_students: topStudents.slice(0, limit),
+    cwc_exam_toppers_by_branch: branchCwcToppers,
+  };
+}
+
+// ── CWC & REGULAR EXAM TOPPERS ──
+export async function getLiveExamToppers(
+  examType = "cwc",
+  branchName?: string,
+  limit = 10
+) {
+  const perf = await getLiveExamPerformance(examType, branchName, limit);
+  return {
     exam_type: examType,
-    total_evaluated_students: allScored.length,
-    toppers_by_branch: toppersByBranch,
-    overall_top_students: allScored.slice(0, limit),
+    summary: perf.summary,
+    total_evaluated_students: perf.summary.total_evaluated_students,
+    overall_top_students: perf.best_performing_students,
+    toppers_by_branch: perf.cwc_exam_toppers_by_branch,
+    best_performing_exams: perf.best_performing_exams,
   };
 }
 
