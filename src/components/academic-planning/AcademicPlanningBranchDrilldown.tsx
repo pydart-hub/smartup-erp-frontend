@@ -42,6 +42,7 @@ import {
   isSubjectWiseStudentGroup,
   isCanonicalBatchGroup,
   extractBatchName,
+  normalizeSubjectCourse,
 } from "@/lib/utils/studentGroupUtils";
 
 // Re-export helpers for backwards compatibility
@@ -50,7 +51,9 @@ export {
   isSubjectWiseStudentGroup,
   isCanonicalBatchGroup,
   extractBatchName,
+  normalizeSubjectCourse,
 };
+
 
 // Helper to parse completion percentage
 function getPortionPercentage(item: PortionRecord): number {
@@ -106,7 +109,12 @@ export function AcademicPlanningBranchDrilldown({
   // Filter out one-to-one AND subject-wise tuition groups, and deduplicate milestones per batch
   const batchRecords = useMemo(() => {
     // 1. Exclude 1:1 and subject-wise tuition groups (keep only canonical whole-class batch groups)
-    const valid = records.filter((p) => isCanonicalBatchGroup(p.student_group));
+    const valid = records
+      .filter((p) => isCanonicalBatchGroup(p.student_group))
+      .map((p) => ({
+        ...p,
+        course: normalizeSubjectCourse(p.course),
+      }));
 
     // 2. Canonical milestone deduplication: ensure each portion appears exactly once per batch
     const dedupMap = new Map<string, PortionRecord>();
@@ -133,6 +141,7 @@ export function AcademicPlanningBranchDrilldown({
 
     return Array.from(dedupMap.values());
   }, [records]);
+
 
   // ─────────────────────────────────────────────────────────────
   // LEVEL 1: Branch Summaries

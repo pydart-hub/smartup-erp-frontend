@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { frappeAdminGet, frappeAdminPost } from "@/lib/server/frappeAdmin";
 import { parseSession } from "@/lib/utils/apiAuth";
-import { isCanonicalBatchGroup } from "@/lib/utils/studentGroupUtils";
+import { isCanonicalBatchGroup, normalizeSubjectCourse } from "@/lib/utils/studentGroupUtils";
+
 
 export const dynamic = "force-dynamic";
 
@@ -89,6 +90,7 @@ export async function GET(request: NextRequest) {
 
       return {
         ...p,
+        course: normalizeSubjectCourse(p.course),
         totalBranches,
         completedBranches,
         pendingBranches,
@@ -96,6 +98,7 @@ export async function GET(request: NextRequest) {
         branchStatuses,
       };
     });
+
 
     return NextResponse.json({ data: enrichedPortions });
   } catch (error: any) {

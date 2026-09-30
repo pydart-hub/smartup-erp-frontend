@@ -29,6 +29,7 @@ const PUBLIC_PATHS = [
   "/exam-site",
   "/plus-two-predictor",
   "/scholar",
+  "/levelup",
 ];
 const APP_ROLES = Object.keys(ROLE_DASHBOARD_MAP);
 
@@ -54,6 +55,22 @@ export function proxy(request: NextRequest) {
     const normalizedPath = decodedPath.replace("/dashboard/sales user", "/dashboard/sales-user");
     url.pathname = normalizedPath;
     return NextResponse.redirect(url);
+  }
+
+  // Handle LevelUp GCC subdomain rewrites
+  if (host.toLowerCase().startsWith("levelup.")) {
+    const isInternal =
+      pathname.startsWith("/api") ||
+      pathname.startsWith("/_next") ||
+      pathname.includes("."); // e.g. favicon.ico, images
+
+    console.log(`[MIDDLEWARE DEBUG] LevelUp subdomain detected. isInternal: ${isInternal}, pathname: "${pathname}"`);
+
+    if (!isInternal && !pathname.startsWith("/levelup")) {
+      url.pathname = `/levelup${pathname === "/" ? "" : pathname}`;
+      console.log(`[MIDDLEWARE DEBUG] Rewriting levelup subdomain request to: "${url.pathname}"`);
+      return NextResponse.rewrite(url);
+    }
   }
 
   // Handle scholar subdomain rewrites

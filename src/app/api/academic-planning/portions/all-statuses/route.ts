@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { frappeAdminGet } from "@/lib/server/frappeAdmin";
 import { parseSession } from "@/lib/utils/apiAuth";
+import { normalizeSubjectCourse } from "@/lib/utils/studentGroupUtils";
 
 export const dynamic = "force-dynamic";
 
@@ -35,8 +36,15 @@ export async function GET(request: NextRequest) {
       limit_page_length: "2500",
     });
 
-    return NextResponse.json({ data: res?.data ?? [] });
+    const rawData: any[] = res?.data ?? [];
+    const normalizedData = rawData.map((item) => ({
+      ...item,
+      course: normalizeSubjectCourse(item.course),
+    }));
+
+    return NextResponse.json({ data: normalizedData });
   } catch (error: any) {
+
     console.error("Error in GET /api/academic-planning/portions/all-statuses:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

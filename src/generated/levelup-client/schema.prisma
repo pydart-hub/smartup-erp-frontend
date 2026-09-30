@@ -1,0 +1,161 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("LEVELUP_DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/levelup-client"
+}
+
+// 1. LevelUp Subjects
+model LevelUpSubject {
+  code        String              @id // e.g. "MATH_GCC", "SCIENCE_GCC", "PHYSICS_GCC"
+  name        String
+  createdAt   DateTime            @default(now())
+  questions   LevelUpQuestion[]
+  papers      LevelUpPaper[]
+  publishings LevelUpPublishing[]
+}
+
+// 2. Question Bank for GCC
+model LevelUpQuestion {
+  id            String                  @id @default(uuid())
+  subjectCode   String
+  subject       LevelUpSubject          @relation(fields: [subjectCode], references: [code])
+  classLevel    String // "8", "9", "10", "11", "12"
+  questionText  String                  @db.Text
+  difficulty    String                  @default("medium") // "easy", "medium", "hard"
+  correctOption String // "A", "B", "C", "D"
+  explanation   String?                 @db.Text
+  isActive      Boolean                 @default(true)
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+  options       LevelUpQuestionOption[]
+  paperLinks    LevelUpPaperQuestion[]
+}
+
+// 3. Question Options
+model LevelUpQuestionOption {
+  id           String          @id @default(uuid())
+  questionId   String
+  question     LevelUpQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  optionKey    String // "A", "B", "C", "D"
+  optionText   String          @db.Text
+  displayOrder Int
+}
+
+// 4. Exam Papers (Templates)
+model LevelUpPaper {
+  id              String                 @id @default(uuid())
+  title           String
+  subjectCode     String
+  subject         LevelUpSubject         @relation(fields: [subjectCode], references: [code])
+  classLevel      String // "8", "9", "10", "11", "12"
+  durationMinutes Int                    @default(45)
+  totalQuestions  Int                    @default(0)
+  totalMarks      Int                    @default(0)
+  status          String                 @default("Draft") // "Draft", "Published"
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  questions       LevelUpPaperQuestion[]
+  publishings     LevelUpPublishing[]
+}
+
+// 5. Questions inside Papers
+model LevelUpPaperQuestion {
+  id           String          @id @default(uuid())
+  paperId      String
+  paper        LevelUpPaper    @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  questionId   String
+  question     LevelUpQuestion @relation(fields: [questionId], references: [id])
+  displayOrder Int
+  marks        Int             @default(1)
+}
+
+// 6. Active Exam Publishings
+model LevelUpPublishing {
+  id              String           @id @default(uuid())
+  slug            String           @unique // e.g. "levelup-gcc-class-10-2026"
+  title           String
+  paperId         String
+  paper           LevelUpPaper     @relation(fields: [paperId], references: [id])
+  classLevel      String // "8", "9", "10", "11", "12"
+  subjectCode     String
+  subject         LevelUpSubject   @relation(fields: [subjectCode], references: [code])
+  durationMinutes Int
+  startAt         DateTime
+  endAt           DateTime
+  isActive        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  attempts        LevelUpAttempt[]
+}
+
+// 7. GCC Registrations (smartup_online DB)
+model LevelUpRegistration {
+  id          String   @id @default(uuid())
+  studentName String
+  schoolName  String? // Candidate school name in GCC
+  phone       String // E.164 phone (+971..., +966..., +974..., +91..., etc.)
+  country     String // UAE, Saudi Arabia, Qatar, Oman, Kuwait, Bahrain, India, etc.
+  emirateCity String? // Dubai, Abu Dhabi, Sharjah, Riyadh, Doha, Muscat, etc.
+  classLevel  String // "Class 8", "Class 9", "Class 10", "Plus One (+1)", "Plus Two (+2)"
+  curriculum  String?  @default("CBSE") // "CBSE", "ICSE", "State", "British"
+  status      String   @default("registered") // "registered", "attempting", "completed"
+  attemptId   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([phone])
+  @@index([country])
+  @@index([classLevel])
+  @@index([createdAt])
+}
+
+// 8. Student Exam Attempts (Independent DB: smartup_online)
+model LevelUpAttempt {
+  id                 String                 @id @default(uuid())
+  publishingId       String
+  publishing         LevelUpPublishing      @relation(fields: [publishingId], references: [id])
+  studentName        String
+  schoolName         String?
+  studentPhone       String?
+  country            String?
+  emirateCity        String?
+  classLevel         String
+  curriculum         String?                @default("CBSE")
+  status             String                 @default("in_progress") // "in_progress", "submitted", "auto_submitted"
+  startedAt          DateTime               @default(now())
+  submittedAt        DateTime?
+  scoreObtained      Int                    @default(0)
+  totalMarks         Int                    @default(0)
+  percentage         Int                    @default(0)
+  correctCount       Int                    @default(0)
+  wrongCount         Int                    @default(0)
+  unansweredCount    Int                    @default(0)
+  paperSnapshotJson  Json
+  resultSnapshotJson Json?
+  sessionTokenHash   String
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+  answers            LevelUpAttemptAnswer[]
+
+  @@index([studentPhone])
+  @@index([publishingId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([publishingId, status])
+  @@index([studentPhone, createdAt])
+}
+
+// 9. Individual Question Answers
+model LevelUpAttemptAnswer {
+  id             String         @id @default(uuid())
+  attemptId      String
+  attempt        LevelUpAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId     String
+  selectedOption String // "A", "B", "C", "D"
+  answeredAt     DateTime       @default(now())
+
+  @@unique([attemptId, questionId])
+}

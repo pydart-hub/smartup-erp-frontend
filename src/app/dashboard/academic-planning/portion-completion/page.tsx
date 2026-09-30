@@ -31,7 +31,8 @@ import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { getPrograms, getAcademicYears } from "@/lib/api/enrollment";
-import { isCanonicalBatchGroup } from "@/lib/utils/studentGroupUtils";
+import { isCanonicalBatchGroup, normalizeSubjectCourse } from "@/lib/utils/studentGroupUtils";
+
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -187,10 +188,15 @@ export default function APDPortionCompletionPage({
       const res = await fetch("/api/academic-planning/portions");
       if (!res.ok) throw new Error("Failed to load academic portions");
       const json = await res.json();
-      return json.data ?? [];
+      const list: EnrichedPortion[] = json.data ?? [];
+      return list.map((p) => ({
+        ...p,
+        course: normalizeSubjectCourse(p.course),
+      }));
     },
     staleTime: 30_000,
   });
+
 
   // 4. Fetch all subjects
   const { data: allSubjects = [], isLoading: loadingSubjects } = useQuery<PortionSubject[]>({

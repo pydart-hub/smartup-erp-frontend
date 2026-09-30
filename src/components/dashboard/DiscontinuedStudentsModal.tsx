@@ -49,25 +49,57 @@ export function DiscontinuedStudentsModal({
   const students = data?.data ?? [];
   const trueTotalCount = data?.count ?? totalCount ?? students.length;
 
-  // Compute all unique branches with counts
+  // Helper to extract numeric timestamp of discontinuation
+  const getDiscontinuationTime = (s: DiscontinuedStudent): number => {
+    if (s.custom_discontinuation_date) {
+      const t = new Date(s.custom_discontinuation_date).getTime();
+      if (!isNaN(t)) return t;
+    }
+    if (s.modified) {
+      const t = new Date(s.modified).getTime();
+      if (!isNaN(t)) return t;
+    }
+    if (s.creation) {
+      const t = new Date(s.creation).getTime();
+      if (!isNaN(t)) return t;
+    }
+    return 0;
+  };
+
+  // Compute all unique branches with counts and latest discontinuation date
   const branchList = useMemo(() => {
-    const counts: Record<string, { count: number; abbr: string }> = {};
+    const dataMap: Record<
+      string,
+      { count: number; abbr: string; latestTime: number }
+    > = {};
+
     for (const s of students) {
       const b = s.custom_branch || "Other / Unassigned";
-      if (!counts[b]) {
-        counts[b] = {
+      const sTime = getDiscontinuationTime(s);
+      if (!dataMap[b]) {
+        dataMap[b] = {
           count: 0,
           abbr: s.custom_branch_abbr || b.replace("Smart Up ", "").slice(0, 3).toUpperCase(),
+          latestTime: sTime,
         };
       }
-      counts[b].count += 1;
+      dataMap[b].count += 1;
+      if (sTime > dataMap[b].latestTime) {
+        dataMap[b].latestTime = sTime;
+      }
       if (s.custom_branch_abbr) {
-        counts[b].abbr = s.custom_branch_abbr;
+        dataMap[b].abbr = s.custom_branch_abbr;
       }
     }
-    return Object.entries(counts)
-      .map(([name, { count, abbr }]) => ({ name, count, abbr }))
-      .sort((a, b) => b.count - a.count);
+
+    return Object.entries(dataMap)
+      .map(([name, { count, abbr, latestTime }]) => ({ name, count, abbr, latestTime }))
+      .sort((a, b) => {
+        if (b.latestTime !== a.latestTime) {
+          return b.latestTime - a.latestTime;
+        }
+        return b.count - a.count;
+      });
   }, [students]);
 
   // Group and filter students by search input and branch
@@ -76,7 +108,7 @@ export function DiscontinuedStudentsModal({
   const filteredGroups = useMemo(() => {
     const temp: Record<
       string,
-      { abbr: string; list: DiscontinuedStudent[] }
+      { abbr: string; list: DiscontinuedStudent[]; latestTime: number }
     > = {};
 
     for (const student of students) {
@@ -111,18 +143,36 @@ export function DiscontinuedStudentsModal({
       }
 
       const branchName = student.custom_branch || "Other / Unassigned";
+      const sTime = getDiscontinuationTime(student);
+
       if (!temp[branchName]) {
         temp[branchName] = {
           abbr: student.custom_branch_abbr || branchName.replace("Smart Up ", "").slice(0, 3).toUpperCase(),
           list: [],
+          latestTime: sTime,
         };
       }
       temp[branchName].list.push(student);
+      if (sTime > temp[branchName].latestTime) {
+        temp[branchName].latestTime = sTime;
+      }
     }
 
     return Object.entries(temp)
-      .map(([branch, { abbr, list }]) => ({ branch, abbr, students: list }))
-      .sort((a, b) => b.students.length - a.students.length);
+      .map(([branch, { abbr, list, latestTime }]) => {
+        // Sort students within branch by most recently discontinued first
+        const sortedStudents = [...list].sort(
+          (a, b) => getDiscontinuationTime(b) - getDiscontinuationTime(a)
+        );
+        return { branch, abbr, students: sortedStudents, latestTime };
+      })
+      .sort((a, b) => {
+        // Most recently discontinued branch first
+        if (b.latestTime !== a.latestTime) {
+          return b.latestTime - a.latestTime;
+        }
+        return b.students.length - a.students.length;
+      });
   }, [students, query, selectedBranch]);
 
   const totalFilteredCount = useMemo(() => {

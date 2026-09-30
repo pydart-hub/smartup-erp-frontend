@@ -79,3 +79,38 @@ export function extractBatchName(studentGroup: string): string {
   }
   return trimmed;
 }
+
+/**
+ * Normalizes subject/course names to reconcile naming variations
+ * across historical data entries without modifying the database.
+ * 
+ * E.g.:
+ * - "Malayalam" -> "Malayalam I"
+ * - "MALAYALAM II" -> "Malayalam II"
+ * - "Social Science" -> "Social Science I - History"
+ */
+export function normalizeSubjectCourse(courseName: string | undefined | null): string {
+  if (!courseName) return "General Subject";
+  const trimmed = courseName.trim();
+  const lower = trimmed.toLowerCase();
+
+  // Malayalam variants
+  if (lower === "malayalam" || lower === "malayalam 1" || lower === "malayalam i") {
+    return "Malayalam I";
+  }
+  if (lower === "malayalam 2" || lower === "malayalam ii") {
+    return "Malayalam II";
+  }
+
+  // Social Science variants (if single generic 'Social Science' exists alongside History/Geography)
+  if (lower === "social science" || lower === "social science 1" || lower === "social science i") {
+    return "Social Science I - History";
+  }
+  if (lower === "social science 2" || lower === "social science ii") {
+    return "Social Science II - Geography";
+  }
+
+  // Default to original trimmed string
+  return trimmed;
+}
+

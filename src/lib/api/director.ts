@@ -197,6 +197,7 @@ export interface DiscontinuedStudent {
   custom_discontinuation_reason?: string;
   joining_date?: string;
   creation?: string;
+  modified?: string;
   student_email_id?: string;
   student_mobile_number?: string;
   parent_name?: string;
@@ -224,12 +225,13 @@ export async function getDiscontinuedStudents(params?: {
       "custom_discontinuation_reason",
       "joining_date",
       "creation",
+      "modified",
       "student_email_id",
       "student_mobile_number",
     ]),
     limit_start: String(params?.limit_start ?? 0),
     limit_page_length: String(params?.limit_page_length ?? 1000),
-    order_by: "creation desc",
+    order_by: "custom_discontinuation_date desc, modified desc",
   });
 
   const filters: string[][] = [["enabled", "=", "0"]];
