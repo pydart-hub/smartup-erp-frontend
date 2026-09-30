@@ -19,7 +19,17 @@ const ROLE_DASHBOARD_MAP: Record<string, string> = {
   Parent: "/dashboard/parent",
 };
 
-const PUBLIC_PATHS = ["/auth/login", "/auth/forgot-password", "/api/", "/pay/", "/demo", "/exam-site", "/plus-two-predictor", "/scholar"];
+const PUBLIC_PATHS = [
+  "/auth/login",
+  "/auth/forgot-password",
+  "/api/",
+  "/mcp",
+  "/pay/",
+  "/demo",
+  "/exam-site",
+  "/plus-two-predictor",
+  "/scholar",
+];
 const APP_ROLES = Object.keys(ROLE_DASHBOARD_MAP);
 
 function hasAlternateDashboardRole(roles: string[], currentRole: string) {
