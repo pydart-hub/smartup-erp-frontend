@@ -260,7 +260,7 @@ export default function LevelUpRegistrationPage() {
       {/* Top Navigation Bar */}
       <header className="w-full bg-transparent py-5 px-6 sm:px-12 lg:px-20 z-20">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          {/* Brand Logo & Title */}
+          {/* Brand Logo & Title (Clickable link to admin portal) */}
           <a
             href="/levelup/admin"
             className="flex items-center gap-3.5 group cursor-pointer text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5C34A4] rounded-xl p-1 -m-1 transition-transform active:scale-95"
@@ -285,16 +285,6 @@ export default function LevelUpRegistrationPage() {
               </span>
             </div>
           </a>
-
-          {/* Top Right Admin Link */}
-          <div className="flex items-center gap-3">
-            <a
-              href="/levelup/admin"
-              className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-[#5C34A4] transition-colors"
-            >
-              <Lock className="w-3.5 h-3.5" /> GCC Admin
-            </a>
-          </div>
         </div>
       </header>
 
