@@ -194,7 +194,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ jsonrpc: "2.0", id, result: {} }, { headers: corsHeaders });
     }
 
-    // 3. Tools List
+    // 3. Notifications (e.g. notifications/initialized, notifications/cancelled)
+    if (method?.startsWith("notifications/")) {
+      return new NextResponse(null, { status: 204, headers: corsHeaders });
+    }
+
+    // 4. Tools List
     if (method === "tools/list") {
       return NextResponse.json(
         {
@@ -204,6 +209,22 @@ export async function POST(request: NextRequest) {
             tools: MCP_TOOLS,
           },
         },
+        { headers: corsHeaders }
+      );
+    }
+
+    // 5. Prompts List
+    if (method === "prompts/list") {
+      return NextResponse.json(
+        { jsonrpc: "2.0", id, result: { prompts: [] } },
+        { headers: corsHeaders }
+      );
+    }
+
+    // 6. Resources List
+    if (method === "resources/list") {
+      return NextResponse.json(
+        { jsonrpc: "2.0", id, result: { resources: [] } },
         { headers: corsHeaders }
       );
     }
