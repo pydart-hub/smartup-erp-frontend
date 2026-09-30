@@ -27,6 +27,8 @@ npm install
 echo "💎 [4/6] Syncing database schema & generating Prisma Client..."
 npx prisma db push
 npx prisma generate
+npx prisma db push --schema=prisma/levelup.prisma
+npx prisma generate --schema=prisma/levelup.prisma
 
 # Step 5: Build Next.js project
 echo "🛠️ [5/6] Building Next.js production bundle..."
