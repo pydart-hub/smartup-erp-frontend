@@ -244,7 +244,13 @@ export default function ScholarRegistrationPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FBFBFE] text-slate-800 flex flex-col justify-between selection:bg-[#5C34A4] selection:text-white font-sans relative overflow-x-hidden">
+    <div className="min-h-screen text-slate-800 flex flex-col justify-between selection:bg-[#5C34A4] selection:text-white font-sans relative overflow-x-hidden" style={{ background: "radial-gradient(ellipse 120% 80% at 20% 0%, #EDE8FA 0%, #F5F3FD 30%, #FBFBFE 65%, #F0EEFF 100%)" }}>
+      {/* Depth orbs */}
+      <div className="pointer-events-none select-none fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full bg-purple-300/20 blur-[100px]" />
+        <div className="absolute top-1/2 -right-40 w-[400px] h-[400px] rounded-full bg-indigo-300/15 blur-[90px]" />
+        <div className="absolute bottom-0 left-1/3 w-[350px] h-[350px] rounded-full bg-violet-200/20 blur-[80px]" />
+      </div>
       {/* Top Navigation Bar */}
       <header className="w-full bg-transparent py-5 px-6 sm:px-12 lg:px-20 z-20">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -305,64 +311,65 @@ export default function ScholarRegistrationPage() {
               Take the <strong className="text-slate-800 font-semibold">SmartUp Scholarship Exam</strong> for Classes 8, 9, 10, +1 &amp; +2.
             </p>
 
-            {/* Visual Hero Area: Student Graphic & Handwritten Slogan */}
-            <div className="relative w-full max-w-[560px] mx-auto lg:mx-0 flex justify-center items-end pt-4 pb-0">
-              {/* Handwritten Slanted Script: Learn Grow Succeed */}
-              <div className="absolute right-6 sm:right-12 top-6 z-10 select-none pointer-events-none transform -rotate-12">
-                <div className="flex flex-col items-center leading-tight font-serif italic text-[#7E88A6] drop-shadow-sm text-sm sm:text-base tracking-wide opacity-90">
-                  <span className="text-[18px] sm:text-[20px] font-normal tracking-wide text-[#6C7895]" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>
-                    Learn
-                  </span>
-                  <span className="text-[19px] sm:text-[21px] font-normal tracking-wide text-[#6C7895] -mt-1" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>
-                    Grow
-                  </span>
-                  <span className="text-[20px] sm:text-[22px] font-medium tracking-wide text-[#5C34A4] -mt-1" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>
-                    Succeed
-                  </span>
-                </div>
+            {/* Visual Hero Area: 3D Tilted Image Card */}
+            <div className="relative w-full max-w-[520px] mx-auto lg:mx-0 flex justify-center items-center pt-4 pb-0" style={{ perspective: "900px" }}>
+              {/* Glow halo behind image */}
+              <div className="absolute inset-0 flex items-center justify-center -z-10">
+                <div className="w-[320px] h-[320px] rounded-full bg-purple-400/20 blur-[60px]" />
               </div>
 
-              {/* Floating Mini Cap Badge on the Right */}
+              {/* 3D Tilted image wrapper */}
               <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
+                initial={{ opacity: 0, scale: 0.94 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, delay: 0.3 }}
-                className="absolute right-14 sm:right-20 top-28 sm:top-32 w-12 h-12 rounded-full bg-white shadow-lg shadow-purple-950/8 border border-purple-100/80 flex items-center justify-center text-[#5C34A4] z-10"
+                whileHover={{ rotateY: -8, rotateX: 4, scale: 1.04 }}
+                transition={{ duration: 0.7, ease: "easeOut" }}
+                className="relative"
+                style={{ transformStyle: "preserve-3d", transformOrigin: "center center" }}
               >
-                <GraduationCap className="w-6 h-6 stroke-[2]" />
+                {/* Deep layered shadow beneath card */}
+                <div className="absolute inset-0 rounded-[24px] translate-y-6 translate-x-2 blur-2xl bg-purple-900/30 -z-10" />
+                <div className="absolute inset-0 rounded-[24px] translate-y-10 translate-x-3 blur-3xl bg-purple-900/15 -z-20" />
+
+                {/* Image card */}
+                <div
+                  className="relative w-[300px] h-[300px] sm:w-[360px] sm:h-[360px] rounded-[24px] overflow-hidden"
+                  style={{
+                    boxShadow: "0 30px 80px -10px rgba(92,52,164,0.35), 0 10px 30px -5px rgba(92,52,164,0.2), inset 0 1px 0 rgba(255,255,255,0.6)",
+                    maskImage: "radial-gradient(ellipse 88% 88% at 50% 50%, black 55%, transparent 100%)",
+                    WebkitMaskImage: "radial-gradient(ellipse 88% 88% at 50% 50%, black 55%, transparent 100%)",
+                  }}
+                >
+                  <Image
+                    src="/sclr.jpeg"
+                    alt="SmartUp Scholarship Exam"
+                    fill
+                    priority
+                    className="object-cover object-center"
+                    sizes="(max-width: 640px) 300px, 360px"
+                  />
+                  {/* Rim light — top-left glass shine */}
+                  <div className="absolute inset-0 rounded-[24px]" style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.18) 0%, transparent 50%)" }} />
+                </div>
+
+
               </motion.div>
-
-              {/* Circular Soft Purple Glow Backdrop */}
-              <div className="absolute w-80 h-80 sm:w-[420px] sm:h-[420px] rounded-full bg-[#EFEBFA]/80 -z-10 bottom-0 left-1/2 -translate-x-1/2" />
-              <div className="absolute w-[460px] h-[460px] rounded-full bg-purple-100/30 -z-20 blur-3xl bottom-0 left-1/2 -translate-x-1/2" />
-
-              {/* Student Cutout Image with Bottom Gradient Fade */}
-              <div
-                className="relative w-[360px] h-[380px] sm:w-[440px] sm:h-[430px]"
-                style={{
-                  maskImage: "linear-gradient(to bottom, black 72%, transparent 98%)",
-                  WebkitMaskImage: "linear-gradient(to bottom, black 72%, transparent 98%)",
-                }}
-              >
-                <Image
-                  src="/sclr.jpeg"
-                  alt="SmartUp Mentors"
-                  fill
-                  priority
-                  className="object-contain object-bottom"
-                  sizes="(max-width: 640px) 360px, 440px"
-                />
-              </div>
             </div>
           </div>
 
           {/* Right Column: Register Now Form Card */}
           <div className="lg:col-span-5 flex justify-center lg:justify-end">
             <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
-              className="relative w-full max-w-[440px] bg-white rounded-[28px] p-7 sm:p-8 shadow-2xl shadow-purple-950/10 border border-slate-100"
+              initial={{ opacity: 0, y: 20, rotateX: 4 }}
+              animate={{ opacity: 1, y: 0, rotateX: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+              className="relative w-full max-w-[440px] rounded-[28px] p-7 sm:p-8 border border-white/80"
+              style={{
+                background: "rgba(255,255,255,0.82)",
+                backdropFilter: "blur(24px)",
+                WebkitBackdropFilter: "blur(24px)",
+                boxShadow: "0 32px 80px -8px rgba(92,52,164,0.22), 0 12px 32px -4px rgba(92,52,164,0.12), 0 2px 8px rgba(92,52,164,0.08), inset 0 1px 0 rgba(255,255,255,0.9)",
+              }}
             >
               {/* Floating 3D Graduation Cap Icon at top-right corner of card */}
               <div className="absolute -top-6 -right-2 sm:-right-4 w-20 h-20 sm:w-24 sm:h-24 pointer-events-none select-none z-20">
