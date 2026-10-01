@@ -345,7 +345,7 @@ export default function ScholarRegistrationPage() {
                 }}
               >
                 <Image
-                  src="/rd.webp"
+                  src="/sclr.jpeg"
                   alt="SmartUp Mentors"
                   fill
                   priority

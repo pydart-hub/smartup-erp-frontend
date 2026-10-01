@@ -22,6 +22,7 @@ async function findAttemptWithPublishing(attemptId: string) {
         select: {
           title: true,
           durationMinutes: true,
+          subject: { select: { name: true } },
         },
       },
     },

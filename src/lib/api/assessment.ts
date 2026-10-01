@@ -227,6 +227,7 @@ export async function getExamResults(assessmentPlan: string): Promise<{
     maximum_score: number;
     grade: string;
     name: string;
+    custom_diagnosed_level?: string;
   }[];
 }> {
   const query = new URLSearchParams({ assessment_plan: assessmentPlan });

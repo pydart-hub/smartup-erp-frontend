@@ -10,6 +10,7 @@ export interface SubjectMarkDetail {
   maximum_score: number;
   percentage: number;
   grade?: string;
+  diagnosed_level?: string;
 }
 
 export interface StudentExamAggregate {
@@ -52,6 +53,7 @@ export async function GET(
         "total_score",
         "maximum_score",
         "grade",
+        "custom_diagnosed_level",
         "docstatus",
         "creation",
       ]),
@@ -73,6 +75,7 @@ export async function GET(
       total_score: number;
       maximum_score: number;
       grade?: string;
+      custom_diagnosed_level?: string;
       creation?: string;
     }>;
 
@@ -206,6 +209,9 @@ export async function GET(
           existing.maximum_score > 0
             ? Math.round((existing.total_score / existing.maximum_score) * 100 * 10) / 10
             : 0;
+        if (r.custom_diagnosed_level) {
+          existing.diagnosed_level = r.custom_diagnosed_level;
+        }
       } else {
         examObj.subjectMap.set(courseName, {
           course: courseName,
@@ -213,6 +219,7 @@ export async function GET(
           maximum_score: maxScore,
           percentage: pct,
           grade: r.grade || undefined,
+          diagnosed_level: r.custom_diagnosed_level || undefined,
         });
       }
     }

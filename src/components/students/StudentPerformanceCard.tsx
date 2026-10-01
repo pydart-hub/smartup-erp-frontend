@@ -24,6 +24,7 @@ export interface SubjectMarkDetail {
   maximum_score: number;
   percentage: number;
   grade?: string;
+  diagnosed_level?: string;
 }
 
 export interface StudentExamAggregate {
@@ -659,6 +660,11 @@ export function StudentPerformanceCard({ studentId }: StudentPerformanceCardProp
                       >
                         {sub.total_score}/{sub.maximum_score} ({sub.percentage}%)
                       </strong>
+                      {sub.diagnosed_level && (
+                        <span className="ml-1 inline-flex items-center px-1.5 py-0.2 rounded bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 font-bold text-[10px]">
+                          🎯 {sub.diagnosed_level}
+                        </span>
+                      )}
                     </span>
                   ))}
                 </div>
@@ -775,6 +781,12 @@ export function StudentPerformanceCard({ studentId }: StudentPerformanceCardProp
                                 >
                                   {sub.percentage}%
                                 </span>
+                                {sub.diagnosed_level && (
+                                  <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 font-bold text-[10px] border border-violet-200 dark:border-violet-800">
+                                    <span>🎯 Level:</span>
+                                    <span>{sub.diagnosed_level}</span>
+                                  </span>
+                                )}
                               </div>
                             </div>
                           ))}

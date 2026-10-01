@@ -249,6 +249,32 @@ const MCP_TOOLS = [
       required: ["query"],
     },
   },
+  {
+    name: "sync_diagnosed_levels_batch",
+    description:
+      "Batch sync and backfill diagnosed levels from student online exam attempts into Frappe Assessment Result records (Solution 1). Supports dryRun mode, student filtering, and custom limits.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        dryRun: {
+          type: "boolean",
+          description: "If true, simulates matching without writing to Frappe. Default false.",
+        },
+        limit: {
+          type: "number",
+          description: "Max number of Frappe Assessment Result records to inspect (default 100).",
+        },
+        studentPhone: {
+          type: "string",
+          description: "Optional filter for a specific student phone number.",
+        },
+        studentName: {
+          type: "string",
+          description: "Optional filter for a specific student name.",
+        },
+      },
+    },
+  },
 ];
 
 export async function OPTIONS() {
@@ -581,6 +607,180 @@ export async function POST(request: NextRequest) {
           } else {
             toolOutput = await lookupStudent360(String(args.query));
           }
+          break;
+        }
+
+        case "sync_diagnosed_levels_batch": {
+          const dryRun = !!args.dryRun;
+          const limit = Math.min(Number(args.limit) || 100, 500);
+          const filterPhone = args.studentPhone ? String(args.studentPhone).replace(/\D/g, "") : null;
+          const filterName = args.studentName ? String(args.studentName).trim().toLowerCase() : null;
+
+          const frappeUrl = process.env.NEXT_PUBLIC_FRAPPE_URL;
+          const frappeAuth = `token ${process.env.FRAPPE_API_KEY}:${process.env.FRAPPE_API_SECRET}`;
+
+          // 1. Fetch Frappe Diagnosis Assessment Results that do not have custom_diagnosed_level yet
+          const arFilters: any[] = [
+            ["assessment_group", "=", "Diagnosis Exam"],
+            ["docstatus", "=", 1],
+          ];
+          if (filterName) {
+            arFilters.push(["student_name", "like", `%${filterName}%`]);
+          }
+
+          const fields = ["name", "student", "student_name", "course", "total_score", "maximum_score", "custom_diagnosed_level"];
+          const arRes = await fetch(
+            `${frappeUrl}/api/resource/Assessment%20Result?filters=${encodeURIComponent(
+              JSON.stringify(arFilters)
+            )}&fields=${encodeURIComponent(JSON.stringify(fields))}&limit_page_length=${limit}`,
+            { headers: { Authorization: frappeAuth }, cache: "no-store" }
+          );
+
+          if (!arRes.ok) {
+            const errText = await arRes.text();
+            toolOutput = { error: `Failed to fetch Frappe Assessment Results: ${errText.slice(0, 200)}` };
+            break;
+          }
+
+          const arData = (await arRes.json()).data || [];
+          const targets = arData.filter((r: any) => !r.custom_diagnosed_level);
+
+          // 2. Fetch distinct students to get their phone numbers
+          const studentIds = [...new Set(targets.map((t: any) => t.student))];
+          const studentPhoneMap = new Map<string, string>();
+
+          if (studentIds.length > 0) {
+            const sRes = await fetch(
+              `${frappeUrl}/api/resource/Student?filters=${encodeURIComponent(
+                JSON.stringify([["name", "in", studentIds.slice(0, 100)]])
+              )}&fields=${encodeURIComponent(JSON.stringify(["name", "student_mobile_number", "student_name"]))}&limit_page_length=200`,
+              { headers: { Authorization: frappeAuth }, cache: "no-store" }
+            );
+            if (sRes.ok) {
+              const sList = (await sRes.json()).data || [];
+              sList.forEach((s: any) => {
+                if (s.student_mobile_number) {
+                  studentPhoneMap.set(s.name, s.student_mobile_number.replace(/\D/g, ""));
+                }
+              });
+            }
+          }
+
+          // 3. For each target result, find matching attempt in online db
+          const updated: any[] = [];
+          const matched: any[] = [];
+          const skipped: any[] = [];
+          const errors: any[] = [];
+
+          for (const ar of targets) {
+            try {
+              const phone = studentPhoneMap.get(ar.student) || filterPhone;
+              const cleanCourse = (ar.course || "").replace(/^\d+(?:st|nd|rd|th)?\s*/i, "").trim().toLowerCase();
+
+              // Search attempts by phone OR student name
+              const orClauses: any[] = [];
+              if (phone && phone.length >= 10) {
+                orClauses.push({ studentPhone: { contains: phone.slice(-10) } });
+              }
+              if (ar.student_name) {
+                orClauses.push({ studentName: { contains: ar.student_name, mode: "insensitive" } });
+              }
+
+              if (orClauses.length === 0) {
+                skipped.push({ name: ar.name, student: ar.student, reason: "No phone or name to match" });
+                continue;
+              }
+
+              const attempts = await db.examAttempt.findMany({
+                where: {
+                  status: { in: ["submitted", "auto_submitted"] },
+                  OR: orClauses,
+                  publishing: {
+                    subject: {
+                      name: { contains: cleanCourse, mode: "insensitive" },
+                    },
+                  },
+                },
+                include: {
+                  publishing: { select: { title: true, subject: { select: { name: true } } } },
+                },
+                orderBy: { createdAt: "desc" },
+                take: 1,
+              });
+
+              if (attempts.length === 0) {
+                skipped.push({ name: ar.name, student: ar.student, student_name: ar.student_name, course: ar.course, reason: "No matching attempt found in exam db" });
+                continue;
+              }
+
+              const attempt = attempts[0];
+              let diagnosedLevel: string | null = null;
+
+              if (attempt.resultSnapshotJson) {
+                try {
+                  const resObj = typeof attempt.resultSnapshotJson === "string"
+                    ? JSON.parse(attempt.resultSnapshotJson)
+                    : attempt.resultSnapshotJson;
+                  diagnosedLevel = resObj?.diagnosedLevel || null;
+                } catch {
+                  // ignore
+                }
+              }
+
+              if (!diagnosedLevel) {
+                skipped.push({ name: ar.name, student: ar.student, reason: "Attempt has no diagnosed level" });
+                continue;
+              }
+
+              matched.push({
+                assessmentResult: ar.name,
+                student: ar.student,
+                student_name: ar.student_name,
+                course: ar.course,
+                diagnosedLevel,
+                attemptId: attempt.id,
+                attemptExam: attempt.publishing?.title,
+              });
+
+              if (!dryRun) {
+                const putRes = await fetch(
+                  `${frappeUrl}/api/resource/Assessment%20Result/${encodeURIComponent(ar.name)}`,
+                  {
+                    method: "PUT",
+                    headers: {
+                      Authorization: frappeAuth,
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ custom_diagnosed_level: diagnosedLevel }),
+                    cache: "no-store",
+                  }
+                );
+
+                if (!putRes.ok) {
+                  const errText = await putRes.text();
+                  errors.push({ name: ar.name, error: errText.slice(0, 150) });
+                } else {
+                  updated.push({ name: ar.name, student_name: ar.student_name, diagnosedLevel });
+                }
+              }
+            } catch (itemErr: any) {
+              errors.push({ name: ar.name, error: itemErr.message });
+            }
+          }
+
+          toolOutput = {
+            dryRun,
+            scannedResults: arData.length,
+            targetsWithoutLevel: targets.length,
+            matchedCount: matched.length,
+            updatedCount: updated.length,
+            skippedCount: skipped.length,
+            errorCount: errors.length,
+            matchedSample: matched.slice(0, 10),
+            updatedSample: updated.slice(0, 10),
+            skippedSample: skipped.slice(0, 5),
+            errorsSample: errors.slice(0, 5),
+          };
           break;
         }
 

@@ -504,7 +504,7 @@ function ExamMarksEntryEditor({
   onSavedComplete?: () => void;
 }) {
   const queryClient = useQueryClient();
-  const [marks, setMarks] = useState<{ student: string; student_name: string; score: string }[]>([]);
+  const [marks, setMarks] = useState<{ student: string; student_name: string; score: string; diagnosed_level?: string }[]>([]);
 
   const { data: plan, isLoading: planLoading } = useQuery({
     queryKey: ["assessment-plan", examId],
@@ -532,37 +532,53 @@ function ExamMarksEntryEditor({
   const initializedRef = React.useRef(false);
   const dirtyStudentsRef = React.useRef<Set<string>>(new Set());
 
+  const isDiagnosisExam = plan?.assessment_group?.toLowerCase().includes("diagnos");
+
   useEffect(() => {
     if (!sgData?.students) return;
     const activeStudents = sgData.students.filter((s: any) => s.active !== 0);
-    const existingMap = new Map<string, number>();
+    const existingMap = new Map<string, { score: number; diagnosed_level?: string }>();
     if (existingResults?.data) {
-      for (const r of existingResults.data) existingMap.set(r.student, r.total_score);
+      for (const r of existingResults.data) {
+        existingMap.set(r.student, {
+          score: r.total_score,
+          diagnosed_level: (r as any).custom_diagnosed_level,
+        });
+      }
     }
 
     setMarks((prev) => {
       if (!initializedRef.current || prev.length === 0) {
         initializedRef.current = true;
-        return activeStudents.map((s: any) => ({
-          student: s.student,
-          student_name: s.student_name ?? s.student,
-          score: existingMap.has(s.student) ? String(existingMap.get(s.student)) : "",
-        }));
+        return activeStudents.map((s: any) => {
+          const ex = existingMap.get(s.student);
+          return {
+            student: s.student,
+            student_name: s.student_name ?? s.student,
+            score: ex !== undefined ? String(ex.score) : "",
+            diagnosed_level: ex?.diagnosed_level || "",
+          };
+        });
       }
 
-      const currentScores = new Map(prev.map((m) => [m.student, m.score]));
+      const currentScores = new Map(prev.map((m) => [m.student, { score: m.score, dl: m.diagnosed_level }]));
       return activeStudents.map((s: any) => {
         const isDirty = dirtyStudentsRef.current.has(s.student);
-        const currentScore = currentScores.get(s.student);
-        const score = isDirty && currentScore !== undefined
-          ? currentScore
-          : existingMap.has(s.student)
-            ? String(existingMap.get(s.student))
-            : currentScore ?? "";
+        const current = currentScores.get(s.student);
+        const ex = existingMap.get(s.student);
+        const score = isDirty && current?.score !== undefined
+          ? current.score
+          : ex !== undefined
+            ? String(ex.score)
+            : current?.score ?? "";
+        const diagnosed_level = isDirty && current?.dl !== undefined
+          ? current.dl
+          : ex?.diagnosed_level || current?.dl || "";
         return {
           student: s.student,
           student_name: s.student_name ?? s.student,
           score,
+          diagnosed_level,
         };
       });
     });
@@ -623,12 +639,27 @@ function ExamMarksEntryEditor({
     });
   }
 
+  function handleDiagnosedLevelChange(idx: number, value: string) {
+    setMarks((prev) => {
+      const next = [...prev];
+      if (next[idx]) {
+        dirtyStudentsRef.current.add(next[idx].student);
+        next[idx] = { ...next[idx], diagnosed_level: value };
+      }
+      return next;
+    });
+  }
+
   function handleSave() {
     const maxScore = plan?.maximum_assessment_score || 100;
+    const hasExisting = (existingResults?.data?.length ?? 0) > 0;
     const validMarks: any[] = [];
     const errors: string[] = [];
 
     for (const m of marks) {
+      // If we already have saved results, only submit students whose data was changed
+      if (hasExisting && !dirtyStudentsRef.current.has(m.student)) continue;
+
       if (m.score === "" || m.score === null || m.score === undefined) continue;
       const num = Number(m.score);
       if (isNaN(num) || num < 0) {
@@ -639,12 +670,18 @@ function ExamMarksEntryEditor({
         errors.push(`${m.student_name}: score exceeds max (${maxScore})`);
         continue;
       }
-      validMarks.push({ student: m.student, score: num });
+      validMarks.push({
+        student: m.student,
+        score: num,
+        diagnosed_level: m.diagnosed_level || undefined,
+      });
     }
 
     if (errors.length) return toast.error(errors.join(", "));
-    if (validMarks.length === 0) return toast.error("Enter at least one score.");
-    
+    if (validMarks.length === 0) {
+      return toast.error(hasExisting ? "No changes detected. Edit a mark or diagnosed level first." : "Enter at least one score.");
+    }
+
     saveMutation.mutate({ assessment_plan: examId, marks: validMarks });
   }
 
@@ -705,6 +742,9 @@ function ExamMarksEntryEditor({
                   <th className="px-3 py-3 font-medium w-12">#</th>
                   <th className="px-3 py-3 font-medium">Student Name</th>
                   <th className="px-3 py-3 font-medium w-36">Marks Obtained (/{plan.maximum_assessment_score})</th>
+                  {isDiagnosisExam && (
+                    <th className="px-3 py-3 font-medium w-36">Diagnosed Level</th>
+                  )}
                   <th className="px-3 py-3 font-medium w-24">Percentage</th>
                   <th className="px-3 py-3 font-medium w-24">Grade</th>
                   <th className="px-3 py-3 font-medium w-24">Status</th>
@@ -735,6 +775,24 @@ function ExamMarksEntryEditor({
                           className={`w-28 h-9 rounded-[8px] border px-3 text-sm text-center ${overMax ? "border-error bg-error-light" : "border-border-input bg-surface focus:border-primary"}`}
                         />
                       </td>
+                      {isDiagnosisExam && (
+                        <td className="px-3 py-3">
+                          <select
+                            value={m.diagnosed_level || ""}
+                            onChange={(e) => handleDiagnosedLevelChange(idx, e.target.value)}
+                            className="w-28 h-9 rounded-[8px] border border-border-input bg-surface px-2 text-xs font-semibold text-text-primary focus:border-primary"
+                          >
+                            <option value="">Select Level</option>
+                            <option value="4th">4th</option>
+                            <option value="5th">5th</option>
+                            <option value="6th">6th</option>
+                            <option value="7th">7th</option>
+                            <option value="8th">8th</option>
+                            <option value="9th">9th</option>
+                            <option value="10th">10th</option>
+                          </select>
+                        </td>
+                      )}
                       <td className="px-3 py-3 font-semibold text-text-secondary">
                         {pct !== null ? `${pct}%` : "-"}
                       </td>

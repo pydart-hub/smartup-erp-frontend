@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
         ]),
         fields: JSON.stringify([
           "name", "student", "student_name", "total_score",
-          "maximum_score", "grade", "course", "assessment_group", "docstatus",
+          "maximum_score", "grade", "course", "assessment_group", "custom_diagnosed_level", "docstatus",
         ]),
         limit_page_length: "500",
         order_by: "total_score desc",
