@@ -269,19 +269,34 @@ export default function StaffAttendancePage() {
     [timingMode, classTime, individualClassTimes, visitingAttMap, attMap, employeeSchedulesMap]
   );
 
+  // Helper to parse sessions JSON safely
+  const parseSessions = (jsonStr?: string): Array<{ branch: string; status: string; in_time?: string; out_time?: string; class_time?: string; is_visiting?: number | boolean }> => {
+    if (!jsonStr) return [];
+    try {
+      const parsed = JSON.parse(jsonStr);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  };
+
   // Merge regular employees and visiting instructors into a single unified list
   const unifiedStaffList = React.useMemo(() => {
     // 1. Regular employees
     const regular = (employees || []).map((emp) => {
       const att = attMap.get(emp.name);
       const pending = pendingChanges[emp.name];
-      const status = pending?.status ?? (att?.status as StaffStatus | undefined) ?? "Not Marked";
-      const in_time = pending?.in_time ?? formatTimeForInput(att?.in_time);
-      const out_time = pending?.out_time ?? formatTimeForInput(att?.out_time);
+      const sessions = parseSessions(att?.custom_sessions_json);
+      const currentBranchSession = sessions.find((s) => s.branch === defaultCompany);
+      const otherBranchSessions = sessions.filter((s) => s.branch !== defaultCompany);
+
+      const status = pending?.status ?? (currentBranchSession?.status as StaffStatus | undefined) ?? (att?.status as StaffStatus | undefined) ?? "Not Marked";
+      const in_time = pending?.in_time ?? formatTimeForInput(currentBranchSession?.in_time || att?.in_time);
+      const out_time = pending?.out_time ?? formatTimeForInput(currentBranchSession?.out_time || att?.out_time);
       const hasChange = pending !== undefined && (
-        pending.status !== (att?.status ?? "Not Marked") ||
-        pending.in_time !== formatTimeForInput(att?.in_time) ||
-        pending.out_time !== formatTimeForInput(att?.out_time)
+        pending.status !== ((currentBranchSession?.status || att?.status) ?? "Not Marked") ||
+        pending.in_time !== formatTimeForInput(currentBranchSession?.in_time || att?.in_time) ||
+        pending.out_time !== formatTimeForInput(currentBranchSession?.out_time || att?.out_time)
       );
 
       const classTimeInfo = getEmployeeEffectiveClassTime(emp.name, false);
@@ -299,6 +314,7 @@ export default function StaffAttendancePage() {
         isVisiting: false,
         homeBranch: undefined,
         classTimeInfo,
+        otherBranchSessions,
       };
     });
 
@@ -306,13 +322,17 @@ export default function StaffAttendancePage() {
     const visiting = (visitingInstructors || []).map((v) => {
       const pending = pendingChanges[`visiting_${v.employee}`];
       const existingAtt = visitingAttMap.get(v.employee);
-      const status = (pending?.status ?? existingAtt?.status ?? "Not Marked") as string;
-      const in_time = pending?.in_time ?? formatTimeForInput(existingAtt?.in_time);
-      const out_time = pending?.out_time ?? formatTimeForInput(existingAtt?.out_time);
+      const sessions = parseSessions(existingAtt?.custom_sessions_json);
+      const currentBranchSession = sessions.find((s) => s.branch === defaultCompany);
+      const otherBranchSessions = sessions.filter((s) => s.branch !== defaultCompany);
+
+      const status = (pending?.status ?? (currentBranchSession?.status as StaffStatus | undefined) ?? existingAtt?.status ?? "Not Marked") as string;
+      const in_time = pending?.in_time ?? formatTimeForInput(currentBranchSession?.in_time || existingAtt?.in_time);
+      const out_time = pending?.out_time ?? formatTimeForInput(currentBranchSession?.out_time || existingAtt?.out_time);
       const hasChange = pending !== undefined && (
-        pending.status !== (existingAtt?.status ?? "Not Marked") ||
-        pending.in_time !== formatTimeForInput(existingAtt?.in_time) ||
-        pending.out_time !== formatTimeForInput(existingAtt?.out_time)
+        pending.status !== ((currentBranchSession?.status || existingAtt?.status) ?? "Not Marked") ||
+        pending.in_time !== formatTimeForInput(currentBranchSession?.in_time || existingAtt?.in_time) ||
+        pending.out_time !== formatTimeForInput(currentBranchSession?.out_time || existingAtt?.out_time)
       );
 
       const classTimeInfo = getEmployeeEffectiveClassTime(v.employee, true);
@@ -330,12 +350,13 @@ export default function StaffAttendancePage() {
         isVisiting: true,
         homeBranch: v.custom_company,
         classTimeInfo,
+        otherBranchSessions,
       };
     });
 
     // Combine regular employees and visiting instructors
     return [...regular, ...visiting];
-  }, [employees, visitingInstructors, attMap, visitingAttMap, pendingChanges, getEmployeeEffectiveClassTime]);
+  }, [employees, visitingInstructors, attMap, visitingAttMap, pendingChanges, getEmployeeEffectiveClassTime, defaultCompany]);
 
   // Summary counts (including pending changes)
   const presentCount = unifiedStaffList.filter((e) => e.attendance_status === "Present").length;
@@ -520,12 +541,30 @@ export default function StaffAttendancePage() {
           const existing = visitingAttMap.get(empId);
           const isNoTimeStatus = change.status === "At Head Office" || change.status === "Holiday" || change.status === "Absent" || change.status === "On Leave";
           const effectiveTime = getEmployeeEffectiveClassTime(empId, true).time;
+
+          const existingSessions = parseSessions(existing?.custom_sessions_json);
+          const otherSessions = existingSessions.filter((s) => s.branch !== defaultCompany);
+          const mergedSessions = [
+            ...otherSessions,
+            {
+              branch: defaultCompany || "",
+              status: change.status,
+              in_time: isNoTimeStatus ? "" : (inTimeISO || ""),
+              out_time: isNoTimeStatus ? "" : (outTimeISO || ""),
+              class_time: effectiveTime || "",
+              is_visiting: 1,
+            },
+          ];
+
           const payload = {
             employee: empId,
             employee_name: v.instructor_name,
             attendance_date: selectedDate,
             status: change.status,
             company: v.custom_company || defaultCompany || "",
+            session_branch: defaultCompany || "",
+            is_visiting: true,
+            sessions_json: JSON.stringify(mergedSessions),
             in_time: isNoTimeStatus ? undefined : inTimeISO,
             out_time: isNoTimeStatus ? undefined : outTimeISO,
             custom_class_time: effectiveTime || undefined,
@@ -546,12 +585,30 @@ export default function StaffAttendancePage() {
         if (!emp) return undefined;
         const isNoTimeStatus = change.status === "At Head Office" || change.status === "Holiday" || change.status === "Absent" || change.status === "On Leave";
         const effectiveTime = getEmployeeEffectiveClassTime(empId, false).time;
+
+        const existingSessions = parseSessions(existing?.custom_sessions_json);
+        const otherSessions = existingSessions.filter((s) => s.branch !== defaultCompany);
+        const mergedSessions = [
+          ...otherSessions,
+          {
+            branch: defaultCompany || "",
+            status: change.status,
+            in_time: isNoTimeStatus ? "" : (inTimeISO || ""),
+            out_time: isNoTimeStatus ? "" : (outTimeISO || ""),
+            class_time: effectiveTime || "",
+            is_visiting: 0,
+          },
+        ];
+
         const payload = {
           employee: empId,
           employee_name: emp.employee_name,
           attendance_date: selectedDate,
           status: change.status,
           company: defaultCompany || "",
+          session_branch: defaultCompany || "",
+          is_visiting: false,
+          sessions_json: JSON.stringify(mergedSessions),
           in_time: isNoTimeStatus ? undefined : inTimeISO,
           out_time: isNoTimeStatus ? undefined : outTimeISO,
           custom_class_time: effectiveTime || undefined,
@@ -1018,6 +1075,28 @@ export default function StaffAttendancePage() {
                         </div>
                       );
                     })()}
+
+                    {/* Cross-branch other sessions indicator */}
+                    {emp.otherBranchSessions && emp.otherBranchSessions.length > 0 && (
+                      <div className="pt-1.5 border-t border-border-light/40 flex flex-wrap gap-1">
+                        {emp.otherBranchSessions.map((os, i) => (
+                          <div
+                            key={i}
+                            className="inline-flex items-center gap-1 text-[10px] bg-amber-50 text-amber-800 border border-amber-200/70 rounded px-1.5 py-0.5"
+                            title={`Also marked at ${os.branch}: ${os.in_time || ''} - ${os.out_time || ''} (${os.status})`}
+                          >
+                            <Building2 className="h-2.5 w-2.5 text-amber-600 flex-shrink-0" />
+                            <span className="font-medium truncate max-w-[130px]">
+                              {os.branch.replace("Smart Up ", "")}:
+                            </span>
+                            <span className="text-[9px] font-semibold">{os.status}</span>
+                            {os.in_time && (
+                              <span className="text-[9px] text-amber-600">({os.in_time.slice(0, 5)})</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </motion.div>
                 );
               })}

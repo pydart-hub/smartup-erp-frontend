@@ -41,6 +41,17 @@ export interface Employee {
   bank_branch_location?: string;
 }
 
+export interface AttendanceBranchSession {
+  branch: string;
+  session_type?: "Morning" | "Afternoon" | "Evening" | "Full Day";
+  status: string;
+  in_time?: string;
+  out_time?: string;
+  class_time?: string;
+  is_visiting?: number | boolean;
+  remarks?: string;
+}
+
 export interface EmployeeAttendance {
   name: string;
   employee: string;
@@ -59,6 +70,8 @@ export interface EmployeeAttendance {
   early_exit?: number;
   custom_class_time?: string;
   custom_visiting_branch?: string;
+  custom_branch_sessions?: AttendanceBranchSession[];
+  custom_sessions_json?: string;
 }
 
 export interface Instructor {
@@ -87,6 +100,7 @@ const EMPLOYEE_ATTENDANCE_FIELDS = JSON.stringify([
   "in_time", "out_time", "working_hours",
   "custom_check_in", "custom_check_out",
   "late_entry", "early_exit", "custom_class_time", "custom_visiting_branch",
+  "custom_sessions_json",
 ]);
 
 const INSTRUCTOR_FIELDS = JSON.stringify([
@@ -471,7 +485,7 @@ async function postEmployeeCheckin(
   }
 }
 
-/** Create a new Attendance record */
+/** Create or merge a branch session Attendance record */
 export async function createEmployeeAttendance(payload: {
   employee: string;
   employee_name: string;
@@ -482,37 +496,26 @@ export async function createEmployeeAttendance(payload: {
   out_time?: string;
   custom_class_time?: string;
   custom_visiting_branch?: string;
+  session_branch?: string;
+  is_visiting?: boolean;
+  sessions_json?: string;
 }): Promise<{ data: EmployeeAttendance }> {
-  // "At Head Office" and "Holiday" use custom Server Script
-  // that calls frappe.db.set_value to bypass the Python validate() hook.
-  if (payload.status === "At Head Office" || payload.status === "Holiday") {
+  // Always use the multi-branch atomic merge endpoint set_attendance_status
+  // to avoid DuplicateAttendanceError and prevent overwriting other branch sessions.
+  try {
     const { data } = await apiClient.post("/method/set_attendance_status", {
       employee: payload.employee,
       employee_name: payload.employee_name,
       attendance_date: payload.attendance_date,
       status: payload.status,
       company: payload.company,
+      session_branch: payload.session_branch || payload.custom_visiting_branch || payload.company,
+      in_time: payload.in_time || undefined,
+      out_time: payload.out_time || undefined,
+      custom_class_time: payload.custom_class_time || undefined,
+      is_visiting: payload.is_visiting ? 1 : (payload.custom_visiting_branch ? 1 : 0),
+      sessions_json: payload.sessions_json || undefined,
     });
-    return { data: data as EmployeeAttendance };
-  }
-
-  const postBody = {
-    employee: payload.employee,
-    employee_name: payload.employee_name,
-    attendance_date: payload.attendance_date,
-    status: payload.status,
-    company: payload.company,
-    in_time: payload.in_time || undefined,
-    out_time: payload.out_time || undefined,
-    custom_check_in: payload.in_time ? payload.in_time.split(" ")[1] || payload.in_time : undefined,
-    custom_check_out: payload.out_time ? payload.out_time.split(" ")[1] || payload.out_time : undefined,
-    custom_class_time: payload.custom_class_time || undefined,
-    custom_visiting_branch: payload.custom_visiting_branch || undefined,
-    docstatus: 1,
-  };
-
-  try {
-    const { data } = await apiClient.post("/resource/Attendance", postBody);
 
     if (payload.in_time) {
       await postEmployeeCheckin(payload.employee, payload.in_time, "IN");
@@ -521,53 +524,31 @@ export async function createEmployeeAttendance(payload: {
       await postEmployeeCheckin(payload.employee, payload.out_time, "OUT");
     }
 
-    return data;
+    return { data: (data as any)?.data ?? data };
   } catch (error: unknown) {
-    const err = error as {
-      response?: { data?: { exception?: string; message?: string; _error_message?: string } };
+    // If the method fails for any network reason, fall back to standard resource endpoint
+    const postBody = {
+      employee: payload.employee,
+      employee_name: payload.employee_name,
+      attendance_date: payload.attendance_date,
+      status: payload.status,
+      company: payload.company,
+      in_time: payload.in_time || undefined,
+      out_time: payload.out_time || undefined,
+      custom_check_in: payload.in_time ? payload.in_time.split(" ")[1] || payload.in_time : undefined,
+      custom_check_out: payload.out_time ? payload.out_time.split(" ")[1] || payload.out_time : undefined,
+      custom_class_time: payload.custom_class_time || undefined,
+      custom_visiting_branch: payload.custom_visiting_branch || undefined,
+      custom_sessions_json: payload.sessions_json || undefined,
+      docstatus: 1,
     };
-    const text = String(
-      err?.response?.data?._error_message ||
-      err?.response?.data?.message ||
-      err?.response?.data?.exception ||
-      ""
-    );
 
-    // If it fails because of missing custom_class_time / custom_visiting_branch field, try without it
-    const missingClassTime = payload.custom_class_time && (text.includes("custom_class_time") || text.toLowerCase().includes("linkvalidationerror") || text.toLowerCase().includes("field"));
-    const missingVisitingBranch = payload.custom_visiting_branch && (text.includes("custom_visiting_branch") || text.toLowerCase().includes("linkvalidationerror") || text.toLowerCase().includes("field"));
-    if (missingClassTime || missingVisitingBranch) {
-      const strippedBody = { ...postBody };
-      if (missingClassTime) delete (strippedBody as any).custom_class_time;
-      if (missingVisitingBranch) delete (strippedBody as any).custom_visiting_branch;
-      try {
-        const { data } = await apiClient.post("/resource/Attendance", strippedBody);
-        if (payload.in_time) {
-          await postEmployeeCheckin(payload.employee, payload.in_time, "IN");
-        }
-        if (payload.out_time) {
-          await postEmployeeCheckin(payload.employee, payload.out_time, "OUT");
-        }
-        return data;
-      } catch (secondErr) {
-        throw secondErr;
-      }
-    }
-
-    // Frappe duplicate-error payload often includes an existing attendance ID like HR-ATT-2026-00187.
-    if (text.toLowerCase().includes("duplicateattendanceerror") || text.toLowerCase().includes("already marked")) {
-      const match = text.match(/(HR-ATT-[A-Za-z0-9-]+)/i);
-      const existingName = match?.[1];
-      if (existingName) {
-        await updateEmployeeAttendance(existingName, payload);
-        return { data: { name: existingName, ...payload } as EmployeeAttendance };
-      }
-    }
-    throw error;
+    const { data } = await apiClient.post("/resource/Attendance", postBody);
+    return data;
   }
 }
 
-/** Update an existing Attendance record: cancel old → create new submitted */
+/** Update an existing Attendance record by merging the branch session */
 export async function updateEmployeeAttendance(
   existingName: string,
   payload: {
@@ -580,79 +561,25 @@ export async function updateEmployeeAttendance(
     out_time?: string;
     custom_class_time?: string;
     custom_visiting_branch?: string;
+    session_branch?: string;
+    is_visiting?: boolean;
+    sessions_json?: string;
   }
 ): Promise<void> {
-  // "At Head Office" and "Holiday" bypass Python validator via custom Server Script
-  if (payload.status === "At Head Office" || payload.status === "Holiday") {
-    await apiClient.post("/method/set_attendance_status", {
-      existing_name: existingName,
-      employee: payload.employee,
-      employee_name: payload.employee_name,
-      attendance_date: payload.attendance_date,
-      status: payload.status,
-      company: payload.company,
-    });
-    return;
-  }
-
-  // Read current docstatus to pick a safe update path.
-  const { data: existingRes } = await apiClient.get<{ data?: { docstatus?: number } }>(
-    `/resource/Attendance/${encodeURIComponent(existingName)}`
-  );
-  const docstatus = Number(existingRes?.data?.docstatus ?? 0);
-
-  const attBody = {
+  await apiClient.post("/method/set_attendance_status", {
+    existing_name: existingName,
     employee: payload.employee,
     employee_name: payload.employee_name,
     attendance_date: payload.attendance_date,
     status: payload.status,
     company: payload.company,
+    session_branch: payload.session_branch || payload.custom_visiting_branch || payload.company,
     in_time: payload.in_time || undefined,
     out_time: payload.out_time || undefined,
-    custom_check_in: payload.in_time ? payload.in_time.split(" ")[1] || payload.in_time : undefined,
-    custom_check_out: payload.out_time ? payload.out_time.split(" ")[1] || payload.out_time : undefined,
     custom_class_time: payload.custom_class_time || undefined,
-    custom_visiting_branch: payload.custom_visiting_branch || undefined,
-  };
-
-  const trySave = async (body: any) => {
-    if (docstatus === 0) {
-      // Draft can be updated in place.
-      await apiClient.put(`/resource/Attendance/${encodeURIComponent(existingName)}`, body);
-    } else {
-      // Submitted record: cancel then create replacement.
-      await apiClient.post("/method/frappe.client.cancel", {
-        doctype: "Attendance",
-        name: existingName,
-      });
-
-      await apiClient.post("/resource/Attendance", {
-        ...body,
-        docstatus: 1,
-      });
-    }
-  };
-
-  try {
-    await trySave(attBody);
-  } catch (error: any) {
-    const text = String(
-      error?.response?.data?._error_message ||
-      error?.response?.data?.message ||
-      error?.response?.data?.exception ||
-      ""
-    );
-    const missingClassTime = payload.custom_class_time && (text.includes("custom_class_time") || text.toLowerCase().includes("linkvalidationerror") || text.toLowerCase().includes("field"));
-    const missingVisitingBranch = payload.custom_visiting_branch && (text.includes("custom_visiting_branch") || text.toLowerCase().includes("linkvalidationerror") || text.toLowerCase().includes("field"));
-    if (missingClassTime || missingVisitingBranch) {
-      const strippedBody = { ...attBody };
-      if (missingClassTime) delete (strippedBody as any).custom_class_time;
-      if (missingVisitingBranch) delete (strippedBody as any).custom_visiting_branch;
-      await trySave(strippedBody);
-    } else {
-      throw error;
-    }
-  }
+    is_visiting: payload.is_visiting ? 1 : (payload.custom_visiting_branch ? 1 : 0),
+    sessions_json: payload.sessions_json || undefined,
+  });
 
   if (payload.in_time) {
     await postEmployeeCheckin(payload.employee, payload.in_time, "IN");

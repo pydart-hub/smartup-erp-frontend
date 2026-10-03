@@ -74,6 +74,31 @@ export default function ExamSubjectRankingPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPlanFilter, setSelectedPlanFilter] = useState<"all" | "Advanced" | "Basic">("all");
   const [rankingSortBy, setRankingSortBy] = useState<"passRate" | "averageScore" | "topperCount">("passRate");
+  const [selectedStudentFilter, setSelectedStudentFilter] = useState("all");
+
+  const studentFilterOptions = [
+    { label: "All Students", value: "all" },
+    { label: "Class Topper", value: "topper" },
+    { label: "Top 3", value: "top3" },
+    { label: "Top 5", value: "top5" },
+    { label: "Top 10", value: "top10" },
+    { label: "Top 15", value: "top15" },
+    { label: "Full Mark Achievers", value: "full_mark" },
+    { label: "Full A+ Achievers", value: "full_aplus" },
+    { label: "90% & Above", value: "p90" },
+    { label: "85% & Above", value: "p85" },
+    { label: "80% & Above", value: "p80" },
+    { label: "75% & Above", value: "p75" },
+    { label: "70% & Above", value: "p70" },
+    { label: "60% & Above", value: "p60" },
+    { label: "50% & Above", value: "p50" },
+    { label: "30% & Above", value: "p30" },
+    { label: "Below 70%", value: "below70" },
+    { label: "Below 60%", value: "below60" },
+    { label: "Below 50%", value: "below50" },
+    { label: "Below 30% (Failed)", value: "failed_30" },
+    { label: "Passed", value: "passed" },
+  ];
 
   // Selected Branch for Drill-down / Detailed Student list
   const [drillDownBranch, setDrillDownBranch] = useState<string | null>(null);
@@ -531,11 +556,118 @@ export default function ExamSubjectRankingPage() {
       return { ...st, rank };
     });
 
+    // Filter students by selected criteria
+    const filteredStudents = rankedList.filter((st) => {
+      switch (selectedStudentFilter) {
+        case "topper":
+          return st.rank === 1;
+        case "top3":
+          return st.rank <= 3;
+        case "top5":
+          return st.rank <= 5;
+        case "top10":
+          return st.rank <= 10;
+        case "top15":
+          return st.rank <= 15;
+        case "full_mark":
+          return st.score >= st.max && st.max > 0;
+        case "full_aplus":
+          return st.pct >= 90;
+        case "p90":
+          return st.pct >= 90;
+        case "p85":
+          return st.pct >= 85;
+        case "p80":
+          return st.pct >= 80;
+        case "p75":
+          return st.pct >= 75;
+        case "p70":
+          return st.pct >= 70;
+        case "p60":
+          return st.pct >= 60;
+        case "p50":
+          return st.pct >= 50;
+        case "p30":
+          return st.pct >= 30;
+        case "below70":
+          return st.pct < 70;
+        case "below60":
+          return st.pct < 60;
+        case "below50":
+          return st.pct < 50;
+        case "failed_30":
+          return !st.passed || st.pct < 30;
+        case "passed":
+          return st.passed;
+        default:
+          return true;
+      }
+    });
+
+    // Performance analysis calculation (computed over ALL ranked students in the branch, unaffected by the table filter)
+    const total = rankedList.length;
+    const getNames = (list: typeof rankedList) => 
+      list.length > 0 ? list.map((st) => st.studentName).join(", ") : "—";
+
+    const topperList = rankedList.filter((st) => st.rank === 1);
+    const top3List = rankedList.filter((st) => st.rank <= 3);
+    const top5List = rankedList.filter((st) => st.rank <= 5);
+    const top10List = rankedList.filter((st) => st.rank <= 10);
+    const top15List = rankedList.filter((st) => st.rank <= 15);
+    const fullMarkList = rankedList.filter((st) => st.score >= st.max && st.max > 0);
+    const fullAPlusList = rankedList.filter((st) => st.pct >= 90);
+    const p90List = rankedList.filter((st) => st.pct >= 90);
+    const p85List = rankedList.filter((st) => st.pct >= 85);
+    const p80List = rankedList.filter((st) => st.pct >= 80);
+    const p75List = rankedList.filter((st) => st.pct >= 75);
+    const p70List = rankedList.filter((st) => st.pct >= 70);
+    const p60List = rankedList.filter((st) => st.pct >= 60);
+    const p50List = rankedList.filter((st) => st.pct >= 50);
+    const p30List = rankedList.filter((st) => st.pct >= 30);
+    const below70List = rankedList.filter((st) => st.pct < 70);
+    const below60List = rankedList.filter((st) => st.pct < 60);
+    const below50List = rankedList.filter((st) => st.pct < 50);
+    const failedList = rankedList.filter((st) => !st.passed || st.pct < 40);
+    const passedList = rankedList.filter((st) => st.passed);
+
+    const rows = [
+      { key: "Class Topper", list: topperList, isPct: false },
+      { key: "Top 3", list: top3List, isPct: false },
+      { key: "Top 5", list: top5List, isPct: false },
+      { key: "Top 10", list: top10List, isPct: false },
+      { key: "Top 15", list: top15List, isPct: false },
+      { key: "Full Mark Achievers", list: fullMarkList, isPct: true },
+      { key: "Full A+ Achievers", list: fullAPlusList, isPct: true },
+      { key: "90% & Above", list: p90List, isPct: true },
+      { key: "85% & Above", list: p85List, isPct: true },
+      { key: "80% & Above", list: p80List, isPct: true },
+      { key: "75% & Above", list: p75List, isPct: true },
+      { key: "70% & Above", list: p70List, isPct: true },
+      { key: "60% & Above", list: p60List, isPct: true },
+      { key: "50% & Above", list: p50List, isPct: true },
+      { key: "30% & Above", list: p30List, isPct: true },
+      { key: "Below 70%", list: below70List, isPct: true },
+      { key: "Below 60%", list: below60List, isPct: true },
+      { key: "Below 50%", list: below50List, isPct: true },
+      { key: "Below 30% (Failed in Subject)", list: rankedList.filter((st) => st.pct < 30 || !st.passed), isPct: true },
+      { key: "Passed in Subject", list: passedList, isPct: true },
+    ];
+
+    const analysisData = rows.map((r) => ({
+      criteria: r.key,
+      count: r.list.length,
+      percentage: total > 0 ? Math.round((r.list.length / total) * 100) : 0,
+      isPct: r.isPct,
+      names: getNames(r.list),
+    }));
+
     return {
       branchInfo,
       students: rankedList,
+      filteredStudents,
+      analysisData,
     };
-  }, [drillDownBranch, branchRankings, selectedPlanFilter, studentPlanMap]);
+  }, [drillDownBranch, branchRankings, selectedPlanFilter, studentPlanMap, selectedStudentFilter]);
 
   const pageLoading = branchesLoading || plansLoading || resultsLoading;
 
@@ -898,11 +1030,15 @@ export default function ExamSubjectRankingPage() {
                 </div>
               ) : (
                 /* VIEW 2: Students Rank List for the Selected Branch */
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between bg-surface p-4 rounded-2xl border border-border/60 shadow-sm">
+                <div className="space-y-6">
+                  {/* Top Bar with Navigation and Filter Controls */}
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-surface p-4 rounded-2xl border border-border/60 shadow-sm print:hidden">
                     <div className="flex items-center gap-3">
                       <button
-                        onClick={() => setDrillDownBranch(null)}
+                        onClick={() => {
+                          setDrillDownBranch(null);
+                          setSelectedStudentFilter("all");
+                        }}
                         className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-text-secondary hover:text-text-primary transition-colors"
                       >
                         <ArrowLeft className="h-4 w-4" />
@@ -913,21 +1049,207 @@ export default function ExamSubjectRankingPage() {
                           {drillDownDetails?.branchInfo.branchClean} — {selectedStandard} Grade {selectedSubject} Students
                         </h3>
                         <p className="text-xs text-text-secondary mt-0.5">
-                          {drillDownDetails?.students.length} students ranked by {selectedExam} score
+                          {selectedStudentFilter !== "all" 
+                            ? `Showing ${drillDownDetails?.filteredStudents.length} of ${drillDownDetails?.students.length} students ranked by ${selectedExam} score`
+                            : `${drillDownDetails?.students.length} students ranked by ${selectedExam} score`}
                         </p>
                       </div>
                     </div>
 
-                    <button
-                      onClick={() => setDrillDownBranch(null)}
-                      className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-xs font-semibold rounded-xl text-text-secondary transition-colors"
-                    >
-                      Back to All Branches
-                    </button>
+                    <div className="flex flex-wrap items-center gap-3">
+                      {/* Filter Students Dropdown */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black text-text-secondary uppercase tracking-wider">
+                          Filter Students:
+                        </span>
+                        <select
+                          value={selectedStudentFilter}
+                          onChange={(e) => setSelectedStudentFilter(e.target.value)}
+                          className="h-8 px-2.5 text-xs bg-surface border border-border-input rounded-[8px] font-semibold text-text-primary focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                        >
+                          {studentFilterOptions.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Plan Filter */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black text-text-secondary uppercase tracking-wider">Plan:</span>
+                        <select
+                          value={selectedPlanFilter}
+                          onChange={(e) => setSelectedPlanFilter(e.target.value as any)}
+                          className="h-8 px-2.5 text-xs bg-surface border border-border-input rounded-[8px] font-semibold text-text-primary focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
+                        >
+                          <option value="all">All Plans</option>
+                          <option value="Advanced">⚡ Advanced Students</option>
+                          <option value="Basic">📘 Basic Students</option>
+                        </select>
+                      </div>
+
+                      {/* Back button */}
+                      <button
+                        onClick={() => {
+                          setDrillDownBranch(null);
+                          setSelectedStudentFilter("all");
+                        }}
+                        className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-xs font-semibold rounded-xl text-text-secondary transition-colors"
+                      >
+                        Back to All Branches
+                      </button>
+
+                      {/* Print Button */}
+                      <button
+                        onClick={() => {
+                          const element = document.getElementById("printable-subject-ranking-card");
+                          if (!element) return;
+                          
+                          const clone = element.cloneNode(true) as HTMLElement;
+                          clone.id = "print-clone-container";
+                          
+                          const style = document.createElement("style");
+                          style.id = "print-style-block";
+                          style.innerHTML = `
+                            @media print {
+                              @page {
+                                size: A4 portrait;
+                                margin: 12mm 15mm;
+                              }
+                              body > * {
+                                display: none !important;
+                              }
+                              body > #print-clone-container {
+                                display: block !important;
+                              }
+                              #print-clone-container {
+                                display: block !important;
+                                width: 100% !important;
+                                height: auto !important;
+                                overflow: visible !important;
+                                position: static !important;
+                                background: white !important;
+                                border: none !important;
+                                box-shadow: none !important;
+                                margin: 0 !important;
+                                padding: 0 !important;
+                                visibility: visible !important;
+                                opacity: 1 !important;
+                              }
+                              #print-clone-container *:not(img):not(.watermark-container) {
+                                visibility: visible !important;
+                                opacity: 1 !important;
+                              }
+                              #print-clone-container .watermark-container {
+                                display: none !important;
+                              }
+                              #print-clone-container::after {
+                                content: "" !important;
+                                display: block !important;
+                                visibility: visible !important;
+                                position: fixed !important;
+                                left: 50% !important;
+                                top: 45% !important;
+                                transform: translate(-50%, -50%) !important;
+                                width: 300px !important;
+                                height: 300px !important;
+                                background-image: url('/smartup-logo-v2.png') !important;
+                                background-repeat: no-repeat !important;
+                                background-position: center !important;
+                                background-size: contain !important;
+                                opacity: 0.05 !important;
+                                z-index: -1000 !important;
+                                pointer-events: none !important;
+                              }
+                              #print-clone-container table {
+                                width: 100% !important;
+                                table-layout: auto !important;
+                                border-collapse: collapse !important;
+                              }
+                              #print-clone-container tr {
+                                page-break-inside: avoid !important;
+                              }
+                              #print-clone-container th, #print-clone-container td {
+                                font-size: 8px !important;
+                                padding: 5px 6px !important;
+                                border-bottom: 1px solid #eee !important;
+                              }
+                            }
+                          `;
+                          document.head.appendChild(style);
+                          document.body.appendChild(clone);
+                          
+                          window.print();
+                          
+                          setTimeout(() => {
+                            style.remove();
+                            clone.remove();
+                          }, 1000);
+                        }}
+                        className="h-8 px-3 text-xs font-semibold bg-surface border border-border-input hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-[8px] flex items-center gap-1.5 transition-colors"
+                      >
+                        <Printer className="h-3.5 w-3.5" /> Print Report
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="bg-surface rounded-2xl border border-border/60 overflow-hidden shadow-sm">
-                    <div className="overflow-x-auto">
+                  {/* Printable Card Container */}
+                  <Card id="printable-subject-ranking-card" className="border border-slate-100 dark:border-white/[0.06] shadow-sm overflow-hidden bg-surface relative">
+                    {/* Watermark Logo */}
+                    <div className="watermark-container absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] dark:opacity-[0.05] select-none z-0">
+                      <img 
+                        src="/smartup-logo-v2.png" 
+                        alt="Watermark" 
+                        className="watermark-logo w-80 h-auto object-contain max-w-full"
+                      />
+                    </div>
+
+                    {/* Official Report Header */}
+                    <div className="bg-emerald-500/5 dark:bg-emerald-500/10 px-6 py-5 border-b border-slate-100 dark:border-white/[0.06] flex items-center justify-between relative z-10">
+                      <div className="flex items-center gap-3">
+                        <img 
+                          src="/smartup-logo-v2.png" 
+                          alt="Smart Up Logo" 
+                          className="h-10 w-auto object-contain shrink-0"
+                        />
+                        <div>
+                          <h1 className="text-[11px] font-black text-emerald-600 tracking-wider uppercase">
+                            SmartUp Learning Ventures
+                          </h1>
+                          <h2 className="text-base font-extrabold text-text-primary tracking-tight mt-0.5">
+                            {selectedStandard} GRADE {selectedSubject.toUpperCase()} RANK LIST
+                          </h2>
+                          <p className="text-[10px] text-text-tertiary mt-0.5 uppercase tracking-wider font-semibold">
+                            Exam: {selectedExam} • Branch: {drillDownDetails?.branchInfo.branchClean}
+                          </p>
+                        </div>
+                      </div>
+                      <Badge className="bg-emerald-500/10 text-emerald-600 border-none font-bold uppercase text-[9px] px-2.5 py-0.5">
+                        Official Transcript
+                      </Badge>
+                    </div>
+
+                    {/* Active Filter Notice */}
+                    {selectedStudentFilter !== "all" && (
+                      <div className="m-4 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center justify-between print:hidden relative z-10">
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-emerald-600 text-white text-[10px] font-black">!</span>
+                          <span className="text-xs font-bold text-text-primary">
+                            Filter Active: <span className="text-emerald-600">{studentFilterOptions.find(o => o.value === selectedStudentFilter)?.label}</span> ({drillDownDetails?.filteredStudents.length} Students)
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => setSelectedStudentFilter("all")}
+                          className="text-xs font-bold text-text-secondary hover:text-text-primary hover:underline"
+                        >
+                          Clear Filter (Show All)
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Students Rank Table */}
+                    <div className="overflow-x-auto relative z-10">
                       <table className="w-full text-left text-xs">
                         <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-border/60 text-text-secondary">
                           <tr>
@@ -942,14 +1264,14 @@ export default function ExamSubjectRankingPage() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-border/40">
-                          {drillDownDetails?.students.length === 0 ? (
+                          {drillDownDetails?.filteredStudents.length === 0 ? (
                             <tr>
                               <td colSpan={8} className="text-center py-12 text-text-tertiary">
-                                No students found matching the selected plan.
+                                No students found matching the selected filter criteria.
                               </td>
                             </tr>
                           ) : (
-                            drillDownDetails?.students.map((st) => (
+                            drillDownDetails?.filteredStudents.map((st) => (
                               <tr key={st.student} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
                                 <td className="p-3.5 pl-6 font-bold text-text-primary">
                                   {st.rank === 1 ? (
@@ -1002,7 +1324,51 @@ export default function ExamSubjectRankingPage() {
                         </tbody>
                       </table>
                     </div>
-                  </div>
+
+                    {/* Performance Analysis Table */}
+                    <div className="border-t border-slate-100 dark:border-white/[0.06] mt-8 relative z-10 page-break-before-auto">
+                      <div className="bg-slate-50/50 dark:bg-slate-900/50 px-6 py-4 border-b border-slate-100 dark:border-white/[0.06]">
+                        <h3 className="text-sm font-bold text-text-primary uppercase tracking-wider">
+                          Performance Analysis
+                        </h3>
+                      </div>
+                      <div className="p-0 overflow-x-auto">
+                        <table className="w-full text-xs text-left border-collapse min-w-[700px]">
+                          <thead>
+                            <tr className="border-b border-slate-100 dark:border-white/[0.06] bg-slate-100/30 dark:bg-white/[0.01] text-[10px] uppercase font-bold text-text-tertiary tracking-wider">
+                              <th className="px-6 py-3 w-1/4">Analysis</th>
+                              <th className="px-6 py-3 text-center w-24">Count</th>
+                              <th className="px-6 py-3 w-1/2">Names</th>
+                              <th className="px-6 py-3 text-center w-32">% of Class</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 dark:divide-white/[0.06]">
+                            {drillDownDetails?.analysisData.map((row) => (
+                              <tr key={row.criteria} className="hover:bg-slate-50/20 dark:hover:bg-slate-800/5 transition-colors">
+                                <td className="px-6 py-2.5 font-bold text-text-primary">{row.criteria}</td>
+                                <td className="px-6 py-2.5 text-center font-semibold text-text-secondary">{row.count}</td>
+                                <td className="px-6 py-2.5 text-text-secondary">{row.names}</td>
+                                <td className="px-6 py-2.5 text-center font-bold text-text-primary">{row.isPct ? `${row.percentage}%` : "—"}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* Official Signature Lines (Print Mode Only) */}
+                    <div className="hidden print:flex justify-between items-center px-12 pt-16 pb-8 text-xs text-text-tertiary relative z-10">
+                      <div className="text-center border-t border-slate-300 w-36 pt-1.5 mt-6 font-semibold">
+                        Subject Teacher
+                      </div>
+                      <div className="text-center border-t border-slate-300 w-36 pt-1.5 mt-6 font-semibold">
+                        Branch Coordinator
+                      </div>
+                      <div className="text-center border-t border-slate-300 w-36 pt-1.5 mt-6 font-semibold">
+                        Academic Director
+                      </div>
+                    </div>
+                  </Card>
                 </div>
               )}
             </motion.div>

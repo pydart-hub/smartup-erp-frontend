@@ -96,15 +96,31 @@ export default function DirectorStaffBranchAttendancePage() {
   // Build lookup: employee name → attendance record
   const attMap = new Map(attendanceRecords.map((r) => [r.employee, r]));
 
+  // Helper to parse sessions JSON safely
+  const parseSessions = (jsonStr?: string): Array<{ branch: string; status: string; in_time?: string; out_time?: string; class_time?: string; is_visiting?: number | boolean }> => {
+    if (!jsonStr) return [];
+    try {
+      const parsed = JSON.parse(jsonStr);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  };
+
   // Merge employees with their attendance status & timings
   const merged = employees.map((emp) => {
     const att = attMap.get(emp.name);
-    const attendance_status = (att?.status ?? "Not Marked") as string;
+    const sessions = parseSessions(att?.custom_sessions_json);
+    const currentBranchSession = sessions.find((s) => s.branch === branchName);
+    const otherBranchSessions = sessions.filter((s) => s.branch !== branchName);
+
+    const attendance_status = ((currentBranchSession?.status || att?.status) ?? "Not Marked") as string;
     return {
       ...emp,
       attendance_status,
-      in_time: formatDisplayTime(att?.in_time || att?.custom_check_in),
-      out_time: formatDisplayTime(att?.out_time || att?.custom_check_out),
+      in_time: formatDisplayTime(currentBranchSession?.in_time || att?.in_time || att?.custom_check_in),
+      out_time: formatDisplayTime(currentBranchSession?.out_time || att?.out_time || att?.custom_check_out),
+      otherBranchSessions,
     };
   });
 
@@ -283,6 +299,28 @@ export default function DirectorStaffBranchAttendancePage() {
                             <span>Out: {emp.out_time}</span>
                           </div>
                         )}
+                      </div>
+                    )}
+
+                    {/* Cross-branch other sessions */}
+                    {emp.otherBranchSessions && emp.otherBranchSessions.length > 0 && (
+                      <div className="pt-1.5 border-t border-border-light/40 flex flex-wrap gap-1">
+                        {emp.otherBranchSessions.map((os, i) => (
+                          <div
+                            key={i}
+                            className="inline-flex items-center gap-1 text-[10px] bg-amber-50 text-amber-800 border border-amber-200/70 rounded px-1.5 py-0.5"
+                            title={`Also marked at ${os.branch}: ${os.in_time || ''} - ${os.out_time || ''} (${os.status})`}
+                          >
+                            <Building2 className="h-2.5 w-2.5 text-amber-600 flex-shrink-0" />
+                            <span className="font-medium truncate max-w-[130px]">
+                              {os.branch.replace("Smart Up ", "")}:
+                            </span>
+                            <span className="text-[9px] font-semibold">{os.status}</span>
+                            {os.in_time && (
+                              <span className="text-[9px] text-amber-600">({os.in_time.slice(0, 5)})</span>
+                            )}
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>
