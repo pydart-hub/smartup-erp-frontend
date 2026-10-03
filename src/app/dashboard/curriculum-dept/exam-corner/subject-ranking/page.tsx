@@ -14,13 +14,13 @@ import {
   Search,
   ChevronRight,
   ChevronDown,
-  Printer,
   CheckCircle2,
   XCircle,
   GraduationCap,
   Layers,
   Filter,
-  Calendar
+  Calendar,
+  FileSpreadsheet
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -72,9 +72,8 @@ export default function ExamSubjectRankingPage() {
   const [selectedSubject, setSelectedSubject] = useState("Physics");
   const [selectedStandard, setSelectedStandard] = useState("10th");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedPlanFilter, setSelectedPlanFilter] = useState<"all" | "Advanced" | "Basic">("all");
-  const [rankingSortBy, setRankingSortBy] = useState<"passRate" | "averageScore" | "topperCount">("passRate");
   const [selectedStudentFilter, setSelectedStudentFilter] = useState("all");
+  const [isExportingExcel, setIsExportingExcel] = useState(false);
 
   const studentFilterOptions = [
     { label: "All Students", value: "all" },
@@ -477,34 +476,19 @@ export default function ExamSubjectRankingPage() {
       };
     });
 
-    // Sort by chosen metric
+    // Sort branches by highest pass rate
     list.sort((a, b) => {
-      if (rankingSortBy === "passRate") {
-        return (
-          b.passRate - a.passRate ||
-          b.fullMarksCount - a.fullMarksCount ||
-          b.p90Count - a.p90Count ||
-          b.averageScore - a.averageScore ||
-          b.totalStudents - a.totalStudents
-        );
-      }
-      if (rankingSortBy === "averageScore") {
-        return (
-          b.averageScore - a.averageScore ||
-          b.fullMarksCount - a.fullMarksCount ||
-          b.passRate - a.passRate
-        );
-      }
       return (
+        b.passRate - a.passRate ||
         b.fullMarksCount - a.fullMarksCount ||
         b.p90Count - a.p90Count ||
-        b.passRate - a.passRate ||
-        b.averageScore - a.averageScore
+        b.averageScore - a.averageScore ||
+        b.totalStudents - a.totalStudents
       );
     });
 
     return list;
-  }, [examPlansFiltered, selectedSubject, selectedStandard, resultsByPlan, rankingSortBy]);
+  }, [examPlansFiltered, selectedSubject, selectedStandard, resultsByPlan]);
 
   // Drill-down data: Detailed student rank list for selected branch
   const drillDownDetails = useMemo(() => {
@@ -539,13 +523,7 @@ export default function ExamSubjectRankingPage() {
       };
     });
 
-    let filtered = sortedStudents;
-    if (selectedPlanFilter === "Advanced") {
-      filtered = filtered.filter((s) => (s.customPlan || "").toLowerCase().includes("advanced"));
-    } else if (selectedPlanFilter === "Basic") {
-      filtered = filtered.filter((s) => (s.customPlan || "").toLowerCase().includes("basic") || !s.customPlan);
-    }
-
+    const filtered = sortedStudents;
     filtered.sort((a, b) => b.score - a.score || b.pct - a.pct);
 
     let rank = 1;
@@ -667,12 +645,223 @@ export default function ExamSubjectRankingPage() {
       filteredStudents,
       analysisData,
     };
-  }, [drillDownBranch, branchRankings, selectedPlanFilter, studentPlanMap, selectedStudentFilter]);
+  }, [drillDownBranch, branchRankings, studentPlanMap, selectedStudentFilter]);
 
   const pageLoading = branchesLoading || plansLoading || resultsLoading;
 
-  const handlePrintTranscript = () => {
-    window.print();
+  const handleExportExcel = async () => {
+    if (!drillDownDetails) return;
+    setIsExportingExcel(true);
+    try {
+      const ExcelJS = (await import("exceljs")).default;
+      const wb = new ExcelJS.Workbook();
+      wb.creator = "SmartUp ERP";
+      wb.created = new Date();
+
+      const branchClean = drillDownDetails.branchInfo.branchClean;
+      const activeFilterObj = studentFilterOptions.find((o) => o.value === selectedStudentFilter);
+      const activeFilterLabel = activeFilterObj ? activeFilterObj.label : "All Students";
+
+      // ── SHEET 1: Rank List ──
+      const ws1 = wb.addWorksheet("Rank List");
+
+      // Title Banner
+      ws1.mergeCells("A1:I1");
+      const titleCell = ws1.getCell("A1");
+      titleCell.value = `SMARTUP LEARNING VENTURES — ${drillDownDetails.branchInfo.branchClean.toUpperCase()}`;
+      titleCell.font = { name: "Arial", size: 13, bold: true, color: { argb: "FFFFFFFF" } };
+      titleCell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF059669" }, // emerald-600
+      };
+      titleCell.alignment = { vertical: "middle", horizontal: "center" };
+      ws1.getRow(1).height = 28;
+
+      // Subtitle
+      ws1.mergeCells("A2:I2");
+      const subCell = ws1.getCell("A2");
+      subCell.value = `${selectedStandard} Grade ${selectedSubject} • Exam: ${selectedExam} • Filter: ${activeFilterLabel} (${drillDownDetails.filteredStudents.length} Students) • Date: ${new Date().toLocaleDateString("en-IN")}`;
+      subCell.font = { name: "Arial", size: 10, italic: true, color: { argb: "FF334155" } };
+      subCell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFF1F5F9" }, // slate-100
+      };
+      subCell.alignment = { vertical: "middle", horizontal: "center" };
+      ws1.getRow(2).height = 20;
+
+      ws1.getRow(3).height = 8;
+
+      // Table Headers
+      const headers1 = [
+        "Rank",
+        "Student Name",
+        "Student ID",
+        "Batch / Class",
+        "Score",
+        "Max Score",
+        "% Score",
+        "Grade",
+        "Status",
+      ];
+      const headerRow1 = ws1.addRow(headers1);
+      headerRow1.height = 24;
+      headerRow1.eachCell((cell) => {
+        cell.font = { name: "Arial", size: 10, bold: true, color: { argb: "FFFFFFFF" } };
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FF0F766E" }, // teal-700
+        };
+        cell.alignment = { vertical: "middle", horizontal: "center" };
+        cell.border = {
+          top: { style: "thin", color: { argb: "FFCBD5E1" } },
+          bottom: { style: "medium", color: { argb: "FF0D9488" } },
+          left: { style: "thin", color: { argb: "FFCBD5E1" } },
+          right: { style: "thin", color: { argb: "FFCBD5E1" } },
+        };
+      });
+
+      // Data Rows
+      drillDownDetails.filteredStudents.forEach((st) => {
+        const row = ws1.addRow([
+          st.rank,
+          st.studentName,
+          st.student,
+          st.studentGroup?.replace(/^Smart\s+Up\s+|^[A-Za-z0-9]+-/, "") || "General",
+          st.score,
+          st.max,
+          `${st.pct}%`,
+          st.grade,
+          st.passed ? "Passed" : "Failed",
+        ]);
+        row.height = 20;
+        row.eachCell((cell, colNum) => {
+          cell.font = { name: "Arial", size: 9 };
+          cell.alignment = {
+            vertical: "middle",
+            horizontal: colNum === 2 ? "left" : "center",
+          };
+          cell.border = {
+            top: { style: "thin", color: { argb: "FFE2E8F0" } },
+            bottom: { style: "thin", color: { argb: "FFE2E8F0" } },
+            left: { style: "thin", color: { argb: "FFE2E8F0" } },
+            right: { style: "thin", color: { argb: "FFE2E8F0" } },
+          };
+          if (colNum === 9) {
+            cell.font = {
+              name: "Arial",
+              size: 9,
+              bold: true,
+              color: { argb: st.passed ? "FF16A34A" : "FFE11D48" },
+            };
+          }
+        });
+      });
+
+      ws1.columns = [
+        { width: 8 },  // Rank
+        { width: 28 }, // Name
+        { width: 18 }, // ID
+        { width: 22 }, // Batch
+        { width: 12 }, // Score
+        { width: 12 }, // Max Score
+        { width: 12 }, // % Score
+        { width: 10 }, // Grade
+        { width: 12 }, // Status
+      ];
+
+      // ── SHEET 2: Performance Analysis ──
+      const ws2 = wb.addWorksheet("Performance Analysis");
+
+      ws2.mergeCells("A1:D1");
+      const title2 = ws2.getCell("A1");
+      title2.value = `PERFORMANCE ANALYSIS — ${drillDownDetails.branchInfo.branchClean.toUpperCase()} (${selectedStandard} Grade ${selectedSubject})`;
+      title2.font = { name: "Arial", size: 12, bold: true, color: { argb: "FFFFFFFF" } };
+      title2.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF059669" },
+      };
+      title2.alignment = { vertical: "middle", horizontal: "center" };
+      ws2.getRow(1).height = 26;
+
+      ws2.getRow(2).height = 8;
+
+      const headers2 = ["Analysis Criteria", "Count", "Names", "% of Class / Branch"];
+      const headerRow2 = ws2.addRow(headers2);
+      headerRow2.height = 22;
+      headerRow2.eachCell((cell) => {
+        cell.font = { name: "Arial", size: 10, bold: true, color: { argb: "FFFFFFFF" } };
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FF0F766E" },
+        };
+        cell.alignment = { vertical: "middle", horizontal: "center" };
+        cell.border = {
+          top: { style: "thin", color: { argb: "FFCBD5E1" } },
+          bottom: { style: "medium", color: { argb: "FF0D9488" } },
+          left: { style: "thin", color: { argb: "FFCBD5E1" } },
+          right: { style: "thin", color: { argb: "FFCBD5E1" } },
+        };
+      });
+
+      drillDownDetails.analysisData.forEach((item) => {
+        const row = ws2.addRow([
+          item.criteria,
+          item.count,
+          item.names,
+          item.isPct ? `${item.percentage}%` : "—",
+        ]);
+        row.height = 20;
+        row.eachCell((cell, colNum) => {
+          cell.font = { name: "Arial", size: 9 };
+          cell.alignment = {
+            vertical: "middle",
+            horizontal: colNum === 3 ? "left" : colNum === 1 ? "left" : "center",
+          };
+          cell.border = {
+            top: { style: "thin", color: { argb: "FFE2E8F0" } },
+            bottom: { style: "thin", color: { argb: "FFE2E8F0" } },
+            left: { style: "thin", color: { argb: "FFE2E8F0" } },
+            right: { style: "thin", color: { argb: "FFE2E8F0" } },
+          };
+          if (colNum === 1) {
+            cell.font = { name: "Arial", size: 9, bold: true };
+          }
+        });
+      });
+
+      ws2.columns = [
+        { width: 28 }, // Criteria
+        { width: 12 }, // Count
+        { width: 65 }, // Names
+        { width: 22 }, // % of Class
+      ];
+
+      const buf = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buf], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const cleanFileName = `SmartUp_${branchClean}_${selectedStandard}_${selectedSubject}_${selectedExam}_Rankings.xlsx`
+        .replace(/\s+/g, "_")
+        .replace(/[^a-zA-Z0-9_.-]/g, "");
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = cleanFileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Failed to export Excel:", err);
+    } finally {
+      setIsExportingExcel(false);
+    }
   };
 
   return (
@@ -909,49 +1098,13 @@ export default function ExamSubjectRankingPage() {
               exit={{ opacity: 0, y: -15 }}
               className="space-y-6"
             >
-              {/* Filter & Metric Selector Bar */}
+              {/* Leaderboard Header */}
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-surface p-4 rounded-2xl border border-border/60">
                 <div>
                   <h2 className="text-lg font-bold text-text-primary">
                     {selectedStandard} Grade {selectedSubject} – {selectedExam} Leaderboard
                   </h2>
                   <p className="text-xs text-text-secondary">Branch comparative rankings and metrics</p>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-text-secondary font-medium">Plan:</span>
-                    <select
-                      value={selectedPlanFilter}
-                      onChange={(e) => setSelectedPlanFilter(e.target.value as any)}
-                      className="h-9 px-3 text-xs bg-surface border border-border-input rounded-xl font-semibold text-text-primary"
-                    >
-                      <option value="all">All Plans</option>
-                      <option value="Advanced">⚡ Advanced Students</option>
-                      <option value="Basic">📘 Basic Students</option>
-                    </select>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-text-secondary font-medium">Sort By:</span>
-                    <select
-                      value={rankingSortBy}
-                      onChange={(e) => setRankingSortBy(e.target.value as any)}
-                      className="h-9 px-3 text-xs bg-surface border border-border-input rounded-xl font-semibold text-text-primary"
-                    >
-                      <option value="passRate">Highest Pass Rate</option>
-                      <option value="averageScore">Highest Average Score</option>
-                      <option value="topperCount">Most Full Marks</option>
-                    </select>
-                  </div>
-
-                  <button
-                    onClick={handlePrintTranscript}
-                    className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-semibold hover:bg-slate-200 transition-colors"
-                  >
-                    <Printer className="h-4 w-4" />
-                    Print
-                  </button>
                 </div>
               </div>
 
@@ -1075,20 +1228,6 @@ export default function ExamSubjectRankingPage() {
                         </select>
                       </div>
 
-                      {/* Plan Filter */}
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-black text-text-secondary uppercase tracking-wider">Plan:</span>
-                        <select
-                          value={selectedPlanFilter}
-                          onChange={(e) => setSelectedPlanFilter(e.target.value as any)}
-                          className="h-8 px-2.5 text-xs bg-surface border border-border-input rounded-[8px] font-semibold text-text-primary focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
-                        >
-                          <option value="all">All Plans</option>
-                          <option value="Advanced">⚡ Advanced Students</option>
-                          <option value="Basic">📘 Basic Students</option>
-                        </select>
-                      </div>
-
                       {/* Back button */}
                       <button
                         onClick={() => {
@@ -1100,96 +1239,24 @@ export default function ExamSubjectRankingPage() {
                         Back to All Branches
                       </button>
 
-                      {/* Print Button */}
+                      {/* Excel Download Button */}
                       <button
-                        onClick={() => {
-                          const element = document.getElementById("printable-subject-ranking-card");
-                          if (!element) return;
-                          
-                          const clone = element.cloneNode(true) as HTMLElement;
-                          clone.id = "print-clone-container";
-                          
-                          const style = document.createElement("style");
-                          style.id = "print-style-block";
-                          style.innerHTML = `
-                            @media print {
-                              @page {
-                                size: A4 portrait;
-                                margin: 12mm 15mm;
-                              }
-                              body > * {
-                                display: none !important;
-                              }
-                              body > #print-clone-container {
-                                display: block !important;
-                              }
-                              #print-clone-container {
-                                display: block !important;
-                                width: 100% !important;
-                                height: auto !important;
-                                overflow: visible !important;
-                                position: static !important;
-                                background: white !important;
-                                border: none !important;
-                                box-shadow: none !important;
-                                margin: 0 !important;
-                                padding: 0 !important;
-                                visibility: visible !important;
-                                opacity: 1 !important;
-                              }
-                              #print-clone-container *:not(img):not(.watermark-container) {
-                                visibility: visible !important;
-                                opacity: 1 !important;
-                              }
-                              #print-clone-container .watermark-container {
-                                display: none !important;
-                              }
-                              #print-clone-container::after {
-                                content: "" !important;
-                                display: block !important;
-                                visibility: visible !important;
-                                position: fixed !important;
-                                left: 50% !important;
-                                top: 45% !important;
-                                transform: translate(-50%, -50%) !important;
-                                width: 300px !important;
-                                height: 300px !important;
-                                background-image: url('/smartup-logo-v2.png') !important;
-                                background-repeat: no-repeat !important;
-                                background-position: center !important;
-                                background-size: contain !important;
-                                opacity: 0.05 !important;
-                                z-index: -1000 !important;
-                                pointer-events: none !important;
-                              }
-                              #print-clone-container table {
-                                width: 100% !important;
-                                table-layout: auto !important;
-                                border-collapse: collapse !important;
-                              }
-                              #print-clone-container tr {
-                                page-break-inside: avoid !important;
-                              }
-                              #print-clone-container th, #print-clone-container td {
-                                font-size: 8px !important;
-                                padding: 5px 6px !important;
-                                border-bottom: 1px solid #eee !important;
-                              }
-                            }
-                          `;
-                          document.head.appendChild(style);
-                          document.body.appendChild(clone);
-                          
-                          window.print();
-                          
-                          setTimeout(() => {
-                            style.remove();
-                            clone.remove();
-                          }, 1000);
-                        }}
-                        className="h-8 px-3 text-xs font-semibold bg-surface border border-border-input hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-[8px] flex items-center gap-1.5 transition-colors"
+                        onClick={handleExportExcel}
+                        disabled={isExportingExcel}
+                        className="h-8 px-3 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-[8px] flex items-center gap-1.5 transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
+                        title="Download Branch Rankings & Performance Analysis Excel"
                       >
-                        <Printer className="h-3.5 w-3.5" /> Print Report
+                        {isExportingExcel ? (
+                          <>
+                            <span className="h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            <span>Exporting...</span>
+                          </>
+                        ) : (
+                          <>
+                            <FileSpreadsheet className="h-3.5 w-3.5" />
+                            <span>Download Excel</span>
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>
