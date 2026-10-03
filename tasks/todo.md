@@ -9,14 +9,14 @@ Update `/dashboard/curriculum-dept/exam-corner/subject-ranking` according to use
 
 ## Implementation Steps
 - [x] 1. Update state and sorting logic in `ExamSubjectRankingPage`:
-  - Remove `selectedPlanFilter` and `rankingSortBy` state.
+  - Removed `selectedPlanFilter` and `rankingSortBy` state.
   - Set default branch ranking sort to highest pass rate.
-  - Add `isExportingExcel` state and `handleExportExcel` function with `exceljs`.
+  - Added `isExportingExcel` state and `handleExportExcel` function with `exceljs`.
 - [x] 2. Update All-Branch Leaderboard header:
-  - Remove `Plan` dropdown, `Sort By` dropdown, and `Print` button.
+  - Removed `Plan` dropdown, `Sort By` dropdown, and `Print` button.
 - [x] 3. Update Branch Drill-Down header:
-  - Remove `Plan` dropdown.
-  - Replace `Print Report` button with `Excel Download` button with loading state.
+  - Removed `Plan` dropdown.
+  - Replaced `Print Report` button with `Download Excel` button with loading state.
 - [x] 4. Verify TypeScript compilation (`npx tsc --noEmit` exited with code 0).
-- [ ] 5. Push to Git and deploy to production server.
-- [ ] 6. Verify production cluster.
+- [x] 5. Push to Git and deploy to production server (`commit 2a6d7a0`).
+- [x] 6. Verify production cluster health across all 4 nodes (`3001`, `3005`, `3006`, `3007`) and public domain.
