@@ -36,7 +36,11 @@ function fmtINR(n: number): string {
 
 type BranchRow = { name: string; abbr: string; shortName: string; collection: number; expense: number; profit: number; loans: number };
 
-function exportAccountsToExcel(rows: BranchRow[], totals: { collection: number; expense: number; profit: number; loans: number }) {
+function exportAccountsToExcel(
+  rows: BranchRow[],
+  totals: { collection: number; expense: number; profit: number; loans: number },
+  periodLabel = "All Time"
+) {
   const headers = ["#", "Branch", "Collection", "Expense", "Profit", "Loans"];
   const dataRows = rows.map((r, i) => [
     String(i + 1),
@@ -53,12 +57,17 @@ function exportAccountsToExcel(rows: BranchRow[], totals: { collection: number; 
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `Accounts_Report_${new Date().toISOString().slice(0, 10)}.csv`;
+  const cleanPeriod = periodLabel.replace(/\s+/g, "_");
+  a.download = `Accounts_Report_${cleanPeriod}_${new Date().toISOString().slice(0, 10)}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }
 
-function exportAccountsToPDF(rows: BranchRow[], totals: { collection: number; expense: number; profit: number; loans: number }) {
+function exportAccountsToPDF(
+  rows: BranchRow[],
+  totals: { collection: number; expense: number; profit: number; loans: number },
+  periodLabel = "All Time"
+) {
   import("jspdf").then(({ jsPDF }) => {
     import("jspdf-autotable").then((mod) => {
       const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
@@ -78,7 +87,7 @@ function exportAccountsToPDF(rows: BranchRow[], totals: { collection: number; ex
       doc.text("SmartUp", 14, 14);
       doc.setFontSize(12);
       doc.setFont("helvetica", "normal");
-      doc.text("Consolidated Accounts Report", 14, 21);
+      doc.text(`Consolidated Accounts Report • ${periodLabel}`, 14, 21);
       doc.setFontSize(9);
       doc.text(`Generated: ${dateLabel}`, 283, 14, { align: "right" });
 
@@ -119,23 +128,64 @@ function exportAccountsToPDF(rows: BranchRow[], totals: { collection: number; ex
       doc.text("Smart Up Learning Ventures | smartuplearningventures@gmail.com | +91 7356072106", 14, ph - 8);
       doc.text("All amounts in Indian Rupees (INR)", 283, ph - 8, { align: "right" });
 
-      doc.save(`Accounts_Report_${new Date().toISOString().slice(0, 10)}.pdf`);
+      const cleanPeriod = periodLabel.replace(/\s+/g, "_");
+      doc.save(`Accounts_Report_${cleanPeriod}_${new Date().toISOString().slice(0, 10)}.pdf`);
     });
   });
 }
 
+const MONTHS = [
+  { value: "all", label: "All Months" },
+  { value: "01", label: "January" },
+  { value: "02", label: "February" },
+  { value: "03", label: "March" },
+  { value: "04", label: "April" },
+  { value: "05", label: "May" },
+  { value: "06", label: "June" },
+  { value: "07", label: "July" },
+  { value: "08", label: "August" },
+  { value: "09", label: "September" },
+  { value: "10", label: "October" },
+  { value: "11", label: "November" },
+  { value: "12", label: "December" },
+];
+
 export default function AccountsDashboardPage() {
+  const currentYear = new Date().getFullYear();
+  const [selectedYear, setSelectedYear] = useState<number>(currentYear);
+  const [selectedMonth, setSelectedMonth] = useState<string>("all");
+
+  const { fromDate, toDate, periodLabel } = useMemo(() => {
+    if (selectedMonth === "all") {
+      return {
+        fromDate: undefined,
+        toDate: undefined,
+        periodLabel: "All Time",
+      };
+    }
+    const monthNum = parseInt(selectedMonth, 10);
+    const start = `${selectedYear}-${selectedMonth}-01`;
+    const lastDay = new Date(selectedYear, monthNum, 0).getDate();
+    const end = `${selectedYear}-${selectedMonth}-${String(lastDay).padStart(2, "0")}`;
+    const mObj = MONTHS.find((m) => m.value === selectedMonth);
+    return {
+      fromDate: start,
+      toDate: end,
+      periodLabel: `${mObj?.label ?? selectedMonth} ${selectedYear}`,
+    };
+  }, [selectedYear, selectedMonth]);
+
   // Invoice-based fee collection stats (same source as Fees page)
   const { data: feeData, isLoading: feeLoading } = useQuery({
-    queryKey: ["consolidated-fee-stats"],
-    queryFn: getConsolidatedFeeStats,
-    staleTime: 120_000,
+    queryKey: ["consolidated-fee-stats", fromDate, toDate],
+    queryFn: () => getConsolidatedFeeStats({ fromDate, toDate }),
+    staleTime: 60_000,
   });
 
   const { data: expenseData, isLoading: expenseLoading } = useQuery({
-    queryKey: ["director-expense-summary"],
-    queryFn: getExpenseSummary,
-    staleTime: 120_000,
+    queryKey: ["director-expense-summary", fromDate, toDate],
+    queryFn: () => getExpenseSummary({ from_date: fromDate, to_date: toDate }),
+    staleTime: 60_000,
   });
 
   const { data: loanData, isLoading: loanLoading } = useQuery({
@@ -212,45 +262,80 @@ export default function AccountsDashboardPage() {
     >
       <BreadcrumbNav />
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-text-primary">Accounts</h1>
           <p className="text-sm text-text-secondary mt-0.5">
-            Financial overview across all branches
+            Financial overview across all branches {periodLabel !== "All Time" ? `• ${periodLabel}` : ""}
           </p>
         </div>
 
-        {/* Export dropdown */}
-        {!isLoading && branchRows.length > 0 && (
-          <div className="relative" ref={exportRef}>
-            <button
-              onClick={() => setExportOpen((v) => !v)}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg border border-border-light bg-surface hover:bg-surface-hover text-text-primary transition-colors"
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Month & Year Filter */}
+          <div className="flex items-center gap-1.5 bg-surface border border-border-light rounded-xl px-2.5 py-1.5 shadow-sm">
+            <CalendarRange className="h-4 w-4 text-primary shrink-0" />
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="text-xs font-medium bg-transparent text-text-primary outline-none cursor-pointer pr-1"
             >
-              <Download className="h-3.5 w-3.5" />
-              Export
-              <ChevronDown className={`h-3 w-3 transition-transform ${exportOpen ? "rotate-180" : ""}`} />
-            </button>
-            {exportOpen && (
-              <div className="absolute right-0 mt-1 w-40 rounded-lg border border-border-light bg-surface shadow-lg z-20 py-1">
-                <button
-                  onClick={() => { exportAccountsToPDF(branchRows, grandTotals); setExportOpen(false); }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-text-primary hover:bg-surface-hover transition-colors"
+              {MONTHS.map((m) => (
+                <option key={m.value} value={m.value} className="bg-surface text-text-primary">
+                  {m.label}
+                </option>
+              ))}
+            </select>
+
+            {selectedMonth !== "all" && (
+              <>
+                <span className="text-border-light">|</span>
+                <select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(Number(e.target.value))}
+                  className="text-xs font-medium bg-transparent text-text-primary outline-none cursor-pointer"
                 >
-                  <FileText className="h-3.5 w-3.5 text-rose-500" />
-                  Download PDF
-                </button>
-                <button
-                  onClick={() => { exportAccountsToExcel(branchRows, grandTotals); setExportOpen(false); }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-text-primary hover:bg-surface-hover transition-colors"
-                >
-                  <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-500" />
-                  Download Excel
-                </button>
-              </div>
+                  {[currentYear, currentYear - 1, currentYear - 2].map((yr) => (
+                    <option key={yr} value={yr} className="bg-surface text-text-primary">
+                      {yr}
+                    </option>
+                  ))}
+                </select>
+              </>
             )}
           </div>
-        )}
+
+          {/* Export dropdown */}
+          {!isLoading && branchRows.length > 0 && (
+            <div className="relative" ref={exportRef}>
+              <button
+                onClick={() => setExportOpen((v) => !v)}
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl border border-border-light bg-surface hover:bg-surface-hover text-text-primary transition-colors shadow-sm"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Export
+                <ChevronDown className={`h-3 w-3 transition-transform ${exportOpen ? "rotate-180" : ""}`} />
+              </button>
+              {exportOpen && (
+                <div className="absolute right-0 mt-1 w-40 rounded-xl border border-border-light bg-surface shadow-lg z-20 py-1">
+                  <button
+                    onClick={() => { exportAccountsToPDF(branchRows, grandTotals, periodLabel); setExportOpen(false); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-text-primary hover:bg-surface-hover transition-colors"
+                  >
+                    <FileText className="h-3.5 w-3.5 text-rose-500" />
+                    Download PDF
+                  </button>
+                  <button
+                    onClick={() => { exportAccountsToExcel(branchRows, grandTotals, periodLabel); setExportOpen(false); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-text-primary hover:bg-surface-hover transition-colors"
+                  >
+                    <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-500" />
+                    Download Excel
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Summary cards */}

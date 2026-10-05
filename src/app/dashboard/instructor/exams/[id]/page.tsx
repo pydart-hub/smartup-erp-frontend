@@ -71,6 +71,7 @@ interface StudentMark {
   student: string;
   student_name: string;
   score: string;
+  diagnosed_level?: string;
 }
 
 export default function InstructorExamMarkEntryPage() {
@@ -89,6 +90,8 @@ export default function InstructorExamMarkEntryPage() {
     queryFn: () => getAssessmentPlan(examId),
     staleTime: 60_000,
   });
+
+  const isDiagnosisExam = plan?.assessment_group?.toLowerCase().includes("diagnos");
 
   // Access check
   const hasAccess = !batchesLoading && plan ? (isBatchAllowed(plan.student_group) || plan.examiner === instructorName) : true;
@@ -119,37 +122,49 @@ export default function InstructorExamMarkEntryPage() {
   useEffect(() => {
     if (!sgData?.students) return;
     const active = sgData.students.filter((s) => s.active !== 0);
-    const existingMap = new Map<string, number>();
+    const existingMap = new Map<string, { score: number; diagnosed_level?: string }>();
     if (existingResults?.data) {
       for (const r of existingResults.data) {
-        existingMap.set(r.student, r.total_score);
+        existingMap.set(r.student, {
+          score: r.total_score,
+          diagnosed_level: (r as any).custom_diagnosed_level,
+        });
       }
     }
     setMarks((prev) => {
       // First load: initialize all from existingMap
       if (!initializedRef.current || prev.length === 0) {
         initializedRef.current = true;
-        return active.map((s) => ({
-          student: s.student,
-          student_name: s.student_name ?? s.student,
-          score: existingMap.has(s.student) ? String(existingMap.get(s.student)) : "",
-        }));
+        return active.map((s) => {
+          const ex = existingMap.get(s.student);
+          return {
+            student: s.student,
+            student_name: s.student_name ?? s.student,
+            score: ex !== undefined ? String(ex.score) : "",
+            diagnosed_level: ex?.diagnosed_level || "",
+          };
+        });
       }
 
       // Subsequent background refetches: preserve any student rows the teacher modified
-      const currentScores = new Map(prev.map((m) => [m.student, m.score]));
+      const currentScores = new Map(prev.map((m) => [m.student, { score: m.score, dl: m.diagnosed_level }]));
       return active.map((s) => {
         const isDirty = dirtyStudentsRef.current.has(s.student);
-        const currentScore = currentScores.get(s.student);
-        const score = isDirty && currentScore !== undefined
-          ? currentScore
-          : existingMap.has(s.student)
-            ? String(existingMap.get(s.student))
-            : currentScore ?? "";
+        const current = currentScores.get(s.student);
+        const ex = existingMap.get(s.student);
+        const score = isDirty && current?.score !== undefined
+          ? current.score
+          : ex !== undefined
+            ? String(ex.score)
+            : current?.score ?? "";
+        const diagnosed_level = isDirty && current?.dl !== undefined
+          ? current.dl
+          : ex?.diagnosed_level || current?.dl || "";
         return {
           student: s.student,
           student_name: s.student_name ?? s.student,
           score,
+          diagnosed_level,
         };
       });
     });
@@ -157,7 +172,7 @@ export default function InstructorExamMarkEntryPage() {
 
   // Save mutation
   const saveMutation = useMutation({
-    mutationFn: (data: { assessment_plan: string; marks: { student: string; score: number }[] }) =>
+    mutationFn: (data: { assessment_plan: string; marks: { student: string; score: number; diagnosed_level?: string }[] }) =>
       saveMarks(data),
     onSuccess: (result: { created: number; errors?: string[]; hasErrors?: boolean }) => {
       dirtyStudentsRef.current.clear();
@@ -202,21 +217,42 @@ export default function InstructorExamMarkEntryPage() {
     });
   }
 
+  function handleDiagnosedLevelChange(idx: number, value: string) {
+    setMarks((prev) => {
+      const next = [...prev];
+      if (next[idx]) {
+        dirtyStudentsRef.current.add(next[idx].student);
+        next[idx] = { ...next[idx], diagnosed_level: value };
+      }
+      return next;
+    });
+  }
+
   function handleSave() {
     const maxScore = plan?.maximum_assessment_score || 100;
-    const validMarks: { student: string; score: number }[] = [];
+    const hasExisting = (existingResults?.data?.length ?? 0) > 0;
+    const validMarks: { student: string; score: number; diagnosed_level?: string }[] = [];
     const errors: string[] = [];
 
     for (const m of marks) {
+      if (hasExisting && !dirtyStudentsRef.current.has(m.student)) continue;
+
       if (m.score === "") continue;
       const num = Number(m.score);
       if (isNaN(num) || num < 0) { errors.push(`${m.student_name}: invalid`); continue; }
       if (num > maxScore) { errors.push(`${m.student_name}: exceeds max`); continue; }
-      validMarks.push({ student: m.student, score: num });
+      validMarks.push({
+        student: m.student,
+        score: num,
+        diagnosed_level: m.diagnosed_level || undefined,
+      });
     }
 
     if (errors.length) { toast.error(errors.join(", ")); return; }
-    if (validMarks.length === 0) { toast.error("Enter at least one score"); return; }
+    if (validMarks.length === 0) {
+      toast.error(hasExisting ? "No changes to save" : "Enter at least one score");
+      return;
+    }
 
     saveMutation.mutate({ assessment_plan: examId, marks: validMarks });
   }
@@ -371,6 +407,9 @@ export default function InstructorExamMarkEntryPage() {
                       <th className="text-left px-3 py-3 font-medium text-text-secondary w-32">
                         Score (/{plan.maximum_assessment_score})
                       </th>
+                      {isDiagnosisExam && (
+                        <th className="text-left px-3 py-3 font-medium text-text-secondary w-36">Diagnosed Level</th>
+                      )}
                       <th className="text-left px-3 py-3 font-medium text-text-secondary w-20">%</th>
                       <th className="text-left px-3 py-3 font-medium text-text-secondary w-20">Grade</th>
                     </tr>
@@ -407,6 +446,24 @@ export default function InstructorExamMarkEntryPage() {
                               }`}
                             />
                           </td>
+                          {isDiagnosisExam && (
+                            <td className="px-3 py-3">
+                              <select
+                                value={m.diagnosed_level || ""}
+                                onChange={(e) => handleDiagnosedLevelChange(idx, e.target.value)}
+                                className="w-28 h-9 rounded-[8px] border border-border-input bg-surface px-2 text-xs font-semibold text-text-primary focus:border-primary"
+                              >
+                                <option value="">Select Level</option>
+                                <option value="4th">4th</option>
+                                <option value="5th">5th</option>
+                                <option value="6th">6th</option>
+                                <option value="7th">7th</option>
+                                <option value="8th">8th</option>
+                                <option value="9th">9th</option>
+                                <option value="10th">10th</option>
+                              </select>
+                            </td>
+                          )}
                           <td className="px-3 py-3 text-text-secondary">
                             {pct !== null ? `${pct}%` : "—"}
                           </td>

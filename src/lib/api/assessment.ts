@@ -203,7 +203,7 @@ export async function deleteExam(name: string): Promise<void> {
 /** Bulk save marks for an exam */
 export async function saveMarks(data: {
   assessment_plan: string;
-  marks: { student: string; score: number }[];
+  marks: { student: string; score: number; diagnosed_level?: string }[];
 }): Promise<{ created: number; errors: string[] }> {
   const res = await fetch("/api/exams/marks", {
     method: "POST",

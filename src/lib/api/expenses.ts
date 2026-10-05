@@ -72,8 +72,15 @@ export interface ExpenseTransactionsResponse {
 
 // ── Fetch functions ──
 
-export async function getExpenseSummary(): Promise<ExpenseSummaryResponse> {
-  const res = await fetch("/api/director/expenses?mode=summary", {
+export async function getExpenseSummary(opts?: {
+  from_date?: string;
+  to_date?: string;
+}): Promise<ExpenseSummaryResponse> {
+  const params = new URLSearchParams({ mode: "summary" });
+  if (opts?.from_date) params.set("from_date", opts.from_date);
+  if (opts?.to_date) params.set("to_date", opts.to_date);
+
+  const res = await fetch(`/api/director/expenses?${params.toString()}`, {
     credentials: "include",
   });
   if (!res.ok) throw new Error(`expense summary failed: ${res.status}`);

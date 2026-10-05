@@ -467,7 +467,7 @@ export default function ExpensePage() {
     isLoading: expenseLoading,
   } = useQuery({
     queryKey: ["director-expense-summary"],
-    queryFn: getExpenseSummary,
+    queryFn: () => getExpenseSummary(),
     staleTime: 120_000,
   });
 

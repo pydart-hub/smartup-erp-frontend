@@ -1947,11 +1947,18 @@ export interface ConsolidatedFeeStats {
  * Uses the same Sales Invoice data as the Fees Overview page —
  * collected = sum(grand_total) - sum(outstanding_amount).
  */
-export async function getConsolidatedFeeStats(): Promise<ConsolidatedFeeStats> {
+export async function getConsolidatedFeeStats(opts?: {
+  fromDate?: string;
+  toDate?: string;
+}): Promise<ConsolidatedFeeStats> {
   const res = await fetch("/api/director/report-fees", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ mode: "branch" }),
+    body: JSON.stringify({
+      mode: "branch",
+      fromDate: opts?.fromDate,
+      toDate: opts?.toDate,
+    }),
     credentials: "include",
   });
   if (!res.ok) throw new Error(`consolidated fee stats failed: ${res.status}`);

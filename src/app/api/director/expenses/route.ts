@@ -117,7 +117,7 @@ export async function GET(request: NextRequest) {
             ["is_group", "=", 0],
           ]),
           fields: JSON.stringify(["name", "company", "account_name", "parent_account"]),
-          limit_page_length: "500",
+          limit_page_length: "0",
         }),
         frappeGet("/api/resource/Account", {
           filters: JSON.stringify([
@@ -125,7 +125,7 @@ export async function GET(request: NextRequest) {
             ["is_group", "=", 1],
           ]),
           fields: JSON.stringify(["name", "account_name"]),
-          limit_page_length: "200",
+          limit_page_length: "0",
         }),
       ]);
 
@@ -137,10 +137,17 @@ export async function GET(request: NextRequest) {
         groupNameMap.set(g.name, g.account_name);
       }
 
+      const fromDate = sp.get("from_date") || "";
+      const toDate = sp.get("to_date") || "";
+
       // Fetch ALL GL debits grouped by company+account (small result set ~80 rows).
       // We filter against the expense account set in-memory because passing 300+
       // account names in a Frappe "in" filter exceeds the URL length limit.
       // Use sum(debit) - sum(credit) to match Frappe P&L net calculation.
+      const glFilters: (string | number | string[])[][] = [["is_cancelled", "=", 0]];
+      if (fromDate) glFilters.push(["posting_date", ">=", fromDate]);
+      if (toDate) glFilters.push(["posting_date", "<=", toDate]);
+
       const allGLTotals: {
         company: string;
         account: string;
@@ -148,9 +155,7 @@ export async function GET(request: NextRequest) {
         total_credit: number;
         entry_count: number;
       }[] = await frappeGet("/api/resource/GL Entry", {
-        filters: JSON.stringify([
-          ["is_cancelled", "=", 0],
-        ]),
+        filters: JSON.stringify(glFilters),
         fields: JSON.stringify([
           "company",
           "account",
@@ -159,7 +164,7 @@ export async function GET(request: NextRequest) {
           "count(name) as entry_count",
         ]),
         group_by: "company,account",
-        limit_page_length: "1000",
+        limit_page_length: "0",
         order_by: "sum(debit) desc",
       });
 
