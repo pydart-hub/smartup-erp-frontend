@@ -29,11 +29,11 @@ export const INSTALMENT_DUE_DATES = {
     { month: 2, day: 15 },
   ],
   inst5: [
-    { month: 8, day: 15 },
     { month: 9, day: 15 },
     { month: 10, day: 15 },
     { month: 11, day: 15 },
     { month: 0, day: 15 },
+    { month: 1, day: 15 },
   ],
   inst6: [
     { month: 6, day: 15 },

@@ -353,9 +353,9 @@ export const HSS_PROGRAMS = [
 
 /** Branches that support subject-wise admission and their available subjects (all levels combined) */
 export const SUBJECT_BY_BRANCH: Record<string, string[]> = {
-  "Kadavanthara":   ["Physics", "Chemistry", "Maths"],
-  "Vennala":        ["Physics", "Chemistry", "Maths", "Phy-Chem", "Phy-Maths", "Chem-Maths"],
-  "Edapally":       ["Physics", "Chemistry", "Maths", "Phy-Chem", "Phy-Maths", "Chem-Maths"],
+  "Kadavanthara":   ["Phy-Chem", "Maths"],
+  "Vennala":        ["Phy-Chem", "Maths"],
+  "Edapally":       ["Phy-Chem", "Maths"],
   "Thoppumpady":    ["Phy-Chem"],
   "Tier 1":         ["Phy-Chem"],
   "Eraveli":        ["Phy-Chem"],
