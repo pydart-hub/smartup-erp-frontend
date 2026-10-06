@@ -6,12 +6,11 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ClipboardCheck, Calendar, Users, CheckCircle,
   XCircle, Clock, Loader2, UserX, Save, ArrowLeft, Building2, LogIn, LogOut,
-  Palmtree, Sliders, Sparkles, BookOpen,
+  Palmtree, Sliders, Sparkles, BookOpen, Plus, Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -19,6 +18,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/hooks/useAuth";
 import {
   type EmployeeAttendance,
+  type AttendanceBranchSession,
   getEmployeeAttendance,
   getEmployees,
   getInstructorsWithCourses,
@@ -27,12 +27,21 @@ import {
 } from "@/lib/api/employees";
 import { getCourseSchedules } from "@/lib/api/courseSchedule";
 
-type StaffStatus = "Present" | "Absent" | "Half Day" | "On Leave" | "Work From Home" | "At Head Office" | "Holiday";
+type StaffStatus = "Present" | "Absent" | "Half Day" | "On Leave" | "Work From Home" | "At Head Office" | "Holiday" | "Not Marked";
+
+export interface BranchSessionItem {
+  id: string;
+  title?: string;
+  session_type?: "Morning" | "Afternoon" | "Evening" | "Full Day";
+  class_time?: string;
+  in_time?: string;
+  out_time?: string;
+  status: StaffStatus;
+}
 
 interface StaffAttendanceChange {
   status: StaffStatus;
-  in_time?: string;
-  out_time?: string;
+  sessions: BranchSessionItem[];
 }
 
 const STATUS_OPTIONS: StaffStatus[] = ["Present", "Absent", "Half Day", "Work From Home", "At Head Office", "Holiday"];
@@ -53,6 +62,178 @@ function formatTimeForInput(val?: string | null): string {
   }
   return val.slice(0, 5);
 }
+
+// Convert 24-hour "HH:mm" to 12-hour format "hh:mm AM/PM"
+function formatTo12Hour(time24?: string | null): string {
+  if (!time24) return "";
+  const parts = time24.split(":");
+  if (parts.length < 2) return time24;
+  const hours = parseInt(parts[0], 10);
+  const minutes = parts[1].slice(0, 2);
+  if (isNaN(hours)) return time24;
+  const period = hours >= 12 ? "PM" : "AM";
+  const hours12 = hours % 12 === 0 ? 12 : hours % 12;
+  return `${hours12.toString().padStart(2, "0")}:${minutes} ${period}`;
+}
+
+// Compact 12-hour input component (outputs 24-hour "HH:mm" to onChange)
+interface Time12InputProps {
+  value: string;
+  onChange: (val: string) => void;
+  className?: string;
+  size?: "sm" | "md";
+}
+
+function Time12Input({ value, onChange, className = "", size = "sm" }: Time12InputProps) {
+  // Parse incoming "HH:mm"
+  let initialHour12 = "09";
+  let initialMinute = "00";
+  let initialPeriod = "AM";
+
+  if (value && value.includes(":")) {
+    const [hStr, mStr] = value.split(":");
+    const h = parseInt(hStr, 10);
+    if (!isNaN(h)) {
+      initialPeriod = h >= 12 ? "PM" : "AM";
+      const h12 = h % 12 === 0 ? 12 : h % 12;
+      initialHour12 = h12.toString().padStart(2, "0");
+      initialMinute = (mStr || "00").slice(0, 2);
+    }
+  }
+
+  const [hour, setHour] = useState(initialHour12);
+  const [minute, setMinute] = useState(initialMinute);
+  const [period, setPeriod] = useState(initialPeriod);
+
+  // Sync internal state when external value changes
+  useEffect(() => {
+    if (value && value.includes(":")) {
+      const [hStr, mStr] = value.split(":");
+      const h = parseInt(hStr, 10);
+      if (!isNaN(h)) {
+        const p = h >= 12 ? "PM" : "AM";
+        const h12 = h % 12 === 0 ? 12 : h % 12;
+        setHour(h12.toString().padStart(2, "0"));
+        setMinute((mStr || "00").slice(0, 2));
+        setPeriod(p);
+      }
+    } else if (!value) {
+      setHour("");
+      setMinute("");
+    }
+  }, [value]);
+
+  const updateTime = (newH: string, newM: string, newP: string) => {
+    if (!newH && !newM) {
+      onChange("");
+      return;
+    }
+    const hNum = parseInt(newH || "0", 10);
+    const mNum = parseInt(newM || "0", 10);
+    let h24 = hNum % 12;
+    if (newP === "PM") h24 += 12;
+    const formatted = `${h24.toString().padStart(2, "0")}:${(isNaN(mNum) ? 0 : mNum).toString().padStart(2, "0")}`;
+    onChange(formatted);
+  };
+
+  const hoursList = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, "0"));
+  // Support all minutes from 00 to 59 for exact check-in / check-out records
+  const minutesList = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, "0"));
+
+  if (size === "md") {
+    return (
+      <div className={`flex items-center gap-1 rounded-[10px] border border-border-input bg-surface px-2 py-1 ${className}`}>
+        <select
+          value={hour}
+          onChange={(e) => {
+            setHour(e.target.value);
+            updateTime(e.target.value, minute || "00", period);
+          }}
+          className="bg-transparent text-sm font-medium text-text-primary focus:outline-none cursor-pointer"
+        >
+          {hoursList.map((h) => (
+            <option key={h} value={h} className="bg-surface text-text-primary">
+              {h}
+            </option>
+          ))}
+        </select>
+        <span className="text-text-tertiary text-xs font-bold">:</span>
+        <select
+          value={minute}
+          onChange={(e) => {
+            setMinute(e.target.value);
+            updateTime(hour || "09", e.target.value, period);
+          }}
+          className="bg-transparent text-sm font-medium text-text-primary focus:outline-none cursor-pointer"
+        >
+          {minutesList.map((m) => (
+            <option key={m} value={m} className="bg-surface text-text-primary">
+              {m}
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          onClick={() => {
+            const nextP = period === "AM" ? "PM" : "AM";
+            setPeriod(nextP);
+            updateTime(hour || "09", minute || "00", nextP);
+          }}
+          className="ml-1 px-1.5 py-0.5 rounded text-xs font-bold bg-brand-wash text-primary hover:bg-primary/20 transition-colors"
+        >
+          {period}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`flex items-center gap-0.5 bg-surface border border-border-input rounded px-1.5 py-0.5 ${className}`}>
+      <select
+        value={hour}
+        onChange={(e) => {
+          setHour(e.target.value);
+          updateTime(e.target.value, minute || "00", period);
+        }}
+        className="bg-transparent text-[11px] font-semibold text-text-primary focus:outline-none cursor-pointer p-0"
+      >
+        {hoursList.map((h) => (
+          <option key={h} value={h} className="bg-surface text-text-primary">
+            {h}
+          </option>
+        ))}
+      </select>
+      <span className="text-text-tertiary text-[10px] font-bold leading-none">:</span>
+      <select
+        value={minute}
+        onChange={(e) => {
+          setMinute(e.target.value);
+          updateTime(hour || "09", e.target.value, period);
+        }}
+        className="bg-transparent text-[11px] font-semibold text-text-primary focus:outline-none cursor-pointer p-0"
+      >
+        {minutesList.map((m) => (
+          <option key={m} value={m} className="bg-surface text-text-primary">
+            {m}
+          </option>
+        ))}
+      </select>
+      <button
+        type="button"
+        onClick={() => {
+          const nextP = period === "AM" ? "PM" : "AM";
+          setPeriod(nextP);
+          updateTime(hour || "09", minute || "00", nextP);
+        }}
+        className="ml-0.5 px-1 py-0 rounded text-[9.5px] font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-colors leading-normal"
+        title="Toggle AM / PM"
+      >
+        {period}
+      </button>
+    </div>
+  );
+}
+
 
 const statusConfig: Record<string, { color: string; bg: string; icon: React.ComponentType<{ className?: string }>; variant: "success" | "error" | "warning" | "default" }> = {
   Present: { color: "text-success", bg: "bg-success-light", icon: CheckCircle, variant: "success" },
@@ -270,7 +451,7 @@ export default function StaffAttendancePage() {
   );
 
   // Helper to parse sessions JSON safely
-  const parseSessions = (jsonStr?: string): Array<{ branch: string; status: string; in_time?: string; out_time?: string; class_time?: string; is_visiting?: number | boolean }> => {
+  const parseSessions = (jsonStr?: string): Array<AttendanceBranchSession & { id?: string }> => {
     if (!jsonStr) return [];
     try {
       const parsed = JSON.parse(jsonStr);
@@ -280,26 +461,105 @@ export default function StaffAttendancePage() {
     }
   };
 
+  // Helper to extract branch sessions for current branch with global session numbering
+  const getBranchSessionsFromAtt = useCallback(
+    (att?: EmployeeAttendance, defaultClassTimeVal?: string): BranchSessionItem[] => {
+      const allSessions = parseSessions(att?.custom_sessions_json);
+      const otherBranchSessions = allSessions.filter((s) => s.branch !== defaultCompany);
+      const branchSessions = allSessions.filter((s) => s.branch === defaultCompany);
+      const priorCount = otherBranchSessions.length;
+
+      if (!att) {
+        return [
+          {
+            id: "sess_1",
+            title: "Session 1",
+            session_type: "Morning",
+            class_time: defaultClassTimeVal || "09:00",
+            in_time: DEFAULT_IN_TIME,
+            out_time: DEFAULT_OUT_TIME,
+            status: "Present",
+          },
+        ];
+      }
+
+      if (branchSessions.length > 0) {
+        return branchSessions.map((s, idx) => {
+          const globalNum = priorCount + idx + 1;
+          return {
+            id: s.id || `sess_${globalNum}`,
+            title: s.title || s.remarks || `Session ${globalNum}`,
+            session_type: s.session_type,
+            class_time: formatTimeForInput(s.class_time) || defaultClassTimeVal || "",
+            in_time: formatTimeForInput(s.in_time),
+            out_time: formatTimeForInput(s.out_time),
+            status: (s.status as StaffStatus) || (att.status as StaffStatus) || "Present",
+          };
+        });
+      }
+
+      // If other branch already marked sessions, start this branch session as Session (N + 1)
+      if (priorCount > 0) {
+        const globalNum = priorCount + 1;
+        // Check if any prior session was in the morning (before 13:00)
+        const hasMorningElsewhere = otherBranchSessions.some((s) => {
+          const t = s.in_time || s.out_time || s.class_time;
+          if (!t) return false;
+          const timePart = t.includes(" ") ? t.split(" ")[1] : t;
+          const hour = parseInt(timePart.slice(0, 2), 10);
+          return !isNaN(hour) && hour < 13;
+        });
+
+        const defaultType = hasMorningElsewhere ? "Evening" : "Morning";
+        const defaultClass = hasMorningElsewhere ? "16:00" : (defaultClassTimeVal || "09:00");
+        const defaultIn = hasMorningElsewhere ? "16:00" : DEFAULT_IN_TIME;
+        const defaultOut = hasMorningElsewhere ? "18:00" : DEFAULT_OUT_TIME;
+
+        return [
+          {
+            id: `sess_${globalNum}`,
+            title: `Session ${globalNum}`,
+            session_type: defaultType,
+            class_time: defaultClass,
+            in_time: defaultIn,
+            out_time: defaultOut,
+            status: (att.status as StaffStatus) || "Present",
+          },
+        ];
+      }
+
+      // If no branch sessions found at all, fallback to top-level fields
+      return [
+        {
+          id: "sess_1",
+          title: "Session 1",
+          session_type: "Morning",
+          class_time: formatTimeForInput(att.custom_class_time) || defaultClassTimeVal || "",
+          in_time: formatTimeForInput(att.in_time || att.custom_check_in) || (att.status === "Present" ? DEFAULT_IN_TIME : ""),
+          out_time: formatTimeForInput(att.out_time || att.custom_check_out) || (att.status === "Present" ? DEFAULT_OUT_TIME : ""),
+          status: (att.status as StaffStatus) || "Present",
+        },
+      ];
+    },
+    [defaultCompany]
+  );
+
   // Merge regular employees and visiting instructors into a single unified list
   const unifiedStaffList = React.useMemo(() => {
     // 1. Regular employees
     const regular = (employees || []).map((emp) => {
       const att = attMap.get(emp.name);
       const pending = pendingChanges[emp.name];
-      const sessions = parseSessions(att?.custom_sessions_json);
-      const currentBranchSession = sessions.find((s) => s.branch === defaultCompany);
-      const otherBranchSessions = sessions.filter((s) => s.branch !== defaultCompany);
-
-      const status = pending?.status ?? (currentBranchSession?.status as StaffStatus | undefined) ?? (att?.status as StaffStatus | undefined) ?? "Not Marked";
-      const in_time = pending?.in_time ?? formatTimeForInput(currentBranchSession?.in_time || att?.in_time);
-      const out_time = pending?.out_time ?? formatTimeForInput(currentBranchSession?.out_time || att?.out_time);
-      const hasChange = pending !== undefined && (
-        pending.status !== ((currentBranchSession?.status || att?.status) ?? "Not Marked") ||
-        pending.in_time !== formatTimeForInput(currentBranchSession?.in_time || att?.in_time) ||
-        pending.out_time !== formatTimeForInput(currentBranchSession?.out_time || att?.out_time)
-      );
-
       const classTimeInfo = getEmployeeEffectiveClassTime(emp.name, false);
+
+      const allSessions = parseSessions(att?.custom_sessions_json);
+      const otherBranchSessions = allSessions.filter((s) => s.branch !== defaultCompany);
+
+      const defaultSessions = getBranchSessionsFromAtt(att, classTimeInfo.time);
+      const sessions = pending?.sessions ?? defaultSessions;
+      const status = pending?.status ?? (att?.status as StaffStatus | undefined) ?? "Not Marked";
+
+      const hasChange = pending !== undefined;
 
       return {
         name: emp.name,
@@ -307,8 +567,7 @@ export default function StaffAttendancePage() {
         designation: emp.designation || emp.department || "-",
         image: emp.image,
         attendance_status: status as string,
-        in_time,
-        out_time,
+        sessions,
         attendance_name: att?.name,
         hasChange,
         isVisiting: false,
@@ -322,29 +581,24 @@ export default function StaffAttendancePage() {
     const visiting = (visitingInstructors || []).map((v) => {
       const pending = pendingChanges[`visiting_${v.employee}`];
       const existingAtt = visitingAttMap.get(v.employee);
-      const sessions = parseSessions(existingAtt?.custom_sessions_json);
-      const currentBranchSession = sessions.find((s) => s.branch === defaultCompany);
-      const otherBranchSessions = sessions.filter((s) => s.branch !== defaultCompany);
-
-      const status = (pending?.status ?? (currentBranchSession?.status as StaffStatus | undefined) ?? existingAtt?.status ?? "Not Marked") as string;
-      const in_time = pending?.in_time ?? formatTimeForInput(currentBranchSession?.in_time || existingAtt?.in_time);
-      const out_time = pending?.out_time ?? formatTimeForInput(currentBranchSession?.out_time || existingAtt?.out_time);
-      const hasChange = pending !== undefined && (
-        pending.status !== ((currentBranchSession?.status || existingAtt?.status) ?? "Not Marked") ||
-        pending.in_time !== formatTimeForInput(currentBranchSession?.in_time || existingAtt?.in_time) ||
-        pending.out_time !== formatTimeForInput(currentBranchSession?.out_time || existingAtt?.out_time)
-      );
-
       const classTimeInfo = getEmployeeEffectiveClassTime(v.employee, true);
+
+      const allSessions = parseSessions(existingAtt?.custom_sessions_json);
+      const otherBranchSessions = allSessions.filter((s) => s.branch !== defaultCompany);
+
+      const defaultSessions = getBranchSessionsFromAtt(existingAtt, classTimeInfo.time);
+      const sessions = pending?.sessions ?? defaultSessions;
+      const status = pending?.status ?? (existingAtt?.status as StaffStatus | undefined) ?? "Not Marked";
+
+      const hasChange = pending !== undefined;
 
       return {
         name: v.employee,
         employee_name: v.instructor_name,
         designation: v.custom_company ? `Visiting from ${v.custom_company.replace("Smart Up ", "").replace("Smart Up", "HQ")}` : "Visiting Instructor",
         image: v.image,
-        attendance_status: status,
-        in_time,
-        out_time,
+        attendance_status: status as string,
+        sessions,
         attendance_name: existingAtt?.name,
         hasChange,
         isVisiting: true,
@@ -354,11 +608,19 @@ export default function StaffAttendancePage() {
       };
     });
 
-    // Combine regular employees and visiting instructors
     return [...regular, ...visiting];
-  }, [employees, visitingInstructors, attMap, visitingAttMap, pendingChanges, getEmployeeEffectiveClassTime, defaultCompany]);
+  }, [
+    employees,
+    visitingInstructors,
+    attMap,
+    visitingAttMap,
+    pendingChanges,
+    getEmployeeEffectiveClassTime,
+    getBranchSessionsFromAtt,
+    defaultCompany,
+  ]);
 
-  // Summary counts (including pending changes)
+  // Summary counts
   const presentCount = unifiedStaffList.filter((e) => e.attendance_status === "Present").length;
   const absentCount = unifiedStaffList.filter((e) => e.attendance_status === "Absent").length;
   const holidayCount = unifiedStaffList.filter((e) => e.attendance_status === "Holiday").length;
@@ -389,7 +651,7 @@ export default function StaffAttendancePage() {
     return inTotal > classTotal ? inTotal - classTotal : 0;
   }
 
-  // Cycle through statuses on click
+  // Cycle through top-level statuses on click
   function cycleStatus(employeeId: string, currentStatus: string, isVisiting = false) {
     const key = isVisiting ? `visiting_${employeeId}` : employeeId;
     const existingAtt = isVisiting ? visitingAttMap.get(employeeId) : attMap.get(employeeId);
@@ -397,47 +659,102 @@ export default function StaffAttendancePage() {
     const nextIndex = currentStatus === "Not Marked" ? 0 : (currentIndex + 1) % STATUS_OPTIONS.length;
     const nextStatus = STATUS_OPTIONS[nextIndex];
 
-    let in_time = pendingChanges[key]?.in_time ?? formatTimeForInput(existingAtt?.in_time);
-    let out_time = pendingChanges[key]?.out_time ?? formatTimeForInput(existingAtt?.out_time);
-
-    if (nextStatus === "Present") {
-      if (!in_time) in_time = DEFAULT_IN_TIME;
-      if (!out_time) out_time = DEFAULT_OUT_TIME;
-    } else if (nextStatus === "Half Day") {
-      if (!in_time) in_time = DEFAULT_IN_TIME;
-      if (!out_time) out_time = DEFAULT_HALF_DAY_OUT_TIME;
-    } else if (nextStatus === "Absent" || nextStatus === "On Leave" || nextStatus === "Work From Home" || nextStatus === "At Head Office" || nextStatus === "Holiday") {
-      in_time = "";
-      out_time = "";
-    }
+    const currentSessions = pendingChanges[key]?.sessions ?? getBranchSessionsFromAtt(existingAtt);
+    const updatedSessions = currentSessions.map((s) => ({
+      ...s,
+      status: nextStatus,
+      in_time: nextStatus === "Present" ? (s.in_time || DEFAULT_IN_TIME) : nextStatus === "Half Day" ? (s.in_time || DEFAULT_IN_TIME) : "",
+      out_time: nextStatus === "Present" ? (s.out_time || DEFAULT_OUT_TIME) : nextStatus === "Half Day" ? (s.out_time || DEFAULT_HALF_DAY_OUT_TIME) : "",
+    }));
 
     setPendingChanges((prev) => ({
       ...prev,
-      [key]: { status: nextStatus, in_time, out_time },
+      [key]: { status: nextStatus, sessions: updatedSessions },
     }));
   }
 
-  function handleInTimeChange(employeeId: string, in_time: string, isVisiting = false) {
+  // Update session field
+  function handleSessionChange(
+    employeeId: string,
+    sessionId: string,
+    field: "in_time" | "out_time" | "class_time" | "status" | "title",
+    value: string,
+    isVisiting = false
+  ) {
     const key = isVisiting ? `visiting_${employeeId}` : employeeId;
     const existingAtt = isVisiting ? visitingAttMap.get(employeeId) : attMap.get(employeeId);
+
     setPendingChanges((prev) => {
       const current = prev[key] ?? {
         status: (existingAtt?.status as StaffStatus) ?? "Present",
-        out_time: formatTimeForInput(existingAtt?.out_time),
+        sessions: getBranchSessionsFromAtt(existingAtt),
       };
-      return { ...prev, [key]: { ...current, in_time } };
+
+      const updatedSessions = current.sessions.map((s) => {
+        if (s.id === sessionId) {
+          return { ...s, [field]: value };
+        }
+        return s;
+      });
+
+      return { ...prev, [key]: { ...current, sessions: updatedSessions } };
     });
   }
 
-  function handleOutTimeChange(employeeId: string, out_time: string, isVisiting = false) {
+  // Add session slot for an employee
+  function handleAddSession(employeeId: string, isVisiting = false) {
     const key = isVisiting ? `visiting_${employeeId}` : employeeId;
     const existingAtt = isVisiting ? visitingAttMap.get(employeeId) : attMap.get(employeeId);
+
     setPendingChanges((prev) => {
       const current = prev[key] ?? {
         status: (existingAtt?.status as StaffStatus) ?? "Present",
-        in_time: formatTimeForInput(existingAtt?.in_time),
+        sessions: getBranchSessionsFromAtt(existingAtt),
       };
-      return { ...prev, [key]: { ...current, out_time } };
+
+      const allSessions = parseSessions(existingAtt?.custom_sessions_json);
+      const otherBranchCount = allSessions.filter((s) => s.branch !== defaultCompany).length;
+      const nextGlobalIndex = otherBranchCount + current.sessions.length + 1;
+
+      const newSession: BranchSessionItem = {
+        id: `sess_${Date.now()}_${nextGlobalIndex}`,
+        title: `Session ${nextGlobalIndex}`,
+        session_type: nextGlobalIndex >= 2 ? "Evening" : "Morning",
+        class_time: nextGlobalIndex >= 2 ? "16:00" : "09:00",
+        in_time: nextGlobalIndex >= 2 ? "16:00" : DEFAULT_IN_TIME,
+        out_time: nextGlobalIndex >= 2 ? "18:00" : DEFAULT_OUT_TIME,
+        status: current.status === "Not Marked" ? "Present" : current.status,
+      };
+
+      return {
+        ...prev,
+        [key]: {
+          ...current,
+          status: current.status === "Not Marked" ? "Present" : current.status,
+          sessions: [...current.sessions, newSession],
+        },
+      };
+    });
+  }
+
+  // Remove session slot
+  function handleRemoveSession(employeeId: string, sessionId: string, isVisiting = false) {
+    const key = isVisiting ? `visiting_${employeeId}` : employeeId;
+    const existingAtt = isVisiting ? visitingAttMap.get(employeeId) : attMap.get(employeeId);
+
+    setPendingChanges((prev) => {
+      const current = prev[key] ?? {
+        status: (existingAtt?.status as StaffStatus) ?? "Present",
+        sessions: getBranchSessionsFromAtt(existingAtt),
+      };
+
+      if (current.sessions.length <= 1) {
+        toast.info("Cannot delete the only session. Mark Absent instead.");
+        return prev;
+      }
+
+      const filtered = current.sessions.filter((s) => s.id !== sessionId);
+      return { ...prev, [key]: { ...current, sessions: filtered } };
     });
   }
 
@@ -446,18 +763,28 @@ export default function StaffAttendancePage() {
     const changes: Record<string, StaffAttendanceChange> = {};
     for (const emp of employees) {
       const original = attMap.get(emp.name);
+      const originalSessions = getBranchSessionsFromAtt(original);
       changes[emp.name] = {
         status: "Present",
-        in_time: formatTimeForInput(original?.in_time) || DEFAULT_IN_TIME,
-        out_time: formatTimeForInput(original?.out_time) || DEFAULT_OUT_TIME,
+        sessions: originalSessions.map((s) => ({
+          ...s,
+          status: "Present",
+          in_time: s.in_time || DEFAULT_IN_TIME,
+          out_time: s.out_time || DEFAULT_OUT_TIME,
+        })),
       };
     }
     for (const v of visitingInstructors) {
       const original = visitingAttMap.get(v.employee);
+      const originalSessions = getBranchSessionsFromAtt(original);
       changes[`visiting_${v.employee}`] = {
         status: "Present",
-        in_time: formatTimeForInput(original?.in_time) || DEFAULT_IN_TIME,
-        out_time: formatTimeForInput(original?.out_time) || DEFAULT_OUT_TIME,
+        sessions: originalSessions.map((s) => ({
+          ...s,
+          status: "Present",
+          in_time: s.in_time || DEFAULT_IN_TIME,
+          out_time: s.out_time || DEFAULT_OUT_TIME,
+        })),
       };
     }
     setPendingChanges(changes);
@@ -467,21 +794,34 @@ export default function StaffAttendancePage() {
   function markAllHoliday() {
     const changes: Record<string, StaffAttendanceChange> = {};
     for (const emp of employees) {
+      const original = attMap.get(emp.name);
+      const originalSessions = getBranchSessionsFromAtt(original);
       changes[emp.name] = {
         status: "Holiday",
-        in_time: "",
-        out_time: "",
+        sessions: originalSessions.map((s) => ({
+          ...s,
+          status: "Holiday",
+          in_time: "",
+          out_time: "",
+        })),
       };
     }
     for (const v of visitingInstructors) {
+      const original = visitingAttMap.get(v.employee);
+      const originalSessions = getBranchSessionsFromAtt(original);
       changes[`visiting_${v.employee}`] = {
         status: "Holiday",
-        in_time: "",
-        out_time: "",
+        sessions: originalSessions.map((s) => ({
+          ...s,
+          status: "Holiday",
+          in_time: "",
+          out_time: "",
+        })),
       };
     }
     setPendingChanges(changes);
   }
+
   function handleIndividualClassTimeChange(employeeId: string, time: string) {
     setIndividualClassTimes((prev) => ({
       ...prev,
@@ -498,7 +838,7 @@ export default function StaffAttendancePage() {
     if (pendingCount === 0 && !isCTChanged && !hasIndChanges) return;
     setSaving(true);
     try {
-      type SaveResult = { key: string; employee: string; status: StaffStatus; in_time?: string; out_time?: string; kind: "employee" | "visiting" };
+      type SaveResult = { key: string; employee: string; status: StaffStatus; kind: "employee" | "visiting"; sessions: BranchSessionItem[] };
       
       const allChanges = { ...pendingChanges };
       if (isCTChanged || hasIndChanges) {
@@ -506,8 +846,7 @@ export default function StaffAttendancePage() {
           if (!allChanges[existing.employee]) {
             allChanges[existing.employee] = {
               status: existing.status as StaffStatus,
-              in_time: formatTimeForInput(existing.in_time),
-              out_time: formatTimeForInput(existing.out_time),
+              sessions: getBranchSessionsFromAtt(existing),
             };
           }
         }
@@ -516,8 +855,7 @@ export default function StaffAttendancePage() {
           if (!allChanges[key]) {
             allChanges[key] = {
               status: existing.status as StaffStatus,
-              in_time: formatTimeForInput(existing.in_time),
-              out_time: formatTimeForInput(existing.out_time),
+              sessions: getBranchSessionsFromAtt(existing),
             };
           }
         }
@@ -525,93 +863,110 @@ export default function StaffAttendancePage() {
 
       const entries = Object.entries(allChanges);
       if (entries.length === 0) {
-        toast.error("Please mark at least one employee to save the class time.");
+        toast.error("Please mark at least one employee to save.");
         setSaving(false);
         return;
       }
+
       const saveSingleEntry = async ([key, change]: [string, StaffAttendanceChange]): Promise<SaveResult | undefined> => {
-        const inTimeISO = change.in_time ? `${selectedDate} ${change.in_time}:00` : undefined;
-        const outTimeISO = change.out_time ? `${selectedDate} ${change.out_time}:00` : undefined;
+        const isVisiting = key.startsWith("visiting_");
+        const empId = isVisiting ? key.replace("visiting_", "") : key;
+        const v = isVisiting ? visitingInstructors.find((vi) => vi.employee === empId) : undefined;
+        const emp = !isVisiting ? employees.find((e) => e.name === empId) : undefined;
 
-        // Visiting instructor key: "visiting_{employeeId}"
-        if (key.startsWith("visiting_")) {
-          const empId = key.replace("visiting_", "");
-          const v = visitingInstructors.find((vi) => vi.employee === empId);
-          if (!v) return undefined;
-          const existing = visitingAttMap.get(empId);
-          const isNoTimeStatus = change.status === "At Head Office" || change.status === "Holiday" || change.status === "Absent" || change.status === "On Leave";
-          const effectiveTime = getEmployeeEffectiveClassTime(empId, true).time;
+        if (isVisiting && !v) return undefined;
+        if (!isVisiting && !emp) return undefined;
 
-          const existingSessions = parseSessions(existing?.custom_sessions_json);
-          const otherSessions = existingSessions.filter((s) => s.branch !== defaultCompany);
-          const mergedSessions = [
-            ...otherSessions,
-            {
-              branch: defaultCompany || "",
-              status: change.status,
-              in_time: isNoTimeStatus ? "" : (inTimeISO || ""),
-              out_time: isNoTimeStatus ? "" : (outTimeISO || ""),
-              class_time: effectiveTime || "",
-              is_visiting: 1,
-            },
-          ];
-
-          const payload = {
-            employee: empId,
-            employee_name: v.instructor_name,
-            attendance_date: selectedDate,
-            status: change.status,
-            company: v.custom_company || defaultCompany || "",
-            session_branch: defaultCompany || "",
-            is_visiting: true,
-            sessions_json: JSON.stringify(mergedSessions),
-            in_time: isNoTimeStatus ? undefined : inTimeISO,
-            out_time: isNoTimeStatus ? undefined : outTimeISO,
-            custom_class_time: effectiveTime || undefined,
-            custom_visiting_branch: defaultCompany || undefined,
-          };
-          if (existing && !existing.name.startsWith("LOCAL-")) {
-            await updateEmployeeAttendance(existing.name, payload);
-          } else {
-            await createEmployeeAttendance(payload);
-          }
-          return { key, employee: empId, status: change.status, in_time: inTimeISO, out_time: outTimeISO, kind: "visiting" } as SaveResult;
-        }
-
-        // Regular branch employee
-        const empId = key;
-        const existing = attMap.get(empId);
-        const emp = employees.find((e) => e.name === empId);
-        if (!emp) return undefined;
-        const isNoTimeStatus = change.status === "At Head Office" || change.status === "Holiday" || change.status === "Absent" || change.status === "On Leave";
-        const effectiveTime = getEmployeeEffectiveClassTime(empId, false).time;
+        const existing = isVisiting ? visitingAttMap.get(empId) : attMap.get(empId);
+        const effectiveTime = getEmployeeEffectiveClassTime(empId, isVisiting).time;
 
         const existingSessions = parseSessions(existing?.custom_sessions_json);
         const otherSessions = existingSessions.filter((s) => s.branch !== defaultCompany);
-        const mergedSessions = [
-          ...otherSessions,
-          {
+
+        // Convert current branch sessions to serialized format with global numbering
+        const branchSessionsFormatted = change.sessions.map((s, idx) => {
+          const globalNum = otherSessions.length + idx + 1;
+          const inT = s.in_time ? `${selectedDate} ${s.in_time}:00` : "";
+          const outT = s.out_time ? `${selectedDate} ${s.out_time}:00` : "";
+          const isNoTimeStatus = s.status === "At Head Office" || s.status === "Holiday" || s.status === "Absent" || s.status === "On Leave";
+
+          return {
+            id: s.id || `sess_${globalNum}`,
             branch: defaultCompany || "",
-            status: change.status,
-            in_time: isNoTimeStatus ? "" : (inTimeISO || ""),
-            out_time: isNoTimeStatus ? "" : (outTimeISO || ""),
-            class_time: effectiveTime || "",
-            is_visiting: 0,
-          },
-        ];
+            title: s.title || `Session ${globalNum}`,
+            session_type: s.session_type || (globalNum >= 2 ? "Evening" : "Morning"),
+            status: s.status,
+            in_time: isNoTimeStatus ? "" : inT,
+            out_time: isNoTimeStatus ? "" : outT,
+            class_time: s.class_time || effectiveTime || "",
+            is_visiting: isVisiting ? 1 : 0,
+          };
+        });
+
+        const mergedSessions = [...otherSessions, ...branchSessionsFormatted];
+
+        // Earliest in-time and latest out-time
+        const activeInTimes = branchSessionsFormatted.map((s) => s.in_time).filter(Boolean).sort();
+        const activeOutTimes = branchSessionsFormatted.map((s) => s.out_time).filter(Boolean).sort();
+        const primaryIn = activeInTimes[0] || undefined;
+        const primaryOut = activeOutTimes[activeOutTimes.length - 1] || undefined;
+
+        // Prepare custom_branch_sessions for Frappe DocType child table
+        const customBranchSessions = mergedSessions.map((s) => {
+          const rawIn = s.in_time ? (s.in_time.includes(" ") ? s.in_time.split(" ")[1] : s.in_time) : "";
+          const rawOut = s.out_time ? (s.out_time.includes(" ") ? s.out_time.split(" ")[1] : s.out_time) : "";
+          const rawClass = s.class_time ? (s.class_time.includes(" ") ? s.class_time.split(" ")[1] : s.class_time) : "";
+
+          const inTimeVal = rawIn ? (rawIn.length === 5 ? `${rawIn}:00` : rawIn) : undefined;
+          const outTimeVal = rawOut ? (rawOut.length === 5 ? `${rawOut}:00` : rawOut) : undefined;
+          const classTimeVal = rawClass ? (rawClass.length === 5 ? `${rawClass}:00` : rawClass) : undefined;
+
+          return {
+            branch: s.branch || defaultCompany || "",
+            session_type: s.session_type || "Morning",
+            status: s.status || "Present",
+            in_time: inTimeVal,
+            out_time: outTimeVal,
+            class_time: classTimeVal,
+            is_visiting: s.is_visiting ? 1 : 0,
+            remarks: s.title || "Session",
+          };
+        });
+
+        // Calculate total working hours from sessions (sum of active session durations)
+        let totalWorkingMinutes = 0;
+        mergedSessions.forEach((s) => {
+          if (s.status === "Present" || s.status === "Half Day") {
+            const rawIn = s.in_time ? (s.in_time.includes(" ") ? s.in_time.split(" ")[1] : s.in_time) : "";
+            const rawOut = s.out_time ? (s.out_time.includes(" ") ? s.out_time.split(" ")[1] : s.out_time) : "";
+            if (rawIn && rawOut) {
+              const [inH, inM] = rawIn.split(":").map(Number);
+              const [outH, outM] = rawOut.split(":").map(Number);
+              if (!isNaN(inH) && !isNaN(inM) && !isNaN(outH) && !isNaN(outM)) {
+                let diff = (outH * 60 + outM) - (inH * 60 + inM);
+                if (diff < 0) diff += 24 * 60;
+                if (diff > 0) totalWorkingMinutes += diff;
+              }
+            }
+          }
+        });
+        const calculatedWorkingHours = totalWorkingMinutes > 0 ? parseFloat((totalWorkingMinutes / 60).toFixed(2)) : undefined;
 
         const payload = {
           employee: empId,
-          employee_name: emp.employee_name,
+          employee_name: isVisiting ? v!.instructor_name : emp!.employee_name,
           attendance_date: selectedDate,
           status: change.status,
-          company: defaultCompany || "",
+          company: isVisiting ? (v!.custom_company || defaultCompany || "") : (defaultCompany || ""),
           session_branch: defaultCompany || "",
-          is_visiting: false,
+          is_visiting: isVisiting,
           sessions_json: JSON.stringify(mergedSessions),
-          in_time: isNoTimeStatus ? undefined : inTimeISO,
-          out_time: isNoTimeStatus ? undefined : outTimeISO,
+          custom_branch_sessions: customBranchSessions,
+          in_time: primaryIn,
+          out_time: primaryOut,
+          working_hours: calculatedWorkingHours,
           custom_class_time: effectiveTime || undefined,
+          custom_visiting_branch: isVisiting ? (defaultCompany || undefined) : undefined,
         };
 
         if (existing && !existing.name.startsWith("LOCAL-")) {
@@ -619,10 +974,11 @@ export default function StaffAttendancePage() {
         } else {
           await createEmployeeAttendance(payload);
         }
-        return { key, employee: empId, status: change.status, in_time: inTimeISO, out_time: outTimeISO, kind: "employee" } as SaveResult;
+
+        return { key, employee: empId, status: change.status, kind: isVisiting ? "visiting" : "employee", sessions: change.sessions } as SaveResult;
       };
 
-      // Process in small batches of 4 to prevent MariaDB gap-lock deadlocks on naming series
+      // Process in small batches of 4
       const BATCH_SIZE = 4;
       const failed: Array<{ key: string; reason: unknown }> = [];
       const succeeded: SaveResult[] = [];
@@ -648,56 +1004,6 @@ export default function StaffAttendancePage() {
         setIndividualClassTimes({});
       }
 
-      // Optimistically sync successful statuses into cache so UI updates immediately.
-      if (succeeded.length > 0) {
-        queryClient.setQueryData(employeeAttendanceQueryKey, (old: unknown) => {
-          const prev = (old as { data?: Array<Record<string, unknown>> } | undefined)?.data ?? [];
-          const byEmployee = new Map(prev.map((r) => [String(r.employee), { ...r }]));
-          for (const row of succeeded.filter((s) => s.kind === "employee")) {
-            const existing = byEmployee.get(row.employee) ?? {
-              name: `LOCAL-${row.employee}-${selectedDate}`,
-              employee: row.employee,
-              employee_name: employees.find((e) => e.name === row.employee)?.employee_name ?? row.employee,
-              attendance_date: selectedDate,
-              company: defaultCompany || "",
-            };
-            byEmployee.set(row.employee, {
-              ...existing,
-              status: row.status,
-              in_time: row.in_time,
-              out_time: row.out_time,
-              attendance_date: selectedDate,
-              custom_class_time: getEmployeeEffectiveClassTime(row.employee, false).time,
-            });
-          }
-          return { data: Array.from(byEmployee.values()) };
-        });
-
-        queryClient.setQueryData(visitingAttendanceQueryKey, (old: unknown) => {
-          const prev = (old as { data?: Array<Record<string, unknown>> } | undefined)?.data ?? [];
-          const byEmployee = new Map(prev.map((r) => [String(r.employee), { ...r }]));
-          for (const row of succeeded.filter((s) => s.kind === "visiting")) {
-            const v = visitingInstructors.find((vi) => vi.employee === row.employee);
-            const existing = byEmployee.get(row.employee) ?? {
-              name: `LOCAL-${row.employee}-${selectedDate}`,
-              employee: row.employee,
-              employee_name: v?.instructor_name ?? row.employee,
-              attendance_date: selectedDate,
-              company: v?.custom_company || defaultCompany || "",
-            };
-            byEmployee.set(row.employee, {
-              ...existing,
-              status: row.status,
-              in_time: row.in_time,
-              out_time: row.out_time,
-              attendance_date: selectedDate,
-              custom_class_time: getEmployeeEffectiveClassTime(row.employee, true).time,
-            });
-          }
-          return { data: Array.from(byEmployee.values()) };
-        });
-      }
-
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: employeeAttendanceQueryKey, exact: true }),
         queryClient.invalidateQueries({ queryKey: ["employee-attendance-quick"] }),
@@ -707,6 +1013,7 @@ export default function StaffAttendancePage() {
         queryClient.refetchQueries({ queryKey: employeeAttendanceQueryKey, exact: true }),
         queryClient.refetchQueries({ queryKey: visitingAttendanceQueryKey, exact: true }),
       ]);
+
       if (failed.length > 0) {
         const firstError = failed[0].reason as { response?: { data?: { message?: string; exception?: string; _error_message?: string } }; message?: string };
         const backendMessage =
@@ -717,7 +1024,7 @@ export default function StaffAttendancePage() {
 
         toast.error(backendMessage ? `Failed for ${failed.length} record(s): ${String(backendMessage)}` : `Failed to save ${failed.length} record(s). Please try again.`);
       } else {
-        toast.success(`Staff attendance saved for ${selectedDate}`);
+        toast.success(`Staff attendance & sessions saved for ${selectedDate}`);
       }
     } catch (error) {
       const e = error as { response?: { data?: { message?: string; exception?: string; _error_message?: string } }; message?: string };
@@ -747,6 +1054,7 @@ export default function StaffAttendancePage() {
     employeeAttendanceQueryKey,
     visitingAttendanceQueryKey,
     getEmployeeEffectiveClassTime,
+    getBranchSessionsFromAtt,
   ]);
 
   return (
@@ -767,7 +1075,7 @@ export default function StaffAttendancePage() {
               Staff Attendance
             </h1>
             <p className="text-sm text-text-secondary mt-0.5">
-              Mark daily attendance for branch employees
+              Mark daily & multi-session attendance for branch employees
             </p>
           </div>
         </div>
@@ -898,17 +1206,17 @@ export default function StaffAttendancePage() {
                 />
               </div>
 
-              {/* Class Time control: shows global input when 'same', or informative badge when 'different' */}
+              {/* Class Time control */}
               {timingMode === "same" ? (
                 <div className="flex items-center gap-1.5">
                   <label className="text-xs font-medium text-text-secondary flex items-center gap-1">
-                    <Clock className="h-3.5 w-3.5" /> Class Time
+                    <Clock className="h-3.5 w-3.5" /> Default Class Time
                   </label>
-                  <input
-                    type="time"
+                  <Time12Input
                     value={classTime}
-                    onChange={(e) => setClassTime(e.target.value)}
-                    className="h-9 rounded-[10px] border border-border-input bg-surface px-2.5 text-sm"
+                    onChange={(val) => setClassTime(val)}
+                    size="md"
+                    className="h-9"
                   />
                 </div>
               ) : (
@@ -955,7 +1263,7 @@ export default function StaffAttendancePage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {unifiedStaffList.map((emp, index) => {
                 const cfg = statusConfig[emp.attendance_status] ?? statusConfig["Not Marked"];
                 const Icon = cfg.icon as React.ComponentType<{ className?: string }>;
@@ -967,13 +1275,14 @@ export default function StaffAttendancePage() {
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: index * 0.02 }}
-                    className={`flex flex-col gap-2 p-3 rounded-[10px] border-2 transition-all ${cfg.bg} ${
-                      emp.hasChange ? "ring-2 ring-primary/30 border-primary/20" : "border-transparent"
-                    } ${emp.isVisiting ? "border-amber-355/40" : ""}`}
+                    className={`flex flex-col gap-3 p-3.5 rounded-xl border-2 transition-all bg-surface shadow-xs ${
+                      emp.hasChange ? "ring-2 ring-primary/40 border-primary/30" : "border-border-card"
+                    } ${emp.isVisiting ? "border-amber-300 dark:border-amber-700/50" : ""}`}
                   >
+                    {/* Header Row: Avatar, Name, and Status Badge */}
                     <div
                       onClick={() => cycleStatus(emp.name, emp.attendance_status, emp.isVisiting)}
-                      className="flex items-center gap-3 cursor-pointer text-left"
+                      className="flex items-center gap-3 cursor-pointer select-none"
                     >
                       {/* Avatar */}
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0 ${
@@ -994,7 +1303,7 @@ export default function StaffAttendancePage() {
 
                       {/* Info */}
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-text-primary truncate flex items-center gap-1.5">
+                        <p className="text-sm font-semibold text-text-primary truncate flex items-center gap-1.5">
                           <span className="truncate">{emp.employee_name}</span>
                           {emp.isVisiting && (
                             <Badge variant="warning" className="text-[9px] px-1 py-0 h-4 bg-amber-100 text-amber-700 border-amber-200">Visiting</Badge>
@@ -1014,87 +1323,144 @@ export default function StaffAttendancePage() {
                       </div>
                     </div>
 
-                    {/* Check-In and Check-Out Time Controls */}
-                    {showTimings && (() => {
-                      const effectiveClassTime = emp.classTimeInfo.time;
-                      const lateMins = getLateMinutes(emp.in_time, effectiveClassTime);
+                    {/* Multi-Session Timing Controls */}
+                    {showTimings && (
+                      <div className="pt-2 border-t border-border-light/60 flex flex-col gap-2.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-1">
+                            <Clock className="h-3 w-3 text-primary" />
+                            Sessions ({emp.sessions.length})
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleAddSession(emp.name, emp.isVisiting)}
+                            className="text-[10px] font-semibold text-primary hover:text-primary-hover flex items-center gap-1 bg-brand-wash hover:bg-brand-wash/80 px-2 py-0.5 rounded-md transition-colors"
+                          >
+                            <Plus className="h-3 w-3" /> Add Session
+                          </button>
+                        </div>
 
-                      return (
-                        <div className="pt-2 border-t border-border-light/60 flex flex-col gap-2">
-                          {/* Individual Employee Class Time when in 'different' mode */}
-                          {timingMode === "different" && (
-                            <div className="flex items-center justify-between gap-1.5 bg-surface/90 px-2 py-1 rounded-[6px] border border-primary/20">
-                              <div className="flex items-center gap-1 min-w-0">
-                                <Clock className="h-3 w-3 text-primary flex-shrink-0" />
-                                <span className="text-[11px] text-text-secondary font-medium whitespace-nowrap">Class Time:</span>
-                                {emp.classTimeInfo.source === "schedule" && (
-                                  <span className="text-[9px] px-1 py-0 rounded bg-info/10 text-info font-medium truncate flex items-center gap-0.5" title={emp.classTimeInfo.scheduleDetail}>
-                                    <BookOpen className="h-2.5 w-2.5" />
-                                    {emp.classTimeInfo.scheduleDetail}
+
+                        {/* Sessions List */}
+                        <div className="space-y-2">
+                          {emp.sessions.map((sess, sIdx) => {
+                            const lateMins = getLateMinutes(sess.in_time, sess.class_time || emp.classTimeInfo.time);
+
+                            return (
+                              <div
+                                key={sess.id || sIdx}
+                                className="p-2 rounded-lg bg-surface-muted/40 border border-border-light flex flex-col gap-1.5 text-xs"
+                              >
+                                <div className="flex items-center justify-between gap-1">
+                                  <span className="text-[11px] font-bold text-text-secondary flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                                    {sess.title || `Session ${sIdx + 1}`}
                                   </span>
+                                  {emp.sessions.length > 1 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveSession(emp.name, sess.id, emp.isVisiting)}
+                                      className="text-text-tertiary hover:text-error transition-colors p-0.5"
+                                      title="Remove session"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </button>
+                                  )}
+                                </div>
+
+                                {/* Per-Session Class Time */}
+                                <div className="flex items-center justify-between gap-1.5 bg-surface px-2 py-1 rounded-[6px] border border-primary/20">
+                                  <div className="flex items-center gap-1 min-w-0">
+                                    <Clock className="h-3 w-3 text-primary flex-shrink-0" />
+                                    <span className="text-[10px] text-text-secondary font-medium whitespace-nowrap">Class Time:</span>
+                                    {sIdx === 0 && emp.classTimeInfo.source === "schedule" && emp.classTimeInfo.scheduleDetail && (
+                                      <span className="text-[8.5px] px-1 py-0 rounded bg-info/10 text-info font-medium truncate flex items-center gap-0.5 max-w-[120px]" title={emp.classTimeInfo.scheduleDetail}>
+                                        <BookOpen className="h-2.5 w-2.5" />
+                                        {emp.classTimeInfo.scheduleDetail}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <Time12Input
+                                    value={sess.class_time || ""}
+                                    onChange={(val) =>
+                                      handleSessionChange(emp.name, sess.id, "class_time", val, emp.isVisiting)
+                                    }
+                                    size="sm"
+                                  />
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                  {/* In Time */}
+                                  <div className="flex items-center gap-1 bg-surface px-2 py-1 rounded-[6px] border border-border-light flex-1">
+                                    <LogIn className="h-3 w-3 text-success flex-shrink-0" />
+                                    <span className="text-[10px] text-text-secondary font-medium">In:</span>
+                                    <Time12Input
+                                      value={sess.in_time || ""}
+                                      onChange={(val) =>
+                                        handleSessionChange(emp.name, sess.id, "in_time", val, emp.isVisiting)
+                                      }
+                                      size="sm"
+                                      className="border-0 bg-transparent px-0 py-0"
+                                    />
+                                  </div>
+
+                                  {/* Out Time */}
+                                  <div className="flex items-center gap-1 bg-surface px-2 py-1 rounded-[6px] border border-border-light flex-1">
+                                    <LogOut className="h-3 w-3 text-error flex-shrink-0" />
+                                    <span className="text-[10px] text-text-secondary font-medium">Out:</span>
+                                    <Time12Input
+                                      value={sess.out_time || ""}
+                                      onChange={(val) =>
+                                        handleSessionChange(emp.name, sess.id, "out_time", val, emp.isVisiting)
+                                      }
+                                      size="sm"
+                                      className="border-0 bg-transparent px-0 py-0"
+                                    />
+                                  </div>
+                                </div>
+
+                                {lateMins > 0 && (
+                                  <div className="text-[9px] text-error font-medium flex items-center gap-1 bg-error-light/50 px-1.5 py-0.5 rounded border border-error/10 w-fit">
+                                    <Clock className="h-2.5 w-2.5" />
+                                    {lateMins}m late (vs {formatTo12Hour(sess.class_time || emp.classTimeInfo.time)})
+                                  </div>
                                 )}
                               </div>
-                              <input
-                                type="time"
-                                value={emp.classTimeInfo.time || ""}
-                                onChange={(e) => handleIndividualClassTimeChange(emp.name, e.target.value)}
-                                className="h-6 px-1.5 border border-border-input rounded bg-surface text-text-primary text-[11px] w-[85px] text-right font-medium"
-                              />
-                            </div>
-                          )}
-
-                          <div className="flex items-center justify-between gap-2 text-xs">
-                            <div className="flex items-center gap-1.5 bg-surface/80 px-2 py-1 rounded-[6px] border border-border-light flex-1">
-                              <LogIn className="h-3 w-3 text-success flex-shrink-0" />
-                              <span className="text-[11px] text-text-secondary font-medium">In:</span>
-                              <input
-                                type="time"
-                                value={emp.in_time || ""}
-                                onChange={(e) => handleInTimeChange(emp.name, e.target.value, emp.isVisiting)}
-                                className="h-6 px-1.5 border border-border-input rounded bg-surface text-text-primary text-[11px] flex-1 min-w-[50px]"
-                              />
-                            </div>
-
-                            <div className="flex items-center gap-1.5 bg-surface/80 px-2 py-1 rounded-[6px] border border-border-light flex-1">
-                              <LogOut className="h-3 w-3 text-error flex-shrink-0" />
-                              <span className="text-[11px] text-text-secondary font-medium">Out:</span>
-                              <input
-                                type="time"
-                                value={emp.out_time || ""}
-                                onChange={(e) => handleOutTimeChange(emp.name, e.target.value, emp.isVisiting)}
-                                className="h-6 px-1.5 border border-border-input rounded bg-surface text-text-primary text-[11px] flex-1 min-w-[50px]"
-                              />
-                            </div>
-                          </div>
-                          {lateMins > 0 && (
-                            <div className="text-[10px] text-error font-medium flex items-center gap-1 bg-error-light/50 px-2 py-0.5 rounded-[4px] border border-error/10 w-fit">
-                              <Clock className="h-2.5 w-2.5" />
-                              {lateMins} min late (vs {effectiveClassTime})
-                            </div>
-                          )}
+                            );
+                          })}
                         </div>
-                      );
-                    })()}
+                      </div>
+                    )}
 
                     {/* Cross-branch other sessions indicator */}
                     {emp.otherBranchSessions && emp.otherBranchSessions.length > 0 && (
-                      <div className="pt-1.5 border-t border-border-light/40 flex flex-wrap gap-1">
-                        {emp.otherBranchSessions.map((os, i) => (
-                          <div
-                            key={i}
-                            className="inline-flex items-center gap-1 text-[10px] bg-amber-50 text-amber-800 border border-amber-200/70 rounded px-1.5 py-0.5"
-                            title={`Also marked at ${os.branch}: ${os.in_time || ''} - ${os.out_time || ''} (${os.status})`}
-                          >
-                            <Building2 className="h-2.5 w-2.5 text-amber-600 flex-shrink-0" />
-                            <span className="font-medium truncate max-w-[130px]">
-                              {os.branch.replace("Smart Up ", "")}:
-                            </span>
-                            <span className="text-[9px] font-semibold">{os.status}</span>
-                            {os.in_time && (
-                              <span className="text-[9px] text-amber-600">({os.in_time.slice(0, 5)})</span>
-                            )}
-                          </div>
-                        ))}
+                      <div className="pt-2 border-t border-border-light/40 flex flex-col gap-1">
+                        <span className="text-[10px] text-text-tertiary font-semibold uppercase tracking-wider">
+                          Other Branch Sessions:
+                        </span>
+                        <div className="flex flex-wrap gap-1">
+                          {emp.otherBranchSessions.map((os, i) => (
+                            <div
+                              key={i}
+                              className="inline-flex items-center gap-1 text-[10px] bg-amber-50 text-amber-800 border border-amber-200/70 rounded px-1.5 py-0.5"
+                              title={`${os.title || `Session ${i + 1}`} at ${os.branch}: ${os.in_time || ""} - ${os.out_time || ""} (${os.status})`}
+                            >
+                              <Building2 className="h-2.5 w-2.5 text-amber-600 flex-shrink-0" />
+                              <span className="font-semibold text-amber-900">
+                                {os.title || `Session ${i + 1}`}:
+                              </span>
+                              <span className="font-medium truncate max-w-[110px]">
+                                {os.branch.replace("Smart Up ", "")}
+                              </span>
+                              <span className="text-[9px] font-semibold">({os.status})</span>
+                              {os.in_time && (
+                                <span className="text-[9px] text-amber-700">
+                                  {os.in_time.slice(0, 5)}{os.out_time ? ` - ${os.out_time.slice(0, 5)}` : ""}
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </motion.div>
@@ -1103,7 +1469,7 @@ export default function StaffAttendancePage() {
             </div>
 
             <p className="text-xs text-text-tertiary mt-4 text-center">
-              Click on an employee card header to cycle status. Set In & Out times directly below.
+              Click on an employee card header to cycle overall status. Use <strong>+ Add Session</strong> to record split timings (e.g. 9-12 & 4-6).
             </p>
           </CardContent>
         </Card>

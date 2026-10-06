@@ -51,6 +51,20 @@ function formatDisplayTime(val?: string | null): string {
   return raw.slice(0, 5);
 }
 
+// Convert 24-hour "HH:mm" to 12-hour format "hh:mm AM/PM"
+function formatTo12Hour(time24?: string | null): string {
+  if (!time24) return "";
+  const clean = formatDisplayTime(time24);
+  const parts = clean.split(":");
+  if (parts.length < 2) return clean;
+  const hours = parseInt(parts[0], 10);
+  const minutes = parts[1].slice(0, 2);
+  if (isNaN(hours)) return clean;
+  const period = hours >= 12 ? "PM" : "AM";
+  const hours12 = hours % 12 === 0 ? 12 : hours % 12;
+  return `${hours12.toString().padStart(2, "0")}:${minutes} ${period}`;
+}
+
 function calculateWorkingHours(inTime?: string, outTime?: string, backendHours?: number): string {
   if (backendHours && backendHours > 0) {
     const hrs = Math.floor(backendHours);
@@ -71,6 +85,59 @@ function calculateWorkingHours(inTime?: string, outTime?: string, backendHours?:
   return mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`;
 }
 
+export interface DaySessionDetail {
+  id?: string;
+  title?: string;
+  branch?: string;
+  in_time?: string;
+  out_time?: string;
+  class_time?: string;
+  status?: string;
+  is_visiting?: boolean | number;
+}
+
+function parseSessionsJson(jsonStr?: string): DaySessionDetail[] {
+  if (!jsonStr) return [];
+  try {
+    const parsed = JSON.parse(jsonStr);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Calculate total working hours from multiple sessions by summing each active session duration */
+function calculateSessionsWorkingHours(sessions: DaySessionDetail[]): string {
+  let totalMinutes = 0;
+  sessions.forEach((s) => {
+    const isPresent = !s.status || s.status === "Present" || s.status === "Half Day";
+    if (isPresent && s.in_time && s.out_time) {
+      const [inH, inM] = s.in_time.split(":").map(Number);
+      const [outH, outM] = s.out_time.split(":").map(Number);
+      if (!isNaN(inH) && !isNaN(inM) && !isNaN(outH) && !isNaN(outM)) {
+        let diff = (outH * 60 + outM) - (inH * 60 + inM);
+        if (diff < 0) diff += 24 * 60;
+        if (diff > 0) totalMinutes += diff;
+      }
+    }
+  });
+
+  if (totalMinutes <= 0) return "";
+  const hrs = Math.floor(totalMinutes / 60);
+  const mins = totalMinutes % 60;
+  return mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`;
+}
+
+/** Calculate late minutes for a session given in_time and class_time */
+function getSessionLateMinutes(inTime?: string, classTime?: string): number {
+  if (!inTime || !classTime) return 0;
+  const [inH, inM] = inTime.split(":").map(Number);
+  const [cH, cM] = classTime.split(":").map(Number);
+  if (isNaN(inH) || isNaN(inM) || isNaN(cH) || isNaN(cM)) return 0;
+  const diff = (inH * 60 + inM) - (cH * 60 + cM);
+  return diff > 0 ? diff : 0;
+}
+
 interface DayAttendanceRecord {
   status: string;
   in_time?: string;
@@ -78,6 +145,7 @@ interface DayAttendanceRecord {
   working_hours?: string;
   custom_class_time?: string;
   custom_visiting_branch?: string;
+  sessions?: DaySessionDetail[];
 }
 
 export default function StaffMonthlyReportPage() {
@@ -130,7 +198,23 @@ export default function StaffMonthlyReportPage() {
       }
       const inTime = formatDisplayTime(att.in_time || att.custom_check_in);
       const outTime = formatDisplayTime(att.out_time || att.custom_check_out);
-      const workHrs = calculateWorkingHours(inTime, outTime, att.working_hours);
+
+      // Parse sessions from custom_sessions_json
+      const parsedSessions = parseSessionsJson(att.custom_sessions_json).map((s) => ({
+        ...s,
+        in_time: formatDisplayTime(s.in_time),
+        out_time: formatDisplayTime(s.out_time),
+        class_time: formatDisplayTime(s.class_time),
+      }));
+
+      // Calculate working hours: if sessions are present, sum each session's duration; otherwise fallback
+      let workHrs = "";
+      if (parsedSessions.length > 0) {
+        workHrs = calculateSessionsWorkingHours(parsedSessions);
+      }
+      if (!workHrs) {
+        workHrs = calculateWorkingHours(inTime, outTime, att.working_hours);
+      }
 
       attMap[att.employee][att.attendance_date] = {
         status: att.status,
@@ -139,6 +223,7 @@ export default function StaffMonthlyReportPage() {
         working_hours: workHrs,
         custom_class_time: att.custom_class_time ? att.custom_class_time.slice(0, 5) : undefined,
         custom_visiting_branch: att.custom_visiting_branch || undefined,
+        sessions: parsedSessions,
       };
     });
 
@@ -204,22 +289,31 @@ export default function StaffMonthlyReportPage() {
           const dateStr = format(d, "yyyy-MM-dd");
           const rec = row.dates[dateStr];
           const fullWord = statusMap[rec.status] || "-";
+          // If multiple sessions exist
+          if (rec.sessions && rec.sessions.length > 1) {
+            const sessLines = rec.sessions
+              .filter((s) => s.in_time || s.out_time)
+              .map((s, idx) => {
+                const sClassTime = s.class_time || rec.custom_class_time || (idx === 0 ? "09:00" : "16:00");
+                const sLate = getSessionLateMinutes(s.in_time, sClassTime);
+                const latePart = sLate > 0 ? ` (${sLate}m late)` : "";
+                const in12 = formatTo12Hour(s.in_time) || "--";
+                const out12 = formatTo12Hour(s.out_time) || "--";
+                return `S${idx + 1}: ${in12} - ${out12}${latePart}`;
+              })
+              .join("\n");
+            const hrs = rec.working_hours ? `\n(Tot: ${rec.working_hours})` : "";
+            const visitingSuffix = rec.custom_visiting_branch ? `\n(Visiting: ${rec.custom_visiting_branch.replace("Smart Up ", "").replace("Smart Up", "HQ")})` : "";
+            return `${fullWord}\n${sessLines}${hrs}${visitingSuffix}`;
+          }
+
           if ((rec.status === "Present" || rec.status === "Half Day") && (rec.in_time || rec.out_time)) {
-            const inT = rec.in_time || "--:--";
-            const outT = rec.out_time || "--:--";
+            const inT = formatTo12Hour(rec.in_time) || "--:--";
+            const outT = formatTo12Hour(rec.out_time) || "--:--";
             const hrs = rec.working_hours ? ` (${rec.working_hours})` : "";
-            let lateStr = "";
             const classTimeVal = rec.custom_class_time || "09:00";
-            if (rec.in_time && classTimeVal) {
-              const [inH, inM] = rec.in_time.split(":").map(Number);
-              const [classH, classM] = classTimeVal.split(":").map(Number);
-              if (!isNaN(inH) && !isNaN(inM) && !isNaN(classH) && !isNaN(classM)) {
-                const diff = (inH * 60 + inM) - (classH * 60 + classM);
-                if (diff > 0) {
-                  lateStr = `\n(${diff}m late)`;
-                }
-              }
-            }
+            const lateDiff = getSessionLateMinutes(rec.in_time, classTimeVal);
+            const lateStr = lateDiff > 0 ? `\n(${lateDiff}m late)` : "";
             const visitingSuffix = rec.custom_visiting_branch ? `\n(Visiting: ${rec.custom_visiting_branch.replace("Smart Up ", "").replace("Smart Up", "HQ")})` : "";
             return `${fullWord}\n${inT} - ${outT}${hrs}${lateStr}${visitingSuffix}`;
           }
@@ -318,22 +412,31 @@ export default function StaffMonthlyReportPage() {
         const dateStr = format(d, "yyyy-MM-dd");
         const rec = row.dates[dateStr];
         const fullWord = statusMap[rec.status] || "-";
-        if ((rec.status === "Present" || rec.status === "Half Day") && (rec.in_time || rec.out_time)) {
+
+        if (rec.sessions && rec.sessions.length > 1) {
+          const sessDetails = rec.sessions
+            .filter((s) => s.in_time || s.out_time)
+            .map((s, idx) => {
+              const sClassTime = s.class_time || rec.custom_class_time || (idx === 0 ? "09:00" : "16:00");
+              const sLate = getSessionLateMinutes(s.in_time, sClassTime);
+              const latePart = sLate > 0 ? ` (${sLate}m late)` : "";
+              const in12 = formatTo12Hour(s.in_time) || "--";
+              const out12 = formatTo12Hour(s.out_time) || "--";
+              return `S${idx + 1}: ${in12}-${out12}${latePart}`;
+            })
+            .join("; ");
           const hrs = rec.working_hours ? ` (${rec.working_hours})` : "";
-          let lateStr = "";
-          const classTimeVal = rec.custom_class_time || "09:00";
-          if (rec.in_time && classTimeVal) {
-            const [inH, inM] = rec.in_time.split(":").map(Number);
-            const [classH, classM] = classTimeVal.split(":").map(Number);
-            if (!isNaN(inH) && !isNaN(inM) && !isNaN(classH) && !isNaN(classM)) {
-              const diff = (inH * 60 + inM) - (classH * 60 + classM);
-              if (diff > 0) {
-                lateStr = ` (${diff}m late)`;
-              }
-            }
-          }
           const visitingSuffix = rec.custom_visiting_branch ? ` (Visiting: ${rec.custom_visiting_branch.replace("Smart Up ", "").replace("Smart Up", "HQ")})` : "";
-          rowData[dateStr] = `${fullWord} [${rec.in_time || "--"} - ${rec.out_time || "--"}]${hrs}${lateStr}${visitingSuffix}`;
+          rowData[dateStr] = `${fullWord} [${sessDetails}]${hrs}${visitingSuffix}`;
+        } else if ((rec.status === "Present" || rec.status === "Half Day") && (rec.in_time || rec.out_time)) {
+          const hrs = rec.working_hours ? ` (${rec.working_hours})` : "";
+          const classTimeVal = rec.custom_class_time || "09:00";
+          const lateDiff = getSessionLateMinutes(rec.in_time, classTimeVal);
+          const lateStr = lateDiff > 0 ? ` (${lateDiff}m late)` : "";
+          const in12 = formatTo12Hour(rec.in_time) || "--";
+          const out12 = formatTo12Hour(rec.out_time) || "--";
+          const visitingSuffix = rec.custom_visiting_branch ? ` (Visiting: ${rec.custom_visiting_branch.replace("Smart Up ", "").replace("Smart Up", "HQ")})` : "";
+          rowData[dateStr] = `${fullWord} [${in12} - ${out12}]${hrs}${lateStr}${visitingSuffix}`;
         } else {
           const visitingSuffix = rec.custom_visiting_branch ? ` (Visiting: ${rec.custom_visiting_branch.replace("Smart Up ", "").replace("Smart Up", "HQ")})` : "";
           rowData[dateStr] = `${fullWord}${visitingSuffix}`;
@@ -485,19 +588,10 @@ export default function StaffMonthlyReportPage() {
                         const status = rec.status;
                         const fullWord = statusMap[status] || "-";
                         const colorClass = statusColors[status] || "text-text-tertiary border-transparent";
+                        const hasMultipleSessions = rec.sessions && rec.sessions.length > 1;
                         const showTimings = (status === "Present" || status === "Half Day") && (rec.in_time || rec.out_time);
-                        let lateMins = 0;
                         const classTimeVal = rec.custom_class_time || "09:00";
-                        if (showTimings && rec.in_time && classTimeVal) {
-                          const [inH, inM] = rec.in_time.split(":").map(Number);
-                          const [classH, classM] = classTimeVal.split(":").map(Number);
-                          if (!isNaN(inH) && !isNaN(inM) && !isNaN(classH) && !isNaN(classM)) {
-                            const diff = (inH * 60 + inM) - (classH * 60 + classM);
-                            if (diff > 0) {
-                              lateMins = diff;
-                            }
-                          }
-                        }
+                        const lateMins = getSessionLateMinutes(rec.in_time, classTimeVal);
 
                         return (
                           <td key={dateStr} className="px-1.5 py-2.5 text-center border-r border-border-light/30 vertical-top">
@@ -512,22 +606,60 @@ export default function StaffMonthlyReportPage() {
                                 </span>
                               )}
 
-                              {showTimings && (
-                                <div className="flex flex-col items-center text-[9.5px] leading-tight font-medium text-text-secondary bg-surface px-1.5 py-0.5 rounded border border-border-light/80 shadow-2xs">
-                                  <span>
-                                    <strong className="text-emerald-700">{rec.in_time || "--:--"}</strong> - <strong className="text-rose-600">{rec.out_time || "--:--"}</strong>
-                                  </span>
+                              {/* Multi-Session display */}
+                              {hasMultipleSessions ? (
+                                <div className="flex flex-col items-center gap-0.5 w-full mt-0.5">
+                                  {rec.sessions!.map((s, sIdx) => {
+                                    if (!s.in_time && !s.out_time) return null;
+                                    const sClassTime = s.class_time || rec.custom_class_time || (sIdx === 0 ? "09:00" : "16:00");
+                                    const sLate = getSessionLateMinutes(s.in_time, sClassTime);
+                                    const in12 = formatTo12Hour(s.in_time) || "--:--";
+                                    const out12 = formatTo12Hour(s.out_time) || "--:--";
+                                    return (
+                                      <div
+                                        key={s.id || sIdx}
+                                        className="text-[9px] font-medium text-text-secondary bg-surface px-1.5 py-0.5 rounded border border-border-light/80 flex items-center justify-between gap-1 w-full max-w-[145px]"
+                                        title={s.title || `Session ${sIdx + 1}`}
+                                      >
+                                        <div className="flex items-center gap-1">
+                                          <span className="font-bold text-primary">S{sIdx + 1}</span>
+                                          <span>
+                                            {in12} - {out12}
+                                          </span>
+                                        </div>
+                                        {sLate > 0 && (
+                                          <span className="text-[8.5px] font-bold text-error whitespace-nowrap ml-1" title={`Late by ${sLate}m (Class: ${formatTo12Hour(sClassTime)})`}>
+                                            ⚠️ {sLate}m
+                                          </span>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
                                   {rec.working_hours && (
                                     <span className="text-[9px] text-primary font-bold mt-0.5">
                                       ⏱ {rec.working_hours}
                                     </span>
                                   )}
-                                  {lateMins > 0 && (
-                                    <span className="text-[9px] text-error font-bold mt-0.5">
-                                      ⚠️ {lateMins}m late
-                                    </span>
-                                  )}
                                 </div>
+                              ) : (
+                                /* Single Session Timings */
+                                showTimings && (
+                                  <div className="flex flex-col items-center text-[9.5px] leading-tight font-medium text-text-secondary bg-surface px-1.5 py-0.5 rounded border border-border-light/80 shadow-2xs">
+                                    <span>
+                                      <strong className="text-emerald-700">{formatTo12Hour(rec.in_time) || "--:--"}</strong> - <strong className="text-rose-600">{formatTo12Hour(rec.out_time) || "--:--"}</strong>
+                                    </span>
+                                    {rec.working_hours && (
+                                      <span className="text-[9px] text-primary font-bold mt-0.5">
+                                        ⏱ {rec.working_hours}
+                                      </span>
+                                    )}
+                                    {lateMins > 0 && (
+                                      <span className="text-[9px] text-error font-bold mt-0.5">
+                                        ⚠️ {lateMins}m late
+                                      </span>
+                                    )}
+                                  </div>
+                                )
                               )}
                             </div>
                           </td>

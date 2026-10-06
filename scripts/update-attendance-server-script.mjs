@@ -23,6 +23,9 @@ const headers = {
 };
 
 const pythonScript = `
+import json
+from datetime import datetime
+
 existing_name = frappe.form_dict.get("existing_name")
 employee = frappe.form_dict.get("employee")
 employee_name = frappe.form_dict.get("employee_name") or ""
@@ -47,45 +50,110 @@ if not existing_name:
         "docstatus": ("!=", 2)
     }, "name")
 
-new_session = {
-    "branch": session_branch,
-    "status": status,
-    "in_time": in_time or "",
-    "out_time": out_time or "",
-    "class_time": custom_class_time or "",
-    "is_visiting": is_visiting
-}
+# Parse sessions
+parsed_sessions = []
+if sessions_json:
+    try:
+        parsed = json.loads(sessions_json)
+        if isinstance(parsed, list):
+            parsed_sessions = parsed
+    except Exception:
+        pass
+
+# Calculate working hours and determine overall in/out time from sessions
+total_hours = 0.0
+all_in_times = []
+all_out_times = []
+
+def parse_time_str(t):
+    if not t:
+        return None
+    val = t.split(" ")[1] if " " in t else t
+    parts = val.split(":")
+    if len(parts) >= 2:
+        try:
+            return int(parts[0]) * 60 + int(parts[1])
+        except Exception:
+            return None
+    return None
+
+for s in parsed_sessions:
+    s_in = s.get("in_time")
+    s_out = s.get("out_time")
+    if s_in:
+        all_in_times.append(s_in)
+    if s_out:
+        all_out_times.append(s_out)
+    m_in = parse_time_str(s_in)
+    m_out = parse_time_str(s_out)
+    if m_in is not None and m_out is not None and m_out > m_in:
+        total_hours += (m_out - m_in) / 60.0
+
+# Fallback working hours if no multi sessions
+if total_hours == 0.0 and in_time and out_time:
+    m_in = parse_time_str(in_time)
+    m_out = parse_time_str(out_time)
+    if m_in is not None and m_out is not None and m_out > m_in:
+        total_hours = (m_out - m_in) / 60.0
+
+earliest_in = sorted(all_in_times)[0] if all_in_times else in_time
+latest_out = sorted(all_out_times)[-1] if all_out_times else out_time
+
+def map_session_type(t_str):
+    if not t_str:
+        return "Morning"
+    t_min = parse_time_str(t_str)
+    if t_min is None:
+        return "Morning"
+    if t_min < 12 * 60:
+        return "Morning"
+    elif t_min < 16 * 60:
+        return "Afternoon"
+    else:
+        return "Evening"
 
 if existing_name:
-    # Use client-computed sessions_json if provided, otherwise preserve or update
-    target_json = sessions_json
-    if not target_json:
-        raw_json = frappe.db.get_value("Attendance", existing_name, "custom_sessions_json") or ""
-        target_json = raw_json
-
-    update_dict = {
-        "status": status,
-        "docstatus": 1
-    }
-    if target_json:
-        update_dict["custom_sessions_json"] = target_json
-    if in_time:
-        update_dict["in_time"] = in_time
-        update_dict["custom_check_in"] = in_time.split(" ")[1] if " " in in_time else in_time
-    if out_time:
-        update_dict["out_time"] = out_time
-        update_dict["custom_check_out"] = out_time.split(" ")[1] if " " in out_time else out_time
+    doc = frappe.get_doc("Attendance", existing_name)
+    doc.status = status
+    if sessions_json:
+        doc.custom_sessions_json = sessions_json
+    if earliest_in:
+        doc.in_time = earliest_in if " " in earliest_in else (attendance_date + " " + earliest_in + ":00")
+        doc.custom_check_in = earliest_in.split(" ")[1] if " " in earliest_in else earliest_in
+    if latest_out:
+        doc.out_time = latest_out if " " in latest_out else (attendance_date + " " + latest_out + ":00")
+        doc.custom_check_out = latest_out.split(" ")[1] if " " in latest_out else latest_out
     if custom_class_time:
-        update_dict["custom_class_time"] = custom_class_time
+        doc.custom_class_time = custom_class_time
     if is_visiting:
-        update_dict["custom_visiting_branch"] = session_branch
+        doc.custom_visiting_branch = session_branch
+    if total_hours > 0:
+        doc.working_hours = round(total_hours, 2)
 
-    frappe.db.set_value("Attendance", existing_name, update_dict)
+    # Sync child table custom_branch_sessions
+    if parsed_sessions:
+        doc.set("custom_branch_sessions", [])
+        for s in parsed_sessions:
+            st = s.get("session_type") or map_session_type(s.get("in_time") or s.get("class_time"))
+            doc.append("custom_branch_sessions", {
+                "branch": s.get("branch") or company,
+                "session_type": st,
+                "status": s.get("status") or "Present",
+                "in_time": (s.get("in_time") or "").split(" ")[-1] if s.get("in_time") else None,
+                "out_time": (s.get("out_time") or "").split(" ")[-1] if s.get("out_time") else None,
+                "class_time": (s.get("class_time") or "").split(" ")[-1] if s.get("class_time") else None,
+                "is_visiting": 1 if s.get("is_visiting") else 0,
+                "remarks": s.get("title") or s.get("remarks") or ""
+            })
+
+    doc.flags.ignore_validate = True
+    doc.flags.ignore_permissions = True
+    doc.save()
     frappe.db.commit()
     frappe.response["data"] = {
         "name": existing_name,
         "status": status,
-        "action": "updated_session"
+        "action": "updated_sessions"
     }
 else:
     new_doc = frappe.new_doc("Attendance")
@@ -96,17 +164,35 @@ else:
     new_doc.status = status
     if sessions_json:
         new_doc.custom_sessions_json = sessions_json
-    if in_time:
-        new_doc.in_time = in_time
-        new_doc.custom_check_in = in_time.split(" ")[1] if " " in in_time else in_time
-    if out_time:
-        new_doc.out_time = out_time
-        new_doc.custom_check_out = out_time.split(" ")[1] if " " in out_time else out_time
+    if earliest_in:
+        new_doc.in_time = earliest_in if " " in earliest_in else (attendance_date + " " + earliest_in + ":00")
+        new_doc.custom_check_in = earliest_in.split(" ")[1] if " " in earliest_in else earliest_in
+    if latest_out:
+        new_doc.out_time = latest_out if " " in latest_out else (attendance_date + " " + latest_out + ":00")
+        new_doc.custom_check_out = latest_out.split(" ")[1] if " " in latest_out else latest_out
     if custom_class_time:
         new_doc.custom_class_time = custom_class_time
     if is_visiting:
         new_doc.custom_visiting_branch = session_branch
+    if total_hours > 0:
+        new_doc.working_hours = round(total_hours, 2)
     new_doc.docstatus = 1
+
+    # Populate child table custom_branch_sessions
+    if parsed_sessions:
+        for s in parsed_sessions:
+            st = s.get("session_type") or map_session_type(s.get("in_time") or s.get("class_time"))
+            new_doc.append("custom_branch_sessions", {
+                "branch": s.get("branch") or company,
+                "session_type": st,
+                "status": s.get("status") or "Present",
+                "in_time": (s.get("in_time") or "").split(" ")[-1] if s.get("in_time") else None,
+                "out_time": (s.get("out_time") or "").split(" ")[-1] if s.get("out_time") else None,
+                "class_time": (s.get("class_time") or "").split(" ")[-1] if s.get("class_time") else None,
+                "is_visiting": 1 if s.get("is_visiting") else 0,
+                "remarks": s.get("title") or s.get("remarks") or ""
+            })
+
     new_doc.flags.ignore_validate = True
     new_doc.flags.ignore_permissions = True
     new_doc.db_insert()
@@ -117,12 +203,14 @@ else:
     }
     if sessions_json:
         commit_dict["custom_sessions_json"] = sessions_json
+    if total_hours > 0:
+        commit_dict["working_hours"] = round(total_hours, 2)
     frappe.db.set_value("Attendance", new_doc.name, commit_dict)
     frappe.db.commit()
     frappe.response["data"] = {
         "name": new_doc.name,
         "status": status,
-        "action": "created_with_session"
+        "action": "created_with_sessions"
     }
 `;
 
@@ -133,6 +221,8 @@ async function run() {
     body: JSON.stringify({ script: pythonScript }),
   });
   console.log("Update Server Script:", res.status);
+  const text = await res.text();
+  console.log("Response:", text.slice(0, 200));
 }
 
 run().catch(console.error);

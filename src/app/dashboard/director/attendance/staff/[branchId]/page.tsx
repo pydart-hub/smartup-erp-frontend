@@ -111,15 +111,16 @@ export default function DirectorStaffBranchAttendancePage() {
   const merged = employees.map((emp) => {
     const att = attMap.get(emp.name);
     const sessions = parseSessions(att?.custom_sessions_json);
-    const currentBranchSession = sessions.find((s) => s.branch === branchName);
+    const allBranchSessions = sessions.filter((s) => s.branch === branchName);
     const otherBranchSessions = sessions.filter((s) => s.branch !== branchName);
 
-    const attendance_status = ((currentBranchSession?.status || att?.status) ?? "Not Marked") as string;
+    const attendance_status = ((allBranchSessions[0]?.status || att?.status) ?? "Not Marked") as string;
     return {
       ...emp,
       attendance_status,
-      in_time: formatDisplayTime(currentBranchSession?.in_time || att?.in_time || att?.custom_check_in),
-      out_time: formatDisplayTime(currentBranchSession?.out_time || att?.out_time || att?.custom_check_out),
+      in_time: formatDisplayTime(allBranchSessions[0]?.in_time || att?.in_time || att?.custom_check_in),
+      out_time: formatDisplayTime(allBranchSessions[allBranchSessions.length - 1]?.out_time || att?.out_time || att?.custom_check_out),
+      branchSessions: allBranchSessions,
       otherBranchSessions,
     };
   });
@@ -285,7 +286,16 @@ export default function DirectorStaffBranchAttendancePage() {
                     </div>
 
                     {/* Check-In and Check-Out Time Display */}
-                    {showTimings && (emp.in_time || emp.out_time) && (
+                    {showTimings && (emp.branchSessions && emp.branchSessions.length > 1 ? (
+                      <div className="pt-2 border-t border-border-light/60 flex flex-col gap-1 text-[10px]">
+                        {emp.branchSessions.map((bs, bIdx) => (
+                          <div key={bIdx} className="flex items-center justify-between bg-surface/80 px-2 py-0.5 rounded border border-border-light font-medium">
+                            <span className="font-bold text-primary">S{bIdx + 1}</span>
+                            <span>{formatDisplayTime(bs.in_time) || "--:--"} - {formatDisplayTime(bs.out_time) || "--:--"}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (emp.in_time || emp.out_time) ? (
                       <div className="pt-2 border-t border-border-light/60 flex items-center justify-between gap-2 text-xs font-medium text-text-secondary">
                         {emp.in_time && (
                           <div className="flex items-center gap-1 bg-surface/80 px-2 py-1 rounded-[6px] border border-border-light">
@@ -300,7 +310,7 @@ export default function DirectorStaffBranchAttendancePage() {
                           </div>
                         )}
                       </div>
-                    )}
+                    ) : null)}
 
                     {/* Cross-branch other sessions */}
                     {emp.otherBranchSessions && emp.otherBranchSessions.length > 0 && (

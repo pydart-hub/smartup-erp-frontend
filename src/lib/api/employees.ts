@@ -42,7 +42,9 @@ export interface Employee {
 }
 
 export interface AttendanceBranchSession {
+  id?: string;
   branch: string;
+  title?: string;
   session_type?: "Morning" | "Afternoon" | "Evening" | "Full Day";
   status: string;
   in_time?: string;
@@ -499,56 +501,41 @@ export async function createEmployeeAttendance(payload: {
   session_branch?: string;
   is_visiting?: boolean;
   sessions_json?: string;
+  custom_branch_sessions?: AttendanceBranchSession[];
+  working_hours?: number;
 }): Promise<{ data: EmployeeAttendance }> {
-  // Always use the multi-branch atomic merge endpoint set_attendance_status
-  // to avoid DuplicateAttendanceError and prevent overwriting other branch sessions.
-  try {
-    const { data } = await apiClient.post("/method/set_attendance_status", {
-      employee: payload.employee,
-      employee_name: payload.employee_name,
-      attendance_date: payload.attendance_date,
-      status: payload.status,
-      company: payload.company,
-      session_branch: payload.session_branch || payload.custom_visiting_branch || payload.company,
-      in_time: payload.in_time || undefined,
-      out_time: payload.out_time || undefined,
-      custom_class_time: payload.custom_class_time || undefined,
-      is_visiting: payload.is_visiting ? 1 : (payload.custom_visiting_branch ? 1 : 0),
-      sessions_json: payload.sessions_json || undefined,
-    });
+  const customSessions = payload.custom_branch_sessions || (payload.sessions_json ? JSON.parse(payload.sessions_json) : undefined);
+  const postBody = {
+    employee: payload.employee,
+    employee_name: payload.employee_name,
+    attendance_date: payload.attendance_date,
+    status: payload.status,
+    company: payload.company,
+    in_time: payload.in_time || undefined,
+    out_time: payload.out_time || undefined,
+    working_hours: payload.working_hours !== undefined ? payload.working_hours : undefined,
+    custom_check_in: payload.in_time ? payload.in_time.split(" ")[1] || payload.in_time : undefined,
+    custom_check_out: payload.out_time ? payload.out_time.split(" ")[1] || payload.out_time : undefined,
+    custom_class_time: payload.custom_class_time || undefined,
+    custom_visiting_branch: payload.custom_visiting_branch || undefined,
+    custom_sessions_json: payload.sessions_json || undefined,
+    custom_branch_sessions: customSessions,
+    docstatus: 1,
+  };
 
-    if (payload.in_time) {
-      await postEmployeeCheckin(payload.employee, payload.in_time, "IN");
-    }
-    if (payload.out_time) {
-      await postEmployeeCheckin(payload.employee, payload.out_time, "OUT");
-    }
+  const { data } = await apiClient.post("/resource/Attendance", postBody);
 
-    return { data: (data as any)?.data ?? data };
-  } catch (error: unknown) {
-    // If the method fails for any network reason, fall back to standard resource endpoint
-    const postBody = {
-      employee: payload.employee,
-      employee_name: payload.employee_name,
-      attendance_date: payload.attendance_date,
-      status: payload.status,
-      company: payload.company,
-      in_time: payload.in_time || undefined,
-      out_time: payload.out_time || undefined,
-      custom_check_in: payload.in_time ? payload.in_time.split(" ")[1] || payload.in_time : undefined,
-      custom_check_out: payload.out_time ? payload.out_time.split(" ")[1] || payload.out_time : undefined,
-      custom_class_time: payload.custom_class_time || undefined,
-      custom_visiting_branch: payload.custom_visiting_branch || undefined,
-      custom_sessions_json: payload.sessions_json || undefined,
-      docstatus: 1,
-    };
-
-    const { data } = await apiClient.post("/resource/Attendance", postBody);
-    return data;
+  if (payload.in_time) {
+    await postEmployeeCheckin(payload.employee, payload.in_time, "IN").catch(() => {});
   }
+  if (payload.out_time) {
+    await postEmployeeCheckin(payload.employee, payload.out_time, "OUT").catch(() => {});
+  }
+
+  return data;
 }
 
-/** Update an existing Attendance record by merging the branch session */
+/** Update an existing Attendance record by updating the document directly with sessions and child table */
 export async function updateEmployeeAttendance(
   existingName: string,
   payload: {
@@ -559,33 +546,37 @@ export async function updateEmployeeAttendance(
     company: string;
     in_time?: string;
     out_time?: string;
+    working_hours?: number;
     custom_class_time?: string;
     custom_visiting_branch?: string;
     session_branch?: string;
     is_visiting?: boolean;
     sessions_json?: string;
+    custom_branch_sessions?: AttendanceBranchSession[];
   }
 ): Promise<void> {
-  await apiClient.post("/method/set_attendance_status", {
-    existing_name: existingName,
-    employee: payload.employee,
-    employee_name: payload.employee_name,
-    attendance_date: payload.attendance_date,
+  const customSessions = payload.custom_branch_sessions || (payload.sessions_json ? JSON.parse(payload.sessions_json) : undefined);
+  const putBody = {
     status: payload.status,
     company: payload.company,
-    session_branch: payload.session_branch || payload.custom_visiting_branch || payload.company,
     in_time: payload.in_time || undefined,
     out_time: payload.out_time || undefined,
+    working_hours: payload.working_hours !== undefined ? payload.working_hours : undefined,
+    custom_check_in: payload.in_time ? payload.in_time.split(" ")[1] || payload.in_time : undefined,
+    custom_check_out: payload.out_time ? payload.out_time.split(" ")[1] || payload.out_time : undefined,
     custom_class_time: payload.custom_class_time || undefined,
-    is_visiting: payload.is_visiting ? 1 : (payload.custom_visiting_branch ? 1 : 0),
-    sessions_json: payload.sessions_json || undefined,
-  });
+    custom_visiting_branch: payload.custom_visiting_branch || undefined,
+    custom_sessions_json: payload.sessions_json || undefined,
+    custom_branch_sessions: customSessions,
+  };
+
+  await apiClient.put(`/resource/Attendance/${encodeURIComponent(existingName)}`, putBody);
 
   if (payload.in_time) {
-    await postEmployeeCheckin(payload.employee, payload.in_time, "IN");
+    await postEmployeeCheckin(payload.employee, payload.in_time, "IN").catch(() => {});
   }
   if (payload.out_time) {
-    await postEmployeeCheckin(payload.employee, payload.out_time, "OUT");
+    await postEmployeeCheckin(payload.employee, payload.out_time, "OUT").catch(() => {});
   }
 }
 
