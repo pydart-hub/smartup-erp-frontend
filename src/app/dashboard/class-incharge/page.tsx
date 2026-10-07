@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import {
   ClipboardCheck,
+  ClipboardList,
   GraduationCap,
   Users,
   School,
@@ -78,6 +79,13 @@ export default function ClassInchargeDashboard() {
       href: "/dashboard/class-incharge/attendance",
       icon: ClipboardCheck,
       color: "bg-brand-wash text-primary",
+    },
+    {
+      label: "Exams & Mark Entry",
+      description: "View scheduled exams and enter student marks",
+      href: "/dashboard/class-incharge/exams",
+      icon: ClipboardList,
+      color: "bg-purple-50 text-purple-600 dark:bg-purple-950/30",
     },
     {
       label: "Portion Completion",

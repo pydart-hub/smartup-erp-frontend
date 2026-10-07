@@ -315,6 +315,7 @@ export const CLASS_INCHARGE_NAV: NavItem[] = [
   { label: "Daily Checklist", href: "/dashboard/class-incharge/checklist", icon: "ClipboardList", emoji: "📋" },
   { label: "Attendance", href: "/dashboard/class-incharge/attendance", icon: "ClipboardCheck", emoji: "✅" },
   { label: "Absent Details", href: "/dashboard/class-incharge/absent", icon: "UserX", emoji: "🚫" },
+  { label: "Exams", href: "/dashboard/class-incharge/exams", icon: "ClipboardList", emoji: "📝" },
   { label: "Portion Completion", href: "/dashboard/class-incharge/portion-completion", icon: "CheckCircle2", emoji: "🎯" },
   { label: "Students", href: "/dashboard/class-incharge/students", icon: "GraduationCap", emoji: "👨‍🎓" },
 ];
