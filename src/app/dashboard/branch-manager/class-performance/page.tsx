@@ -28,6 +28,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { useAuth } from "@/lib/hooks/useAuth";
+import BranchPerformanceHub from "@/components/branch-manager/BranchPerformanceHub";
 import {
   getClassPerformance,
   type ClassPerformanceResponse,
@@ -1513,6 +1514,8 @@ function ClassPerformanceContent() {
   const [expandedClass, setExpandedClass] = useState<string>(urlProgram);
   const [activeBatch, setActiveBatch] = useState<string>(urlBatch);
   const [classSearch, setClassSearch] = useState("");
+  // "hub" (Modern Class & Subject Performance Hub) | "graphs" (Legacy Timeline Graphs)
+  const [viewMode, setViewMode] = useState<"hub" | "graphs">("hub");
 
   const { data: classListData, isLoading } = useQuery<{
     classes: string[];
@@ -1536,6 +1539,7 @@ function ClassPerformanceContent() {
   React.useEffect(() => {
     if (urlProgram) {
       setExpandedClass(urlProgram);
+      setViewMode("graphs");
     }
     setActiveBatch(urlBatch);
   }, [urlProgram, urlBatch]);
@@ -1581,25 +1585,55 @@ function ClassPerformanceContent() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-text-primary">Class Performance & Graphs</h1>
+          <h1 className="text-2xl font-bold text-text-primary">Academic Performance</h1>
           <p className="text-sm text-text-secondary mt-0.5">
-            List of active classes — click any class to expand its timeline graph, batch breakdown & student rankings
-            {activeBranch && <span className="ml-1 text-text-tertiary">— {activeBranch}</span>}
+            Class-wise and subject-wise academic metrics & exam breakdowns for {activeBranch || "your branch"}.
           </p>
         </div>
 
-        {/* Search bar */}
-        <div className="relative min-w-[240px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
-          <input
-            type="text"
-            placeholder="Search class (e.g. 10th State)..."
-            value={classSearch}
-            onChange={(e) => setClassSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-surface rounded-xl border border-border-input text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/20"
-          />
+        {/* View Switcher: Performance Hub vs Timeline Graphs */}
+        <div className="flex items-center gap-2 p-1 bg-surface border border-border-light rounded-xl shadow-xs">
+          <button
+            onClick={() => setViewMode("hub")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+              viewMode === "hub"
+                ? "bg-primary text-white shadow-xs"
+                : "text-text-secondary hover:text-text-primary"
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5" /> Performance Hub
+          </button>
+          <button
+            onClick={() => setViewMode("graphs")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+              viewMode === "graphs"
+                ? "bg-primary text-white shadow-xs"
+                : "text-text-secondary hover:text-text-primary"
+            }`}
+          >
+            <BarChart3 className="w-3.5 h-3.5" /> Timeline Graphs
+          </button>
         </div>
       </div>
+
+      {/* Main View: Hub vs Graphs */}
+      {viewMode === "hub" ? (
+        <BranchPerformanceHub branchName={activeBranch} />
+      ) : (
+        <div className="space-y-6">
+          <div className="flex justify-end">
+            {/* Search bar for timeline graphs */}
+            <div className="relative min-w-[240px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
+              <input
+                type="text"
+                placeholder="Search class (e.g. 10th State)..."
+                value={classSearch}
+                onChange={(e) => setClassSearch(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 bg-surface rounded-xl border border-border-input text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
+          </div>
 
       {/* Loading */}
       {isLoading && (
@@ -1641,6 +1675,8 @@ function ClassPerformanceContent() {
               />
             );
           })}
+        </div>
+      )}
         </div>
       )}
     </div>
