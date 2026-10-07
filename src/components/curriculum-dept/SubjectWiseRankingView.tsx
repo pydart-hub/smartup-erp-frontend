@@ -9,16 +9,11 @@ import {
   School,
   Users,
   Trophy,
-  Sparkles,
   BookMarked,
   GraduationCap,
-  Percent,
-  CheckCircle2,
-  XCircle,
-  FileText,
   TrendingUp,
   Search,
-  Filter
+  Layers
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -47,6 +42,44 @@ const cleanBranchName = (name: string): string => {
   return name.replace(/^Smart\s+Up\s+/i, "").trim().toLowerCase();
 };
 
+/**
+ * Extracts normalized Class / Academic Program name from student_group, course, or program.
+ * e.g.:
+ * "Chullickal-10th State-A" -> "10th State"
+ * "Edappally-10th CBSE-A"   -> "10th CBSE"
+ * "Vennala-12th Science State-A" -> "12th Science State"
+ * "8th State"               -> "8th State"
+ */
+const extractAcademicClass = (studentGroup: string, course?: string, program?: string): string => {
+  if (program && program.trim()) {
+    return program.trim();
+  }
+
+  const raw = (studentGroup || course || "").trim();
+  if (!raw) return "General Class";
+
+  // Match pattern like Branch-10th State-A or Branch-10th CBSE-B
+  const branchPattern = /^(?:Smart\s+Up\s+)?[A-Za-z\s]+-\s*([\d]+(?:st|nd|rd|th)?(?:\s+[A-Za-z0-9]+)*?)(?:-[A-Za-z0-9]+)?$/i;
+  const match = raw.match(branchPattern);
+  if (match && match[1]) {
+    return match[1].trim();
+  }
+
+  // Look for standard patterns like "10th State", "10th CBSE", "12th Science State", "8th State"
+  const standardMatch = raw.match(/\b(\d+(?:st|nd|rd|th)?(?:\s+(?:Science|Commerce))?\s+(?:State|CBSE))\b/i);
+  if (standardMatch) {
+    return standardMatch[1].trim();
+  }
+
+  // Generic grade match like "10th", "9th", "8th", "11th", "12th"
+  const gradeMatch = raw.match(/\b(\d+(?:st|nd|rd|th)?)\b/i);
+  if (gradeMatch) {
+    return `${gradeMatch[1]} Standard`;
+  }
+
+  return raw;
+};
+
 const getRateColor = (rate: number) => {
   if (rate === 0) return { text: "text-text-tertiary", bg: "bg-text-tertiary" };
   if (rate >= 85) return { text: "text-success", bg: "bg-success" };
@@ -61,13 +94,14 @@ export default function SubjectWiseRankingView({
   planMetaMap,
   branches,
 }: SubjectWiseRankingViewProps) {
-  // Navigation level: "subjects" -> "branches" -> "classes" -> "class_details"
-  const [level, setLevel] = useState<"subjects" | "branches" | "classes" | "class_details">("subjects");
+  // Navigation level: "subjects" -> "classes" -> "branches" -> "batches" -> "batch_details"
+  const [level, setLevel] = useState<"subjects" | "classes" | "branches" | "batches" | "batch_details">("subjects");
 
   const [selectedSubject, setSelectedSubject] = useState<string>("");
+  const [selectedClass, setSelectedClass] = useState<string>("");
   const [selectedBranch, setSelectedBranch] = useState<string>("");
-  const [selectedClassId, setSelectedClassId] = useState<string>("");
-  const [selectedClassName, setSelectedClassName] = useState<string>("");
+  const [selectedBatchId, setSelectedBatchId] = useState<string>("");
+  const [selectedBatchName, setSelectedBatchName] = useState<string>("");
 
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -119,13 +153,43 @@ export default function SubjectWiseRankingView({
     };
   };
 
+  // Fetch Student Groups across all branches for proper names & program mapping
+  const { data: allStudentGroups = [] } = useQuery({
+    queryKey: ["all-student-groups-for-subject-flow"],
+    queryFn: async () => {
+      const res = await fetch("/api/curriculum-dept/admin-proxy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          path: "resource/Student Group",
+          method: "GET",
+          payload: {
+            fields: JSON.stringify(["name", "student_group_name", "program", "custom_branch"]),
+            filters: JSON.stringify([["disabled", "=", 0]]),
+            limit_page_length: "2000",
+          },
+        }),
+      }).then((r) => r.json());
+      return res.data ?? [];
+    },
+    staleTime: 5 * 60_000,
+  });
+
+  const studentGroupMap = useMemo(() => {
+    const map = new Map<string, any>();
+    allStudentGroups.forEach((sg: any) => {
+      map.set(sg.name, sg);
+    });
+    return map;
+  }, [allStudentGroups]);
+
   // 1. ALL SUBJECTS SUMMARY (Across entire organization)
   const allSubjectsSummary = useMemo(() => {
     if (!allPlans.length) return [];
 
     const subjectMap = new Map<
       string,
-      { baseName: string; plans: any[]; branchSet: Set<string>; results: any[] }
+      { baseName: string; plans: any[]; classSet: Set<string>; results: any[] }
     >();
 
     allPlans.forEach((plan: any) => {
@@ -137,16 +201,17 @@ export default function SubjectWiseRankingView({
         subjectMap.set(baseName, {
           baseName,
           plans: [],
-          branchSet: new Set<string>(),
+          classSet: new Set<string>(),
           results: [],
         });
       }
 
       const entry = subjectMap.get(baseName)!;
       entry.plans.push(plan);
-      if (plan.custom_branch) {
-        entry.branchSet.add(plan.custom_branch);
-      }
+
+      const sgInfo = studentGroupMap.get(plan.student_group);
+      const academicClass = extractAcademicClass(plan.student_group, plan.course, sgInfo?.program);
+      entry.classSet.add(academicClass);
 
       const pResults = resultsByPlan.get(plan.name) || [];
       entry.results.push(...pResults);
@@ -157,7 +222,7 @@ export default function SubjectWiseRankingView({
         const stats = computeStats(entry.results);
         return {
           baseName: entry.baseName,
-          branchesCount: entry.branchSet.size,
+          classesCount: entry.classSet.size,
           examsCount: entry.plans.length,
           totalAssessments: stats.total,
           passRate: `${stats.passRate.toFixed(1)}%`,
@@ -166,26 +231,92 @@ export default function SubjectWiseRankingView({
         };
       })
       .sort((a, b) => b.examsCount - a.examsCount);
-  }, [allPlans, resultsByPlan]);
+  }, [allPlans, resultsByPlan, studentGroupMap]);
 
-  // 2. BRANCHES FOR SELECTED SUBJECT
-  const branchesForSubject = useMemo(() => {
+  // 2. CLASSES / STANDARDS FOR SELECTED SUBJECT
+  const classesForSelectedSubject = useMemo(() => {
     if (!selectedSubject || !allPlans.length) return [];
 
-    const branchMap = new Map<
+    const classMap = new Map<
       string,
-      { branchName: string; plans: any[]; classSet: Set<string>; results: any[] }
+      { className: string; plans: any[]; branchSet: Set<string>; results: any[] }
     >();
 
     allPlans.forEach((plan: any) => {
       if (!plan.course || getBaseSubject(plan.course) !== selectedSubject) return;
-      const branchName = plan.custom_branch || "Main Branch";
 
+      const sgInfo = studentGroupMap.get(plan.student_group);
+      const academicClass = extractAcademicClass(plan.student_group, plan.course, sgInfo?.program);
+      if (!academicClass) return;
+
+      if (!classMap.has(academicClass)) {
+        classMap.set(academicClass, {
+          className: academicClass,
+          plans: [],
+          branchSet: new Set<string>(),
+          results: [],
+        });
+      }
+
+      const entry = classMap.get(academicClass)!;
+      entry.plans.push(plan);
+      if (plan.custom_branch) {
+        entry.branchSet.add(plan.custom_branch);
+      }
+      const pResults = resultsByPlan.get(plan.name) || [];
+      entry.results.push(...pResults);
+    });
+
+    return Array.from(classMap.values())
+      .map((entry) => {
+        const stats = computeStats(entry.results);
+        return {
+          className: entry.className,
+          branchesCount: entry.branchSet.size,
+          examsCount: entry.plans.length,
+          totalAssessments: stats.total,
+          passRate: `${stats.passRate.toFixed(1)}%`,
+          numericRate: stats.passRate,
+          avgScore: stats.avgScore.toFixed(1),
+        };
+      })
+      .sort((a, b) => {
+        const gradeA = parseInt(a.className) || 0;
+        const gradeB = parseInt(b.className) || 0;
+        if (gradeA !== gradeB) return gradeB - gradeA;
+        return b.examsCount - a.examsCount;
+      });
+  }, [selectedSubject, allPlans, resultsByPlan, studentGroupMap]);
+
+  // 3. BRANCHES OFFERING SELECTED CLASS IN SELECTED SUBJECT
+  const branchesForClassAndSubject = useMemo(() => {
+    if (!selectedSubject || !selectedClass || !allPlans.length) return [];
+
+    const branchMap = new Map<
+      string,
+      {
+        branchName: string;
+        displayName: string;
+        plans: any[];
+        batchSet: Set<string>;
+        results: any[];
+      }
+    >();
+
+    allPlans.forEach((plan: any) => {
+      if (!plan.course || getBaseSubject(plan.course) !== selectedSubject) return;
+
+      const sgInfo = studentGroupMap.get(plan.student_group);
+      const academicClass = extractAcademicClass(plan.student_group, plan.course, sgInfo?.program);
+      if (academicClass !== selectedClass) return;
+
+      const branchName = plan.custom_branch || "Main Branch";
       if (!branchMap.has(branchName)) {
         branchMap.set(branchName, {
           branchName,
+          displayName: branchName.replace(/^Smart\s+Up\s+/i, ""),
           plans: [],
-          classSet: new Set<string>(),
+          batchSet: new Set<string>(),
           results: [],
         });
       }
@@ -193,7 +324,7 @@ export default function SubjectWiseRankingView({
       const entry = branchMap.get(branchName)!;
       entry.plans.push(plan);
       if (plan.student_group) {
-        entry.classSet.add(plan.student_group);
+        entry.batchSet.add(plan.student_group);
       }
       const pResults = resultsByPlan.get(plan.name) || [];
       entry.results.push(...pResults);
@@ -204,8 +335,8 @@ export default function SubjectWiseRankingView({
         const stats = computeStats(entry.results);
         return {
           branchName: entry.branchName,
-          displayName: entry.branchName.replace(/^Smart\s+Up\s+/i, ""),
-          classesCount: entry.classSet.size,
+          displayName: entry.displayName,
+          batchesCount: entry.batchSet.size,
           examsCount: entry.plans.length,
           totalAssessments: stats.total,
           passRate: `${stats.passRate.toFixed(1)}%`,
@@ -214,49 +345,17 @@ export default function SubjectWiseRankingView({
         };
       })
       .sort((a, b) => b.numericRate - a.numericRate);
-  }, [selectedSubject, allPlans, resultsByPlan]);
+  }, [selectedSubject, selectedClass, allPlans, resultsByPlan, studentGroupMap]);
 
-  // Fetch Student Groups for the selected branch (to get official names & programs)
-  const { data: branchStudentGroups = [], isLoading: groupsLoading } = useQuery({
-    queryKey: ["student-groups-for-subject-flow", selectedBranch],
-    queryFn: async () => {
-      if (!selectedBranch) return [];
-      const res = await fetch("/api/curriculum-dept/admin-proxy", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          path: "resource/Student Group",
-          method: "GET",
-          payload: {
-            fields: JSON.stringify(["name", "student_group_name", "program", "custom_branch"]),
-            filters: JSON.stringify([["custom_branch", "=", selectedBranch], ["disabled", "=", 0]]),
-            limit_page_length: "500",
-          },
-        }),
-      }).then((r) => r.json());
-      return res.data ?? [];
-    },
-    enabled: !!selectedBranch,
-    staleTime: 5 * 60_000,
-  });
+  // 4. BATCHES (SECTIONS) IN THE SELECTED BRANCH FOR THIS CLASS & SUBJECT
+  const batchesForBranchClassSubject = useMemo(() => {
+    if (!selectedSubject || !selectedClass || !selectedBranch || !allPlans.length) return [];
 
-  const studentGroupMap = useMemo(() => {
-    const map = new Map<string, any>();
-    branchStudentGroups.forEach((sg: any) => {
-      map.set(sg.name, sg);
-    });
-    return map;
-  }, [branchStudentGroups]);
-
-  // 3. CLASSES / BATCHES IN SELECTED BRANCH FOR THIS SUBJECT
-  const classesForBranchAndSubject = useMemo(() => {
-    if (!selectedSubject || !selectedBranch || !allPlans.length) return [];
-
-    const classMap = new Map<
+    const batchMap = new Map<
       string,
       {
-        classId: string;
-        className: string;
+        batchId: string;
+        batchName: string;
         program?: string;
         plans: any[];
         results: any[];
@@ -265,22 +364,20 @@ export default function SubjectWiseRankingView({
     >();
 
     allPlans.forEach((plan: any) => {
-      if (
-        !plan.course ||
-        getBaseSubject(plan.course) !== selectedSubject ||
-        cleanBranchName(plan.custom_branch) !== cleanBranchName(selectedBranch)
-      ) {
-        return;
-      }
+      if (!plan.course || getBaseSubject(plan.course) !== selectedSubject) return;
+      if (cleanBranchName(plan.custom_branch) !== cleanBranchName(selectedBranch)) return;
 
-      const classId = plan.student_group;
-      if (!classId) return;
+      const sgInfo = studentGroupMap.get(plan.student_group);
+      const academicClass = extractAcademicClass(plan.student_group, plan.course, sgInfo?.program);
+      if (academicClass !== selectedClass) return;
 
-      if (!classMap.has(classId)) {
-        const sgInfo = studentGroupMap.get(classId);
-        classMap.set(classId, {
-          classId,
-          className: sgInfo?.student_group_name || classId,
+      const batchId = plan.student_group;
+      if (!batchId) return;
+
+      if (!batchMap.has(batchId)) {
+        batchMap.set(batchId, {
+          batchId,
+          batchName: sgInfo?.student_group_name || batchId,
           program: sgInfo?.program,
           plans: [],
           results: [],
@@ -288,7 +385,7 @@ export default function SubjectWiseRankingView({
         });
       }
 
-      const entry = classMap.get(classId)!;
+      const entry = batchMap.get(batchId)!;
       entry.plans.push(plan);
       if (plan.examiner_name || plan.examiner) {
         entry.examiners.add(plan.examiner_name || plan.examiner);
@@ -297,12 +394,12 @@ export default function SubjectWiseRankingView({
       entry.results.push(...pResults);
     });
 
-    return Array.from(classMap.values())
+    return Array.from(batchMap.values())
       .map((entry) => {
         const stats = computeStats(entry.results);
         return {
-          classId: entry.classId,
-          className: entry.className,
+          batchId: entry.batchId,
+          batchName: entry.batchName,
           program: entry.program,
           examiners: Array.from(entry.examiners).filter(Boolean).join(", "),
           examsCount: entry.plans.length,
@@ -315,24 +412,24 @@ export default function SubjectWiseRankingView({
         };
       })
       .sort((a, b) => b.numericRate - a.numericRate);
-  }, [selectedSubject, selectedBranch, allPlans, resultsByPlan, studentGroupMap]);
+  }, [selectedSubject, selectedClass, selectedBranch, allPlans, resultsByPlan, studentGroupMap]);
 
-  // 4. CLASS DETAILS BREAKDOWN (For selected class)
-  const classDeepDive = useMemo(() => {
-    if (!selectedClassId || !selectedSubject || !selectedBranch) return null;
+  // 5. BATCH EXAM DETAILS DEEP DIVE
+  const batchDeepDive = useMemo(() => {
+    if (!selectedBatchId || !selectedSubject || !selectedBranch) return null;
 
-    const classPlans = allPlans.filter(
+    const batchPlans = allPlans.filter(
       (p: any) =>
-        p.student_group === selectedClassId &&
+        p.student_group === selectedBatchId &&
         getBaseSubject(p.course) === selectedSubject &&
         cleanBranchName(p.custom_branch) === cleanBranchName(selectedBranch)
     );
 
-    const classResults: any[] = [];
-    classPlans.forEach((p: any) => {
+    const batchResults: any[] = [];
+    batchPlans.forEach((p: any) => {
       const pRes = resultsByPlan.get(p.name) || [];
       pRes.forEach((r: any) => {
-        classResults.push({
+        batchResults.push({
           ...r,
           examName: p.assessment_name || p.name,
           course: p.course,
@@ -342,10 +439,9 @@ export default function SubjectWiseRankingView({
       });
     });
 
-    const stats = computeStats(classResults);
+    const stats = computeStats(batchResults);
 
-    // Group by Exam Plan
-    const examBreakdown = classPlans.map((plan: any) => {
+    const examBreakdown = batchPlans.map((plan: any) => {
       const examResults = resultsByPlan.get(plan.name) || [];
       const examStats = computeStats(examResults);
       return {
@@ -365,9 +461,9 @@ export default function SubjectWiseRankingView({
     return {
       stats,
       examBreakdown,
-      totalExams: classPlans.length,
+      totalExams: batchPlans.length,
     };
-  }, [selectedClassId, selectedSubject, selectedBranch, allPlans, resultsByPlan]);
+  }, [selectedBatchId, selectedSubject, selectedBranch, allPlans, resultsByPlan]);
 
   // Filter lists based on search query
   const filteredSubjects = useMemo(() => {
@@ -386,15 +482,18 @@ export default function SubjectWiseRankingView({
             onClick={() => {
               if (level === "subjects") {
                 onBack();
-              } else if (level === "branches") {
+              } else if (level === "classes") {
                 setLevel("subjects");
                 setSelectedSubject("");
-              } else if (level === "classes") {
+              } else if (level === "branches") {
+                setLevel("classes");
+                setSelectedClass("");
+              } else if (level === "batches") {
                 setLevel("branches");
                 setSelectedBranch("");
-              } else if (level === "class_details") {
-                setLevel("classes");
-                setSelectedClassId("");
+              } else if (level === "batch_details") {
+                setLevel("batches");
+                setSelectedBatchId("");
               }
             }}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-text-primary rounded-lg transition-colors"
@@ -402,11 +501,13 @@ export default function SubjectWiseRankingView({
             <ArrowLeft className="w-3.5 h-3.5" />
             {level === "subjects"
               ? "Menu"
-              : level === "branches"
-              ? "Subjects"
               : level === "classes"
+              ? "Subjects"
+              : level === "branches"
+              ? "Classes"
+              : level === "batches"
               ? "Branches"
-              : "Classes"}
+              : "Batches"}
           </button>
 
           <span className="text-text-tertiary">/</span>
@@ -415,8 +516,9 @@ export default function SubjectWiseRankingView({
             onClick={() => {
               setLevel("subjects");
               setSelectedSubject("");
+              setSelectedClass("");
               setSelectedBranch("");
-              setSelectedClassId("");
+              setSelectedBatchId("");
             }}
             className={`cursor-pointer font-bold ${
               level === "subjects" ? "text-primary" : "text-text-secondary hover:text-text-primary"
@@ -430,15 +532,34 @@ export default function SubjectWiseRankingView({
               <span className="text-text-tertiary">/</span>
               <span
                 onClick={() => {
+                  setLevel("classes");
+                  setSelectedClass("");
+                  setSelectedBranch("");
+                  setSelectedBatchId("");
+                }}
+                className={`cursor-pointer font-bold ${
+                  level === "classes" ? "text-primary" : "text-text-secondary hover:text-text-primary"
+                }`}
+              >
+                {selectedSubject}
+              </span>
+            </>
+          )}
+
+          {selectedClass && (
+            <>
+              <span className="text-text-tertiary">/</span>
+              <span
+                onClick={() => {
                   setLevel("branches");
                   setSelectedBranch("");
-                  setSelectedClassId("");
+                  setSelectedBatchId("");
                 }}
                 className={`cursor-pointer font-bold ${
                   level === "branches" ? "text-primary" : "text-text-secondary hover:text-text-primary"
                 }`}
               >
-                {selectedSubject}
+                {selectedClass}
               </span>
             </>
           )}
@@ -448,11 +569,11 @@ export default function SubjectWiseRankingView({
               <span className="text-text-tertiary">/</span>
               <span
                 onClick={() => {
-                  setLevel("classes");
-                  setSelectedClassId("");
+                  setLevel("batches");
+                  setSelectedBatchId("");
                 }}
                 className={`cursor-pointer font-bold ${
-                  level === "classes" ? "text-primary" : "text-text-secondary hover:text-text-primary"
+                  level === "batches" ? "text-primary" : "text-text-secondary hover:text-text-primary"
                 }`}
               >
                 {selectedBranch.replace(/^Smart\s+Up\s+/i, "")}
@@ -460,10 +581,10 @@ export default function SubjectWiseRankingView({
             </>
           )}
 
-          {selectedClassName && level === "class_details" && (
+          {selectedBatchName && level === "batch_details" && (
             <>
               <span className="text-text-tertiary">/</span>
-              <span className="font-bold text-primary">{selectedClassName}</span>
+              <span className="font-bold text-primary">{selectedBatchName}</span>
             </>
           )}
         </div>
@@ -500,7 +621,7 @@ export default function SubjectWiseRankingView({
                   <BookMarked className="h-5 w-5 text-primary" /> Select Subject
                 </h2>
                 <p className="text-xs text-text-secondary mt-0.5">
-                  Choose a subject to examine branch-wise and class-level academic performance.
+                  Choose a subject to examine classes and standards studying it across SmartUp.
                 </p>
               </div>
               <Badge className="bg-primary/10 text-primary border-none font-bold">
@@ -525,7 +646,7 @@ export default function SubjectWiseRankingView({
                       hover
                       onClick={() => {
                         setSelectedSubject(sub.baseName);
-                        setLevel("branches");
+                        setLevel("classes");
                       }}
                       className="cursor-pointer border border-slate-100 dark:border-white/[0.06] shadow-sm hover:border-primary/20 transition-all group overflow-hidden bg-surface"
                     >
@@ -535,7 +656,7 @@ export default function SubjectWiseRankingView({
                             <BookOpen className="h-6 w-6" />
                           </div>
                           <Badge className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-none font-bold">
-                            {sub.branchesCount} Branches
+                            {sub.classesCount} Classes
                           </Badge>
                         </div>
                         <CardTitle className="text-base font-bold text-text-primary mt-4 group-hover:text-primary transition-colors">
@@ -571,7 +692,94 @@ export default function SubjectWiseRankingView({
         )}
 
         {/* ========================================================= */}
-        {/* LEVEL 2: BRANCHES OFFERING SELECTED SUBJECT               */}
+        {/* LEVEL 2: CLASSES / STANDARDS FOR SELECTED SUBJECT         */}
+        {/* ========================================================= */}
+        {level === "classes" && (
+          <motion.div
+            key="classes"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="space-y-6"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-text-primary flex items-center gap-2">
+                  <GraduationCap className="h-5 w-5 text-primary" /> Classes Studying {selectedSubject}
+                </h2>
+                <p className="text-xs text-text-secondary mt-0.5">
+                  Select a class/program to see which branches offer it and compare branch performance.
+                </p>
+              </div>
+              <Badge className="bg-primary/10 text-primary border-none font-bold">
+                {classesForSelectedSubject.length} Classes
+              </Badge>
+            </div>
+
+            {classesForSelectedSubject.length === 0 ? (
+              <Card className="p-12 text-center border-dashed bg-surface">
+                <h3 className="text-base font-semibold text-text-primary">No classes found</h3>
+                <p className="text-sm text-text-secondary mt-1">
+                  No classes currently have recorded exams for {selectedSubject}.
+                </p>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {classesForSelectedSubject.map((cls) => {
+                  const colors = getRateColor(cls.numericRate);
+                  return (
+                    <Card
+                      key={cls.className}
+                      hover
+                      onClick={() => {
+                        setSelectedClass(cls.className);
+                        setLevel("branches");
+                      }}
+                      className="cursor-pointer border border-slate-100 dark:border-white/[0.06] shadow-sm hover:border-primary/20 transition-all group overflow-hidden bg-surface"
+                    >
+                      <CardHeader className="p-6 pb-2">
+                        <div className="flex justify-between items-start">
+                          <div className="p-2.5 bg-primary/10 text-primary rounded-xl">
+                            <Layers className="h-6 w-6" />
+                          </div>
+                          <Badge className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-none font-bold">
+                            {cls.branchesCount} Branches
+                          </Badge>
+                        </div>
+                        <CardTitle className="text-base font-bold text-text-primary mt-4 group-hover:text-primary transition-colors">
+                          {cls.className}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-6 pt-2">
+                        <div className="mt-2 flex items-baseline justify-between">
+                          <span className="text-xs text-text-secondary font-medium">Class Pass Rate</span>
+                          <span className={`text-2xl font-extrabold tracking-tight ${colors.text}`}>
+                            {cls.passRate}
+                          </span>
+                        </div>
+                        {cls.numericRate > 0 && (
+                          <div className="w-full bg-slate-50 dark:bg-white/[0.04] h-1.5 rounded-full mt-3.5 overflow-hidden">
+                            <div
+                              className={`h-full ${colors.bg} rounded-full`}
+                              style={{ width: `${cls.numericRate}%` }}
+                            />
+                          </div>
+                        )}
+                        <div className="mt-4 pt-4 border-t border-slate-100 dark:border-white/[0.04] flex items-center justify-between text-[10px] text-text-tertiary font-bold uppercase tracking-wider">
+                          <span>{cls.examsCount} Exams</span>
+                          <span>{cls.totalAssessments} Submissions</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* ========================================================= */}
+        {/* LEVEL 3: BRANCHES TEACHING SELECTED CLASS & SUBJECT       */}
         {/* ========================================================= */}
         {level === "branches" && (
           <motion.div
@@ -584,27 +792,27 @@ export default function SubjectWiseRankingView({
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-bold text-text-primary flex items-center gap-2">
-                  <School className="h-5 w-5 text-primary" /> Branches Teaching {selectedSubject}
+                  <School className="h-5 w-5 text-primary" /> Branches with {selectedClass} ({selectedSubject})
                 </h2>
                 <p className="text-xs text-text-secondary mt-0.5">
-                  Select a branch to see individual class batches and their teachers.
+                  Select a branch to see individual batch sections (A, B, C) and teacher details.
                 </p>
               </div>
               <Badge className="bg-primary/10 text-primary border-none font-bold">
-                {branchesForSubject.length} Branches
+                {branchesForClassAndSubject.length} Branches
               </Badge>
             </div>
 
-            {branchesForSubject.length === 0 ? (
+            {branchesForClassAndSubject.length === 0 ? (
               <Card className="p-12 text-center border-dashed bg-surface">
                 <h3 className="text-base font-semibold text-text-primary">No branches found</h3>
                 <p className="text-sm text-text-secondary mt-1">
-                  No branch currently has recorded exams for {selectedSubject}.
+                  No branch currently offers {selectedClass} in {selectedSubject}.
                 </p>
               </Card>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {branchesForSubject.map((b) => {
+                {branchesForClassAndSubject.map((b) => {
                   const colors = getRateColor(b.numericRate);
                   return (
                     <Card
@@ -612,7 +820,7 @@ export default function SubjectWiseRankingView({
                       hover
                       onClick={() => {
                         setSelectedBranch(b.branchName);
-                        setLevel("classes");
+                        setLevel("batches");
                       }}
                       className="cursor-pointer border border-slate-100 dark:border-white/[0.06] shadow-sm hover:border-primary/20 transition-all group overflow-hidden bg-surface"
                     >
@@ -622,7 +830,7 @@ export default function SubjectWiseRankingView({
                             <School className="h-6 w-6" />
                           </div>
                           <Badge className="bg-primary/10 text-primary border-none font-bold">
-                            {b.classesCount} Classes
+                            {b.batchesCount} Batches
                           </Badge>
                         </div>
                         <CardTitle className="text-base font-bold text-text-primary mt-4 group-hover:text-primary transition-colors">
@@ -658,11 +866,11 @@ export default function SubjectWiseRankingView({
         )}
 
         {/* ========================================================= */}
-        {/* LEVEL 3: CLASSES / BATCHES INSIDE BRANCH                  */}
+        {/* LEVEL 4: BATCHES (SECTIONS) IN SELECTED BRANCH            */}
         {/* ========================================================= */}
-        {level === "classes" && (
+        {level === "batches" && (
           <motion.div
-            key="classes"
+            key="batches"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
@@ -671,41 +879,37 @@ export default function SubjectWiseRankingView({
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-bold text-text-primary flex items-center gap-2">
-                  <GraduationCap className="h-5 w-5 text-primary" /> Classes in{" "}
-                  {selectedBranch.replace(/^Smart\s+Up\s+/i, "")} ({selectedSubject})
+                  <Users className="h-5 w-5 text-primary" /> Batches in{" "}
+                  {selectedBranch.replace(/^Smart\s+Up\s+/i, "")} ({selectedClass} • {selectedSubject})
                 </h2>
                 <p className="text-xs text-text-secondary mt-0.5">
-                  Select a class to view in-depth student performance and exam breakdowns.
+                  Select a batch to inspect detailed exam-wise scores, teacher performance, and results.
                 </p>
               </div>
               <Badge className="bg-primary/10 text-primary border-none font-bold">
-                {classesForBranchAndSubject.length} Batches
+                {batchesForBranchClassSubject.length} Batches
               </Badge>
             </div>
 
-            {groupsLoading ? (
-              <div className="py-24 flex justify-center items-center">
-                <GifLoader size="lg" />
-              </div>
-            ) : classesForBranchAndSubject.length === 0 ? (
+            {batchesForBranchClassSubject.length === 0 ? (
               <Card className="p-12 text-center border-dashed bg-surface">
-                <h3 className="text-base font-semibold text-text-primary">No classes found</h3>
+                <h3 className="text-base font-semibold text-text-primary">No batches found</h3>
                 <p className="text-sm text-text-secondary mt-1">
                   No batches have completed exams for {selectedSubject} in this branch.
                 </p>
               </Card>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {classesForBranchAndSubject.map((cls) => {
-                  const colors = getRateColor(cls.numericRate);
+                {batchesForBranchClassSubject.map((batch) => {
+                  const colors = getRateColor(batch.numericRate);
                   return (
                     <Card
-                      key={cls.classId}
+                      key={batch.batchId}
                       hover
                       onClick={() => {
-                        setSelectedClassId(cls.classId);
-                        setSelectedClassName(cls.className);
-                        setLevel("class_details");
+                        setSelectedBatchId(batch.batchId);
+                        setSelectedBatchName(batch.batchName);
+                        setLevel("batch_details");
                       }}
                       className="cursor-pointer border border-slate-100 dark:border-white/[0.06] shadow-sm hover:border-primary/20 transition-all group overflow-hidden bg-surface"
                     >
@@ -715,36 +919,36 @@ export default function SubjectWiseRankingView({
                             <Users className="h-6 w-6" />
                           </div>
                           <Badge className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-none font-bold">
-                            {cls.examsCount} Exams
+                            {batch.examsCount} Exams
                           </Badge>
                         </div>
                         <CardTitle className="text-base font-bold text-text-primary mt-4 group-hover:text-primary transition-colors">
-                          {cls.className}
+                          {batch.batchName}
                         </CardTitle>
-                        {cls.examiners && (
+                        {batch.examiners && (
                           <p className="text-xs text-text-secondary mt-1 truncate">
-                            Teacher: <span className="font-semibold text-text-primary">{cls.examiners}</span>
+                            Teacher: <span className="font-semibold text-text-primary">{batch.examiners}</span>
                           </p>
                         )}
                       </CardHeader>
                       <CardContent className="p-6 pt-2">
                         <div className="mt-2 flex items-baseline justify-between">
-                          <span className="text-xs text-text-secondary font-medium">Class Pass Rate</span>
+                          <span className="text-xs text-text-secondary font-medium">Batch Pass Rate</span>
                           <span className={`text-2xl font-extrabold tracking-tight ${colors.text}`}>
-                            {cls.passRate}
+                            {batch.passRate}
                           </span>
                         </div>
-                        {cls.numericRate > 0 && (
+                        {batch.numericRate > 0 && (
                           <div className="w-full bg-slate-50 dark:bg-white/[0.04] h-1.5 rounded-full mt-3.5 overflow-hidden">
                             <div
                               className={`h-full ${colors.bg} rounded-full`}
-                              style={{ width: `${cls.numericRate}%` }}
+                              style={{ width: `${batch.numericRate}%` }}
                             />
                           </div>
                         )}
                         <div className="mt-4 pt-4 border-t border-slate-100 dark:border-white/[0.04] flex items-center justify-between text-[10px] text-text-tertiary font-bold uppercase tracking-wider">
-                          <span>{cls.totalAssessments} Submissions</span>
-                          <span>{cls.fullMarks} Full Marks</span>
+                          <span>{batch.totalAssessments} Submissions</span>
+                          <span>{batch.fullMarks} Full Marks</span>
                         </div>
                       </CardContent>
                     </Card>
@@ -756,11 +960,11 @@ export default function SubjectWiseRankingView({
         )}
 
         {/* ========================================================= */}
-        {/* LEVEL 4: CLASS DETAILS & EXAM-WISE PERFORMANCE            */}
+        {/* LEVEL 5: BATCH DEEP DIVE & EXAM-WISE PERFORMANCE          */}
         {/* ========================================================= */}
-        {level === "class_details" && classDeepDive && (
+        {level === "batch_details" && batchDeepDive && (
           <motion.div
-            key="class_details"
+            key="batch_details"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
@@ -772,15 +976,15 @@ export default function SubjectWiseRankingView({
                 <div>
                   <h2 className="text-xl font-bold text-text-primary flex items-center gap-2">
                     <Trophy className="h-6 w-6 text-primary" />
-                    {selectedClassName} — {selectedSubject}
+                    {selectedBatchName} — {selectedSubject}
                   </h2>
                   <p className="text-xs text-text-secondary mt-1">
-                    Branch:{" "}
+                    Class: <span className="font-semibold text-text-primary">{selectedClass}</span> • Branch:{" "}
                     <span className="font-semibold text-text-primary">
                       {selectedBranch.replace(/^Smart\s+Up\s+/i, "")}
                     </span>{" "}
-                    • Total Exams Conducted:{" "}
-                    <span className="font-semibold text-text-primary">{classDeepDive.totalExams}</span>
+                    • Total Exams:{" "}
+                    <span className="font-semibold text-text-primary">{batchDeepDive.totalExams}</span>
                   </p>
                 </div>
                 <div className="flex items-center gap-6">
@@ -788,16 +992,16 @@ export default function SubjectWiseRankingView({
                     <span className="text-xs text-text-secondary font-medium block">Average Pass Rate</span>
                     <span
                       className={`text-2xl font-extrabold ${
-                        getRateColor(classDeepDive.stats.passRate).text
+                        getRateColor(batchDeepDive.stats.passRate).text
                       }`}
                     >
-                      {classDeepDive.stats.passRate.toFixed(1)}%
+                      {batchDeepDive.stats.passRate.toFixed(1)}%
                     </span>
                   </div>
                   <div className="text-right">
                     <span className="text-xs text-text-secondary font-medium block">Average Score</span>
                     <span className="text-2xl font-extrabold text-primary">
-                      {classDeepDive.stats.avgScore.toFixed(1)}%
+                      {batchDeepDive.stats.avgScore.toFixed(1)}%
                     </span>
                   </div>
                 </div>
@@ -809,14 +1013,14 @@ export default function SubjectWiseRankingView({
                   <span className="text-[10px] font-bold uppercase text-text-tertiary tracking-wider block">
                     Submissions
                   </span>
-                  <span className="text-lg font-bold text-text-primary">{classDeepDive.stats.total}</span>
+                  <span className="text-lg font-bold text-text-primary">{batchDeepDive.stats.total}</span>
                 </div>
                 <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 rounded-xl">
                   <span className="text-[10px] font-bold uppercase text-emerald-600 dark:text-emerald-400 tracking-wider block">
                     Passed (≥40%)
                   </span>
                   <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-                    {classDeepDive.stats.passCount}
+                    {batchDeepDive.stats.passCount}
                   </span>
                 </div>
                 <div className="p-3 bg-rose-50 dark:bg-rose-950/20 rounded-xl">
@@ -824,7 +1028,7 @@ export default function SubjectWiseRankingView({
                     Failed (&lt;40%)
                   </span>
                   <span className="text-lg font-bold text-rose-600 dark:text-rose-400">
-                    {classDeepDive.stats.failCount}
+                    {batchDeepDive.stats.failCount}
                   </span>
                 </div>
                 <div className="p-3 bg-purple-50 dark:bg-purple-950/20 rounded-xl">
@@ -832,7 +1036,7 @@ export default function SubjectWiseRankingView({
                     Full Marks
                   </span>
                   <span className="text-lg font-bold text-purple-600 dark:text-purple-400">
-                    {classDeepDive.stats.fullMarks}
+                    {batchDeepDive.stats.fullMarks}
                   </span>
                 </div>
               </div>
@@ -858,7 +1062,7 @@ export default function SubjectWiseRankingView({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-white/[0.06]">
-                    {classDeepDive.examBreakdown.map((exam) => {
+                    {batchDeepDive.examBreakdown.map((exam) => {
                       const colors = getRateColor(exam.numericRate);
                       return (
                         <tr
