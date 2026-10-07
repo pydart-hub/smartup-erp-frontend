@@ -61,7 +61,7 @@ export default function CurriculumDeptDashboard() {
           payload: {
             fields: JSON.stringify(["name", "custom_branch"]),
             filters: JSON.stringify([["docstatus", "=", 1]]),
-            limit_page_length: "1000"
+            limit_page_length: 0
           }
         })
       }).then(r => r.json());
@@ -81,14 +81,18 @@ export default function CurriculumDeptDashboard() {
           path: "resource/Assessment Result",
           method: "GET",
           payload: {
-            fields: JSON.stringify(["assessment_plan"]),
-            filters: JSON.stringify([["docstatus", "=", 1]]),
-            group_by: "assessment_plan",
-            limit_page_length: "1000"
+            fields: JSON.stringify(["distinct assessment_plan"]),
+            filters: JSON.stringify([["docstatus", "!=", 2]]),
+            limit_page_length: 0
           }
         })
       }).then(r => r.json());
-      return new Set<string>(res.data?.map((r: any) => r.assessment_plan) ?? []);
+      const items = res.data ?? [];
+      const set = new Set<string>();
+      items.forEach((r: any) => {
+        if (r.assessment_plan) set.add(r.assessment_plan);
+      });
+      return set;
     },
     staleTime: 60_000,
   });

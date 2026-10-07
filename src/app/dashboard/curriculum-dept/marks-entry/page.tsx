@@ -79,43 +79,30 @@ export default function CurriculumMarksEntryPage() {
   const { data: allExams = [], isLoading: examsLoading } = useQuery({
     queryKey: ["assessment-plans-curriculum-all"],
     queryFn: async () => {
-      let plans: any[] = [];
-      let start = 0;
-      let hasMore = true;
-      while (hasMore) {
-        const res = await fetch("/api/curriculum-dept/admin-proxy", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            path: "resource/Assessment Plan",
-            method: "GET",
-            payload: {
-              fields: JSON.stringify([
-                "name",
-                "student_group",
-                "assessment_name",
-                "course",
-                "schedule_date",
-                "maximum_assessment_score",
-                "custom_branch",
-                "assessment_group"
-              ]),
-              filters: JSON.stringify([["docstatus", "=", 1]]),
-              order_by: "schedule_date desc",
-              limit_start: String(start),
-              limit_page_length: "1000"
-            }
-          })
-        }).then(r => r.json());
-        const items = res.data ?? [];
-        plans.push(...items);
-        if (items.length < 1000 || plans.length >= 5000) {
-          hasMore = false;
-        } else {
-          start += 1000;
-        }
-      }
-      return plans;
+      const res = await fetch("/api/curriculum-dept/admin-proxy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          path: "resource/Assessment Plan",
+          method: "GET",
+          payload: {
+            fields: JSON.stringify([
+              "name",
+              "student_group",
+              "assessment_name",
+              "course",
+              "schedule_date",
+              "maximum_assessment_score",
+              "custom_branch",
+              "assessment_group"
+            ]),
+            filters: JSON.stringify([["docstatus", "=", 1]]),
+            order_by: "schedule_date desc",
+            limit_page_length: 0
+          }
+        })
+      }).then(r => r.json());
+      return res.data ?? [];
     },
     staleTime: 30_000,
   });
