@@ -1,16 +1,20 @@
-# Multi-Session Staff Attendance Implementation Plan
+# Subject-Wise Hierarchy Navigation Implementation Plan
 
 ## Overview
-Enable multiple attendance sessions per employee per day (e.g. 09:00 - 12:00 and 16:00 - 18:00) stored directly within Frappe `Attendance` DocType via `custom_branch_sessions` (child table) and `custom_sessions_json`.
+Implement a new Subject-Wise navigation flow in the Teacher Ranking page (`src/app/dashboard/curriculum-dept/subject-performance/page.tsx`).
+Users can select a subject, view branches offering that subject, drill down into classes/batches within the branch, and view class-level performance and student/teacher breakdowns.
+
+## Proposed Flow
+1. **Menu Mode**: Add 3rd option card: "Subject-Wise Ranking" (and clarify existing as "Branch-Wise Ranking").
+2. **Subject-Wise Mode**:
+   - **Level 1 (All Subjects)**: List all subjects across the organization with stats (branches offering it, pass rate, exams count).
+   - **Level 2 (Branches for selected Subject)**: List branches offering the selected subject with branch-level pass rate, exams, and classes count.
+   - **Level 3 (Classes/Batches for selected Branch & Subject)**: List student groups/batches taking this subject with class pass rate, exams, examinees count, and teacher details.
+   - **Level 4 (Class Deep Dive / Student & Teacher Breakdown)**: Show detailed student marks/grade distribution, exam-wise breakdown, and instructor performance for that class.
 
 ## Checklist
-- [x] Step 1: Update Server Script `set_attendance_status` to handle multiple sessions per branch and populate child table `custom_branch_sessions` + `working_hours` + `custom_sessions_json`.
-- [x] Step 2: Update TypeScript types and API client functions in `src/lib/api/employees.ts`.
-- [x] Step 3: Update Branch Manager Staff Attendance UI (`src/app/dashboard/branch-manager/attendance/staff/page.tsx`) to support viewing, adding, editing, and removing multiple sessions per employee.
-- [x] Step 4: Update HR Manager Attendance Report (`src/app/dashboard/hr-manager/report/page.tsx`) to display multi-session chips, working hours sum, and handle Excel/PDF exports with multi-session breakdowns.
-- [x] Step 5: Update Director Staff Attendance views (`src/app/dashboard/director/attendance/staff/[branchId]/page.tsx` & report) for consistency.
-- [x] Step 6: Verify types (`npx tsc --noEmit`), test build, and verify end-to-end functionality.
-
-## Verification
-- Frappe Server Script `set_attendance_status` updated on Frappe Cloud (HTTP 200).
-- `npx tsc --noEmit --skipLibCheck` executed with 0 errors.
+- [x] Step 1: Create dedicated component or integrate modular views in `src/app/dashboard/curriculum-dept/subject-performance/page.tsx` for the Subject-Wise drilldown.
+- [x] Step 2: Implement aggregation hooks/memos for organization-wide subjects, subject branches, and branch classes.
+- [x] Step 3: Implement smooth animated breadcrumb navigation across the levels (All Subjects -> Branches -> Classes -> Class Details).
+- [x] Step 4: Run typecheck `npx tsc --noEmit` and verify no regressions (exited 0).
+- [ ] Step 5: Test and commit changes, then deploy to server per standard procedure.

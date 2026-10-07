@@ -24,6 +24,7 @@ import { GifLoader } from "@/components/ui/GifLoader";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { getBranches } from "@/lib/api/enrollment";
 import SmartUpRankingView from "@/components/curriculum-dept/SmartUpRankingView";
+import SubjectWiseRankingView from "@/components/curriculum-dept/SubjectWiseRankingView";
 
 // Static instructor map per branch — used as fallback when DB has no Instructor records
 // Sourced from Teachers & Staff pages on the SmartUp production portal
@@ -131,7 +132,7 @@ const cleanBranchName = (name: string): string => {
 };
 
 export default function SubjectPerformancePage() {
-  const [mode, setMode] = useState<"menu" | "subjectwise" | "smartup">("menu");
+  const [mode, setMode] = useState<"menu" | "subjectwise" | "subject_first" | "smartup">("menu");
   const [level, setLevel] = useState<"branches" | "subjects" | "ranking">("branches");
 
   // Selection states
@@ -596,16 +597,28 @@ export default function SubjectPerformancePage() {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
-            className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8"
+            className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8"
           >
             <Card hover onClick={() => setMode("subjectwise")} className="cursor-pointer border-t-4 border-t-primary p-8">
               <div className="flex flex-col items-center text-center gap-4">
                 <div className="p-4 bg-primary/10 rounded-full">
-                  <BookOpen className="w-10 h-10 text-primary" />
+                  <School className="w-10 h-10 text-primary" />
+                </div>
+                <h3 className="text-xl font-bold text-text-primary">Branch-Wise Ranking</h3>
+                <p className="text-text-secondary text-sm">
+                  Select a branch first, view its subjects, and compare teacher rankings.
+                </p>
+              </div>
+            </Card>
+
+            <Card hover onClick={() => setMode("subject_first")} className="cursor-pointer border-t-4 border-t-emerald-500 p-8">
+              <div className="flex flex-col items-center text-center gap-4">
+                <div className="p-4 bg-emerald-50 dark:bg-emerald-950/30 rounded-full">
+                  <BookOpen className="w-10 h-10 text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <h3 className="text-xl font-bold text-text-primary">Subject-Wise Ranking</h3>
                 <p className="text-text-secondary text-sm">
-                  Compare teacher performance handling the same subjects within a branch.
+                  Select a subject, browse branches offering it, and explore classes inside each branch.
                 </p>
               </div>
             </Card>
@@ -623,6 +636,14 @@ export default function SubjectPerformancePage() {
             </Card>
           </motion.div>
         </AnimatePresence>
+      ) : mode === "subject_first" ? (
+        <SubjectWiseRankingView
+          onBack={() => setMode("menu")}
+          allResults={allResults}
+          allPlans={allPlans}
+          planMetaMap={planMetaMap}
+          branches={branches}
+        />
       ) : mode === "smartup" ? (
         <SmartUpRankingView 
           onBack={() => setMode("menu")} 
