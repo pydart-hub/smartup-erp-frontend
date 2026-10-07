@@ -166,7 +166,16 @@ export const BRANCH_MANAGER_NAV: NavItem[] = [
     children: [
       { label: "Classes", href: "/dashboard/branch-manager/classes", icon: "School", emoji: "🏫" },
       { label: "Batches", href: "/dashboard/branch-manager/batches", icon: "Users", emoji: "👥" },
+    ],
+  },
+  {
+    label: "Branch Performance",
+    href: "/dashboard/branch-manager/branch-performance",
+    icon: "LineChart",
+    emoji: "📈",
+    children: [
       { label: "Class Performance", href: "/dashboard/branch-manager/class-performance", icon: "BarChart3", emoji: "📊" },
+      { label: "Subject Performance", href: "/dashboard/branch-manager/subject-performance", icon: "BookOpen", emoji: "📖" },
     ],
   },
   {

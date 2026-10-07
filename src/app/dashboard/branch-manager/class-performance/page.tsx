@@ -1585,9 +1585,9 @@ function ClassPerformanceContent() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-text-primary">Academic Performance</h1>
+          <h1 className="text-2xl font-bold text-text-primary">Class Performance</h1>
           <p className="text-sm text-text-secondary mt-0.5">
-            Class-wise and subject-wise academic metrics & exam breakdowns for {activeBranch || "your branch"}.
+            Class-wise academic metrics, batch comparisons & exam breakdowns for {activeBranch || "your branch"}.
           </p>
         </div>
 
@@ -1618,7 +1618,11 @@ function ClassPerformanceContent() {
 
       {/* Main View: Hub vs Graphs */}
       {viewMode === "hub" ? (
-        <BranchPerformanceHub branchName={activeBranch} />
+        <BranchPerformanceHub
+          branchName={activeBranch}
+          defaultTab="class_wise"
+          hideTabSwitcher={true}
+        />
       ) : (
         <div className="space-y-6">
           <div className="flex justify-end">

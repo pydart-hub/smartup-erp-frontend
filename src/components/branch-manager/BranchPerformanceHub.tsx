@@ -22,6 +22,8 @@ import { GifLoader } from "@/components/ui/GifLoader";
 
 interface BranchPerformanceHubProps {
   branchName: string;
+  defaultTab?: "class_wise" | "subject_wise";
+  hideTabSwitcher?: boolean;
 }
 
 // Helpers
@@ -72,9 +74,13 @@ const getRateColor = (rate: number) => {
   return { text: "text-error", bg: "bg-error" };
 };
 
-export default function BranchPerformanceHub({ branchName }: BranchPerformanceHubProps) {
+export default function BranchPerformanceHub({
+  branchName,
+  defaultTab = "class_wise",
+  hideTabSwitcher = false,
+}: BranchPerformanceHubProps) {
   // Mode: "class_wise" | "subject_wise"
-  const [activeTab, setActiveTab] = useState<"class_wise" | "subject_wise">("class_wise");
+  const [activeTab, setActiveTab] = useState<"class_wise" | "subject_wise">(defaultTab);
 
   // Navigation states for Class-Wise mode: "classes" -> "batches" -> "batch_details"
   const [classLevel, setClassLevel] = useState<"classes" | "batches" | "batch_details">("classes");
@@ -626,46 +632,48 @@ export default function BranchPerformanceHub({ branchName }: BranchPerformanceHu
   return (
     <div className="space-y-6">
       {/* Tab Switcher */}
-      <div className="flex items-center justify-between flex-wrap gap-4 border-b border-slate-200 dark:border-slate-800 pb-3">
-        <div className="flex items-center gap-2 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl">
-          <button
-            onClick={() => {
-              setActiveTab("class_wise");
-              setClassLevel("classes");
-              setSelectedClass("");
-              setSelectedBatchId("");
-            }}
-            className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg transition-all ${
-              activeTab === "class_wise"
-                ? "bg-white dark:bg-slate-900 text-primary shadow-sm"
-                : "text-text-secondary hover:text-text-primary"
-            }`}
-          >
-            <School className="w-4 h-4" /> Class-Wise Performance
-          </button>
+      {!hideTabSwitcher && (
+        <div className="flex items-center justify-between flex-wrap gap-4 border-b border-slate-200 dark:border-slate-800 pb-3">
+          <div className="flex items-center gap-2 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl">
+            <button
+              onClick={() => {
+                setActiveTab("class_wise");
+                setClassLevel("classes");
+                setSelectedClass("");
+                setSelectedBatchId("");
+              }}
+              className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg transition-all ${
+                activeTab === "class_wise"
+                  ? "bg-white dark:bg-slate-900 text-primary shadow-sm"
+                  : "text-text-secondary hover:text-text-primary"
+              }`}
+            >
+              <School className="w-4 h-4" /> Class-Wise Performance
+            </button>
 
-          <button
-            onClick={() => {
-              setActiveTab("subject_wise");
-              setSubjectLevel("subjects");
-              setSelectedSubject("");
-              setSelectedSubClass("");
-              setSelectedSubBatchId("");
-            }}
-            className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg transition-all ${
-              activeTab === "subject_wise"
-                ? "bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-sm"
-                : "text-text-secondary hover:text-text-primary"
-            }`}
-          >
-            <BookOpen className="w-4 h-4" /> Subject-Wise Performance
-          </button>
-        </div>
+            <button
+              onClick={() => {
+                setActiveTab("subject_wise");
+                setSubjectLevel("subjects");
+                setSelectedSubject("");
+                setSelectedSubClass("");
+                setSelectedSubBatchId("");
+              }}
+              className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg transition-all ${
+                activeTab === "subject_wise"
+                  ? "bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-sm"
+                  : "text-text-secondary hover:text-text-primary"
+              }`}
+            >
+              <BookOpen className="w-4 h-4" /> Subject-Wise Performance
+            </button>
+          </div>
 
-        <div className="text-xs text-text-secondary font-medium">
-          Branch: <span className="font-bold text-text-primary">{branchName.replace(/^Smart\s+Up\s+/i, "")}</span>
+          <div className="text-xs text-text-secondary font-medium">
+            Branch: <span className="font-bold text-text-primary">{branchName.replace(/^Smart\s+Up\s+/i, "")}</span>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ========================================================================= */}
       {/* MODE 1: CLASS-WISE PERFORMANCE VIEW                                       */}
