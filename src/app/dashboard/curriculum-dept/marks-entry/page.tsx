@@ -17,6 +17,8 @@ import {
   Hash,
   AlertCircle,
   Filter,
+  School,
+  ChevronRight,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Button } from "@/components/ui/Button";
@@ -74,6 +76,14 @@ export default function CurriculumMarksEntryPage() {
   const router = useRouter();
   const [selectedExamId, setSelectedExamId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"dashboard" | "pending" | "completed">("dashboard");
+  const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
+
+  // Fetch branches
+  const { data: branches = [] } = useQuery({
+    queryKey: ["branches"],
+    queryFn: getBranches,
+    staleTime: 120_000,
+  });
 
   // Fetch all exams across all branches
   const { data: allExams = [], isLoading: examsLoading } = useQuery({
@@ -142,6 +152,32 @@ export default function CurriculumMarksEntryPage() {
     return allExams.filter((e: any) => enteredPlans.has(e.name));
   }, [allExams, enteredPlans]);
 
+  // Branch statistics calculation
+  const branchStats = useMemo(() => {
+    const statsMap: Record<string, { total: number; pending: number; completed: number }> = {};
+    branches.forEach((b: any) => {
+      statsMap[b.name] = { total: 0, pending: 0, completed: 0 };
+    });
+
+    allExams.forEach((exam: any) => {
+      const b = exam.custom_branch || "Other";
+      if (!statsMap[b]) statsMap[b] = { total: 0, pending: 0, completed: 0 };
+      statsMap[b].total++;
+      if (enteredPlans.has(exam.name)) {
+        statsMap[b].completed++;
+      } else {
+        statsMap[b].pending++;
+      }
+    });
+
+    return branches.map((b: any) => ({
+      name: b.name,
+      total: statsMap[b.name]?.total ?? 0,
+      pending: statsMap[b.name]?.pending ?? 0,
+      completed: statsMap[b.name]?.completed ?? 0,
+    }));
+  }, [branches, allExams, enteredPlans]);
+
   const isLoading = examsLoading || enteredLoading;
 
   return (
@@ -203,7 +239,10 @@ export default function CurriculumMarksEntryPage() {
                 <Card 
                   hover 
                   className="cursor-pointer border-l-4 border-l-orange-500 overflow-hidden relative group"
-                  onClick={() => setViewMode("pending")}
+                  onClick={() => {
+                    setSelectedBranch(null);
+                    setViewMode("pending");
+                  }}
                 >
                   <CardContent className="p-8 space-y-6">
                     <div className="flex items-start justify-between">
@@ -238,7 +277,10 @@ export default function CurriculumMarksEntryPage() {
                 <Card 
                   hover 
                   className="cursor-pointer border-l-4 border-l-success overflow-hidden relative group"
-                  onClick={() => setViewMode("completed")}
+                  onClick={() => {
+                    setSelectedBranch(null);
+                    setViewMode("completed");
+                  }}
                 >
                   <CardContent className="p-8 space-y-6">
                     <div className="flex items-start justify-between">
@@ -271,7 +313,103 @@ export default function CurriculumMarksEntryPage() {
               </div>
             )}
           </motion.div>
+        ) : !selectedBranch ? (
+          /* Step 1: Branch-wise Cards View */
+          <motion.div
+            key="branch-selection"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            className="space-y-6"
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setViewMode("dashboard")} 
+                  className="gap-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Back
+                </Button>
+                <div>
+                  <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-text-primary flex items-center gap-2">
+                    <School className="h-6 w-6 text-primary" />
+                    Select Branch — {viewMode === "pending" ? "Pending Marks Entry" : "Marks Entered Exams"}
+                  </h1>
+                  <p className="text-xs text-text-secondary">
+                    Choose a branch below to view its {viewMode === "pending" ? "pending" : "completed"} examinations.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Branch Cards Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {branchStats.map((b) => {
+                const countToShow = viewMode === "pending" ? b.pending : b.completed;
+                return (
+                  <Card
+                    key={b.name}
+                    hover
+                    onClick={() => setSelectedBranch(b.name)}
+                    className="cursor-pointer border border-slate-200/90 dark:border-slate-800/90 shadow-sm hover:shadow-md transition-all group overflow-hidden flex flex-col justify-between"
+                  >
+                    <CardHeader className="p-5 pb-3">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="p-2.5 bg-primary/10 rounded-xl text-primary group-hover:scale-105 transition-transform">
+                          <School className="h-5 w-5" />
+                        </div>
+                        {viewMode === "pending" ? (
+                          <Badge
+                            variant={b.pending > 0 ? "warning" : "success"}
+                            className="text-xs font-bold px-2.5 py-0.5"
+                          >
+                            {b.pending > 0 ? `${b.pending} Pending` : "All Done"}
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="success"
+                            className="text-xs font-bold px-2.5 py-0.5"
+                          >
+                            {b.completed} Entered
+                          </Badge>
+                        )}
+                      </div>
+                      <CardTitle className="text-lg font-bold text-text-primary group-hover:text-primary transition-colors">
+                        {b.name}
+                      </CardTitle>
+                    </CardHeader>
+
+                    <CardContent className="p-5 pt-0 space-y-4">
+                      <div className="grid grid-cols-2 gap-2 p-3 bg-slate-50 dark:bg-slate-900/60 rounded-xl border border-slate-100 dark:border-slate-800/60 text-xs">
+                        <div>
+                          <p className="text-text-tertiary">Total Exams</p>
+                          <p className="text-base font-bold text-text-primary mt-0.5">{b.total}</p>
+                        </div>
+                        <div>
+                          <p className="text-text-tertiary">
+                            {viewMode === "pending" ? "Pending Entry" : "Marks Entered"}
+                          </p>
+                          <p className={`text-base font-bold mt-0.5 ${viewMode === "pending" ? "text-warning" : "text-success"}`}>
+                            {countToShow}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs font-semibold text-primary group-hover:translate-x-1 transition-transform">
+                        <span>View Examinations ({countToShow})</span>
+                        <ChevronRight className="h-4 w-4" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </motion.div>
         ) : (
+          /* Step 2: Exams Page for the Selected Branch */
           <motion.div
             key="list"
             initial={{ opacity: 0, x: -20 }}
@@ -282,7 +420,8 @@ export default function CurriculumMarksEntryPage() {
             <ExamSelector 
               onSelect={setSelectedExamId}
               viewMode={viewMode}
-              onBack={() => setViewMode("dashboard")}
+              initialBranch={selectedBranch}
+              onBack={() => setSelectedBranch(null)}
               allExams={viewMode === "pending" ? pendingExams : completedExams}
               enteredPlans={enteredPlans}
             />
@@ -299,19 +438,21 @@ export default function CurriculumMarksEntryPage() {
 function ExamSelector({ 
   onSelect,
   viewMode,
+  initialBranch,
   onBack,
   allExams,
   enteredPlans
 }: { 
   onSelect: (id: string) => void;
   viewMode: "pending" | "completed";
+  initialBranch?: string | null;
   onBack: () => void;
   allExams: any[];
   enteredPlans: Set<string>;
 }) {
   const { defaultCompany } = useAuth();
   
-  const [branchFilter, setBranchFilter] = useState(defaultCompany || "");
+  const [branchFilter, setBranchFilter] = useState(initialBranch ?? defaultCompany ?? "");
   const [groupFilter, setGroupFilter] = useState("");
   const [batchFilter, setBatchFilter] = useState("");
 
