@@ -13,6 +13,7 @@ import {
   FileCheck2,
   Calendar,
   BookOpen,
+  X,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -68,6 +69,7 @@ export function StudentPerformanceCard({ studentId }: StudentPerformanceCardProp
   const [viewMode, setViewMode] = useState<"bar" | "line">("bar");
   const [selectedGroup, setSelectedGroup] = useState<string>("all");
   const [hoveredExam, setHoveredExam] = useState<StudentExamAggregate | null>(null);
+  const [selectedExam, setSelectedExam] = useState<StudentExamAggregate | null>(null);
   const [showAllExams, setShowAllExams] = useState<boolean>(false);
   const [expandedExamKey, setExpandedExamKey] = useState<string | null>(null);
 
@@ -424,6 +426,7 @@ export function StudentPerformanceCard({ studentId }: StudentPerformanceCardProp
                 {viewMode === "bar" &&
                   filteredExams.map((exam, idx) => {
                     const isHovered = hoveredExam?.exam_key === exam.exam_key;
+                    const isSelected = selectedExam?.exam_key === exam.exam_key;
                     const color =
                       exam.percentage >= 80
                         ? "#10b981"
@@ -451,11 +454,12 @@ export function StudentPerformanceCard({ studentId }: StudentPerformanceCardProp
                         className="cursor-pointer"
                         onMouseEnter={() => setHoveredExam(exam)}
                         onMouseLeave={() => setHoveredExam(null)}
-                        onClick={() =>
-                          setExpandedExamKey(
-                            expandedExamKey === exam.exam_key ? null : exam.exam_key
-                          )
-                        }
+                        onClick={() => {
+                          setSelectedExam((prev) =>
+                            prev?.exam_key === exam.exam_key ? null : exam
+                          );
+                          setExpandedExamKey(exam.exam_key);
+                        }}
                       >
                         {/* Background column slot (100% full height track) */}
                         <rect
@@ -467,7 +471,10 @@ export function StudentPerformanceCard({ studentId }: StudentPerformanceCardProp
                           ry="6"
                           fill="currentColor"
                           className="text-slate-100 dark:text-slate-800/40"
-                          opacity={isHovered ? 0.9 : 0.45}
+                          opacity={isSelected ? 0.95 : isHovered ? 0.8 : 0.45}
+                          stroke={isSelected ? color : "transparent"}
+                          strokeWidth={isSelected ? "1.5" : "0"}
+                          strokeDasharray={isSelected ? "3 3" : undefined}
                         />
 
                         {/* Value Bar with rounded top caps */}
@@ -479,7 +486,9 @@ export function StudentPerformanceCard({ studentId }: StudentPerformanceCardProp
                           rx="6"
                           ry="6"
                           fill={color}
-                          opacity={isHovered ? 1 : 0.88}
+                          opacity={isSelected ? 1 : isHovered ? 0.95 : 0.85}
+                          stroke={isSelected ? "#ffffff" : "none"}
+                          strokeWidth={isSelected ? "2" : "0"}
                           className="transition-all duration-200"
                         />
 
@@ -487,7 +496,7 @@ export function StudentPerformanceCard({ studentId }: StudentPerformanceCardProp
                         <text
                           x={slotCenterX}
                           y={barY - 8}
-                          fontSize="9.5"
+                          fontSize={isSelected ? "10.5" : "9.5"}
                           fontWeight="700"
                           textAnchor="middle"
                           fill={color}
@@ -500,10 +509,10 @@ export function StudentPerformanceCard({ studentId }: StudentPerformanceCardProp
                           x={slotCenterX}
                           y={chartHeight - 20}
                           fontSize="8.5"
-                          fontWeight="600"
+                          fontWeight={isSelected ? "700" : "600"}
                           textAnchor="middle"
-                          fill="#334155"
-                          className="dark:fill-slate-300 truncate"
+                          fill={isSelected ? color : "#334155"}
+                          className={isSelected ? "" : "dark:fill-slate-300 truncate"}
                         >
                           {exam.exam_title.length > 22
                             ? `${exam.exam_title.slice(0, 20)}…`
@@ -526,6 +535,7 @@ export function StudentPerformanceCard({ studentId }: StudentPerformanceCardProp
                 {viewMode === "line" &&
                   svgPoints.map((pt, idx) => {
                     const isHovered = hoveredExam?.exam_key === pt.exam.exam_key;
+                    const isSelected = selectedExam?.exam_key === pt.exam.exam_key;
                     const color =
                       pt.exam.percentage >= 80
                         ? "#10b981"
@@ -539,24 +549,25 @@ export function StudentPerformanceCard({ studentId }: StudentPerformanceCardProp
                         className="cursor-pointer"
                         onMouseEnter={() => setHoveredExam(pt.exam)}
                         onMouseLeave={() => setHoveredExam(null)}
-                        onClick={() =>
-                          setExpandedExamKey(
-                            expandedExamKey === pt.exam.exam_key ? null : pt.exam.exam_key
-                          )
-                        }
+                        onClick={() => {
+                          setSelectedExam((prev) =>
+                            prev?.exam_key === pt.exam.exam_key ? null : pt.exam
+                          );
+                          setExpandedExamKey(pt.exam.exam_key);
+                        }}
                       >
                         {/* Hit target */}
                         <circle cx={pt.x} cy={pt.y} r="16" fill="transparent" />
 
-                        {/* Ping pulse on hover */}
-                        {isHovered && (
+                        {/* Ping pulse on hover or selection */}
+                        {(isHovered || isSelected) && (
                           <circle
                             cx={pt.x}
                             cy={pt.y}
-                            r="10"
+                            r={isSelected ? "12" : "10"}
                             fill={color}
-                            opacity="0.25"
-                            className="animate-ping"
+                            opacity={isSelected ? "0.35" : "0.25"}
+                            className={isSelected ? "" : "animate-ping"}
                           />
                         )}
 
@@ -564,10 +575,10 @@ export function StudentPerformanceCard({ studentId }: StudentPerformanceCardProp
                         <circle
                           cx={pt.x}
                           cy={pt.y}
-                          r={isHovered ? "7" : "5"}
-                          fill="#ffffff"
-                          stroke={color}
-                          strokeWidth={isHovered ? "3.5" : "2.5"}
+                          r={isSelected ? "8" : isHovered ? "7" : "5"}
+                          fill={isSelected ? color : "#ffffff"}
+                          stroke={isSelected ? "#ffffff" : color}
+                          strokeWidth={isSelected ? "3" : isHovered ? "3.5" : "2.5"}
                           className="transition-all"
                         />
 
@@ -575,7 +586,7 @@ export function StudentPerformanceCard({ studentId }: StudentPerformanceCardProp
                         <text
                           x={pt.x}
                           y={pt.y - 11}
-                          fontSize="9.5"
+                          fontSize={isSelected ? "10.5" : "9.5"}
                           fontWeight="700"
                           textAnchor="middle"
                           fill={color}
@@ -588,10 +599,10 @@ export function StudentPerformanceCard({ studentId }: StudentPerformanceCardProp
                           x={pt.x}
                           y={chartHeight - 20}
                           fontSize="8.5"
-                          fontWeight="600"
+                          fontWeight={isSelected ? "700" : "600"}
                           textAnchor="middle"
-                          fill="#334155"
-                          className="dark:fill-slate-300 truncate"
+                          fill={isSelected ? color : "#334155"}
+                          className={isSelected ? "" : "dark:fill-slate-300 truncate"}
                         >
                           {pt.exam.exam_title.length > 22
                             ? `${pt.exam.exam_title.slice(0, 20)}…`
@@ -612,64 +623,96 @@ export function StudentPerformanceCard({ studentId }: StudentPerformanceCardProp
               </svg>
             </div>
 
-            {/* Hover Tooltip Card showing overall exam result + subjects included */}
-            {hoveredExam && (
-              <div className="mt-3 rounded-lg border border-primary/20 bg-primary/5 p-3.5 text-xs transition-all">
-                <div className="flex flex-wrap items-center justify-between gap-2 mb-2 pb-2 border-b border-primary/10">
-                  <div className="flex items-center gap-2">
-                    <Badge variant={getGradeBadgeVariant(hoveredExam.percentage)}>
-                      Grade {hoveredExam.grade}
-                    </Badge>
-                    <span className="font-bold text-text-primary text-sm">
-                      {hoveredExam.exam_title}
-                    </span>
-                    <span className="text-text-tertiary">({hoveredExam.assessment_group})</span>
+            {/* Clicked / Hovered Exam Details Card (Click to pin, click again or ✕ to unpin) */}
+            {(() => {
+              const activeExam = selectedExam || hoveredExam;
+              if (!activeExam) {
+                return (
+                  <div className="mt-3 py-2 px-3 rounded-lg border border-dashed border-border-light bg-app-bg/60 text-center text-[11px] text-text-tertiary">
+                    Click any exam above to pin and view its detailed subject scores
                   </div>
-                  <div className="flex items-center gap-3 font-semibold text-text-secondary">
-                    <span>
-                      Total Score:{" "}
-                      <strong className="text-text-primary">
-                        {hoveredExam.total_score} / {hoveredExam.maximum_score}
-                      </strong>
-                    </span>
-                    <span className="text-primary text-sm font-bold">
-                      {hoveredExam.percentage}%
-                    </span>
-                  </div>
-                </div>
-
-                {/* Quick Subject Pills in Tooltip */}
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-text-tertiary text-[11px] font-medium">
-                    Subjects ({hoveredExam.subject_count}):
-                  </span>
-                  {hoveredExam.subjects.map((sub) => (
-                    <span
-                      key={sub.course}
-                      className="px-2 py-0.5 rounded bg-surface border border-border-light text-[11px] text-text-primary flex items-center gap-1.5"
-                    >
-                      <span>{sub.course}:</span>
-                      <strong
-                        className={
-                          sub.percentage >= 75
-                            ? "text-success"
-                            : sub.percentage >= 50
-                            ? "text-primary"
-                            : "text-error"
-                        }
-                      >
-                        {sub.total_score}/{sub.maximum_score} ({sub.percentage}%)
-                      </strong>
-                      {sub.diagnosed_level && (
-                        <span className="ml-1 inline-flex items-center px-1.5 py-0.2 rounded bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 font-bold text-[10px]">
-                          🎯 {sub.diagnosed_level}
+                );
+              }
+              const isPinned = selectedExam?.exam_key === activeExam.exam_key;
+              return (
+                <div className={`mt-3 rounded-lg border p-3.5 text-xs transition-all ${
+                  isPinned
+                    ? "border-primary/40 bg-primary/10 shadow-xs"
+                    : "border-primary/20 bg-primary/5"
+                }`}>
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-2 pb-2 border-b border-primary/10">
+                    <div className="flex items-center gap-2">
+                      <Badge variant={getGradeBadgeVariant(activeExam.percentage)}>
+                        Grade {activeExam.grade}
+                      </Badge>
+                      <span className="font-bold text-text-primary text-sm">
+                        {activeExam.exam_title}
+                      </span>
+                      <span className="text-text-tertiary">({activeExam.assessment_group})</span>
+                      {isPinned && (
+                        <span className="text-[10px] bg-primary/20 text-primary font-medium px-1.5 py-0.5 rounded">
+                          Pinned
                         </span>
                       )}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 font-semibold text-text-secondary">
+                        <span>
+                          Total Score:{" "}
+                          <strong className="text-text-primary">
+                            {activeExam.total_score} / {activeExam.maximum_score}
+                          </strong>
+                        </span>
+                        <span className="text-primary text-sm font-bold">
+                          {activeExam.percentage}%
+                        </span>
+                      </div>
+                      {isPinned && (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedExam(null)}
+                          className="p-1 rounded-md text-text-tertiary hover:text-text-primary hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                          title="Unpin / Close details"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Quick Subject Pills in Details Card */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-text-tertiary text-[11px] font-medium">
+                      Subjects ({activeExam.subject_count}):
                     </span>
-                  ))}
+                    {activeExam.subjects.map((sub) => (
+                      <span
+                        key={sub.course}
+                        className="px-2 py-0.5 rounded bg-surface border border-border-light text-[11px] text-text-primary flex items-center gap-1.5 shadow-2xs"
+                      >
+                        <span>{sub.course}:</span>
+                        <strong
+                          className={
+                            sub.percentage >= 75
+                              ? "text-success"
+                              : sub.percentage >= 50
+                              ? "text-primary"
+                              : "text-error"
+                          }
+                        >
+                          {sub.total_score}/{sub.maximum_score} ({sub.percentage}%)
+                        </strong>
+                        {sub.diagnosed_level && (
+                          <span className="ml-1 inline-flex items-center px-1.5 py-0.2 rounded bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 font-bold text-[10px]">
+                            🎯 {sub.diagnosed_level}
+                          </span>
+                        )}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
         )}
 
