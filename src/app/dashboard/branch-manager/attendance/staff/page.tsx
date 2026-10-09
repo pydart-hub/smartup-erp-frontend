@@ -692,12 +692,45 @@ export default function StaffAttendancePage() {
 
       const updatedSessions = current.sessions.map((s) => {
         if (s.id === sessionId) {
+          if (field === "status") {
+            const nextSessStatus = value as StaffStatus;
+            return {
+              ...s,
+              status: nextSessStatus,
+              in_time: nextSessStatus === "Absent" ? "" : (s.in_time || DEFAULT_IN_TIME),
+              out_time: nextSessStatus === "Absent" ? "" : (s.out_time || DEFAULT_OUT_TIME),
+            };
+          }
           return { ...s, [field]: value };
         }
         return s;
       });
 
-      return { ...prev, [key]: { ...current, sessions: updatedSessions } };
+      // Smart reconciliation of top-level status when a session's status changes
+      let nextTopStatus = current.status;
+      if (field === "status") {
+        const totalSessions = updatedSessions.length;
+        const presentSessions = updatedSessions.filter((s) => s.status === "Present").length;
+        const absentSessions = updatedSessions.filter((s) => s.status === "Absent").length;
+
+        if (totalSessions > 0) {
+          if (presentSessions === totalSessions) {
+            nextTopStatus = "Present";
+          } else if (absentSessions === totalSessions) {
+            nextTopStatus = "Absent";
+          } else if (presentSessions > 0 && absentSessions > 0) {
+            nextTopStatus = "Half Day";
+          }
+        }
+      }
+
+      return {
+        ...prev,
+        [key]: {
+          status: nextTopStatus,
+          sessions: updatedSessions,
+        },
+      };
     });
   }
 
@@ -1353,19 +1386,52 @@ export default function StaffAttendancePage() {
                               >
                                 <div className="flex items-center justify-between gap-1">
                                   <span className="text-[11px] font-bold text-text-secondary flex items-center gap-1">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                                    <span className={`w-1.5 h-1.5 rounded-full ${sess.status === "Absent" ? "bg-error" : "bg-primary"}`} />
                                     {sess.title || `Session ${sIdx + 1}`}
                                   </span>
-                                  {emp.sessions.length > 1 && (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleRemoveSession(emp.name, sess.id, emp.isVisiting)}
-                                      className="text-text-tertiary hover:text-error transition-colors p-0.5"
-                                      title="Remove session"
-                                    >
-                                      <Trash2 className="h-3 w-3" />
-                                    </button>
-                                  )}
+
+                                  <div className="flex items-center gap-1.5">
+                                    {/* Session-level Present / Absent Toggle */}
+                                    <div className="inline-flex items-center rounded-md p-0.5 bg-surface border border-border-light text-[10px]">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleSessionChange(emp.name, sess.id, "status", "Present", emp.isVisiting)}
+                                        className={`px-1.5 py-0.5 rounded font-semibold transition-colors flex items-center gap-1 ${
+                                          sess.status !== "Absent"
+                                            ? "bg-success text-white shadow-2xs"
+                                            : "text-text-tertiary hover:text-text-secondary"
+                                        }`}
+                                        title="Mark this session Present"
+                                      >
+                                        <CheckCircle className="h-2.5 w-2.5" />
+                                        Present
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleSessionChange(emp.name, sess.id, "status", "Absent", emp.isVisiting)}
+                                        className={`px-1.5 py-0.5 rounded font-semibold transition-colors flex items-center gap-1 ${
+                                          sess.status === "Absent"
+                                            ? "bg-error text-white shadow-2xs"
+                                            : "text-text-tertiary hover:text-text-secondary"
+                                        }`}
+                                        title="Mark this session Absent"
+                                      >
+                                        <XCircle className="h-2.5 w-2.5" />
+                                        Absent
+                                      </button>
+                                    </div>
+
+                                    {emp.sessions.length > 1 && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleRemoveSession(emp.name, sess.id, emp.isVisiting)}
+                                        className="text-text-tertiary hover:text-error transition-colors p-0.5"
+                                        title="Remove session"
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </button>
+                                    )}
+                                  </div>
                                 </div>
 
                                 {/* Per-Session Class Time */}
@@ -1389,41 +1455,50 @@ export default function StaffAttendancePage() {
                                   />
                                 </div>
 
-                                <div className="flex items-center gap-2">
-                                  {/* In Time */}
-                                  <div className="flex items-center gap-1 bg-surface px-2 py-1 rounded-[6px] border border-border-light flex-1">
-                                    <LogIn className="h-3 w-3 text-success flex-shrink-0" />
-                                    <span className="text-[10px] text-text-secondary font-medium">In:</span>
-                                    <Time12Input
-                                      value={sess.in_time || ""}
-                                      onChange={(val) =>
-                                        handleSessionChange(emp.name, sess.id, "in_time", val, emp.isVisiting)
-                                      }
-                                      size="sm"
-                                      className="border-0 bg-transparent px-0 py-0"
-                                    />
+                                {sess.status === "Absent" ? (
+                                  <div className="flex items-center justify-center gap-1.5 py-1.5 px-2 bg-error-light/60 border border-error/20 rounded-[6px] text-[11px] font-semibold text-error">
+                                    <XCircle className="h-3.5 w-3.5 flex-shrink-0" />
+                                    <span>Session marked Absent (No Check-in / Check-out)</span>
                                   </div>
+                                ) : (
+                                  <>
+                                    <div className="flex items-center gap-2">
+                                      {/* In Time */}
+                                      <div className="flex items-center gap-1 bg-surface px-2 py-1 rounded-[6px] border border-border-light flex-1">
+                                        <LogIn className="h-3 w-3 text-success flex-shrink-0" />
+                                        <span className="text-[10px] text-text-secondary font-medium">In:</span>
+                                        <Time12Input
+                                          value={sess.in_time || ""}
+                                          onChange={(val) =>
+                                            handleSessionChange(emp.name, sess.id, "in_time", val, emp.isVisiting)
+                                          }
+                                          size="sm"
+                                          className="border-0 bg-transparent px-0 py-0"
+                                        />
+                                      </div>
 
-                                  {/* Out Time */}
-                                  <div className="flex items-center gap-1 bg-surface px-2 py-1 rounded-[6px] border border-border-light flex-1">
-                                    <LogOut className="h-3 w-3 text-error flex-shrink-0" />
-                                    <span className="text-[10px] text-text-secondary font-medium">Out:</span>
-                                    <Time12Input
-                                      value={sess.out_time || ""}
-                                      onChange={(val) =>
-                                        handleSessionChange(emp.name, sess.id, "out_time", val, emp.isVisiting)
-                                      }
-                                      size="sm"
-                                      className="border-0 bg-transparent px-0 py-0"
-                                    />
-                                  </div>
-                                </div>
+                                      {/* Out Time */}
+                                      <div className="flex items-center gap-1 bg-surface px-2 py-1 rounded-[6px] border border-border-light flex-1">
+                                        <LogOut className="h-3 w-3 text-error flex-shrink-0" />
+                                        <span className="text-[10px] text-text-secondary font-medium">Out:</span>
+                                        <Time12Input
+                                          value={sess.out_time || ""}
+                                          onChange={(val) =>
+                                            handleSessionChange(emp.name, sess.id, "out_time", val, emp.isVisiting)
+                                          }
+                                          size="sm"
+                                          className="border-0 bg-transparent px-0 py-0"
+                                        />
+                                      </div>
+                                    </div>
 
-                                {lateMins > 0 && (
-                                  <div className="text-[9px] text-error font-medium flex items-center gap-1 bg-error-light/50 px-1.5 py-0.5 rounded border border-error/10 w-fit">
-                                    <Clock className="h-2.5 w-2.5" />
-                                    {lateMins}m late (vs {formatTo12Hour(sess.class_time || emp.classTimeInfo.time)})
-                                  </div>
+                                    {lateMins > 0 && (
+                                      <div className="text-[9px] text-error font-medium flex items-center gap-1 bg-error-light/50 px-1.5 py-0.5 rounded border border-error/10 w-fit">
+                                        <Clock className="h-2.5 w-2.5" />
+                                        {lateMins}m late (vs {formatTo12Hour(sess.class_time || emp.classTimeInfo.time)})
+                                      </div>
+                                    )}
+                                  </>
                                 )}
                               </div>
                             );

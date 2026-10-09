@@ -291,7 +291,11 @@ export default function DirectorStaffBranchAttendancePage() {
                         {emp.branchSessions.map((bs, bIdx) => (
                           <div key={bIdx} className="flex items-center justify-between bg-surface/80 px-2 py-0.5 rounded border border-border-light font-medium">
                             <span className="font-bold text-primary">S{bIdx + 1}</span>
-                            <span>{formatDisplayTime(bs.in_time) || "--:--"} - {formatDisplayTime(bs.out_time) || "--:--"}</span>
+                            {bs.status === "Absent" ? (
+                              <span className="text-[9px] font-semibold text-error bg-error-light px-1 py-0.2 rounded">Absent</span>
+                            ) : (
+                              <span>{formatDisplayTime(bs.in_time) || "--:--"} - {formatDisplayTime(bs.out_time) || "--:--"}</span>
+                            )}
                           </div>
                         ))}
                       </div>

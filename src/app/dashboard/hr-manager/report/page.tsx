@@ -339,8 +339,10 @@ export default function HRMonthlyReportDashboard() {
           // If multiple sessions exist
           if (rec.sessions && rec.sessions.length > 1) {
             const sessLines = rec.sessions
-              .filter((s) => s.in_time || s.out_time)
               .map((s, idx) => {
+                if (s.status === "Absent") {
+                  return `S${idx + 1}: Absent`;
+                }
                 const sClassTime = s.class_time || rec.custom_class_time || (idx === 0 ? "09:00" : "16:00");
                 const sLate = getSessionLateMinutes(s.in_time, sClassTime);
                 const latePart = sLate > 0 ? ` (${sLate}m late)` : "";
@@ -449,8 +451,10 @@ export default function HRMonthlyReportDashboard() {
 
         if (rec.sessions && rec.sessions.length > 1) {
           const sessDetails = rec.sessions
-            .filter((s) => s.in_time || s.out_time)
             .map((s, idx) => {
+              if (s.status === "Absent") {
+                return `S${idx + 1}: Absent`;
+              }
               const sClassTime = s.class_time || rec.custom_class_time || (idx === 0 ? "09:00" : "16:00");
               const sLate = getSessionLateMinutes(s.in_time, sClassTime);
               const latePart = sLate > 0 ? ` (${sLate}m late)` : "";
@@ -761,24 +765,37 @@ export default function HRMonthlyReportDashboard() {
                                   {hasMultipleSessions ? (
                                     <div className="flex flex-col items-center gap-0.5 w-full mt-0.5">
                                       {rec.sessions!.map((s, sIdx) => {
-                                        if (!s.in_time && !s.out_time) return null;
+                                        const isAbsent = s.status === "Absent";
                                         const sClassTime = s.class_time || rec.custom_class_time || (sIdx === 0 ? "09:00" : "16:00");
-                                        const sLate = getSessionLateMinutes(s.in_time, sClassTime);
+                                        const sLate = !isAbsent ? getSessionLateMinutes(s.in_time, sClassTime) : 0;
                                         const in12 = formatTo12Hour(s.in_time) || "--:--";
                                         const out12 = formatTo12Hour(s.out_time) || "--:--";
+
                                         return (
                                           <div
                                             key={s.id || sIdx}
-                                            className="text-[9px] font-medium text-slate-600 dark:text-slate-350 bg-slate-50 dark:bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-1 w-full max-w-[145px]"
-                                            title={s.title || `Session ${sIdx + 1}`}
+                                            className={`text-[9px] font-medium px-1.5 py-0.5 rounded border flex items-center justify-between gap-1 w-full max-w-[145px] ${
+                                              isAbsent
+                                                ? "bg-rose-50/90 text-rose-700 border-rose-200/90 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900/50"
+                                                : "text-slate-600 dark:text-slate-350 bg-slate-50 dark:bg-slate-900/80 border-slate-200/80 dark:border-slate-800"
+                                            }`}
+                                            title={s.title || `Session ${sIdx + 1} (${s.status || "Present"})`}
                                           >
                                             <div className="flex items-center gap-1">
-                                              <span className="font-bold text-violet-600 dark:text-violet-400">S{sIdx + 1}</span>
-                                              <span>
-                                                {in12} - {out12}
+                                              <span className={`font-bold ${isAbsent ? "text-rose-600 dark:text-rose-400" : "text-violet-600 dark:text-violet-400"}`}>
+                                                S{sIdx + 1}
                                               </span>
+                                              {isAbsent ? (
+                                                <span className="font-semibold text-rose-700 dark:text-rose-300">
+                                                  Absent
+                                                </span>
+                                              ) : (
+                                                <span>
+                                                  {in12} - {out12}
+                                                </span>
+                                              )}
                                             </div>
-                                            {sLate > 0 && (
+                                            {!isAbsent && sLate > 0 && (
                                               <span className="text-[8.5px] font-bold text-rose-600 dark:text-rose-450 whitespace-nowrap ml-1" title={`Late by ${sLate}m (Class: ${formatTo12Hour(sClassTime)})`}>
                                                 ⚠️ {sLate}m
                                               </span>

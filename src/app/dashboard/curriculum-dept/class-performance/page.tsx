@@ -738,11 +738,28 @@ export default function ClassPerformancePage() {
                         onClick={() => {
                           setSelectedClass(c.id);
                           setSelectedClassName(c.name);
-                          // Default to selected CWC group or "Test"
                           if (moduleMode === "cwc") {
                             setSelectedExamGroup(selectedCwcGroup);
                           } else {
-                            setSelectedExamGroup("Test");
+                            // Find exam groups that have active plans for this class
+                            const classPlans = allPlans.filter((p: any) => p.student_group === c.id);
+                            const availableGroups = Array.from(new Set(classPlans.map((p: any) => p.assessment_group).filter(Boolean)));
+                            
+                            // Prefer regular exam groups (non-CWC) that exist in this class
+                            const nonCwcGroups = availableGroups.filter((g: any) => !g.toLowerCase().includes("cwc"));
+                            
+                            if (nonCwcGroups.length > 0) {
+                              // If Weekly Exam or Onam Exam exists, prioritize them; else use the first available
+                              const preferred = nonCwcGroups.find((g: any) => g === "Weekly Exam") 
+                                || nonCwcGroups.find((g: any) => g === "Onam Exam")
+                                || nonCwcGroups[0];
+                              setSelectedExamGroup(preferred as string);
+                            } else if (assessmentGroups.length > 0) {
+                              const regularGroup = assessmentGroups.find((g: any) => !g.name.toLowerCase().includes("cwc") && g.name !== "All Assessment Groups");
+                              setSelectedExamGroup(regularGroup?.name || "Weekly Exam");
+                            } else {
+                              setSelectedExamGroup("Weekly Exam");
+                            }
                           }
                           setLevel("report");
                         }}
