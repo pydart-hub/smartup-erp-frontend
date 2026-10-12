@@ -12,95 +12,99 @@ const headers = {
 };
 
 async function executeFardheenConversion() {
-  const customerName = 'FARDHEEN A A';
-  const studentId = 'STU-SU ERV-26-056';
-  const oldSoName = 'SAL-ORD-2026-00300';
+  const customerName = 'MUHAMMED FARDHEEN AS';
+  const studentId = 'STU-SU ERV-26-037';
+  const oldSoName = 'SAL-ORD-2026-00274';
+  const company = 'Smart Up Eraveli';
+  const debitTo = 'Debtors - SU ERV';
+  const incomeAccount = 'Sales - SU ERV';
+  const costCenter = 'Main - SU ERV';
+  const itemCode = '9th State Tuition Fee';
 
-  console.log('=== Step 1: Fetch and Cancel existing Payment Entries ===');
+  console.log('Step 1: Fetch and Cancel old active Payment Entries...');
   const peList = [
-    'ACC-PAY-2026-04107',
-    'ACC-PAY-2026-04109',
-    'ACC-PAY-2026-05686',
-    'ACC-PAY-2026-05687',
-    'ACC-PAY-2026-06229',
-    'ACC-PAY-2026-07159',
-    'ACC-PAY-2026-07160',
-    'ACC-PAY-2026-08115',
-    'ACC-PAY-2026-09277',
-    'ACC-PAY-2026-09278'
+    'ACC-PAY-2026-04082',
+    'ACC-PAY-2026-05758',
+    'ACC-PAY-2026-06547',
+    'ACC-PAY-2026-06548',
+    'ACC-PAY-2026-08591',
+    'ACC-PAY-2026-08592'
   ];
 
   const oldPeDocs = {};
   for (const peName of peList) {
-    const res = await (await fetch(`${frappeUrl}/api/resource/Payment Entry/${encodeURIComponent(peName)}`, { headers })).json();
+    const res = await (await fetch(frappeUrl + '/api/resource/Payment Entry/' + encodeURIComponent(peName), { headers })).json();
     oldPeDocs[peName] = res.data;
     if (res.data?.docstatus === 1) {
-      const cancelRes = await fetch(`${frappeUrl}/api/resource/Payment Entry/${encodeURIComponent(peName)}`, {
+      const cancelRes = await fetch(frappeUrl + '/api/resource/Payment Entry/' + encodeURIComponent(peName), {
         method: 'PUT',
         headers,
         body: JSON.stringify({ docstatus: 2 })
       });
-      console.log(`Cancelled PE ${peName}: status ${cancelRes.status}`);
+      const cancelData = await cancelRes.json();
+      if (cancelData.exc) {
+        throw new Error(`Failed to cancel PE ${peName}: ` + JSON.stringify(cancelData));
+      }
+      console.log('Cancelled PE:', peName);
     }
   }
 
-  console.log('\n=== Step 2: Cancel old Sales Invoices ===');
+  console.log('Step 2: Cancel old Sales Invoices...');
   const oldInvoices = [
-    'ACC-SINV-2026-03158',
-    'ACC-SINV-2026-03159',
-    'ACC-SINV-2026-03160',
-    'ACC-SINV-2026-03161',
-    'ACC-SINV-2026-03162',
-    'ACC-SINV-2026-03163',
-    'ACC-SINV-2026-03164',
-    'ACC-SINV-2026-03165'
+    'ACC-SINV-2026-02980', 'ACC-SINV-2026-02981', 'ACC-SINV-2026-02982', 'ACC-SINV-2026-02983',
+    'ACC-SINV-2026-02984', 'ACC-SINV-2026-02985', 'ACC-SINV-2026-02986', 'ACC-SINV-2026-02987'
   ];
-
   for (const sinvName of oldInvoices) {
-    const getRes = await (await fetch(`${frappeUrl}/api/resource/Sales Invoice/${encodeURIComponent(sinvName)}`, { headers })).json();
+    const getRes = await (await fetch(frappeUrl + '/api/resource/Sales Invoice/' + encodeURIComponent(sinvName), { headers })).json();
     if (getRes.data?.docstatus === 1) {
-      const cancelRes = await fetch(`${frappeUrl}/api/resource/Sales Invoice/${encodeURIComponent(sinvName)}`, {
+      const cancelRes = await fetch(frappeUrl + '/api/resource/Sales Invoice/' + encodeURIComponent(sinvName), {
         method: 'PUT',
         headers,
         body: JSON.stringify({ docstatus: 2 })
       });
-      console.log(`Cancelled SINV ${sinvName}: status ${cancelRes.status}`);
+      const cancelData = await cancelRes.json();
+      if (cancelData.exc) {
+        throw new Error(`Failed to cancel SINV ${sinvName}: ` + JSON.stringify(cancelData));
+      }
+      console.log('Cancelled SINV:', sinvName);
     }
   }
 
-  console.log('\n=== Step 3: Cancel old Sales Order and create amended SO for 16,300 ===');
-  const oldSoCheck = await (await fetch(`${frappeUrl}/api/resource/Sales Order/${encodeURIComponent(oldSoName)}`, { headers })).json();
+  console.log('Step 3: Cancel old Sales Order and create amended 8-installment Sales Order (16300)...');
+  const oldSoCheck = await (await fetch(frappeUrl + '/api/resource/Sales Order/' + encodeURIComponent(oldSoName), { headers })).json();
   if (oldSoCheck.data?.docstatus === 1) {
-    const cancelSoRes = await fetch(`${frappeUrl}/api/resource/Sales Order/${encodeURIComponent(oldSoName)}`, {
+    const cancelRes = await fetch(frappeUrl + '/api/resource/Sales Order/' + encodeURIComponent(oldSoName), {
       method: 'PUT',
       headers,
       body: JSON.stringify({ docstatus: 2 })
     });
-    console.log(`Cancelled SO ${oldSoName}: status ${cancelSoRes.status}`);
+    const cancelData = await cancelRes.json();
+    if (cancelData.exc) {
+      throw new Error(`Failed to cancel SO ${oldSoName}: ` + JSON.stringify(cancelData));
+    }
+    console.log('Cancelled SO:', oldSoName);
   }
 
   const oldSoDoc = oldSoCheck.data;
-  // 8 installments total: 7 * 2100 + 1 * 1600 = 16300.
-  // Average rate per qty of 8 = 16300 / 8 = 2037.5
   const newSoDoc = {
     doctype: 'Sales Order',
     amended_from: oldSoName,
     customer: oldSoDoc.customer,
     student: oldSoDoc.student,
     company: oldSoDoc.company,
-    custom_academic_year: oldSoDoc.custom_academic_year,
-    transaction_date: oldSoDoc.transaction_date,
-    delivery_date: oldSoDoc.delivery_date,
+    custom_academic_year: oldSoDoc.custom_academic_year || '2026-2027',
+    transaction_date: oldSoDoc.transaction_date || '2026-04-07',
+    delivery_date: oldSoDoc.delivery_date || '2026-04-07',
     custom_plan: 'Basic',
     custom_no_of_instalments: '8',
     docstatus: 1,
     items: [
       {
-        item_code: oldSoDoc.items[0].item_code,
-        item_name: oldSoDoc.items[0].item_name,
+        item_code: itemCode,
+        item_name: itemCode,
         qty: 8,
-        rate: 2037.5,
-        cost_center: oldSoDoc.items[0].cost_center
+        rate: 2037.5, // 8 * 2037.5 = 16300
+        cost_center: costCenter
       }
     ],
     payment_schedule: [
@@ -115,25 +119,29 @@ async function executeFardheenConversion() {
     ]
   };
 
-  const createSoRes = await fetch(`${frappeUrl}/api/resource/Sales Order`, {
+  const createSoRes = await fetch(frappeUrl + '/api/resource/Sales Order', {
     method: 'POST',
     headers,
     body: JSON.stringify(newSoDoc)
   });
-  const newSo = (await createSoRes.json()).data;
-  console.log(`Created new amended SO: ${newSo.name}, Grand Total: ₹${newSo.grand_total}`);
+  const createSoJson = await createSoRes.json();
+  if (createSoJson.exc || !createSoJson.data) {
+    throw new Error('Failed to create new SO: ' + JSON.stringify(createSoJson));
+  }
+  const newSo = createSoJson.data;
+  console.log('Created new SO:', newSo.name, 'grand_total:', newSo.grand_total);
   const soDetail = newSo.items[0].name;
 
-  console.log('\n=== Step 4: Create 8 new Sales Invoices linked to new SO ===');
+  console.log('Step 4: Create 8 Sales Invoices linked to new SO...');
   const schedule = [
-    { due: '2026-04-15', rate: 2100 },
-    { due: '2026-05-15', rate: 2100 },
-    { due: '2026-06-15', rate: 2100 },
-    { due: '2026-07-15', rate: 2100 },
-    { due: '2026-08-15', rate: 2100 },
-    { due: '2026-09-15', rate: 2100 },
-    { due: '2026-10-15', rate: 2100 },
-    { due: '2026-11-15', rate: 1600 }
+    { due: '2026-04-15', rate: 2100, label: 'Inst 1' },
+    { due: '2026-05-15', rate: 2100, label: 'Inst 2' },
+    { due: '2026-06-15', rate: 2100, label: 'Inst 3' },
+    { due: '2026-07-15', rate: 2100, label: 'Inst 4' },
+    { due: '2026-08-15', rate: 2100, label: 'Inst 5' },
+    { due: '2026-09-15', rate: 2100, label: 'Inst 6' },
+    { due: '2026-10-15', rate: 2100, label: 'Inst 7' },
+    { due: '2026-11-15', rate: 1600, label: 'Inst 8' }
   ];
 
   const createdInvoices = [];
@@ -143,142 +151,260 @@ async function executeFardheenConversion() {
       doctype: 'Sales Invoice',
       customer: customerName,
       student: studentId,
-      custom_student_email: 'fardheenaa.suerv.056@dummy.com',
-      company: 'Smart Up Eraveli',
+      custom_student_email: 'muhammedfardheenas.suerv.037@dummy.com',
+      company: company,
       custom_academic_year: '2026-2027',
       posting_date: '2026-04-07',
       set_posting_time: 1,
       posting_time: '00:00:00',
       due_date: item.due,
-      debit_to: 'Debtors - SU ERV',
+      debit_to: debitTo,
       docstatus: 1,
       items: [
         {
-          item_code: '10th State Tuition Fee',
-          item_name: '10th State Tuition Fee',
+          item_code: itemCode,
+          item_name: itemCode,
+          description: `${item.label} — ${itemCode}`,
           qty: 1,
           rate: item.rate,
-          income_account: 'Sales - SU ERV',
-          cost_center: 'Main - SU ERV',
+          income_account: incomeAccount,
+          cost_center: costCenter,
           sales_order: newSo.name,
           so_detail: soDetail
         }
       ]
     };
 
-    const invRes = await fetch(`${frappeUrl}/api/resource/Sales Invoice`, {
+    const invRes = await fetch(frappeUrl + '/api/resource/Sales Invoice', {
       method: 'POST',
       headers,
       body: JSON.stringify(newInvDoc)
     });
-    const invData = (await invRes.json()).data;
+    const invJson = await invRes.json();
+    if (invJson.exc || !invJson.data) {
+      throw new Error(`Failed to create ${item.label}: ` + JSON.stringify(invJson));
+    }
+    const invData = invJson.data;
     createdInvoices.push(invData);
-    console.log(`Created Inst ${i + 1}: ${invData.name} | Due: ${invData.due_date} | Amount: ₹${invData.grand_total}`);
+    console.log(`Created ${item.label}: ${invData.name} due: ${invData.due_date} amount: ${invData.grand_total}`);
   }
 
-  console.log('\n=== Step 5: Re-create Payment Entries preserving mode, date, and amounts ===');
+  console.log('Step 5: Re-create 6 Payment Entries with EXACT dates, modes, and amounts...');
 
-  // Allocation plan helper
-  async function createPE(oldName, references) {
-    const oldPe = oldPeDocs[oldName];
-    const peDoc = {
-      doctype: 'Payment Entry',
-      amended_from: oldPe.name,
-      payment_type: oldPe.payment_type,
-      posting_date: oldPe.posting_date,
-      mode_of_payment: oldPe.mode_of_payment,
-      company: oldPe.company,
-      party_type: oldPe.party_type,
-      party: oldPe.party,
-      paid_from: oldPe.paid_from,
-      paid_to: oldPe.paid_to,
-      paid_amount: oldPe.paid_amount,
-      received_amount: oldPe.received_amount,
-      target_exchange_rate: 1,
-      source_exchange_rate: 1,
-      reference_no: oldPe.reference_no,
-      reference_date: oldPe.reference_date,
-      remarks: oldPe.remarks,
-      docstatus: 1,
-      references
-    };
-    const res = await (await fetch(`${frappeUrl}/api/resource/Payment Entry`, { method: 'POST', headers, body: JSON.stringify(peDoc) })).json();
-    console.log(`Created PE from ${oldName}: ${res.data?.name} | Paid: ₹${res.data?.paid_amount} | Date: ${res.data?.posting_date}`);
-  }
+  // PE 1: ACC-PAY-2026-04082 (2100 Cash, 2026-04-07) -> 2100 to Inst 1
+  const pe1Old = oldPeDocs['ACC-PAY-2026-04082'];
+  const pe1Doc = {
+    doctype: 'Payment Entry',
+    amended_from: 'ACC-PAY-2026-04082',
+    payment_type: pe1Old.payment_type,
+    posting_date: pe1Old.posting_date,
+    mode_of_payment: pe1Old.mode_of_payment,
+    company: pe1Old.company,
+    party_type: pe1Old.party_type,
+    party: pe1Old.party,
+    paid_from: pe1Old.paid_from,
+    paid_to: pe1Old.paid_to,
+    paid_amount: pe1Old.paid_amount,
+    received_amount: pe1Old.received_amount,
+    target_exchange_rate: 1,
+    source_exchange_rate: 1,
+    reference_no: pe1Old.reference_no,
+    reference_date: pe1Old.reference_date,
+    docstatus: 1,
+    references: [
+      {
+        reference_doctype: 'Sales Invoice',
+        reference_name: createdInvoices[0].name,
+        due_date: createdInvoices[0].due_date,
+        total_amount: 2100,
+        outstanding_amount: 2100,
+        allocated_amount: 2100
+      }
+    ]
+  };
+  const pe1Res = await (await fetch(frappeUrl + '/api/resource/Payment Entry', { method: 'POST', headers, body: JSON.stringify(pe1Doc) })).json();
+  if (pe1Res.exc) throw new Error('PE 1 error: ' + JSON.stringify(pe1Res));
+  console.log('Created PE 1:', pe1Res.data?.name, pe1Res.data?.paid_amount);
 
-  // 1. ACC-PAY-2026-04107 (2400) -> Inst 1 (2100), Inst 2 (300)
-  await createPE('ACC-PAY-2026-04107', [
-    { reference_doctype: 'Sales Invoice', reference_name: createdInvoices[0].name, due_date: createdInvoices[0].due_date, total_amount: 2100, outstanding_amount: 2100, allocated_amount: 2100 },
-    { reference_doctype: 'Sales Invoice', reference_name: createdInvoices[1].name, due_date: createdInvoices[1].due_date, total_amount: 2100, outstanding_amount: 2100, allocated_amount: 300 }
-  ]);
+  // PE 2: ACC-PAY-2026-05758 (1500 Cash, 2026-06-10) -> 1500 to Inst 2
+  const pe2Old = oldPeDocs['ACC-PAY-2026-05758'];
+  const pe2Doc = {
+    doctype: 'Payment Entry',
+    amended_from: 'ACC-PAY-2026-05758',
+    payment_type: pe2Old.payment_type,
+    posting_date: pe2Old.posting_date,
+    mode_of_payment: pe2Old.mode_of_payment,
+    company: pe2Old.company,
+    party_type: pe2Old.party_type,
+    party: pe2Old.party,
+    paid_from: pe2Old.paid_from,
+    paid_to: pe2Old.paid_to,
+    paid_amount: pe2Old.paid_amount,
+    received_amount: pe2Old.received_amount,
+    target_exchange_rate: 1,
+    source_exchange_rate: 1,
+    reference_no: pe2Old.reference_no,
+    reference_date: pe2Old.reference_date,
+    docstatus: 1,
+    references: [
+      {
+        reference_doctype: 'Sales Invoice',
+        reference_name: createdInvoices[1].name,
+        due_date: createdInvoices[1].due_date,
+        total_amount: 2100,
+        outstanding_amount: 2100,
+        allocated_amount: 1500
+      }
+    ]
+  };
+  const pe2Res = await (await fetch(frappeUrl + '/api/resource/Payment Entry', { method: 'POST', headers, body: JSON.stringify(pe2Doc) })).json();
+  if (pe2Res.exc) throw new Error('PE 2 error: ' + JSON.stringify(pe2Res));
+  console.log('Created PE 2:', pe2Res.data?.name, pe2Res.data?.paid_amount);
 
-  // 2. ACC-PAY-2026-04109 (100) -> Inst 2 (100)
-  await createPE('ACC-PAY-2026-04109', [
-    { reference_doctype: 'Sales Invoice', reference_name: createdInvoices[1].name, due_date: createdInvoices[1].due_date, total_amount: 2100, outstanding_amount: 1800, allocated_amount: 100 }
-  ]);
+  // PE 3: ACC-PAY-2026-06547 (600 Cash, 2026-07-09) -> 600 to Inst 2 (Inst 2 fully cleared: 1500 + 600 = 2100)
+  const pe3Old = oldPeDocs['ACC-PAY-2026-06547'];
+  const pe3Doc = {
+    doctype: 'Payment Entry',
+    amended_from: 'ACC-PAY-2026-06547',
+    payment_type: pe3Old.payment_type,
+    posting_date: pe3Old.posting_date,
+    mode_of_payment: pe3Old.mode_of_payment,
+    company: pe3Old.company,
+    party_type: pe3Old.party_type,
+    party: pe3Old.party,
+    paid_from: pe3Old.paid_from,
+    paid_to: pe3Old.paid_to,
+    paid_amount: pe3Old.paid_amount,
+    received_amount: pe3Old.received_amount,
+    target_exchange_rate: 1,
+    source_exchange_rate: 1,
+    reference_no: pe3Old.reference_no,
+    reference_date: pe3Old.reference_date,
+    docstatus: 1,
+    references: [
+      {
+        reference_doctype: 'Sales Invoice',
+        reference_name: createdInvoices[1].name,
+        due_date: createdInvoices[1].due_date,
+        total_amount: 2100,
+        outstanding_amount: 600,
+        allocated_amount: 600
+      }
+    ]
+  };
+  const pe3Res = await (await fetch(frappeUrl + '/api/resource/Payment Entry', { method: 'POST', headers, body: JSON.stringify(pe3Doc) })).json();
+  if (pe3Res.exc) throw new Error('PE 3 error: ' + JSON.stringify(pe3Res));
+  console.log('Created PE 3:', pe3Res.data?.name, pe3Res.data?.paid_amount);
 
-  // 3. ACC-PAY-2026-05686 (2300) -> Inst 2 (1700), Inst 3 (600)
-  await createPE('ACC-PAY-2026-05686', [
-    { reference_doctype: 'Sales Invoice', reference_name: createdInvoices[1].name, due_date: createdInvoices[1].due_date, total_amount: 2100, outstanding_amount: 1700, allocated_amount: 1700 },
-    { reference_doctype: 'Sales Invoice', reference_name: createdInvoices[2].name, due_date: createdInvoices[2].due_date, total_amount: 2100, outstanding_amount: 2100, allocated_amount: 600 }
-  ]);
+  // PE 4: ACC-PAY-2026-06548 (900 Cash, 2026-07-09) -> 900 to Inst 3
+  const pe4Old = oldPeDocs['ACC-PAY-2026-06548'];
+  const pe4Doc = {
+    doctype: 'Payment Entry',
+    amended_from: 'ACC-PAY-2026-06548',
+    payment_type: pe4Old.payment_type,
+    posting_date: pe4Old.posting_date,
+    mode_of_payment: pe4Old.mode_of_payment,
+    company: pe4Old.company,
+    party_type: pe4Old.party_type,
+    party: pe4Old.party,
+    paid_from: pe4Old.paid_from,
+    paid_to: pe4Old.paid_to,
+    paid_amount: pe4Old.paid_amount,
+    received_amount: pe4Old.received_amount,
+    target_exchange_rate: 1,
+    source_exchange_rate: 1,
+    reference_no: pe4Old.reference_no,
+    reference_date: pe4Old.reference_date,
+    docstatus: 1,
+    references: [
+      {
+        reference_doctype: 'Sales Invoice',
+        reference_name: createdInvoices[2].name,
+        due_date: createdInvoices[2].due_date,
+        total_amount: 2100,
+        outstanding_amount: 2100,
+        allocated_amount: 900
+      }
+    ]
+  };
+  const pe4Res = await (await fetch(frappeUrl + '/api/resource/Payment Entry', { method: 'POST', headers, body: JSON.stringify(pe4Doc) })).json();
+  if (pe4Res.exc) throw new Error('PE 4 error: ' + JSON.stringify(pe4Res));
+  console.log('Created PE 4:', pe4Res.data?.name, pe4Res.data?.paid_amount);
 
-  // 4. ACC-PAY-2026-05687 (200) -> Inst 3 (200)
-  await createPE('ACC-PAY-2026-05687', [
-    { reference_doctype: 'Sales Invoice', reference_name: createdInvoices[2].name, due_date: createdInvoices[2].due_date, total_amount: 2100, outstanding_amount: 1500, allocated_amount: 200 }
-  ]);
+  // PE 5: ACC-PAY-2026-08591 (1200 Cash, 2026-09-09) -> 1200 to Inst 3 (Inst 3 fully cleared: 900 + 1200 = 2100)
+  const pe5Old = oldPeDocs['ACC-PAY-2026-08591'];
+  const pe5Doc = {
+    doctype: 'Payment Entry',
+    amended_from: 'ACC-PAY-2026-08591',
+    payment_type: pe5Old.payment_type,
+    posting_date: pe5Old.posting_date,
+    mode_of_payment: pe5Old.mode_of_payment,
+    company: pe5Old.company,
+    party_type: pe5Old.party_type,
+    party: pe5Old.party,
+    paid_from: pe5Old.paid_from,
+    paid_to: pe5Old.paid_to,
+    paid_amount: pe5Old.paid_amount,
+    received_amount: pe5Old.received_amount,
+    target_exchange_rate: 1,
+    source_exchange_rate: 1,
+    reference_no: pe5Old.reference_no,
+    reference_date: pe5Old.reference_date,
+    docstatus: 1,
+    references: [
+      {
+        reference_doctype: 'Sales Invoice',
+        reference_name: createdInvoices[2].name,
+        due_date: createdInvoices[2].due_date,
+        total_amount: 2100,
+        outstanding_amount: 1200,
+        allocated_amount: 1200
+      }
+    ]
+  };
+  const pe5Res = await (await fetch(frappeUrl + '/api/resource/Payment Entry', { method: 'POST', headers, body: JSON.stringify(pe5Doc) })).json();
+  if (pe5Res.exc) throw new Error('PE 5 error: ' + JSON.stringify(pe5Res));
+  console.log('Created PE 5:', pe5Res.data?.name, pe5Res.data?.paid_amount);
 
-  // 5. ACC-PAY-2026-06229 (2200) -> Inst 3 (1300), Inst 4 (900)
-  await createPE('ACC-PAY-2026-06229', [
-    { reference_doctype: 'Sales Invoice', reference_name: createdInvoices[2].name, due_date: createdInvoices[2].due_date, total_amount: 2100, outstanding_amount: 1300, allocated_amount: 1300 },
-    { reference_doctype: 'Sales Invoice', reference_name: createdInvoices[3].name, due_date: createdInvoices[3].due_date, total_amount: 2100, outstanding_amount: 2100, allocated_amount: 900 }
-  ]);
+  // PE 6: ACC-PAY-2026-08592 (300 Cash, 2026-09-09) -> 300 to Inst 4
+  const pe6Old = oldPeDocs['ACC-PAY-2026-08592'];
+  const pe6Doc = {
+    doctype: 'Payment Entry',
+    amended_from: 'ACC-PAY-2026-08592',
+    payment_type: pe6Old.payment_type,
+    posting_date: pe6Old.posting_date,
+    mode_of_payment: pe6Old.mode_of_payment,
+    company: pe6Old.company,
+    party_type: pe6Old.party_type,
+    party: pe6Old.party,
+    paid_from: pe6Old.paid_from,
+    paid_to: pe6Old.paid_to,
+    paid_amount: pe6Old.paid_amount,
+    received_amount: pe6Old.received_amount,
+    target_exchange_rate: 1,
+    source_exchange_rate: 1,
+    reference_no: pe6Old.reference_no,
+    reference_date: pe6Old.reference_date,
+    docstatus: 1,
+    references: [
+      {
+        reference_doctype: 'Sales Invoice',
+        reference_name: createdInvoices[3].name,
+        due_date: createdInvoices[3].due_date,
+        total_amount: 2100,
+        outstanding_amount: 2100,
+        allocated_amount: 300
+      }
+    ]
+  };
+  const pe6Res = await (await fetch(frappeUrl + '/api/resource/Payment Entry', { method: 'POST', headers, body: JSON.stringify(pe6Doc) })).json();
+  if (pe6Res.exc) throw new Error('PE 6 error: ' + JSON.stringify(pe6Res));
+  console.log('Created PE 6:', pe6Res.data?.name, pe6Res.data?.paid_amount);
 
-  // 6. ACC-PAY-2026-07159 (2400) -> Inst 4 (1200), Inst 5 (1200)
-  await createPE('ACC-PAY-2026-07159', [
-    { reference_doctype: 'Sales Invoice', reference_name: createdInvoices[3].name, due_date: createdInvoices[3].due_date, total_amount: 2100, outstanding_amount: 1200, allocated_amount: 1200 },
-    { reference_doctype: 'Sales Invoice', reference_name: createdInvoices[4].name, due_date: createdInvoices[4].due_date, total_amount: 2100, outstanding_amount: 2100, allocated_amount: 1200 }
-  ]);
-
-  // 7. ACC-PAY-2026-07160 (100) -> Inst 5 (100)
-  await createPE('ACC-PAY-2026-07160', [
-    { reference_doctype: 'Sales Invoice', reference_name: createdInvoices[4].name, due_date: createdInvoices[4].due_date, total_amount: 2100, outstanding_amount: 900, allocated_amount: 100 }
-  ]);
-
-  // 8. ACC-PAY-2026-08115 (1500) -> Inst 5 (800), Inst 6 (700)
-  await createPE('ACC-PAY-2026-08115', [
-    { reference_doctype: 'Sales Invoice', reference_name: createdInvoices[4].name, due_date: createdInvoices[4].due_date, total_amount: 2100, outstanding_amount: 800, allocated_amount: 800 },
-    { reference_doctype: 'Sales Invoice', reference_name: createdInvoices[5].name, due_date: createdInvoices[5].due_date, total_amount: 2100, outstanding_amount: 2100, allocated_amount: 700 }
-  ]);
-
-  // 9. ACC-PAY-2026-09277 (800) -> Inst 6 (800)
-  await createPE('ACC-PAY-2026-09277', [
-    { reference_doctype: 'Sales Invoice', reference_name: createdInvoices[5].name, due_date: createdInvoices[5].due_date, total_amount: 2100, outstanding_amount: 1400, allocated_amount: 800 }
-  ]);
-
-  // 10. ACC-PAY-2026-09278 (700) -> Inst 6 (600), Inst 7 (100)
-  await createPE('ACC-PAY-2026-09278', [
-    { reference_doctype: 'Sales Invoice', reference_name: createdInvoices[5].name, due_date: createdInvoices[5].due_date, total_amount: 2100, outstanding_amount: 600, allocated_amount: 600 },
-    { reference_doctype: 'Sales Invoice', reference_name: createdInvoices[6].name, due_date: createdInvoices[6].due_date, total_amount: 2100, outstanding_amount: 2100, allocated_amount: 100 }
-  ]);
-
-  console.log('\n=== VERIFYING FINAL RESULT ===');
-  const checkFilters = [
-    ['Sales Invoice Item', 'sales_order', '=', newSo.name],
-    ['docstatus', '=', '1']
-  ];
-  const url = `${frappeUrl}/api/resource/Sales Invoice?filters=${encodeURIComponent(JSON.stringify(checkFilters))}&fields=${encodeURIComponent(JSON.stringify(['name', 'due_date', 'grand_total', 'outstanding_amount', 'status']))}&order_by=due_date asc`;
-  const checkRes = await (await fetch(url, { headers })).json();
-  console.table(checkRes.data);
-
-  let totalGrand = 0;
-  let totalOut = 0;
-  for (const inv of checkRes.data || []) {
-    totalGrand += inv.grand_total;
-    totalOut += inv.outstanding_amount;
-  }
-  console.log(`TOTAL GRAND: ₹${totalGrand} (Expected: ₹16300)`);
-  console.log(`TOTAL OUTSTANDING: ₹${totalOut} (Expected: ₹3600)`);
+  console.log('--- ALL DONE SUCCESSFULLY! ---');
 }
 
-executeFardheenConversion().catch(console.error);
+executeFardheenConversion().catch(err => {
+  console.error('CONVERSION FAILED:', err);
+  process.exit(1);
+});
