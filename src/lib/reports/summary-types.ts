@@ -118,6 +118,55 @@ export interface StudentsClassDetailData {
   students: StudentsClassDetailRow[];
 }
 
+// ── School Report Types ──
+
+export interface SchoolClassRow {
+  program: string;
+  totalStudents: number;
+  active: number;
+  discontinued: number;
+  schoolCount: number;
+  branchCount: number;
+  basic: number;
+  intermediate: number;
+  advanced: number;
+  male: number;
+  female: number;
+  newThisMonth: number;
+}
+
+export interface SchoolRow {
+  school: string;
+  totalStudents: number;
+  active: number;
+  discontinued: number;
+  branchCount: number;
+  male: number;
+  female: number;
+  newThisMonth: number;
+  basic: number;
+  intermediate: number;
+  advanced: number;
+}
+
+export interface SchoolDetailStudentRow {
+  studentId: string;
+  studentName: string;
+  status: string;
+  gender: string;
+  phone: string;
+  guardian: string;
+  joiningDate: string;
+  branch: string;
+  program: string;
+  disabilities?: string;
+}
+
+export interface SchoolDetailData {
+  summary: SchoolRow;
+  students: SchoolDetailStudentRow[];
+}
+
 // ── Fees Report Types ──
 
 export interface FeesBranchRow {

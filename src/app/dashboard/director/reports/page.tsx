@@ -42,7 +42,13 @@ import { AttendanceClassDetail } from "@/components/reports/AttendanceClassDetai
 import { OverdueBranchSummary } from "@/components/reports/OverdueBranchSummary";
 import { OverdueBranchDetail } from "@/components/reports/OverdueBranchDetail";
 
-type Category = "overview" | "students" | "fees" | "attendance" | "overdue";
+// School Wise
+import { SchoolClassesSummary } from "@/components/reports/SchoolClassesSummary";
+import { SchoolWiseSummary } from "@/components/reports/SchoolWiseSummary";
+import { SchoolDetail } from "@/components/reports/SchoolDetail";
+import { School } from "lucide-react";
+
+type Category = "overview" | "students" | "fees" | "attendance" | "overdue" | "schools";
 type Mode = "branch" | "class";
 
 const CATEGORIES: { key: Category; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
@@ -51,6 +57,7 @@ const CATEGORIES: { key: Category; label: string; icon: React.ComponentType<{ cl
   { key: "fees", label: "Fees", icon: IndianRupee },
   { key: "attendance", label: "Attendance", icon: CalendarCheck },
   { key: "overdue", label: "Overdue", icon: AlertTriangle },
+  { key: "schools", label: "School Wise", icon: School },
 ];
 
 const containerVariants = {
@@ -87,10 +94,14 @@ export default function DirectorReportsPage() {
   const [fromDate, setFromDate] = useState(defaults.from);
   const [toDate, setToDate] = useState(defaults.to);
 
+  // School Wise: class filter (e.g., "All Classes", "10th State", "9th State", etc.)
+  const [selectedSchoolProgram, setSelectedSchoolProgram] = useState<string>("");
+
   const switchCategory = useCallback((c: Category) => {
     setCategory(c);
     setMode("branch");
     setDetail(null);
+    setSelectedSchoolProgram("");
   }, []);
 
   const switchMode = useCallback((m: Mode) => {
@@ -158,6 +169,48 @@ export default function DirectorReportsPage() {
       return <OverdueBranchSummary onSelect={setDetail} />;
     }
 
+    // SCHOOLS (Class-first drill-down: Classes -> Schools -> Students)
+    if (category === "schools") {
+      // Level 3: School Detail (Students of that School in that Class)
+      if (detail && selectedSchoolProgram) {
+        return (
+          <SchoolDetail
+            school={detail}
+            fromDate={admissionFrom || undefined}
+            toDate={admissionTo || undefined}
+            selectedProgram={selectedSchoolProgram || undefined}
+            onBack={() => setDetail(null)}
+          />
+        );
+      }
+      // Level 2: Schools in Selected Class
+      if (selectedSchoolProgram) {
+        return (
+          <SchoolWiseSummary
+            fromDate={admissionFrom || undefined}
+            toDate={admissionTo || undefined}
+            selectedProgram={selectedSchoolProgram}
+            onSelect={setDetail}
+            onBack={() => {
+              setSelectedSchoolProgram("");
+              setDetail(null);
+            }}
+          />
+        );
+      }
+      // Level 1: Classes Summary (8th, 9th, 10th, 11th, 12th)
+      return (
+        <SchoolClassesSummary
+          fromDate={admissionFrom || undefined}
+          toDate={admissionTo || undefined}
+          onSelectClass={(prog) => {
+            setSelectedSchoolProgram(prog);
+            setDetail(null);
+          }}
+        />
+      );
+    }
+
     return null;
   }
 
@@ -208,7 +261,7 @@ export default function DirectorReportsPage() {
 
       {/* Branch / Class toggle & Filter bar */}
       <motion.div variants={itemVariants} className="flex items-center justify-between gap-4 flex-wrap">
-        {!isDetail && category !== "overdue" && (
+        {!isDetail && category !== "overdue" && category !== "schools" && (
           <div className="flex gap-2 p-1 bg-app-bg rounded-[12px] border border-border-light w-fit">
             <button
               onClick={() => switchMode("branch")}
@@ -237,8 +290,9 @@ export default function DirectorReportsPage() {
           </div>
         )}
 
-        {/* Admission Date Range Filter for Overview, Students, Fees */}
-        {(category === "overview" || category === "students" || category === "fees") && (
+
+        {/* Admission Date Range Filter for Overview, Students, Fees, School Wise */}
+        {(category === "overview" || category === "students" || category === "fees" || category === "schools") && (
           <div className="flex items-center gap-3 bg-surface p-2 px-3 rounded-[12px] border border-border-light text-sm">
             <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
               Admission Date:

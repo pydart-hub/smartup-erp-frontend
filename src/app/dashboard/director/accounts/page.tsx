@@ -28,29 +28,91 @@ import {
 import { getExpenseSummary } from "@/lib/api/expenses";
 import { AnimatedCurrency } from "@/components/dashboard/AnimatedValue";
 
-/* ── Export helpers ── */
+/* ── Export helpers & HQ Weights ── */
+
+export const HQ_EXPENSE_RATIOS: Record<string, number> = {
+  "Chullickal": 0.10,
+  "Eraveli": 0.10,
+  "Fortkochi": 0.10,
+  "Palluruthy": 0.10,
+  "Moolamkuzhi": 0.06,
+  "Thopumpadi": 0.09,
+  "Vennala": 0.15,
+  "Kadavanthra": 0.15,
+  "Edappally": 0.15,
+};
+
+function getBranchWeight(branchName: string): number {
+  const clean = branchName.replace("Smart Up ", "").replace("Smart Up", "HQ").trim().toLowerCase();
+  if (clean.includes("chullickal") || clean.includes("chullikal")) return HQ_EXPENSE_RATIOS["Chullickal"];
+  if (clean.includes("eraveli")) return HQ_EXPENSE_RATIOS["Eraveli"];
+  if (clean.includes("fortkochi") || clean.includes("fort")) return HQ_EXPENSE_RATIOS["Fortkochi"];
+  if (clean.includes("palluruthy")) return HQ_EXPENSE_RATIOS["Palluruthy"];
+  if (clean.includes("moolamkuzhi")) return HQ_EXPENSE_RATIOS["Moolamkuzhi"];
+  if (clean.includes("thopumpadi") || clean.includes("thoppumpady")) return HQ_EXPENSE_RATIOS["Thopumpadi"];
+  if (clean.includes("vennala")) return HQ_EXPENSE_RATIOS["Vennala"];
+  if (clean.includes("kadavanthara") || clean.includes("kadavanthra")) return HQ_EXPENSE_RATIOS["Kadavanthra"];
+  if (clean.includes("edappally") || clean.includes("edapally")) return HQ_EXPENSE_RATIOS["Edappally"];
+  return 0;
+}
 
 function fmtINR(n: number): string {
   return n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-type BranchRow = { name: string; abbr: string; shortName: string; collection: number; expense: number; profit: number; loans: number };
+type BranchRow = {
+  name: string;
+  abbr: string;
+  shortName: string;
+  collection: number;
+  directExpense: number;
+  allocatedHqExpense: number;
+  expense: number;
+  profit: number;
+  loans: number;
+  isHq?: boolean;
+  weightPct?: number;
+};
 
 function exportAccountsToExcel(
   rows: BranchRow[],
   totals: { collection: number; expense: number; profit: number; loans: number },
-  periodLabel = "All Time"
+  periodLabel = "All Time",
+  isHqSplit = false
 ) {
-  const headers = ["#", "Branch", "Collection", "Expense", "Profit", "Loans"];
-  const dataRows = rows.map((r, i) => [
-    String(i + 1),
-    r.shortName,
-    r.collection.toFixed(2),
-    r.expense.toFixed(2),
-    r.profit.toFixed(2),
-    r.loans.toFixed(2),
-  ]);
-  dataRows.push(["", "GRAND TOTAL", totals.collection.toFixed(2), totals.expense.toFixed(2), totals.profit.toFixed(2), totals.loans.toFixed(2)]);
+  const headers = isHqSplit
+    ? ["#", "Branch", "Collection", "Direct Exp", "HQ Share (%)", "HQ Allocated Exp", "Total Expense", "Profit", "Loans"]
+    : ["#", "Branch", "Collection", "Expense", "Profit", "Loans"];
+
+  const dataRows = rows.map((r, i) => {
+    if (isHqSplit) {
+      return [
+        String(i + 1),
+        r.shortName,
+        r.collection.toFixed(2),
+        r.directExpense.toFixed(2),
+        r.weightPct ? `${r.weightPct}%` : "-",
+        r.allocatedHqExpense.toFixed(2),
+        r.expense.toFixed(2),
+        r.profit.toFixed(2),
+        r.loans.toFixed(2),
+      ];
+    }
+    return [
+      String(i + 1),
+      r.shortName,
+      r.collection.toFixed(2),
+      r.expense.toFixed(2),
+      r.profit.toFixed(2),
+      r.loans.toFixed(2),
+    ];
+  });
+
+  if (isHqSplit) {
+    dataRows.push(["", "GRAND TOTAL", totals.collection.toFixed(2), totals.expense.toFixed(2), "100%", "0.00", totals.expense.toFixed(2), totals.profit.toFixed(2), totals.loans.toFixed(2)]);
+  } else {
+    dataRows.push(["", "GRAND TOTAL", totals.collection.toFixed(2), totals.expense.toFixed(2), totals.profit.toFixed(2), totals.loans.toFixed(2)]);
+  }
 
   const csv = [headers, ...dataRows].map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
   const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
@@ -58,7 +120,8 @@ function exportAccountsToExcel(
   const a = document.createElement("a");
   a.href = url;
   const cleanPeriod = periodLabel.replace(/\s+/g, "_");
-  a.download = `Accounts_Report_${cleanPeriod}_${new Date().toISOString().slice(0, 10)}.csv`;
+  const hqSuffix = isHqSplit ? "_HQ_Split" : "";
+  a.download = `Accounts_Report_${cleanPeriod}${hqSuffix}_${new Date().toISOString().slice(0, 10)}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -66,7 +129,8 @@ function exportAccountsToExcel(
 function exportAccountsToPDF(
   rows: BranchRow[],
   totals: { collection: number; expense: number; profit: number; loans: number },
-  periodLabel = "All Time"
+  periodLabel = "All Time",
+  isHqSplit = false
 ) {
   import("jspdf").then(({ jsPDF }) => {
     import("jspdf-autotable").then((mod) => {
@@ -87,37 +151,59 @@ function exportAccountsToPDF(
       doc.text("SmartUp", 14, 14);
       doc.setFontSize(12);
       doc.setFont("helvetica", "normal");
-      doc.text(`Consolidated Accounts Report • ${periodLabel}`, 14, 21);
+      doc.text(`Consolidated Accounts Report • ${periodLabel}${isHqSplit ? " (HQ Expenses Split Across Branches)" : ""}`, 14, 21);
       doc.setFontSize(9);
       doc.text(`Generated: ${dateLabel}`, 283, 14, { align: "right" });
 
-      const tableRows = rows.map((r, i) => [String(i + 1), r.shortName, fmtINR(r.collection), fmtINR(r.expense), fmtINR(r.profit), fmtINR(r.loans)]);
-      tableRows.push(["", "GRAND TOTAL", fmtINR(totals.collection), fmtINR(totals.expense), fmtINR(totals.profit), fmtINR(totals.loans)]);
+      const head = isHqSplit
+        ? [["#", "Branch", "Collection (Rs.)", "Direct Exp (Rs.)", "HQ Share", "HQ Exp (Rs.)", "Total Exp (Rs.)", "Profit (Rs.)", "Loans (Rs.)"]]
+        : [["#", "Branch", "Collection (Rs.)", "Expense (Rs.)", "Profit (Rs.)", "Loans (Rs.)"]];
+
+      const tableRows = rows.map((r, i) => {
+        if (isHqSplit) {
+          return [
+            String(i + 1),
+            r.shortName,
+            fmtINR(r.collection),
+            fmtINR(r.directExpense),
+            r.weightPct ? `${r.weightPct}%` : "-",
+            fmtINR(r.allocatedHqExpense),
+            fmtINR(r.expense),
+            fmtINR(r.profit),
+            fmtINR(r.loans),
+          ];
+        }
+        return [
+          String(i + 1),
+          r.shortName,
+          fmtINR(r.collection),
+          fmtINR(r.expense),
+          fmtINR(r.profit),
+          fmtINR(r.loans),
+        ];
+      });
+
+      if (isHqSplit) {
+        tableRows.push(["", "GRAND TOTAL", fmtINR(totals.collection), fmtINR(totals.expense), "100%", "0.00", fmtINR(totals.expense), fmtINR(totals.profit), fmtINR(totals.loans)]);
+      } else {
+        tableRows.push(["", "GRAND TOTAL", fmtINR(totals.collection), fmtINR(totals.expense), fmtINR(totals.profit), fmtINR(totals.loans)]);
+      }
 
       autoTable(doc, {
         startY: 34,
-        head: [["#", "Branch", "Collection (Rs.)", "Expense (Rs.)", "Profit (Rs.)", "Loans (Rs.)"]],
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        head,
         body: tableRows,
         theme: "grid",
-        styles: { fontSize: 9, cellPadding: { top: 3, bottom: 3, left: 4, right: 4 }, lineColor: [200, 200, 200], lineWidth: 0.2, textColor: [...TEXT_DARK] },
-        headStyles: { fillColor: [...TEAL], textColor: [...WHITE], fontStyle: "bold", fontSize: 9, halign: "center" },
+        styles: { fontSize: 8.5, cellPadding: { top: 3, bottom: 3, left: 3, right: 3 }, lineColor: [200, 200, 200], lineWidth: 0.2, textColor: [...TEXT_DARK] },
+        headStyles: { fillColor: [...TEAL], textColor: [...WHITE], fontStyle: "bold", fontSize: 8.5, halign: "center" },
         alternateRowStyles: { fillColor: [248, 250, 252] },
-        columnStyles: {
-          0: { halign: "center", cellWidth: 12 },
-          1: { halign: "left", cellWidth: 50 },
-          2: { halign: "right", cellWidth: 42 },
-          3: { halign: "right", cellWidth: 42 },
-          4: { halign: "right", cellWidth: 42, fontStyle: "bold" },
-          5: { halign: "right", cellWidth: 42 },
-        },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         didParseCell: (data: any) => {
           if (data.row.index === tableRows.length - 1) {
             data.cell.styles.fillColor = [...TEAL_LIGHT];
             data.cell.styles.fontStyle = "bold";
             data.cell.styles.textColor = [...TEAL_DARK];
-            data.cell.styles.fontSize = 10;
+            data.cell.styles.fontSize = 9;
           }
         },
       });
@@ -129,7 +215,8 @@ function exportAccountsToPDF(
       doc.text("All amounts in Indian Rupees (INR)", 283, ph - 8, { align: "right" });
 
       const cleanPeriod = periodLabel.replace(/\s+/g, "_");
-      doc.save(`Accounts_Report_${cleanPeriod}_${new Date().toISOString().slice(0, 10)}.pdf`);
+      const hqSuffix = isHqSplit ? "_HQ_Split" : "";
+      doc.save(`Accounts_Report_${cleanPeriod}${hqSuffix}_${new Date().toISOString().slice(0, 10)}.pdf`);
     });
   });
 }
@@ -154,6 +241,7 @@ export default function AccountsDashboardPage() {
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
   const [selectedMonth, setSelectedMonth] = useState<string>("all");
+  const [splitHqExpenses, setSplitHqExpenses] = useState<boolean>(false);
 
   const { fromDate, toDate, periodLabel } = useMemo(() => {
     if (selectedMonth === "all") {
@@ -206,7 +294,7 @@ export default function AccountsDashboardPage() {
   const totalLoans = loanData?.grand_total ?? 0;
   const profit = totalCollection - totalExpense;
 
-  // Build per-branch data
+  // Build per-branch data (with optional HQ expense proportional split)
   const branchRows = useMemo(() => {
     if (!branches) return [];
     const feeMap = new Map<string, number>();
@@ -221,21 +309,36 @@ export default function AccountsDashboardPage() {
     for (const b of loanData?.branches ?? []) {
       loanMap.set(b.branch, b.total);
     }
+
+    // Find HQ direct expense
+    const hqDirectExpense = expMap.get("Smart Up") ?? 0;
+
     return branches.map((b) => {
       const col = feeMap.get(b.name) ?? 0;
-      const exp = expMap.get(b.name) ?? 0;
+      const directExp = expMap.get(b.name) ?? 0;
       const loans = loanMap.get(b.name) ?? 0;
+      const isHq = b.name === "Smart Up" || b.name.replace("Smart Up ", "").trim() === "Smart Up";
+      const weight = getBranchWeight(b.name);
+      const allocatedHqExpense = (!isHq && splitHqExpenses) ? hqDirectExpense * weight : 0;
+      const displayExpense = isHq
+        ? (splitHqExpenses ? 0 : directExp)
+        : (splitHqExpenses ? directExp + allocatedHqExpense : directExp);
+
       return {
         name: b.name,
         abbr: b.abbr,
         shortName: b.name.replace("Smart Up ", "").replace("Smart Up", "HQ"),
         collection: col,
-        expense: exp,
-        profit: col - exp,
+        directExpense: directExp,
+        allocatedHqExpense,
+        expense: displayExpense,
+        profit: col - displayExpense,
         loans,
+        isHq,
+        weightPct: Math.round(weight * 100),
       };
     }).sort((a, b) => b.profit - a.profit);
-  }, [branches, feeData, expenseData, loanData]);
+  }, [branches, feeData, expenseData, loanData, splitHqExpenses]);
 
   const [exportOpen, setExportOpen] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);
@@ -304,6 +407,23 @@ export default function AccountsDashboardPage() {
             )}
           </div>
 
+          {/* Split HQ Expenses Checkmark */}
+          <label
+            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-medium cursor-pointer transition-all select-none shadow-sm ${
+              splitHqExpenses
+                ? "bg-primary/10 border-primary/30 text-primary"
+                : "bg-surface border-border-light text-text-secondary hover:text-text-primary hover:bg-surface-hover"
+            }`}
+          >
+            <input
+              type="checkbox"
+              checked={splitHqExpenses}
+              onChange={(e) => setSplitHqExpenses(e.target.checked)}
+              className="rounded border-border-light text-primary focus:ring-primary h-3.5 w-3.5 cursor-pointer accent-primary"
+            />
+            <span>Split HQ Expenses</span>
+          </label>
+
           {/* Export dropdown */}
           {!isLoading && branchRows.length > 0 && (
             <div className="relative" ref={exportRef}>
@@ -318,14 +438,14 @@ export default function AccountsDashboardPage() {
               {exportOpen && (
                 <div className="absolute right-0 mt-1 w-40 rounded-xl border border-border-light bg-surface shadow-lg z-20 py-1">
                   <button
-                    onClick={() => { exportAccountsToPDF(branchRows, grandTotals, periodLabel); setExportOpen(false); }}
+                    onClick={() => { exportAccountsToPDF(branchRows, grandTotals, periodLabel, splitHqExpenses); setExportOpen(false); }}
                     className="w-full flex items-center gap-2 px-3 py-2 text-xs text-text-primary hover:bg-surface-hover transition-colors"
                   >
                     <FileText className="h-3.5 w-3.5 text-rose-500" />
                     Download PDF
                   </button>
                   <button
-                    onClick={() => { exportAccountsToExcel(branchRows, grandTotals, periodLabel); setExportOpen(false); }}
+                    onClick={() => { exportAccountsToExcel(branchRows, grandTotals, periodLabel, splitHqExpenses); setExportOpen(false); }}
                     className="w-full flex items-center gap-2 px-3 py-2 text-xs text-text-primary hover:bg-surface-hover transition-colors"
                   >
                     <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-500" />
@@ -534,7 +654,19 @@ export default function AccountsDashboardPage() {
                         <p className="text-[13px] font-semibold text-text-primary leading-tight truncate">
                           {row.shortName}
                         </p>
-                        <p className="text-[10px] text-text-tertiary">{row.abbr}</p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="text-[10px] text-text-tertiary">{row.abbr}</span>
+                          {splitHqExpenses && !row.isHq && row.weightPct !== undefined && (
+                            <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-medium bg-primary/10 text-primary">
+                              HQ Share: {row.weightPct}%
+                            </span>
+                          )}
+                          {splitHqExpenses && row.isHq && (
+                            <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-medium bg-emerald-500/10 text-emerald-600">
+                              Distributed
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <ChevronRight className="h-3.5 w-3.5 text-text-tertiary group-hover:text-primary transition-colors" />
@@ -557,7 +689,9 @@ export default function AccountsDashboardPage() {
                     <p className="text-[13px] font-semibold text-rose-500 tabular-nums">
                       <AnimatedCurrency value={row.expense} decimals />
                     </p>
-                    <p className="text-[9px] text-text-tertiary mt-0.5">Expense</p>
+                    <p className="text-[9px] text-text-tertiary mt-0.5">
+                      {splitHqExpenses && !row.isHq ? "Total Exp" : "Expense"}
+                    </p>
                   </div>
 
                   <span className="text-text-tertiary text-sm font-medium shrink-0">=</span>
@@ -570,6 +704,14 @@ export default function AccountsDashboardPage() {
                     <p className="text-[9px] text-text-tertiary mt-0.5">Profit</p>
                   </div>
                 </div>
+
+                {/* Sub-breakdown when splitHqExpenses is enabled and not HQ */}
+                {splitHqExpenses && !row.isHq && (
+                  <div className="mt-2 pt-2 border-t border-border-light flex items-center justify-between text-[10px] text-text-tertiary">
+                    <span>Direct: <span className="font-medium text-text-secondary">₹{row.directExpense.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</span></span>
+                    <span>+ HQ ({row.weightPct}%): <span className="font-medium text-text-secondary">₹{row.allocatedHqExpense.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</span></span>
+                  </div>
+                )}
 
                 {/* Loans badge — only shown when non-zero */}
                 {row.loans > 0 && (

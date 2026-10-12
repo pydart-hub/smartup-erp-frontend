@@ -102,9 +102,9 @@ export default function BranchFeesPage() {
   }
 
   const totalFees = invoiceStats?.totalInvoiced ?? 0;
-  const totalCollected = invoiceStats?.totalCollected ?? 0;
+  const totalCollected = collectedByMode?.total ?? (invoiceStats?.totalCollected ?? 0);
   const forfeited = forfeitedTotal ?? 0;
-  const totalPending = (invoiceStats?.totalOutstanding ?? 0) - forfeited;
+  const totalPending = Math.max(0, totalFees - totalCollected - forfeited);
   const invoiceCount = invoiceStats?.count ?? 0;
 
   return (

@@ -55,65 +55,19 @@ export default function SmartUpRankingPage() {
     return map;
   }, [programEnrollments]);
 
-  // 1. Fetch all assessment plans
-  const { data: allPlans = [], isLoading: plansLoading } = useQuery({
-    queryKey: ["cwc-assessment-plans"],
+  // 1. Fetch targeted CWC plans and results from dedicated API (bypassing ERP global limit)
+  const { data: cwcData, isLoading: pageLoading } = useQuery({
+    queryKey: ["cwc-ranking-data", selectedCwc],
     queryFn: async () => {
-      const res = await fetch("/api/curriculum-dept/admin-proxy", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          path: "resource/Assessment Plan",
-          method: "GET",
-          payload: {
-            fields: JSON.stringify([
-              "name",
-              "student_group",
-              "assessment_name",
-              "assessment_group",
-              "course",
-              "maximum_assessment_score",
-              "custom_branch"
-            ]),
-            filters: JSON.stringify([["docstatus", "=", 1]]),
-            limit_page_length: "3000"
-          }
-        })
-      }).then(r => r.json());
-      return res.data ?? [];
+      const res = await fetch(`/api/curriculum-dept/cwc-ranking?exam=${encodeURIComponent(selectedCwc)}`);
+      if (!res.ok) throw new Error("Failed to load CWC rankings");
+      return res.json();
     },
     staleTime: 60_000,
   });
 
-  // 2. Fetch all assessment results
-  const { data: allResults = [], isLoading: resultsLoading } = useQuery({
-    queryKey: ["cwc-assessment-results"],
-    queryFn: async () => {
-      const res = await fetch("/api/curriculum-dept/admin-proxy", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          path: "resource/Assessment Result",
-          method: "GET",
-          payload: {
-            fields: JSON.stringify([
-              "name",
-              "student",
-              "student_name",
-              "assessment_plan",
-              "total_score",
-              "maximum_score",
-              "course"
-            ]),
-            filters: JSON.stringify([["docstatus", "=", 1]]),
-            limit_page_length: "15000"
-          }
-        })
-      }).then(r => r.json());
-      return res.data ?? [];
-    },
-    staleTime: 60_000,
-  });
+  const allPlans = useMemo(() => cwcData?.plans ?? [], [cwcData]);
+  const allResults = useMemo(() => cwcData?.results ?? [], [cwcData]);
 
   const planMetaMap = useMemo(() => {
     const map = new Map<string, any>();
@@ -121,11 +75,9 @@ export default function SmartUpRankingPage() {
     return map;
   }, [allPlans]);
 
-  // Aggregate and rank all students across all branches for selected CWC exam
-  const leaderboardData = useMemo(() => {
+  // Aggregate student scores across all branches for selected CWC exam
+  const allStudentsData = useMemo(() => {
     if (allPlans.length === 0 || allResults.length === 0) return [];
-
-    const searchKey = selectedCwc.toLowerCase();
 
     // Map student ID -> score aggregation
     const studentMap = new Map<string, {
@@ -144,30 +96,13 @@ export default function SmartUpRankingPage() {
       const plan = planMetaMap.get(r.assessment_plan);
       if (!plan) return;
 
-      const ag = (plan.assessment_group || "").toLowerCase();
-      const an = (plan.assessment_name || "").toLowerCase();
-
-      const match = selectedCwc.toLowerCase().match(/cwc\s*(?:exam\s*)?(\d+)/);
-      const cwcNum = match ? match[1] : "";
-      
-      let matchesCwc = false;
-      if (cwcNum) {
-        // Strict match: must contain CWC/cwc and the specific exam number (e.g. CWC 1)
-        const targetRegex = new RegExp(`cwc\\s*(?:exam\\s*)?${cwcNum}\\b`, "i");
-        matchesCwc = targetRegex.test(ag) || targetRegex.test(an);
-      } else {
-        matchesCwc = ag.includes("cwc") || an.includes("cwc");
-      }
-
-      if (!matchesCwc) return;
-
       const studentId = r.student || r.student_name;
       const studentName = r.student_name || r.student || "Student";
       const branch = cleanBranchName(plan.custom_branch);
       const studentGroup = plan.student_group || "";
       const courseName = plan.course ? plan.course.replace(/-.*/, "") : "Subject";
 
-      // Parse grade standard (e.g., "8th", "9th", "10th", "11th", "12th") from studentGroup like "Edappally-10th CBSE-A"
+      // Parse grade standard (e.g., "8th", "9th", "10th", "11th", "12th") from studentGroup
       let standard = "Other";
       const stdMatch = studentGroup.match(/\b(8th|9th|10th|11th|12th|8|9|10|11|12)\b/i);
       
@@ -199,10 +134,7 @@ export default function SmartUpRankingPage() {
       entry.totalObtained += Number(r.total_score) || 0;
       entry.totalMax += Number(r.maximum_score) || 100;
       
-      if (!entry.hasOwnProperty("subjects")) {
-        (entry as any).subjects = [];
-      }
-      (entry as any).subjects.push({
+      entry.subjects.push({
         course: courseName,
         score: Number(r.total_score) || 0,
         max: Number(r.maximum_score) || 100
@@ -228,7 +160,6 @@ export default function SmartUpRankingPage() {
           const minPct = Math.min(...percentagesList);
           consistencyScore = Math.max(0, 100 - (maxPct - minPct));
         } else if (attendedCount === 1) {
-          // Penalty for sitting only 1 subject (range cannot be calculated)
           consistencyScore = 50;
         }
         
@@ -245,7 +176,7 @@ export default function SmartUpRankingPage() {
 
         return {
           ...s,
-          percentage: Number(rankingScore.toFixed(1)), // Represents the final combined Weighted Ranking Score
+          percentage: Number(rankingScore.toFixed(1)),
           rawPercentage: Number(avgPercentage.toFixed(1)),
           grade,
           passed: avgPercentage >= 40,
@@ -256,7 +187,7 @@ export default function SmartUpRankingPage() {
     // Sort strictly by final weighted Ranking Score DESC
     list.sort((a, b) => b.percentage - a.percentage || b.totalObtained - a.totalObtained);
 
-    // Assign dense rankings based on weighted ranking score
+    // Compute dense overall/institute rank for reference
     let currentRank = 1;
     return list.map((item, idx, array) => {
       if (idx > 0) {
@@ -265,37 +196,47 @@ export default function SmartUpRankingPage() {
           currentRank = idx + 1;
         }
       }
-      return { ...item, rank: currentRank };
+      return { ...item, overallRank: currentRank };
     });
-  }, [allPlans, allResults, planMetaMap, selectedCwc]);
+  }, [allPlans, allResults, planMetaMap, studentPlanMap]);
 
   // Unique branches for dropdown filter
   const branchOptions = useMemo(() => {
     const set = new Set<string>();
-    leaderboardData.forEach(item => set.add(item.branch));
+    allStudentsData.forEach(item => set.add(item.branch));
     return Array.from(set).sort();
-  }, [leaderboardData]);
+  }, [allStudentsData]);
 
   // Unique grade standards for dropdown filter (e.g. 10th CBSE, 9th State)
   const classOptions = useMemo(() => {
     const set = new Set<string>();
-    leaderboardData.forEach(item => {
+    allStudentsData.forEach(item => {
       if (item.standard && item.standard !== "Other") {
         set.add(item.standard);
       }
     });
     return Array.from(set).sort((a, b) => {
-      // Sort standard names cleanly (extracting digit prefix first)
       const numA = parseInt(a) || 0;
       const numB = parseInt(b) || 0;
       if (numA !== numB) return numA - numB;
       return a.localeCompare(b);
     });
-  }, [leaderboardData]);
+  }, [allStudentsData]);
 
-  // Filtered leaderboard
+  // Check whether any criteria is active
+  const isFilterActive = useMemo(() => {
+    return (
+      selectedBranchFilter !== "all" ||
+      selectedClassFilter !== "all" ||
+      selectedPlanFilter !== "all" ||
+      searchQuery.trim() !== ""
+    );
+  }, [selectedBranchFilter, selectedClassFilter, selectedPlanFilter, searchQuery]);
+
+  // Dynamic ranking based on the active filter criteria
   const filteredLeaderboard = useMemo(() => {
-    return leaderboardData.filter(item => {
+    // 1. Filter students according to user selections
+    const matched = allStudentsData.filter(item => {
       const matchesSearch = item.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
                             item.studentId.toLowerCase().includes(searchQuery.toLowerCase()) ||
                             item.branch.toLowerCase().includes(searchQuery.toLowerCase());
@@ -309,9 +250,26 @@ export default function SmartUpRankingPage() {
         : planName.includes("basic") || !planName;
       return matchesSearch && matchesBranch && matchesClass && matchesPlan;
     });
-  }, [leaderboardData, searchQuery, selectedBranchFilter, selectedClassFilter, selectedPlanFilter]);
 
-  const pageLoading = plansLoading || resultsLoading;
+    // 2. Sort by percentage DESC
+    const sorted = [...matched].sort((a, b) => b.percentage - a.percentage || b.totalObtained - a.totalObtained);
+
+    // 3. Dynamically assign rank 1, 2, 3... within this filtered list
+    let currentRank = 1;
+    return sorted.map((item, idx, array) => {
+      if (idx > 0) {
+        const prev = array[idx - 1];
+        if (item.percentage < prev.percentage) {
+          currentRank = idx + 1;
+        }
+      }
+      return {
+        ...item,
+        rank: currentRank, // Dynamic rank for this filtered list
+      };
+    });
+  }, [allStudentsData, searchQuery, selectedBranchFilter, selectedClassFilter, selectedPlanFilter]);
+
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
@@ -429,13 +387,13 @@ export default function SmartUpRankingPage() {
       ) : (
         <div className="space-y-6">
           {/* Top 3 Podium Cards */}
-          {filteredLeaderboard.length >= 3 && selectedBranchFilter === "all" && searchQuery === "" && (
+          {filteredLeaderboard.length >= 3 && searchQuery === "" && (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
               {/* Rank 2 */}
               <Card className="border border-slate-200 dark:border-white/10 p-5 bg-gradient-to-b from-slate-50 to-surface dark:from-slate-900/40 relative overflow-hidden shadow-sm">
                 <div className="flex justify-between items-start">
                   <Badge variant="outline" className="bg-slate-200 text-slate-700 border-slate-300 font-extrabold px-2.5 py-0.5">
-                    🥈 Rank #2
+                    🥈 Rank #2 {isFilterActive && <span className="ml-1 text-[10px] font-normal opacity-75">(Overall #{filteredLeaderboard[1].overallRank})</span>}
                   </Badge>
                   <span className="text-xs font-semibold text-text-tertiary">{filteredLeaderboard[1].branch}</span>
                 </div>
@@ -450,7 +408,8 @@ export default function SmartUpRankingPage() {
               <Card className="border-2 border-amber-500/50 p-6 bg-gradient-to-b from-amber-500/10 via-surface to-surface relative overflow-hidden shadow-lg transform -translate-y-1">
                 <div className="flex justify-between items-start">
                   <Badge variant="outline" className="bg-amber-500 text-white border-amber-500 font-extrabold px-3 py-1 text-xs">
-                    👑 Rank #1 (SmartUp Topper)
+                    👑 Rank #1 {isFilterActive ? `(${selectedClassFilter !== "all" ? selectedClassFilter : selectedBranchFilter !== "all" ? selectedBranchFilter : "Filtered"} Topper)` : "(SmartUp Topper)"}
+                    {isFilterActive && <span className="ml-1.5 text-[10px] font-normal opacity-90">(Overall #{filteredLeaderboard[0].overallRank})</span>}
                   </Badge>
                   <span className="text-xs font-bold text-amber-600">{filteredLeaderboard[0].branch}</span>
                 </div>
@@ -465,7 +424,7 @@ export default function SmartUpRankingPage() {
               <Card className="border border-amber-600/30 p-5 bg-gradient-to-b from-amber-500/5 to-surface relative overflow-hidden shadow-sm">
                 <div className="flex justify-between items-start">
                   <Badge variant="outline" className="bg-amber-700/10 text-amber-700 border-amber-600/30 font-extrabold px-2.5 py-0.5">
-                    🥉 Rank #3
+                    🥉 Rank #3 {isFilterActive && <span className="ml-1 text-[10px] font-normal opacity-75">(Overall #{filteredLeaderboard[2].overallRank})</span>}
                   </Badge>
                   <span className="text-xs font-semibold text-text-tertiary">{filteredLeaderboard[2].branch}</span>
                 </div>
@@ -483,7 +442,7 @@ export default function SmartUpRankingPage() {
             <div className="p-4 bg-slate-50/50 dark:bg-slate-900/50 border-b border-border/60 flex justify-between items-center">
               <span className="text-xs font-bold text-text-primary flex items-center gap-2">
                 <Trophy className="h-4 w-4 text-purple-600" />
-                All Branch Student Leaderboard ({filteredLeaderboard.length} Students)
+                {isFilterActive ? "Filtered Student Leaderboard" : "All Branch Student Leaderboard"} ({filteredLeaderboard.length} Students)
               </span>
               <Badge variant="outline" className="border-purple-500/30 text-purple-600 text-xs font-semibold">
                 {selectedCwc}
@@ -494,7 +453,7 @@ export default function SmartUpRankingPage() {
               <table className="w-full text-xs text-left border-collapse min-w-[700px]">
                 <thead>
                   <tr className="border-b border-border/60 bg-slate-100/40 dark:bg-white/[0.02] text-[10px] uppercase font-extrabold text-text-tertiary tracking-wider">
-                    <th className="px-6 py-3.5 w-16 text-center">Rank</th>
+                    <th className="px-6 py-3.5 w-20 text-center">Rank</th>
                     <th className="px-6 py-3.5">Student Name</th>
                     <th className="px-6 py-3.5">Branch</th>
                     <th className="px-6 py-3.5 text-center">Total Marks</th>
@@ -507,21 +466,28 @@ export default function SmartUpRankingPage() {
                   {filteredLeaderboard.map((st) => (
                     <tr key={st.studentId} className="hover:bg-purple-500/5 transition-colors">
                       <td className="px-6 py-3 text-center">
-                        {st.rank === 1 ? (
-                          <span className="inline-flex items-center justify-center h-7 w-7 rounded-full bg-amber-500 text-white font-extrabold text-xs shadow-sm">
-                            1
-                          </span>
-                        ) : st.rank === 2 ? (
-                          <span className="inline-flex items-center justify-center h-7 w-7 rounded-full bg-slate-300 text-slate-800 font-extrabold text-xs shadow-sm">
-                            2
-                          </span>
-                        ) : st.rank === 3 ? (
-                          <span className="inline-flex items-center justify-center h-7 w-7 rounded-full bg-amber-700/20 text-amber-800 font-extrabold text-xs">
-                            3
-                          </span>
-                        ) : (
-                          <span className="font-bold text-text-secondary">#{st.rank}</span>
-                        )}
+                        <div className="flex flex-col items-center justify-center">
+                          {st.rank === 1 ? (
+                            <span className="inline-flex items-center justify-center h-7 w-7 rounded-full bg-amber-500 text-white font-extrabold text-xs shadow-sm">
+                              1
+                            </span>
+                          ) : st.rank === 2 ? (
+                            <span className="inline-flex items-center justify-center h-7 w-7 rounded-full bg-slate-300 text-slate-800 font-extrabold text-xs shadow-sm">
+                              2
+                            </span>
+                          ) : st.rank === 3 ? (
+                            <span className="inline-flex items-center justify-center h-7 w-7 rounded-full bg-amber-700/20 text-amber-800 font-extrabold text-xs">
+                              3
+                            </span>
+                          ) : (
+                            <span className="font-bold text-text-secondary">#{st.rank}</span>
+                          )}
+                          {isFilterActive && st.overallRank && (
+                            <span className="text-[9px] text-text-tertiary font-medium mt-0.5 whitespace-nowrap">
+                              Overall #{st.overallRank}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-3 font-bold text-text-primary">
                         <div className="flex items-center gap-2">

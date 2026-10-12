@@ -63,6 +63,25 @@ function formatTimeForInput(val?: string | null): string {
   return val.slice(0, 5);
 }
 
+// Ensure Frappe / MariaDB Time field compliance (HH:mm:ss with leading zero)
+function formatToFrappeTime(val?: string | null): string | undefined {
+  if (!val || typeof val !== "string") return undefined;
+  const trimmed = val.trim();
+  if (!trimmed) return undefined;
+  let clean = trimmed;
+  if (clean.includes("T")) clean = clean.split("T")[1];
+  if (clean.includes(" ")) clean = clean.split(" ")[1];
+
+  const parts = clean.split(":");
+  if (parts.length < 2) return undefined;
+
+  const h = parts[0].padStart(2, "0");
+  const m = parts[1].padStart(2, "0").slice(0, 2);
+  const s = parts[2] ? parts[2].padStart(2, "0").slice(0, 2) : "00";
+
+  return `${h}:${m}:${s}`;
+}
+
 // Convert 24-hour "HH:mm" to 12-hour format "hh:mm AM/PM"
 function formatTo12Hour(time24?: string | null): string {
   if (!time24) return "";
@@ -950,9 +969,9 @@ export default function StaffAttendancePage() {
           const rawOut = s.out_time ? (s.out_time.includes(" ") ? s.out_time.split(" ")[1] : s.out_time) : "";
           const rawClass = s.class_time ? (s.class_time.includes(" ") ? s.class_time.split(" ")[1] : s.class_time) : "";
 
-          const inTimeVal = rawIn ? (rawIn.length === 5 ? `${rawIn}:00` : rawIn) : undefined;
-          const outTimeVal = rawOut ? (rawOut.length === 5 ? `${rawOut}:00` : rawOut) : undefined;
-          const classTimeVal = rawClass ? (rawClass.length === 5 ? `${rawClass}:00` : rawClass) : undefined;
+          const inTimeVal = formatToFrappeTime(rawIn);
+          const outTimeVal = formatToFrappeTime(rawOut);
+          const classTimeVal = formatToFrappeTime(rawClass);
 
           return {
             branch: s.branch || defaultCompany || "",
@@ -998,7 +1017,7 @@ export default function StaffAttendancePage() {
           in_time: primaryIn,
           out_time: primaryOut,
           working_hours: calculatedWorkingHours,
-          custom_class_time: effectiveTime || undefined,
+          custom_class_time: formatToFrappeTime(effectiveTime),
           custom_visiting_branch: isVisiting ? (defaultCompany || undefined) : undefined,
         };
 

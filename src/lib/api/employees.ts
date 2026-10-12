@@ -487,6 +487,24 @@ async function postEmployeeCheckin(
   }
 }
 
+function formatToFrappeTime(val?: string | null): string | undefined {
+  if (!val || typeof val !== "string") return undefined;
+  const trimmed = val.trim();
+  if (!trimmed) return undefined;
+  let clean = trimmed;
+  if (clean.includes("T")) clean = clean.split("T")[1];
+  if (clean.includes(" ")) clean = clean.split(" ")[1];
+
+  const parts = clean.split(":");
+  if (parts.length < 2) return undefined;
+
+  const h = parts[0].padStart(2, "0");
+  const m = parts[1].padStart(2, "0").slice(0, 2);
+  const s = parts[2] ? parts[2].padStart(2, "0").slice(0, 2) : "00";
+
+  return `${h}:${m}:${s}`;
+}
+
 /** Create or merge a branch session Attendance record */
 export async function createEmployeeAttendance(payload: {
   employee: string;
@@ -514,9 +532,9 @@ export async function createEmployeeAttendance(payload: {
     in_time: payload.in_time || undefined,
     out_time: payload.out_time || undefined,
     working_hours: payload.working_hours !== undefined ? payload.working_hours : undefined,
-    custom_check_in: payload.in_time ? payload.in_time.split(" ")[1] || payload.in_time : undefined,
-    custom_check_out: payload.out_time ? payload.out_time.split(" ")[1] || payload.out_time : undefined,
-    custom_class_time: payload.custom_class_time || undefined,
+    custom_check_in: formatToFrappeTime(payload.in_time),
+    custom_check_out: formatToFrappeTime(payload.out_time),
+    custom_class_time: formatToFrappeTime(payload.custom_class_time),
     custom_visiting_branch: payload.custom_visiting_branch || undefined,
     custom_sessions_json: payload.sessions_json || undefined,
     custom_branch_sessions: customSessions,
@@ -562,9 +580,9 @@ export async function updateEmployeeAttendance(
     in_time: payload.in_time || undefined,
     out_time: payload.out_time || undefined,
     working_hours: payload.working_hours !== undefined ? payload.working_hours : undefined,
-    custom_check_in: payload.in_time ? payload.in_time.split(" ")[1] || payload.in_time : undefined,
-    custom_check_out: payload.out_time ? payload.out_time.split(" ")[1] || payload.out_time : undefined,
-    custom_class_time: payload.custom_class_time || undefined,
+    custom_check_in: formatToFrappeTime(payload.in_time),
+    custom_check_out: formatToFrappeTime(payload.out_time),
+    custom_class_time: formatToFrappeTime(payload.custom_class_time),
     custom_visiting_branch: payload.custom_visiting_branch || undefined,
     custom_sessions_json: payload.sessions_json || undefined,
     custom_branch_sessions: customSessions,

@@ -117,13 +117,36 @@ export async function getAllBranchesSummary(fromDate?: string, toDate?: string) 
   if (fromDate) invoiceFilters.push(["posting_date", ">=", fromDate]);
   if (toDate) invoiceFilters.push(["posting_date", "<=", toDate]);
 
-  const rawInvoices = (await frappeGet(
-    "Sales Invoice",
-    ["name", "company", "student", "customer", "grand_total", "outstanding_amount", "due_date", "status", "posting_date", "is_return"],
-    invoiceFilters,
-    "name asc",
-    0,
-  )) as unknown as FrappeInvoice[];
+  const peFilters: (string | number | string[])[][] = [
+    ["docstatus", "=", 1],
+    ["payment_type", "=", "Receive"],
+  ];
+  if (fromDate) peFilters.push(["posting_date", ">=", fromDate]);
+  if (toDate) peFilters.push(["posting_date", "<=", toDate]);
+
+  const [rawInvoices, rawPayments] = await Promise.all([
+    frappeGet(
+      "Sales Invoice",
+      ["name", "company", "student", "customer", "grand_total", "outstanding_amount", "due_date", "status", "posting_date", "is_return"],
+      invoiceFilters,
+      "name asc",
+      0,
+    ) as Promise<FrappeInvoice[]>,
+    frappeGet(
+      "Payment Entry",
+      ["name", "company", "paid_amount", "posting_date"],
+      peFilters,
+      "name asc",
+      0,
+    ) as Promise<{ company?: string; paid_amount?: number }[]>,
+  ]);
+
+  // Aggregate Payment Entry collections by branch
+  const paymentsByBranch = new Map<string, number>();
+  for (const pe of rawPayments) {
+    const comp = String(pe.company ?? "");
+    paymentsByBranch.set(comp, (paymentsByBranch.get(comp) ?? 0) + (Number(pe.paid_amount) || 0));
+  }
 
   const invoices: FrappeInvoice[] = rawInvoices.map((inv) => {
     let sid = inv.student ? String(inv.student) : "";
@@ -141,8 +164,9 @@ export async function getAllBranchesSummary(fromDate?: string, toDate?: string) 
       (inv) => inv.company === branch && !inv.is_return && (Number(inv.grand_total) || 0) > 0,
     );
     const totalFee = bi.reduce((s, inv) => s + (Number(inv.grand_total) || 0), 0);
-    const pending = bi.reduce((s, inv) => s + (Number(inv.outstanding_amount) || 0), 0);
-    const collected = totalFee - pending;
+    // Collection is based on actual Payment Entries (cash/bank received)
+    const collected = paymentsByBranch.get(branch) ?? 0;
+    const pending = Math.max(0, totalFee - collected);
     const overdue = bi
       .filter((inv) => (Number(inv.outstanding_amount) || 0) > 0 && String(inv.due_date ?? "") < today)
       .reduce((s, inv) => s + (Number(inv.outstanding_amount) || 0), 0);

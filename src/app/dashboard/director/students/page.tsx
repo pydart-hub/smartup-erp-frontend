@@ -346,9 +346,16 @@ export default function DirectorStudentsPage() {
                   </div>
                   <div className="w-px bg-border-light self-stretch" />
                   <div>
-                    <p className="text-2xl font-black text-success tabular-nums leading-none">
-                      {loadTotalActive ? <span className="inline-block w-8 h-7 bg-border-light rounded animate-pulse" /> : <AnimatedNumber value={totalActive ?? 0} />}
-                    </p>
+                    <div className="flex items-baseline gap-1.5 leading-none">
+                      <p className="text-2xl font-black text-success tabular-nums">
+                        {loadTotalActive ? <span className="inline-block w-8 h-7 bg-border-light rounded animate-pulse" /> : <AnimatedNumber value={totalActive ?? 0} />}
+                      </p>
+                      {totalAll > 0 && totalActive != null && !loadTotalActive && (
+                        <span className="text-[11px] font-bold text-success/90 bg-success/10 px-1.5 py-0.5 rounded-full tabular-nums">
+                          {((totalActive / totalAll) * 100).toFixed(1)}%
+                        </span>
+                      )}
+                    </div>
                     <p className="text-[10px] text-text-tertiary mt-1 font-medium">Active</p>
                   </div>
                   {(totalDiscontinued ?? 0) > 0 && (
@@ -358,9 +365,16 @@ export default function DirectorStudentsPage() {
                         onClick={() => setIsDiscontinuedModalOpen(true)}
                         className="flex flex-col items-center hover:opacity-80 transition-opacity cursor-pointer group"
                       >
-                        <p className="text-2xl font-black text-error/80 tabular-nums leading-none group-hover:text-error transition-colors">
-                          <AnimatedNumber value={totalDiscontinued ?? 0} />
-                        </p>
+                        <div className="flex items-baseline gap-1.5 leading-none">
+                          <p className="text-2xl font-black text-error/80 tabular-nums group-hover:text-error transition-colors">
+                            <AnimatedNumber value={totalDiscontinued ?? 0} />
+                          </p>
+                          {totalAll > 0 && (
+                            <span className="text-[11px] font-bold text-error/90 bg-error/10 px-1.5 py-0.5 rounded-full tabular-nums group-hover:bg-error/20 transition-colors">
+                              {(((totalDiscontinued ?? 0) / totalAll) * 100).toFixed(1)}%
+                            </span>
+                          )}
+                        </div>
                         <p className="text-[10px] text-text-tertiary mt-1 font-medium group-hover:text-error/70 transition-colors">Discontinued</p>
                       </button>
                     </>

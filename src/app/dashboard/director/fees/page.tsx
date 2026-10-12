@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/Input";
 import {
   getAllBranches,
   getCollectedByMode,
+  getBranchCollectedByMode,
   getBranchInvoiceStats,
   getBranchForfeitedFees,
   getStudentCountForBranch,
@@ -63,11 +64,16 @@ function BranchFeeCard({
     staleTime: 300_000,
   });
 
+  const { data: collectedByMode, isLoading: loadCollected } = useQuery({
+    queryKey: ["director-branch-collected-by-mode", branch.name],
+    queryFn: () => getBranchCollectedByMode(branch.name),
+    staleTime: 120_000,
+  });
   const shortName = branch.name.replace("Smart Up ", "").replace("Smart Up", "HQ");
   const totalFees = invoiceStats?.totalInvoiced ?? 0;
-  const collected = invoiceStats?.totalCollected ?? 0;
+  const collected = collectedByMode?.total ?? (invoiceStats?.totalCollected ?? 0);
   const forfeited = forfeitedFees ?? 0;
-  const pending = (invoiceStats?.totalOutstanding ?? 0) - forfeited;
+  const pending = Math.max(0, totalFees - collected - forfeited);
   const collectedPct = pct(collected, totalFees);
   const duesAmount = dues?.total_dues ?? 0;
 

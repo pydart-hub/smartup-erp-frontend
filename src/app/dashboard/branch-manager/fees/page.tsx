@@ -18,6 +18,9 @@ import {
   Wifi,
   School,
   Users,
+  Smartphone,
+  Landmark,
+  RefreshCw,
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { StatsCard } from "@/components/dashboard/StatsCard";
@@ -31,6 +34,7 @@ import { getBranchCollectedByMode, type CollectedByMode } from "@/lib/api/direct
 import type { PaymentEntry, FeeReportSummary } from "@/lib/types/fee";
 import type { SalesInvoice } from "@/lib/types/sales";
 import { useAuth } from "@/lib/hooks/useAuth";
+import type { BranchLedgerBalancesResponse } from "@/app/api/fees/branch-ledger-balances/route";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -48,6 +52,9 @@ export default function FeesPage() {
   const [summary, setSummary] = useState<FeeReportSummary | null>(null);
   const [pendingFees, setPendingFees] = useState<SalesInvoice[]>([]);
   const [recentPayments, setRecentPayments] = useState<PaymentEntry[]>([]);
+  const [paymentLimit, setPaymentLimit] = useState(5);
+  const [hasMorePayments, setHasMorePayments] = useState(true);
+  const [loadingMorePayments, setLoadingMorePayments] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Discontinued write-offs
@@ -68,6 +75,29 @@ export default function FeesPage() {
 
   // Razorpay/Offline collected split
   const [collectedByMode, setCollectedByMode] = useState<CollectedByMode | null>(null);
+
+  // Live GL Entry Ledger Balances (Cash, Cash in Hand, UPI, Bank Transfer)
+  const [ledgerBalances, setLedgerBalances] = useState<BranchLedgerBalancesResponse | null>(null);
+  const [loadingLedger, setLoadingLedger] = useState(false);
+
+  const fetchLedgerBalances = async () => {
+    if (!defaultCompany) return;
+    setLoadingLedger(true);
+    try {
+      const res = await fetch(
+        `/api/fees/branch-ledger-balances?company=${encodeURIComponent(defaultCompany)}`,
+        { credentials: "include" }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setLedgerBalances(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch branch ledger balances:", err);
+    } finally {
+      setLoadingLedger(false);
+    }
+  };
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -91,6 +121,7 @@ export default function FeesPage() {
 
   useEffect(() => {
     setLoading(true);
+    fetchLedgerBalances();
     Promise.all([
       fetch(`/api/fees/report-summary${defaultCompany ? `?company=${encodeURIComponent(defaultCompany)}` : ""}`, { credentials: "include" })
         .then((r) => r.ok ? r.json() : null)
@@ -118,7 +149,9 @@ export default function FeesPage() {
           collection_rate: summaryData.collection_rate ?? 0,
         });
         setPendingFees(invoicesRes.data);
-        setRecentPayments(paymentsRes.data);
+        const paymentsList = paymentsRes.data || [];
+        setRecentPayments(paymentsList);
+        setHasMorePayments(paymentsList.length >= 5);
         if (discData) setDiscontinuedData(discData);
         // Build customer → payment mode map from Payment Entries
         try {
@@ -139,6 +172,26 @@ export default function FeesPage() {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [defaultCompany]);
+
+  const handleShowMorePayments = async () => {
+    if (loadingMorePayments) return;
+    setLoadingMorePayments(true);
+    const nextLimit = paymentLimit + 5;
+    try {
+      const res = await getPayments({
+        limit_page_length: nextLimit,
+        ...(defaultCompany ? { company: defaultCompany } : {}),
+      });
+      const newItems = res.data || [];
+      setRecentPayments(newItems);
+      setPaymentLimit(nextLimit);
+      setHasMorePayments(newItems.length >= nextLimit);
+    } catch (err) {
+      console.error("Failed to fetch more payments:", err);
+    } finally {
+      setLoadingMorePayments(false);
+    }
+  };
 
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
@@ -222,6 +275,117 @@ export default function FeesPage() {
         )}
       </motion.div>
 
+      {/* Account Ledger Balances (GL Entry) — Live Branch Data */}
+      <motion.div variants={itemVariants} className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-text-primary flex items-center gap-2">
+              <Landmark className="h-4 w-4 text-primary" />
+              Account Ledger Balances (GL Entry)
+            </h2>
+            <p className="text-xs text-text-tertiary">
+              Live balances from Chart of Accounts for {defaultCompany || "Branch"}
+            </p>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={fetchLedgerBalances}
+            disabled={loadingLedger}
+            className="h-8 px-2.5 text-xs text-text-secondary hover:text-text-primary gap-1.5"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${loadingLedger ? "animate-spin text-primary" : ""}`} />
+            Refresh
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* 1. Cash In Hand / Cash Leaf */}
+          <Card className="border-l-4 border-l-emerald-500 bg-surface hover:shadow-sm transition-shadow">
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-xs font-semibold text-text-tertiary uppercase tracking-wider">
+                      Cash in Hand
+                    </p>
+                    <Badge variant="outline" className="text-[10px] px-1 py-0 bg-emerald-50 text-emerald-700 border-emerald-200">
+                      GL
+                    </Badge>
+                  </div>
+                  <p className="text-xs font-medium text-text-secondary mt-0.5 truncate max-w-[200px]" title={ledgerBalances?.cash_parent?.name || "Cash In Hand"}>
+                    {ledgerBalances?.cash_parent?.name || "Cash In Hand"}
+                  </p>
+                </div>
+                <div className="h-9 w-9 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
+                  <Banknote className="h-4 w-4 text-emerald-600" />
+                </div>
+              </div>
+
+              <div className="mt-3">
+                {loadingLedger ? (
+                  <div className="h-7 w-28 bg-border-light rounded animate-pulse" />
+                ) : (
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-xl font-bold text-text-primary">
+                      {ledgerBalances?.cash_leaf?.formatted || "₹ 0.00 Dr"}
+                    </span>
+                  </div>
+                )}
+                <div className="flex items-center gap-1.5 mt-1 text-xs text-text-tertiary">
+                  <span>Account:</span>
+                  <span className="font-mono text-text-secondary font-medium truncate max-w-[200px]" title={ledgerBalances?.cash_leaf?.name || "Cash"}>
+                    {ledgerBalances?.cash_leaf?.name || "Cash"}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 2. UPI Account */}
+          <Card className="border-l-4 border-l-violet-500 bg-surface hover:shadow-sm transition-shadow">
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-xs font-semibold text-text-tertiary uppercase tracking-wider">
+                      UPI Account
+                    </p>
+                    <Badge variant="outline" className="text-[10px] px-1 py-0 bg-violet-50 text-violet-700 border-violet-200">
+                      Bank
+                    </Badge>
+                  </div>
+                  <p className="text-xs font-medium text-text-secondary mt-0.5 truncate max-w-[200px]" title={ledgerBalances?.upi?.account_name || "UPI Account"}>
+                    {ledgerBalances?.upi?.account_name || "UPI Account"}
+                  </p>
+                </div>
+                <div className="h-9 w-9 rounded-lg bg-violet-500/10 flex items-center justify-center shrink-0">
+                  <Smartphone className="h-4 w-4 text-violet-600" />
+                </div>
+              </div>
+
+              <div className="mt-3">
+                {loadingLedger ? (
+                  <div className="h-7 w-28 bg-border-light rounded animate-pulse" />
+                ) : (
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-xl font-bold text-text-primary">
+                      {ledgerBalances?.upi?.formatted || "₹ 0.00 Dr"}
+                    </span>
+                  </div>
+                )}
+                <div className="flex items-center gap-1.5 mt-1 text-xs text-text-tertiary">
+                  <span>Account:</span>
+                  <span className="font-mono text-text-secondary font-medium truncate max-w-[200px]" title={ledgerBalances?.upi?.name || "None"}>
+                    {ledgerBalances?.upi?.name || "None"}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </motion.div>
+
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Pending Fees — class-grouped */}
@@ -293,6 +457,30 @@ export default function FeesPage() {
                       </span>
                     </motion.div>
                   ))}
+                </div>
+              )}
+
+              {recentPayments.length > 0 && hasMorePayments && (
+                <div className="mt-4 pt-3 border-t border-border-light text-center">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleShowMorePayments}
+                    disabled={loadingMorePayments}
+                    className="w-full text-xs text-primary hover:text-primary-hover hover:bg-brand-wash/50 font-medium gap-1.5"
+                  >
+                    {loadingMorePayments ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        Loading payments...
+                      </>
+                    ) : (
+                      <>
+                        Show More
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      </>
+                    )}
+                  </Button>
                 </div>
               )}
             </CardContent>
