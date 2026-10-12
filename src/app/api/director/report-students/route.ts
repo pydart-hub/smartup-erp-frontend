@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { normalizeSchoolName } from "@/lib/reports/school-mappings";
 
 export const dynamic = "force-dynamic";
 
@@ -410,13 +411,6 @@ export async function getClassDetail(program: string, fromDate?: string, toDate?
 
 // ── School summary & detail ──
 
-function normalizeSchoolName(raw?: unknown): string {
-  const str = String(raw ?? "").trim();
-  if (!str) return "Not Specified";
-  // Collapse duplicate whitespace
-  return str.replace(/\s+/g, " ");
-}
-
 export async function getAllSchoolClassesSummary(fromDate?: string, toDate?: string) {
   const allStudents = await frappeGet(
     "Student",
@@ -644,7 +638,7 @@ export async function getSchoolDetail(schoolName: string, fromDate?: string, toD
     return true;
   });
 
-  const targetNormKey = schoolName.trim().toLowerCase();
+  const targetNormKey = normalizeSchoolName(schoolName).toLowerCase();
   let schoolStudents = students.filter((s) => {
     const norm = normalizeSchoolName(s.custom_school_name).toLowerCase();
     return norm === targetNormKey;
