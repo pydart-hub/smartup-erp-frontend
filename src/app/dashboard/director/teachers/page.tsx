@@ -8,8 +8,9 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import { Float, Stars } from "@react-three/drei";
 import { useQuery } from "@tanstack/react-query";
 import * as THREE from "three";
-import { Search, Building2, Users, ChevronRight, AlertCircle } from "lucide-react";
+import { Search, Building2, Users, ChevronRight, AlertCircle, LayoutGrid, UserCheck } from "lucide-react";
 import { getAllBranches, getInstructorCountForBranch } from "@/lib/api/director";
+import { TeacherDirectory } from "@/components/director/TeacherDirectory";
 
 // ── Per-branch accent palette (cycles) ─────────────────────────────────────
 const ACCENTS = [
@@ -226,6 +227,7 @@ function BranchCard({ branch, index, isDark }: {
 export default function DirectorTeachersPage() {
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [viewMode, setViewMode] = useState<"profiles" | "grid">("profiles");
   useEffect(() => { setMounted(true); }, []);
   const isDark = mounted ? resolvedTheme === "dark" : false;
 
@@ -241,6 +243,42 @@ export default function DirectorTeachersPage() {
   const filtered = search
     ? activeBranches.filter((b) => b.name.toLowerCase().includes(search.toLowerCase()))
     : activeBranches;
+
+  if (viewMode === "profiles") {
+    return (
+      <div className="space-y-4">
+        {/* Top bar with mode toggle */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface border border-border-light rounded-2xl p-4 sm:p-5 shadow-sm">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-text-primary flex items-center gap-2.5">
+              <UserCheck className="w-6 h-6 text-primary" /> Teacher Directory & Analytics
+            </h1>
+            <p className="text-xs sm:text-sm text-text-secondary mt-1">
+              Search faculty across branches to view attendance logs, weekly exam pass rates, CWC evaluation, and work assignments.
+            </p>
+          </div>
+
+          <div className="inline-flex items-center gap-1 bg-app-bg p-1 rounded-xl border border-border-light shrink-0">
+            <button
+              onClick={() => setViewMode("profiles")}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary text-white shadow-sm transition-all"
+            >
+              <UserCheck className="w-3.5 h-3.5" /> Faculty Directory
+            </button>
+            <button
+              onClick={() => setViewMode("grid")}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-text-secondary hover:text-text-primary transition-all"
+            >
+              <LayoutGrid className="w-3.5 h-3.5" /> 3D Branch Grid
+            </button>
+          </div>
+        </div>
+
+        {/* Clean Directory View */}
+        <TeacherDirectory />
+      </div>
+    );
+  }
 
   return (
     <div className="relative -m-4 lg:-m-6 min-h-[calc(100vh-64px)] overflow-hidden">
@@ -280,13 +318,30 @@ export default function DirectorTeachersPage() {
           transition={{ duration:0.7, ease:[0.23,1,0.32,1] }}
           className="mb-8"
         >
-          <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border backdrop-blur-sm mb-5 ${
-            isDark ? "border-teal-400/30 bg-teal-400/10" : "border-teal-500/30 bg-teal-500/8"
-          }`}>
-            <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" />
-            <span className={`text-xs font-medium tracking-widest uppercase ${isDark ? "text-teal-300" : "text-teal-700"}`}>
-              Faculty Directory
-            </span>
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border backdrop-blur-sm mb-5 ${
+              isDark ? "border-teal-400/30 bg-teal-400/10" : "border-teal-500/30 bg-teal-500/8"
+            }`}>
+              <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" />
+              <span className={`text-xs font-medium tracking-widest uppercase ${isDark ? "text-teal-300" : "text-teal-700"}`}>
+                Faculty Directory
+              </span>
+            </div>
+
+            <div className="inline-flex items-center gap-1 bg-white/10 backdrop-blur-md p-1 rounded-xl border border-white/20 mb-5">
+              <button
+                onClick={() => setViewMode("profiles")}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white/70 hover:text-white"
+              >
+                <UserCheck className="w-3.5 h-3.5" /> Drill-Down Profiles
+              </button>
+              <button
+                onClick={() => setViewMode("grid")}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-gray-900 shadow-sm"
+              >
+                <LayoutGrid className="w-3.5 h-3.5" /> Branch Grid
+              </button>
+            </div>
           </div>
 
           <h1 className={`text-4xl sm:text-5xl font-extrabold leading-tight tracking-tight ${isDark ? "text-white" : "text-gray-900"}`}>

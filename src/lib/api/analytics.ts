@@ -241,6 +241,10 @@ export interface ClassPerformanceResponse {
     percentage: number;
     subject_count: number;
     students_appeared: number;
+    total_enrolled?: number;
+    students_absent?: number;
+    absent_rate?: number;
+    turnout_rate?: number;
     batch_scores?: Record<
       string,
       {
@@ -249,6 +253,9 @@ export interface ClassPerformanceResponse {
         maximum_score: number;
         percentage: number;
         students_appeared: number;
+        total_enrolled?: number;
+        students_absent?: number;
+        absent_rate?: number;
       }
     >;
     class_scores?: Record<
@@ -259,6 +266,9 @@ export interface ClassPerformanceResponse {
         maximum_score: number;
         percentage: number;
         students_appeared: number;
+        total_enrolled?: number;
+        students_absent?: number;
+        absent_rate?: number;
       }
     >;
     subjects: Array<{

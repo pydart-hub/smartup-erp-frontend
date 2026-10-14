@@ -918,13 +918,26 @@ export function AcademicPerformanceDashboard({
                     {hoveredExam ? (
                       <div className="space-y-2.5">
                         <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-border-light">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center flex-wrap gap-2">
                             <span className="font-extrabold text-text-primary text-sm">
                               {hoveredExam.exam_title}
                             </span>
                             <span className="text-text-tertiary">
-                              ({formatDate(hoveredExam.schedule_date)} · {hoveredExam.subject_count} Subjects · {hoveredExam.students_appeared} Students)
+                              ({formatDate(hoveredExam.schedule_date)} · {hoveredExam.subject_count} Subjects ·{" "}
+                              <strong className="text-text-primary">{hoveredExam.students_appeared}</strong>
+                              {hoveredExam.total_enrolled ? `/${hoveredExam.total_enrolled}` : ""}{" "}
+                              Attended)
                             </span>
+                            {hoveredExam.students_absent !== undefined && hoveredExam.students_absent > 0 && (
+                              <Badge variant="error" className="text-[11px] font-bold">
+                                {hoveredExam.students_absent} Absent ({hoveredExam.absent_rate ?? 0}%)
+                              </Badge>
+                            )}
+                            {hoveredExam.students_absent === 0 && hoveredExam.total_enrolled && (
+                              <Badge variant="success" className="text-[11px] font-bold">
+                                100% Turnout
+                              </Badge>
+                            )}
                           </div>
                           <div className="flex items-center gap-2">
                             <span className="text-text-secondary">
@@ -942,10 +955,11 @@ export function AcademicPerformanceDashboard({
                             <span className="text-[11px] font-bold text-text-tertiary">Class Scores:</span>
                             {Object.entries(hoveredExam.class_scores).map(([pName, cData]: [string, any]) => {
                               const cInfo = classColorMap.get(pName);
+                              const hasAbsent = (cData.students_absent ?? 0) > 0;
                               return (
                                 <div
                                   key={pName}
-                                  className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-surface border border-border-light shadow-2xs"
+                                  className="flex items-center flex-wrap gap-1.5 px-3 py-1 rounded-lg bg-surface border border-border-light shadow-2xs"
                                 >
                                   <span
                                     className="w-2.5 h-2.5 rounded-full"
@@ -959,8 +973,13 @@ export function AcademicPerformanceDashboard({
                                     {cData.percentage}%
                                   </span>
                                   <span className="text-[10px] text-text-tertiary">
-                                    ({cData.students_appeared} students)
+                                    ({cData.students_appeared}{cData.total_enrolled ? `/${cData.total_enrolled}` : ""} present)
                                   </span>
+                                  {hasAbsent && (
+                                    <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 px-1.5 py-0.5 rounded">
+                                      {cData.students_absent} absent ({cData.absent_rate}%)
+                                    </span>
+                                  )}
                                 </div>
                               );
                             })}

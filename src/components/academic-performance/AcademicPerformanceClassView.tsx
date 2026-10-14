@@ -841,11 +841,23 @@ export function AcademicPerformanceClassView({
                     {hoveredExam ? (
                       <div>
                         <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                          <div>
-                            <span className="font-bold text-text-primary mr-2 text-sm">{hoveredExam.exam_title}</span>
+                          <div className="flex items-center flex-wrap gap-2">
+                            <span className="font-bold text-text-primary text-sm">{hoveredExam.exam_title}</span>
                             <span className="text-text-tertiary">
-                              {formatDate(hoveredExam.schedule_date)} · {hoveredExam.subject_count} Subject(s) · {hoveredExam.students_appeared} Students
+                              {formatDate(hoveredExam.schedule_date)} · {hoveredExam.subject_count} Subject(s) ·{" "}
+                              <strong className="text-text-primary">{hoveredExam.students_appeared}</strong>
+                              {hoveredExam.total_enrolled ? `/${hoveredExam.total_enrolled}` : ""} Attended
                             </span>
+                            {hoveredExam.students_absent !== undefined && hoveredExam.students_absent > 0 && (
+                              <Badge variant="error" className="text-[11px] font-bold">
+                                {hoveredExam.students_absent} Absent ({hoveredExam.absent_rate ?? 0}%)
+                              </Badge>
+                            )}
+                            {hoveredExam.students_absent === 0 && hoveredExam.total_enrolled && (
+                              <Badge variant="success" className="text-[11px] font-bold">
+                                100% Turnout
+                              </Badge>
+                            )}
                           </div>
                           <Badge variant={getGradeBadgeVariant(hoveredExam.percentage)}>
                             {hoveredExam.percentage}% Class Avg
@@ -857,12 +869,20 @@ export function AcademicPerformanceClassView({
                             <span className="text-[11px] font-semibold text-text-tertiary">Batch Breakdown:</span>
                             {Object.entries(hoveredExam.batch_scores).map(([bGroup, bData]: [string, any]) => {
                               const cInfo = batchColorMap.get(bGroup);
+                              const hasAbsent = (bData.students_absent ?? 0) > 0;
                               return (
-                                <div key={bGroup} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface border border-border-light shadow-2xs">
+                                <div key={bGroup} className="flex items-center flex-wrap gap-1.5 px-2.5 py-1 rounded-lg bg-surface border border-border-light shadow-2xs">
                                   <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cInfo?.stroke || "#6366f1" }} />
                                   <span className="font-bold text-text-primary">Batch {bData.batch_code}:</span>
                                   <span className="font-bold" style={{ color: cInfo?.stroke || "#6366f1" }}>{bData.percentage}%</span>
-                                  <span className="text-[10px] text-text-tertiary">({bData.students_appeared} students)</span>
+                                  <span className="text-[10px] text-text-tertiary">
+                                    ({bData.students_appeared}{bData.total_enrolled ? `/${bData.total_enrolled}` : ""} present)
+                                  </span>
+                                  {hasAbsent && (
+                                    <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 px-1.5 py-0.5 rounded">
+                                      {bData.students_absent} absent ({bData.absent_rate}%)
+                                    </span>
+                                  )}
                                 </div>
                               );
                             })}

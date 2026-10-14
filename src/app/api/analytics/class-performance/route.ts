@@ -25,6 +25,10 @@ export interface ClassExamPoint {
   percentage: number;
   subject_count: number;
   students_appeared: number;
+  total_enrolled: number;
+  students_absent: number;
+  absent_rate: number;
+  turnout_rate: number;
   batch_scores?: Record<
     string,
     {
@@ -33,6 +37,9 @@ export interface ClassExamPoint {
       maximum_score: number;
       percentage: number;
       students_appeared: number;
+      total_enrolled: number;
+      students_absent: number;
+      absent_rate: number;
     }
   >;
   class_scores?: Record<
@@ -43,6 +50,9 @@ export interface ClassExamPoint {
       maximum_score: number;
       percentage: number;
       students_appeared: number;
+      total_enrolled: number;
+      students_absent: number;
+      absent_rate: number;
     }
   >;
   subjects: Array<{
@@ -295,6 +305,23 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // 2b. Fetch full student group rosters to calculate batch strength and absent counts
+    const batchStudentMap = new Map<string, Set<string>>();
+    await Promise.all(
+      relevantBatches.map(async (b) => {
+        try {
+          const detailRes = await frappeAdminGet(`resource/Student Group/${encodeURIComponent(b.name)}`);
+          const detail = detailRes.data as { students?: Array<{ student: string; active?: number }> } | undefined;
+          const activeStudents = (detail?.students || [])
+            .filter((s) => s.active !== 0)
+            .map((s) => s.student);
+          batchStudentMap.set(b.name, new Set(activeStudents));
+        } catch {
+          batchStudentMap.set(b.name, new Set());
+        }
+      })
+    );
+
     // 3. Fetch Assessment Plans for these batches
     const plansRes = await frappeAdminGet("resource/Assessment Plan", {
       fields: JSON.stringify([
@@ -389,7 +416,7 @@ export async function GET(request: NextRequest) {
         >;
         classScoreMap: Map<
           string,
-          { program: string; total_score: number; maximum_score: number; students: Set<string> }
+          { program: string; total_score: number; maximum_score: number; students: Set<string>; batches: Set<string> }
         >;
       }
     >();
@@ -511,7 +538,7 @@ export async function GET(request: NextRequest) {
           >(),
           classScoreMap: new Map<
             string,
-            { program: string; total_score: number; maximum_score: number; students: Set<string> }
+            { program: string; total_score: number; maximum_score: number; students: Set<string>; batches: Set<string> }
           >(),
         });
       }
@@ -566,12 +593,14 @@ export async function GET(request: NextRequest) {
               total_score: 0,
               maximum_score: 0,
               students: new Set(),
+              batches: new Set(),
             });
           }
           const cs = examObj.classScoreMap.get(progName)!;
           cs.total_score += score;
           cs.maximum_score += maxScore;
           cs.students.add(r.student);
+          cs.batches.add(plan.student_group);
         }
       }
 
@@ -631,6 +660,21 @@ export async function GET(request: NextRequest) {
 
       const overallPct = totalMax > 0 ? Math.round((totalEarned / totalMax) * 100 * 10) / 10 : 0;
 
+      // Calculate total enrolled across all batches that participated in this exam
+      const enrolledStudentsSet = new Set<string>();
+      e.batchScoreMap.forEach((_, bName) => {
+        const batchStudents = batchStudentMap.get(bName);
+        if (batchStudents) {
+          batchStudents.forEach((stu) => enrolledStudentsSet.add(stu));
+        }
+      });
+      // Fallback: If no batch roster was found, enrolled is at least the students who appeared
+      const examEnrolled = Math.max(enrolledStudentsSet.size, e.studentsSet.size);
+      const examAppeared = e.studentsSet.size;
+      const examAbsent = Math.max(0, examEnrolled - examAppeared);
+      const examAbsentRate = examEnrolled > 0 ? Math.round((examAbsent / examEnrolled) * 100 * 10) / 10 : 0;
+      const examTurnoutRate = examEnrolled > 0 ? Math.round((examAppeared / examEnrolled) * 100 * 10) / 10 : 0;
+
       const batchScoresObj: Record<
         string,
         {
@@ -639,6 +683,9 @@ export async function GET(request: NextRequest) {
           maximum_score: number;
           percentage: number;
           students_appeared: number;
+          total_enrolled: number;
+          students_absent: number;
+          absent_rate: number;
         }
       > = {};
 
@@ -647,12 +694,21 @@ export async function GET(request: NextRequest) {
           bData.maximum_score > 0
             ? Math.round((bData.total_score / bData.maximum_score) * 100 * 10) / 10
             : 0;
+        const bEnrolledRoster = batchStudentMap.get(bName);
+        const bEnrolled = Math.max(bEnrolledRoster?.size ?? 0, bData.students.size);
+        const bAppeared = bData.students.size;
+        const bAbsent = Math.max(0, bEnrolled - bAppeared);
+        const bAbsentRate = bEnrolled > 0 ? Math.round((bAbsent / bEnrolled) * 100 * 10) / 10 : 0;
+
         batchScoresObj[bName] = {
           batch_code: bData.batch_code,
           total_score: bData.total_score,
           maximum_score: bData.maximum_score,
           percentage: bPct,
-          students_appeared: bData.students.size,
+          students_appeared: bAppeared,
+          total_enrolled: bEnrolled,
+          students_absent: bAbsent,
+          absent_rate: bAbsentRate,
         };
       });
 
@@ -664,6 +720,9 @@ export async function GET(request: NextRequest) {
           maximum_score: number;
           percentage: number;
           students_appeared: number;
+          total_enrolled: number;
+          students_absent: number;
+          absent_rate: number;
         }
       > = {};
 
@@ -672,12 +731,25 @@ export async function GET(request: NextRequest) {
           cData.maximum_score > 0
             ? Math.round((cData.total_score / cData.maximum_score) * 100 * 10) / 10
             : 0;
+        const classEnrolledSet = new Set<string>();
+        cData.batches.forEach((bName) => {
+          const bs = batchStudentMap.get(bName);
+          if (bs) bs.forEach((stu) => classEnrolledSet.add(stu));
+        });
+        const cEnrolled = Math.max(classEnrolledSet.size, cData.students.size);
+        const cAppeared = cData.students.size;
+        const cAbsent = Math.max(0, cEnrolled - cAppeared);
+        const cAbsentRate = cEnrolled > 0 ? Math.round((cAbsent / cEnrolled) * 100 * 10) / 10 : 0;
+
         classScoresObj[pName] = {
           program: cData.program,
           total_score: cData.total_score,
           maximum_score: cData.maximum_score,
           percentage: cPct,
-          students_appeared: cData.students.size,
+          students_appeared: cAppeared,
+          total_enrolled: cEnrolled,
+          students_absent: cAbsent,
+          absent_rate: cAbsentRate,
         };
       });
 
@@ -690,7 +762,11 @@ export async function GET(request: NextRequest) {
         maximum_score: totalMax,
         percentage: overallPct,
         subject_count: subjects.length,
-        students_appeared: e.studentsSet.size,
+        students_appeared: examAppeared,
+        total_enrolled: examEnrolled,
+        students_absent: examAbsent,
+        absent_rate: examAbsentRate,
+        turnout_rate: examTurnoutRate,
         batch_scores: batchScoresObj,
         class_scores: classScoresObj,
         subjects,

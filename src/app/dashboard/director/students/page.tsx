@@ -145,12 +145,22 @@ function BranchCard({ branch }: { branch: { name: string; abbr: string } }) {
                 )}
                 <span className="text-xs text-text-tertiary font-medium">active</span>
               </div>
-              {(discontinuedCount ?? 0) > 0 && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-error/8 text-[11px] font-medium text-error/80">
-                  <span className="w-1.5 h-1.5 rounded-full bg-error/60" />
-                  {discontinuedCount} disc.
-                </span>
-              )}
+              {(() => {
+                const disc = discontinuedCount ?? 0;
+                const active = activeCount ?? 0;
+                const total = active + disc;
+                const discRate = total > 0 ? ((disc / total) * 100).toFixed(1) : "0.0";
+
+                return disc > 0 ? (
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-error/8 text-[11px] font-medium text-error/90 tabular-nums">
+                    <span className="w-1.5 h-1.5 rounded-full bg-error/60" />
+                    <span>{disc} disc.</span>
+                    <span className="text-[10px] font-bold text-error/80 bg-error/10 px-1 py-0.2 rounded">
+                      {discRate}%
+                    </span>
+                  </span>
+                ) : null;
+              })()}
             </div>
 
             {/* Plan distribution */}

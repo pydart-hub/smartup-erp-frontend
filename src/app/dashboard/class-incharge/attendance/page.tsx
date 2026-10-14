@@ -8,23 +8,26 @@ import {
   Calendar, CheckCircle, XCircle, Clock, Users, Save,
   Loader2, School, ChevronRight, ArrowLeft, BarChart3,
   BookOpen, ChevronDown, GraduationCap, Bell,
+  FileSpreadsheet, FileText, ClipboardList, Eye,
 } from "lucide-react";
 import { AbsentDetailPanel } from "./AbsentDetailPanel";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { Card, CardContent } from "@/components/ui/Card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { toast } from "sonner";
 import { getBatches, getBatch } from "@/lib/api/batches";
 import { getAttendance, bulkMarkAttendance } from "@/lib/api/attendance";
 import { getCourseSchedules, getStudentGroups } from "@/lib/api/courseSchedule";
 import type { CourseSchedule } from "@/lib/api/courseSchedule";
 import type { Batch, BatchStudent } from "@/lib/types/batch";
+import type { AttendanceRecord } from "@/lib/types/attendance";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useAcademicYearStore } from "@/lib/stores/academicYearStore";
 import apiClient from "@/lib/api/client";
+import { ATTENDANCE_STATUSES } from "@/lib/utils/constants";
 
-type AttendanceStatus = "Present" | "Absent" | "Late";
+type AttendanceStatus = (typeof ATTENDANCE_STATUSES)[number];
 type SessionState = "ready" | "completed";
 
 interface ClassSummary {
@@ -33,10 +36,32 @@ interface ClassSummary {
   present: number;
   absent: number;
   late: number;
+  notEnrolled?: number;
   total: number;
   percentage: number;
   sessionCount: number;
   sessionsMarked: number;
+}
+
+interface AbsentDayDetail {
+  date: string;
+  label: string;
+  topic: string;
+  time: string;
+}
+
+interface StudentAttendanceReportRow {
+  studentId: string;
+  studentName: string;
+  totalSessions: number;
+  markedSessions: number;
+  eligibleSessions: number;
+  present: number;
+  absent: number;
+  late: number;
+  notEnrolled: number;
+  attendancePct: number;
+  absentDays: AbsentDayDetail[];
 }
 
 function formatTime12h(time: string): string {
@@ -46,10 +71,25 @@ function formatTime12h(time: string): string {
   return `${hour12}:${String(m).padStart(2, "0")} ${ampm}`;
 }
 
+function formatDisplayDate(date: string): string {
+  return new Date(`${date}T00:00:00`).toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function getMonthStart(date: string): string {
+  const current = new Date(`${date}T00:00:00`);
+  current.setDate(1);
+  return current.toISOString().split("T")[0];
+}
+
 const statusConfig = {
   Present: { icon: CheckCircle, color: "text-success", bg: "bg-success-light", ring: "ring-success/20" },
   Absent:  { icon: XCircle,    color: "text-error",   bg: "bg-error-light",   ring: "ring-error/20"   },
   Late:    { icon: Clock,      color: "text-warning",  bg: "bg-warning-light", ring: "ring-warning/20" },
+  "Not Enrolled": { icon: Users, color: "text-sky-700", bg: "bg-sky-50", ring: "ring-sky-500/20" },
 };
 
 export default function ClassInchargeAttendancePage() {
@@ -75,12 +115,17 @@ export default function ClassInchargeAttendancePage() {
   const [viewMode, setViewMode] = useState<"dashboard" | "batch">("dashboard");
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
   const [selectedBatchId, setSelectedBatchId] = useState<string>("");
+  const [batchViewTab, setBatchViewTab] = useState<"mark" | "report">("mark");
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
   const [students, setStudents] = useState<BatchStudent[]>([]);
   const [attendance, setAttendance] = useState<Record<string, AttendanceStatus>>({});
   const [sessionLoading, setSessionLoading] = useState(false);
   const [saving, setSaving] = useState<string | null>(null);
   const [disabilityMap, setDisabilityMap] = useState<Record<string, string>>({});
+  const [reportFromDate, setReportFromDate] = useState(() => getMonthStart(new Date().toISOString().split("T")[0]));
+  const [reportToDate, setReportToDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [selectedAbsentStudentId, setSelectedAbsentStudentId] = useState<string | null>(null);
+  const [exporting, setExporting] = useState<"pdf" | "excel" | null>(null);
   const [subjectExpanded, setSubjectExpanded] = useState(true);
   const [o2oExpanded, setO2oExpanded] = useState(true);
   const [isAbsentPanelOpen, setIsAbsentPanelOpen] = useState(false);
@@ -317,11 +362,243 @@ export default function ClassInchargeAttendancePage() {
       .catch(() => {});
   }, [students]);
 
-  function openClassAttendance(batchId: string) {
+  const selectedBatch = batchMap.get(selectedBatchId);
+
+  // ── Report Queries for Batch ──
+  const { data: reportBatchRes, isLoading: reportBatchLoading } = useQuery({
+    queryKey: ["ci-batch-report-batch", selectedBatchId],
+    queryFn: () => getBatch(selectedBatchId),
+    enabled: !!selectedBatchId && viewMode === "batch" && batchViewTab === "report",
+    staleTime: 5 * 60_000,
+  });
+
+  const { data: reportSchedulesRes, isLoading: reportSchedulesLoading } = useQuery({
+    queryKey: ["ci-batch-report-schedules", selectedBatchId, reportFromDate, reportToDate],
+    queryFn: () =>
+      getCourseSchedules({
+        student_group: selectedBatchId || undefined,
+        from_date: reportFromDate,
+        to_date: reportToDate,
+        limit_page_length: 500,
+      }),
+    enabled: !!selectedBatchId && viewMode === "batch" && batchViewTab === "report",
+    staleTime: 60_000,
+  });
+
+  const { data: reportAttendanceRecords = [], isLoading: reportAttendanceLoading } = useQuery({
+    queryKey: ["ci-batch-report-attendance", selectedBatchId, reportFromDate, reportToDate],
+    queryFn: async () => {
+      const query = new URLSearchParams({
+        filters: JSON.stringify([
+          ["student_group", "=", selectedBatchId],
+          ["date", ">=", reportFromDate],
+          ["date", "<=", reportToDate],
+        ]),
+        fields: JSON.stringify([
+          "name",
+          "student",
+          "student_name",
+          "date",
+          "status",
+          "student_group",
+          "course_schedule",
+          "custom_branch",
+          "custom_not_enrolled",
+        ]),
+        order_by: "date asc",
+        limit_page_length: "0",
+      });
+      const { data } = await apiClient.get<{ data: AttendanceRecord[] }>(
+        `/resource/Student Attendance?${query.toString()}`,
+      );
+      return data.data ?? [];
+    },
+    enabled: !!selectedBatchId && viewMode === "batch" && batchViewTab === "report",
+    staleTime: 60_000,
+  });
+
+  const reportRows = useMemo<StudentAttendanceReportRow[]>(() => {
+    const activeStudents = (reportBatchRes?.data.students ?? []).filter((student: BatchStudent) => student.active !== 0);
+    const schedules = reportSchedulesRes?.data ?? [];
+    const scheduleMap = new Map(schedules.map((schedule) => [schedule.name, schedule]));
+    const markedSessionKeys = new Set<string>();
+
+    for (const record of reportAttendanceRecords) {
+      markedSessionKeys.add(record.course_schedule || record.date);
+    }
+
+    const totalSessions = Math.max(schedules.length, markedSessionKeys.size);
+    const recordsByStudent = new Map<string, AttendanceRecord[]>();
+
+    for (const record of reportAttendanceRecords) {
+      const list = recordsByStudent.get(record.student) ?? [];
+      list.push(record);
+      recordsByStudent.set(record.student, list);
+    }
+
+    return activeStudents
+      .map((student) => {
+        const records = recordsByStudent.get(student.student) ?? [];
+        const studentSessionKeys = new Set<string>();
+        let present = 0;
+        let absent = 0;
+        let late = 0;
+        let explicitNotEnrolled = 0;
+        const absentDays: AbsentDayDetail[] = [];
+
+        for (const record of records) {
+          studentSessionKeys.add(record.course_schedule || record.date);
+          if (record.custom_not_enrolled || record.status === "Not Enrolled") {
+            explicitNotEnrolled += 1;
+            continue;
+          }
+          if (record.status === "Present") present += 1;
+          else if (record.status === "Absent") {
+            absent += 1;
+            const schedule = record.course_schedule ? scheduleMap.get(record.course_schedule) : undefined;
+            absentDays.push({
+              date: record.date,
+              label: schedule
+                ? `${formatDisplayDate(record.date)} • ${formatTime12h(schedule.from_time)} - ${formatTime12h(schedule.to_time)}`
+                : formatDisplayDate(record.date),
+              topic: schedule?.custom_topic || schedule?.course || schedule?.custom_event_title || "Attendance session",
+              time: schedule ? `${formatTime12h(schedule.from_time)} - ${formatTime12h(schedule.to_time)}` : "Time not available",
+            });
+          } else if (record.status === "Late") {
+            late += 1;
+          }
+        }
+
+        const fallbackNotEnrolled = Array.from(markedSessionKeys).filter((sessionKey) => !studentSessionKeys.has(sessionKey)).length;
+        const notEnrolled = explicitNotEnrolled + fallbackNotEnrolled;
+        absentDays.sort((a, b) => a.date.localeCompare(b.date));
+        const eligibleSessions = present + absent + late;
+
+        return {
+          studentId: student.student,
+          studentName: student.student_name || student.student,
+          totalSessions,
+          markedSessions: records.length,
+          eligibleSessions,
+          present,
+          absent,
+          late,
+          notEnrolled,
+          attendancePct: eligibleSessions > 0 ? Math.round((((present + late) / eligibleSessions) * 100) * 10) / 10 : 0,
+          absentDays,
+        };
+      })
+      .sort((a, b) => a.studentName.localeCompare(b.studentName));
+  }, [reportAttendanceRecords, reportBatchRes, reportSchedulesRes]);
+
+  const selectedAbsentStudent = useMemo(
+    () => reportRows.find((row) => row.studentId === selectedAbsentStudentId) ?? null,
+    [reportRows, selectedAbsentStudentId],
+  );
+
+  const reportStats = useMemo(() => {
+    const totalStudents = reportRows.length;
+    const totalSessions = reportRows.reduce((sum, row) => sum + row.totalSessions, 0);
+    const totalEligibleSessions = reportRows.reduce((sum, row) => sum + row.eligibleSessions, 0);
+    const totalPresent = reportRows.reduce((sum, row) => sum + row.present, 0);
+    const totalAbsent = reportRows.reduce((sum, row) => sum + row.absent, 0);
+    const totalLate = reportRows.reduce((sum, row) => sum + row.late, 0);
+    const totalNotEnrolled = reportRows.reduce((sum, row) => sum + row.notEnrolled, 0);
+    const avgAttendance = totalEligibleSessions > 0
+      ? Math.round((((totalPresent + totalLate) / totalEligibleSessions) * 100) * 10) / 10
+      : 0;
+    return { totalStudents, totalSessions, totalEligibleSessions, totalPresent, totalAbsent, totalLate, totalNotEnrolled, avgAttendance };
+  }, [reportRows]);
+
+  async function exportBatchReport(format: "pdf" | "excel") {
+    if (!reportRows.length) {
+      toast.error("No attendance report data available to export.");
+      return;
+    }
+
+    setExporting(format);
+    try {
+      const reportName = selectedBatch?.student_group_name ?? selectedBatchId ?? "attendance-report";
+      const fileBase = `${reportName.replace(/[^\w-]+/g, "_")}_${reportFromDate}_to_${reportToDate}`;
+      const exportRows = reportRows.map((row) => ({
+        "Student ID": row.studentId,
+        "Student Name": row.studentName,
+        "Total Sessions": row.totalSessions,
+        "Attendance Marked": row.markedSessions,
+        Present: row.present,
+        Absent: row.absent,
+        Late: row.late,
+        "Not Enrolled": row.notEnrolled,
+        "Attendance %": row.attendancePct,
+        "Absent Days": row.absentDays.map((day) => day.label).join("; "),
+      }));
+
+      if (format === "excel") {
+        const XLSX = await import("xlsx");
+        const worksheet = XLSX.utils.json_to_sheet(exportRows);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance Report");
+        XLSX.writeFile(workbook, `${fileBase}.xlsx`);
+      } else {
+        const { jsPDF } = await import("jspdf");
+        await import("jspdf-autotable");
+        const doc = new jsPDF({ orientation: "landscape" });
+
+        doc.setFontSize(14);
+        doc.text(`${selectedBatch?.student_group_name ?? selectedBatchId} Attendance Report`, 14, 16);
+        doc.setFontSize(10);
+        doc.text(`Range: ${formatDisplayDate(reportFromDate)} to ${formatDisplayDate(reportToDate)}`, 14, 23);
+
+        (doc as InstanceType<typeof jsPDF> & {
+          autoTable: (options: Record<string, unknown>) => void;
+        }).autoTable({
+          startY: 28,
+          head: [[
+            "Student ID",
+            "Student Name",
+            "Total",
+            "Marked",
+            "Present",
+            "Absent",
+            "Late",
+            "Not Enrolled",
+            "Attendance %",
+            "Absent Days",
+          ]],
+          body: reportRows.map((row) => [
+            row.studentId,
+            row.studentName,
+            row.totalSessions,
+            row.markedSessions,
+            row.present,
+            row.absent,
+            row.late,
+            row.notEnrolled,
+            `${row.attendancePct}%`,
+            row.absentDays.map((day) => day.label).join(", "),
+          ]),
+          styles: { fontSize: 8, cellPadding: 2 },
+          headStyles: { fillColor: [16, 185, 129] },
+        });
+
+        doc.save(`${fileBase}.pdf`);
+      }
+
+      toast.success(`${format === "excel" ? "Excel" : "PDF"} report exported.`);
+    } catch {
+      toast.error(`Failed to export ${format === "excel" ? "Excel" : "PDF"} report.`);
+    } finally {
+      setExporting(null);
+    }
+  }
+
+  function openClassAttendance(batchId: string, tab: "mark" | "report" = "mark") {
     setSelectedBatchId(batchId);
+    setBatchViewTab(tab);
     setExpandedSession(null);
     setStudents([]);
     setAttendance({});
+    setSelectedAbsentStudentId(null);
     setViewMode("batch");
   }
 
@@ -331,6 +608,8 @@ export default function ClassInchargeAttendancePage() {
     setExpandedSession(null);
     setStudents([]);
     setAttendance({});
+    setBatchViewTab("mark");
+    setSelectedAbsentStudentId(null);
   }
 
   function handleSessionClick(schedule: CourseSchedule) {
@@ -402,7 +681,6 @@ export default function ClassInchargeAttendancePage() {
   const presentCount = Object.values(attendance).filter((s) => s === "Present").length;
   const absentCount  = Object.values(attendance).filter((s) => s === "Absent").length;
   const lateCount    = Object.values(attendance).filter((s) => s === "Late").length;
-  const selectedBatch = batchMap.get(selectedBatchId);
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
@@ -510,6 +788,33 @@ export default function ClassInchargeAttendancePage() {
                               </p>
                             </div>
                           )}
+
+                          <div className="mt-4 flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openClassAttendance(cls.name, "mark");
+                              }}
+                            >
+                              <ClipboardList className="h-3.5 w-3.5" />
+                              Mark
+                            </Button>
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              className="flex-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openClassAttendance(cls.name, "report");
+                              }}
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                              Report
+                            </Button>
+                          </div>
                         </CardContent>
                       </Card>
                     </motion.div>
@@ -589,6 +894,33 @@ export default function ClassInchargeAttendancePage() {
                                     </p>
                                   </div>
                                 )}
+
+                                <div className="mt-4 flex gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="flex-1"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openClassAttendance(cls.name, "mark");
+                                    }}
+                                  >
+                                    <ClipboardList className="h-3.5 w-3.5" />
+                                    Mark
+                                  </Button>
+                                  <Button
+                                    variant="primary"
+                                    size="sm"
+                                    className="flex-1"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openClassAttendance(cls.name, "report");
+                                    }}
+                                  >
+                                    <Eye className="h-3.5 w-3.5" />
+                                    Report
+                                  </Button>
+                                </div>
                               </CardContent>
                             </Card>
                           </motion.div>
@@ -671,6 +1003,33 @@ export default function ClassInchargeAttendancePage() {
                                     </p>
                                   </div>
                                 )}
+
+                                <div className="mt-4 flex gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="flex-1"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openClassAttendance(cls.name, "mark");
+                                    }}
+                                  >
+                                    <ClipboardList className="h-3.5 w-3.5" />
+                                    Mark
+                                  </Button>
+                                  <Button
+                                    variant="primary"
+                                    size="sm"
+                                    className="flex-1"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openClassAttendance(cls.name, "report");
+                                    }}
+                                  >
+                                    <Eye className="h-3.5 w-3.5" />
+                                    Report
+                                  </Button>
+                                </div>
                               </CardContent>
                             </Card>
                           </motion.div>
@@ -694,196 +1053,424 @@ export default function ClassInchargeAttendancePage() {
                   <h1 className="text-2xl font-bold text-text-primary">
                     {selectedBatch?.student_group_name ?? selectedBatchId}
                   </h1>
-                  <p className="text-sm text-text-secondary mt-0.5">Mark attendance per session</p>
+                  <p className="text-sm text-text-secondary mt-0.5">
+                    {batchViewTab === "mark" ? "Mark attendance per session" : "Attendance report by student"}
+                  </p>
                 </div>
               </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-text-secondary flex items-center gap-1">
-                  <Calendar className="h-3 w-3" /> Date
-                </label>
-                <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => {
-                    setSelectedDate(e.target.value);
-                    setExpandedSession(null);
-                    setStudents([]);
-                    setAttendance({});
-                  }}
-                  className="h-10 rounded-[10px] border border-border-input bg-surface px-3 text-sm"
-                />
-              </div>
-            </div>
+              <div className="flex flex-col gap-3 sm:items-end">
+                <div className="inline-flex rounded-[12px] border border-border-light bg-surface p-1">
+                  <button
+                    type="button"
+                    onClick={() => setBatchViewTab("mark")}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-[8px] transition-colors ${
+                      batchViewTab === "mark" ? "bg-primary text-white" : "text-text-secondary"
+                    }`}
+                  >
+                    Mark Attendance
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBatchViewTab("report")}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-[8px] transition-colors ${
+                      batchViewTab === "report" ? "bg-primary text-white" : "text-text-secondary"
+                    }`}
+                  >
+                    View Report
+                  </button>
+                </div>
 
-            {batchSchedulesLoading && <GifLoader />}
-
-            {!batchSchedulesLoading && batchSchedules.length === 0 && (
-              <div className="text-center py-10 text-text-secondary text-sm">
-                <Calendar className="h-10 w-10 mx-auto mb-3 text-text-tertiary" />
-                <p className="font-medium">No sessions scheduled</p>
-                <p className="text-xs mt-1 text-text-tertiary">No classes scheduled for this batch on this date.</p>
-                {upcomingSchedules.length > 0 && (
-                  <div className="mt-5 text-left max-w-sm mx-auto space-y-2">
-                    <p className="text-xs font-semibold text-text-secondary text-center">Upcoming sessions</p>
-                    {upcomingSchedules.map((s) => (
-                      <button
-                        key={s.name}
-                        type="button"
-                        onClick={() => setSelectedDate(s.schedule_date)}
-                        className="w-full flex items-center justify-between px-3 py-2 rounded-[8px] bg-surface border border-border-light hover:border-primary/40 hover:bg-primary/5 transition-all text-xs"
-                      >
-                        <span className="font-medium text-text-primary">
-                          {new Date(s.schedule_date + "T00:00:00").toLocaleDateString("en-IN", {
-                            weekday: "short", day: "numeric", month: "short",
-                          })}
-                        </span>
-                        <span className="text-text-tertiary">
-                          {formatTime12h(s.from_time)} – {formatTime12h(s.to_time)}
-                        </span>
-                      </button>
-                    ))}
+                {batchViewTab === "mark" ? (
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium text-text-secondary flex items-center gap-1">
+                      <Calendar className="h-3 w-3" /> Date
+                    </label>
+                    <input
+                      type="date"
+                      value={selectedDate}
+                      onChange={(e) => {
+                        setSelectedDate(e.target.value);
+                        setExpandedSession(null);
+                        setStudents([]);
+                        setAttendance({});
+                      }}
+                      className="h-10 rounded-[10px] border border-border-input bg-surface px-3 text-sm"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-medium text-text-secondary flex items-center gap-1">
+                        <Calendar className="h-3 w-3" /> From
+                      </label>
+                      <input
+                        type="date"
+                        value={reportFromDate}
+                        max={reportToDate}
+                        onChange={(e) => setReportFromDate(e.target.value)}
+                        className="h-10 rounded-[10px] border border-border-input bg-surface px-3 text-sm"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-medium text-text-secondary flex items-center gap-1">
+                        <Calendar className="h-3 w-3" /> To
+                      </label>
+                      <input
+                        type="date"
+                        value={reportToDate}
+                        min={reportFromDate}
+                        onChange={(e) => setReportToDate(e.target.value)}
+                        className="h-10 rounded-[10px] border border-border-input bg-surface px-3 text-sm"
+                      />
+                    </div>
                   </div>
                 )}
               </div>
-            )}
+            </div>
 
-            {!batchSchedulesLoading && batchSchedules.length > 0 && (
-              <div className="space-y-4">
-                {batchSchedules.map((schedule) => {
-                  const state = sessionStates.get(schedule.name) ?? "ready";
-                  const isExpanded = expandedSession === schedule.name;
-                  const isSaving = saving === schedule.name;
+            {batchViewTab === "mark" && (
+              <>
+                {batchSchedulesLoading && <GifLoader />}
 
-                  return (
-                    <motion.div key={schedule.name} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-                      <Card
-                        className={`overflow-hidden transition-all ${
-                          state === "completed"
-                            ? "border-success/30 bg-success-light/30"
-                            : isExpanded
-                            ? "border-primary/40 shadow-card-hover"
-                            : "border-primary/20 hover:border-primary/40 hover:shadow-card-hover cursor-pointer"
-                        }`}
-                        onClick={!isExpanded ? () => handleSessionClick(schedule) : undefined}
-                      >
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex items-start gap-3 flex-1 min-w-0">
-                              <div className={`w-10 h-10 rounded-[10px] flex items-center justify-center shrink-0 ${state === "completed" ? "bg-success-light" : "bg-brand-wash"}`}>
-                                {state === "completed" ? <CheckCircle className="h-4 w-4 text-success" /> : <BookOpen className="h-4 w-4 text-primary" />}
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <p className="text-xs text-text-tertiary font-medium">
-                                  {formatTime12h(schedule.from_time)} – {formatTime12h(schedule.to_time)}
-                                </p>
-                                <h3 className="font-semibold text-text-primary truncate mt-0.5">
-                                  {schedule.custom_topic || schedule.course || schedule.custom_event_title || schedule.custom_event_type}
-                                </h3>
-                                {schedule.custom_topic && <p className="text-xs text-text-secondary truncate">{schedule.course}</p>}
-                                <div className="flex items-center gap-3 mt-1.5">
-                                  <div className="flex items-center gap-1">
-                                    <GraduationCap className="h-3 w-3 text-text-tertiary" />
-                                    <span className="text-xs text-text-secondary">{schedule.student_group}</span>
+                {!batchSchedulesLoading && batchSchedules.length === 0 && (
+                  <div className="text-center py-10 text-text-secondary text-sm">
+                    <Calendar className="h-10 w-10 mx-auto mb-3 text-text-tertiary" />
+                    <p className="font-medium">No sessions scheduled</p>
+                    <p className="text-xs mt-1 text-text-tertiary">No classes scheduled for this batch on this date.</p>
+                    {upcomingSchedules.length > 0 && (
+                      <div className="mt-5 text-left max-w-sm mx-auto space-y-2">
+                        <p className="text-xs font-semibold text-text-secondary text-center">Upcoming sessions</p>
+                        {upcomingSchedules.map((s) => (
+                          <button
+                            key={s.name}
+                            type="button"
+                            onClick={() => setSelectedDate(s.schedule_date)}
+                            className="w-full flex items-center justify-between px-3 py-2 rounded-[8px] bg-surface border border-border-light hover:border-primary/40 hover:bg-primary/5 transition-all text-xs"
+                          >
+                            <span className="font-medium text-text-primary">
+                              {new Date(s.schedule_date + "T00:00:00").toLocaleDateString("en-IN", {
+                                weekday: "short", day: "numeric", month: "short",
+                              })}
+                            </span>
+                            <span className="text-text-tertiary">
+                              {formatTime12h(s.from_time)} – {formatTime12h(s.to_time)}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {!batchSchedulesLoading && batchSchedules.length > 0 && (
+                  <div className="space-y-4">
+                    {batchSchedules.map((schedule) => {
+                      const state = sessionStates.get(schedule.name) ?? "ready";
+                      const isExpanded = expandedSession === schedule.name;
+                      const isSaving = saving === schedule.name;
+
+                      return (
+                        <motion.div key={schedule.name} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+                          <Card
+                            className={`overflow-hidden transition-all ${
+                              state === "completed"
+                                ? "border-success/30 bg-success-light/30"
+                                : isExpanded
+                                ? "border-primary/40 shadow-card-hover"
+                                : "border-primary/20 hover:border-primary/40 hover:shadow-card-hover cursor-pointer"
+                            }`}
+                            onClick={!isExpanded ? () => handleSessionClick(schedule) : undefined}
+                          >
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex items-start gap-3 flex-1 min-w-0">
+                                  <div className={`w-10 h-10 rounded-[10px] flex items-center justify-center shrink-0 ${state === "completed" ? "bg-success-light" : "bg-brand-wash"}`}>
+                                    {state === "completed" ? <CheckCircle className="h-4 w-4 text-success" /> : <BookOpen className="h-4 w-4 text-primary" />}
                                   </div>
-                                  {schedule.instructor_name && <span className="text-xs text-text-tertiary">{schedule.instructor_name}</span>}
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-xs text-text-tertiary font-medium">
+                                      {formatTime12h(schedule.from_time)} – {formatTime12h(schedule.to_time)}
+                                    </p>
+                                    <h3 className="font-semibold text-text-primary truncate mt-0.5">
+                                      {schedule.custom_topic || schedule.course || schedule.custom_event_title || schedule.custom_event_type}
+                                    </h3>
+                                    {schedule.custom_topic && <p className="text-xs text-text-secondary truncate">{schedule.course}</p>}
+                                    <div className="flex items-center gap-3 mt-1.5">
+                                      <div className="flex items-center gap-1">
+                                        <GraduationCap className="h-3 w-3 text-text-tertiary" />
+                                        <span className="text-xs text-text-secondary">{schedule.student_group}</span>
+                                      </div>
+                                      {schedule.instructor_name && <span className="text-xs text-text-tertiary">{schedule.instructor_name}</span>}
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  {state === "completed" && <Badge variant="success" className="text-[10px]">Saved</Badge>}
+                                  {state === "ready" && !isExpanded && <Badge variant="info" className="text-[10px]">Ready</Badge>}
+                                  <ChevronDown className={`h-4 w-4 text-text-tertiary transition-transform ${isExpanded ? "rotate-180" : ""}`} />
                                 </div>
                               </div>
+                            </CardContent>
+
+                            <AnimatePresence>
+                              {isExpanded && (
+                                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden">
+                                  <div className="border-t border-border px-4 pb-4 pt-3">
+                                    {sessionLoading ? (
+                                      <div className="flex items-center justify-center h-32">
+                                        <Loader2 className="animate-spin h-5 w-5 text-primary" />
+                                      </div>
+                                    ) : students.length === 0 ? (
+                                      <p className="text-center py-8 text-sm text-text-secondary">No students found in this batch.</p>
+                                    ) : (
+                                      <>
+                                        <div className="grid grid-cols-3 gap-3 mb-4">
+                                          <div className="bg-success-light rounded-[10px] p-2.5 text-center border border-success/10">
+                                            <p className="text-lg font-bold text-success">{presentCount}</p>
+                                            <p className="text-[10px] text-success font-medium">Present</p>
+                                          </div>
+                                          <div className="bg-error-light rounded-[10px] p-2.5 text-center border border-error/10">
+                                            <p className="text-lg font-bold text-error">{absentCount}</p>
+                                            <p className="text-[10px] text-error font-medium">Absent</p>
+                                          </div>
+                                          <div className="bg-warning-light rounded-[10px] p-2.5 text-center border border-warning/10">
+                                            <p className="text-lg font-bold text-warning">{lateCount}</p>
+                                            <p className="text-[10px] text-warning font-medium">Late</p>
+                                          </div>
+                                        </div>
+                                        <div className="flex items-center justify-between mb-3">
+                                          <p className="text-xs text-text-tertiary"><Users className="h-3 w-3 inline mr-1" />{students.length} students</p>
+                                          <div className="flex gap-2">
+                                            <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); markAllPresent(); }}>
+                                              <CheckCircle className="h-3.5 w-3.5" /> All Present
+                                            </Button>
+                                            <Button variant="primary" size="sm" onClick={(e) => { e.stopPropagation(); saveSessionAttendance(schedule); }} disabled={!!isSaving}>
+                                              {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                                              Save
+                                            </Button>
+                                          </div>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                                          {students.map((student, index) => {
+                                            const status = attendance[student.student] ?? "Present";
+                                            const config = statusConfig[status];
+                                            const Icon = config.icon;
+                                            return (
+                                              <motion.button
+                                                key={student.student}
+                                                initial={{ opacity: 0, scale: 0.95 }}
+                                                animate={{ opacity: 1, scale: 1 }}
+                                                transition={{ delay: index * 0.02 }}
+                                                whileTap={{ scale: 0.97 }}
+                                                onClick={(e) => { e.stopPropagation(); toggleStatus(student.student); }}
+                                                className={`flex items-center gap-3 p-2.5 rounded-[10px] border-2 transition-all cursor-pointer text-left ${config.bg} ${config.ring} ring-2`}
+                                              >
+                                                <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${config.bg}`}>
+                                                  <Icon className={`h-3.5 w-3.5 ${config.color}`} />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                  <p className="text-sm font-medium text-text-primary truncate">
+                                                    {student.student_name || student.student}
+                                                  </p>
+                                                  {disabilityMap[student.student] && (
+                                                    <p className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700 mt-0.5">
+                                                      {disabilityMap[student.student]}
+                                                    </p>
+                                                  )}
+                                                  <p className="text-xs text-text-tertiary">{student.student}</p>
+                                                </div>
+                                                <Badge variant={status === "Present" ? "success" : status === "Absent" ? "error" : "warning"} className="text-[10px]">
+                                                  {status}
+                                                </Badge>
+                                              </motion.button>
+                                            );
+                                          })}
+                                        </div>
+                                        <p className="text-xs text-text-tertiary mt-3 text-center">
+                                          Tap a student to cycle: Present → Absent → Late
+                                        </p>
+                                      </>
+                                    )}
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </Card>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
+            )}
+
+            {batchViewTab === "report" && (
+              <div className="space-y-6">
+                {(reportBatchLoading || reportSchedulesLoading || reportAttendanceLoading) && <GifLoader />}
+
+                {!reportBatchLoading && !reportSchedulesLoading && !reportAttendanceLoading && (
+                  <>
+                    {/* Stat Cards */}
+                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+                      <Card>
+                        <CardContent className="p-4 text-center">
+                          <p className="text-3xl font-bold text-primary">{reportStats.totalStudents}</p>
+                          <p className="text-xs text-text-secondary font-medium mt-1">Students</p>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardContent className="p-4 text-center">
+                          <p className="text-3xl font-bold text-success">{reportStats.totalPresent}</p>
+                          <p className="text-xs text-success font-medium mt-1">Present</p>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardContent className="p-4 text-center">
+                          <p className="text-3xl font-bold text-error">{reportStats.totalAbsent}</p>
+                          <p className="text-xs text-error font-medium mt-1">Absent</p>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardContent className="p-4 text-center">
+                          <p className="text-3xl font-bold text-warning">{reportStats.avgAttendance}%</p>
+                          <p className="text-xs text-warning font-medium mt-1">Avg Attendance</p>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardContent className="p-4 text-center">
+                          <p className="text-3xl font-bold text-sky-700">{reportStats.totalNotEnrolled}</p>
+                          <p className="text-xs text-sky-700 font-medium mt-1">Not Enrolled</p>
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    {/* Report Table + Absent Days Card */}
+                    <div className="flex flex-col lg:flex-row gap-4">
+                      <Card className="flex-1">
+                        <CardHeader className="pb-3">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                            <div>
+                              <CardTitle className="text-base">Student Attendance Report</CardTitle>
+                              <p className="text-xs text-text-tertiary mt-1">
+                                Click the absent count to see exact absent days. Not Enrolled is excluded from attendance percentage.
+                              </p>
                             </div>
-                            <div className="flex items-center gap-2 shrink-0">
-                              {state === "completed" && <Badge variant="success" className="text-[10px]">Saved</Badge>}
-                              {state === "ready" && !isExpanded && <Badge variant="info" className="text-[10px]">Ready</Badge>}
-                              <ChevronDown className={`h-4 w-4 text-text-tertiary transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => exportBatchReport("pdf")}
+                                disabled={exporting !== null || reportRows.length === 0}
+                              >
+                                {exporting === "pdf" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+                                PDF
+                              </Button>
+                              <Button
+                                variant="primary"
+                                size="sm"
+                                onClick={() => exportBatchReport("excel")}
+                                disabled={exporting !== null || reportRows.length === 0}
+                              >
+                                {exporting === "excel" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileSpreadsheet className="h-3.5 w-3.5" />}
+                                Excel
+                              </Button>
                             </div>
                           </div>
-                        </CardContent>
-
-                        <AnimatePresence>
-                          {isExpanded && (
-                            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden">
-                              <div className="border-t border-border px-4 pb-4 pt-3">
-                                {sessionLoading ? (
-                                  <div className="flex items-center justify-center h-32">
-                                    <Loader2 className="animate-spin h-5 w-5 text-primary" />
-                                  </div>
-                                ) : students.length === 0 ? (
-                                  <p className="text-center py-8 text-sm text-text-secondary">No students found in this batch.</p>
-                                ) : (
-                                  <>
-                                    <div className="grid grid-cols-3 gap-3 mb-4">
-                                      <div className="bg-success-light rounded-[10px] p-2.5 text-center border border-success/10">
-                                        <p className="text-lg font-bold text-success">{presentCount}</p>
-                                        <p className="text-[10px] text-success font-medium">Present</p>
-                                      </div>
-                                      <div className="bg-error-light rounded-[10px] p-2.5 text-center border border-error/10">
-                                        <p className="text-lg font-bold text-error">{absentCount}</p>
-                                        <p className="text-[10px] text-error font-medium">Absent</p>
-                                      </div>
-                                      <div className="bg-warning-light rounded-[10px] p-2.5 text-center border border-warning/10">
-                                        <p className="text-lg font-bold text-warning">{lateCount}</p>
-                                        <p className="text-[10px] text-warning font-medium">Late</p>
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center justify-between mb-3">
-                                      <p className="text-xs text-text-tertiary"><Users className="h-3 w-3 inline mr-1" />{students.length} students</p>
-                                      <div className="flex gap-2">
-                                        <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); markAllPresent(); }}>
-                                          <CheckCircle className="h-3.5 w-3.5" /> All Present
-                                        </Button>
-                                        <Button variant="primary" size="sm" onClick={(e) => { e.stopPropagation(); saveSessionAttendance(schedule); }} disabled={!!isSaving}>
-                                          {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                                          Save
-                                        </Button>
-                                      </div>
-                                    </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                                      {students.map((student, index) => {
-                                        const status = attendance[student.student] ?? "Present";
-                                        const config = statusConfig[status];
-                                        const Icon = config.icon;
-                                        return (
-                                          <motion.button
-                                            key={student.student}
-                                            initial={{ opacity: 0, scale: 0.95 }}
-                                            animate={{ opacity: 1, scale: 1 }}
-                                            transition={{ delay: index * 0.02 }}
-                                            whileTap={{ scale: 0.97 }}
-                                            onClick={(e) => { e.stopPropagation(); toggleStatus(student.student); }}
-                                            className={`flex items-center gap-3 p-2.5 rounded-[10px] border-2 transition-all cursor-pointer text-left ${config.bg} ${config.ring} ring-2`}
+                        </CardHeader>
+                        <CardContent className="p-0">
+                          {reportRows.length === 0 ? (
+                            <div className="text-center py-12 text-sm text-text-secondary">
+                              No attendance records found for this date range.
+                            </div>
+                          ) : (
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm">
+                                <thead>
+                                  <tr className="border-y border-border-light bg-app-bg">
+                                    <th className="text-left p-3 font-medium text-text-secondary">Student</th>
+                                    <th className="text-center p-3 font-medium text-text-secondary">Total</th>
+                                    <th className="text-center p-3 font-medium text-text-secondary">Marked</th>
+                                    <th className="text-center p-3 font-medium text-text-secondary">Present</th>
+                                    <th className="text-center p-3 font-medium text-text-secondary">Absent</th>
+                                    <th className="text-center p-3 font-medium text-text-secondary">Late</th>
+                                    <th className="text-center p-3 font-medium text-text-secondary">Not Enrolled</th>
+                                    <th className="text-center p-3 font-medium text-text-secondary">Attendance %</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {reportRows.map((row) => (
+                                    <tr key={row.studentId} className="border-b border-border-light last:border-0 hover:bg-app-bg/60">
+                                      <td className="p-3">
+                                        <p className="font-medium text-text-primary">{row.studentName}</p>
+                                        <p className="text-xs text-text-tertiary">{row.studentId}</p>
+                                      </td>
+                                      <td className="p-3 text-center font-medium text-text-primary">{row.totalSessions}</td>
+                                      <td className="p-3 text-center text-text-secondary">{row.markedSessions}</td>
+                                      <td className="p-3 text-center font-medium text-success">{row.present}</td>
+                                      <td className="p-3 text-center">
+                                        {row.absent > 0 ? (
+                                          <button
+                                            type="button"
+                                            onClick={() => setSelectedAbsentStudentId(row.studentId)}
+                                            className="inline-flex items-center rounded-full bg-error/10 px-2.5 py-1 text-xs font-semibold text-error hover:bg-error/15"
                                           >
-                                            <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${config.bg}`}>
-                                              <Icon className={`h-3.5 w-3.5 ${config.color}`} />
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                              <p className="text-sm font-medium text-text-primary truncate">
-                                                {student.student_name || student.student}
-                                              </p>
-                                              {disabilityMap[student.student] && (
-                                                <p className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700 mt-0.5">
-                                                  {disabilityMap[student.student]}
-                                                </p>
-                                              )}
-                                              <p className="text-xs text-text-tertiary">{student.student}</p>
-                                            </div>
-                                            <Badge variant={status === "Present" ? "success" : status === "Absent" ? "error" : "warning"} className="text-[10px]">
-                                              {status}
-                                            </Badge>
-                                          </motion.button>
-                                        );
-                                      })}
-                                    </div>
-                                    <p className="text-xs text-text-tertiary mt-3 text-center">
-                                      Tap a student to cycle: Present → Absent → Late
-                                    </p>
-                                  </>
-                                )}
-                              </div>
-                            </motion.div>
+                                            {row.absent}
+                                          </button>
+                                        ) : (
+                                          <span className="font-medium text-text-secondary">0</span>
+                                        )}
+                                      </td>
+                                      <td className="p-3 text-center font-medium text-warning">{row.late}</td>
+                                      <td className="p-3 text-center font-medium text-sky-700">{row.notEnrolled}</td>
+                                      <td className="p-3 text-center">
+                                        <Badge
+                                          variant={row.attendancePct >= 80 ? "success" : row.attendancePct >= 60 ? "warning" : "error"}
+                                          className="text-[10px]"
+                                        >
+                                          {row.attendancePct}%
+                                        </Badge>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
                           )}
-                        </AnimatePresence>
+                        </CardContent>
                       </Card>
-                    </motion.div>
-                  );
-                })}
+
+                      <Card className="w-full lg:w-[340px]">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-base">Absent Days</CardTitle>
+                          <p className="text-xs text-text-tertiary mt-1">
+                            {selectedAbsentStudent ? selectedAbsentStudent.studentName : "Select an absent count from the report table."}
+                          </p>
+                        </CardHeader>
+                        <CardContent>
+                          {!selectedAbsentStudent ? (
+                            <div className="rounded-[12px] border border-dashed border-border-light p-6 text-center text-sm text-text-secondary">
+                              No student selected yet.
+                            </div>
+                          ) : selectedAbsentStudent.absentDays.length === 0 ? (
+                            <div className="rounded-[12px] border border-dashed border-border-light p-6 text-center text-sm text-text-secondary">
+                              No absent days in this range.
+                            </div>
+                          ) : (
+                            <div className="space-y-3">
+                              {selectedAbsentStudent.absentDays.map((day, index) => (
+                                <div key={`${day.date}-${index}`} className="rounded-[12px] border border-border-light bg-surface p-3">
+                                  <p className="text-sm font-semibold text-text-primary">{day.label}</p>
+                                  <p className="text-xs text-text-secondary mt-1">{day.topic}</p>
+                                  <p className="text-xs text-text-tertiary mt-1">{day.time}</p>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </motion.div>

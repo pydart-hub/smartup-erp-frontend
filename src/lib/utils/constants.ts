@@ -244,7 +244,7 @@ export const DIRECTOR_NAV: NavItem[] = [
       { label: "Batches", href: "/dashboard/director/batches", icon: "Users", emoji: "👥" },
     ],
   },
-  { label: "Teachers", href: "/dashboard/director/teachers", icon: "UserCheck", emoji: "👨‍🏫" },
+  { label: "Teacher Profiles", href: "/dashboard/director/teachers", icon: "UserCheck", emoji: "👨‍🏫" },
   {
     label: "Attendance",
     href: "/dashboard/director/attendance",

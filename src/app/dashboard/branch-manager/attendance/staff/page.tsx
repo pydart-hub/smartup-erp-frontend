@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ClipboardCheck, Calendar, Users, CheckCircle,
   XCircle, Clock, Loader2, UserX, Save, ArrowLeft, Building2, LogIn, LogOut,
-  Palmtree, Sliders, Sparkles, BookOpen, Plus, Trash2,
+  Palmtree, Sliders, Sparkles, BookOpen, Plus, Trash2, CheckCheck,
 } from "lucide-react";
 import Link from "next/link";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
@@ -874,6 +874,76 @@ export default function StaffAttendancePage() {
     setPendingChanges(changes);
   }
 
+  // Apply a global class time to all employees' and visiting staff's primary session (Session 1)
+  const applyGlobalClassTimeToAll = useCallback(
+    (timeVal: string, showToast = false) => {
+      setClassTime(timeVal);
+      setIndividualClassTimes({});
+
+      setPendingChanges((prev) => {
+        const updated = { ...prev };
+
+        // 1. Regular employees
+        for (const emp of employees) {
+          const existingAtt = attMap.get(emp.name);
+          const current = updated[emp.name] ?? {
+            status: (existingAtt?.status as StaffStatus) ?? "Present",
+            sessions: getBranchSessionsFromAtt(existingAtt),
+          };
+
+          const newSessions = current.sessions.map((s, idx) => {
+            if (idx === 0) {
+              return { ...s, class_time: timeVal };
+            }
+            return s;
+          });
+
+          updated[emp.name] = {
+            ...current,
+            sessions: newSessions,
+          };
+        }
+
+        // 2. Visiting instructors
+        for (const v of visitingInstructors) {
+          const key = `visiting_${v.employee}`;
+          const existingAtt = visitingAttMap.get(v.employee);
+          const current = updated[key] ?? {
+            status: (existingAtt?.status as StaffStatus) ?? "Present",
+            sessions: getBranchSessionsFromAtt(existingAtt),
+          };
+
+          const newSessions = current.sessions.map((s, idx) => {
+            if (idx === 0) {
+              return { ...s, class_time: timeVal };
+            }
+            return s;
+          });
+
+          updated[key] = {
+            ...current,
+            sessions: newSessions,
+          };
+        }
+
+        return updated;
+      });
+
+      if (showToast) {
+        toast.success(`Applied ${timeVal} class time to all employees' first session`);
+      }
+    },
+    [employees, visitingInstructors, attMap, visitingAttMap, getBranchSessionsFromAtt]
+  );
+
+  function handleClassTimeChange(val: string) {
+    if (timingMode === "same") {
+      applyGlobalClassTimeToAll(val);
+    } else {
+      setClassTime(val);
+    }
+  }
+
   function handleIndividualClassTimeChange(employeeId: string, time: string) {
     setIndividualClassTimes((prev) => ({
       ...prev,
@@ -941,6 +1011,9 @@ export default function StaffAttendancePage() {
           const inT = s.in_time ? `${selectedDate} ${s.in_time}:00` : "";
           const outT = s.out_time ? `${selectedDate} ${s.out_time}:00` : "";
           const isNoTimeStatus = s.status === "At Head Office" || s.status === "Holiday" || s.status === "Absent" || s.status === "On Leave";
+          const sessionClassTime = (timingMode === "same" && idx === 0)
+            ? classTime
+            : (s.class_time || (idx === 0 ? effectiveTime : "") || "");
 
           return {
             id: s.id || `sess_${globalNum}`,
@@ -950,7 +1023,7 @@ export default function StaffAttendancePage() {
             status: s.status,
             in_time: isNoTimeStatus ? "" : inT,
             out_time: isNoTimeStatus ? "" : outT,
-            class_time: s.class_time || effectiveTime || "",
+            class_time: sessionClassTime,
             is_visiting: isVisiting ? 1 : 0,
           };
         });
@@ -1221,7 +1294,10 @@ export default function StaffAttendancePage() {
               <div className="flex items-center bg-surface-muted/60 p-0.5 rounded-[10px] border border-border-input text-xs">
                 <button
                   type="button"
-                  onClick={() => setTimingMode("same")}
+                  onClick={() => {
+                    setTimingMode("same");
+                    applyGlobalClassTimeToAll(classTime, true);
+                  }}
                   className={`px-2.5 py-1.5 rounded-[8px] font-medium transition-all flex items-center gap-1.5 ${
                     timingMode === "same"
                       ? "bg-surface text-primary shadow-xs font-semibold"
@@ -1260,16 +1336,27 @@ export default function StaffAttendancePage() {
 
               {/* Class Time control */}
               {timingMode === "same" ? (
-                <div className="flex items-center gap-1.5">
-                  <label className="text-xs font-medium text-text-secondary flex items-center gap-1">
-                    <Clock className="h-3.5 w-3.5" /> Default Class Time
-                  </label>
-                  <Time12Input
-                    value={classTime}
-                    onChange={(val) => setClassTime(val)}
-                    size="md"
-                    className="h-9"
-                  />
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <label className="text-xs font-medium text-text-secondary flex items-center gap-1">
+                      <Clock className="h-3.5 w-3.5" /> Class Time
+                    </label>
+                    <Time12Input
+                      value={classTime}
+                      onChange={(val) => handleClassTimeChange(val)}
+                      size="md"
+                      className="h-9"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => applyGlobalClassTimeToAll(classTime, true)}
+                    className="h-9 px-2.5 rounded-[10px] bg-primary/10 hover:bg-primary/20 text-primary text-xs font-semibold transition-colors flex items-center gap-1 shrink-0"
+                    title="Force this class time to all employees' first session"
+                  >
+                    <CheckCheck className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Apply to all</span>
+                  </button>
                 </div>
               ) : (
                 <div className="hidden sm:flex items-center gap-1.5 text-xs text-primary font-medium bg-brand-wash px-2.5 py-1.5 rounded-[10px] border border-primary/20">
@@ -1396,7 +1483,8 @@ export default function StaffAttendancePage() {
                         {/* Sessions List */}
                         <div className="space-y-2">
                           {emp.sessions.map((sess, sIdx) => {
-                            const lateMins = getLateMinutes(sess.in_time, sess.class_time || emp.classTimeInfo.time);
+                            const effectiveSessClassTime = (timingMode === "same" && sIdx === 0 ? classTime : sess.class_time) || emp.classTimeInfo.time;
+                            const lateMins = getLateMinutes(sess.in_time, effectiveSessClassTime);
 
                             return (
                               <div
@@ -1466,7 +1554,7 @@ export default function StaffAttendancePage() {
                                     )}
                                   </div>
                                   <Time12Input
-                                    value={sess.class_time || ""}
+                                    value={(timingMode === "same" && sIdx === 0 ? classTime : sess.class_time) || ""}
                                     onChange={(val) =>
                                       handleSessionChange(emp.name, sess.id, "class_time", val, emp.isVisiting)
                                     }

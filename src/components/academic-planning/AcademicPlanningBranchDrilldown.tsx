@@ -74,6 +74,7 @@ export function AcademicPlanningBranchDrilldown({
 }: {
   preselectedBranch?: string;
 }) {
+  const [viewPerspective, setViewPerspective] = useState<"branch" | "class">("branch");
   const [selectedBranch, setSelectedBranch] = useState<string | null>(
     preselectedBranch && preselectedBranch !== "all" ? preselectedBranch : null
   );
@@ -86,6 +87,7 @@ export function AcademicPlanningBranchDrilldown({
   // Keep state synced if parent dropdown changes branch
   React.useEffect(() => {
     if (preselectedBranch && preselectedBranch !== "all") {
+      setViewPerspective("branch");
       setSelectedBranch(preselectedBranch);
     }
   }, [preselectedBranch]);
@@ -203,7 +205,131 @@ export function AcademicPlanningBranchDrilldown({
   }, [batchRecords, todayStr, search, selectedBranch]);
 
   // ─────────────────────────────────────────────────────────────
-  // LEVEL 2: Class Summaries inside selectedBranch
+  // LEVEL 1 (Class Perspective): Global Class Summaries across ALL branches
+  // ─────────────────────────────────────────────────────────────
+  const globalClassSummaryList = useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        classLevel: string;
+        total: number;
+        completed: number;
+        inProgress: number;
+        notStarted: number;
+        overdue: number;
+        sumPercentages: number;
+        branches: Set<string>;
+        batches: Set<string>;
+        subjects: Set<string>;
+      }
+    >();
+
+    batchRecords.forEach((p) => {
+      const cls = p.class_level || "Other Class";
+      if (!map.has(cls)) {
+        map.set(cls, {
+          classLevel: cls,
+          total: 0,
+          completed: 0,
+          inProgress: 0,
+          notStarted: 0,
+          overdue: 0,
+          sumPercentages: 0,
+          branches: new Set<string>(),
+          batches: new Set<string>(),
+          subjects: new Set<string>(),
+        });
+      }
+      const entry = map.get(cls)!;
+      const pct = getPortionPercentage(p);
+      entry.total += 1;
+      entry.sumPercentages += pct;
+      if (pct === 100) entry.completed += 1;
+      else if (pct > 0) entry.inProgress += 1;
+      else entry.notStarted += 1;
+
+      if (pct < 100 && p.target_date && p.target_date < todayStr) entry.overdue += 1;
+      if (p.branch) entry.branches.add(p.branch);
+      if (p.student_group) entry.batches.add(extractBatchName(p.student_group));
+      if (p.course) entry.subjects.add(p.course);
+    });
+
+    // Custom sorting: natural sort for class numbers (e.g., 8th, 9th, 10th, 11th, 12th)
+    const list = Array.from(map.values()).sort((a, b) => {
+      const numA = parseInt(a.classLevel.replace(/\D/g, ""), 10);
+      const numB = parseInt(b.classLevel.replace(/\D/g, ""), 10);
+      if (!isNaN(numA) && !isNaN(numB) && numA !== numB) {
+        return numA - numB;
+      }
+      return a.classLevel.localeCompare(b.classLevel);
+    });
+
+    if (!search.trim() || selectedClass) return list;
+    const q = search.trim().toLowerCase();
+    return list.filter((c) => c.classLevel.toLowerCase().includes(q));
+  }, [batchRecords, todayStr, search, selectedClass]);
+
+  // ─────────────────────────────────────────────────────────────
+  // LEVEL 2 (Class Perspective): Branch Summaries for a Selected Class
+  // ─────────────────────────────────────────────────────────────
+  const classBranchSummaryList = useMemo(() => {
+    if (!selectedClass) return [];
+    const map = new Map<
+      string,
+      {
+        branch: string;
+        total: number;
+        completed: number;
+        inProgress: number;
+        notStarted: number;
+        overdue: number;
+        sumPercentages: number;
+        batches: Set<string>;
+        subjects: Set<string>;
+      }
+    >();
+
+    batchRecords
+      .filter((p) => (p.class_level || "Other Class") === selectedClass)
+      .forEach((p) => {
+        const b = p.branch || "Smart Up";
+        if (!map.has(b)) {
+          map.set(b, {
+            branch: b,
+            total: 0,
+            completed: 0,
+            inProgress: 0,
+            notStarted: 0,
+            overdue: 0,
+            sumPercentages: 0,
+            batches: new Set<string>(),
+            subjects: new Set<string>(),
+          });
+        }
+        const entry = map.get(b)!;
+        const pct = getPortionPercentage(p);
+        entry.total += 1;
+        entry.sumPercentages += pct;
+        if (pct === 100) entry.completed += 1;
+        else if (pct > 0) entry.inProgress += 1;
+        else entry.notStarted += 1;
+
+        if (pct < 100 && p.target_date && p.target_date < todayStr) entry.overdue += 1;
+        if (p.student_group) entry.batches.add(extractBatchName(p.student_group));
+        if (p.course) entry.subjects.add(p.course);
+      });
+
+    const list = Array.from(map.values()).sort((a, b) => {
+      return b.total - a.total || a.branch.localeCompare(b.branch);
+    });
+
+    if (!search.trim() || selectedBranch) return list;
+    const q = search.trim().toLowerCase();
+    return list.filter((b) => b.branch.toLowerCase().includes(q));
+  }, [batchRecords, selectedClass, todayStr, search, selectedBranch]);
+
+  // ─────────────────────────────────────────────────────────────
+  // LEVEL 2 (Branch Perspective): Class Summaries inside selectedBranch
   // ─────────────────────────────────────────────────────────────
   const classSummaryList = useMemo(() => {
     if (!selectedBranch) return [];
@@ -252,9 +378,14 @@ export function AcademicPlanningBranchDrilldown({
         if (p.course) entry.subjects.add(p.course);
       });
 
-    const list = Array.from(map.values()).sort((a, b) =>
-      a.classLevel.localeCompare(b.classLevel)
-    );
+    const list = Array.from(map.values()).sort((a, b) => {
+      const numA = parseInt(a.classLevel.replace(/\D/g, ""), 10);
+      const numB = parseInt(b.classLevel.replace(/\D/g, ""), 10);
+      if (!isNaN(numA) && !isNaN(numB) && numA !== numB) {
+        return numA - numB;
+      }
+      return a.classLevel.localeCompare(b.classLevel);
+    });
 
     if (!search.trim() || selectedClass) return list;
     const q = search.trim().toLowerCase();
@@ -373,8 +504,22 @@ export function AcademicPlanningBranchDrilldown({
     }).length;
   }, [batchRecords, selectedBranch, selectedClass, selectedBatch, todayStr]);
 
-  // Active level calculation
-  const activeLevel = selectedBatch ? 4 : selectedClass ? 3 : selectedBranch ? 2 : 1;
+  // Active level calculation based on perspective:
+  // Branch mode: Level 1 (All Branches) -> Level 2 (Classes in Branch) -> Level 3 (Batches in Class) -> Level 4 (Portions)
+  // Class mode:  Level 1 (All Classes)  -> Level 2 (Branches in Class) -> Level 3 (Batches in Class & Branch) -> Level 4 (Portions)
+  const activeLevel = selectedBatch
+    ? 4
+    : viewPerspective === "branch"
+    ? selectedClass
+      ? 3
+      : selectedBranch
+      ? 2
+      : 1
+    : selectedBranch
+    ? 3
+    : selectedClass
+    ? 2
+    : 1;
 
   const handleResetTo = (level: 1 | 2 | 3) => {
     if (level === 1) {
@@ -382,65 +527,139 @@ export function AcademicPlanningBranchDrilldown({
       setSelectedClass(null);
       setSelectedBatch(null);
     } else if (level === 2) {
-      setSelectedClass(null);
-      setSelectedBatch(null);
+      if (viewPerspective === "branch") {
+        setSelectedClass(null);
+        setSelectedBatch(null);
+      } else {
+        setSelectedBranch(null);
+        setSelectedBatch(null);
+      }
     } else if (level === 3) {
       setSelectedBatch(null);
     }
     setSearch("");
   };
 
+  const handleSwitchPerspective = (newPerspective: "branch" | "class") => {
+    if (newPerspective === viewPerspective) return;
+    setViewPerspective(newPerspective);
+    setSelectedBranch(null);
+    setSelectedClass(null);
+    setSelectedBatch(null);
+    setSearch("");
+  };
+
   return (
     <div className="space-y-4">
-      {/* Interactive Breadcrumb Path */}
+      {/* Interactive Breadcrumb Path & Perspective Switcher */}
       <div className="bg-surface rounded-2xl border border-border/80 p-3.5 shadow-2xs flex flex-wrap items-center justify-between gap-3">
+        {/* Breadcrumb links */}
         <div className="flex items-center flex-wrap gap-1.5 text-xs">
-          <button
-            onClick={() => handleResetTo(1)}
-            className={`font-semibold transition-colors flex items-center gap-1.5 px-2 py-1 rounded-lg ${
-              activeLevel === 1
-                ? "bg-primary/10 text-primary"
-                : "text-text-secondary hover:text-text-primary hover:bg-muted/40"
-            }`}
-          >
-            <Building2 className="w-3.5 h-3.5" />
-            <span>All Branches</span>
-          </button>
-
-          {selectedBranch && (
+          {viewPerspective === "branch" ? (
             <>
-              <ChevronRight className="w-3.5 h-3.5 text-text-tertiary shrink-0" />
+              {/* Branch-wise: Level 1 (All Branches) */}
               <button
-                onClick={() => handleResetTo(2)}
+                onClick={() => handleResetTo(1)}
                 className={`font-semibold transition-colors flex items-center gap-1.5 px-2 py-1 rounded-lg ${
-                  activeLevel === 2
+                  activeLevel === 1
                     ? "bg-primary/10 text-primary"
                     : "text-text-secondary hover:text-text-primary hover:bg-muted/40"
                 }`}
               >
-                <Building2 className="w-3.5 h-3.5 text-text-tertiary" />
-                <span>{selectedBranch}</span>
+                <Building2 className="w-3.5 h-3.5" />
+                <span>All Branches</span>
               </button>
-            </>
-          )}
 
-          {selectedClass && (
+              {/* Branch-wise: Level 2 (Selected Branch) */}
+              {selectedBranch && (
+                <>
+                  <ChevronRight className="w-3.5 h-3.5 text-text-tertiary shrink-0" />
+                  <button
+                    onClick={() => handleResetTo(2)}
+                    className={`font-semibold transition-colors flex items-center gap-1.5 px-2 py-1 rounded-lg ${
+                      activeLevel === 2
+                        ? "bg-primary/10 text-primary"
+                        : "text-text-secondary hover:text-text-primary hover:bg-muted/40"
+                    }`}
+                  >
+                    <Building2 className="w-3.5 h-3.5 text-text-tertiary" />
+                    <span>{selectedBranch}</span>
+                  </button>
+                </>
+              )}
+
+              {/* Branch-wise: Level 3 (Selected Class) */}
+              {selectedClass && (
+                <>
+                  <ChevronRight className="w-3.5 h-3.5 text-text-tertiary shrink-0" />
+                  <button
+                    onClick={() => handleResetTo(3)}
+                    className={`font-semibold transition-colors flex items-center gap-1.5 px-2 py-1 rounded-lg ${
+                      activeLevel === 3
+                        ? "bg-primary/10 text-primary"
+                        : "text-text-secondary hover:text-text-primary hover:bg-muted/40"
+                    }`}
+                  >
+                    <GraduationCap className="w-3.5 h-3.5 text-text-tertiary" />
+                    <span>{selectedClass}</span>
+                  </button>
+                </>
+              )}
+            </>
+          ) : (
             <>
-              <ChevronRight className="w-3.5 h-3.5 text-text-tertiary shrink-0" />
+              {/* Class-wise: Level 1 (All Classes) */}
               <button
-                onClick={() => handleResetTo(3)}
+                onClick={() => handleResetTo(1)}
                 className={`font-semibold transition-colors flex items-center gap-1.5 px-2 py-1 rounded-lg ${
-                  activeLevel === 3
+                  activeLevel === 1
                     ? "bg-primary/10 text-primary"
                     : "text-text-secondary hover:text-text-primary hover:bg-muted/40"
                 }`}
               >
-                <GraduationCap className="w-3.5 h-3.5 text-text-tertiary" />
-                <span>{selectedClass}</span>
+                <GraduationCap className="w-3.5 h-3.5" />
+                <span>All Classes</span>
               </button>
+
+              {/* Class-wise: Level 2 (Selected Class) */}
+              {selectedClass && (
+                <>
+                  <ChevronRight className="w-3.5 h-3.5 text-text-tertiary shrink-0" />
+                  <button
+                    onClick={() => handleResetTo(2)}
+                    className={`font-semibold transition-colors flex items-center gap-1.5 px-2 py-1 rounded-lg ${
+                      activeLevel === 2
+                        ? "bg-primary/10 text-primary"
+                        : "text-text-secondary hover:text-text-primary hover:bg-muted/40"
+                    }`}
+                  >
+                    <GraduationCap className="w-3.5 h-3.5 text-text-tertiary" />
+                    <span>{selectedClass}</span>
+                  </button>
+                </>
+              )}
+
+              {/* Class-wise: Level 3 (Selected Branch) */}
+              {selectedBranch && (
+                <>
+                  <ChevronRight className="w-3.5 h-3.5 text-text-tertiary shrink-0" />
+                  <button
+                    onClick={() => handleResetTo(3)}
+                    className={`font-semibold transition-colors flex items-center gap-1.5 px-2 py-1 rounded-lg ${
+                      activeLevel === 3
+                        ? "bg-primary/10 text-primary"
+                        : "text-text-secondary hover:text-text-primary hover:bg-muted/40"
+                    }`}
+                  >
+                    <Building2 className="w-3.5 h-3.5 text-text-tertiary" />
+                    <span>{selectedBranch}</span>
+                  </button>
+                </>
+              )}
             </>
           )}
 
+          {/* Level 4: Selected Batch (identical in both perspectives) */}
           {selectedBatch && (
             <>
               <ChevronRight className="w-3.5 h-3.5 text-text-tertiary shrink-0" />
@@ -452,20 +671,57 @@ export function AcademicPlanningBranchDrilldown({
           )}
         </div>
 
-        {/* Back Button */}
-        {activeLevel > 1 && (
-          <button
-            onClick={() => {
-              if (selectedBatch) setSelectedBatch(null);
-              else if (selectedClass) setSelectedClass(null);
-              else if (selectedBranch) setSelectedBranch(null);
-            }}
-            className="flex items-center gap-1 text-xs text-text-secondary hover:text-text-primary font-medium px-2.5 py-1 rounded-lg border border-border hover:bg-muted/40 transition-colors shrink-0"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Back</span>
-          </button>
-        )}
+        {/* Right side toolbar: Perspective Switcher & Back Button */}
+        <div className="flex items-center gap-2.5">
+          {/* Mode Switcher Toggle Pill */}
+          <div className="flex items-center bg-muted/60 p-0.5 rounded-xl border border-border/60 text-xs">
+            <button
+              onClick={() => handleSwitchPerspective("branch")}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg font-semibold transition-all ${
+                viewPerspective === "branch"
+                  ? "bg-surface text-primary shadow-xs font-bold"
+                  : "text-text-secondary hover:text-text-primary"
+              }`}
+              title="View curriculum status by campus branch first"
+            >
+              <Building2 className="w-3.5 h-3.5" />
+              <span>Branch-wise</span>
+            </button>
+            <button
+              onClick={() => handleSwitchPerspective("class")}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-lg font-semibold transition-all ${
+                viewPerspective === "class"
+                  ? "bg-surface text-primary shadow-xs font-bold"
+                  : "text-text-secondary hover:text-text-primary"
+              }`}
+              title="View curriculum status by class level first (8th, 9th, 10th...)"
+            >
+              <GraduationCap className="w-3.5 h-3.5" />
+              <span>Class-wise</span>
+            </button>
+          </div>
+
+          {/* Back Button */}
+          {activeLevel > 1 && (
+            <button
+              onClick={() => {
+                if (selectedBatch) {
+                  setSelectedBatch(null);
+                } else if (viewPerspective === "branch") {
+                  if (selectedClass) setSelectedClass(null);
+                  else if (selectedBranch) setSelectedBranch(null);
+                } else {
+                  if (selectedBranch) setSelectedBranch(null);
+                  else if (selectedClass) setSelectedClass(null);
+                }
+              }}
+              className="flex items-center gap-1 text-xs text-text-secondary hover:text-text-primary font-medium px-2.5 py-1 rounded-lg border border-border hover:bg-muted/40 transition-colors shrink-0"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Back</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Loading state */}
@@ -484,8 +740,8 @@ export function AcademicPlanningBranchDrilldown({
         </div>
       ) : (
         <>
-          {/* LEVEL 1: ALL BRANCHES CARDS */}
-          {activeLevel === 1 && (
+          {/* LEVEL 1: ALL BRANCHES CARDS (Branch perspective) */}
+          {activeLevel === 1 && viewPerspective === "branch" && (
             <div className="space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
@@ -612,8 +868,145 @@ export function AcademicPlanningBranchDrilldown({
             </div>
           )}
 
-          {/* LEVEL 2: CLASSES INSIDE SELECTED BRANCH */}
-          {activeLevel === 2 && (
+          {/* LEVEL 1: ALL CLASSES CARDS (Class perspective) */}
+          {activeLevel === 1 && viewPerspective === "class" && (
+            <div className="space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-xs font-bold text-text-tertiary uppercase tracking-wider flex items-center gap-2">
+                    <span>Select a Class</span>
+                    <span className="text-[10px] font-normal px-2 py-0.5 rounded-full bg-muted text-text-secondary">
+                      {globalClassSummaryList.length} classes
+                    </span>
+                  </h2>
+                </div>
+
+                <div className="relative w-full sm:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-tertiary" />
+                  <Input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search class (e.g., 8th, 10th)..."
+                    className="pl-8 text-xs rounded-xl h-8.5 border-border/80 focus:border-primary"
+                  />
+                  {search && (
+                    <button
+                      onClick={() => setSearch("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-primary"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {globalClassSummaryList.length === 0 ? (
+                <div className="bg-surface rounded-2xl border border-dashed border-border p-8 text-center text-text-tertiary">
+                  <p className="text-sm font-semibold text-text-primary">No classes found</p>
+                  <p className="text-xs text-text-secondary mt-0.5">
+                    No active portion data found matching your search.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {globalClassSummaryList.map((cls) => {
+                    const avgPct =
+                      cls.total > 0 ? Math.round(cls.sumPercentages / cls.total) : 0;
+
+                    return (
+                      <button
+                        key={cls.classLevel}
+                        onClick={() => {
+                          setSelectedClass(cls.classLevel);
+                          setSearch("");
+                        }}
+                        className="group text-left bg-surface rounded-2xl border border-border/80 p-5 hover:border-primary/50 hover:shadow-md transition-all flex flex-col justify-between gap-4"
+                      >
+                        <div>
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-sm group-hover:scale-105 group-hover:bg-primary group-hover:text-white transition-all">
+                                <GraduationCap className="w-5 h-5" />
+                              </div>
+                              <div>
+                                <h3 className="font-bold text-sm text-text-primary group-hover:text-primary transition-colors">
+                                  {cls.classLevel}
+                                </h3>
+                                <p className="text-xs text-text-tertiary">
+                                  {cls.branches.size} {cls.branches.size === 1 ? "Branch" : "Branches"} · {cls.batches.size} {cls.batches.size === 1 ? "Batch" : "Batches"}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="w-7 h-7 rounded-lg bg-muted/50 group-hover:bg-primary/10 group-hover:text-primary flex items-center justify-center text-text-tertiary transition-colors">
+                              <ChevronRight className="w-4 h-4" />
+                            </div>
+                          </div>
+
+                          {/* Metric stats */}
+                          <div className="grid grid-cols-3 gap-1.5 mt-4 pt-3 border-t border-border/50 text-center">
+                            <div className="p-1.5 rounded-lg bg-muted/20">
+                              <span className="text-[10px] uppercase text-text-tertiary font-medium block">
+                                Total
+                              </span>
+                              <span className="text-xs font-bold text-text-primary mt-0.5 block">
+                                {cls.total}
+                              </span>
+                            </div>
+                            <div className="p-1.5 rounded-lg bg-emerald-500/10">
+                              <span className="text-[10px] uppercase text-emerald-600 font-medium block">
+                                100% Done
+                              </span>
+                              <span className="text-xs font-bold text-emerald-600 mt-0.5 block">
+                                {cls.completed}
+                              </span>
+                            </div>
+                            <div className="p-1.5 rounded-lg bg-blue-500/10">
+                              <span className="text-[10px] uppercase text-blue-600 font-medium block">
+                                Progress
+                              </span>
+                              <span className="text-xs font-bold text-blue-600 mt-0.5 block">
+                                {avgPct}%
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Progress Bar */}
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-text-tertiary text-[11px]">Class Progress</span>
+                            <span className="font-bold text-text-primary text-[11px]">{avgPct}%</span>
+                          </div>
+                          <div className="h-1.5 w-full bg-border rounded-full overflow-hidden">
+                            <div
+                              className="bg-emerald-500 h-full rounded-full transition-all duration-500"
+                              style={{ width: `${avgPct}%` }}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between text-[11px] pt-0.5 text-text-tertiary">
+                            <span>
+                              {cls.overdue > 0 ? (
+                                <span className="text-rose-600 font-medium">
+                                  {cls.overdue} overdue
+                                </span>
+                              ) : (
+                                <span className="text-emerald-600">On track</span>
+                              )}
+                            </span>
+                            <span>{cls.inProgress} in progress</span>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* LEVEL 2: CLASSES INSIDE SELECTED BRANCH (Branch perspective) */}
+          {activeLevel === 2 && viewPerspective === "branch" && (
             <div className="space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
@@ -728,6 +1121,146 @@ export function AcademicPlanningBranchDrilldown({
                             <div
                               className="bg-emerald-500 h-full rounded-full transition-all duration-500"
                               style={{ width: `${classPct}%` }}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between text-[11px] pt-0.5 text-text-tertiary">
+                            <span>
+                              {item.overdue > 0 ? (
+                                <span className="text-rose-600 font-semibold flex items-center gap-1">
+                                  <AlertTriangle className="w-3 h-3 text-rose-600 shrink-0" />
+                                  {item.overdue} overdue
+                                </span>
+                              ) : (
+                                <span className="text-emerald-600 font-medium">On track</span>
+                              )}
+                            </span>
+                            <span>{item.inProgress} in progress</span>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* LEVEL 2: BRANCHES OFFERING SELECTED CLASS (Class perspective) */}
+          {activeLevel === 2 && viewPerspective === "class" && (
+            <div className="space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-bold text-text-primary flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-primary" />
+                    Branches offering {selectedClass}
+                  </h2>
+                  <p className="text-xs text-text-secondary mt-0.5">
+                    Select a branch to inspect batches (A, B, C) and subject portions.
+                  </p>
+                </div>
+
+                <div className="relative w-full sm:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-tertiary" />
+                  <Input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search branches..."
+                    className="pl-8 text-xs rounded-xl h-8.5 border-border/80 focus:border-primary"
+                  />
+                  {search && (
+                    <button
+                      onClick={() => setSearch("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-primary"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {classBranchSummaryList.length === 0 ? (
+                <div className="bg-surface rounded-2xl border border-dashed border-border p-8 text-center text-text-tertiary">
+                  <p className="text-sm font-semibold text-text-primary">No branches found</p>
+                  <p className="text-xs text-text-secondary mt-0.5">
+                    No active portion data found for this class in any branch.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {classBranchSummaryList.map((item) => {
+                    const branchPct =
+                      item.total > 0 ? Math.round(item.sumPercentages / item.total) : 0;
+
+                    return (
+                      <button
+                        key={item.branch}
+                        onClick={() => {
+                          setSelectedBranch(item.branch);
+                          setSearch("");
+                        }}
+                        className="group text-left bg-surface rounded-2xl border border-border/80 p-5 hover:border-primary/50 hover:shadow-md transition-all flex flex-col justify-between gap-4"
+                      >
+                        <div>
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-sm group-hover:scale-105 group-hover:bg-primary group-hover:text-white transition-all">
+                                <Building2 className="w-5 h-5" />
+                              </div>
+                              <div>
+                                <h3 className="font-bold text-sm text-text-primary group-hover:text-primary transition-colors">
+                                  {item.branch}
+                                </h3>
+                                <p className="text-xs text-text-tertiary">
+                                  {item.batches.size} {item.batches.size === 1 ? "Batch" : "Batches"} ·{" "}
+                                  {item.subjects.size} {item.subjects.size === 1 ? "Subject" : "Subjects"}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="w-7 h-7 rounded-lg bg-muted/50 group-hover:bg-primary/10 group-hover:text-primary flex items-center justify-center text-text-tertiary transition-colors">
+                              <ChevronRight className="w-4 h-4" />
+                            </div>
+                          </div>
+
+                          {/* Stats */}
+                          <div className="grid grid-cols-3 gap-1.5 mt-4 pt-3 border-t border-border/50 text-center">
+                            <div className="p-1.5 rounded-lg bg-muted/20">
+                              <span className="text-[10px] uppercase text-text-tertiary font-medium block">
+                                Total
+                              </span>
+                              <span className="text-xs font-bold text-text-primary mt-0.5 block">
+                                {item.total}
+                              </span>
+                            </div>
+                            <div className="p-1.5 rounded-lg bg-emerald-500/10">
+                              <span className="text-[10px] uppercase text-emerald-600 font-medium block">
+                                100% Done
+                              </span>
+                              <span className="text-xs font-bold text-emerald-600 mt-0.5 block">
+                                {item.completed}
+                              </span>
+                            </div>
+                            <div className="p-1.5 rounded-lg bg-blue-500/10">
+                              <span className="text-[10px] uppercase text-blue-600 font-medium block">
+                                Progress
+                              </span>
+                              <span className="text-xs font-bold text-blue-600 mt-0.5 block">
+                                {branchPct}%
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Progress Bar */}
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-text-tertiary text-[11px]">{selectedClass} in {item.branch}</span>
+                            <span className="font-bold text-text-primary text-[11px]">{branchPct}%</span>
+                          </div>
+                          <div className="h-1.5 w-full bg-border rounded-full overflow-hidden">
+                            <div
+                              className="bg-emerald-500 h-full rounded-full transition-all duration-500"
+                              style={{ width: `${branchPct}%` }}
                             />
                           </div>
                           <div className="flex items-center justify-between text-[11px] pt-0.5 text-text-tertiary">

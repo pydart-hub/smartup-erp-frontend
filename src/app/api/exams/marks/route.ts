@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
@@ -102,15 +102,71 @@ export async function POST(request: NextRequest) {
           const criteriaName = plan.assessment_criteria?.[0]?.assessment_criteria || "Theory";
           const existing = existingMap.get(mark.student);
 
+          const isDiagnosis = (plan.assessment_group || "").toLowerCase().includes("diagnos");
+          let effectiveLevel = mark.diagnosed_level;
+          if (!effectiveLevel && isDiagnosis) {
+            const text = `${plan.program || ""} ${plan.course || ""} ${plan.student_group || ""}`;
+            const match = text.match(/\b(8|9|10)(?:th)?\b/i);
+            const classLvl = match ? parseInt(match[1], 10) : 10;
+
+            if (classLvl === 8) {
+              if (maxScore === 15) {
+                if (mark.score <= 3) effectiveLevel = "5th";
+                else if (mark.score <= 7) effectiveLevel = "6th";
+                else if (mark.score <= 11) effectiveLevel = "7th";
+                else effectiveLevel = "8th";
+              } else if (maxScore === 16) {
+                if (mark.score <= 4) effectiveLevel = "5th";
+                else if (mark.score <= 8) effectiveLevel = "6th";
+                else if (mark.score <= 12) effectiveLevel = "7th";
+                else effectiveLevel = "8th";
+              } else if (maxScore > 0) {
+                const idx = Math.min(3, Math.floor((mark.score / maxScore) * 4));
+                effectiveLevel = ["5th", "6th", "7th", "8th"][idx];
+              }
+            } else if (classLvl === 9) {
+              if (maxScore === 20 || maxScore === 21) {
+                if (mark.score <= 4) effectiveLevel = "5th";
+                else if (mark.score <= 8) effectiveLevel = "6th";
+                else if (mark.score <= 12) effectiveLevel = "7th";
+                else if (mark.score <= 16) effectiveLevel = "8th";
+                else effectiveLevel = "9th";
+              } else if (maxScore > 0) {
+                const idx = Math.min(4, Math.floor((mark.score / maxScore) * 5));
+                effectiveLevel = ["5th", "6th", "7th", "8th", "9th"][idx];
+              }
+            } else {
+              if (maxScore === 25) {
+                if (mark.score <= 4) effectiveLevel = "5th";
+                else if (mark.score <= 8) effectiveLevel = "6th";
+                else if (mark.score <= 12) effectiveLevel = "7th";
+                else if (mark.score <= 16) effectiveLevel = "8th";
+                else if (mark.score <= 20) effectiveLevel = "9th";
+                else effectiveLevel = "10th";
+              } else if (maxScore === 26) {
+                if (mark.score <= 4) effectiveLevel = "5th";
+                else if (mark.score <= 8) effectiveLevel = "6th";
+                else if (mark.score <= 13) effectiveLevel = "7th";
+                else if (mark.score <= 17) effectiveLevel = "8th";
+                else if (mark.score <= 21) effectiveLevel = "9th";
+                else effectiveLevel = "10th";
+              } else if (maxScore > 0) {
+                const idx = Math.min(5, Math.floor((mark.score / maxScore) * 6));
+                effectiveLevel = ["5th", "6th", "7th", "8th", "9th", "10th"][idx];
+              }
+            }
+          }
+
           // CASE A: Draft -> update in-place and submit
           if (existing && existing.docstatus === 0) {
+
             const updatePayload: Record<string, any> = {
               maximum_score: maxScore,
               total_score: mark.score,
               grade,
               details: [{ assessment_criteria: criteriaName, maximum_score: maxScore, score: mark.score, grade }],
             };
-            if (mark.diagnosed_level) updatePayload.custom_diagnosed_level = mark.diagnosed_level;
+            if (effectiveLevel) updatePayload.custom_diagnosed_level = effectiveLevel;
 
             const upRes = await fetch(
               `${FRAPPE_URL}/api/resource/Assessment%20Result/${encodeURIComponent(existing.name)}`,
@@ -168,7 +224,7 @@ export async function POST(request: NextRequest) {
             maximum_score: maxScore,
             total_score: mark.score,
             grade,
-            ...(mark.diagnosed_level ? { custom_diagnosed_level: mark.diagnosed_level } : {}),
+            ...(effectiveLevel ? { custom_diagnosed_level: effectiveLevel } : {}),
             details: [{ assessment_criteria: criteriaName, maximum_score: maxScore, score: mark.score, grade }],
           };
 

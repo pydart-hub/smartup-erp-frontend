@@ -214,12 +214,72 @@ export default function ExamMarkEntryPage() {
     },
   });
 
+  function calculateFortkochiLevel(scoreNum: number, maxScoreNum: number, classLvl: number): string {
+    if (maxScoreNum <= 0) return "5th";
+    if (classLvl === 8) {
+      if (maxScoreNum === 15) {
+        if (scoreNum <= 3) return "5th";
+        if (scoreNum <= 7) return "6th";
+        if (scoreNum <= 11) return "7th";
+        return "8th";
+      }
+      if (maxScoreNum === 16) {
+        if (scoreNum <= 4) return "5th";
+        if (scoreNum <= 8) return "6th";
+        if (scoreNum <= 12) return "7th";
+        return "8th";
+      }
+      const idx = Math.min(3, Math.floor((scoreNum / maxScoreNum) * 4));
+      return ["5th", "6th", "7th", "8th"][idx];
+    }
+    if (classLvl === 9) {
+      if (maxScoreNum === 20 || maxScoreNum === 21) {
+        if (scoreNum <= 4) return "5th";
+        if (scoreNum <= 8) return "6th";
+        if (scoreNum <= 12) return "7th";
+        if (scoreNum <= 16) return "8th";
+        return "9th";
+      }
+      const idx = Math.min(4, Math.floor((scoreNum / maxScoreNum) * 5));
+      return ["5th", "6th", "7th", "8th", "9th"][idx];
+    }
+    if (maxScoreNum === 25) {
+      if (scoreNum <= 4) return "5th";
+      if (scoreNum <= 8) return "6th";
+      if (scoreNum <= 12) return "7th";
+      if (scoreNum <= 16) return "8th";
+      if (scoreNum <= 20) return "9th";
+      return "10th";
+    }
+    if (maxScoreNum === 26) {
+      if (scoreNum <= 4) return "5th";
+      if (scoreNum <= 8) return "6th";
+      if (scoreNum <= 13) return "7th";
+      if (scoreNum <= 17) return "8th";
+      if (scoreNum <= 21) return "9th";
+      return "10th";
+    }
+    const idx = Math.min(5, Math.floor((scoreNum / maxScoreNum) * 6));
+    return ["5th", "6th", "7th", "8th", "9th", "10th"][idx];
+  }
+
   function handleScoreChange(idx: number, value: string) {
     setMarks((prev) => {
       const next = [...prev];
       if (next[idx]) {
         dirtyStudentsRef.current.add(next[idx].student);
-        next[idx] = { ...next[idx], score: value };
+        const updated = { ...next[idx], score: value };
+        if (isDiagnosisExam && value !== "") {
+          const num = Number(value);
+          const maxS = plan?.maximum_assessment_score || 25;
+          const text = `${plan?.program || ""} ${plan?.course || ""} ${plan?.student_group || ""}`;
+          const match = text.match(/\b(8|9|10)(?:th)?\b/i);
+          const classLvl = match ? parseInt(match[1], 10) : 10;
+          if (!isNaN(num)) {
+            updated.diagnosed_level = calculateFortkochiLevel(num, maxS, classLvl);
+          }
+        }
+        next[idx] = updated;
       }
       return next;
     });
