@@ -107,8 +107,12 @@ export async function getAssessmentPlans(params?: {
   schedule_date_gte?: string;
   schedule_date_lte?: string;
   limit_page_length?: number;
+  include_cancelled?: boolean;
 }): Promise<AssessmentPlan[]> {
-  const filters: string[][] = [];
+  const filters: (string | number)[][] = [];
+  if (!params?.include_cancelled) {
+    filters.push(["docstatus", "!=", 2]);
+  }
   if (params?.custom_branch) filters.push(["custom_branch", "=", params.custom_branch]);
   if (params?.program) filters.push(["program", "=", params.program]);
   if (params?.course) filters.push(["course", "=", params.course]);

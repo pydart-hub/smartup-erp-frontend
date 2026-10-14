@@ -335,6 +335,11 @@ export default function ClassInchargeExamMarkEntryPage() {
               <h1 className="text-xl sm:text-2xl font-bold text-text-primary">
                 {plan?.assessment_name || "Exam Mark Entry"}
               </h1>
+              {plan?.docstatus === 2 && (
+                <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-error/10 text-error border border-error/20">
+                  Cancelled Exam
+                </span>
+              )}
               <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 text-xs">
                 {plan?.course || "General Paper"}
               </Badge>
@@ -348,8 +353,9 @@ export default function ClassInchargeExamMarkEntryPage() {
 
         <Button
           onClick={handleSave}
-          disabled={saveMutation.isPending}
-          className="bg-primary hover:bg-primary-hover text-white rounded-xl gap-2 font-bold shadow-md shadow-primary/20 px-6 self-start sm:self-auto"
+          disabled={saveMutation.isPending || plan?.docstatus === 2}
+          title={plan?.docstatus === 2 ? "This exam has been cancelled in ERP and cannot accept marks" : undefined}
+          className="bg-primary hover:bg-primary-hover text-white rounded-xl gap-2 font-bold shadow-md shadow-primary/20 px-6 self-start sm:self-auto disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {saveMutation.isPending ? (
             <>
@@ -362,6 +368,15 @@ export default function ClassInchargeExamMarkEntryPage() {
           )}
         </Button>
       </div>
+
+      {plan?.docstatus === 2 && (
+        <div className="flex items-center gap-3 p-4 rounded-xl bg-error/10 border border-error/20 text-error text-sm font-medium">
+          <AlertCircle className="h-5 w-5 shrink-0" />
+          <span>
+            This exam (Assessment Plan) has been cancelled in ERPNext. Marks cannot be saved for cancelled exams.
+          </span>
+        </div>
+      )}
 
       {/* KPI Ribbon */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

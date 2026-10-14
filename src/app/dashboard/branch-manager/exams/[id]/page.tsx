@@ -400,7 +400,14 @@ export default function ExamMarkEntryPage() {
           >
             <ArrowLeft className="h-4 w-4" /> Back to exams
           </button>
-          <h1 className="text-2xl font-bold text-text-primary">{plan.course}</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-text-primary">{plan.course}</h1>
+            {plan.docstatus === 2 && (
+              <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-error/10 text-error border border-error/20">
+                Cancelled Exam
+              </span>
+            )}
+          </div>
           <p className="text-sm text-text-secondary mt-0.5">{plan.assessment_group} | {plan.student_group}</p>
         </div>
         <div className="flex gap-2">
@@ -408,18 +415,41 @@ export default function ExamMarkEntryPage() {
             variant="outline"
             size="md"
             onClick={handleDelete}
-            disabled={isDeleting || isSaving || hasExistingResults}
-            title={hasExistingResults ? "Delete is disabled because marks/results already exist" : undefined}
+            disabled={isDeleting || isSaving || hasExistingResults || plan.docstatus === 2}
+            title={
+              plan.docstatus === 2
+                ? "Exam is already cancelled"
+                : hasExistingResults
+                ? "Delete is disabled because marks/results already exist"
+                : undefined
+            }
           >
             {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
             {isDeleting ? "Deleting..." : "Delete Exam"}
           </Button>
-          <Button variant="primary" size="md" onClick={handleSave} disabled={isSaving || isDeleting || marks.length === 0}>
+          <Button
+            variant="primary"
+            size="md"
+            onClick={handleSave}
+            disabled={isSaving || isDeleting || marks.length === 0 || plan.docstatus === 2}
+            title={plan.docstatus === 2 ? "This exam has been cancelled in ERP and cannot accept marks" : undefined}
+          >
             {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             {isSaving ? "Saving..." : hasExistingResults ? "Update Marks" : "Save Marks"}
           </Button>
         </div>
       </motion.div>
+
+      {plan.docstatus === 2 && (
+        <motion.div variants={item}>
+          <div className="flex items-center gap-3 p-4 rounded-xl bg-error/10 border border-error/20 text-error text-sm font-medium">
+            <AlertCircle className="h-5 w-5 shrink-0" />
+            <span>
+              This exam (Assessment Plan) has been cancelled in ERPNext. Marks cannot be saved for cancelled exams.
+            </span>
+          </div>
+        </motion.div>
+      )}
 
       <motion.div variants={item}>
         <Card>

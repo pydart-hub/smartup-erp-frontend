@@ -325,14 +325,38 @@ export default function InstructorExamMarkEntryPage() {
           >
             <ArrowLeft className="h-4 w-4" /> Back
           </button>
-          <h1 className="text-2xl font-bold text-text-primary">{plan.course}</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-text-primary">{plan.course}</h1>
+            {plan.docstatus === 2 && (
+              <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-error/10 text-error border border-error/20">
+                Cancelled Exam
+              </span>
+            )}
+          </div>
           <p className="text-sm text-text-secondary mt-0.5">{plan.assessment_group} • {plan.student_group}</p>
         </div>
-        <Button variant="primary" size="md" onClick={handleSave} disabled={isSaving || marks.length === 0}>
+        <Button
+          variant="primary"
+          size="md"
+          onClick={handleSave}
+          disabled={isSaving || marks.length === 0 || plan.docstatus === 2}
+          title={plan.docstatus === 2 ? "This exam has been cancelled in ERP and cannot accept marks" : undefined}
+        >
           {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           {isSaving ? "Saving..." : hasExistingResults ? "Update Marks" : "Save Marks"}
         </Button>
       </motion.div>
+
+      {plan.docstatus === 2 && (
+        <motion.div variants={item}>
+          <div className="flex items-center gap-3 p-4 rounded-xl bg-error/10 border border-error/20 text-error text-sm font-medium">
+            <AlertCircle className="h-5 w-5 shrink-0" />
+            <span>
+              This exam (Assessment Plan) is cancelled in ERPNext. Marks cannot be saved or modified for cancelled exams.
+            </span>
+          </div>
+        </motion.div>
+      )}
 
       {/* Exam info */}
       <motion.div variants={item}>

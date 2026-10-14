@@ -50,6 +50,13 @@ export async function POST(request: NextRequest) {
     }
     const plan = (await planRes.json()).data;
 
+    if (plan.docstatus === 2) {
+      return NextResponse.json(
+        { error: `Assessment Plan "${assessment_plan}" is cancelled and cannot accept mark entries.` },
+        { status: 422 }
+      );
+    }
+
     // Fetch grading scale
     const gsRes = await fetch(
       `${FRAPPE_URL}/api/resource/Grading%20Scale/${encodeURIComponent(plan.grading_scale)}`,
