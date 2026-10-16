@@ -1,11 +1,13 @@
-# Task: Vennala Branch - Toggle to Show/Hide Diagnosis Exam Data in Exam Graph
+# Task: Vennala Branch - Master Toggle in Navbar & Global Diagnosis Exam Hide
 
-- [x] 1. Architecture Study & Structure Proposal <!-- id: 1 -->
-  - Deep analysis of `StudentPerformanceCard.tsx`
-  - Identification of Vennala branch (`branch`, `defaultCompany`, `studentId` matching `VYT` / `VNL` / `vennala`)
-  - State management for show/hide diagnosis exam
-  - UI placement for check mark toggle
-  - Graph recalculation (bar widths, x coordinates, line paths, KPI stats)
-- [x] 2. User Review & Confirmation of Structure <!-- id: 2 -->
-- [x] 3. Implementation in `StudentPerformanceCard.tsx` and parent student view pages <!-- id: 3 -->
-- [x] 4. Verification with TypeScript check & behavioral testing <!-- id: 4 -->
+- [x] 1. Per-student toggle implementation (Initial Phase) <!-- id: 1 -->
+- [x] 2. Architecture Study for Master Global Toggle in Topbar / Navbar <!-- id: 2 -->
+  - Deep analysis of persistent store (`zustand/middleware` `persist`)
+  - Integration with `Topbar.tsx` for Vennala branch manager/staff
+  - "Safe by default" mechanism (defaults to HIDDEN, 0% risk of accidental exposure)
+  - Date-based auto-unlock option (after tomorrow)
+- [x] 3. User Review and Approval of Master Structure <!-- id: 3 -->
+- [x] 4. Implementation of `examDisplayStore.ts`, `Topbar.tsx` master button, and sync in `StudentPerformanceCard.tsx` <!-- id: 4 -->
+- [x] 5. Verification via TypeScript check & testing <!-- id: 5 -->
+
+

@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { useExamDisplayStore } from "@/lib/stores/examDisplayStore";
 import {
   BarChart3,
   LineChart,
@@ -76,6 +77,7 @@ function getGradeBadgeVariant(pct: number): "success" | "info" | "warning" | "er
 
 export function StudentPerformanceCard({ studentId, branch }: StudentPerformanceCardProps) {
   const { defaultCompany } = useAuth();
+  const { hideVennalaDiagnosis, toggleHideVennalaDiagnosis } = useExamDisplayStore();
 
   // Multi-tier check for Vennala branch (branch prop, defaultCompany, studentId)
   const isVennala = useMemo(() => {
@@ -83,13 +85,15 @@ export function StudentPerformanceCard({ studentId, branch }: StudentPerformance
     return combined.includes("vennala") || combined.includes("vyt") || combined.includes("vnl");
   }, [branch, defaultCompany, studentId]);
 
+  // Diagnosis Exam is hidden if in Vennala branch AND master toggle is set to hide
+  const isDiagnosisHidden = isVennala && hideVennalaDiagnosis;
+
   const [viewMode, setViewMode] = useState<"bar" | "line">("bar");
   const [selectedGroup, setSelectedGroup] = useState<string>("all");
   const [hoveredExam, setHoveredExam] = useState<StudentExamAggregate | null>(null);
   const [selectedExam, setSelectedExam] = useState<StudentExamAggregate | null>(null);
   const [showAllExams, setShowAllExams] = useState<boolean>(false);
   const [expandedExamKey, setExpandedExamKey] = useState<string | null>(null);
-  const [showDiagnosis, setShowDiagnosis] = useState<boolean>(true);
 
   const { data: exams = [], isLoading } = useQuery<StudentExamAggregate[]>({
     queryKey: ["student-performance-aggregated", studentId],
@@ -114,15 +118,15 @@ export function StudentPerformanceCard({ studentId, branch }: StudentPerformance
 
   // If Diagnosis Exam is hidden in Vennala branch, filter it out
   const activeExams = useMemo(() => {
-    if (isVennala && !showDiagnosis) {
+    if (isDiagnosisHidden) {
       return exams.filter((e) => !isDiagnosisExam(e));
     }
     return exams;
-  }, [exams, isVennala, showDiagnosis]);
+  }, [exams, isDiagnosisHidden]);
 
   // Clean up selected/hovered exam or filter group if diagnosis exam is hidden
   useEffect(() => {
-    if (!showDiagnosis) {
+    if (isDiagnosisHidden) {
       if (selectedExam && isDiagnosisExam(selectedExam)) {
         setSelectedExam(null);
       }
@@ -133,7 +137,7 @@ export function StudentPerformanceCard({ studentId, branch }: StudentPerformance
         setSelectedGroup("all");
       }
     }
-  }, [showDiagnosis, selectedExam, hoveredExam, selectedGroup]);
+  }, [isDiagnosisHidden, selectedExam, hoveredExam, selectedGroup]);
 
   // Distinct groups (e.g. Weekly Exam, Onam Exam, Unit Test, CWC Exam)
   const availableGroups = useMemo(() => {
@@ -267,16 +271,16 @@ export function StudentPerformanceCard({ studentId, branch }: StudentPerformance
             {isVennala && hasDiagnosisExam && (
               <label
                 className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold cursor-pointer select-none transition-all ${
-                  showDiagnosis
+                  !hideVennalaDiagnosis
                     ? "bg-primary/10 border-primary/30 text-primary"
                     : "bg-app-bg border-border-light text-text-tertiary hover:text-text-primary"
                 }`}
-                title="Toggle to show or hide Diagnosis Exam data"
+                title="Master toggle: show or hide Diagnosis Exam across all Vennala students"
               >
                 <input
                   type="checkbox"
-                  checked={showDiagnosis}
-                  onChange={(e) => setShowDiagnosis(e.target.checked)}
+                  checked={!hideVennalaDiagnosis}
+                  onChange={toggleHideVennalaDiagnosis}
                   className="w-3.5 h-3.5 rounded border-border-light text-primary focus:ring-primary/20 accent-primary cursor-pointer"
                 />
                 <span className="text-[11px] font-medium">Diagnosis Exam</span>

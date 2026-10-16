@@ -2,7 +2,7 @@
 
 import React from "react";
 import { usePathname } from "next/navigation";
-import { Menu, Search, LogOut, ChevronDown, GraduationCap, Building2, Globe, School, Video, BookOpen } from "lucide-react";
+import { Menu, Search, LogOut, ChevronDown, GraduationCap, Building2, Globe, School, Video, BookOpen, Eye, EyeOff } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useUIStore } from "@/lib/stores/uiStore";
@@ -11,6 +11,7 @@ import { NotificationDropdown } from "@/components/layout/NotificationDropdown";
 import { ActionsNeededButton } from "@/components/layout/ActionsNeededButton";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { useAuthStore } from "@/lib/stores/authStore";
+import { useExamDisplayStore } from "@/lib/stores/examDisplayStore";
 
 const ROLE_ICONS: Record<string, React.ReactNode> = {
   "General Manager": <Globe className="h-3.5 w-3.5" />,
@@ -58,10 +59,11 @@ const DASHBOARD_ROLE_PREFIXES: Array<{ prefix: string; role: string }> = [
 ];
 
 export function Topbar() {
-  const { user, role, activeRole, switchableRoles, switchRole, logout } = useAuth();
+  const { user, role, activeRole, switchableRoles, switchRole, logout, defaultCompany, allowedCompanies } = useAuth();
   const setActiveRole = useAuthStore((state) => state.setActiveRole);
   const { toggleSidebar } = useUIStore();
   const pathname = usePathname();
+  const { hideVennalaDiagnosis, toggleHideVennalaDiagnosis } = useExamDisplayStore();
   const [showUserMenu, setShowUserMenu] = React.useState(false);
   const [searchFocused, setSearchFocused] = React.useState(false);
   const menuRef = React.useRef<HTMLDivElement>(null);
@@ -90,6 +92,21 @@ export function Topbar() {
 
   const displayRole = activeRole || role;
   const canSwitch = switchableRoles.length > 1;
+
+  const isVennalaBranch = React.useMemo(() => {
+    const company = (defaultCompany || "").toLowerCase();
+    const allowed = (allowedCompanies || []).join(" ").toLowerCase();
+    return (
+      company.includes("vennala") ||
+      company.includes("vyt") ||
+      company.includes("vnl") ||
+      allowed.includes("vennala") ||
+      pathname.includes("vennala") ||
+      displayRole === "Branch Manager" ||
+      displayRole === "Director" ||
+      displayRole === "General Manager"
+    );
+  }, [defaultCompany, allowedCompanies, pathname, displayRole]);
 
   return (
     <header
@@ -181,6 +198,35 @@ export function Topbar() {
               </motion.button>
             ))}
           </div>
+        )}
+
+        {isVennalaBranch && (
+          <motion.button
+            whileTap={{ scale: 0.95, y: 1 }}
+            onClick={toggleHideVennalaDiagnosis}
+            className={`flex items-center gap-1.5 px-2 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+              hideVennalaDiagnosis
+                ? "bg-amber-50 dark:bg-amber-950/40 border-amber-300 text-amber-700 dark:text-amber-300 shadow-xs"
+                : "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 text-emerald-700 dark:text-emerald-300 shadow-xs"
+            }`}
+            title={
+              hideVennalaDiagnosis
+                ? "Diagnosis Exam: Hidden (H) — Click to Show"
+                : "Diagnosis Exam: Shown (S) — Click to Hide"
+            }
+          >
+            {hideVennalaDiagnosis ? (
+              <>
+                <EyeOff className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                <span className="text-xs font-bold leading-none">H</span>
+              </>
+            ) : (
+              <>
+                <Eye className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span className="text-xs font-bold leading-none">S</span>
+              </>
+            )}
+          </motion.button>
         )}
 
         <NotificationDropdown />
