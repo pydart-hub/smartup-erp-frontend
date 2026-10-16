@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/lib/hooks/useAuth";
 import {
   BarChart3,
   LineChart,
@@ -43,6 +44,14 @@ export interface StudentExamAggregate {
 
 interface StudentPerformanceCardProps {
   studentId: string;
+  branch?: string;
+}
+
+function isDiagnosisExam(exam: StudentExamAggregate) {
+  const g = (exam.assessment_group || "").toLowerCase();
+  const t = (exam.exam_title || "").toLowerCase();
+  const k = (exam.exam_key || "").toLowerCase();
+  return g.includes("diagnosis") || t.includes("diagnosis") || k.includes("diagnosis");
 }
 
 function formatDate(dateStr?: string) {
@@ -65,13 +74,22 @@ function getGradeBadgeVariant(pct: number): "success" | "info" | "warning" | "er
   return "error";
 }
 
-export function StudentPerformanceCard({ studentId }: StudentPerformanceCardProps) {
+export function StudentPerformanceCard({ studentId, branch }: StudentPerformanceCardProps) {
+  const { defaultCompany } = useAuth();
+
+  // Multi-tier check for Vennala branch (branch prop, defaultCompany, studentId)
+  const isVennala = useMemo(() => {
+    const combined = [branch, defaultCompany, studentId].filter(Boolean).join(" ").toLowerCase();
+    return combined.includes("vennala") || combined.includes("vyt") || combined.includes("vnl");
+  }, [branch, defaultCompany, studentId]);
+
   const [viewMode, setViewMode] = useState<"bar" | "line">("bar");
   const [selectedGroup, setSelectedGroup] = useState<string>("all");
   const [hoveredExam, setHoveredExam] = useState<StudentExamAggregate | null>(null);
   const [selectedExam, setSelectedExam] = useState<StudentExamAggregate | null>(null);
   const [showAllExams, setShowAllExams] = useState<boolean>(false);
   const [expandedExamKey, setExpandedExamKey] = useState<string | null>(null);
+  const [showDiagnosis, setShowDiagnosis] = useState<boolean>(true);
 
   const { data: exams = [], isLoading } = useQuery<StudentExamAggregate[]>({
     queryKey: ["student-performance-aggregated", studentId],
@@ -89,36 +107,64 @@ export function StudentPerformanceCard({ studentId }: StudentPerformanceCardProp
     enabled: !!studentId,
   });
 
+  // Check if diagnosis exam exists in data
+  const hasDiagnosisExam = useMemo(() => {
+    return exams.some(isDiagnosisExam);
+  }, [exams]);
+
+  // If Diagnosis Exam is hidden in Vennala branch, filter it out
+  const activeExams = useMemo(() => {
+    if (isVennala && !showDiagnosis) {
+      return exams.filter((e) => !isDiagnosisExam(e));
+    }
+    return exams;
+  }, [exams, isVennala, showDiagnosis]);
+
+  // Clean up selected/hovered exam or filter group if diagnosis exam is hidden
+  useEffect(() => {
+    if (!showDiagnosis) {
+      if (selectedExam && isDiagnosisExam(selectedExam)) {
+        setSelectedExam(null);
+      }
+      if (hoveredExam && isDiagnosisExam(hoveredExam)) {
+        setHoveredExam(null);
+      }
+      if (selectedGroup.toLowerCase().includes("diagnosis")) {
+        setSelectedGroup("all");
+      }
+    }
+  }, [showDiagnosis, selectedExam, hoveredExam, selectedGroup]);
+
   // Distinct groups (e.g. Weekly Exam, Onam Exam, Unit Test, CWC Exam)
   const availableGroups = useMemo(() => {
     const groups = new Set<string>();
-    exams.forEach((e) => {
+    activeExams.forEach((e) => {
       if (e.assessment_group) groups.add(e.assessment_group);
     });
     return Array.from(groups);
-  }, [exams]);
+  }, [activeExams]);
 
   // Filtered exams according to selected group
   const filteredExams = useMemo(() => {
-    if (selectedGroup === "all") return exams;
-    return exams.filter((e) => e.assessment_group === selectedGroup);
-  }, [exams, selectedGroup]);
+    if (selectedGroup === "all") return activeExams;
+    return activeExams.filter((e) => e.assessment_group === selectedGroup);
+  }, [activeExams, selectedGroup]);
 
-  // Overall calculations across all exams
+  // Overall calculations across all visible exams
   const stats = useMemo(() => {
-    if (exams.length === 0) {
+    if (activeExams.length === 0) {
       return { overallAvg: 0, highestScore: 0, totalCount: 0, trend: 0, bestExam: "—" };
     }
-    const totalCount = exams.length;
-    const totalEarned = exams.reduce((acc, curr) => acc + curr.total_score, 0);
-    const totalMax = exams.reduce((acc, curr) => acc + curr.maximum_score, 0);
+    const totalCount = activeExams.length;
+    const totalEarned = activeExams.reduce((acc, curr) => acc + curr.total_score, 0);
+    const totalMax = activeExams.reduce((acc, curr) => acc + curr.maximum_score, 0);
     const overallAvg = totalMax > 0 ? Math.round((totalEarned / totalMax) * 100 * 10) / 10 : 0;
-    const highestScore = Math.max(...exams.map((e) => e.percentage));
+    const highestScore = Math.max(...activeExams.map((e) => e.percentage));
 
     // Best overall exam
     let bestExamTitle = "—";
     let maxPct = -1;
-    exams.forEach((e) => {
+    activeExams.forEach((e) => {
       if (e.percentage > maxPct) {
         maxPct = e.percentage;
         bestExamTitle = `${e.exam_title} (${e.percentage}%)`;
@@ -127,17 +173,17 @@ export function StudentPerformanceCard({ studentId }: StudentPerformanceCardProp
 
     // Trend calculation: Compare recent exams vs older exams
     let trend = 0;
-    if (exams.length >= 2) {
-      const half = Math.floor(exams.length / 2);
-      const recent = exams.slice(-Math.min(3, half));
-      const older = exams.slice(0, Math.min(3, half));
+    if (activeExams.length >= 2) {
+      const half = Math.floor(activeExams.length / 2);
+      const recent = activeExams.slice(-Math.min(3, half));
+      const older = activeExams.slice(0, Math.min(3, half));
       const recentAvg = recent.reduce((s, e) => s + e.percentage, 0) / recent.length;
       const olderAvg = older.reduce((s, e) => s + e.percentage, 0) / older.length;
       trend = Math.round((recentAvg - olderAvg) * 10) / 10;
     }
 
     return { overallAvg, highestScore, totalCount, trend, bestExam: bestExamTitle };
-  }, [exams]);
+  }, [activeExams]);
 
   if (isLoading) {
     return (
@@ -216,34 +262,56 @@ export function StudentPerformanceCard({ studentId }: StudentPerformanceCardProp
             </div>
           </div>
 
-          {/* View mode toggle: Bar (Default) vs Line */}
-          <div className="inline-flex items-center bg-app-bg p-1 rounded-lg border border-border-light self-start sm:self-center">
-            <button
-              type="button"
-              onClick={() => setViewMode("bar")}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all ${
-                viewMode === "bar"
-                  ? "bg-surface text-primary shadow-xs font-bold"
-                  : "text-text-tertiary hover:text-text-primary"
-              }`}
-              title="Bar Chart View (Default)"
-            >
-              <BarChart3 className="h-3.5 w-3.5" />
-              <span>Bar</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode("line")}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all ${
-                viewMode === "line"
-                  ? "bg-surface text-primary shadow-xs font-bold"
-                  : "text-text-tertiary hover:text-text-primary"
-              }`}
-              title="Line Chart View"
-            >
-              <LineChart className="h-3.5 w-3.5" />
-              <span>Line</span>
-            </button>
+          {/* Controls: Vennala Diagnosis Checkmark + View mode toggle */}
+          <div className="flex items-center gap-2 self-start sm:self-center flex-wrap">
+            {isVennala && hasDiagnosisExam && (
+              <label
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold cursor-pointer select-none transition-all ${
+                  showDiagnosis
+                    ? "bg-primary/10 border-primary/30 text-primary"
+                    : "bg-app-bg border-border-light text-text-tertiary hover:text-text-primary"
+                }`}
+                title="Toggle to show or hide Diagnosis Exam data"
+              >
+                <input
+                  type="checkbox"
+                  checked={showDiagnosis}
+                  onChange={(e) => setShowDiagnosis(e.target.checked)}
+                  className="w-3.5 h-3.5 rounded border-border-light text-primary focus:ring-primary/20 accent-primary cursor-pointer"
+                />
+                <span className="text-[11px] font-medium">Diagnosis Exam</span>
+              </label>
+            )}
+
+            {/* View mode toggle: Bar (Default) vs Line */}
+            <div className="inline-flex items-center bg-app-bg p-1 rounded-lg border border-border-light">
+              <button
+                type="button"
+                onClick={() => setViewMode("bar")}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all ${
+                  viewMode === "bar"
+                    ? "bg-surface text-primary shadow-xs font-bold"
+                    : "text-text-tertiary hover:text-text-primary"
+                }`}
+                title="Bar Chart View (Default)"
+              >
+                <BarChart3 className="h-3.5 w-3.5" />
+                <span>Bar</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("line")}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold transition-all ${
+                  viewMode === "line"
+                    ? "bg-surface text-primary shadow-xs font-bold"
+                    : "text-text-tertiary hover:text-text-primary"
+                }`}
+                title="Line Chart View"
+              >
+                <LineChart className="h-3.5 w-3.5" />
+                <span>Line</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -322,11 +390,11 @@ export function StudentPerformanceCard({ studentId }: StudentPerformanceCardProp
                 : "bg-surface text-text-secondary hover:bg-border-light/60 border border-border-light"
             }`}
           >
-            All Exams ({exams.length})
+            All Exams ({activeExams.length})
           </button>
 
           {availableGroups.map((group) => {
-            const count = exams.filter((e) => e.assessment_group === group).length;
+            const count = activeExams.filter((e) => e.assessment_group === group).length;
             const isSelected = selectedGroup === group;
             return (
               <button
@@ -357,7 +425,7 @@ export function StudentPerformanceCard({ studentId }: StudentPerformanceCardProp
             <Layers className="h-8 w-8 text-text-tertiary mx-auto mb-2 opacity-50" />
             <p className="text-sm font-medium text-text-secondary">No exam results recorded</p>
             <p className="text-xs text-text-tertiary mt-0.5">
-              {exams.length === 0
+              {activeExams.length === 0
                 ? "This student does not have any submitted assessment results yet."
                 : "No exams match the selected filter category."}
             </p>

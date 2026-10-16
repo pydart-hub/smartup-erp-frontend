@@ -777,7 +777,7 @@ export default function StudentViewPage() {
       </div>
 
       {/* Student Academic & Exam Performance Graph Card */}
-      <StudentPerformanceCard studentId={id} />
+      <StudentPerformanceCard studentId={id} branch={student?.custom_branch} />
 
       {/* One-to-One billing recovery */}
       {isO2OStudent && (

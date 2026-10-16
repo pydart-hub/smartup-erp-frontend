@@ -423,7 +423,7 @@ export default function SalesUserStudentDetailPage() {
       </div>
 
       {/* Student Academic & Exam Performance Graph Card */}
-      <StudentPerformanceCard studentId={id} />
+      <StudentPerformanceCard studentId={id} branch={student?.custom_branch} />
 
       {/* Fee & Payments Section */}
       {((salesOrdersRes?.length ?? 0) > 0 || (salesInvoicesRes?.length ?? 0) > 0) && (
