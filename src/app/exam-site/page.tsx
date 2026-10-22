@@ -59,6 +59,7 @@ const BRANCHES = [
   "Smart Up Palluruthy",
   "Smart Up Thopumpadi",
   "Smart Up Moolamkuzhi",
+  "Smart Up Online",
 ];
 
 const LEVEL_OPTIONS = [

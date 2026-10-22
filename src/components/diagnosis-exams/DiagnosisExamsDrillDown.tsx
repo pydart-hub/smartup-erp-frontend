@@ -41,7 +41,7 @@ import {
   getAttemptLevelBreakdown,
 } from "@/lib/public-exam/diagnostics";
 import { getCanonicalBranchName } from "@/lib/utils/constants";
-import { isScholarshipAttempt } from "@/lib/utils/diagnosis";
+import { isScholarshipAttempt, TUITION_BRANCHES } from "@/lib/utils/diagnosis";
 import {
   exportDiagnosisClassMatrixExcel,
   exportDiagnosisClassMatrixPdf,
@@ -467,6 +467,7 @@ export function DiagnosisExamsDrillDown({
   // Level 1: Branch summaries
   const getBranchSummaries = () => {
     const branchMap = new Map<string, AttemptWithPublishing[]>();
+    TUITION_BRANCHES.forEach((b) => branchMap.set(b, []));
     localAttempts.forEach((a) => {
       const branchKey = getCanonicalBranchName(a.studentBranch);
       const list = branchMap.get(branchKey) || [];
@@ -730,58 +731,70 @@ export function DiagnosisExamsDrillDown({
             </h2>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {getClassSummaries(selectedBranch).map((cls) => (
-              <Card
-                key={cls.levelCode}
-                hover
-                className="border-border-light/80"
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <div className="rounded-2xl bg-blue-50 dark:bg-blue-500/10 p-3 text-blue-600">
-                      <GraduationCap className="h-6 w-6" />
+          {getClassSummaries(selectedBranch).length === 0 ? (
+            <div className="rounded-3xl border border-dashed border-border-light bg-surface/30 p-12 text-center">
+              <Building2 className="mx-auto h-10 w-10 text-text-tertiary opacity-60 mb-3" />
+              <p className="text-sm font-semibold text-text-secondary">
+                No exam attempts recorded yet for {selectedBranch}.
+              </p>
+              <p className="text-xs text-text-tertiary mt-1">
+                When students take the diagnosis exam choosing this branch, results will automatically appear here.
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {getClassSummaries(selectedBranch).map((cls) => (
+                <Card
+                  key={cls.levelCode}
+                  hover
+                  className="border-border-light/80"
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="rounded-2xl bg-blue-50 dark:bg-blue-500/10 p-3 text-blue-600">
+                        <GraduationCap className="h-6 w-6" />
+                      </div>
+                      <Badge variant="outline" className="font-bold">
+                        {cls.submittedStudentsCount} {cls.submittedStudentsCount === 1 ? "student" : "students"}
+                      </Badge>
                     </div>
-                    <Badge variant="outline" className="font-bold">
-                      {cls.submittedStudentsCount} {cls.submittedStudentsCount === 1 ? "student" : "students"}
-                    </Badge>
-                  </div>
-                  <CardTitle className="mt-4 text-lg font-bold text-text-primary">
-                    Class {cls.levelCode}
-                  </CardTitle>
-                  <CardDescription>
-                    {cls.completedAttempts} completed papers, {cls.totalAttempts - cls.completedAttempts} in progress
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-2 text-sm pt-2 border-t border-slate-100 dark:border-slate-800">
-                    <div className="bg-surface/50 rounded-2xl p-3 text-center">
-                      <p className="text-xs text-text-tertiary font-bold uppercase tracking-wider">Avg Score</p>
-                      <p className="mt-1 text-lg font-black text-primary">{cls.avgPercentage}%</p>
+                    <CardTitle className="mt-4 text-lg font-bold text-text-primary">
+                      Class {cls.levelCode}
+                    </CardTitle>
+                    <CardDescription>
+                      {cls.completedAttempts} completed papers, {cls.totalAttempts - cls.completedAttempts} in progress
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-2 text-sm pt-2 border-t border-slate-100 dark:border-slate-800">
+                      <div className="bg-surface/50 rounded-2xl p-3 text-center">
+                        <p className="text-xs text-text-tertiary font-bold uppercase tracking-wider">Avg Score</p>
+                        <p className="mt-1 text-lg font-black text-primary">{cls.avgPercentage}%</p>
+                      </div>
+                      <div className="bg-surface/50 rounded-2xl p-3 text-center">
+                        <p className="text-xs text-text-tertiary font-bold uppercase tracking-wider">Pass Rate</p>
+                        <p className="mt-1 text-lg font-black text-success">{cls.passRate}%</p>
+                      </div>
                     </div>
-                    <div className="bg-surface/50 rounded-2xl p-3 text-center">
-                      <p className="text-xs text-text-tertiary font-bold uppercase tracking-wider">Pass Rate</p>
-                      <p className="mt-1 text-lg font-black text-success">{cls.passRate}%</p>
+                    <div className="mt-5 flex gap-2.5">
+                      <Link
+                        href={`${detailUrlPrefix}/class-report?class=${cls.levelCode}${selectedBranch ? `&branch=${encodeURIComponent(selectedBranch)}` : ""}`}
+                        className="flex-1 text-center py-2.5 px-3 rounded-2xl font-bold text-xs bg-violet-50 hover:bg-violet-100 text-[#5f2ea8] dark:bg-violet-950/20 dark:hover:bg-violet-950/40 dark:text-violet-300 transition-all active:scale-[0.98] border border-violet-100/50 dark:border-violet-900/30"
+                      >
+                        Class Report
+                      </Link>
+                      <button
+                        onClick={() => setSelectedClass(cls.levelCode)}
+                        className="flex-1 text-center py-2.5 px-3 rounded-2xl font-bold text-xs border border-border-light hover:bg-surface-hover dark:hover:bg-white/5 text-text-secondary hover:text-text-primary transition-all active:scale-[0.98]"
+                      >
+                        Student List
+                      </button>
                     </div>
-                  </div>
-                  <div className="mt-5 flex gap-2.5">
-                    <Link
-                      href={`${detailUrlPrefix}/class-report?class=${cls.levelCode}${selectedBranch ? `&branch=${encodeURIComponent(selectedBranch)}` : ""}`}
-                      className="flex-1 text-center py-2.5 px-3 rounded-2xl font-bold text-xs bg-violet-50 hover:bg-violet-100 text-[#5f2ea8] dark:bg-violet-950/20 dark:hover:bg-violet-950/40 dark:text-violet-300 transition-all active:scale-[0.98] border border-violet-100/50 dark:border-violet-900/30"
-                    >
-                      Class Report
-                    </Link>
-                    <button
-                      onClick={() => setSelectedClass(cls.levelCode)}
-                      className="flex-1 text-center py-2.5 px-3 rounded-2xl font-bold text-xs border border-border-light hover:bg-surface-hover dark:hover:bg-white/5 text-text-secondary hover:text-text-primary transition-all active:scale-[0.98]"
-                    >
-                      Student List
-                    </button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </section>
       )}
 

@@ -25,6 +25,7 @@ export const TUITION_BRANCHES = [
   "Smart Up Palluruthy",
   "Smart Up Thopumpadi",
   "Smart Up Moolamkuzhi",
+  "Smart Up Online",
 ] as const;
 
 export const KERALA_DISTRICTS = [

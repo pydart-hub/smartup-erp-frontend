@@ -457,6 +457,8 @@ export function getCanonicalBranchName(name: any): string {
     case "smartupthopumpadi":
     case "smartupthoppumpady": return "Smart Up Thopumpadi";
     case "smartupmoolamkuzhi": return "Smart Up Moolamkuzhi";
+    case "smartuponline":
+    case "online": return "Smart Up Online";
     default: return name.trim();
   }
 }
@@ -475,6 +477,7 @@ export function getBranchSearchKeywords(name: any): string[] {
   if (clean.includes("palluruthy")) return ["Palluruthy"];
   if (clean.includes("thopumpadi") || clean.includes("thoppumpady")) return ["Thopumpadi", "Thoppumpady"];
   if (clean.includes("moolamkuzhi")) return ["Moolamkuzhi"];
+  if (clean.includes("online")) return ["Online", "Smart Up Online", "Smartup Online"];
   return [name.trim()];
 }
 
