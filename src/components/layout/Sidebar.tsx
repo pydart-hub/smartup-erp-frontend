@@ -42,6 +42,7 @@ import {
   FileText,
   LineChart,
   BarChart3,
+  Target,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useUIStore } from "@/lib/stores/uiStore";
@@ -84,6 +85,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   FileText,
   LineChart,
   BarChart3,
+  Target,
 };
 
 interface SidebarProps {

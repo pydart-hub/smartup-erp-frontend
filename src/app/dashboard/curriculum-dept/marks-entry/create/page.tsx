@@ -101,10 +101,20 @@ export default function CurriculumCreateExamPage() {
         }),
       }).then((r) => r.json());
       if (res.error) throw new Error(res.error);
-      return (res.data ?? []).filter(
+      const raw = (res.data ?? []).filter(
         (g: any) =>
           g.name !== "All Assessment Groups" &&
           g.assessment_group_name !== "All Assessment Groups",
+      );
+      if (!raw.some((g: any) => g.name === "School Exam")) {
+        raw.push({
+          name: "School Exam",
+          assessment_group_name: "School Exam",
+          parent_assessment_group: "All Assessment Groups",
+        });
+      }
+      return raw.sort((a: any, b: any) =>
+        (a.assessment_group_name || a.name).localeCompare(b.assessment_group_name || b.name),
       );
     },
     staleTime: 120_000,

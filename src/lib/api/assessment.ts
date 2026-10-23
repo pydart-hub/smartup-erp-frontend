@@ -57,6 +57,8 @@ export async function getAssessmentGroups(): Promise<AssessmentGroup[]> {
   const desiredOrder = [
     "Diagnosis Exam",
     "Weekly Exam",
+    "Monthly Exam",
+    "School Exam",
     "Annual Exam",
     "Onam Exam",
     "Half Yearly Exam",
@@ -70,6 +72,8 @@ export async function getAssessmentGroups(): Promise<AssessmentGroup[]> {
   const displayNameMap: Record<string, string> = {
     "Diagnosis Exam": "Diagnosis Exam",
     "Weekly Exam": "Weekly Exam",
+    "Monthly Exam": "Monthly Exam",
+    "School Exam": "School Exam",
     "Annual Exam": "Annual Exam",
     "Onam Exam": "Onam Exam",
     "Half Yearly Exam": "Half Yearly",

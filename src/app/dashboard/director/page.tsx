@@ -51,6 +51,8 @@ import {
   getTodaysCollected,
 } from "@/lib/api/director";
 import { getBudgetData } from "@/lib/api/budget";
+import { getBranchMonitoringData } from "@/lib/api/branchMonitoring";
+import { formatCurrency } from "@/lib/utils/formatters";
 import { AnimatedNumber, AnimatedCurrency, AnimatedName } from "@/components/dashboard/AnimatedValue";
 
 const DIRECTOR_BUDGET_FISCAL_YEAR = "2026-2027";
@@ -221,6 +223,12 @@ export default function DirectorDashboard() {
   const totalBranches = activeBranches.length;
 
   // Dynamic total counts
+  const { data: monitoringData, isLoading: loadMonitoring } = useQuery({
+    queryKey: ["director-monthly-monitoring-summary"],
+    queryFn: () => getBranchMonitoringData(),
+    staleTime: 60_000,
+  });
+
   const { data: totalStudents, isLoading: loadTotalStudents, isError: errTotalStudents } = useQuery({
     queryKey: ["director-total-students"],
     queryFn: getTotalStudentCount,
@@ -353,7 +361,7 @@ export default function DirectorDashboard() {
       </motion.div>
 
       {/* Today's Snapshot — compact highlight bar */}
-      <motion.div variants={itemVariants}>
+      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         <Link href="/dashboard/director/today">
         <Card className="relative overflow-hidden bg-gradient-to-br from-[#7E57C2]/15 via-white dark:via-slate-900 to-[#512DA8]/5 border-[#7E57C2]/30 shadow-[inset_0_2px_4px_rgba(255,255,255,0.8),_0_8px_20px_rgba(103,58,183,0.12)] hover:shadow-[inset_0_2px_4px_rgba(255,255,255,0.9),_0_12px_24px_rgba(103,58,183,0.2)] transition-all duration-300 cursor-pointer rounded-2xl group">
           <div className="absolute inset-0 bg-white/40 dark:bg-black/20 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -406,6 +414,39 @@ export default function DirectorDashboard() {
             <span className="text-[10px] text-text-tertiary ml-auto uppercase tracking-wider">Today</span>
           </CardContent>
         </Card>
+        </Link>
+
+        {/* Monthly Branch Monitoring Widget */}
+        <Link href="/dashboard/director/branch-monitoring">
+          <Card className="relative overflow-hidden bg-gradient-to-br from-emerald-500/10 via-white dark:via-slate-900 to-primary/5 border-emerald-500/30 shadow-[inset_0_2px_4px_rgba(255,255,255,0.8),_0_8px_20px_rgba(16,185,129,0.12)] hover:shadow-[inset_0_2px_4px_rgba(255,255,255,0.9),_0_12px_24px_rgba(16,185,129,0.2)] transition-all duration-300 cursor-pointer rounded-2xl group h-full">
+            <div className="absolute inset-0 bg-white/40 dark:bg-black/20 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity" />
+            <CardContent className="relative py-3 px-5 flex items-center justify-between flex-wrap gap-4 z-10">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-emerald-500/15 flex items-center justify-center flex-shrink-0 text-emerald-600">
+                  <Target className="h-4 w-4" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-text-primary">Branch Monitoring</span>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600">
+                      {monitoringData?.month_label || "This Month"}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-text-secondary mt-0.5">
+                    {loadMonitoring ? "Loading targets..." : (
+                      <>
+                        Coll: <strong className="text-emerald-600">{monitoringData?.network_totals.collection_pct}%</strong> ({formatCurrency(monitoringData?.network_totals.actual_collection || 0)}) • Adm: <strong className="text-blue-600">{monitoringData?.network_totals.actual_admissions}</strong> / {monitoringData?.network_totals.target_admissions}
+                      </>
+                    )}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1 text-xs text-primary font-semibold group-hover:translate-x-0.5 transition-transform">
+                <span>View</span>
+                <ChevronRight className="h-3.5 w-3.5" />
+              </div>
+            </CardContent>
+          </Card>
         </Link>
       </motion.div>
 

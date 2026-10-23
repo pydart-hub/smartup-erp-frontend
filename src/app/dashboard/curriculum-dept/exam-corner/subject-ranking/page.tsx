@@ -113,7 +113,7 @@ export default function ExamSubjectRankingPage() {
     const list = assessmentGroups
       .map(g => g.name)
       .filter(name => !name.toLowerCase().startsWith("cwc"));
-    const defaults = ["Quarterly Exam", "Onam Exam", "Monthly Exam", "Weekly Exam", "Diagnosis Exam", "Annual Exam"];
+    const defaults = ["Quarterly Exam", "Onam Exam", "Monthly Exam", "Weekly Exam", "School Exam", "Diagnosis Exam", "Annual Exam"];
     return Array.from(new Set([...list, ...defaults])).filter(Boolean);
   }, [assessmentGroups]);
 

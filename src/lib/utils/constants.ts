@@ -234,6 +234,7 @@ export const BRANCH_MANAGER_NAV: NavItem[] = [
 
 export const DIRECTOR_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard/director", icon: "LayoutDashboard", emoji: "📊" },
+  { label: "Branch Monitoring", href: "/dashboard/director/branch-monitoring", icon: "Target", emoji: "🎯" },
   { label: "Branch Checklists", href: "/dashboard/director/branch-checklists", icon: "ClipboardCheck", emoji: "📋" },
   {
     label: "Students",

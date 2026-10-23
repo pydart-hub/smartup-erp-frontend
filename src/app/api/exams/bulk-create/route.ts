@@ -109,6 +109,35 @@ export async function POST(request: NextRequest) {
       return criteriaName;
     }
 
+    // Helper to ensure assessment group exists in Frappe
+    const ensuredGroups = new Set<string>();
+    async function ensureAssessmentGroup(groupName: string) {
+      const normalizedGroup = groupName.trim();
+      if (!normalizedGroup || ensuredGroups.has(normalizedGroup)) return normalizedGroup;
+      try {
+        const checkRes = await fetch(
+          `${FRAPPE_URL}/api/resource/Assessment%20Group/${encodeURIComponent(normalizedGroup)}`,
+          { headers: { Authorization: auth }, cache: "no-store" },
+        );
+        if (!checkRes.ok) {
+          await fetch(`${FRAPPE_URL}/api/resource/Assessment%20Group`, {
+            method: "POST",
+            headers: { Authorization: auth, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              assessment_group_name: normalizedGroup,
+              parent_assessment_group: "All Assessment Groups",
+              is_group: 0,
+            }),
+            cache: "no-store",
+          });
+        }
+        ensuredGroups.add(normalizedGroup);
+      } catch (grpErr) {
+        console.warn("[exams/bulk-create] Assessment group ensure error:", grpErr);
+      }
+      return normalizedGroup;
+    }
+
     // Helper to verify topic exists in Frappe (strictly READ only - do NOT create new topics)
     const verifiedTopics = new Map<string, string | null>();
     async function verifyTopicExists(topicName?: string): Promise<string | null> {
@@ -244,6 +273,7 @@ export async function POST(request: NextRequest) {
           }
         }
 
+        await ensureAssessmentGroup(assessment_group);
         const criteriaName = await ensureCriteria(groupCourse, normalizedTopic);
         const validTopic = normalizedTopic ? await verifyTopicExists(normalizedTopic) : null;
 

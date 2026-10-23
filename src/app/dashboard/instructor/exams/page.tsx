@@ -190,6 +190,8 @@ export default function InstructorExamsPage() {
     [
       "Diagnosis Exam",
       "Weekly Exam",
+      "Monthly Exam",
+      "School Exam",
       "Annual Exam",
       "Onam Exam",
       "Half Yearly Exam",
@@ -220,6 +222,8 @@ export default function InstructorExamsPage() {
     const desiredOrder = [
       "Diagnosis Exam",
       "Weekly Exam",
+      "Monthly Exam",
+      "School Exam",
       "Annual Exam",
       "Onam Exam",
       "Half Yearly Exam",

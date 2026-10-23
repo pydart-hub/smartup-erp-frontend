@@ -62,7 +62,7 @@ export default function ExamBranchRankingPage() {
       .filter(name => !name.toLowerCase().startsWith("cwc")); // Show non-CWC or standard exams first, though user can pick any
     
     // Ensure standard exams exist if Frappe list is empty or slow
-    const defaults = ["Quarterly Exam", "Onam Exam", "Monthly Exam", "Weekly Exam", "Diagnosis Exam", "Annual Exam"];
+    const defaults = ["Quarterly Exam", "Onam Exam", "Monthly Exam", "Weekly Exam", "School Exam", "Diagnosis Exam", "Annual Exam"];
     const merged = Array.from(new Set([...list, ...defaults])).filter(Boolean);
     return merged;
   }, [assessmentGroups]);

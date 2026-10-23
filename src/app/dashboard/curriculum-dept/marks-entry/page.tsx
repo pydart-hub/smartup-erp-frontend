@@ -477,9 +477,19 @@ function ExamSelector({
           }
         })
       }).then(r => r.json());
-      return (res.data ?? []).filter((g: any) => 
+      const raw = (res.data ?? []).filter((g: any) => 
         g.name !== "All Assessment Groups" && 
         g.assessment_group_name !== "All Assessment Groups"
+      );
+      if (!raw.some((g: any) => g.name === "School Exam")) {
+        raw.push({
+          name: "School Exam",
+          assessment_group_name: "School Exam",
+          parent_assessment_group: "All Assessment Groups",
+        });
+      }
+      return raw.sort((a: any, b: any) =>
+        (a.assessment_group_name || a.name).localeCompare(b.assessment_group_name || b.name)
       );
     },
     staleTime: 120_000,
