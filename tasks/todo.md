@@ -58,3 +58,39 @@ Build a comprehensive "Branch Monitoring" system for Directors in the Offline ER
   - Updated `src/app/dashboard/instructor/exams/page.tsx` prepopulation list and `desiredOrder` to recognize `"School Exam"`.
 - [x] Step 7: Type Check & End-to-End Verification <!-- id: se-7 -->
   - Ran `npx tsc --noEmit` (0 errors) and validated HTTP 200 responses on both exam scheduling and marks entry endpoints.
+
+---
+
+# Investigation & Plan: Offline ERP Staff Attendance Not Saving on "Holiday"
+
+## 1. Deep Study & Root Cause Analysis
+- **Problem Statement**:
+  When marking attendance for staff as "Holiday" in the Offline ERP (Branch Manager Staff Attendance at `/dashboard/branch-manager/attendance/staff`), saving fails with an error and attendance is not saved.
+- **Frontend Flow**:
+  - In `src/app/dashboard/branch-manager/attendance/staff/page.tsx`, staff can be marked as `"Holiday"` individually or via "Mark All Holiday".
+  - On "Save Attendance", `saveAttendance()` loops through entries and invokes `createEmployeeAttendance()` or `updateEmployeeAttendance()` in `src/lib/api/employees.ts`.
+- **Backend Frappe Schema & Hardcoded Validations (Root Cause)**:
+  - **DocType**: Frappe HR standard `Attendance` DocType.
+  - While the Frappe DocField `status` was customized to include `"Holiday"` and `"At Head Office"` (`options: "Present\nAbsent\nOn Leave\nHalf Day\nWork From Home\nAt Head Office\nHoliday"`), Frappe HRMS Python controller `hrms/hr/doctype/attendance/attendance.py` hardcodes:
+    `validate_status(self.status, ["Present", "Absent", "On Leave", "Half Day", "Work From Home"])`
+  - Calling standard Frappe REST APIs (`POST /api/resource/Attendance` or `PUT /api/resource/Attendance/<name>`) triggers `validate()`, throwing:
+    `ValidationError: Status must be one of Present, Absent, On Leave, Half Day, Work From Home`.
+  - In addition, updating an existing submitted record (`docstatus: 1`) via `PUT /api/resource/Attendance/<name>` fails with `UpdateAfterSubmitError` because `status` has `allow_on_submit = 0`.
+- **Why it Broke Recently (Regression in Commit `bc740445`)**:
+  - Before Oct 6, 2026, attendance was saved via Frappe Server Script `/api/method/set_attendance_status`, which explicitly bypassed validation using `flags.ignore_validate = True` and updated values via `frappe.db.set_value`.
+  - In commit `bc740445` (Oct 6, 2026), `createEmployeeAttendance` and `updateEmployeeAttendance` in `src/lib/api/employees.ts` were changed to call direct Frappe REST `/resource/Attendance` endpoints instead of the custom Server Script method.
+  - Since Oct 5, 2026, zero Attendance records with status `"Holiday"` have been saved in the live Frappe database.
+
+## 2. Proposed Implementation Plan (Pending User Confirmation)
+- [x] Step 1: Update Frappe Server Script `set_attendance_status` <!-- id: att-1 -->
+  - Removed disallowed `import` statements causing `ImportError: __import__ not found` in Frappe's `safe_exec`.
+  - Added support for `"Holiday"` and `"At Head Office"`, clearing `in_time`, `out_time`, `custom_check_in`, `custom_check_out`, and `working_hours` for zero-time statuses.
+  - Used `frappe.db.set_value("Attendance", existing_name, ...)` to safely update submitted records (`docstatus = 1`) without triggering `UpdateAfterSubmitError`.
+  - Deployed and verified on Frappe Cloud with clean validation responses.
+- [x] Step 2: Route Staff Attendance Saves via Dedicated Method in `src/lib/api/employees.ts` <!-- id: att-2 -->
+  - Updated `createEmployeeAttendance` and `updateEmployeeAttendance` to call `/api/method/set_attendance_status` (with safe resource fallback).
+  - Bypassed Frappe HRMS's hardcoded controller `validate_status` constraint so `"Holiday"` and `"At Head Office"` save seamlessly.
+- [x] Step 3: Handle Zero-Time Cleanups for No-Time Statuses <!-- id: att-3 -->
+  - Prevented unnecessary check-in API calls (`postEmployeeCheckin`) when staff is marked `"Holiday"`, `"At Head Office"`, `"Absent"`, or `"On Leave"`, eliminating deadlock risks.
+- [x] Step 4: Verification & Type Check <!-- id: att-4 -->
+  - Executed `npx tsc --noEmit` which completed with code 0 (zero errors).

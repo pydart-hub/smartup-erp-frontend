@@ -22,10 +22,9 @@ const headers = {
   "Content-Type": "application/json",
 };
 
+// In Frappe Server Script (safe_exec), 'import' is not allowed.
+// json and frappe are natively available in the execution scope.
 const pythonScript = `
-import json
-from datetime import datetime
-
 existing_name = frappe.form_dict.get("existing_name")
 employee = frappe.form_dict.get("employee")
 employee_name = frappe.form_dict.get("employee_name") or ""
@@ -60,11 +59,6 @@ if sessions_json:
     except Exception:
         pass
 
-# Calculate working hours and determine overall in/out time from sessions
-total_hours = 0.0
-all_in_times = []
-all_out_times = []
-
 def parse_time_str(t):
     if not t:
         return None
@@ -76,28 +70,6 @@ def parse_time_str(t):
         except Exception:
             return None
     return None
-
-for s in parsed_sessions:
-    s_in = s.get("in_time")
-    s_out = s.get("out_time")
-    if s_in:
-        all_in_times.append(s_in)
-    if s_out:
-        all_out_times.append(s_out)
-    m_in = parse_time_str(s_in)
-    m_out = parse_time_str(s_out)
-    if m_in is not None and m_out is not None and m_out > m_in:
-        total_hours += (m_out - m_in) / 60.0
-
-# Fallback working hours if no multi sessions
-if total_hours == 0.0 and in_time and out_time:
-    m_in = parse_time_str(in_time)
-    m_out = parse_time_str(out_time)
-    if m_in is not None and m_out is not None and m_out > m_in:
-        total_hours = (m_out - m_in) / 60.0
-
-earliest_in = sorted(all_in_times)[0] if all_in_times else in_time
-latest_out = sorted(all_out_times)[-1] if all_out_times else out_time
 
 def map_session_type(t_str):
     if not t_str:
@@ -112,40 +84,75 @@ def map_session_type(t_str):
     else:
         return "Evening"
 
+is_no_time = (status in ["Holiday", "At Head Office", "Absent", "On Leave"])
+
+total_hours = 0.0
+all_in_times = []
+all_out_times = []
+
+if not is_no_time:
+    for s in parsed_sessions:
+        s_in = s.get("in_time")
+        s_out = s.get("out_time")
+        if s_in:
+            all_in_times.append(s_in)
+        if s_out:
+            all_out_times.append(s_out)
+        m_in = parse_time_str(s_in)
+        m_out = parse_time_str(s_out)
+        if m_in is not None and m_out is not None and m_out > m_in:
+            total_hours += (m_out - m_in) / 60.0
+
+    if total_hours == 0.0 and in_time and out_time:
+        m_in = parse_time_str(in_time)
+        m_out = parse_time_str(out_time)
+        if m_in is not None and m_out is not None and m_out > m_in:
+            total_hours = (m_out - m_in) / 60.0
+
+earliest_in = (sorted(all_in_times)[0] if all_in_times else in_time) if not is_no_time else None
+latest_out = (sorted(all_out_times)[-1] if all_out_times else out_time) if not is_no_time else None
+
+in_time_val = (earliest_in if " " in earliest_in else (attendance_date + " " + earliest_in + ":00")) if earliest_in else None
+check_in_val = (earliest_in.split(" ")[1] if " " in earliest_in else earliest_in) if earliest_in else None
+out_time_val = (latest_out if " " in latest_out else (attendance_date + " " + latest_out + ":00")) if latest_out else None
+check_out_val = (latest_out.split(" ")[1] if " " in latest_out else latest_out) if latest_out else None
+
 if existing_name:
-    doc = frappe.get_doc("Attendance", existing_name)
-    doc.status = status
-    if sessions_json:
-        doc.custom_sessions_json = sessions_json
-    if earliest_in:
-        doc.in_time = earliest_in if " " in earliest_in else (attendance_date + " " + earliest_in + ":00")
-        doc.custom_check_in = earliest_in.split(" ")[1] if " " in earliest_in else earliest_in
-    if latest_out:
-        doc.out_time = latest_out if " " in latest_out else (attendance_date + " " + latest_out + ":00")
-        doc.custom_check_out = latest_out.split(" ")[1] if " " in latest_out else latest_out
-    if custom_class_time:
-        doc.custom_class_time = custom_class_time
+    # Update Attendance document directly in DB to bypass allow_on_submit / validate_status limits
+    db_updates = {
+        "status": status,
+        "custom_sessions_json": sessions_json if sessions_json else None,
+        "custom_class_time": custom_class_time if custom_class_time else None,
+        "in_time": in_time_val,
+        "custom_check_in": check_in_val,
+        "out_time": out_time_val,
+        "custom_check_out": check_out_val,
+        "working_hours": round(total_hours, 2) if total_hours > 0 else 0.0
+    }
     if is_visiting:
-        doc.custom_visiting_branch = session_branch
-    if total_hours > 0:
-        doc.working_hours = round(total_hours, 2)
+        db_updates["custom_visiting_branch"] = session_branch
+    frappe.db.set_value("Attendance", existing_name, db_updates)
 
     # Sync child table custom_branch_sessions
+    doc = frappe.get_doc("Attendance", existing_name)
+    doc.set("custom_branch_sessions", [])
     if parsed_sessions:
-        doc.set("custom_branch_sessions", [])
         for s in parsed_sessions:
             st = s.get("session_type") or map_session_type(s.get("in_time") or s.get("class_time"))
+            child_status = status if is_no_time else (s.get("status") or "Present")
+            s_in_clean = ((s.get("in_time") or "").split(" ")[-1]) if (not is_no_time and s.get("in_time")) else None
+            s_out_clean = ((s.get("out_time") or "").split(" ")[-1]) if (not is_no_time and s.get("out_time")) else None
+            s_class_clean = ((s.get("class_time") or "").split(" ")[-1]) if s.get("class_time") else None
             doc.append("custom_branch_sessions", {
                 "branch": s.get("branch") or company,
                 "session_type": st,
-                "status": s.get("status") or "Present",
-                "in_time": (s.get("in_time") or "").split(" ")[-1] if s.get("in_time") else None,
-                "out_time": (s.get("out_time") or "").split(" ")[-1] if s.get("out_time") else None,
-                "class_time": (s.get("class_time") or "").split(" ")[-1] if s.get("class_time") else None,
+                "status": child_status,
+                "in_time": s_in_clean,
+                "out_time": s_out_clean,
+                "class_time": s_class_clean,
                 "is_visiting": 1 if s.get("is_visiting") else 0,
                 "remarks": s.get("title") or s.get("remarks") or ""
             })
-
     doc.flags.ignore_validate = True
     doc.flags.ignore_permissions = True
     doc.save()
@@ -164,12 +171,12 @@ else:
     new_doc.status = status
     if sessions_json:
         new_doc.custom_sessions_json = sessions_json
-    if earliest_in:
-        new_doc.in_time = earliest_in if " " in earliest_in else (attendance_date + " " + earliest_in + ":00")
-        new_doc.custom_check_in = earliest_in.split(" ")[1] if " " in earliest_in else earliest_in
-    if latest_out:
-        new_doc.out_time = latest_out if " " in latest_out else (attendance_date + " " + latest_out + ":00")
-        new_doc.custom_check_out = latest_out.split(" ")[1] if " " in latest_out else latest_out
+    if in_time_val:
+        new_doc.in_time = in_time_val
+        new_doc.custom_check_in = check_in_val
+    if out_time_val:
+        new_doc.out_time = out_time_val
+        new_doc.custom_check_out = check_out_val
     if custom_class_time:
         new_doc.custom_class_time = custom_class_time
     if is_visiting:
@@ -178,17 +185,20 @@ else:
         new_doc.working_hours = round(total_hours, 2)
     new_doc.docstatus = 1
 
-    # Populate child table custom_branch_sessions
     if parsed_sessions:
         for s in parsed_sessions:
             st = s.get("session_type") or map_session_type(s.get("in_time") or s.get("class_time"))
+            child_status = status if is_no_time else (s.get("status") or "Present")
+            s_in_clean = ((s.get("in_time") or "").split(" ")[-1]) if (not is_no_time and s.get("in_time")) else None
+            s_out_clean = ((s.get("out_time") or "").split(" ")[-1]) if (not is_no_time and s.get("out_time")) else None
+            s_class_clean = ((s.get("class_time") or "").split(" ")[-1]) if s.get("class_time") else None
             new_doc.append("custom_branch_sessions", {
                 "branch": s.get("branch") or company,
                 "session_type": st,
-                "status": s.get("status") or "Present",
-                "in_time": (s.get("in_time") or "").split(" ")[-1] if s.get("in_time") else None,
-                "out_time": (s.get("out_time") or "").split(" ")[-1] if s.get("out_time") else None,
-                "class_time": (s.get("class_time") or "").split(" ")[-1] if s.get("class_time") else None,
+                "status": child_status,
+                "in_time": s_in_clean,
+                "out_time": s_out_clean,
+                "class_time": s_class_clean,
                 "is_visiting": 1 if s.get("is_visiting") else 0,
                 "remarks": s.get("title") or s.get("remarks") or ""
             })

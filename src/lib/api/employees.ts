@@ -522,35 +522,78 @@ export async function createEmployeeAttendance(payload: {
   custom_branch_sessions?: AttendanceBranchSession[];
   working_hours?: number;
 }): Promise<{ data: EmployeeAttendance }> {
+  const isNoTimeStatus =
+    payload.status === "Holiday" ||
+    payload.status === "At Head Office" ||
+    payload.status === "Absent" ||
+    payload.status === "On Leave";
+
   const customSessions = payload.custom_branch_sessions || (payload.sessions_json ? JSON.parse(payload.sessions_json) : undefined);
-  const postBody = {
+  const effectiveSessionsJson = payload.sessions_json || (payload.custom_branch_sessions ? JSON.stringify(payload.custom_branch_sessions) : undefined);
+
+  // Invoke the atomic set_attendance_status method to support multi-sessions
+  // and custom statuses like "Holiday" and "At Head Office" without being blocked by Frappe's
+  // hardcoded validate_status controller restrictions.
+  const methodPayload = {
     employee: payload.employee,
     employee_name: payload.employee_name,
     attendance_date: payload.attendance_date,
     status: payload.status,
     company: payload.company,
-    in_time: payload.in_time || undefined,
-    out_time: payload.out_time || undefined,
-    working_hours: payload.working_hours !== undefined ? payload.working_hours : undefined,
-    custom_check_in: formatToFrappeTime(payload.in_time),
-    custom_check_out: formatToFrappeTime(payload.out_time),
+    session_branch: payload.session_branch || payload.custom_visiting_branch || payload.company,
+    in_time: isNoTimeStatus ? undefined : (payload.in_time || undefined),
+    out_time: isNoTimeStatus ? undefined : (payload.out_time || undefined),
     custom_class_time: formatToFrappeTime(payload.custom_class_time),
-    custom_visiting_branch: payload.custom_visiting_branch || undefined,
-    custom_sessions_json: payload.sessions_json || undefined,
-    custom_branch_sessions: customSessions,
-    docstatus: 1,
+    is_visiting: payload.is_visiting ? 1 : (payload.custom_visiting_branch ? 1 : 0),
+    sessions_json: effectiveSessionsJson,
   };
 
-  const { data } = await apiClient.post("/resource/Attendance", postBody);
+  try {
+    const { data } = await apiClient.post("/method/set_attendance_status", methodPayload);
+    const resultDoc =
+      (data as { data?: EmployeeAttendance; message?: EmployeeAttendance })?.data ||
+      (data as { message?: EmployeeAttendance })?.message ||
+      (data as EmployeeAttendance);
 
-  if (payload.in_time) {
-    await postEmployeeCheckin(payload.employee, payload.in_time, "IN").catch(() => {});
-  }
-  if (payload.out_time) {
-    await postEmployeeCheckin(payload.employee, payload.out_time, "OUT").catch(() => {});
-  }
+    if (!isNoTimeStatus && payload.in_time) {
+      await postEmployeeCheckin(payload.employee, payload.in_time, "IN").catch(() => {});
+    }
+    if (!isNoTimeStatus && payload.out_time) {
+      await postEmployeeCheckin(payload.employee, payload.out_time, "OUT").catch(() => {});
+    }
 
-  return data;
+    return { data: resultDoc as EmployeeAttendance };
+  } catch (methodError: unknown) {
+    // If the custom method is unreachable, fall back to standard resource endpoint
+    const postBody = {
+      employee: payload.employee,
+      employee_name: payload.employee_name,
+      attendance_date: payload.attendance_date,
+      status: payload.status,
+      company: payload.company,
+      in_time: isNoTimeStatus ? undefined : (payload.in_time || undefined),
+      out_time: isNoTimeStatus ? undefined : (payload.out_time || undefined),
+      working_hours: isNoTimeStatus ? 0 : (payload.working_hours !== undefined ? payload.working_hours : undefined),
+      custom_check_in: isNoTimeStatus ? undefined : formatToFrappeTime(payload.in_time),
+      custom_check_out: isNoTimeStatus ? undefined : formatToFrappeTime(payload.out_time),
+      custom_class_time: formatToFrappeTime(payload.custom_class_time),
+      custom_visiting_branch: payload.custom_visiting_branch || undefined,
+      custom_sessions_json: effectiveSessionsJson || undefined,
+      custom_branch_sessions: customSessions,
+      docstatus: 1,
+    };
+
+    const { data } = await apiClient.post("/resource/Attendance", postBody);
+
+    if (!isNoTimeStatus && payload.in_time) {
+      await postEmployeeCheckin(payload.employee, payload.in_time, "IN").catch(() => {});
+    }
+    if (!isNoTimeStatus && payload.out_time) {
+      await postEmployeeCheckin(payload.employee, payload.out_time, "OUT").catch(() => {});
+    }
+
+    return data;
+  }
 }
 
 /** Update an existing Attendance record by updating the document directly with sessions and child table */
@@ -573,27 +616,55 @@ export async function updateEmployeeAttendance(
     custom_branch_sessions?: AttendanceBranchSession[];
   }
 ): Promise<void> {
+  const isNoTimeStatus =
+    payload.status === "Holiday" ||
+    payload.status === "At Head Office" ||
+    payload.status === "Absent" ||
+    payload.status === "On Leave";
+
   const customSessions = payload.custom_branch_sessions || (payload.sessions_json ? JSON.parse(payload.sessions_json) : undefined);
-  const putBody = {
+  const effectiveSessionsJson = payload.sessions_json || (payload.custom_branch_sessions ? JSON.stringify(payload.custom_branch_sessions) : undefined);
+
+  const methodPayload = {
+    existing_name: existingName,
+    employee: payload.employee,
+    employee_name: payload.employee_name,
+    attendance_date: payload.attendance_date,
     status: payload.status,
     company: payload.company,
-    in_time: payload.in_time || undefined,
-    out_time: payload.out_time || undefined,
-    working_hours: payload.working_hours !== undefined ? payload.working_hours : undefined,
-    custom_check_in: formatToFrappeTime(payload.in_time),
-    custom_check_out: formatToFrappeTime(payload.out_time),
+    session_branch: payload.session_branch || payload.custom_visiting_branch || payload.company,
+    in_time: isNoTimeStatus ? undefined : (payload.in_time || undefined),
+    out_time: isNoTimeStatus ? undefined : (payload.out_time || undefined),
     custom_class_time: formatToFrappeTime(payload.custom_class_time),
-    custom_visiting_branch: payload.custom_visiting_branch || undefined,
-    custom_sessions_json: payload.sessions_json || undefined,
-    custom_branch_sessions: customSessions,
+    is_visiting: payload.is_visiting ? 1 : (payload.custom_visiting_branch ? 1 : 0),
+    sessions_json: effectiveSessionsJson,
   };
 
-  await apiClient.put(`/resource/Attendance/${encodeURIComponent(existingName)}`, putBody);
+  try {
+    await apiClient.post("/method/set_attendance_status", methodPayload);
+  } catch (methodError: unknown) {
+    // Fall back to standard resource PUT
+    const putBody = {
+      status: payload.status,
+      company: payload.company,
+      in_time: isNoTimeStatus ? undefined : (payload.in_time || undefined),
+      out_time: isNoTimeStatus ? undefined : (payload.out_time || undefined),
+      working_hours: isNoTimeStatus ? 0 : (payload.working_hours !== undefined ? payload.working_hours : undefined),
+      custom_check_in: isNoTimeStatus ? undefined : formatToFrappeTime(payload.in_time),
+      custom_check_out: isNoTimeStatus ? undefined : formatToFrappeTime(payload.out_time),
+      custom_class_time: formatToFrappeTime(payload.custom_class_time),
+      custom_visiting_branch: payload.custom_visiting_branch || undefined,
+      custom_sessions_json: effectiveSessionsJson || undefined,
+      custom_branch_sessions: customSessions,
+    };
 
-  if (payload.in_time) {
+    await apiClient.put(`/resource/Attendance/${encodeURIComponent(existingName)}`, putBody);
+  }
+
+  if (!isNoTimeStatus && payload.in_time) {
     await postEmployeeCheckin(payload.employee, payload.in_time, "IN").catch(() => {});
   }
-  if (payload.out_time) {
+  if (!isNoTimeStatus && payload.out_time) {
     await postEmployeeCheckin(payload.employee, payload.out_time, "OUT").catch(() => {});
   }
 }
