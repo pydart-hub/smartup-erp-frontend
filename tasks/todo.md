@@ -195,8 +195,6 @@ Add the comprehensive Teacher Review system (currently in the Director role unde
 - [ ] Next Step 5: Legacy 301 Subdomain Redirect <!-- id: diag-12 -->
   - Add optional 301/302 redirect in `src/proxy.ts` from `scholar.` to `diagnosis.` so older links smoothly resolve to the new subdomain.
 - [x] Next Step 6: Nginx & Server Deployment Completed <!-- id: diag-13 -->
-  - Added `diagnosis.smartuplearning.net` to `/etc/nginx/sites-available/scholar` on the live server, reloaded Nginx, and executed zero-downtime clustered reload of all 4 PM2 instances via `deploy.sh`. Direct HTTP test returns `200 OK`.
-
-
-
-
+- [x] Next Step 7: Animated Mascot Sizing Responsive Update <!-- id: diag-14 -->
+  - Enlarged 3D animated video logo on desktop/web (`lg: 480px`, `xl: 540px`) while keeping it compact on mobile (`240px`) and tablets (`280px-320px`).
+  - Scaled ambient glow and grounding shadow responsively with center alignment.

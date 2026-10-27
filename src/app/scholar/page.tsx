@@ -315,10 +315,10 @@ export default function ScholarRegistrationPage() {
             </p>
 
             {/* Visual Hero Area: 3D Animated Logo Mascot */}
-            <div className="relative w-full max-w-[520px] mx-auto lg:mx-0 flex justify-center items-center pt-2 pb-2" style={{ perspective: "1000px" }}>
+            <div className="relative w-full max-w-[360px] sm:max-w-[420px] md:max-w-[460px] lg:max-w-none mx-auto flex justify-center items-center pt-2 pb-2" style={{ perspective: "1000px" }}>
               {/* Vibrant ambient glow halos behind animation */}
               <div className="absolute inset-0 flex items-center justify-center -z-10 pointer-events-none">
-                <div className="w-[300px] h-[300px] sm:w-[380px] sm:h-[380px] rounded-full bg-gradient-to-tr from-[#6C42B8]/25 via-purple-400/20 to-indigo-300/20 blur-[70px]" />
+                <div className="w-[240px] h-[240px] sm:w-[280px] sm:h-[280px] md:w-[320px] md:h-[320px] lg:w-[500px] lg:h-[500px] xl:w-[560px] xl:h-[560px] rounded-full bg-gradient-to-tr from-[#6C42B8]/25 via-purple-400/20 to-indigo-300/20 blur-[75px]" />
               </div>
 
               {/* 3D Floating Video Wrapper */}
@@ -339,17 +339,17 @@ export default function ScholarRegistrationPage() {
                 style={{ transformStyle: "preserve-3d", transformOrigin: "center center" }}
               >
                 {/* Dynamic soft shadow under the floating mascot */}
-                <div className="absolute -bottom-4 w-48 sm:w-60 h-8 rounded-[100%] bg-purple-950/20 blur-xl -z-10" />
+                <div className="absolute -bottom-4 w-40 sm:w-48 md:w-56 lg:w-[340px] xl:w-[380px] h-7 sm:h-8 lg:h-12 rounded-[100%] bg-purple-950/20 blur-xl -z-10" />
 
-                {/* Animated Mascot Video Container */}
-                <div className="relative w-[280px] h-[280px] sm:w-[340px] sm:h-[340px] flex items-center justify-center">
+                {/* Animated Mascot Video Container - Compact on mobile & tabs, enlarged on desktop & web */}
+                <div className="relative w-[240px] h-[240px] sm:w-[280px] sm:h-[280px] md:w-[320px] md:h-[320px] lg:w-[480px] lg:h-[480px] xl:w-[540px] xl:h-[540px] flex items-center justify-center">
                   <video
                     autoPlay
                     loop
                     muted
                     playsInline
                     preload="auto"
-                    className="w-full h-full object-contain pointer-events-none drop-shadow-[0_20px_35px_rgba(92,52,164,0.28)]"
+                    className="w-full h-full object-contain pointer-events-none drop-shadow-[0_22px_45px_rgba(92,52,164,0.32)]"
                   >
                     <source src="/Logo%20Icon%20Smile%20ALPHA.webm" type="video/webm" />
                     <source src="/Logo Icon Smile ALPHA.webm" type="video/webm" />
