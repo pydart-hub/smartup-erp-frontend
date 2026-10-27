@@ -72,7 +72,9 @@ export default function ScholarRegistrationPage() {
   // Check LocalStorage on initial load for returning student on same device
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("smartup_scholar_student");
+      const saved =
+        localStorage.getItem("smartup_diagnosis_student") ||
+        localStorage.getItem("smartup_scholar_student");
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed.phone) {
@@ -184,19 +186,18 @@ export default function ScholarRegistrationPage() {
         setRegistrationId(data.registrationId);
       }
 
-      // Save to localStorage for seamless device persistence
-      localStorage.setItem(
-        "smartup_scholar_student",
-        JSON.stringify({
-          name: name.trim(),
-          schoolName: schoolName.trim(),
-          phone: fullFormattedPhone,
-          selectedClass,
-          syllabus,
-          district: `${district} (${selectedCountry.code})`,
-          registrationId: data.registrationId,
-        })
-      );
+      // Save to localStorage for seamless device persistence (dual compatibility)
+      const serializedStudent = JSON.stringify({
+        name: name.trim(),
+        schoolName: schoolName.trim(),
+        phone: fullFormattedPhone,
+        selectedClass,
+        syllabus,
+        district: `${district} (${selectedCountry.code})`,
+        registrationId: data.registrationId,
+      });
+      localStorage.setItem("smartup_diagnosis_student", serializedStudent);
+      localStorage.setItem("smartup_scholar_student", serializedStudent);
 
       setIsSubmitted(true);
     } catch (err: any) {
@@ -206,7 +207,7 @@ export default function ScholarRegistrationPage() {
     }
   };
 
-  const handleStartScholarshipExam = async () => {
+  const handleStartDiagnosisExam = async () => {
     const fullFormattedPhone = returningStudent
       ? returningStudent.phone
       : formatE164(selectedCountry.dialCode, phone);
@@ -229,14 +230,16 @@ export default function ScholarRegistrationPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Failed to start scholarship exam.");
+        throw new Error(data.error || "Failed to start diagnosis exam.");
       }
 
       if (data.sessionToken) {
+        sessionStorage.setItem(`diagnosis_token_${data.attemptId}`, data.sessionToken);
         sessionStorage.setItem(`scholar_token_${data.attemptId}`, data.sessionToken);
       }
 
-      window.location.href = `/scholar/exam/${data.attemptId}`;
+      const isSubdomain = typeof window !== "undefined" && (window.location.host.startsWith("diagnosis.") || window.location.host.startsWith("scholar."));
+      window.location.href = isSubdomain ? `/exam/${data.attemptId}` : `/scholar/exam/${data.attemptId}`;
     } catch (err: any) {
       alert(err.message || "Failed to start exam. Please try again.");
       setIsStartingExam(false);
@@ -275,7 +278,7 @@ export default function ScholarRegistrationPage() {
                 SMART UP
               </span>
               <span className="text-[10px] font-bold text-slate-500 tracking-[0.18em] uppercase mt-1">
-                Scholarship Exam
+                Diagnosis Exam
               </span>
             </div>
           </a>
@@ -297,7 +300,7 @@ export default function ScholarRegistrationPage() {
 
             {/* Tag / Eyebrow */}
             <div className="text-[11px] font-extrabold tracking-[0.22em] text-[#6C42B8] uppercase mb-3">
-              SMARTUP SCHOLARSHIP EXAM
+              SMARTUP DIAGNOSIS EXAM
             </div>
 
             {/* Headline */}
@@ -308,7 +311,7 @@ export default function ScholarRegistrationPage() {
 
             {/* Subtitle */}
             <p className="text-[15px] sm:text-base text-slate-500 max-w-lg font-normal leading-relaxed mb-4">
-              Take the <strong className="text-slate-800 font-semibold">SmartUp Scholarship Exam</strong> for Classes 8, 9, 10, +1 &amp; +2.
+              Take the <strong className="text-slate-800 font-semibold">SmartUp Diagnosis Exam</strong> for Classes 8, 9, 10, +1 &amp; +2.
             </p>
 
             {/* Visual Hero Area: 3D Tilted Image Card */}
@@ -341,8 +344,8 @@ export default function ScholarRegistrationPage() {
                   }}
                 >
                   <Image
-                    src="/sclr.jpeg"
-                    alt="SmartUp Scholarship Exam"
+                    src="/diagnosis-banner.jpg"
+                    alt="SmartUp Diagnosis Exam"
                     fill
                     priority
                     className="object-cover object-center"
@@ -452,10 +455,10 @@ export default function ScholarRegistrationPage() {
                   <button
                     type="button"
                     disabled={isStartingExam}
-                    onClick={handleStartScholarshipExam}
+                    onClick={handleStartDiagnosisExam}
                     className="w-full py-2.5 px-4 font-bold text-xs text-white bg-[#5C34A4] hover:bg-[#4E2B8E] active:bg-[#43237E] disabled:opacity-70 rounded-xl transition-all shadow-md shadow-purple-900/20 flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    <span>{isStartingExam ? "Starting Scholarship Exam..." : "Start / Resume Exam Now"}</span>
+                    <span>{isStartingExam ? "Starting Diagnosis Exam..." : "Start / Resume Exam Now"}</span>
                     {!isStartingExam && <ArrowRight className="w-3.5 h-3.5" />}
                   </button>
                 </div>
@@ -504,10 +507,10 @@ export default function ScholarRegistrationPage() {
                   <button
                     type="button"
                     disabled={isStartingExam}
-                    onClick={handleStartScholarshipExam}
+                    onClick={handleStartDiagnosisExam}
                     className="w-full py-3 px-6 font-bold text-sm text-white bg-[#5C34A4] hover:bg-[#4E2B8E] active:bg-[#43237E] disabled:opacity-70 rounded-full transition-all shadow-lg shadow-purple-900/25 flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
                   >
-                    <span>{isStartingExam ? "Starting Scholarship Exam..." : "Take Scholarship Exam Now"}</span>
+                    <span>{isStartingExam ? "Starting Diagnosis Exam..." : "Take Diagnosis Exam Now"}</span>
                     {!isStartingExam && <ArrowRight className="w-4 h-4" />}
                   </button>
 

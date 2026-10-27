@@ -8,7 +8,9 @@ export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get("authorization");
     const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.substring(7) : null;
-    const cookieToken = request.cookies.get("scholar_admin_token")?.value;
+    const cookieToken =
+      request.cookies.get("diagnosis_admin_token")?.value ||
+      request.cookies.get("scholar_admin_token")?.value;
 
     const token = bearerToken || cookieToken;
 
@@ -16,11 +18,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized. Please log in again." }, { status: 401 });
     }
 
-    // Strictly isolate to Scholarship exams only
+    // Strictly isolate to Diagnosis / Scholarship exams only
     const publishingWhere = {
       OR: [
         { slug: { startsWith: "scholarship-" } },
+        { slug: { startsWith: "diagnosis-" } },
         { title: { contains: "Scholarship", mode: "insensitive" as const } },
+        { title: { contains: "Diagnosis", mode: "insensitive" as const } },
       ],
     };
 
@@ -131,7 +135,9 @@ export async function DELETE(request: NextRequest) {
   try {
     const authHeader = request.headers.get("authorization");
     const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.substring(7) : null;
-    const cookieToken = request.cookies.get("scholar_admin_token")?.value;
+    const cookieToken =
+      request.cookies.get("diagnosis_admin_token")?.value ||
+      request.cookies.get("scholar_admin_token")?.value;
 
     const token = bearerToken || cookieToken;
 

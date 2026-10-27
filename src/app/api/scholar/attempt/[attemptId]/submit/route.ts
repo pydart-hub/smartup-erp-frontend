@@ -11,8 +11,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const autoSubmitted = !!body.autoSubmitted;
 
     const token =
+      request.cookies.get(`diagnosis_session_${attemptId}`)?.value ||
       request.cookies.get(`scholar_session_${attemptId}`)?.value ||
       request.cookies.get(`exam_session_${attemptId}`)?.value ||
+      request.headers.get("x-diagnosis-session-token") ||
       request.headers.get("x-scholar-session-token") ||
       request.headers.get("x-exam-session-token");
 
@@ -46,6 +48,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       autoSubmitted: updatedAttempt.status === "auto_submitted",
     });
 
+    response.cookies.delete(`diagnosis_session_${attemptId}`);
     response.cookies.delete(`scholar_session_${attemptId}`);
     return response;
   } catch (error) {

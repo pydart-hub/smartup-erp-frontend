@@ -54,21 +54,29 @@ export const DIAGNOSIS_EXAM_PUBLISHING_FILTER = {
   publishing: {
     NOT: [
       { slug: { startsWith: "scholarship" } },
+      { slug: { startsWith: "public-diagnosis" } },
       { title: { contains: "Scholarship", mode: "insensitive" as const } },
+      { subjectCode: { startsWith: "SCHOLARSHIP" } },
     ],
   },
 };
 
 /**
- * Helper to determine whether an exam attempt is from the public scholarship portal.
+ * Helper to determine whether an exam attempt is from the public online exam portal.
  */
 export function isScholarshipAttempt(attempt: {
   studentBranch?: string | null;
-  publishing?: { title?: string | null; slug?: string | null } | null;
+  publishing?: { title?: string | null; slug?: string | null; subjectCode?: string | null } | null;
 }): boolean {
   const title = attempt.publishing?.title?.toLowerCase() || "";
   const slug = attempt.publishing?.slug?.toLowerCase() || "";
-  if (title.includes("scholarship") || slug.startsWith("scholarship")) {
+  const subjectCode = attempt.publishing?.subjectCode?.toLowerCase() || "";
+  if (
+    title.includes("scholarship") ||
+    slug.startsWith("scholarship") ||
+    slug.startsWith("public-diagnosis") ||
+    subjectCode.startsWith("scholarship")
+  ) {
     return true;
   }
 

@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "SmartUp Scholarship Exam 2026 — Candidate Registration",
+  title: "SmartUp Diagnosis Exam 2026 — Candidate Registration",
   description:
-    "Register for SmartUp Scholarship Exam 2026. Enter your details to book your test slot and claim tuition fee waivers.",
+    "Register for SmartUp Diagnosis Exam 2026. Enter your details to book your test slot, evaluate your academic strengths, and identify key learning gaps.",
 };
 
 export default function ScholarLayout({

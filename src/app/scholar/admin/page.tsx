@@ -97,7 +97,9 @@ export default function ScholarAdminPage() {
 
   // Check existing session
   useEffect(() => {
-    const savedToken = sessionStorage.getItem("scholar_admin_token");
+    const savedToken =
+      sessionStorage.getItem("diagnosis_admin_token") ||
+      sessionStorage.getItem("scholar_admin_token");
     if (savedToken) {
       setToken(savedToken);
       setIsAuthenticated(true);
@@ -122,6 +124,7 @@ export default function ScholarAdminPage() {
         throw new Error(data.error || "Authentication failed. Please check credentials.");
       }
 
+      sessionStorage.setItem("diagnosis_admin_token", data.token);
       sessionStorage.setItem("scholar_admin_token", data.token);
       setToken(data.token);
       setIsAuthenticated(true);
@@ -135,6 +138,7 @@ export default function ScholarAdminPage() {
   };
 
   const handleLogout = () => {
+    sessionStorage.removeItem("diagnosis_admin_token");
     sessionStorage.removeItem("scholar_admin_token");
     setIsAuthenticated(false);
     setToken(null);
@@ -285,7 +289,7 @@ export default function ScholarAdminPage() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `scholar_candidates_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute("download", `diagnosis_candidates_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -297,14 +301,14 @@ export default function ScholarAdminPage() {
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-[#F7F8FA] flex flex-col justify-center items-center p-4 sm:p-6">
-        {/* Back to Scholar Public Page */}
+        {/* Back to Diagnosis Public Page */}
         <div className="w-full max-w-md mb-4 flex justify-between items-center">
           <button
             onClick={() => router.push("/scholar")}
             className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-[#5C34A4] transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Back to Scholarship Exam</span>
+            <span>Back to Diagnosis Exam</span>
           </button>
         </div>
 
@@ -315,7 +319,7 @@ export default function ScholarAdminPage() {
               <GraduationCap className="w-8 h-8 text-white" />
             </div>
             <h1 className="text-xl font-bold tracking-tight">SmartUp Control Center</h1>
-            <p className="text-xs text-white/80 mt-1">Scholarship Exam Administration &amp; Logs</p>
+            <p className="text-xs text-white/80 mt-1">Diagnosis Exam Administration &amp; Logs</p>
           </div>
 
           {/* Form */}
@@ -412,7 +416,7 @@ export default function ScholarAdminPage() {
               </div>
               <div>
                 <h1 className="text-base font-bold text-slate-900 tracking-tight leading-none">
-                  Scholarship Exam Control Center
+                  Diagnosis Exam Control Center
                 </h1>
                 <p className="text-[11px] text-slate-400 mt-1">
                   Candidate Registrations &amp; Live Test Attempts
@@ -422,10 +426,10 @@ export default function ScholarAdminPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Scholarship Exam Active Badge */}
+            {/* Diagnosis Exam Active Badge */}
             <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 border border-purple-200/70 text-xs font-bold text-[#5C34A4]">
               <span className="w-2 h-2 rounded-full bg-[#5C34A4] animate-pulse" />
-              <span>Scholarship Exam</span>
+              <span>Diagnosis Exam</span>
             </div>
 
             <button
@@ -468,11 +472,11 @@ export default function ScholarAdminPage() {
               <div className="text-xs font-bold text-slate-900">
                 Viewing:{" "}
                 <span className="text-[#5C34A4]">
-                  Dedicated Scholarship Exam 2026-27 Candidates
+                  Dedicated Diagnosis Exam 2026-27 Candidates
                 </span>
               </div>
               <div className="text-[11px] text-slate-500">
-                Showing students taking the official SmartUp Scholarship Exam (Classes 8, 9, 10, +1 &amp; +2).
+                Showing students taking the official SmartUp Diagnosis Exam (Classes 8, 9, 10, +1 &amp; +2).
               </div>
             </div>
           </div>

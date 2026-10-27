@@ -97,7 +97,7 @@ export default function ScholarResultView({ attempt }: ScholarResultViewProps) {
                 SMART UP
               </span>
               <span className="text-[10px] font-bold text-[#5C34A4] tracking-widest uppercase mt-0.5">
-                Scholarship Exam
+                Diagnosis Exam
               </span>
             </div>
           </div>
@@ -120,7 +120,7 @@ export default function ScholarResultView({ attempt }: ScholarResultViewProps) {
       {/* Main Scorecard Container */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12 w-full flex-1">
         <div
-          id="scholarship-report"
+          id="diagnosis-report"
           className="relative overflow-hidden bg-white rounded-[32px] p-6 sm:p-10 border border-slate-100 shadow-xl shadow-purple-950/5 space-y-8 print:space-y-3 print:border-none print:shadow-none print:p-0"
         >
           {/* Centered SmartUp Logo Background Watermark with Low Opacity */}
@@ -154,7 +154,7 @@ export default function ScholarResultView({ attempt }: ScholarResultViewProps) {
                   SMART UP
                 </span>
                 <span className="text-[10px] font-bold text-[#5C34A4] tracking-widest uppercase mt-0.5">
-                  Online Scholarship Examination 2026-27
+                  Online Diagnosis Examination 2026-27
                 </span>
               </div>
             </div>
@@ -182,7 +182,7 @@ export default function ScholarResultView({ attempt }: ScholarResultViewProps) {
                 Official Scorecard &amp; Assessment Report
               </span>
               <h1 className="text-2xl sm:text-3xl print:text-lg font-black text-slate-900 tracking-tight">
-                Scholarship Assessment Completed!
+                Diagnosis Assessment Completed!
               </h1>
               <p className="text-xs sm:text-sm print:text-[10px] text-slate-500">
                 Congratulations, <strong className="text-[#5C34A4]">{attempt.studentName}</strong>! Your results have been officially recorded.
@@ -283,7 +283,7 @@ export default function ScholarResultView({ attempt }: ScholarResultViewProps) {
                 </h3>
               </div>
               <p className="text-[11px] print:text-[8.5px] text-slate-600 mt-1 font-medium">
-                Verified computerized assessment for SmartUp Scholarship Exam Batch 2026-27.
+                Verified computerized assessment for SmartUp Diagnosis Exam Batch 2026-27.
               </p>
             </div>
           </div>
@@ -486,6 +486,7 @@ export default function ScholarResultView({ attempt }: ScholarResultViewProps) {
             max-width: 100% !important;
           }
 
+          #diagnosis-report,
           #scholarship-report {
             border: none !important;
             box-shadow: none !important;

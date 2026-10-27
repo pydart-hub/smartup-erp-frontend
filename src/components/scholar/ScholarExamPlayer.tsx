@@ -119,7 +119,10 @@ export default function ScholarExamPlayer({
         return next;
       });
 
-      const token = sessionStorage.getItem(`scholar_token_${attemptId}`) || "";
+      const token =
+        sessionStorage.getItem(`diagnosis_token_${attemptId}`) ||
+        sessionStorage.getItem(`scholar_token_${attemptId}`) ||
+        "";
 
       flushPromiseRef.current = (async () => {
         try {
@@ -127,6 +130,7 @@ export default function ScholarExamPlayer({
             method: "POST",
             headers: {
               "Content-Type": "application/json",
+              "x-diagnosis-session-token": token,
               "x-scholar-session-token": token,
             },
             body: JSON.stringify({ answers: payload }),
@@ -171,20 +175,27 @@ export default function ScholarExamPlayer({
     await flushPendingAnswersRef.current();
 
     try {
-      const token = sessionStorage.getItem(`scholar_token_${attemptId}`) || "";
+      const token =
+        sessionStorage.getItem(`diagnosis_token_${attemptId}`) ||
+        sessionStorage.getItem(`scholar_token_${attemptId}`) ||
+        "";
       const res = await fetch(`/api/scholar/attempt/${attemptId}/submit`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "x-diagnosis-session-token": token,
           "x-scholar-session-token": token,
         },
         body: JSON.stringify({ autoSubmitted: true }),
       });
 
+      const isSub = typeof window !== "undefined" && (window.location.host.startsWith("diagnosis.") || window.location.host.startsWith("scholar."));
+      const targetResult = isSub ? `/result/${attemptId}` : `/scholar/result/${attemptId}`;
       if (!res.ok) throw new Error("Auto-submit failed");
-      router.push(`/scholar/result/${attemptId}`);
+      router.push(targetResult);
     } catch {
-      router.push(`/scholar/result/${attemptId}`);
+      const isSub = typeof window !== "undefined" && (window.location.host.startsWith("diagnosis.") || window.location.host.startsWith("scholar."));
+      router.push(isSub ? `/result/${attemptId}` : `/scholar/result/${attemptId}`);
     }
   };
 
@@ -299,11 +310,15 @@ export default function ScholarExamPlayer({
     await flushPendingAnswersRef.current();
 
     try {
-      const token = sessionStorage.getItem(`scholar_token_${attemptId}`) || "";
+      const token =
+        sessionStorage.getItem(`diagnosis_token_${attemptId}`) ||
+        sessionStorage.getItem(`scholar_token_${attemptId}`) ||
+        "";
       const res = await fetch(`/api/scholar/attempt/${attemptId}/submit`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "x-diagnosis-session-token": token,
           "x-scholar-session-token": token,
         },
         body: JSON.stringify({ autoSubmitted: false }),
@@ -314,7 +329,8 @@ export default function ScholarExamPlayer({
         throw new Error(data.error || "Failed to submit exam");
       }
 
-      router.push(`/scholar/result/${attemptId}`);
+      const isSub = typeof window !== "undefined" && (window.location.host.startsWith("diagnosis.") || window.location.host.startsWith("scholar."));
+      router.push(isSub ? `/result/${attemptId}` : `/scholar/result/${attemptId}`);
     } catch (err: any) {
       setSubmitError(err.message || "Failed to submit exam. Please try again.");
       setSubmitting(false);
@@ -346,7 +362,7 @@ export default function ScholarExamPlayer({
                 SMART UP
               </span>
               <span className="text-[10px] font-bold text-[#5C34A4] tracking-widest uppercase mt-0.5">
-                Scholarship Exam
+                Diagnosis Exam
               </span>
             </div>
           </div>
@@ -656,7 +672,7 @@ export default function ScholarExamPlayer({
             </div>
 
             <div className="text-center space-y-1.5">
-              <h4 className="text-xl font-black text-slate-900">Submit Scholarship Exam?</h4>
+              <h4 className="text-xl font-black text-slate-900">Submit Diagnosis Exam?</h4>
               <p className="text-xs text-slate-500">
                 You have answered <strong className="text-[#5C34A4]">{answeredCount}</strong> of{" "}
                 <strong className="text-slate-800">{totalQuestions}</strong> questions.

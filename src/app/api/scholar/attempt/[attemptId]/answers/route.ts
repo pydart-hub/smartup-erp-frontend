@@ -22,8 +22,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     const token =
+      request.cookies.get(`diagnosis_session_${attemptId}`)?.value ||
       request.cookies.get(`scholar_session_${attemptId}`)?.value ||
       request.cookies.get(`exam_session_${attemptId}`)?.value ||
+      request.headers.get("x-diagnosis-session-token") ||
       request.headers.get("x-scholar-session-token") ||
       request.headers.get("x-exam-session-token");
 

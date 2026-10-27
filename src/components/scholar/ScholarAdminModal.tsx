@@ -95,7 +95,9 @@ export default function ScholarAdminModal({ isOpen, onClose }: ScholarAdminModal
 
   // Check existing session on mount
   useEffect(() => {
-    const savedToken = sessionStorage.getItem("scholar_admin_token");
+    const savedToken =
+      sessionStorage.getItem("diagnosis_admin_token") ||
+      sessionStorage.getItem("scholar_admin_token");
     if (savedToken) {
       setToken(savedToken);
       setIsAuthenticated(true);
@@ -120,6 +122,7 @@ export default function ScholarAdminModal({ isOpen, onClose }: ScholarAdminModal
         throw new Error(data.error || "Authentication failed. Please check credentials.");
       }
 
+      sessionStorage.setItem("diagnosis_admin_token", data.token);
       sessionStorage.setItem("scholar_admin_token", data.token);
       setToken(data.token);
       setIsAuthenticated(true);
@@ -133,6 +136,7 @@ export default function ScholarAdminModal({ isOpen, onClose }: ScholarAdminModal
   };
 
   const handleLogout = () => {
+    sessionStorage.removeItem("diagnosis_admin_token");
     sessionStorage.removeItem("scholar_admin_token");
     setIsAuthenticated(false);
     setToken(null);
@@ -257,7 +261,7 @@ export default function ScholarAdminModal({ isOpen, onClose }: ScholarAdminModal
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `scholar_exam_attendees_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute("download", `diagnosis_exam_attendees_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -284,7 +288,7 @@ export default function ScholarAdminModal({ isOpen, onClose }: ScholarAdminModal
             </div>
             <div>
               <h2 className="text-lg font-bold tracking-tight">
-                {isAuthenticated ? "Scholarship Exam Control Center" : "Scholar Portal Admin Login"}
+                {isAuthenticated ? "Diagnosis Exam Control Center" : "Diagnosis Portal Admin Login"}
               </h2>
               <p className="text-xs text-white/80">
                 {isAuthenticated

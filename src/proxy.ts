@@ -29,6 +29,7 @@ const PUBLIC_PATHS = [
   "/exam-site",
   "/plus-two-predictor",
   "/scholar",
+  "/diagnosis",
   "/levelup",
 ];
 const APP_ROLES = Object.keys(ROLE_DASHBOARD_MAP);
@@ -73,19 +74,22 @@ export function proxy(request: NextRequest) {
     }
   }
 
-  // Handle scholar subdomain rewrites
-  if (host.toLowerCase().startsWith("scholar.")) {
+  // Handle scholar and diagnosis subdomain rewrites
+  const isScholarSubdomain = host.toLowerCase().startsWith("scholar.");
+  const isDiagnosisSubdomain = host.toLowerCase().startsWith("diagnosis.");
+
+  if (isScholarSubdomain || isDiagnosisSubdomain) {
     const isInternal =
       pathname.startsWith("/api") ||
       pathname.startsWith("/_next") ||
-      pathname.startsWith("/exam-site") || // Allow public exam platform directly on scholar subdomain
+      pathname.startsWith("/exam-site") || // Allow public exam platform directly on subdomain
       pathname.includes("."); // e.g. favicon.ico, images
 
-    console.log(`[MIDDLEWARE DEBUG] Scholar subdomain detected. isInternal: ${isInternal}, pathname: "${pathname}"`);
+    console.log(`[MIDDLEWARE DEBUG] Exam subdomain detected (scholar/diagnosis). isInternal: ${isInternal}, pathname: "${pathname}"`);
 
-    if (!isInternal && !pathname.startsWith("/scholar")) {
+    if (!isInternal && !pathname.startsWith("/scholar") && !pathname.startsWith("/diagnosis")) {
       url.pathname = `/scholar${pathname === "/" ? "" : pathname}`;
-      console.log(`[MIDDLEWARE DEBUG] Rewriting scholar subdomain request to: "${url.pathname}"`);
+      console.log(`[MIDDLEWARE DEBUG] Rewriting subdomain request to: "${url.pathname}"`);
       return NextResponse.rewrite(url);
     }
   }
@@ -104,6 +108,12 @@ export function proxy(request: NextRequest) {
       console.log(`[MIDDLEWARE DEBUG] Rewriting predictor subdomain request to: "${url.pathname}"`);
       return NextResponse.rewrite(url);
     }
+  }
+
+  // Rewrite /diagnosis paths to /scholar so direct main-domain URL navigation works seamlessly
+  if (pathname === "/diagnosis" || pathname.startsWith("/diagnosis/")) {
+    url.pathname = pathname.replace(/^\/diagnosis/, "/scholar");
+    return NextResponse.rewrite(url);
   }
 
   if (PUBLIC_PATHS.some((path) => pathname.startsWith(path))) {

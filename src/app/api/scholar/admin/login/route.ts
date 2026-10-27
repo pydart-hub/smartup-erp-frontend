@@ -16,13 +16,15 @@ export async function POST(request: NextRequest) {
         token,
       });
 
-      response.cookies.set("scholar_admin_token", token, {
+      const cookieOpts = {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
+        sameSite: "strict" as const,
         path: "/",
         maxAge: 12 * 60 * 60, // 12 hours
-      });
+      };
+      response.cookies.set("diagnosis_admin_token", token, cookieOpts);
+      response.cookies.set("scholar_admin_token", token, cookieOpts);
 
       return response;
     }

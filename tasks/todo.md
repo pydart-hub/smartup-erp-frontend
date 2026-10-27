@@ -139,4 +139,64 @@ Add the comprehensive Teacher Review system (currently in the Director role unde
   - Tested across branches against the running dev server, validating that visiting teachers (e.g. Ciya in Kadavanthara, Aflah in Fortkochi/Chullickal) and cross-branch faculty appear properly.
   - Executed `npx tsc --noEmit` with code 0 (zero errors).
 
+---
+
+# Architecture & Implementation Plan: Rebranding Scholarship Exam to Diagnosis Exam
+
+## 1. System Study & Architectural Inventory
+- **User Request**: Rebrand the public "Scholarship Exam" (`scholar.smartuplearning.net`) to "Diagnosis Exam" across all surfaces, with future readiness for a subdomain change. No implementation until explicit user command.
+- **Affected Surfaces**:
+  1. **Public Registration & Landing (`src/app/scholar/page.tsx` & `layout.tsx`)**:
+     - Metadata title & descriptions ("Scholarship Exam 2026" → "Diagnosis Exam 2026").
+     - Brand headers, hero titles, class callouts, and submit button labels.
+     - Graphic banner (`/sclr.jpeg` contains hardcoded "GET UPTO 25% SCHOLARSHIP").
+  2. **Live Exam Player (`src/components/scholar/ScholarExamPlayer.tsx` & `src/app/scholar/exam/[attemptId]`)**:
+     - Header badge ("Scholarship Exam" → "Diagnosis Exam").
+     - Submit confirmation modal ("Submit Scholarship Exam?" → "Submit Diagnosis Exam?").
+  3. **Scorecard & Report View (`src/components/scholar/ScholarResultView.tsx` & `src/app/scholar/result/[attemptId]`)**:
+     - Scorecard headers, official print format, completion banner, performance badge.
+     - CSS selector `#scholarship-report` → `#diagnosis-report` (or backward-compatible dual class).
+  4. **Admin Control Center (`src/app/scholar/admin/page.tsx` & `ScholarAdminModal.tsx`)**:
+     - Control center titles, back links, logs, CSV export filename (`scholar_candidates_...` → `diagnosis_candidates_...`).
+  5. **API & Data Compatibility Layer (`src/app/api/scholar/...`)**:
+     - Session headers (`x-scholar-session-token`), cookies (`scholar_session_...`), localStorage (`smartup_scholar_student`).
+     - Publishing queries in `start/route.ts` & `register/route.ts`: Support both `scholarship-` and `diagnosis-` slugs to avoid breaking live DB publishings.
+  6. **Routing & Subdomain Proxy (`src/proxy.ts`)**:
+     - Next.js 16 Proxy layer: Add support for incoming `diagnosis.` subdomain rewrite alongside legacy `scholar.`.
+  7. **Branch Tuition Center Isolation**:
+     - Maintain strict partition so public online diagnosis attempts don't contaminate physical branch center diagnosis reports in Director/GM dashboards.
+
+## 2. Planned Implementation Steps (Completed & Verified)
+- [x] Step 1: Frontend Copy & UI Rebranding <!-- id: diag-1 -->
+  - Rebranded all customer-facing text from "Scholarship Exam" to "Diagnosis Exam" in `layout.tsx`, `page.tsx`, `ScholarExamPlayer.tsx`, and `ScholarResultView.tsx`.
+- [x] Step 2: Banner Asset Update <!-- id: diag-2 -->
+  - Replaced the `/sclr.jpeg` banner (which displayed "GET UPTO 25% SCHOLARSHIP") with a sleek, modern Diagnosis Exam card (`/diagnosis-banner.jpg`).
+- [x] Step 3: Admin Modal & Control Center Rebrand <!-- id: diag-3 -->
+  - Updated `ScholarAdminModal.tsx` and `src/app/scholar/admin/page.tsx` headers, labels, and CSV downloads to "Diagnosis Exam".
+- [x] Step 4: Database Query & Backend Isolation Fallbacks <!-- id: diag-4 -->
+  - In `start/route.ts`, `register/route.ts`, and `admin/attempts/route.ts`, widened publishing filters to accept both legacy "scholarship" and new "diagnosis" titles/slugs without touching live production DB records.
+- [x] Step 5: Dual Subdomain & Path Support in `src/proxy.ts` <!-- id: diag-5 -->
+  - Enabled `diagnosis.` subdomain detection in `src/proxy.ts` alongside `scholar.`, ensuring smooth transition when DNS changes.
+- [x] Step 6: Storage & Session Dual-Compatibility <!-- id: diag-6 -->
+  - Updated `localStorage`, `sessionStorage`, and cookie handlers with dual-read fallback so returning students are not logged out or disconnected mid-exam.
+- [x] Step 7: Verification & Type Check <!-- id: diag-7 -->
+  - Ran `npx tsc --noEmit` which completed with code 0 (zero errors).
+
+## 3. Deep Study Findings & Next Steps (Phase 2 Action Plan)
+- [x] Next Step 1: Fortify Branch Tuition Isolation (`src/lib/utils/diagnosis.ts`) <!-- id: diag-8 -->
+  - Updated `DIAGNOSIS_EXAM_PUBLISHING_FILTER` and `isScholarshipAttempt` to exclude `public-diagnosis` and `SCHOLARSHIP` subject codes so public attempts cannot contaminate Director/GM physical tuition reports.
+- [x] Next Step 2: Clean URL Paths on Subdomain & Main Domain Route Alias <!-- id: diag-9 -->
+  - Supported clean paths (`/exam/[id]`, `/result/[id]`) when browsing directly on `diagnosis.smartuplearning.net`.
+  - Added `/diagnosis` route rewrite to `/scholar` in `src/proxy.ts` to prevent 404s when navigating to `smartuplearning.net/diagnosis`.
+- [x] Next Step 3: Admin Modal & DELETE Route Session Parity <!-- id: diag-10 -->
+  - Added dual-read for `diagnosis_admin_token` in `ScholarAdminModal.tsx` and in `src/app/api/scholar/admin/attempts/route.ts` DELETE handler.
+- [x] Next Step 4: Update Branch Exam Blocker Copy (`src/app/api/public-exam/start/route.ts`) <!-- id: diag-11 -->
+  - Updated error message from `scholar.smartuplearning.net` to `diagnosis.smartuplearning.net` when students attempt to take public diagnosis exams on `/exam-site`.
+- [ ] Next Step 5: Legacy 301 Subdomain Redirect <!-- id: diag-12 -->
+  - Add optional 301/302 redirect in `src/proxy.ts` from `scholar.` to `diagnosis.` so older links smoothly resolve to the new subdomain.
+- [ ] Next Step 6: Nginx & Cloudflare DNS Verification <!-- id: diag-13 -->
+  - Verify Cloudflare DNS A/CNAME record for `diagnosis.smartuplearning.net` pointing to `76.13.244.60` (proxied) and Nginx `server_name` includes wildcard or explicit subdomain.
+
+
+
 

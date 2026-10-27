@@ -73,14 +73,16 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Check if an active Scholarship exam publishing exists for this class
+    // Check if an active Diagnosis / Scholarship exam publishing exists for this class
     const activePublishing = await db.examPublishing.findFirst({
       where: {
         classLevel: targetLevel,
         isActive: true,
         OR: [
           { slug: { startsWith: "scholarship-" } },
+          { slug: { startsWith: "diagnosis-" } },
           { title: { contains: "Scholarship", mode: "insensitive" } },
+          { title: { contains: "Diagnosis", mode: "insensitive" } },
         ],
       },
       select: {
@@ -106,7 +108,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("[api/scholar/register] Error:", error);
     return NextResponse.json(
-      { error: error?.message || "Failed to register student for scholarship exam." },
+      { error: error?.message || "Failed to register student for diagnosis exam." },
       { status: 500 }
     );
   }

@@ -35,14 +35,16 @@ export async function POST(request: NextRequest) {
     };
     const targetLevel = classLevelMap[selectedClass] || selectedClass;
 
-    // Find the dedicated active scholarship exam publishing for this class level
+    // Find the dedicated active diagnosis / scholarship exam publishing for this class level
     const publishing = await db.examPublishing.findFirst({
       where: {
         classLevel: targetLevel,
         isActive: true,
         OR: [
           { slug: { startsWith: "scholarship-" } },
+          { slug: { startsWith: "diagnosis-" } },
           { title: { contains: "Scholarship", mode: "insensitive" } },
+          { title: { contains: "Diagnosis", mode: "insensitive" } },
         ],
       },
       include: {
@@ -54,7 +56,7 @@ export async function POST(request: NextRequest) {
 
     if (!publishing) {
       return NextResponse.json(
-        { error: `No active scholarship exam found for ${selectedClass}. Please check back soon.` },
+        { error: `No active diagnosis exam found for ${selectedClass}. Please check back soon.` },
         { status: 404 }
       );
     }
@@ -86,13 +88,15 @@ export async function POST(request: NextRequest) {
           resumed: true,
         });
 
-        response.cookies.set(`scholar_session_${existingAttempt.id}`, sessionToken, {
+        const cookieOptions = {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
-          sameSite: "strict",
+          sameSite: "strict" as const,
           path: "/",
           maxAge: 60 * 60 * 4,
-        });
+        };
+        response.cookies.set(`diagnosis_session_${existingAttempt.id}`, sessionToken, cookieOptions);
+        response.cookies.set(`scholar_session_${existingAttempt.id}`, sessionToken, cookieOptions);
 
         return response;
       }
@@ -176,13 +180,15 @@ export async function POST(request: NextRequest) {
       resumed: false,
     });
 
-    response.cookies.set(`scholar_session_${attempt.id}`, sessionToken, {
+    const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: "strict" as const,
       path: "/",
       maxAge: 60 * 60 * 4,
-    });
+    };
+    response.cookies.set(`diagnosis_session_${attempt.id}`, sessionToken, cookieOptions);
+    response.cookies.set(`scholar_session_${attempt.id}`, sessionToken, cookieOptions);
 
     return response;
   } catch (error: any) {
