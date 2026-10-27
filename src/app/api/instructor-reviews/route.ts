@@ -30,6 +30,7 @@ export async function GET(request: NextRequest) {
       roles.includes("Administrator") ||
       roles.includes("Director") ||
       roles.includes("General Manager") ||
+      roles.includes("Curriculum Dept") ||
       roles.includes("System Manager");
 
     if (studentParam) {

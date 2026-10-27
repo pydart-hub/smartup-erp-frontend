@@ -94,3 +94,49 @@ Build a comprehensive "Branch Monitoring" system for Directors in the Offline ER
   - Prevented unnecessary check-in API calls (`postEmployeeCheckin`) when staff is marked `"Holiday"`, `"At Head Office"`, `"Absent"`, or `"On Leave"`, eliminating deadlock risks.
 - [x] Step 4: Verification & Type Check <!-- id: att-4 -->
   - Executed `npx tsc --noEmit` which completed with code 0 (zero errors).
+
+---
+
+# Architecture & Implementation Plan: Teacher Reviews in Curriculum Dept Role
+
+## 1. Goal
+Add the comprehensive Teacher Review system (currently in the Director role under "Instructor Reviews & Ratings" at `/dashboard/director/instructor-reviews`) into the Curriculum Dept role so academic coordinators can inspect verified student evaluations, faculty ratings, branch comparisons, strengths, and areas for growth.
+
+## 2. Planned Implementation Steps
+- [x] Step 1: Backend API Authorization for Curriculum Dept <!-- id: tr-1 -->
+  - Updated `src/app/api/instructor-reviews/route.ts` to grant `Curriculum Dept` management-level access (same full multi-branch scope and student feedback visibility as `Director` and `General Manager`).
+- [x] Step 2: Curriculum Dept Page Route <!-- id: tr-2 -->
+  - Created `src/app/dashboard/curriculum-dept/instructor-reviews/page.tsx` utilizing `InstructorReviewList` and branch filter dropdown matching the Director implementation.
+- [x] Step 3: Sidebar Navigation Integration <!-- id: tr-3 -->
+  - Added `{ label: "Teacher Reviews", href: "/dashboard/curriculum-dept/instructor-reviews", icon: "Star", emoji: "⭐" }` to `CURRICULUM_DEPT_NAV` in `src/lib/utils/constants.ts`.
+  - Added `Star` to `iconMap` in `src/components/layout/Sidebar.tsx` for clean icon rendering.
+- [x] Step 4: Curriculum Dept Dashboard Quick Navigation <!-- id: tr-4 -->
+  - Added a "Teacher Reviews" card to `quickLinks` in `src/app/dashboard/curriculum-dept/page.tsx`.
+- [x] Step 5: Verification & Type Check <!-- id: tr-5 -->
+  - Ran `npx tsc --noEmit` which completed with code 0 (zero errors).
+
+---
+
+# Deep Investigation & Structural Plan: Missing Teachers in Parent Portal Teacher Reviews
+
+## 1. Root Cause Analysis
+- **Rigid Single-Field DB Query**: `/api/instructor-reviews/instructors` queried Frappe with `[["status", "=", "Active"], ["custom_company", "=", branch]]`.
+- **Cross-Branch & Visiting Faculty Ignored**: Teachers with a primary base branch (e.g. Aflah KR in Edappally, Ciya Maria Sabu in Edappally, Aleesha in Palluruthy) regularly teach in other centers (Chullickal, Fortkochi, Kadavanthara, Thopumpadi). Because they are not registered under `custom_company`, students in visiting branches cannot see them.
+- **Instructors with Status = 'Left' Excluded**: 15 teachers in Frappe have `status = 'Left'`, yet several (Inzamam Ul Haq, Ronaldo Biju, Alshamz, Riona, Amjith, Mubashir) actively teach or have classes in Course Schedule.
+- **Spelling / Branch Variations**: Variations like `Thopumpadi` vs `Thoppumpady` cause exact SQL-style filters to miss records.
+- **UI Locking**: `InstructorReviewForm` locks parents strictly to their child's branch with no option to search all SmartUp teachers or select a teacher from another branch.
+
+## 2. Planned Implementation Steps
+- [x] Step 1: Upgrade `/api/instructor-reviews/instructors` API Route <!-- id: ptr-1 -->
+  - Implemented unified multi-source discovery (custom_company + Course Schedule active teachers + static branch catalog fallbacks).
+  - Added fuzzy branch name normalization (`Smart Up ` prefix, spelling aliases e.g. Thoppumpady/Thopumpadi, Palluruthy/Palluruthi).
+  - Added support for `includeAll=true` query parameter to return all 80 SmartUp teachers.
+- [x] Step 2: Enhance Parent `InstructorReviewForm` UI <!-- id: ptr-2 -->
+  - Added "Looking for visiting faculty? Show all SmartUp teachers" one-click toggle.
+  - Organized dropdown with distinct `<optgroup>` sections for "Branch Instructors" and "Visiting & Cross-Branch Faculty" with origin badges.
+  - Added "+ Other (Type Teacher Name Manually)" with a clean input box so no student is ever blocked.
+- [x] Step 3: Verification & Parity Test <!-- id: ptr-3 -->
+  - Tested across branches against the running dev server, validating that visiting teachers (e.g. Ciya in Kadavanthara, Aflah in Fortkochi/Chullickal) and cross-branch faculty appear properly.
+  - Executed `npx tsc --noEmit` with code 0 (zero errors).
+
+

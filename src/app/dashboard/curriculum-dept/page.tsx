@@ -15,7 +15,8 @@ import {
   AlertCircle,
   School,
   ArrowRight,
-  TrendingUp
+  TrendingUp,
+  Star
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -26,6 +27,7 @@ const quickLinks = [
   { title: "Marks Entry", desc: "Enter marks and calculate grades", icon: Edit3, href: "/dashboard/curriculum-dept/marks-entry", color: "text-primary bg-primary/5 border-primary/10" },
   { title: "Class Performance", desc: "Branch-wise subject analysis & toppers", icon: Users, href: "/dashboard/curriculum-dept/class-performance", color: "text-success bg-success/5 border-success/10" },
   { title: "Teacher Ranking", desc: "Average marks and highest scores", icon: BookOpen, href: "/dashboard/curriculum-dept/subject-performance", color: "text-info bg-info/5 border-info/10" },
+  { title: "Teacher Reviews", desc: "Student ratings, strengths & feedback", icon: Star, href: "/dashboard/curriculum-dept/instructor-reviews", color: "text-amber-600 bg-amber-50 border-amber-100 dark:bg-amber-950/20 dark:border-amber-900/30" },
   { title: "Student Dashboard", desc: "Individual student diagnosis & ranking", icon: GraduationCap, href: "/dashboard/curriculum-dept/student-dashboard", color: "text-orange-600 bg-orange-50 border-orange-100 dark:bg-orange-950/20 dark:border-orange-900/30" },
   { title: "Branch Wise Performance", desc: "Smart Up branch ranking & analytics", icon: BarChart3, href: "/dashboard/curriculum-dept/consolidated-dashboard", color: "text-teal-600 bg-teal-50 border-teal-100 dark:bg-teal-950/20 dark:border-teal-900/30" },
 ];

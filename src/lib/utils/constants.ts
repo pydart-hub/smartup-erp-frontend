@@ -140,6 +140,7 @@ export const CURRICULUM_DEPT_NAV: NavItem[] = [
     ],
   },
   { label: "Teacher Ranking", href: "/dashboard/curriculum-dept/subject-performance", icon: "BookOpen", emoji: "📖" },
+  { label: "Teacher Reviews", href: "/dashboard/curriculum-dept/instructor-reviews", icon: "Star", emoji: "⭐" },
   { label: "Branch Wise Performance", href: "/dashboard/curriculum-dept/consolidated-dashboard", icon: "FileBarChart", emoji: "📈" },
   { label: "Consolidated Report", href: "/dashboard/curriculum-dept/consolidated-report", icon: "Award", emoji: "🎖️" },
 ];

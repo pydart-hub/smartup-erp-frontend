@@ -41,6 +41,7 @@ const BRANCH_OPTIONS = [
 export interface InstructorReviewItem {
   id: string; // internal local key
   instructorId: string;
+  customInstructorName?: string;
   course: string;
   rating: number;
   hoverRating: number | null;
@@ -82,6 +83,7 @@ export function InstructorReviewForm({
   );
   const [studentName, setStudentName] = useState(initialStudentName);
   const [studentPhone, setStudentPhone] = useState(initialStudentPhone);
+  const [showAllTeachers, setShowAllTeachers] = useState(false);
 
   // Multi-instructor review state: array of instructor reviews
   const [reviewList, setReviewList] = useState<InstructorReviewItem[]>([
@@ -171,18 +173,25 @@ export function InstructorReviewForm({
   const reviewedInstructorIds = monthlyCheckData?.reviewedInstructorIds || [];
   const reviewedInstructorNames = monthlyCheckData?.reviewedInstructorNames || [];
 
-  // Fetch instructors for the branch
+  // Fetch instructors for the branch (or all branches if toggled)
   const { data: instructorsData, isLoading: loadingInstructors } = useQuery({
-    queryKey: ["instructors-for-review", branch],
+    queryKey: ["instructors-for-review", branch, showAllTeachers],
     queryFn: async () => {
-      const res = await fetch(
-        `/api/instructor-reviews/instructors?branch=${encodeURIComponent(branch)}`
-      );
+      const url = showAllTeachers
+        ? `/api/instructor-reviews/instructors?includeAll=true`
+        : `/api/instructor-reviews/instructors?branch=${encodeURIComponent(branch)}`;
+      const res = await fetch(url);
       if (!res.ok) throw new Error("Failed to fetch instructors");
       const json = await res.json();
-      return json.data as Array<{ id: string; name: string; department?: string }>;
+      return json.data as Array<{
+        id: string;
+        name: string;
+        branch?: string;
+        department?: string;
+        isVisiting?: boolean;
+      }>;
     },
-    enabled: !!branch,
+    enabled: !!branch || showAllTeachers,
   });
 
   // Calculate available (unreviewed) instructors
@@ -190,7 +199,7 @@ export function InstructorReviewForm({
   const availableInstructors = allBranchInstructors.filter(
     (inst) => !reviewedInstructorIds.includes(inst.id)
   );
-  const allInstructorsReviewedThisMonth = allBranchInstructors.length > 0 && availableInstructors.length === 0;
+  const allInstructorsReviewedThisMonth = !showAllTeachers && allBranchInstructors.length > 0 && availableInstructors.length === 0;
 
   // Mutate an instructor review item in state
   const updateReviewItem = (id: string, updates: Partial<InstructorReviewItem>) => {
@@ -282,13 +291,23 @@ export function InstructorReviewForm({
         setErrorMessage(`Please select Instructor #${i + 1}.`);
         return;
       }
+      if (item.instructorId === "__OTHER__" && !item.customInstructorName?.trim()) {
+        setErrorMessage(`Please enter the teacher's name for Instructor #${i + 1}.`);
+        return;
+      }
     }
 
     const payloadReviews = reviewList.map((item) => {
+      const isOther = item.instructorId === "__OTHER__";
       const matchedInstructor = instructorsData?.find((i) => i.id === item.instructorId);
+      const teacherName = isOther
+        ? (item.customInstructorName || "").trim()
+        : matchedInstructor?.name || item.instructorId;
+      const teacherId = isOther ? teacherName : item.instructorId;
+
       return {
-        instructor: item.instructorId,
-        instructor_name: matchedInstructor?.name || item.instructorId,
+        instructor: teacherId,
+        instructor_name: teacherName,
         branch,
         course: item.course.trim() || undefined,
         student: selectedChildId || undefined,
@@ -426,17 +445,27 @@ export function InstructorReviewForm({
             </div>
           )}
 
-          {/* Branch Display (Locked to student's branch) */}
-          <div className="flex items-center justify-between bg-slate-50/70 dark:bg-slate-800/40 px-3.5 py-2.5 rounded-xl border border-slate-200/60 dark:border-slate-800 text-xs">
-            <span className="font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 text-[11px]">
-              <School className="w-3.5 h-3.5 text-slate-400" /> Center / Branch:
-            </span>
+          {/* Branch Display with Toggle for All / Visiting Teachers */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-50/70 dark:bg-slate-800/40 px-3.5 py-2.5 rounded-xl border border-slate-200/60 dark:border-slate-800 text-xs gap-2">
             <div className="flex items-center gap-2">
+              <span className="font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 text-[11px]">
+                <School className="w-3.5 h-3.5 text-slate-400" /> Center / Branch:
+              </span>
               <span className="font-bold text-slate-800 dark:text-slate-200">{branch}</span>
               <Badge variant="outline" className="text-[10px] px-2 py-0 border-slate-200 dark:border-slate-700 text-brand-primary bg-brand-primary/5">
-                Student Branch
+                {showAllTeachers ? "All SmartUp Faculty" : "Student Branch"}
               </Badge>
             </div>
+
+            <button
+              type="button"
+              onClick={() => setShowAllTeachers(!showAllTeachers)}
+              className="text-[11px] font-bold text-brand-primary hover:underline flex items-center gap-1 self-start sm:self-auto cursor-pointer"
+            >
+              {showAllTeachers
+                ? `← Show ${branch.replace(/^Smart\s+Up\s+/i, "")} teachers only`
+                : "Looking for visiting faculty? Show all SmartUp teachers →"}
+            </button>
           </div>
 
           {/* Monthly Review Limit Info / Banner */}
@@ -492,43 +521,106 @@ export function InstructorReviewForm({
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-2 flex-1 sm:max-w-md">
-                      <select
-                        value={item.instructorId}
-                        onChange={(e) =>
-                          updateReviewItem(item.id, { instructorId: e.target.value })
-                        }
-                        required
-                        disabled={loadingInstructors || allInstructorsReviewedThisMonth}
-                        className="w-full text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/60 px-3 py-1.5 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-brand-primary/50 focus:border-brand-primary transition-all cursor-pointer disabled:opacity-50"
-                      >
-                        <option value="">
-                          {loadingInstructors ? "Loading instructors..." : "Select an Unreviewed Instructor *"}
-                        </option>
-                        {(instructorsData || []).map((inst) => {
-                          const isAlreadyReviewed = reviewedInstructorIds.includes(inst.id);
-                          return (
-                            <option
-                              key={inst.id}
-                              value={inst.id}
-                              disabled={isAlreadyReviewed}
-                            >
-                              {inst.name} {inst.department ? `(${inst.department})` : ""} {isAlreadyReviewed ? "✓ (Reviewed this month)" : ""}
-                            </option>
-                          );
-                        })}
-                      </select>
-
-                      {reviewList.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeInstructor(item.id)}
-                          title="Remove instructor"
-                          className="text-[11px] text-rose-500 hover:text-rose-600 font-medium flex items-center gap-1 hover:bg-rose-50 dark:hover:bg-rose-950/30 px-2 py-1.5 rounded-lg border border-transparent hover:border-rose-200 dark:hover:border-rose-900/40 shrink-0 transition-colors"
+                    <div className="flex flex-col gap-2 flex-1 sm:max-w-md">
+                      <div className="flex items-center gap-2 w-full">
+                        <select
+                          value={item.instructorId}
+                          onChange={(e) =>
+                            updateReviewItem(item.id, { instructorId: e.target.value })
+                          }
+                          required
+                          disabled={loadingInstructors || allInstructorsReviewedThisMonth}
+                          className="w-full text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/60 px-3 py-1.5 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-brand-primary/50 focus:border-brand-primary transition-all cursor-pointer disabled:opacity-50"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          <span className="hidden sm:inline">Remove</span>
-                        </button>
+                          <option value="">
+                            {loadingInstructors ? "Loading instructors..." : "Select an Instructor *"}
+                          </option>
+
+                          {/* Primary Branch Faculty */}
+                          {(() => {
+                            const primaryTeachers = (instructorsData || []).filter((i) => !i.isVisiting);
+                            if (primaryTeachers.length === 0) return null;
+                            return (
+                              <optgroup label={showAllTeachers ? "All Instructors" : `${branch.replace(/^Smart\s+Up\s+/i, "")} Instructors`}>
+                                {primaryTeachers.map((inst) => {
+                                  const isAlreadyReviewed = reviewedInstructorIds.includes(inst.id);
+                                  return (
+                                    <option
+                                      key={inst.id}
+                                      value={inst.id}
+                                      disabled={isAlreadyReviewed}
+                                    >
+                                      {inst.name} {inst.department ? `(${inst.department})` : ""} {isAlreadyReviewed ? "✓ (Reviewed this month)" : ""}
+                                    </option>
+                                  );
+                                })}
+                              </optgroup>
+                            );
+                          })()}
+
+                          {/* Visiting & Cross-Branch Faculty */}
+                          {(() => {
+                            if (showAllTeachers) return null;
+                            const visitingTeachers = (instructorsData || []).filter((i) => i.isVisiting);
+                            if (visitingTeachers.length === 0) return null;
+                            return (
+                              <optgroup label="Visiting & Cross-Branch Faculty">
+                                {visitingTeachers.map((inst) => {
+                                  const isAlreadyReviewed = reviewedInstructorIds.includes(inst.id);
+                                  const origin = inst.branch ? `[from ${inst.branch.replace(/^Smart\s+Up\s+/i, "")}]` : "[Visiting]";
+                                  return (
+                                    <option
+                                      key={inst.id}
+                                      value={inst.id}
+                                      disabled={isAlreadyReviewed}
+                                    >
+                                      {inst.name} {origin} {isAlreadyReviewed ? "✓ (Reviewed this month)" : ""}
+                                    </option>
+                                  );
+                                })}
+                              </optgroup>
+                            );
+                          })()}
+
+                          {/* Fallback Option: Type manually */}
+                          <optgroup label="Teacher Not in List?">
+                            <option value="__OTHER__">+ Other (Type Teacher Name Manually)</option>
+                          </optgroup>
+                        </select>
+
+                        {reviewList.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeInstructor(item.id)}
+                            title="Remove instructor"
+                            className="text-[11px] text-rose-500 hover:text-rose-600 font-medium flex items-center gap-1 hover:bg-rose-50 dark:hover:bg-rose-950/30 px-2 py-1.5 rounded-lg border border-transparent hover:border-rose-200 dark:hover:border-rose-900/40 shrink-0 transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">Remove</span>
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Manual Teacher Name Input if "__OTHER__" is selected */}
+                      {item.instructorId === "__OTHER__" && (
+                        <div className="p-2.5 rounded-xl bg-brand-primary/5 border border-brand-primary/20 space-y-1">
+                          <label className="text-[10px] font-bold text-brand-primary uppercase tracking-wider">
+                            Type Teacher&apos;s Full Name:
+                          </label>
+                          <Input
+                            type="text"
+                            placeholder="e.g. Rahul Sir, Priya Teacher"
+                            value={item.customInstructorName || ""}
+                            onChange={(e) =>
+                              updateReviewItem(item.id, { customInstructorName: e.target.value })
+                            }
+                            required
+                            className="text-xs bg-white dark:bg-slate-900 py-1"
+                          />
+                          <p className="text-[10px] text-slate-400">
+                            Enter the instructor&apos;s name so your feedback is attributed correctly.
+                          </p>
+                        </div>
                       )}
                     </div>
                   </div>
