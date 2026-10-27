@@ -314,48 +314,47 @@ export default function ScholarRegistrationPage() {
               Take the <strong className="text-slate-800 font-semibold">SmartUp Diagnosis Exam</strong> for Classes 8, 9, 10, +1 &amp; +2.
             </p>
 
-            {/* Visual Hero Area: 3D Tilted Image Card */}
-            <div className="relative w-full max-w-[520px] mx-auto lg:mx-0 flex justify-center items-center pt-4 pb-0" style={{ perspective: "900px" }}>
-              {/* Glow halo behind image */}
-              <div className="absolute inset-0 flex items-center justify-center -z-10">
-                <div className="w-[320px] h-[320px] rounded-full bg-purple-400/20 blur-[60px]" />
+            {/* Visual Hero Area: 3D Animated Logo Mascot */}
+            <div className="relative w-full max-w-[520px] mx-auto lg:mx-0 flex justify-center items-center pt-2 pb-2" style={{ perspective: "1000px" }}>
+              {/* Vibrant ambient glow halos behind animation */}
+              <div className="absolute inset-0 flex items-center justify-center -z-10 pointer-events-none">
+                <div className="w-[300px] h-[300px] sm:w-[380px] sm:h-[380px] rounded-full bg-gradient-to-tr from-[#6C42B8]/25 via-purple-400/20 to-indigo-300/20 blur-[70px]" />
               </div>
 
-              {/* 3D Tilted image wrapper */}
+              {/* 3D Floating Video Wrapper */}
               <motion.div
-                initial={{ opacity: 0, scale: 0.94 }}
-                animate={{ opacity: 1, scale: 1 }}
-                whileHover={{ rotateY: -8, rotateX: 4, scale: 1.04 }}
-                transition={{ duration: 0.7, ease: "easeOut" }}
-                className="relative"
+                initial={{ opacity: 0, scale: 0.92, y: 10 }}
+                animate={{ 
+                  opacity: 1, 
+                  scale: 1, 
+                  y: [0, -10, 0],
+                }}
+                transition={{ 
+                  opacity: { duration: 0.6, ease: "easeOut" },
+                  scale: { duration: 0.6, ease: "easeOut" },
+                  y: { duration: 4.5, repeat: Infinity, ease: "easeInOut" },
+                }}
+                whileHover={{ scale: 1.05, rotateY: -6, rotateX: 3 }}
+                className="relative flex flex-col items-center justify-center cursor-pointer select-none"
                 style={{ transformStyle: "preserve-3d", transformOrigin: "center center" }}
               >
-                {/* Deep layered shadow beneath card */}
-                <div className="absolute inset-0 rounded-[24px] translate-y-6 translate-x-2 blur-2xl bg-purple-900/30 -z-10" />
-                <div className="absolute inset-0 rounded-[24px] translate-y-10 translate-x-3 blur-3xl bg-purple-900/15 -z-20" />
+                {/* Dynamic soft shadow under the floating mascot */}
+                <div className="absolute -bottom-4 w-48 sm:w-60 h-8 rounded-[100%] bg-purple-950/20 blur-xl -z-10" />
 
-                {/* Image card */}
-                <div
-                  className="relative w-[300px] h-[300px] sm:w-[360px] sm:h-[360px] rounded-[24px] overflow-hidden"
-                  style={{
-                    boxShadow: "0 30px 80px -10px rgba(92,52,164,0.35), 0 10px 30px -5px rgba(92,52,164,0.2), inset 0 1px 0 rgba(255,255,255,0.6)",
-                    maskImage: "radial-gradient(ellipse 88% 88% at 50% 50%, black 55%, transparent 100%)",
-                    WebkitMaskImage: "radial-gradient(ellipse 88% 88% at 50% 50%, black 55%, transparent 100%)",
-                  }}
-                >
-                  <Image
-                    src="/diagnosis-banner.jpg"
-                    alt="SmartUp Diagnosis Exam"
-                    fill
-                    priority
-                    className="object-cover object-center"
-                    sizes="(max-width: 640px) 300px, 360px"
-                  />
-                  {/* Rim light — top-left glass shine */}
-                  <div className="absolute inset-0 rounded-[24px]" style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.18) 0%, transparent 50%)" }} />
+                {/* Animated Mascot Video Container */}
+                <div className="relative w-[280px] h-[280px] sm:w-[340px] sm:h-[340px] flex items-center justify-center">
+                  <video
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    preload="auto"
+                    className="w-full h-full object-contain pointer-events-none drop-shadow-[0_20px_35px_rgba(92,52,164,0.28)]"
+                  >
+                    <source src="/Logo%20Icon%20Smile%20ALPHA.webm" type="video/webm" />
+                    <source src="/Logo Icon Smile ALPHA.webm" type="video/webm" />
+                  </video>
                 </div>
-
-
               </motion.div>
             </div>
           </div>
