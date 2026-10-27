@@ -194,8 +194,8 @@ Add the comprehensive Teacher Review system (currently in the Director role unde
   - Updated error message from `scholar.smartuplearning.net` to `diagnosis.smartuplearning.net` when students attempt to take public diagnosis exams on `/exam-site`.
 - [ ] Next Step 5: Legacy 301 Subdomain Redirect <!-- id: diag-12 -->
   - Add optional 301/302 redirect in `src/proxy.ts` from `scholar.` to `diagnosis.` so older links smoothly resolve to the new subdomain.
-- [ ] Next Step 6: Nginx & Cloudflare DNS Verification <!-- id: diag-13 -->
-  - Verify Cloudflare DNS A/CNAME record for `diagnosis.smartuplearning.net` pointing to `76.13.244.60` (proxied) and Nginx `server_name` includes wildcard or explicit subdomain.
+- [x] Next Step 6: Nginx & Server Deployment Completed <!-- id: diag-13 -->
+  - Added `diagnosis.smartuplearning.net` to `/etc/nginx/sites-available/scholar` on the live server, reloaded Nginx, and executed zero-downtime clustered reload of all 4 PM2 instances via `deploy.sh`. Direct HTTP test returns `200 OK`.
 
 
 
