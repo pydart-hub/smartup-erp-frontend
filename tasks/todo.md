@@ -241,3 +241,32 @@ Add the comprehensive Teacher Review system (currently in the Director role unde
   - Ran `npx tsc --noEmit` which completed with code 0 (zero errors).
 - [x] Task 6: Deploy to Production (`deploy.sh`) <!-- id: dt-6 -->
   - Deployed cleanly to `smartup-portal` with zero downtime and verified running live commit `72b3a52`.
+
+---
+
+# Plan: Branch Payment Entries Excel Download Option
+
+## Objective
+Add a dedicated, high-performance, and beautifully formatted Excel (.xlsx) export option to the "Payment Entries" tab of each branch bank page (`/dashboard/director/branches/[id]/bank`), exporting:
+`Date | Name | Party | Amount | Mode | Paid To | Reference`
+
+## Architecture & Implementation Steps
+- [x] 1. Excel Export Utility Module (`src/lib/reports/branch-payment-export.ts`) <!-- id: bpe-1 -->
+  - Dynamically import `exceljs` for optimal client performance.
+  - Built styled `.xlsx` workbook:
+    - SmartUp brand header banner with branch name, date range, timestamp, total count, total sum.
+    - Column headers: Date, Name, Party, Amount, Mode, Paid To, Reference.
+    - Currency format for Amount (`₹#,##0.00`).
+    - Total summary row at bottom summing amounts with accounting double-border.
+    - Dynamic column auto-fit widths and Excel auto-filters.
+    - Clean filename generator: `[Branch]_Payment_Entries_[FromDate]_[ToDate].xlsx`.
+- [x] 2. Complete Data Fetching Support for Export <!-- id: bpe-2 -->
+  - Handled complete dataset export: if 100 rows are loaded in view, the export handler automatically queries up to 5,000 records for the selected branch and date filter from `/api/director/bank`.
+  - Added loading spinner and toast notifications during data fetch and workbook generation.
+- [x] 3. UI Integration in Branch Bank Page (`src/app/dashboard/director/branches/[id]/bank/page.tsx`) <!-- id: bpe-3 -->
+  - Added a clean toolbar header inside the Card above the Payment Entries table with record counter, date filter indication, and a modern "Download Excel" button with `FileSpreadsheet` icon.
+  - Linked export handler with safe error boundary.
+- [x] 4. Verification & Testing <!-- id: bpe-4 -->
+  - Ran `npx tsc --noEmit` which completed with code 0 (zero errors).
+  - Confirmed column names and mapping: `Date`, `Name`, `Party`, `Amount`, `Mode`, `Paid To`, `Reference`.
+

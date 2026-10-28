@@ -20,7 +20,9 @@ import {
   CreditCard,
   Filter,
   Coffee,
+  FileSpreadsheet,
 } from "lucide-react";
+import { toast } from "sonner";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -34,6 +36,7 @@ import {
   type JournalEntryRow,
 } from "@/lib/api/director";
 import { formatCurrencyExact, formatDate } from "@/lib/utils/formatters";
+import { exportBranchPaymentEntriesExcel } from "@/lib/reports/branch-payment-export";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -187,96 +190,179 @@ function GLEntryTable({
 function PaymentEntryTable({
   entries,
   isLoading,
+  branchName,
+  fromDate,
+  toDate,
 }: {
   entries: PaymentEntryRow[];
   isLoading: boolean;
+  branchName: string;
+  fromDate: string;
+  toDate: string;
 }) {
-  if (isLoading)
-    return (
-      <div className="flex items-center justify-center h-32">
-        <Loader2 className="animate-spin h-5 w-5 text-primary" />
-      </div>
-    );
-  if (!entries.length)
-    return (
-      <p className="text-sm text-text-tertiary text-center py-8">
-        No payment entries found
-      </p>
-    );
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExport = async () => {
+    if (!entries.length) return;
+    try {
+      setIsExporting(true);
+      let exportData = entries;
+      // If 100 entries loaded, there might be additional records matching this filter in Frappe. Fetch full batch.
+      if (entries.length >= 100) {
+        toast.info("Fetching complete payment entries for export...");
+        const full = await getBranchPaymentEntries(branchName, {
+          from_date: fromDate || undefined,
+          to_date: toDate || undefined,
+          limit: 5000,
+        });
+        if (full && full.length > 0) {
+          exportData = full;
+        }
+      }
+      await exportBranchPaymentEntriesExcel({
+        branchName,
+        entries: exportData,
+        fromDate,
+        toDate,
+      });
+      toast.success(`Exported ${exportData.length} payment entries to Excel`);
+    } catch (err: unknown) {
+      console.error("Failed to export payment entries:", err);
+      toast.error((err as Error)?.message || "Failed to export Excel file");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-border-light text-left">
-            <th className="py-2 px-3 text-text-tertiary font-medium text-xs">
-              Date
-            </th>
-            <th className="py-2 px-3 text-text-tertiary font-medium text-xs">
-              Name
-            </th>
-            <th className="py-2 px-3 text-text-tertiary font-medium text-xs">
-              Party
-            </th>
-            <th className="py-2 px-3 text-text-tertiary font-medium text-xs text-right">
-              Amount
-            </th>
-            <th className="py-2 px-3 text-text-tertiary font-medium text-xs">
-              Mode
-            </th>
-            <th className="py-2 px-3 text-text-tertiary font-medium text-xs">
-              Paid To
-            </th>
-            <th className="py-2 px-3 text-text-tertiary font-medium text-xs">
-              Reference
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {entries.map((pe) => (
-            <tr
-              key={pe.name}
-              className="border-b border-border-light/50 hover:bg-surface-hover transition-colors"
-            >
-              <td className="py-2.5 px-3 text-text-secondary whitespace-nowrap">
-                {formatDate(pe.posting_date)}
-              </td>
-              <td className="py-2.5 px-3 text-xs text-text-secondary">
-                {pe.name}
-              </td>
-              <td className="py-2.5 px-3 text-text-primary font-medium text-xs">
-                {pe.party_name || pe.party}
-              </td>
-              <td className="py-2.5 px-3 text-right">
-                <span className="text-emerald-600 font-semibold">
-                  {formatCurrencyExact(pe.paid_amount)}
-                </span>
-              </td>
-              <td className="py-2.5 px-3">
-                <Badge
-                  variant="outline"
-                  className={`text-[10px] px-1.5 ${
-                    pe.mode_of_payment === "Razorpay"
-                      ? "border-blue-200 text-blue-600"
-                      : pe.mode_of_payment === "Cash"
-                        ? "border-emerald-200 text-emerald-600"
-                        : pe.mode_of_payment === "UPI"
-                          ? "border-violet-200 text-violet-600"
-                          : "border-border-light text-text-secondary"
-                  }`}
+    <div>
+      {/* Table Toolbar Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-4 py-3 border-b border-border-light bg-surface/50 gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-semibold text-text-primary">
+            Payment Entries
+          </span>
+          <Badge
+            variant="outline"
+            className="text-[11px] font-normal px-2 py-0.5 text-text-secondary bg-surface"
+          >
+            {isLoading
+              ? "Loading..."
+              : `${entries.length}${entries.length >= 100 ? "+" : ""} records`}
+          </Badge>
+          {(fromDate || toDate) && (
+            <span className="text-[11px] text-text-tertiary">
+              ({fromDate ? formatDate(fromDate) : "Beginning"} →{" "}
+              {toDate ? formatDate(toDate) : "Latest"})
+            </span>
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={handleExport}
+          disabled={isLoading || isExporting || !entries.length}
+          className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400 dark:hover:bg-emerald-900/60 border border-emerald-200/80 dark:border-emerald-800/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-xs cursor-pointer"
+          title="Download complete payment entries as Excel (.xlsx)"
+        >
+          {isExporting ? (
+            <>
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-600" />
+              <span>Generating Excel...</span>
+            </>
+          ) : (
+            <>
+              <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>Download Excel</span>
+            </>
+          )}
+        </button>
+      </div>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center h-32">
+          <Loader2 className="animate-spin h-5 w-5 text-primary" />
+        </div>
+      ) : !entries.length ? (
+        <p className="text-sm text-text-tertiary text-center py-8">
+          No payment entries found
+        </p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border-light text-left">
+                <th className="py-2 px-3 text-text-tertiary font-medium text-xs">
+                  Date
+                </th>
+                <th className="py-2 px-3 text-text-tertiary font-medium text-xs">
+                  Name
+                </th>
+                <th className="py-2 px-3 text-text-tertiary font-medium text-xs">
+                  Party
+                </th>
+                <th className="py-2 px-3 text-text-tertiary font-medium text-xs text-right">
+                  Amount
+                </th>
+                <th className="py-2 px-3 text-text-tertiary font-medium text-xs">
+                  Mode
+                </th>
+                <th className="py-2 px-3 text-text-tertiary font-medium text-xs">
+                  Paid To
+                </th>
+                <th className="py-2 px-3 text-text-tertiary font-medium text-xs">
+                  Reference
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {entries.map((pe) => (
+                <tr
+                  key={pe.name}
+                  className="border-b border-border-light/50 hover:bg-surface-hover transition-colors"
                 >
-                  {pe.mode_of_payment || "Cash"}
-                </Badge>
-              </td>
-              <td className="py-2.5 px-3 text-xs text-text-tertiary max-w-[150px] truncate">
-                {pe.paid_to}
-              </td>
-              <td className="py-2.5 px-3 text-xs text-text-tertiary max-w-[120px] truncate">
-                {pe.reference_no || "—"}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                  <td className="py-2.5 px-3 text-text-secondary whitespace-nowrap">
+                    {formatDate(pe.posting_date)}
+                  </td>
+                  <td className="py-2.5 px-3 text-xs text-text-secondary">
+                    {pe.name}
+                  </td>
+                  <td className="py-2.5 px-3 text-text-primary font-medium text-xs">
+                    {pe.party_name || pe.party}
+                  </td>
+                  <td className="py-2.5 px-3 text-right">
+                    <span className="text-emerald-600 font-semibold">
+                      {formatCurrencyExact(pe.paid_amount)}
+                    </span>
+                  </td>
+                  <td className="py-2.5 px-3">
+                    <Badge
+                      variant="outline"
+                      className={`text-[10px] px-1.5 ${
+                        pe.mode_of_payment === "Razorpay"
+                          ? "border-blue-200 text-blue-600"
+                          : pe.mode_of_payment === "Cash"
+                            ? "border-emerald-200 text-emerald-600"
+                            : pe.mode_of_payment === "UPI"
+                              ? "border-violet-200 text-violet-600"
+                              : "border-border-light text-text-secondary"
+                      }`}
+                    >
+                      {pe.mode_of_payment || "Cash"}
+                    </Badge>
+                  </td>
+                  <td className="py-2.5 px-3 text-xs text-text-tertiary max-w-[150px] truncate">
+                    {pe.paid_to}
+                  </td>
+                  <td className="py-2.5 px-3 text-xs text-text-tertiary max-w-[120px] truncate">
+                    {pe.reference_no || "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
@@ -665,6 +751,9 @@ export default function BranchBankPage() {
               <PaymentEntryTable
                 entries={paymentEntries ?? []}
                 isLoading={loadPE}
+                branchName={branchName}
+                fromDate={fromDate}
+                toDate={toDate}
               />
             )}
             {activeTab === "journals" && (
