@@ -203,14 +203,19 @@ Add the comprehensive Teacher Review system (currently in the Director role unde
 
 # Phase 3: Offline Branch vs Public Diagnosis Exam Isolation (Zero Data Loss)
 
-- [ ] Task 1: Strict Isolation in Admin Attempts API (`src/app/api/scholar/admin/attempts/route.ts`) <!-- id: fix-iso-1 -->
-  - Remove overbroad `{ title: { contains: "Diagnosis" } }` that matched all 21 offline branch tuition papers.
-  - Constrain publishing filter strictly to `{ slug: { startsWith: "scholarship-" } }`, `{ slug: { startsWith: "diagnosis-" } }`, and `{ subjectCode: { startsWith: "SCHOLARSHIP" } }`.
-- [ ] Task 2: Strict Paper Matching in Exam Start & Registration APIs (`src/app/api/scholar/start/route.ts` & `register/route.ts`) <!-- id: fix-iso-2 -->
-  - Eliminate loose `{ title: { contains: "Diagnosis" } }` in `findFirst()` so online students are never assigned single-subject branch tests like `biology-class-8`.
-- [ ] Task 3: Local Verification & TypeScript Type-Check <!-- id: fix-iso-3 -->
-  - Run `npx tsc --noEmit` to ensure clean type checking.
-- [ ] Task 4: Production Deployment & Live API Verification <!-- id: fix-iso-4 -->
-  - Deploy to `smartup-portal` via `deploy.sh`.
-  - Verify that the live API returns exactly 67 public attempts and 65 registrations.
-  - Verify that all 5,368 offline branch attempts remain 100% intact with zero data loss.
+- [x] Task 1: Strict Isolation in Admin Attempts API (`src/app/api/scholar/admin/attempts/route.ts`) <!-- id: fix-iso-1 -->
+  - Removed overbroad `{ title: { contains: "Diagnosis" } }` that matched all 21 offline branch tuition papers.
+  - Constrained publishing filter strictly using `PUBLIC_DIAGNOSIS_PUBLISHING_FILTER` (`slug: { startsWith: "scholarship-" }`, `slug: { startsWith: "diagnosis-" }`, `subjectCode: { startsWith: "SCHOLARSHIP" }`).
+  - Added safety guard in DELETE handler to prevent any branch attempts from ever being deleted.
+- [x] Task 2: Strict Paper Matching in Exam Start & Registration APIs (`src/app/api/scholar/start/route.ts` & `register/route.ts`) <!-- id: fix-iso-2 -->
+  - Used `PUBLIC_DIAGNOSIS_PUBLISHING_FILTER` in `findFirst()` so online candidates are guaranteed to get the official 40-minute multi-subject paper, not single-subject branch tests.
+- [x] Task 3: Local Verification & TypeScript Type-Check <!-- id: fix-iso-3 -->
+  - Executed `npx tsc --noEmit` which completed with code 0 (zero errors).
+- [x] Task 4: Production Deployment & Live API Verification <!-- id: fix-iso-4 -->
+  - Deployed cleanly to `smartup-portal` via `deploy.sh` with zero downtime.
+  - Verified live database metrics:
+    - Total Attempts: 5,435 (100% data intact)
+    - Isolated Public Attempts: 67
+    - Isolated Offline Branch Attempts: 5,368
+    - Scholar Registrations: 65
+    - Data Integrity Check: Passed (`all === public + branch` is true)
