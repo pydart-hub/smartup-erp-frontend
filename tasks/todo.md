@@ -282,7 +282,8 @@ Add a dedicated, high-performance, and beautifully formatted Excel (.xlsx) expor
   - Tightened form card vertical rhythm (`p-6 sm:p-7`, `space-y-3 sm:space-y-3.5`, title `mb-3.5`, button `py-3`) so that the "Register & Continue" button and entire mascot fit above the fold without scrolling.
 - [x] Task 2: Type Check & Verification <!-- id: logo-pos-2 -->
   - Ran `npx tsc --noEmit` which completed with code 0 (zero errors).
-- [ ] Task 3: Production Deployment & Verification <!-- id: logo-pos-3 -->
-  - Deploy to production via `npm run deploy` and verify on `diagnosis.smartuplearning.net`.
+- [x] Task 3: Production Deployment & Verification <!-- id: logo-pos-3 -->
+  - Deployed to production via `npm run deploy` and verified `200 OK` on `https://diagnosis.smartuplearning.net`.
+  - Zero-downtime clustered reload of all 4 PM2 instances completed successfully with live commit `6f59734`.
 
 
