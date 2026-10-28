@@ -362,7 +362,7 @@ export default function ScholarExamPlayer({
                 SMART UP
               </span>
               <span className="text-[10px] font-bold text-[#5C34A4] tracking-widest uppercase mt-0.5">
-                Diagnosis Exam
+                Diagnosis Test
               </span>
             </div>
           </div>
@@ -672,7 +672,7 @@ export default function ScholarExamPlayer({
             </div>
 
             <div className="text-center space-y-1.5">
-              <h4 className="text-xl font-black text-slate-900">Submit Diagnosis Exam?</h4>
+              <h4 className="text-xl font-black text-slate-900">Submit Diagnosis Test?</h4>
               <p className="text-xs text-slate-500">
                 You have answered <strong className="text-[#5C34A4]">{answeredCount}</strong> of{" "}
                 <strong className="text-slate-800">{totalQuestions}</strong> questions.

@@ -97,7 +97,7 @@ export default function ScholarResultView({ attempt }: ScholarResultViewProps) {
                 SMART UP
               </span>
               <span className="text-[10px] font-bold text-[#5C34A4] tracking-widest uppercase mt-0.5">
-                Diagnosis Exam
+                Diagnosis Test
               </span>
             </div>
           </div>
@@ -154,7 +154,7 @@ export default function ScholarResultView({ attempt }: ScholarResultViewProps) {
                   SMART UP
                 </span>
                 <span className="text-[10px] font-bold text-[#5C34A4] tracking-widest uppercase mt-0.5">
-                  Online Diagnosis Examination 2026-27
+                  Online Diagnosis Test 2026-27
                 </span>
               </div>
             </div>
@@ -283,7 +283,7 @@ export default function ScholarResultView({ attempt }: ScholarResultViewProps) {
                 </h3>
               </div>
               <p className="text-[11px] print:text-[8.5px] text-slate-600 mt-1 font-medium">
-                Verified computerized assessment for SmartUp Diagnosis Exam Batch 2026-27.
+                Verified computerized assessment for SmartUp Diagnosis Test Batch 2026-27.
               </p>
             </div>
           </div>

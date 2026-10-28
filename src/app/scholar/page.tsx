@@ -230,7 +230,7 @@ export default function ScholarRegistrationPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Failed to start diagnosis exam.");
+        throw new Error(data.error || "Failed to start diagnosis test.");
       }
 
       if (data.sessionToken) {
@@ -241,7 +241,7 @@ export default function ScholarRegistrationPage() {
       const isSubdomain = typeof window !== "undefined" && (window.location.host.startsWith("diagnosis.") || window.location.host.startsWith("scholar."));
       window.location.href = isSubdomain ? `/exam/${data.attemptId}` : `/scholar/exam/${data.attemptId}`;
     } catch (err: any) {
-      alert(err.message || "Failed to start exam. Please try again.");
+      alert(err.message || "Failed to start test. Please try again.");
       setIsStartingExam(false);
     }
   };
@@ -278,7 +278,7 @@ export default function ScholarRegistrationPage() {
                 SMART UP
               </span>
               <span className="text-[10px] font-bold text-slate-500 tracking-[0.18em] uppercase mt-1">
-                Diagnosis Exam
+                Diagnosis Test
               </span>
             </div>
           </a>
@@ -300,18 +300,18 @@ export default function ScholarRegistrationPage() {
 
             {/* Tag / Eyebrow */}
             <div className="text-[11px] font-extrabold tracking-[0.22em] text-[#6C42B8] uppercase mb-3">
-              SMARTUP DIAGNOSIS EXAM
+              SMARTUP DIAGNOSIS TEST
             </div>
 
             {/* Headline */}
             <h1 className="text-4xl sm:text-5xl lg:text-[58px] font-black text-slate-900 tracking-tight leading-[1.08] mb-3">
-              Make Parents <br />
-              <span className="text-[#5C34A4]">Proud</span>
+              SmartUp <br />
+              <span className="text-[#5C34A4]">Diagnosis Test</span>
             </h1>
 
             {/* Subtitle */}
             <p className="text-[15px] sm:text-base text-slate-500 max-w-lg font-normal leading-relaxed mb-4">
-              Take the <strong className="text-slate-800 font-semibold">SmartUp Diagnosis Exam</strong> for Classes 8, 9, 10, +1 &amp; +2.
+              Take the <strong className="text-slate-800 font-semibold">SmartUp Diagnosis Test</strong> for Classes 8, 9, 10, +1 &amp; +2.
             </p>
 
             {/* Visual Hero Area: 3D Animated Logo Mascot */}
@@ -428,7 +428,7 @@ export default function ScholarRegistrationPage() {
                   Register Now
                 </h2>
                 <p className="text-xs sm:text-[13px] text-slate-400 mt-1 font-medium">
-                  Free Exam Slot Registration
+                  Free Test Slot Registration
                 </p>
               </div>
 
@@ -457,7 +457,7 @@ export default function ScholarRegistrationPage() {
                     onClick={handleStartDiagnosisExam}
                     className="w-full py-2.5 px-4 font-bold text-xs text-white bg-[#5C34A4] hover:bg-[#4E2B8E] active:bg-[#43237E] disabled:opacity-70 rounded-xl transition-all shadow-md shadow-purple-900/20 flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    <span>{isStartingExam ? "Starting Diagnosis Exam..." : "Start / Resume Exam Now"}</span>
+                    <span>{isStartingExam ? "Starting Diagnosis Test..." : "Start / Resume Test Now"}</span>
                     {!isStartingExam && <ArrowRight className="w-3.5 h-3.5" />}
                   </button>
                 </div>
@@ -509,7 +509,7 @@ export default function ScholarRegistrationPage() {
                     onClick={handleStartDiagnosisExam}
                     className="w-full py-3 px-6 font-bold text-sm text-white bg-[#5C34A4] hover:bg-[#4E2B8E] active:bg-[#43237E] disabled:opacity-70 rounded-full transition-all shadow-lg shadow-purple-900/25 flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
                   >
-                    <span>{isStartingExam ? "Starting Diagnosis Exam..." : "Take Diagnosis Exam Now"}</span>
+                    <span>{isStartingExam ? "Starting Diagnosis Test..." : "Take Diagnosis Test Now"}</span>
                     {!isStartingExam && <ArrowRight className="w-4 h-4" />}
                   </button>
 

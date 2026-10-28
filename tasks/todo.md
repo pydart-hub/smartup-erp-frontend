@@ -217,5 +217,27 @@ Add the comprehensive Teacher Review system (currently in the Director role unde
     - Total Attempts: 5,435 (100% data intact)
     - Isolated Public Attempts: 67
     - Isolated Offline Branch Attempts: 5,368
-    - Scholar Registrations: 65
     - Data Integrity Check: Passed (`all === public + branch` is true)
+
+---
+
+# Phase 4: Copy Rebrand to "Diagnosis Test" & Hero Headline Update (Option 1)
+
+- [ ] Task 1: Update Landing Page & Metadata (`src/app/scholar/page.tsx` & `layout.tsx`) <!-- id: dt-1 -->
+  - Remove "Make Parents Proud" and replace with Option 1: `SmartUp` <br /> `<span className="text-[#5C34A4]">Diagnosis Test</span>`.
+  - Update Eyebrow to `SMARTUP DIAGNOSIS TEST`.
+  - Update Logo subtitle to `DIAGNOSIS TEST`.
+  - Update Subtitle to `Take the SmartUp Diagnosis Test for Classes 8, 9, 10, +1 & +2.`.
+  - Update Form & button copy (`Free Test Slot Registration`, `Take Diagnosis Test Now`, `Start / Resume Test Now`).
+  - Update layout metadata title & description to `SmartUp Diagnosis Test 2026`.
+- [ ] Task 2: Update Live Test Player (`src/components/scholar/ScholarExamPlayer.tsx`) <!-- id: dt-2 -->
+  - Update header badge to `Diagnosis Test`.
+  - Update submit modal to `Submit Diagnosis Test?` and button labels.
+- [ ] Task 3: Update Scorecard & Report View (`src/components/scholar/ScholarResultView.tsx`) <!-- id: dt-3 -->
+  - Update badges and headers to `Diagnosis Test`.
+- [ ] Task 4: Update Admin Control Center (`ScholarAdminModal.tsx` & `src/app/scholar/admin/page.tsx`) <!-- id: dt-4 -->
+  - Update Control Center headers, badges, and back buttons to `Diagnosis Test`.
+- [ ] Task 5: Local Type Check & Verification <!-- id: dt-5 -->
+  - Run `npx tsc --noEmit` to verify code correctness.
+- [ ] Task 6: Deploy to Production (`deploy.sh`) <!-- id: dt-6 -->
+  - Deploy to `smartup-portal` and verify live page.

@@ -308,7 +308,7 @@ export default function ScholarAdminPage() {
             className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-[#5C34A4] transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Back to Diagnosis Exam</span>
+            <span>Back to Diagnosis Test</span>
           </button>
         </div>
 
@@ -319,7 +319,7 @@ export default function ScholarAdminPage() {
               <GraduationCap className="w-8 h-8 text-white" />
             </div>
             <h1 className="text-xl font-bold tracking-tight">SmartUp Control Center</h1>
-            <p className="text-xs text-white/80 mt-1">Diagnosis Exam Administration &amp; Logs</p>
+            <p className="text-xs text-white/80 mt-1">Diagnosis Test Administration &amp; Logs</p>
           </div>
 
           {/* Form */}
@@ -416,7 +416,7 @@ export default function ScholarAdminPage() {
               </div>
               <div>
                 <h1 className="text-base font-bold text-slate-900 tracking-tight leading-none">
-                  Diagnosis Exam Control Center
+                  Diagnosis Test Control Center
                 </h1>
                 <p className="text-[11px] text-slate-400 mt-1">
                   Candidate Registrations &amp; Live Test Attempts
@@ -426,10 +426,10 @@ export default function ScholarAdminPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Diagnosis Exam Active Badge */}
+            {/* Diagnosis Test Active Badge */}
             <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 border border-purple-200/70 text-xs font-bold text-[#5C34A4]">
               <span className="w-2 h-2 rounded-full bg-[#5C34A4] animate-pulse" />
-              <span>Diagnosis Exam</span>
+              <span>Diagnosis Test</span>
             </div>
 
             <button
@@ -472,11 +472,11 @@ export default function ScholarAdminPage() {
               <div className="text-xs font-bold text-slate-900">
                 Viewing:{" "}
                 <span className="text-[#5C34A4]">
-                  Dedicated Diagnosis Exam 2026-27 Candidates
+                  Dedicated Diagnosis Test 2026-27 Candidates
                 </span>
               </div>
               <div className="text-[11px] text-slate-500">
-                Showing students taking the official SmartUp Diagnosis Exam (Classes 8, 9, 10, +1 &amp; +2).
+                Showing students taking the official SmartUp Diagnosis Test (Classes 8, 9, 10, +1 &amp; +2).
               </div>
             </div>
           </div>

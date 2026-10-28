@@ -288,7 +288,7 @@ export default function ScholarAdminModal({ isOpen, onClose }: ScholarAdminModal
             </div>
             <div>
               <h2 className="text-lg font-bold tracking-tight">
-                {isAuthenticated ? "Diagnosis Exam Control Center" : "Diagnosis Portal Admin Login"}
+                {isAuthenticated ? "Diagnosis Test Control Center" : "Diagnosis Portal Admin Login"}
               </h2>
               <p className="text-xs text-white/80">
                 {isAuthenticated
