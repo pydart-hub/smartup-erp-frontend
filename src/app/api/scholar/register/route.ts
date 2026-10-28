@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/public-exam/db";
 import { validateFullE164PhoneStrict } from "@/lib/constants/countries";
+import { PUBLIC_DIAGNOSIS_PUBLISHING_FILTER } from "@/lib/utils/diagnosis";
 
 export async function POST(request: NextRequest) {
   try {
@@ -78,12 +79,7 @@ export async function POST(request: NextRequest) {
       where: {
         classLevel: targetLevel,
         isActive: true,
-        OR: [
-          { slug: { startsWith: "scholarship-" } },
-          { slug: { startsWith: "diagnosis-" } },
-          { title: { contains: "Scholarship", mode: "insensitive" } },
-          { title: { contains: "Diagnosis", mode: "insensitive" } },
-        ],
+        ...PUBLIC_DIAGNOSIS_PUBLISHING_FILTER,
       },
       select: {
         id: true,

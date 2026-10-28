@@ -62,6 +62,18 @@ export const DIAGNOSIS_EXAM_PUBLISHING_FILTER = {
 };
 
 /**
+ * Prisma WHERE filter to strictly isolate dedicated Public Diagnosis / Scholarship Exam publishings.
+ * Guaranteed to exclude internal single-subject tuition branch exams (biology, chemistry, etc.).
+ */
+export const PUBLIC_DIAGNOSIS_PUBLISHING_FILTER = {
+  OR: [
+    { slug: { startsWith: "scholarship-" } },
+    { slug: { startsWith: "diagnosis-" } },
+    { subjectCode: { startsWith: "SCHOLARSHIP" } },
+  ],
+};
+
+/**
  * Helper to determine whether an exam attempt is from the public online exam portal.
  */
 export function isScholarshipAttempt(attempt: {

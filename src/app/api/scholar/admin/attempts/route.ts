@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/public-exam/db";
 import { verifyAdminToken } from "@/lib/scholar-admin-auth";
+import { PUBLIC_DIAGNOSIS_PUBLISHING_FILTER } from "@/lib/utils/diagnosis";
 
 export const dynamic = "force-dynamic";
 
@@ -18,18 +19,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized. Please log in again." }, { status: 401 });
     }
 
-    // Strictly isolate to Diagnosis / Scholarship exams only
-    const publishingWhere = {
-      OR: [
-        { slug: { startsWith: "scholarship-" } },
-        { slug: { startsWith: "diagnosis-" } },
-        { title: { contains: "Scholarship", mode: "insensitive" as const } },
-        { title: { contains: "Diagnosis", mode: "insensitive" as const } },
-      ],
-    };
-
+    // Strictly isolate to dedicated Public Diagnosis / Scholarship exams only.
+    // Guaranteed to exclude internal single-subject tuition branch exams (biology-class-X, physics-class-X, etc.)
     const attempts = await db.examAttempt.findMany({
-      where: publishingWhere ? { publishing: publishingWhere } : undefined,
+      where: { publishing: PUBLIC_DIAGNOSIS_PUBLISHING_FILTER },
       include: {
         publishing: {
           select: {
@@ -159,11 +152,28 @@ export async function DELETE(request: NextRequest) {
       // Check attempt exists
       const existing = await db.examAttempt.findUnique({
         where: { id },
-        select: { id: true, studentName: true },
+        select: {
+          id: true,
+          studentName: true,
+          publishing: { select: { slug: true, subjectCode: true } },
+        },
       });
 
       if (!existing) {
         return NextResponse.json({ error: "Exam attempt record not found." }, { status: 404 });
+      }
+
+      // Safeguard: NEVER allow deleting offline branch tuition attempts from this endpoint!
+      const isPublicExam =
+        existing.publishing?.slug.startsWith("scholarship-") ||
+        existing.publishing?.slug.startsWith("diagnosis-") ||
+        Boolean(existing.publishing?.subjectCode.startsWith("SCHOLARSHIP"));
+
+      if (!isPublicExam) {
+        return NextResponse.json(
+          { error: "Protected record: Offline branch exam attempts cannot be modified or deleted from here." },
+          { status: 403 }
+        );
       }
 
       // Unlink any registration pointing to this attemptId
