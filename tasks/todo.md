@@ -270,3 +270,19 @@ Add a dedicated, high-performance, and beautifully formatted Excel (.xlsx) expor
   - Ran `npx tsc --noEmit` which completed with code 0 (zero errors).
   - Confirmed column names and mapping: `Date`, `Name`, `Party`, `Amount`, `Mode`, `Paid To`, `Reference`.
 
+---
+
+# Phase 5: Perfect Placement & Viewport Sizing for 3D Animating Logo Mascot
+
+- [x] Task 1: Rebalance Hero Layout & Mascot Dimensions (`src/app/scholar/page.tsx`) <!-- id: logo-pos-1 -->
+  - Resized animated video container from oversized 480px/540px to responsive viewport-balanced dimensions (`w-[230px] h-[230px] sm:w-[270px] sm:h-[270px] md:w-[300px] md:h-[300px] lg:w-[340px] lg:h-[340px] xl:w-[370px] xl:h-[370px]`).
+  - Scaled ambient glow (`lg:w-[360px] xl:w-[400px]`) and grounding shadow (`lg:w-[260px] xl:w-[290px]`) proportionally.
+  - Rebalanced vertical spacing (`header py-3.5 sm:py-4`, `main py-2 sm:py-3 lg:py-4`, headline `mb-2 sm:mb-2.5`, subtitle `mb-2.5 sm:mb-3`).
+  - Added smooth docking alignment (`-mt-1 lg:-mt-2`, `pt-0 pb-1`) on the mascot container so it sits in visual harmony with the headline and form.
+  - Tightened form card vertical rhythm (`p-6 sm:p-7`, `space-y-3 sm:space-y-3.5`, title `mb-3.5`, button `py-3`) so that the "Register & Continue" button and entire mascot fit above the fold without scrolling.
+- [x] Task 2: Type Check & Verification <!-- id: logo-pos-2 -->
+  - Ran `npx tsc --noEmit` which completed with code 0 (zero errors).
+- [ ] Task 3: Production Deployment & Verification <!-- id: logo-pos-3 -->
+  - Deploy to production via `npm run deploy` and verify on `diagnosis.smartuplearning.net`.
+
+

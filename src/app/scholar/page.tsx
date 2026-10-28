@@ -255,7 +255,7 @@ export default function ScholarRegistrationPage() {
         <div className="absolute bottom-0 left-1/3 w-[350px] h-[350px] rounded-full bg-violet-200/20 blur-[80px]" />
       </div>
       {/* Top Navigation Bar */}
-      <header className="w-full bg-transparent py-5 px-6 sm:px-12 lg:px-20 z-20">
+      <header className="w-full bg-transparent py-3.5 sm:py-4 px-6 sm:px-12 lg:px-20 z-20">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           {/* Brand Logo & Title */}
           <a
@@ -289,8 +289,8 @@ export default function ScholarRegistrationPage() {
       </header>
 
       {/* Main Hero Container */}
-      <main className="max-w-7xl mx-auto px-6 sm:px-12 lg:px-20 py-4 lg:py-6 w-full flex-1 flex items-center">
-        <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+      <main className="max-w-7xl mx-auto px-6 sm:px-12 lg:px-20 py-2 sm:py-3 lg:py-4 w-full flex-1 flex items-center">
+        <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           
           {/* Left Column: Headline, Subtitle & Student Graphic */}
           <div className="lg:col-span-7 flex flex-col justify-center relative">
@@ -299,57 +299,57 @@ export default function ScholarRegistrationPage() {
             <div className="absolute -left-8 top-1/2 w-16 h-16 rounded-full bg-purple-200/40 pointer-events-none -z-10 blur-md" />
 
             {/* Tag / Eyebrow */}
-            <div className="text-[11px] font-extrabold tracking-[0.22em] text-[#6C42B8] uppercase mb-3">
+            <div className="text-[11px] font-extrabold tracking-[0.22em] text-[#6C42B8] uppercase mb-2">
               SMARTUP DIAGNOSIS TEST
             </div>
 
             {/* Headline */}
-            <h1 className="text-4xl sm:text-5xl lg:text-[58px] font-black text-slate-900 tracking-tight leading-[1.08] mb-3">
+            <h1 className="text-3xl sm:text-4xl lg:text-[46px] xl:text-[52px] font-black text-slate-900 tracking-tight leading-[1.08] mb-2 sm:mb-2.5">
               SmartUp <br />
               <span className="text-[#5C34A4]">Diagnosis Test</span>
             </h1>
 
             {/* Subtitle */}
-            <p className="text-[15px] sm:text-base text-slate-500 max-w-lg font-normal leading-relaxed mb-4">
+            <p className="text-[14px] sm:text-[15px] text-slate-500 max-w-lg font-normal leading-relaxed mb-2.5 sm:mb-3">
               Take the <strong className="text-slate-800 font-semibold">SmartUp Diagnosis Test</strong> for Classes 8, 9, 10, +1 &amp; +2.
             </p>
 
             {/* Visual Hero Area: 3D Animated Logo Mascot */}
-            <div className="relative w-full max-w-[360px] sm:max-w-[420px] md:max-w-[460px] lg:max-w-none mx-auto flex justify-center items-center pt-2 pb-2" style={{ perspective: "1000px" }}>
+            <div className="relative w-full max-w-[360px] sm:max-w-[420px] md:max-w-[460px] lg:max-w-none mx-auto flex justify-center items-center pt-0 pb-1 -mt-1 lg:-mt-2" style={{ perspective: "1000px" }}>
               {/* Vibrant ambient glow halos behind animation */}
               <div className="absolute inset-0 flex items-center justify-center -z-10 pointer-events-none">
-                <div className="w-[240px] h-[240px] sm:w-[280px] sm:h-[280px] md:w-[320px] md:h-[320px] lg:w-[500px] lg:h-[500px] xl:w-[560px] xl:h-[560px] rounded-full bg-gradient-to-tr from-[#6C42B8]/25 via-purple-400/20 to-indigo-300/20 blur-[75px]" />
+                <div className="w-[230px] h-[230px] sm:w-[270px] sm:h-[270px] md:w-[300px] md:h-[300px] lg:w-[360px] lg:h-[360px] xl:w-[400px] xl:h-[400px] rounded-full bg-gradient-to-tr from-[#6C42B8]/25 via-purple-400/20 to-indigo-300/20 blur-[65px]" />
               </div>
 
               {/* 3D Floating Video Wrapper */}
               <motion.div
-                initial={{ opacity: 0, scale: 0.92, y: 10 }}
+                initial={{ opacity: 0, scale: 0.94, y: 0 }}
                 animate={{ 
                   opacity: 1, 
                   scale: 1, 
-                  y: [0, -10, 0],
+                  y: [0, -8, 0],
                 }}
                 transition={{ 
-                  opacity: { duration: 0.6, ease: "easeOut" },
-                  scale: { duration: 0.6, ease: "easeOut" },
-                  y: { duration: 4.5, repeat: Infinity, ease: "easeInOut" },
+                  opacity: { duration: 0.5, ease: "easeOut" },
+                  scale: { duration: 0.5, ease: "easeOut" },
+                  y: { duration: 4.2, repeat: Infinity, ease: "easeInOut" },
                 }}
                 whileHover={{ scale: 1.05, rotateY: -6, rotateX: 3 }}
                 className="relative flex flex-col items-center justify-center cursor-pointer select-none"
                 style={{ transformStyle: "preserve-3d", transformOrigin: "center center" }}
               >
                 {/* Dynamic soft shadow under the floating mascot */}
-                <div className="absolute -bottom-4 w-40 sm:w-48 md:w-56 lg:w-[340px] xl:w-[380px] h-7 sm:h-8 lg:h-12 rounded-[100%] bg-purple-950/20 blur-xl -z-10" />
+                <div className="absolute -bottom-3 w-36 sm:w-44 md:w-52 lg:w-[260px] xl:w-[290px] h-6 sm:h-7 lg:h-9 rounded-[100%] bg-purple-950/20 blur-xl -z-10" />
 
-                {/* Animated Mascot Video Container - Compact on mobile & tabs, enlarged on desktop & web */}
-                <div className="relative w-[240px] h-[240px] sm:w-[280px] sm:h-[280px] md:w-[320px] md:h-[320px] lg:w-[480px] lg:h-[480px] xl:w-[540px] xl:h-[540px] flex items-center justify-center">
+                {/* Animated Mascot Video Container - Sized & balanced perfectly on desktop & web */}
+                <div className="relative w-[230px] h-[230px] sm:w-[270px] sm:h-[270px] md:w-[300px] md:h-[300px] lg:w-[340px] lg:h-[340px] xl:w-[370px] xl:h-[370px] flex items-center justify-center">
                   <video
                     autoPlay
                     loop
                     muted
                     playsInline
                     preload="auto"
-                    className="w-full h-full object-contain pointer-events-none drop-shadow-[0_22px_45px_rgba(92,52,164,0.32)]"
+                    className="w-full h-full object-contain pointer-events-none drop-shadow-[0_20px_40px_rgba(92,52,164,0.30)]"
                   >
                     <source src="/Logo%20Icon%20Smile%20ALPHA.webm" type="video/webm" />
                     <source src="/Logo Icon Smile ALPHA.webm" type="video/webm" />
@@ -365,7 +365,7 @@ export default function ScholarRegistrationPage() {
               initial={{ opacity: 0, y: 20, rotateX: 4 }}
               animate={{ opacity: 1, y: 0, rotateX: 0 }}
               transition={{ duration: 0.6, ease: "easeOut" }}
-              className="relative w-full max-w-[440px] rounded-[28px] p-7 sm:p-8 border border-white/80"
+              className="relative w-full max-w-[430px] rounded-[26px] p-6 sm:p-7 border border-white/80"
               style={{
                 background: "rgba(255,255,255,0.82)",
                 backdropFilter: "blur(24px)",
@@ -423,11 +423,11 @@ export default function ScholarRegistrationPage() {
               </div>
 
               {/* Form Title & Subtitle */}
-              <div className="mb-5">
+              <div className="mb-3.5">
                 <h2 className="text-2xl font-black text-slate-900 tracking-tight">
                   Register Now
                 </h2>
-                <p className="text-xs sm:text-[13px] text-slate-400 mt-1 font-medium">
+                <p className="text-xs sm:text-[13px] text-slate-400 mt-0.5 font-medium">
                   Free Test Slot Registration
                 </p>
               </div>
@@ -521,9 +521,9 @@ export default function ScholarRegistrationPage() {
                   </button>
                 </div>
               ) : (
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-3.5">
                   {/* Student Name */}
-                  <div className="space-y-1.5">
+                  <div className="space-y-1">
                     <label className="text-xs font-bold text-slate-800 tracking-wide">
                       Student Name <span className="text-red-500">*</span>
                     </label>
@@ -535,13 +535,13 @@ export default function ScholarRegistrationPage() {
                         placeholder="Enter student name"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50/50 hover:bg-white border border-slate-200/90 rounded-xl text-slate-900 text-sm placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5C34A4]/20 focus:border-[#5C34A4] transition"
+                        className="w-full pl-10 pr-4 py-2 sm:py-2.5 bg-slate-50/50 hover:bg-white border border-slate-200/90 rounded-xl text-slate-900 text-sm placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5C34A4]/20 focus:border-[#5C34A4] transition"
                       />
                     </div>
                   </div>
 
                   {/* School Name */}
-                  <div className="space-y-1.5">
+                  <div className="space-y-1">
                     <label className="text-xs font-bold text-slate-800 tracking-wide">
                       School Name <span className="text-red-500">*</span>
                     </label>
@@ -553,13 +553,13 @@ export default function ScholarRegistrationPage() {
                         placeholder="Enter your school name"
                         value={schoolName}
                         onChange={(e) => setSchoolName(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50/50 hover:bg-white border border-slate-200/90 rounded-xl text-slate-900 text-sm placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5C34A4]/20 focus:border-[#5C34A4] transition"
+                        className="w-full pl-10 pr-4 py-2 sm:py-2.5 bg-slate-50/50 hover:bg-white border border-slate-200/90 rounded-xl text-slate-900 text-sm placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#5C34A4]/20 focus:border-[#5C34A4] transition"
                       />
                     </div>
                   </div>
 
                   {/* Class / Grade */}
-                  <div className="space-y-1.5">
+                  <div className="space-y-1">
                     <label className="text-xs font-bold text-slate-800 tracking-wide">
                       Class / Grade <span className="text-red-500">*</span>
                     </label>
@@ -571,7 +571,7 @@ export default function ScholarRegistrationPage() {
                             key={c.id}
                             type="button"
                             onClick={() => setSelectedClass(c.id)}
-                            className={`py-2 px-1 text-center rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            className={`py-1.5 sm:py-2 px-1 text-center rounded-xl text-xs font-bold transition-all cursor-pointer ${
                               isSelected
                                 ? "bg-[#5C34A4] text-white shadow-md shadow-purple-900/25"
                                 : "bg-slate-50/60 hover:bg-slate-100 text-slate-700 border border-slate-200/80"
@@ -585,7 +585,7 @@ export default function ScholarRegistrationPage() {
                   </div>
 
                   {/* Syllabus / Board */}
-                  <div className="space-y-1.5">
+                  <div className="space-y-1">
                     <label className="text-xs font-bold text-slate-800 tracking-wide">
                       Syllabus / Board <span className="text-red-500">*</span>
                     </label>
@@ -597,7 +597,7 @@ export default function ScholarRegistrationPage() {
                             key={s}
                             type="button"
                             onClick={() => setSyllabus(s)}
-                            className={`py-2.5 px-3 text-center rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                            className={`py-2 sm:py-2.5 px-3 text-center rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
                               isSelected
                                 ? "bg-[#5C34A4] text-white shadow-md shadow-purple-900/20"
                                 : "bg-slate-50/60 hover:bg-slate-100 text-slate-700 border border-slate-200/80"
@@ -612,7 +612,7 @@ export default function ScholarRegistrationPage() {
                   </div>
 
                   {/* Phone Number Field */}
-                  <div className="space-y-1.5">
+                  <div className="space-y-1">
                     <label className="text-xs font-bold text-slate-800 tracking-wide">
                       Phone Number <span className="text-red-500">*</span>
                     </label>
@@ -627,7 +627,7 @@ export default function ScholarRegistrationPage() {
 
                   {/* Existing Registration Notice */}
                   {isExistingStudent && (
-                    <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200/80 text-[11px] text-emerald-900 space-y-1">
+                    <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200/80 text-[11px] text-emerald-900 space-y-1">
                       <div className="flex items-center gap-1.5 font-bold text-emerald-700">
                         <CheckCircle2 className="w-4 h-4 shrink-0" />
                         <span>Existing Registration Detected</span>
@@ -639,11 +639,11 @@ export default function ScholarRegistrationPage() {
                   )}
 
                   {/* Register for Exam Button */}
-                  <div className="pt-2">
+                  <div className="pt-1.5">
                     <button
                       type="submit"
                       disabled={isSubmitting || isCheckingPhone}
-                      className="w-full py-3.5 px-6 font-bold text-sm text-white bg-[#5C34A4] hover:bg-[#4E2B8E] active:bg-[#43237E] disabled:opacity-70 rounded-xl transition-all shadow-lg shadow-purple-900/25 flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
+                      className="w-full py-3 px-6 font-bold text-sm text-white bg-[#5C34A4] hover:bg-[#4E2B8E] active:bg-[#43237E] disabled:opacity-70 rounded-xl transition-all shadow-lg shadow-purple-900/25 flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
                     >
                       <span>
                         {isSubmitting
