@@ -286,4 +286,17 @@ Add a dedicated, high-performance, and beautifully formatted Excel (.xlsx) expor
   - Deployed to production via `npm run deploy` and verified `200 OK` on `https://diagnosis.smartuplearning.net`.
   - Zero-downtime clustered reload of all 4 PM2 instances completed successfully with live commit `6f59734`.
 
+---
+
+# Phase 6: Enhanced Hover Scale Effect for 3D Mascot
+
+- [x] Task 1: Update Hover Animation Properties in `src/app/scholar/page.tsx` <!-- id: hov-1 -->
+  - Increased `whileHover` scale from `1.05` to `1.16` with smooth spring transition (`stiffness: 320, damping: 20`).
+  - Added subtle 3D tilt enhancement (`rotateY: -7, rotateX: 4`) and `whileTap={{ scale: 1.02 }}`.
+- [x] Task 2: Type Check & Build Verification <!-- id: hov-2 -->
+  - Ran `npx tsc --noEmit` which completed with code 0 (zero errors).
+- [ ] Task 3: Production Deployment & Verification <!-- id: hov-3 -->
+  - Deploy to production via `npm run deploy` and verify live.
+
+
 

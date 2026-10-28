@@ -334,7 +334,13 @@ export default function ScholarRegistrationPage() {
                   scale: { duration: 0.5, ease: "easeOut" },
                   y: { duration: 4.2, repeat: Infinity, ease: "easeInOut" },
                 }}
-                whileHover={{ scale: 1.05, rotateY: -6, rotateX: 3 }}
+                whileHover={{ 
+                  scale: 1.16, 
+                  rotateY: -7, 
+                  rotateX: 4,
+                  transition: { type: "spring", stiffness: 320, damping: 20 }
+                }}
+                whileTap={{ scale: 1.02 }}
                 className="relative flex flex-col items-center justify-center cursor-pointer select-none"
                 style={{ transformStyle: "preserve-3d", transformOrigin: "center center" }}
               >
