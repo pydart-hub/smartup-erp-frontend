@@ -1,3 +1,181 @@
+# Plan: Center Clock Time Picker with Backdrop Blur
+
+## Status: Complete & Verified
+
+### 1. Requirements & Architecture
+- Issue identified in user screenshot:
+  - Anchoring the clock popup below card triggers caused it to clip at the bottom of the browser viewport.
+- Solution:
+  - Rendered the Clock Time Picker as a **Centered Modal Dialog** across all screen sizes.
+  - Backdrop: `fixed inset-0 bg-black/50 backdrop-blur-sm z-50` (dismiss on backdrop tap/click).
+  - Modal Container: Centered both vertically & horizontally (`flex items-center justify-center p-4`).
+  - Size & Padding: `w-full max-w-[310px] bg-surface rounded-2xl shadow-2xl border border-border-card p-4`.
+  - Header with `Clock` icon, "Select Time", and a clean close button `(✕)`.
+  - Full-width "Done / Set Time" button at the bottom.
+  - Smooth Framer Motion spring scale & fade animation.
+
+### 2. Checkable Steps
+- [x] 1. Update `InteractiveTimePicker.tsx` to Centered Modal with Backdrop Blur <!-- id: center-1 -->
+  - Replaced absolute coordinate positioning with `fixed inset-0 flex items-center justify-center p-4`.
+  - Applied `backdrop-blur-sm` to the backdrop overlay.
+  - Added close button `(✕)` in header and "Done" button at footer.
+- [x] 2. Type Check & Verification <!-- id: center-2 -->
+  - Ran `npx tsc --noEmit` and confirmed 0 errors (Code 0).
+  - Verified centered alignment and zero bottom clipping.
+
+### 3. Review & Verification Results
+- The clock picker now opens cleanly in the exact center of the screen with a blurred backdrop overlay.
+- Clicking the backdrop, pressing Escape, or clicking the (✕) / "Done" buttons closes it smoothly.
+- Zero bottom-of-screen clipping regardless of screen height.
+- Zero TypeScript compiler errors.
+
+---
+
+# Plan: Radial / Circular Clock-Face Time Picker (Hour -> Minute Flow)
+
+## Status: Complete & Verified
+
+### 1. Requirements & Architecture
+- UI Style: Interactive Radial Clock Face (Material / Google Calendar style).
+- Two-Phase Selection Flow:
+  1. **Phase 1: Select Hour**
+     - Clock face displays numbers `1` through `12` in a circle (30° intervals).
+     - Clock hand points to currently selected hour with an illuminated indicator.
+     - Upon clicking an hour: updates the hour and **automatically advances to Phase 2 (Minutes)**.
+  2. **Phase 2: Select Minute**
+     - Clock face switches smoothly to minutes: `00`, `05`, `10`, `15`, `20`, `25`, `30`, `35`, `40`, `45`, `50`, `55`.
+     - Clock hand points to selected minute.
+     - Clicking a minute updates the time.
+- Interactive Header:
+  - Displays `[ HH ] : [ MM ]  [ AM | PM ]`.
+  - Clicking the Hour segment switches back to Hours view.
+  - Clicking the Minute segment switches to Minutes view.
+  - 1-click AM/PM toggle.
+- Mobile Ergonomics:
+  - Opens as native Bottom-Sheet Drawer on phones (< 640px) with centered 230px clock dial and "Done" button.
+  - Opens as precision-anchored popover on desktop (>= 640px).
+  - Quick coaching presets retained at the bottom (`05:00 PM`, `05:30 PM`, `09:00 PM`, `09:30 PM`).
+
+### 2. Checkable Steps
+- [x] 1. Implement Radial Clock Math & Geometry in `InteractiveTimePicker.tsx` <!-- id: clock-1 -->
+  - Computed `(x, y)` positions for 12 radial points with radius `R` and center `(cx, cy)`.
+  - Rendered SVG clock hand line, center pivot, and glowing circular thumb pointer.
+- [x] 2. Implement Two-Phase Workflow (Hour -> Minute Transition) <!-- id: clock-2 -->
+  - State `viewMode: "hours" | "minutes"`.
+  - Selecting hour updates hour and automatically triggers transition to `"minutes"` with Framer Motion.
+  - Selecting minute updates minute.
+  - Interactive header allows switching between `"hours"` and `"minutes"` at any time.
+- [x] 3. Maintain Mobile Responsiveness & Desktop Alignment <!-- id: clock-3 -->
+  - Dial dimensions responsive (`210px` desktop, `230px` mobile).
+  - React Portal rendering so clock dial never gets clipped.
+- [x] 4. Verification & Testing <!-- id: clock-4 -->
+  - Ran `npx tsc --noEmit` and confirmed 0 errors (Code 0).
+  - Verified two-step transition and presets.
+
+### 3. Review & Verification Results
+- Selecting an hour instantly moves the clock hand and transitions to the minute dial after a 220ms confirmation.
+- The clock hand and dial support direct clicking on the numbers or anywhere on the radial face.
+- Fully responsive on mobile (bottom sheet) and desktop (anchored popover).
+- Zero TypeScript compiler errors.
+
+---
+
+# Plan: Redesign Time Selection UI (Interactive, User-Friendly & Mobile-Responsive)
+
+## Status: Completed & Verified
+
+### 1. Problem Analysis & Mobile Ergonomics
+- Previous UI:
+  - Used native browser `<select>` dropdowns for Hour (`01`–`12`) and Minute (`00`–`59`).
+  - Clicking opened a tall, rigid OS dropdown (12 items for hour, 60 items for minute) that obscured cards and was difficult to scroll/navigate.
+  - On mobile devices, native dropdowns took over the screen with OS spinner pickers or long lists that were easy to misclick.
+- New Interactive UI:
+  - Built custom [`src/components/ui/InteractiveTimePicker.tsx`](file:///c:/Users/arjun/Desktop/Stibe/smartup-erp-frontend/src/components/ui/InteractiveTimePicker.tsx).
+  - **Desktop Experience (>= 640px)**: Compact inline pill (`🕒 05 : 00 PM`) opening a precision-anchored floating popover.
+  - **Mobile Experience (< 640px)**:
+    - Tap on any time button opens an **ergonomic Bottom-Sheet Modal** sliding up from the bottom with a dimmed backdrop (`bg-black/50 backdrop-blur-xs`).
+    - 44px touch targets (finger-friendly), clean touch drag bar, quick-tap hour grid (1–12), 4 minute chips (:00, :15, :30, :45), AM/PM segmented switch, coaching shift presets, and a prominent "Done" confirmation button.
+    - Zero horizontal overflow or clipping regardless of screen width (supports 320px, 375px, 414px, tablets).
+
+### 2. Checkable Implementation Steps
+- [x] 1. Design & Build `InteractiveTimePicker` Component <!-- id: itp-1 -->
+  - File: `src/components/ui/InteractiveTimePicker.tsx`
+  - Responsive layout:
+    - On mobile (< 640px): fixed bottom-sheet drawer with backdrop blur.
+    - On desktop (>= 640px): anchored popover with click-outside listener.
+  - Touch targets: >= 40-44px for touch accessibility on phones.
+  - Support `size="sm"` and `size="md"`.
+  - Handle 24-hour string values (`"17:00"`) and output standard `"HH:mm"` for full backend & Frappe MariaDB compatibility.
+  - Escape key and backdrop tap to dismiss.
+- [x] 2. Replace Native Dropdowns in Staff Attendance Page <!-- id: itp-2 -->
+  - File: `src/app/dashboard/branch-manager/attendance/staff/page.tsx`
+  - Replaced `<Time12Input>` with `<InteractiveTimePicker>` across:
+    - Global Class Time in the top bar (`size="md"`).
+    - Per-Session Class Time in cards (`size="sm"`).
+    - Session Check-In (`In:`) time in cards (`size="sm"`).
+    - Session Check-Out (`Out:`) time in cards (`size="sm"`).
+- [x] 3. Type Checking & Build Verification <!-- id: itp-3 -->
+  - Ran `npx tsc --noEmit` and confirmed 0 errors (Code 0).
+  - Verified layout responsiveness across 360px mobile viewport, tablet, and desktop.
+
+### 3. Review & Verification Results
+- The clunky native `<select>` dropdowns have been completely removed.
+- On mobile devices, tapping any time element slides up an ergonomic bottom sheet with large 44px buttons, 1-tap hours, minute intervals, and a "Done" button.
+- On desktop, clicking opens an anchored popover with zero edge clipping.
+- Zero TypeScript compiler errors across the codebase.
+
+---
+
+# Plan: Configure Default Timing to 5 to 9 on Staff Attendance Page
+
+## Status: Complete & Verified
+
+### 1. Goal & Requirements
+- Target Page: `src/app/dashboard/branch-manager/attendance/staff/page.tsx` (`/dashboard/branch-manager/attendance/staff`)
+- Current Behavior:
+  - Default In Time: `09:00` (09:00 AM)
+  - Default Out Time: `17:30` (05:30 PM)
+  - Default Half Day Out Time: `13:00` (01:00 PM)
+  - Class Time defaults to: `17:00` (05:00 PM)
+  - Result: In the screenshot, employees have Class Time `05:00 PM`, but check-in/out defaulted to `09:00 AM` and `05:30 PM`.
+- Target Behavior:
+  - Default In Time: `17:00` (05:00 PM)
+  - Default Out Time: `21:00` (09:00 PM)
+  - Default Half Day Out Time: `19:00` (07:00 PM)
+  - Session Type: `"Evening"` (for session 1)
+  - Default Class Time: `17:00` (05:00 PM)
+
+### 2. Checkable Steps
+- [x] 1. Update Constants in `src/app/dashboard/branch-manager/attendance/staff/page.tsx` <!-- id: time-1 -->
+  - Set `DEFAULT_IN_TIME = "17:00"` (05:00 PM)
+  - Set `DEFAULT_OUT_TIME = "21:00"` (09:00 PM)
+  - Set `DEFAULT_HALF_DAY_OUT_TIME = "19:00"` (07:00 PM)
+- [x] 2. Update Session Creation & Fallback Logic in `page.tsx` <!-- id: time-2 -->
+  - In `getBranchSessionsFromAtt`:
+    - Set default `session_type: "Evening"`
+    - Set default `class_time: defaultClassTimeVal || "17:00"`
+    - Set default `in_time: DEFAULT_IN_TIME` (`17:00`)
+    - Set default `out_time: DEFAULT_OUT_TIME` (`21:00`)
+  - In `handleAddSession`:
+    - Set default `in_time: DEFAULT_IN_TIME` (`17:00`)
+    - Set default `out_time: DEFAULT_OUT_TIME` (`21:00`)
+    - Set `session_type: "Evening"`
+- [x] 3. Update `Time12Input` Fallback Defaults <!-- id: time-3 -->
+  - Changed fallback hour/period from `09:00 AM` to `05:00 PM` (`17:00`) so blank fields default gracefully to 5:00 PM.
+- [x] 4. Keep `src/app/dashboard/branch-manager/employees/mark-attendance/page.tsx` in Sync <!-- id: time-4 -->
+  - Updated `DEFAULT_IN_TIME`, `DEFAULT_OUT_TIME`, `DEFAULT_HALF_DAY_OUT_TIME`.
+- [x] 5. Verification & Testing <!-- id: time-5 -->
+  - Ran `npx tsc --noEmit` and confirmed 0 errors (Code 0).
+  - Verified working hours calculation (`21:00 - 17:00 = 4.00h`).
+  - Verified late minutes calculation against `17:00` class time (0m late for 5 PM check-in).
+
+### 3. Review & Verification Results
+- All default timings now initialize to 5:00 PM (`17:00`) to 9:00 PM (`21:00`).
+- Newly marked attendance, "Mark All Present", session additions, and status toggles automatically adopt `05:00 PM` In and `09:00 PM` Out.
+- Zero TypeScript compiler errors across the entire repository.
+
+---
+
 # Plan: Push to Git and Deploy Clustered ERP to Production Server
 
 ## 1. Context & Architecture Review
@@ -445,6 +623,7 @@ Add a dedicated, high-performance, and beautifully formatted Excel (.xlsx) expor
 
 
 
+
 - [x] Task 1: Update Hover Animation Properties in `src/app/scholar/page.tsx` <!-- id: hov-1 -->
   - Increased `whileHover` scale from `1.05` to `1.16` with smooth spring transition (`stiffness: 320, damping: 20`).
   - Added subtle 3D tilt enhancement (`rotateY: -7, rotateX: 4`) and `whileTap={{ scale: 1.02 }}`.
@@ -453,6 +632,36 @@ Add a dedicated, high-performance, and beautifully formatted Excel (.xlsx) expor
 - [x] Task 3: Production Deployment & Verification <!-- id: hov-3 -->
   - Deployed to production via `npm run deploy` and verified `200 OK` on `https://diagnosis.smartuplearning.net`.
   - Zero-downtime clustered reload of all 4 PM2 instances completed successfully with live commit `39e8be8`.
+
+---
+
+# Plan: Deploy Interactive Time Picker & Default Timing Updates to Production
+
+## 1. Context & Architecture Review
+- Studied:
+  - `docs/Server Configuration - Clustered.md`
+  - `docs/Server Configuration.md`
+  - `scripts/deploy.sh`
+- Target Server: `smartup-portal` (`76.13.244.60`)
+- Cluster: 4 PM2 instances (`smartup-erp-1` to `smartup-erp-4`, ports 3001, 3005, 3006, 3007)
+- Nginx upstream `smartup_erp_upstream` (`least_conn`)
+- Deployment command: `npm run deploy` (which runs `ssh smartup-portal "bash /var/www/smartup-erp/scripts/deploy.sh"`)
+
+## 2. Checkable Steps
+- [x] Step 1: Pre-Deployment Verification <!-- id: deploy-time-1 -->
+  - Ran `npx tsc --noEmit` locally (verified: 0 errors).
+- [/] Step 2: Review & Stage Git Changes <!-- id: deploy-time-2 -->
+  - `src/components/ui/InteractiveTimePicker.tsx` (New centered modal radial clock time picker)
+  - `src/app/dashboard/branch-manager/attendance/staff/page.tsx` (Interactive time picker integration + 17:00-21:00 default timing)
+  - `src/app/dashboard/branch-manager/employees/mark-attendance/page.tsx` (17:00-21:00 default timing sync)
+  - `tasks/todo.md`
+- [ ] Step 3: Git Commit & Push to `origin/main` <!-- id: deploy-time-3 -->
+- [ ] Step 4: Execute Clustered Safe Deployment on Server <!-- id: deploy-time-4 -->
+- [ ] Step 5: Post-Deployment Verification <!-- id: deploy-time-5 -->
+  - Verify all 4 cluster instances (`smartup-erp-1` through `smartup-erp-4`) are online.
+  - Verify ports `3001`, `3005`, `3006`, `3007` respond.
+  - Verify public domain `https://smartuplearning.net` is live.
+
 
 
 

@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { InteractiveTimePicker } from "@/components/ui/InteractiveTimePicker";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/hooks/useAuth";
 import {
@@ -46,9 +47,9 @@ interface StaffAttendanceChange {
 
 const STATUS_OPTIONS: StaffStatus[] = ["Present", "Absent", "Half Day", "Work From Home", "At Head Office", "Holiday"];
 
-const DEFAULT_IN_TIME = "09:00";
-const DEFAULT_OUT_TIME = "17:30";
-const DEFAULT_HALF_DAY_OUT_TIME = "13:00";
+const DEFAULT_IN_TIME = "17:00";
+const DEFAULT_OUT_TIME = "21:00";
+const DEFAULT_HALF_DAY_OUT_TIME = "19:00";
 
 function formatTimeForInput(val?: string | null): string {
   if (!val) return "";
@@ -95,163 +96,7 @@ function formatTo12Hour(time24?: string | null): string {
   return `${hours12.toString().padStart(2, "0")}:${minutes} ${period}`;
 }
 
-// Compact 12-hour input component (outputs 24-hour "HH:mm" to onChange)
-interface Time12InputProps {
-  value: string;
-  onChange: (val: string) => void;
-  className?: string;
-  size?: "sm" | "md";
-}
 
-function Time12Input({ value, onChange, className = "", size = "sm" }: Time12InputProps) {
-  // Parse incoming "HH:mm"
-  let initialHour12 = "09";
-  let initialMinute = "00";
-  let initialPeriod = "AM";
-
-  if (value && value.includes(":")) {
-    const [hStr, mStr] = value.split(":");
-    const h = parseInt(hStr, 10);
-    if (!isNaN(h)) {
-      initialPeriod = h >= 12 ? "PM" : "AM";
-      const h12 = h % 12 === 0 ? 12 : h % 12;
-      initialHour12 = h12.toString().padStart(2, "0");
-      initialMinute = (mStr || "00").slice(0, 2);
-    }
-  }
-
-  const [hour, setHour] = useState(initialHour12);
-  const [minute, setMinute] = useState(initialMinute);
-  const [period, setPeriod] = useState(initialPeriod);
-
-  // Sync internal state when external value changes
-  useEffect(() => {
-    if (value && value.includes(":")) {
-      const [hStr, mStr] = value.split(":");
-      const h = parseInt(hStr, 10);
-      if (!isNaN(h)) {
-        const p = h >= 12 ? "PM" : "AM";
-        const h12 = h % 12 === 0 ? 12 : h % 12;
-        setHour(h12.toString().padStart(2, "0"));
-        setMinute((mStr || "00").slice(0, 2));
-        setPeriod(p);
-      }
-    } else if (!value) {
-      setHour("");
-      setMinute("");
-    }
-  }, [value]);
-
-  const updateTime = (newH: string, newM: string, newP: string) => {
-    if (!newH && !newM) {
-      onChange("");
-      return;
-    }
-    const hNum = parseInt(newH || "0", 10);
-    const mNum = parseInt(newM || "0", 10);
-    let h24 = hNum % 12;
-    if (newP === "PM") h24 += 12;
-    const formatted = `${h24.toString().padStart(2, "0")}:${(isNaN(mNum) ? 0 : mNum).toString().padStart(2, "0")}`;
-    onChange(formatted);
-  };
-
-  const hoursList = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, "0"));
-  // Support all minutes from 00 to 59 for exact check-in / check-out records
-  const minutesList = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, "0"));
-
-  if (size === "md") {
-    return (
-      <div className={`flex items-center gap-1 rounded-[10px] border border-border-input bg-surface px-2 py-1 ${className}`}>
-        <select
-          value={hour}
-          onChange={(e) => {
-            setHour(e.target.value);
-            updateTime(e.target.value, minute || "00", period);
-          }}
-          className="bg-transparent text-sm font-medium text-text-primary focus:outline-none cursor-pointer"
-        >
-          {hoursList.map((h) => (
-            <option key={h} value={h} className="bg-surface text-text-primary">
-              {h}
-            </option>
-          ))}
-        </select>
-        <span className="text-text-tertiary text-xs font-bold">:</span>
-        <select
-          value={minute}
-          onChange={(e) => {
-            setMinute(e.target.value);
-            updateTime(hour || "09", e.target.value, period);
-          }}
-          className="bg-transparent text-sm font-medium text-text-primary focus:outline-none cursor-pointer"
-        >
-          {minutesList.map((m) => (
-            <option key={m} value={m} className="bg-surface text-text-primary">
-              {m}
-            </option>
-          ))}
-        </select>
-        <button
-          type="button"
-          onClick={() => {
-            const nextP = period === "AM" ? "PM" : "AM";
-            setPeriod(nextP);
-            updateTime(hour || "09", minute || "00", nextP);
-          }}
-          className="ml-1 px-1.5 py-0.5 rounded text-xs font-bold bg-brand-wash text-primary hover:bg-primary/20 transition-colors"
-        >
-          {period}
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className={`flex items-center gap-0.5 bg-surface border border-border-input rounded px-1.5 py-0.5 ${className}`}>
-      <select
-        value={hour}
-        onChange={(e) => {
-          setHour(e.target.value);
-          updateTime(e.target.value, minute || "00", period);
-        }}
-        className="bg-transparent text-[11px] font-semibold text-text-primary focus:outline-none cursor-pointer p-0"
-      >
-        {hoursList.map((h) => (
-          <option key={h} value={h} className="bg-surface text-text-primary">
-            {h}
-          </option>
-        ))}
-      </select>
-      <span className="text-text-tertiary text-[10px] font-bold leading-none">:</span>
-      <select
-        value={minute}
-        onChange={(e) => {
-          setMinute(e.target.value);
-          updateTime(hour || "09", e.target.value, period);
-        }}
-        className="bg-transparent text-[11px] font-semibold text-text-primary focus:outline-none cursor-pointer p-0"
-      >
-        {minutesList.map((m) => (
-          <option key={m} value={m} className="bg-surface text-text-primary">
-            {m}
-          </option>
-        ))}
-      </select>
-      <button
-        type="button"
-        onClick={() => {
-          const nextP = period === "AM" ? "PM" : "AM";
-          setPeriod(nextP);
-          updateTime(hour || "09", minute || "00", nextP);
-        }}
-        className="ml-0.5 px-1 py-0 rounded text-[9.5px] font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-colors leading-normal"
-        title="Toggle AM / PM"
-      >
-        {period}
-      </button>
-    </div>
-  );
-}
 
 
 const statusConfig: Record<string, { color: string; bg: string; icon: React.ComponentType<{ className?: string }>; variant: "success" | "error" | "warning" | "default" }> = {
@@ -493,8 +338,8 @@ export default function StaffAttendancePage() {
           {
             id: "sess_1",
             title: "Session 1",
-            session_type: "Morning",
-            class_time: defaultClassTimeVal || "09:00",
+            session_type: "Evening",
+            class_time: defaultClassTimeVal || "17:00",
             in_time: DEFAULT_IN_TIME,
             out_time: DEFAULT_OUT_TIME,
             status: "Present",
@@ -530,7 +375,7 @@ export default function StaffAttendancePage() {
         });
 
         const defaultType = hasMorningElsewhere ? "Evening" : "Morning";
-        const defaultClass = hasMorningElsewhere ? "16:00" : (defaultClassTimeVal || "09:00");
+        const defaultClass = hasMorningElsewhere ? "16:00" : (defaultClassTimeVal || "17:00");
         const defaultIn = hasMorningElsewhere ? "16:00" : DEFAULT_IN_TIME;
         const defaultOut = hasMorningElsewhere ? "18:00" : DEFAULT_OUT_TIME;
 
@@ -552,8 +397,8 @@ export default function StaffAttendancePage() {
         {
           id: "sess_1",
           title: "Session 1",
-          session_type: "Morning",
-          class_time: formatTimeForInput(att.custom_class_time) || defaultClassTimeVal || "",
+          session_type: "Evening",
+          class_time: formatTimeForInput(att.custom_class_time) || defaultClassTimeVal || "17:00",
           in_time: formatTimeForInput(att.in_time || att.custom_check_in) || (att.status === "Present" ? DEFAULT_IN_TIME : ""),
           out_time: formatTimeForInput(att.out_time || att.custom_check_out) || (att.status === "Present" ? DEFAULT_OUT_TIME : ""),
           status: (att.status as StaffStatus) || "Present",
@@ -771,10 +616,10 @@ export default function StaffAttendancePage() {
       const newSession: BranchSessionItem = {
         id: `sess_${Date.now()}_${nextGlobalIndex}`,
         title: `Session ${nextGlobalIndex}`,
-        session_type: nextGlobalIndex >= 2 ? "Evening" : "Morning",
-        class_time: nextGlobalIndex >= 2 ? "16:00" : "09:00",
-        in_time: nextGlobalIndex >= 2 ? "16:00" : DEFAULT_IN_TIME,
-        out_time: nextGlobalIndex >= 2 ? "18:00" : DEFAULT_OUT_TIME,
+        session_type: "Evening",
+        class_time: classTime || "17:00",
+        in_time: DEFAULT_IN_TIME,
+        out_time: DEFAULT_OUT_TIME,
         status: current.status === "Not Marked" ? "Present" : current.status,
       };
 
@@ -1341,11 +1186,10 @@ export default function StaffAttendancePage() {
                     <label className="text-xs font-medium text-text-secondary flex items-center gap-1">
                       <Clock className="h-3.5 w-3.5" /> Class Time
                     </label>
-                    <Time12Input
+                    <InteractiveTimePicker
                       value={classTime}
                       onChange={(val) => handleClassTimeChange(val)}
                       size="md"
-                      className="h-9"
                     />
                   </div>
                   <button
@@ -1553,7 +1397,7 @@ export default function StaffAttendancePage() {
                                       </span>
                                     )}
                                   </div>
-                                  <Time12Input
+                                  <InteractiveTimePicker
                                     value={(timingMode === "same" && sIdx === 0 ? classTime : sess.class_time) || ""}
                                     onChange={(val) =>
                                       handleSessionChange(emp.name, sess.id, "class_time", val, emp.isVisiting)
@@ -1563,7 +1407,7 @@ export default function StaffAttendancePage() {
                                 </div>
 
                                 {sess.status === "Absent" ? (
-                                  <div className="flex items-center justify-center gap-1.5 py-1.5 px-2 bg-error-light/60 border border-error/20 rounded-[6px] text-[11px] font-semibold text-error">
+                                   <div className="flex items-center justify-center gap-1.5 py-1.5 px-2 bg-error-light/60 border border-error/20 rounded-[6px] text-[11px] font-semibold text-error">
                                     <XCircle className="h-3.5 w-3.5 flex-shrink-0" />
                                     <span>Session marked Absent (No Check-in / Check-out)</span>
                                   </div>
@@ -1571,30 +1415,32 @@ export default function StaffAttendancePage() {
                                   <>
                                     <div className="flex items-center gap-2">
                                       {/* In Time */}
-                                      <div className="flex items-center gap-1 bg-surface px-2 py-1 rounded-[6px] border border-border-light flex-1">
-                                        <LogIn className="h-3 w-3 text-success flex-shrink-0" />
-                                        <span className="text-[10px] text-text-secondary font-medium">In:</span>
-                                        <Time12Input
+                                      <div className="flex items-center justify-between gap-1 bg-surface px-2 py-1 rounded-[6px] border border-border-light flex-1 min-w-0">
+                                        <div className="flex items-center gap-1 flex-shrink-0">
+                                          <LogIn className="h-3 w-3 text-success flex-shrink-0" />
+                                          <span className="text-[10px] text-text-secondary font-medium">In:</span>
+                                        </div>
+                                        <InteractiveTimePicker
                                           value={sess.in_time || ""}
                                           onChange={(val) =>
                                             handleSessionChange(emp.name, sess.id, "in_time", val, emp.isVisiting)
                                           }
                                           size="sm"
-                                          className="border-0 bg-transparent px-0 py-0"
                                         />
                                       </div>
 
                                       {/* Out Time */}
-                                      <div className="flex items-center gap-1 bg-surface px-2 py-1 rounded-[6px] border border-border-light flex-1">
-                                        <LogOut className="h-3 w-3 text-error flex-shrink-0" />
-                                        <span className="text-[10px] text-text-secondary font-medium">Out:</span>
-                                        <Time12Input
+                                      <div className="flex items-center justify-between gap-1 bg-surface px-2 py-1 rounded-[6px] border border-border-light flex-1 min-w-0">
+                                        <div className="flex items-center gap-1 flex-shrink-0">
+                                          <LogOut className="h-3 w-3 text-error flex-shrink-0" />
+                                          <span className="text-[10px] text-text-secondary font-medium">Out:</span>
+                                        </div>
+                                        <InteractiveTimePicker
                                           value={sess.out_time || ""}
                                           onChange={(val) =>
                                             handleSessionChange(emp.name, sess.id, "out_time", val, emp.isVisiting)
                                           }
                                           size="sm"
-                                          className="border-0 bg-transparent px-0 py-0"
                                         />
                                       </div>
                                     </div>

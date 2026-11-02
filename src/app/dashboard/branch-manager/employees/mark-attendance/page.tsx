@@ -52,9 +52,9 @@ const STATUS_OPTIONS: { value: AttStatus; label: string; icon: React.ComponentTy
   { value: "Holiday",          label: "Holiday",  icon: Palmtree,    variant: "default" },
 ];
 
-const DEFAULT_IN_TIME = "09:00";
-const DEFAULT_OUT_TIME = "17:30";
-const DEFAULT_HALF_DAY_OUT_TIME = "13:00";
+const DEFAULT_IN_TIME = "17:00";
+const DEFAULT_OUT_TIME = "21:00";
+const DEFAULT_HALF_DAY_OUT_TIME = "19:00";
 
 // Helper to normalize "HH:mm:ss" or ISO string from backend into "HH:mm" for <input type="time" />
 function formatTimeForInput(val?: string | null): string {
