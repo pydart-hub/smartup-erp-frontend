@@ -650,17 +650,24 @@ Add a dedicated, high-performance, and beautifully formatted Excel (.xlsx) expor
 ## 2. Checkable Steps
 - [x] Step 1: Pre-Deployment Verification <!-- id: deploy-time-1 -->
   - Ran `npx tsc --noEmit` locally (verified: 0 errors).
-- [/] Step 2: Review & Stage Git Changes <!-- id: deploy-time-2 -->
+- [x] Step 2: Review & Stage Git Changes <!-- id: deploy-time-2 -->
   - `src/components/ui/InteractiveTimePicker.tsx` (New centered modal radial clock time picker)
   - `src/app/dashboard/branch-manager/attendance/staff/page.tsx` (Interactive time picker integration + 17:00-21:00 default timing)
   - `src/app/dashboard/branch-manager/employees/mark-attendance/page.tsx` (17:00-21:00 default timing sync)
   - `tasks/todo.md`
-- [ ] Step 3: Git Commit & Push to `origin/main` <!-- id: deploy-time-3 -->
-- [ ] Step 4: Execute Clustered Safe Deployment on Server <!-- id: deploy-time-4 -->
-- [ ] Step 5: Post-Deployment Verification <!-- id: deploy-time-5 -->
-  - Verify all 4 cluster instances (`smartup-erp-1` through `smartup-erp-4`) are online.
-  - Verify ports `3001`, `3005`, `3006`, `3007` respond.
-  - Verify public domain `https://smartuplearning.net` is live.
+- [x] Step 3: Git Commit & Push to `origin/main` <!-- id: deploy-time-3 -->
+  - Committed as `c32f9c9`: `feat(attendance): add interactive radial clock time picker and set default staff timing to 5 to 9`.
+  - Pushed to `https://github.com/pydart-hub/smartup-erp-frontend.git` on `main`.
+- [x] Step 4: Execute Clustered Safe Deployment on Server <!-- id: deploy-time-4 -->
+  - Executed `ssh smartup-portal "bash /var/www/smartup-erp/scripts/deploy.sh"`.
+  - Dependencies installed, Prisma clients generated, Next.js 16.1.6 production bundle compiled (379/379 static/dynamic pages).
+  - PM2 zero-downtime cluster reloaded (`smartup-erp-1` to `smartup-erp-4`).
+  - Nginx configuration verified and reloaded.
+- [x] Step 5: Post-Deployment Verification <!-- id: deploy-time-5 -->
+  - Verified all 4 cluster instances (`smartup-erp-1` through `smartup-erp-4`) are online.
+  - Verified ports `3001`, `3005`, `3006`, `3007` respond with `HTTP 307`.
+  - Verified public domain `https://smartuplearning.net` returns `HTTP/2 307` (Redirect to `/auth/login`).
+  - Verified running commit on server is `c32f9c9`.
 
 
 
