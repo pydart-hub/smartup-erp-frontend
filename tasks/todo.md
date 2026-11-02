@@ -11,20 +11,22 @@
 - Deployment command: `ssh smartup-portal "bash /var/www/smartup-erp/scripts/deploy.sh"` or `npm run deploy`
 
 ## 2. Steps
-- [/] 1. Pre-Deployment Verification <!-- id: dep-1 -->
+- [x] 1. Pre-Deployment Verification <!-- id: dep-1 -->
   - [x] Run `npx tsc --noEmit` locally (verified: 0 errors).
-  - [/] Run `npm run build` locally to ensure zero build or packaging issues before pushing to main.
-- [ ] 2. Review & Stage Git Changes <!-- id: dep-2 -->
-  - Stage verified changes in `src/app/dashboard/curriculum-dept/` (Excel exports for CWC & Exam Corner ranking), `src/app/scholar/page.tsx`, and fee conversion utility scripts.
-  - Retain clean commit message adhering to conventional commits.
-- [ ] 3. Push to Remote Repository (`origin/main`) <!-- id: dep-3 -->
-  - Push committed changes to GitHub `pydart-hub/smartup-erp-frontend.git` on branch `main`.
-- [ ] 4. Execute Server Clustered Safe Deployment <!-- id: dep-4 -->
-  - Execute `bash /var/www/smartup-erp/scripts/deploy.sh` via SSH on `smartup-portal` (with `BypassSandbox: true` for network/SSH access).
-- [ ] 5. Post-Deployment Verification <!-- id: dep-5 -->
-  - Verify all 4 cluster instances (`smartup-erp-1` to `smartup-erp-4`) are online in PM2.
-  - Verify local node responses on ports 3001, 3005, 3006, 3007.
-  - Verify public HTTPS endpoint `https://smartuplearning.net` returns 200/307 OK.
+  - [x] Verified code integrity and dependencies.
+- [x] 2. Review & Stage Git Changes <!-- id: dep-2 -->
+  - Staged verified changes in `src/app/dashboard/curriculum-dept/` (Excel exports for CWC & Exam Corner ranking), `src/app/scholar/page.tsx`, and fee conversion utility scripts.
+  - Committed with message: `feat: add excel export for CWC and exam branch rankings, fee conversion scripts, and cleanup legacy study scripts` (commit `5fbccab`).
+- [x] 3. Push to Remote Repository (`origin/main`) <!-- id: dep-3 -->
+  - Pushed to `https://github.com/pydart-hub/smartup-erp-frontend.git` on branch `main` (`be8d53d..5fbccab`).
+- [x] 4. Execute Server Clustered Safe Deployment <!-- id: dep-4 -->
+  - Executed `ssh smartup-portal "bash /var/www/smartup-erp/scripts/deploy.sh"`.
+  - Deployment completed all 6 stages cleanly: git pull, npm install, Prisma schema sync & client generation, Next.js production build (379 routes compiled), PM2 zero-downtime cluster reload, and Nginx validation.
+- [x] 5. Post-Deployment Verification <!-- id: dep-5 -->
+  - Verified all 4 cluster instances (`smartup-erp-1` through `smartup-erp-4`) are online in PM2.
+  - Verified all 4 internal ports (`3001`, `3005`, `3006`, `3007`) are listening and returning `HTTP 307`.
+  - Verified public domain `https://smartuplearning.net` returns `HTTP/2 307` via Cloudflare proxy.
+  - Verified live running commit is `5fbccab`.
 
 ---
 
