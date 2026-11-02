@@ -19,7 +19,8 @@ import {
   XCircle,
   GraduationCap,
   Layers,
-  Filter
+  Filter,
+  FileSpreadsheet
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -75,6 +76,7 @@ export default function SubjectRankingPage() {
 
   // Selected Branch for Drill-down / Detailed Student list
   const [drillDownBranch, setDrillDownBranch] = useState<string | null>(null);
+  const [isExportingExcel, setIsExportingExcel] = useState(false);
 
   const cwcOptions = ["CWC 1", "CWC 2", "CWC 3"];
 
@@ -609,6 +611,162 @@ export default function SubjectRankingPage() {
       style.remove();
       printContainer.remove();
     }, 1000);
+  };
+
+  const handleExportExcel = async () => {
+    if (!drillDownDetails || drillDownDetails.students.length === 0) return;
+    setIsExportingExcel(true);
+    try {
+      const ExcelJS = (await import("exceljs")).default;
+      const wb = new ExcelJS.Workbook();
+      wb.creator = "SmartUp ERP";
+      wb.created = new Date();
+
+      const branchClean = drillDownDetails.branchInfo.branchClean;
+
+      // ── SHEET 1: Rank List ──
+      const ws1 = wb.addWorksheet("Rank List", {
+        views: [{ showGridLines: true }],
+      });
+
+      // Title Banner
+      ws1.mergeCells("A1:J1");
+      const titleCell = ws1.getCell("A1");
+      titleCell.value = `SMARTUP LEARNING VENTURES — ${branchClean.toUpperCase()}`;
+      titleCell.font = { name: "Arial", size: 13, bold: true, color: { argb: "FFFFFFFF" } };
+      titleCell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF059669" }, // emerald-600
+      };
+      titleCell.alignment = { vertical: "middle", horizontal: "center" };
+      ws1.getRow(1).height = 28;
+
+      // Subtitle
+      ws1.mergeCells("A2:J2");
+      const subCell = ws1.getCell("A2");
+      subCell.value = `${selectedStandard === "all" ? "All Classes" : selectedStandard} ${selectedSubject} • Exam: ${selectedCwc} • Plan: ${selectedPlanFilter} (${drillDownDetails.students.length} Students) • Date: ${new Date().toLocaleDateString("en-IN")}`;
+      subCell.font = { name: "Arial", size: 9.5, italic: true, color: { argb: "FF334155" } };
+      subCell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFF1F5F9" }, // slate-100
+      };
+      subCell.alignment = { vertical: "middle", horizontal: "center" };
+      ws1.getRow(2).height = 20;
+
+      ws1.getRow(3).height = 8;
+
+      // Table Headers
+      const headers1 = [
+        "Rank",
+        "Student Name",
+        "Student ID",
+        "Batch / Class",
+        "Plan",
+        "Score",
+        "Max Score",
+        "% Score",
+        "Grade",
+        "Status",
+      ];
+      const headerRow1 = ws1.addRow(headers1);
+      headerRow1.height = 24;
+      headerRow1.eachCell((cell) => {
+        cell.font = { name: "Arial", size: 9.5, bold: true, color: { argb: "FFFFFFFF" } };
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FF0F766E" }, // teal-700
+        };
+        cell.alignment = { vertical: "middle", horizontal: "center" };
+        cell.border = {
+          top: { style: "thin", color: { argb: "FFCBD5E1" } },
+          bottom: { style: "medium", color: { argb: "FF0D9488" } },
+          left: { style: "thin", color: { argb: "FFCBD5E1" } },
+          right: { style: "thin", color: { argb: "FFCBD5E1" } },
+        };
+      });
+
+      // Data Rows
+      drillDownDetails.students.forEach((st, idx) => {
+        const row = ws1.addRow([
+          st.rank,
+          st.studentName,
+          st.student,
+          st.studentGroup?.replace(/^Smart\s+Up\s+|^[A-Za-z0-9]+-/, "") || "General",
+          st.customPlan || "Basic",
+          st.score,
+          st.max,
+          `${st.pct}%`,
+          st.grade,
+          st.passed ? "Passed" : "Failed",
+        ]);
+        row.height = 20;
+        const isEven = idx % 2 === 0;
+        row.eachCell((cell, colNum) => {
+          cell.font = { name: "Arial", size: 9 };
+          cell.alignment = {
+            vertical: "middle",
+            horizontal: colNum === 2 ? "left" : "center",
+          };
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: isEven ? "FFFFFFFF" : "FFF8FAFC" },
+          };
+          cell.border = {
+            top: { style: "thin", color: { argb: "FFE2E8F0" } },
+            bottom: { style: "thin", color: { argb: "FFE2E8F0" } },
+            left: { style: "thin", color: { argb: "FFE2E8F0" } },
+            right: { style: "thin", color: { argb: "FFE2E8F0" } },
+          };
+          if (colNum === 10) {
+            cell.font = {
+              name: "Arial",
+              size: 9,
+              bold: true,
+              color: { argb: st.passed ? "FF16A34A" : "FFE11D48" },
+            };
+          }
+        });
+      });
+
+      ws1.columns = [
+        { width: 8 },  // Rank
+        { width: 28 }, // Name
+        { width: 18 }, // ID
+        { width: 22 }, // Batch
+        { width: 14 }, // Plan
+        { width: 12 }, // Score
+        { width: 12 }, // Max Score
+        { width: 12 }, // % Score
+        { width: 10 }, // Grade
+        { width: 12 }, // Status
+      ];
+
+      // File Output Trigger
+      const buf = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buf], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const cleanFileName = `SmartUp_${branchClean}_${selectedSubject}_${selectedCwc}_Ranking.xlsx`
+        .replace(/\s+/g, "_")
+        .replace(/[^a-zA-Z0-9_.-]/g, "");
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = cleanFileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Export Excel error:", err);
+    } finally {
+      setIsExportingExcel(false);
+    }
   };
 
   return (
@@ -1222,10 +1380,29 @@ export default function SubjectRankingPage() {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={handlePrintTranscript}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-border-input hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-semibold rounded-xl text-text-primary transition-colors shadow-sm"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-border-input hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-semibold rounded-xl text-text-primary transition-colors shadow-sm cursor-pointer"
                   >
                     <Printer className="h-3.5 w-3.5 text-text-secondary" />
                     Print Rank List
+                  </button>
+
+                  <button
+                    onClick={handleExportExcel}
+                    disabled={isExportingExcel || !drillDownDetails?.students.length}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-xs font-semibold rounded-xl text-white transition-colors shadow-sm cursor-pointer"
+                    title="Download Subject Rankings Excel (.xlsx)"
+                  >
+                    {isExportingExcel ? (
+                      <>
+                        <div className="h-3 w-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Exporting...
+                      </>
+                    ) : (
+                      <>
+                        <FileSpreadsheet className="h-3.5 w-3.5" />
+                        Download Excel
+                      </>
+                    )}
                   </button>
                 </div>
               </div>

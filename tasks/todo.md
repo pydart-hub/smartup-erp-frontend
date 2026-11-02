@@ -1,3 +1,66 @@
+# Plan: Push to Git and Deploy Clustered ERP to Production Server
+
+## 1. Context & Architecture Review
+- Studied:
+  - `docs/Server Configuration - Clustered.md`
+  - `docs/Server Configuration.md`
+  - `scripts/deploy.sh`
+- Server Target: `smartup-portal` (`76.13.244.60`)
+- Cluster: 4 PM2 instances (`smartup-erp-1` to `smartup-erp-4`, ports 3001, 3005, 3006, 3007)
+- Nginx upstream `smartup_erp_upstream` (`least_conn`)
+- Deployment command: `ssh smartup-portal "bash /var/www/smartup-erp/scripts/deploy.sh"` or `npm run deploy`
+
+## 2. Steps
+- [/] 1. Pre-Deployment Verification <!-- id: dep-1 -->
+  - [x] Run `npx tsc --noEmit` locally (verified: 0 errors).
+  - [/] Run `npm run build` locally to ensure zero build or packaging issues before pushing to main.
+- [ ] 2. Review & Stage Git Changes <!-- id: dep-2 -->
+  - Stage verified changes in `src/app/dashboard/curriculum-dept/` (Excel exports for CWC & Exam Corner ranking), `src/app/scholar/page.tsx`, and fee conversion utility scripts.
+  - Retain clean commit message adhering to conventional commits.
+- [ ] 3. Push to Remote Repository (`origin/main`) <!-- id: dep-3 -->
+  - Push committed changes to GitHub `pydart-hub/smartup-erp-frontend.git` on branch `main`.
+- [ ] 4. Execute Server Clustered Safe Deployment <!-- id: dep-4 -->
+  - Execute `bash /var/www/smartup-erp/scripts/deploy.sh` via SSH on `smartup-portal` (with `BypassSandbox: true` for network/SSH access).
+- [ ] 5. Post-Deployment Verification <!-- id: dep-5 -->
+  - Verify all 4 cluster instances (`smartup-erp-1` to `smartup-erp-4`) are online in PM2.
+  - Verify local node responses on ports 3001, 3005, 3006, 3007.
+  - Verify public HTTPS endpoint `https://smartuplearning.net` returns 200/307 OK.
+
+---
+
+# Implementation Plan: Excel Report Download for CWC Branch Ranking & Consolidated Reports
+
+## 1. Goal
+Currently, in the Class Consolidated Report under CWC Corner (`/dashboard/curriculum-dept/cwc-corner/branch-ranking`), only a "Print Report" (PDF/Print) option is available. The user needs a dedicated Excel (.xlsx) report download option to export complete mark lists, student rankings, subject scores, and performance analysis.
+
+## 2. Architecture & Implementation Steps
+- [x] 1. CWC Branch Ranking Excel Export Engine (`src/app/dashboard/curriculum-dept/cwc-corner/branch-ranking/page.tsx`) <!-- id: cwc-xl-1 -->
+  - Dynamically import `exceljs` on click for optimal bundle efficiency.
+  - Build styled Sheet 1: `Consolidated Marks`:
+    - Brand Purple title banner: `SMARTUP LEARNING VENTURES — CLASS CONSOLIDATED MARK LIST`.
+    - Subtitle banner with Branch, Class, Exam Session, Active Filter, Ranked Subject, and Timestamp.
+    - Class metrics summary bar (Total Students, Passed Count, Pass Rate %, Class Average %).
+    - Two-tier headers for Rank, Student Name, Student ID, Division (if combined), Plan (Advanced/Basic), Subject Grade & Marks for each subject, Total Score, Overall %, Grade, and Result (PASS/FAIL).
+    - Formatted data rows with zebra striping, borders, and conditional color highlights for Pass (green), Fail/Absent (red).
+    - Dynamic column auto-fit sizing.
+  - Build styled Sheet 2: `Performance Analysis`:
+    - Header banner & metadata.
+    - Two-tier analysis table mapping Criteria, Student Count, % of Class, and Student Names.
+  - Sanitize filename: `SmartUp_[Branch]_[Class]_[Exam]_Consolidated_Report.xlsx`.
+- [x] 2. UI Refactoring & Download Button Integration (`src/app/dashboard/curriculum-dept/cwc-corner/branch-ranking/page.tsx`) <!-- id: cwc-xl-2 -->
+  - Extract table sorting/filtering (`displayRows`) into a memoized state so both UI table and Excel exporter share identical data.
+  - Add state `isExportingExcel` with loading spinner.
+  - Add `Download Excel` button with `FileSpreadsheet` icon alongside `Print Report`.
+- [x] 3. CWC Subject Ranking Excel Export (`src/app/dashboard/curriculum-dept/cwc-corner/subject-ranking/page.tsx`) <!-- id: cwc-xl-3 -->
+  - Add `Download Excel` export for the branch subject ranking view to achieve full parity with `exam-corner/subject-ranking`.
+- [x] 4. Exam Corner Branch Ranking Excel Export (`src/app/dashboard/curriculum-dept/exam-corner/branch-ranking/page.tsx`) <!-- id: cwc-xl-4 -->
+  - Add `Download Excel` export for the general branch ranking consolidated student table.
+- [x] 5. Type-Check & Verification <!-- id: cwc-xl-5 -->
+  - Run `npx tsc --noEmit` and confirm 0 errors.
+  - Verify UI and exported workbook formatting.
+
+---
+
 # Implementation Plan: Branch Monitoring (Monthly Collection & Admission Tracking)
 
 ## Goal
@@ -288,7 +351,97 @@ Add a dedicated, high-performance, and beautifully formatted Excel (.xlsx) expor
 
 ---
 
-# Phase 6: Enhanced Hover Scale Effect for 3D Mascot
+# Fee Structure Conversion: Student 1 (ESHAN RAFEEK)
+
+## 1. Deep Study & Data Fetching (Read-Only)
+- [x] 1. Query Frappe backend for Student `ESHAN RAFEEK` (Registration/ID: `SRR 228`, Branch: `Chullickal`) <!-- id: fsc-1 -->
+- [x] 2. Fetch Program Enrollment, Fee Structure, and Academic Year details <!-- id: fsc-2 -->
+- [x] 3. Fetch linked Sales Order(s) with custom plan and installment schedule <!-- id: fsc-3 -->
+- [x] 4. Fetch all Sales Invoices (due dates, rate, outstanding, docstatus) <!-- id: fsc-4 -->
+- [x] 5. Fetch all Payment Entries (exact dates, payment modes, accounts, references, allocations) <!-- id: fsc-5 -->
+- [x] 6. Present comprehensive current fee & payment breakdown to the user <!-- id: fsc-6 -->
+
+## 2. Await New Fee Structure Details & Execution Command
+- [x] 7. Receive target fee structure details from user (`₹20,800`, `ADVANCE`, `1 installment`) <!-- id: fsc-7 -->
+- [x] 8. Generate conversion script with zero changes to payment entry dates/modes (`scripts/convert-eshan.mjs`) <!-- id: fsc-8 -->
+- [x] 9. Await user command before executing conversion <!-- id: fsc-9 -->
+- [x] 10. Executed conversion and verified live backend records (`scripts/verify-eshan.mjs`) <!-- id: fsc-10 -->
+
+---
+
+# Fee Structure Conversion: Student 2 (AFREEN SHIRAS)
+
+## 1. Deep Study & Data Fetching (Read-Only)
+- [x] 1. Query Frappe backend for Student `AFREEN SHIRAS` (`STU-SU CHL-26-004`, `SRR 004`, `Chullickal`, `10th State`) <!-- id: fsc2-1 -->
+- [x] 2. Fetch Program Enrollment, Fee Structure, and Academic Year details (`PEN-10th-Chullickal 26-27-004`, `2026-2027`) <!-- id: fsc2-2 -->
+- [x] 3. Fetch linked Sales Order (`SAL-ORD-2026-00109`, ₹16,300) <!-- id: fsc2-3 -->
+- [x] 4. Fetch Sales Invoice (`ACC-SINV-2026-01900`, ₹16,300, Outstanding: ₹815, Status: Overdue) <!-- id: fsc2-4 -->
+- [x] 5. Fetch Payment Entry (`ACC-PAY-2026-03912`, Date: `2026-03-23`, Mode: `Razorpay`, Paid: `₹15,485`) <!-- id: fsc2-5 -->
+- [x] 6. Prepare conversion script (`scripts/convert-afreen.mjs`) for target: ₹15,485, Basic, 1 installment <!-- id: fsc2-6 -->
+- [x] 7. Await user command before executing conversion <!-- id: fsc2-7 -->
+- [x] 8. Executed conversion and verified live backend records <!-- id: fsc2-8 -->
+
+---
+
+# Fee Structure Conversion: Student 3 (MOHAMMED AYAN SHIRAS)
+
+## 1. Deep Study & Data Fetching (Read-Only)
+- [x] 1. Query Frappe backend for Student `MOHAMMED AYAN SHIRAS` (`STU-SU CHL-26-005`, `SRR 005`, `Chullickal`, `12th Science State`) <!-- id: fsc3-1 -->
+- [x] 2. Fetch Program Enrollment, Fee Structure, and Academic Year details (`PEN-12sc state-Chullickal 26-27-005`, `2026-2027`) <!-- id: fsc3-2 -->
+- [x] 3. Fetch linked Sales Order (`SAL-ORD-2026-00110`, ₹17,400) <!-- id: fsc3-3 -->
+- [x] 4. Fetch Sales Invoice (`ACC-SINV-2026-01901`, ₹17,400, Outstanding: ₹870, Status: Overdue) <!-- id: fsc3-4 -->
+- [x] 5. Fetch Payment Entry (`ACC-PAY-2026-03913`, Date: `2026-03-23`, Mode: `Razorpay`, Paid: `₹16,530`) <!-- id: fsc3-5 -->
+- [x] 6. Prepare conversion script (`scripts/convert-ayan.mjs`) for target: ₹16,530, Basic, 1 installment <!-- id: fsc3-6 -->
+- [x] 7. Await user command before executing conversion <!-- id: fsc3-7 -->
+- [x] 8. Executed conversion and verified live backend records <!-- id: fsc3-8 -->
+
+---
+
+# Fee Structure Conversion: Student 4 (KRISHNA GADHA G)
+
+## 1. Deep Study & Data Fetching (Read-Only)
+- [x] 1. Query Frappe backend for Student `KRISHNA GADHA G` (`STU-SU CHL-26-274`, `SRR 274`, `Chullickal`, `11th Science State`) <!-- id: fsc4-1 -->
+- [x] 2. Fetch Program Enrollment, Fee Structure, and Academic Year details (`PEN-11sc state-Chullickal 26-27-274`, `2026-2027`) <!-- id: fsc4-2 -->
+- [x] 3. Fetch linked Sales Order (`SAL-ORD-2026-01403`, ₹17,400) <!-- id: fsc4-3 -->
+- [x] 4. Fetch Sales Invoice (`ACC-SINV-2026-10222`, ₹17,400, Outstanding: ₹2,400, Status: Overdue) <!-- id: fsc4-4 -->
+- [x] 5. Fetch Payment Entries (2 entries: ₹2,000 on `2026-06-22` & ₹13,000 on `2026-07-04`, Cash) <!-- id: fsc4-5 -->
+- [x] 6. Prepare conversion script (`scripts/convert-krishna.mjs`) for target: ₹15,000, Basic, 1 installment <!-- id: fsc4-6 -->
+- [x] 7. Await user command before executing conversion <!-- id: fsc4-7 -->
+- [x] 8. Executed conversion and verified live backend records <!-- id: fsc4-8 -->
+
+---
+
+# Fee Structure Conversion: Student 5 (RIYAN P R)
+
+## 1. Deep Study & Data Fetching (Read-Only)
+- [x] 1. Query Frappe backend for Student `RIYAN P R` (`STU-SU CHL-26-297`, `SRR 297`, `Chullickal`, `11th Science State`) <!-- id: fsc5-1 -->
+- [x] 2. Fetch Program Enrollment, Fee Structure, and Academic Year details (`PEN-11sc state-Chullickal 26-27-297`, `2026-2027`) <!-- id: fsc5-2 -->
+- [x] 3. Fetch linked Sales Order (`SAL-ORD-2026-01456`, ₹16,000, 8 installments) <!-- id: fsc5-3 -->
+- [x] 4. Fetch Sales Invoices (8 invoices `ACC-SINV-2026-10546` to `10553`, Total: ₹16,000, Outstanding: ₹1,000) <!-- id: fsc5-4 -->
+- [x] 5. Fetch Payment Entries (8 entries totaling ₹15,000, all Cash) <!-- id: fsc5-5 -->
+- [x] 6. Prepare conversion script (`scripts/convert-riyan.mjs`) for target: ₹15,000, Basic, 1 installment <!-- id: fsc5-6 -->
+- [x] 7. Await user command before executing conversion <!-- id: fsc5-7 -->
+- [x] 8. Executed conversion and verified live backend records <!-- id: fsc5-8 -->
+
+---
+
+# Fee Structure Conversion: Student 6 (MUHAMMED HABEEB MANSHAD)
+
+## 1. Deep Study & Data Fetching (Read-Only)
+- [x] 1. Query Frappe backend for Student `MUHAMMED HABEEB MANSHAD` (`STU-SU CHL-26-174`, `SRR 174`, `Chullickal`, `10th State`) <!-- id: fsc6-1 -->
+- [x] 2. Fetch Program Enrollment, Fee Structure, and Academic Year details (`PEN-10th-Chullickal 26-27-174`, `2026-2027`, Plan: `Advanced`) <!-- id: fsc6-2 -->
+- [x] 3. Fetch linked Sales Order (`SAL-ORD-2026-00785`, ₹25,000, 8 installments) <!-- id: fsc6-3 -->
+- [x] 4. Fetch Sales Invoices (8 active invoices, ₹25,000 total, 5 paid of ₹3,300 each, 3 unpaid) <!-- id: fsc6-4 -->
+- [x] 5. Fetch Payment Entries (5 entries of ₹3,300 each = ₹16,500 total paid, mix of Cash and Razorpay) <!-- id: fsc6-5 -->
+- [x] 6. Prepare conversion script (`scripts/convert-habeeb.mjs`) for target: ₹22,300, Basic, 8 installments (3300, 3300, 3300, 3300, 3300, 2400, 2400, 1000) <!-- id: fsc6-6 -->
+- [x] 7. Await user command before executing conversion <!-- id: fsc6-7 -->
+- [x] 8. Executed conversion and verified live backend records <!-- id: fsc6-8 -->
+
+
+
+
+
+
 
 - [x] Task 1: Update Hover Animation Properties in `src/app/scholar/page.tsx` <!-- id: hov-1 -->
   - Increased `whileHover` scale from `1.05` to `1.16` with smooth spring transition (`stiffness: 320, damping: 20`).

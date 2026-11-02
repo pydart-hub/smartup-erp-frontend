@@ -291,7 +291,7 @@ export default function ScholarRegistrationPage() {
       {/* Main Hero Container */}
       <main className="max-w-7xl mx-auto px-6 sm:px-12 lg:px-20 py-2 sm:py-3 lg:py-4 w-full flex-1 flex items-center">
         <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-          
+
           {/* Left Column: Headline, Subtitle & Student Graphic */}
           <div className="lg:col-span-7 flex flex-col justify-center relative">
             {/* Background Soft Purple Circle Shapes */}
@@ -324,19 +324,19 @@ export default function ScholarRegistrationPage() {
               {/* 3D Floating Video Wrapper */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.94, y: 0 }}
-                animate={{ 
-                  opacity: 1, 
-                  scale: 1, 
+                animate={{
+                  opacity: 1,
+                  scale: 1,
                   y: [0, -8, 0],
                 }}
-                transition={{ 
+                transition={{
                   opacity: { duration: 0.5, ease: "easeOut" },
                   scale: { duration: 0.5, ease: "easeOut" },
                   y: { duration: 4.2, repeat: Infinity, ease: "easeInOut" },
                 }}
-                whileHover={{ 
-                  scale: 1.16, 
-                  rotateY: -7, 
+                whileHover={{
+                  scale: 1.16,
+                  rotateY: -7,
                   rotateX: 4,
                   transition: { type: "spring", stiffness: 320, damping: 20 }
                 }}
@@ -387,7 +387,7 @@ export default function ScholarRegistrationPage() {
                   <path d="M102 24L103.5 19L108 17.5L103.5 16L102 11L100.5 16L96 17.5L100.5 19L102 24Z" fill="#A78BFA" opacity="0.9" />
                   <circle cx="18" cy="58" r="2.5" fill="#DDD6FE" />
                   <circle cx="108" cy="38" r="2" fill="#C4B5FD" />
-                  
+
                   {/* 3D Cap Diamond Top */}
                   <g filter="url(#capShadow)">
                     <path
@@ -577,11 +577,10 @@ export default function ScholarRegistrationPage() {
                             key={c.id}
                             type="button"
                             onClick={() => setSelectedClass(c.id)}
-                            className={`py-1.5 sm:py-2 px-1 text-center rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                              isSelected
+                            className={`py-1.5 sm:py-2 px-1 text-center rounded-xl text-xs font-bold transition-all cursor-pointer ${isSelected
                                 ? "bg-[#5C34A4] text-white shadow-md shadow-purple-900/25"
                                 : "bg-slate-50/60 hover:bg-slate-100 text-slate-700 border border-slate-200/80"
-                            }`}
+                              }`}
                           >
                             {c.label}
                           </button>
@@ -603,11 +602,10 @@ export default function ScholarRegistrationPage() {
                             key={s}
                             type="button"
                             onClick={() => setSyllabus(s)}
-                            className={`py-2 sm:py-2.5 px-3 text-center rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
-                              isSelected
+                            className={`py-2 sm:py-2.5 px-3 text-center rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${isSelected
                                 ? "bg-[#5C34A4] text-white shadow-md shadow-purple-900/20"
                                 : "bg-slate-50/60 hover:bg-slate-100 text-slate-700 border border-slate-200/80"
-                            }`}
+                              }`}
                           >
                             <span>{s === "State" ? "State Syllabus" : "CBSE Board"}</span>
                             {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
@@ -655,10 +653,10 @@ export default function ScholarRegistrationPage() {
                         {isSubmitting
                           ? "Proceeding..."
                           : isCheckingPhone
-                          ? "Checking Registration..."
-                          : isExistingStudent
-                          ? `Continue to Exam as ${name.split(" ")[0]}`
-                          : "Register & Continue"}
+                            ? "Checking Registration..."
+                            : isExistingStudent
+                              ? `Continue to Exam as ${name.split(" ")[0]}`
+                              : "Register & Continue"}
                       </span>
                       {!isSubmitting && !isCheckingPhone && <ArrowRight className="w-4 h-4" />}
                     </button>

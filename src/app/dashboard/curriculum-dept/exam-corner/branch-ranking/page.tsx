@@ -15,7 +15,8 @@ import {
   XCircle,
   Printer,
   Percent,
-  Calendar
+  Calendar,
+  FileSpreadsheet
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -39,6 +40,7 @@ export default function ExamBranchRankingPage() {
   const [selectedSubBatches, setSelectedSubBatches] = useState<{ id: string; name: string; division: string }[]>([]);
   const [selectedDivisionFilter, setSelectedDivisionFilter] = useState("all");
   const [selectedFilterSubject, setSelectedFilterSubject] = useState<string | null>(null);
+  const [isExportingExcel, setIsExportingExcel] = useState(false);
 
   // Helper to determine tailwind classes based on pass rate percentage
   const getRateColor = (rate: number) => {
@@ -473,6 +475,372 @@ export default function ExamBranchRankingPage() {
 
   const pageLoading = branchesLoading || plansLoading || resultsLoading;
 
+  const handleExportExcel = async () => {
+    if (filteredStudents.length === 0) return;
+    setIsExportingExcel(true);
+    try {
+      const ExcelJS = (await import("exceljs")).default;
+      const wb = new ExcelJS.Workbook();
+      wb.creator = "SmartUp ERP";
+      wb.created = new Date();
+
+      const activeFilterObj = filterOptions.find((f) => f.value === selectedFilter);
+      const activeFilterLabel = activeFilterObj ? activeFilterObj.label : "All Students";
+
+      // ─────────────────────────────────────────────
+      // SHEET 1: Consolidated Mark List
+      // ─────────────────────────────────────────────
+      const ws1 = wb.addWorksheet("Consolidated Marks", {
+        views: [{ showGridLines: true }],
+      });
+
+      const hasMultipleDivisions = selectedSubBatches.length > 1;
+
+      // Base cols: Rank, Name, ID, [Division], Plan
+      const baseColumnCount = hasMultipleDivisions ? 5 : 4;
+      const subjectColumnCount = uniqueCourses.length * 2;
+      const summaryColumnCount = 4;
+      const numColumns = baseColumnCount + subjectColumnCount + summaryColumnCount;
+
+      const lastColLetter = (n: number) => {
+        let str = "";
+        while (n > 0) {
+          const m = (n - 1) % 26;
+          str = String.fromCharCode(65 + m) + str;
+          n = Math.floor((n - m) / 26);
+        }
+        return str;
+      };
+      const endCol = lastColLetter(numColumns);
+
+      // 1. Header Banner
+      ws1.mergeCells(`A1:${endCol}1`);
+      const titleCell = ws1.getCell("A1");
+      titleCell.value = "SMARTUP LEARNING VENTURES — CLASS CONSOLIDATED MARK LIST";
+      titleCell.font = { name: "Arial", size: 13, bold: true, color: { argb: "FFFFFFFF" } };
+      titleCell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF6D28D9" }, // Brand purple
+      };
+      titleCell.alignment = { vertical: "middle", horizontal: "center" };
+      ws1.getRow(1).height = 28;
+
+      // 2. Subtitle Details
+      ws1.mergeCells(`A2:${endCol}2`);
+      const subCell = ws1.getCell("A2");
+      const branchDisplay = (branches as any[]).find((b: any) => b.name === selectedBranch)?.branch_name || (branches as any[]).find((b: any) => b.name === selectedBranch)?.name || selectedBranch;
+      
+      subCell.value = `Branch: ${branchDisplay.replace(/^Smart Up /i, "")}  |  Class: ${selectedClassName}  |  Exam Session: ${selectedExam}  |  Filter: ${activeFilterLabel}${selectedDivisionFilter !== "all" ? ` | Division: ${selectedSubBatches.find(sb => sb.id === selectedDivisionFilter)?.division || selectedDivisionFilter}` : ""}  |  Date: ${new Date().toLocaleDateString("en-IN")}`;
+      subCell.font = { name: "Arial", size: 9, bold: true, color: { argb: "FF475569" } };
+      subCell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFF1F5F9" }, // slate-100
+      };
+      subCell.alignment = { vertical: "middle", horizontal: "center" };
+      ws1.getRow(2).height = 20;
+
+      // 3. Metrics Summary Banner
+      ws1.mergeCells(`A3:${endCol}3`);
+      const summaryCell = ws1.getCell("A3");
+      summaryCell.value = `Total Students: ${batchSummary?.total_students || studentsList.length}     •     Passed: ${batchSummary?.pass_count || 0}     •     Pass Rate: ${batchSummary?.pass_rate?.toFixed(1) || 0}%     •     Class Average: ${batchSummary?.average_percentage?.toFixed(1) || 0}%`;
+      summaryCell.font = { name: "Arial", size: 9.5, bold: true, color: { argb: "FF0F172A" } };
+      summaryCell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFE2E8F0" }, // slate-200
+      };
+      summaryCell.alignment = { vertical: "middle", horizontal: "center" };
+      ws1.getRow(3).height = 20;
+
+      ws1.getRow(4).height = 8; // Spacer
+
+      // 4. Two-Tier Table Headers (Rows 5 & 6)
+      let cIdx = 1;
+      
+      const rankColLetter = lastColLetter(cIdx++);
+      ws1.mergeCells(`${rankColLetter}5:${rankColLetter}6`);
+      ws1.getCell(`${rankColLetter}5`).value = "Rank";
+
+      const nameColLetter = lastColLetter(cIdx++);
+      ws1.mergeCells(`${nameColLetter}5:${nameColLetter}6`);
+      ws1.getCell(`${nameColLetter}5`).value = "Student Name";
+
+      const idColLetter = lastColLetter(cIdx++);
+      ws1.mergeCells(`${idColLetter}5:${idColLetter}6`);
+      ws1.getCell(`${idColLetter}5`).value = "Student ID";
+
+      if (hasMultipleDivisions) {
+        const divColLetter = lastColLetter(cIdx++);
+        ws1.mergeCells(`${divColLetter}5:${divColLetter}6`);
+        ws1.getCell(`${divColLetter}5`).value = "Division";
+      }
+
+      const planColLetter = lastColLetter(cIdx++);
+      ws1.mergeCells(`${planColLetter}5:${planColLetter}6`);
+      ws1.getCell(`${planColLetter}5`).value = "Plan";
+
+      // Subjects: 2 cols per subject
+      uniqueCourses.forEach((c) => {
+        const col1 = lastColLetter(cIdx++);
+        const col2 = lastColLetter(cIdx++);
+        ws1.mergeCells(`${col1}5:${col2}5`);
+        const subHead = ws1.getCell(`${col1}5`);
+        subHead.value = c.name;
+
+        ws1.getCell(`${col1}6`).value = "Grade";
+        ws1.getCell(`${col2}6`).value = "Marks";
+      });
+
+      const totalCol = lastColLetter(cIdx++);
+      ws1.mergeCells(`${totalCol}5:${totalCol}6`);
+      ws1.getCell(`${totalCol}5`).value = "Total Score";
+
+      const pctCol = lastColLetter(cIdx++);
+      ws1.mergeCells(`${pctCol}5:${pctCol}6`);
+      ws1.getCell(`${pctCol}5`).value = "Overall %";
+
+      const gradeCol = lastColLetter(cIdx++);
+      ws1.mergeCells(`${gradeCol}5:${gradeCol}6`);
+      ws1.getCell(`${gradeCol}5`).value = "Grade";
+
+      const resCol = lastColLetter(cIdx++);
+      ws1.mergeCells(`${resCol}5:${resCol}6`);
+      ws1.getCell(`${resCol}5`).value = "Result";
+
+      // Style Header Rows (5 & 6)
+      [5, 6].forEach((rowNum) => {
+        const r = ws1.getRow(rowNum);
+        r.height = 20;
+        for (let c = 1; c <= numColumns; c++) {
+          const cell = r.getCell(c);
+          cell.font = { name: "Arial", size: 9.5, bold: true, color: { argb: "FFFFFFFF" } };
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: "FF4C1D95" }, // deep purple
+          };
+          cell.alignment = { vertical: "middle", horizontal: "center" };
+          cell.border = {
+            top: { style: "thin", color: { argb: "FFCBD5E1" } },
+            bottom: { style: "thin", color: { argb: "FFCBD5E1" } },
+            left: { style: "thin", color: { argb: "FFCBD5E1" } },
+            right: { style: "thin", color: { argb: "FFCBD5E1" } },
+          };
+        }
+      });
+
+      // 5. Data Rows
+      filteredStudents.forEach((row: any, idx) => {
+        const hasFailedSubject = row.subjects.some((sub: any) => sub.percentage < 40);
+        const isPassed = !hasFailedSubject && row.passed;
+
+        const rowValues: any[] = [
+          row.rank,
+          row.student_name,
+          row.student,
+        ];
+
+        if (hasMultipleDivisions) {
+          const divName = selectedSubBatches.find((sb) => sb.id === row.student_group)?.division || row.student_group || "—";
+          rowValues.push(divName);
+        }
+
+        rowValues.push(row.custom_plan || "Basic");
+
+        uniqueCourses.forEach((c) => {
+          const subResult = row.subjects.find((sub: any) => sub.course === c.code);
+          if (!subResult) {
+            rowValues.push("ABSENT", "—");
+          } else {
+            rowValues.push(subResult.grade || "—", `${subResult.score} / ${subResult.maximum_score}`);
+          }
+        });
+
+        rowValues.push(
+          `${row.total_score} / ${row.total_maximum}`,
+          `${row.overall_percentage.toFixed(1)}%`,
+          row.overall_grade,
+          isPassed ? "PASS" : "FAIL"
+        );
+
+        const dataRow = ws1.addRow(rowValues);
+        dataRow.height = 20;
+        const isEven = idx % 2 === 0;
+
+        dataRow.eachCell((cell, colNum) => {
+          cell.font = { name: "Arial", size: 9 };
+          cell.alignment = {
+            vertical: "middle",
+            horizontal: colNum === 2 ? "left" : "center",
+          };
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: isEven ? "FFFFFFFF" : "FFF8FAFC" },
+          };
+          cell.border = {
+            top: { style: "thin", color: { argb: "FFE2E8F0" } },
+            bottom: { style: "thin", color: { argb: "FFE2E8F0" } },
+            left: { style: "thin", color: { argb: "FFE2E8F0" } },
+            right: { style: "thin", color: { argb: "FFE2E8F0" } },
+          };
+
+          if (colNum === numColumns) {
+            cell.font = {
+              name: "Arial",
+              size: 9,
+              bold: true,
+              color: { argb: isPassed ? "FF16A34A" : "FFE11D48" },
+            };
+          }
+          if (cell.value === "ABSENT") {
+            cell.font = { name: "Arial", size: 9, bold: true, color: { argb: "FFE11D48" } };
+          }
+        });
+      });
+
+      // Set Column Widths
+      const colWidths: { [key: number]: number } = {
+        1: 8,   // Rank
+        2: 26,  // Name
+        3: 18,  // ID
+      };
+      let curColIndex = 4;
+      if (hasMultipleDivisions) {
+        colWidths[curColIndex++] = 14; // Division
+      }
+      colWidths[curColIndex++] = 14;   // Plan
+
+      uniqueCourses.forEach(() => {
+        colWidths[curColIndex++] = 10; // Grade
+        colWidths[curColIndex++] = 13; // Marks
+      });
+
+      colWidths[curColIndex++] = 15; // Total Score
+      colWidths[curColIndex++] = 12; // Overall %
+      colWidths[curColIndex++] = 10; // Grade
+      colWidths[curColIndex++] = 12; // Result
+
+      ws1.columns = Array.from({ length: numColumns }).map((_, i) => ({
+        width: colWidths[i + 1] || 12,
+      }));
+
+      // ─────────────────────────────────────────────
+      // SHEET 2: Performance Analysis
+      // ─────────────────────────────────────────────
+      const ws2 = wb.addWorksheet("Performance Analysis", {
+        views: [{ showGridLines: true }],
+      });
+
+      ws2.mergeCells("A1:D1");
+      const title2 = ws2.getCell("A1");
+      title2.value = `PERFORMANCE ANALYSIS — ${selectedClassName} (${selectedExam})`;
+      title2.font = { name: "Arial", size: 12, bold: true, color: { argb: "FFFFFFFF" } };
+      title2.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF6D28D9" },
+      };
+      title2.alignment = { vertical: "middle", horizontal: "center" };
+      ws2.getRow(1).height = 26;
+
+      ws2.mergeCells("A2:D2");
+      const sub2 = ws2.getCell("A2");
+      sub2.value = `Total Students Analyzed: ${studentsList.length}  |  Pass Rate: ${batchSummary?.pass_rate?.toFixed(1) || 0}%  |  Date: ${new Date().toLocaleDateString("en-IN")}`;
+      sub2.font = { name: "Arial", size: 9, bold: true, color: { argb: "FF475569" } };
+      sub2.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFF1F5F9" },
+      };
+      sub2.alignment = { vertical: "middle", horizontal: "center" };
+      ws2.getRow(2).height = 20;
+
+      ws2.getRow(3).height = 8;
+
+      const headerRow2 = ws2.addRow(["Analysis Criteria", "Student Count", "% of Class", "Student Names"]);
+      headerRow2.height = 22;
+      headerRow2.eachCell((cell) => {
+        cell.font = { name: "Arial", size: 9.5, bold: true, color: { argb: "FFFFFFFF" } };
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FF4C1D95" },
+        };
+        cell.alignment = { vertical: "middle", horizontal: "center" };
+        cell.border = {
+          top: { style: "thin", color: { argb: "FFCBD5E1" } },
+          bottom: { style: "medium", color: { argb: "FF6D28D9" } },
+          left: { style: "thin", color: { argb: "FFCBD5E1" } },
+          right: { style: "thin", color: { argb: "FFCBD5E1" } },
+        };
+      });
+
+      analysisData.forEach((item, idx) => {
+        const row = ws2.addRow([
+          item.criteria,
+          item.count,
+          item.isPct ? `${item.percentage}%` : "—",
+          item.names || "—",
+        ]);
+        row.height = 20;
+        const isEven = idx % 2 === 0;
+        row.eachCell((cell, colNum) => {
+          cell.font = { name: "Arial", size: 9 };
+          cell.alignment = {
+            vertical: "middle",
+            horizontal: colNum === 1 || colNum === 4 ? "left" : "center",
+          };
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: isEven ? "FFFFFFFF" : "FFF8FAFC" },
+          };
+          cell.border = {
+            top: { style: "thin", color: { argb: "FFE2E8F0" } },
+            bottom: { style: "thin", color: { argb: "FFE2E8F0" } },
+            left: { style: "thin", color: { argb: "FFE2E8F0" } },
+            right: { style: "thin", color: { argb: "FFE2E8F0" } },
+          };
+          if (colNum === 1) {
+            cell.font = { name: "Arial", size: 9, bold: true };
+          }
+        });
+      });
+
+      ws2.columns = [
+        { width: 32 },
+        { width: 14 },
+        { width: 15 },
+        { width: 65 },
+      ];
+
+      // File Output Trigger
+      const buf = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buf], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const cleanFileName = `SmartUp_${selectedBranch.replace(/^Smart Up /i, "")}_${selectedClassName}_${selectedExam}_Consolidated_Report.xlsx`
+        .replace(/\s+/g, "_")
+        .replace(/[^a-zA-Z0-9_.-]/g, "");
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = cleanFileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Export Excel error:", err);
+    } finally {
+      setIsExportingExcel(false);
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* Header */}
@@ -792,10 +1160,29 @@ export default function ExamBranchRankingPage() {
 
                       <button
                         onClick={() => window.print()}
-                        className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-semibold hover:bg-slate-200 transition-colors"
+                        className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-semibold hover:bg-slate-200 transition-colors cursor-pointer"
                       >
                         <Printer className="h-4 w-4" />
                         Print
+                      </button>
+
+                      <button
+                        onClick={handleExportExcel}
+                        disabled={isExportingExcel || filteredStudents.length === 0}
+                        className="flex items-center gap-1.5 px-3 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white rounded-xl text-xs font-semibold transition-colors shadow-sm cursor-pointer"
+                        title="Download Consolidated Mark List Excel (.xlsx)"
+                      >
+                        {isExportingExcel ? (
+                          <>
+                            <div className="h-3.5 w-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            Exporting...
+                          </>
+                        ) : (
+                          <>
+                            <FileSpreadsheet className="h-4 w-4" />
+                            Download Excel
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>
