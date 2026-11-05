@@ -143,8 +143,13 @@ export default function EditSchedulePage() {
   // ── Lookup queries ─────────────────────────────────────────────────────────
 
   const { data: groupRes } = useQuery({
-    queryKey: ["student-groups", branch],
-    queryFn: () => getStudentGroups({ branch: branch || undefined, regularOnly: true }),
+    queryKey: ["student-groups", branch, schedule?.student_group],
+    queryFn: () =>
+      getStudentGroups({
+        branch: branch || undefined,
+        regularOnly: true,
+        includeName: schedule?.student_group,
+      }),
     staleTime: 5 * 60_000,
   });
   const groups = groupRes?.data ?? [];

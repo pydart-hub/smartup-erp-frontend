@@ -83,6 +83,15 @@ function formatToFrappeTime(val?: string | null): string | undefined {
   return `${h}:${m}:${s}`;
 }
 
+// Extract the HH:mm time part from a full datetime string or plain time string
+// Handles: "2026-11-04 17:00:00", "2026-11-04T17:00:00", "17:00", "17:00:00"
+function getTimePart(val?: string | null): string {
+  if (!val) return "";
+  if (val.includes(" ")) return val.split(" ")[1].slice(0, 5);
+  if (val.includes("T")) return val.split("T")[1].slice(0, 5);
+  return val.slice(0, 5);
+}
+
 // Convert 24-hour "HH:mm" to 12-hour format "hh:mm AM/PM"
 function formatTo12Hour(time24?: string | null): string {
   if (!time24) return "";
@@ -282,13 +291,13 @@ export default function StaffAttendancePage() {
   // Helper to resolve an employee's effective class time
   const getEmployeeEffectiveClassTime = useCallback(
     (empId: string, isVisiting = false): { time: string; source: "global" | "custom" | "schedule" | "saved"; scheduleDetail?: string } => {
-      if (timingMode === "same") {
-        return { time: classTime, source: "global" };
-      }
-
       // 1. Manually typed / selected in UI during this session
       if (individualClassTimes[empId]) {
         return { time: individualClassTimes[empId], source: "custom" };
+      }
+
+      if (timingMode === "same") {
+        return { time: classTime, source: "global" };
       }
 
       // 2. Previously saved in Frappe attendance record
@@ -507,8 +516,11 @@ export default function StaffAttendancePage() {
 
   function getLateMinutes(inTime?: string, cTime?: string): number {
     if (!inTime || !cTime) return 0;
-    const [inH, inM] = inTime.split(":").map(Number);
-    const [classH, classM] = cTime.split(":").map(Number);
+    const cleanIn = getTimePart(inTime);
+    const cleanClass = getTimePart(cTime);
+    if (!cleanIn || !cleanClass) return 0;
+    const [inH, inM] = cleanIn.split(":").map(Number);
+    const [classH, classM] = cleanClass.split(":").map(Number);
     if (isNaN(inH) || isNaN(inM) || isNaN(classH) || isNaN(classM)) return 0;
     const inTotal = inH * 60 + inM;
     const classTotal = classH * 60 + classM;
@@ -596,6 +608,13 @@ export default function StaffAttendancePage() {
         },
       };
     });
+
+    if (field === "class_time") {
+      setIndividualClassTimes((prev) => ({
+        ...prev,
+        [employeeId]: value,
+      }));
+    }
   }
 
   // Add session slot for an employee
@@ -719,7 +738,61 @@ export default function StaffAttendancePage() {
     setPendingChanges(changes);
   }
 
-  // Apply a global class time to all employees' and visiting staff's primary session (Session 1)
+  // Apply class time to branch staff ONLY — visiting instructors are intentionally excluded
+  // to prevent creating spurious extra sessions for instructors who already have sessions
+  // at their home branch (which shifts the global session index and creates a Session 2 here).
+  const applyClassTimeToStaffOnly = useCallback(
+    (timeVal: string, showToast = false) => {
+      setClassTime(timeVal);
+      setIndividualClassTimes({});
+
+      setPendingChanges((prev) => {
+        const updated = { ...prev };
+
+        // Regular branch employees only — visiting instructors are skipped
+        for (const emp of employees) {
+          const existingAtt = attMap.get(emp.name);
+          const allSessions = parseSessions(existingAtt?.custom_sessions_json);
+
+          // If staff has another session marked (e.g. at another branch like Fortkochi), skip them
+          const hasAnotherSession = allSessions.some(
+            (s) => s.branch && s.branch !== defaultCompany
+          );
+          if (hasAnotherSession) {
+            continue;
+          }
+
+          const current = updated[emp.name] ?? {
+            status: (existingAtt?.status as StaffStatus) ?? "Present",
+            sessions: getBranchSessionsFromAtt(existingAtt),
+          };
+
+          const newSessions = current.sessions.map((s, idx) => {
+            if (idx === 0) {
+              return { ...s, class_time: timeVal };
+            }
+            return s;
+          });
+
+          updated[emp.name] = {
+            ...current,
+            sessions: newSessions,
+          };
+        }
+
+        // Visiting instructors intentionally not touched here
+
+        return updated;
+      });
+
+      if (showToast) {
+        toast.success(`Applied ${timeVal} class time to branch staff (without visiting staff)`);
+      }
+    },
+    [employees, attMap, defaultCompany, getBranchSessionsFromAtt]
+  );
+
+  // Apply a global class time to ALL — including visiting instructors (explicit opt-in)
   const applyGlobalClassTimeToAll = useCallback(
     (timeVal: string, showToast = false) => {
       setClassTime(timeVal);
@@ -749,7 +822,7 @@ export default function StaffAttendancePage() {
           };
         }
 
-        // 2. Visiting instructors
+        // 2. Visiting instructors (explicit opt-in path)
         for (const v of visitingInstructors) {
           const key = `visiting_${v.employee}`;
           const existingAtt = visitingAttMap.get(v.employee);
@@ -775,7 +848,7 @@ export default function StaffAttendancePage() {
       });
 
       if (showToast) {
-        toast.success(`Applied ${timeVal} class time to all employees' first session`);
+        toast.success(`Applied ${timeVal} class time to all staff including visiting instructors`);
       }
     },
     [employees, visitingInstructors, attMap, visitingAttMap, getBranchSessionsFromAtt]
@@ -783,7 +856,9 @@ export default function StaffAttendancePage() {
 
   function handleClassTimeChange(val: string) {
     if (timingMode === "same") {
-      applyGlobalClassTimeToAll(val);
+      // Use staff-only by default to avoid inadvertently creating extra sessions
+      // for visiting instructors who have prior-branch sessions
+      applyClassTimeToStaffOnly(val);
     } else {
       setClassTime(val);
     }
@@ -856,9 +931,7 @@ export default function StaffAttendancePage() {
           const inT = s.in_time ? `${selectedDate} ${s.in_time}:00` : "";
           const outT = s.out_time ? `${selectedDate} ${s.out_time}:00` : "";
           const isNoTimeStatus = s.status === "At Head Office" || s.status === "Holiday" || s.status === "Absent" || s.status === "On Leave";
-          const sessionClassTime = (timingMode === "same" && idx === 0)
-            ? classTime
-            : (s.class_time || (idx === 0 ? effectiveTime : "") || "");
+          const sessionClassTime = s.class_time || (idx === 0 ? classTime : "") || (idx === 0 ? effectiveTime : "") || "";
 
           return {
             id: s.id || `sess_${globalNum}`,
@@ -935,7 +1008,7 @@ export default function StaffAttendancePage() {
           in_time: primaryIn,
           out_time: primaryOut,
           working_hours: calculatedWorkingHours,
-          custom_class_time: formatToFrappeTime(effectiveTime),
+          custom_class_time: formatToFrappeTime(change.sessions[0]?.class_time || effectiveTime || classTime),
           custom_visiting_branch: isVisiting ? (defaultCompany || undefined) : undefined,
         };
 
@@ -1192,15 +1265,30 @@ export default function StaffAttendancePage() {
                       size="md"
                     />
                   </div>
+                  {/* Staff only — safe default, does NOT touch visiting instructors */}
                   <button
                     type="button"
-                    onClick={() => applyGlobalClassTimeToAll(classTime, true)}
+                    onClick={() => applyClassTimeToStaffOnly(classTime, true)}
                     className="h-9 px-2.5 rounded-[10px] bg-primary/10 hover:bg-primary/20 text-primary text-xs font-semibold transition-colors flex items-center gap-1 shrink-0"
-                    title="Force this class time to all employees' first session"
+                    title="Apply class time to branch staff only (without visiting staff)"
                   >
                     <CheckCheck className="h-3.5 w-3.5" />
                     <span className="hidden sm:inline">Apply to all</span>
+                    <span className="hidden md:inline text-[9px] font-normal opacity-70">(without visiting)</span>
                   </button>
+
+                  {/* Explicit opt-in: also apply to visiting instructors */}
+                  {visitingInstructors.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => applyGlobalClassTimeToAll(classTime, true)}
+                      className="h-9 px-2.5 rounded-[10px] bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 text-xs font-semibold transition-colors flex items-center gap-1 shrink-0"
+                      title="Apply class time to ALL staff including visiting instructors"
+                    >
+                      <Users className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">+ Visiting</span>
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div className="hidden sm:flex items-center gap-1.5 text-xs text-primary font-medium bg-brand-wash px-2.5 py-1.5 rounded-[10px] border border-primary/20">
@@ -1327,7 +1415,7 @@ export default function StaffAttendancePage() {
                         {/* Sessions List */}
                         <div className="space-y-2">
                           {emp.sessions.map((sess, sIdx) => {
-                            const effectiveSessClassTime = (timingMode === "same" && sIdx === 0 ? classTime : sess.class_time) || emp.classTimeInfo.time;
+                            const effectiveSessClassTime = sess.class_time || (sIdx === 0 ? classTime : "") || emp.classTimeInfo.time;
                             const lateMins = getLateMinutes(sess.in_time, effectiveSessClassTime);
 
                             return (
@@ -1398,7 +1486,7 @@ export default function StaffAttendancePage() {
                                     )}
                                   </div>
                                   <InteractiveTimePicker
-                                    value={(timingMode === "same" && sIdx === 0 ? classTime : sess.class_time) || ""}
+                                    value={sess.class_time || (sIdx === 0 ? classTime : "") || ""}
                                     onChange={(val) =>
                                       handleSessionChange(emp.name, sess.id, "class_time", val, emp.isVisiting)
                                     }
@@ -1448,7 +1536,7 @@ export default function StaffAttendancePage() {
                                     {lateMins > 0 && (
                                       <div className="text-[9px] text-error font-medium flex items-center gap-1 bg-error-light/50 px-1.5 py-0.5 rounded border border-error/10 w-fit">
                                         <Clock className="h-2.5 w-2.5" />
-                                        {lateMins}m late (vs {formatTo12Hour(sess.class_time || emp.classTimeInfo.time)})
+                                        {lateMins}m late (vs {formatTo12Hour(effectiveSessClassTime)})
                                       </div>
                                     )}
                                   </>
@@ -1467,27 +1555,38 @@ export default function StaffAttendancePage() {
                           Other Branch Sessions:
                         </span>
                         <div className="flex flex-wrap gap-1">
-                          {emp.otherBranchSessions.map((os, i) => (
-                            <div
-                              key={i}
-                              className="inline-flex items-center gap-1 text-[10px] bg-amber-50 text-amber-800 border border-amber-200/70 rounded px-1.5 py-0.5"
-                              title={`${os.title || `Session ${i + 1}`} at ${os.branch}: ${os.in_time || ""} - ${os.out_time || ""} (${os.status})`}
-                            >
-                              <Building2 className="h-2.5 w-2.5 text-amber-600 flex-shrink-0" />
-                              <span className="font-semibold text-amber-900">
-                                {os.title || `Session ${i + 1}`}:
-                              </span>
-                              <span className="font-medium truncate max-w-[110px]">
-                                {os.branch.replace("Smart Up ", "")}
-                              </span>
-                              <span className="text-[9px] font-semibold">({os.status})</span>
-                              {os.in_time && (
-                                <span className="text-[9px] text-amber-700">
-                                  {os.in_time.slice(0, 5)}{os.out_time ? ` - ${os.out_time.slice(0, 5)}` : ""}
+                          {emp.otherBranchSessions.map((os, i) => {
+                            const osClassTime = getTimePart(os.class_time);
+                            const osInTime    = getTimePart(os.in_time);
+                            const osOutTime   = getTimePart(os.out_time);
+                            return (
+                              <div
+                                key={i}
+                                className="inline-flex items-center gap-1 text-[10px] bg-amber-50 text-amber-800 border border-amber-200/70 rounded px-1.5 py-0.5"
+                                title={`${os.title || `Session ${i + 1}`} at ${os.branch}: Class ${osClassTime ? formatTo12Hour(osClassTime) : "–"} | ${osInTime || "–"} → ${osOutTime || "–"} (${os.status})`}
+                              >
+                                <Building2 className="h-2.5 w-2.5 text-amber-600 flex-shrink-0" />
+                                <span className="font-semibold text-amber-900">
+                                  {os.title || `Session ${i + 1}`}:
                                 </span>
-                              )}
-                            </div>
-                          ))}
+                                <span className="font-medium truncate max-w-[110px]">
+                                  {os.branch.replace("Smart Up ", "")}
+                                </span>
+                                <span className="text-[9px] font-semibold">({os.status})</span>
+                                {osClassTime && (
+                                  <span className="inline-flex items-center gap-0.5 text-[9px] text-amber-700 bg-amber-100 px-1 rounded">
+                                    <Clock className="h-2 w-2" />
+                                    {formatTo12Hour(osClassTime)}
+                                  </span>
+                                )}
+                                {(osInTime || osOutTime) && (
+                                  <span className="text-[9px] text-amber-700">
+                                    {osInTime ? formatTo12Hour(osInTime) : "–"}{osOutTime ? ` → ${formatTo12Hour(osOutTime)}` : ""}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     )}

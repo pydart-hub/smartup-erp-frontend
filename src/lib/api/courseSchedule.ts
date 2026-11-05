@@ -14,6 +14,7 @@
 
 import apiClient from "./client";
 import type { FrappeListResponse } from "@/lib/types/api";
+import { isOneToOneStudentGroup } from "@/lib/utils/studentGroupUtils";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -57,6 +58,7 @@ export interface StudentGroupOption {
   custom_subject?: string;
   custom_o2o_rate_per_class?: number | string | null;
   custom_o2o_rate_per_hour?: number | string | null;
+  disabled?: 0 | 1;
 }
 
 // ── Field lists ────────────────────────────────────────────────────────────────
@@ -386,8 +388,9 @@ export async function getStudentGroups(params?: {
   subjectWiseOnly?: boolean;
   regularOnly?: boolean;
   includeName?: string;
+  includeDisabled?: boolean;
 }): Promise<FrappeListResponse<StudentGroupOption>> {
-  const baseFields = ["name", "student_group_name", "program", "custom_branch", "custom_subject"];
+  const baseFields = ["name", "student_group_name", "program", "custom_branch", "custom_subject", "disabled"];
   const richFields = [...baseFields, "custom_is_one_to_one"];
 
   // When oneToOneOnly is requested, use the dedicated server script which
@@ -413,24 +416,30 @@ export async function getStudentGroups(params?: {
       }),
     );
 
-    // Ensure the preselected group is included even if filtered by branch.
+    let filteredGroups = hydratedGroups;
+    if (!params?.includeDisabled) {
+      filteredGroups = filteredGroups.filter((g) => g.disabled !== 1);
+    }
+
+    // Ensure the preselected group is included even if filtered by branch or disabled.
     const includeName = params.includeName?.trim();
-    if (includeName && !hydratedGroups.some((g) => g.name === includeName)) {
+    if (includeName && !filteredGroups.some((g) => g.name === includeName)) {
       try {
         const single = await apiClient.get<{ data: StudentGroupOption }>(
           `/resource/Student Group/${encodeURIComponent(includeName)}?fields=${encodeURIComponent(JSON.stringify(baseFields))}`,
         );
-        hydratedGroups.push(single.data.data);
+        filteredGroups.push(single.data.data);
       } catch { /* ignore */ }
     }
 
-    return { data: hydratedGroups };
+    return { data: filteredGroups };
   }
 
-  const baseFilters: string[][] = [];
+  const baseFilters: (string | number)[][] = [];
   if (params?.branch) baseFilters.push(["custom_branch", "=", params.branch]);
+  if (!params?.includeDisabled) baseFilters.push(["disabled", "=", 0]);
 
-  const richFilters: string[][] = [...baseFilters];
+  const richFilters: (string | number)[][] = [...baseFilters];
   if (params?.oneToOneOnly) richFilters.push(["custom_is_one_to_one", "=", "1"]);
 
   async function ensureIncluded(
@@ -457,6 +466,26 @@ export async function getStudentGroups(params?: {
     }
   }
 
+  const filterClientSide = (items: StudentGroupOption[]) => {
+    let list = items;
+    if (!params?.includeDisabled) {
+      list = list.filter((g) => g.disabled !== 1);
+    }
+    if (params?.subjectWiseOnly) {
+      list = list.filter((g) => !!g.custom_subject);
+    }
+    if (params?.regularOnly) {
+      list = list.filter(
+        (g) =>
+          !g.custom_subject &&
+          g.custom_is_one_to_one !== 1 &&
+          !isOneToOneStudentGroup(g.name) &&
+          !isOneToOneStudentGroup(g.student_group_name),
+      );
+    }
+    return list;
+  };
+
   try {
     const query = new URLSearchParams({
       fields: JSON.stringify(richFields),
@@ -467,13 +496,7 @@ export async function getStudentGroups(params?: {
     const { data } = await apiClient.get<FrappeListResponse<StudentGroupOption>>(
       `/resource/Student Group?${query}`,
     );
-    if (params?.subjectWiseOnly) {
-      return ensureIncluded({ ...data, data: (data.data ?? []).filter((g) => !!g.custom_subject) });
-    }
-    if (params?.regularOnly) {
-      return ensureIncluded({ ...data, data: (data.data ?? []).filter((g) => !g.custom_subject) });
-    }
-    return ensureIncluded(data);
+    return ensureIncluded({ ...data, data: filterClientSide(data.data ?? []) });
   } catch (error: unknown) {
     // Backend may reject custom_is_one_to_one in filters — retry with field in
     // response only (no filter), then client-side filter by value.
@@ -502,15 +525,9 @@ export async function getStudentGroups(params?: {
       const { data: midData } = await apiClient.get<FrappeListResponse<StudentGroupOption>>(
         `/resource/Student Group?${midQuery}`,
       );
-      let filtered = midData.data ?? [];
+      let filtered = filterClientSide(midData.data ?? []);
       if (params?.oneToOneOnly) {
         filtered = filtered.filter((g) => g.custom_is_one_to_one === 1);
-      }
-      if (params?.subjectWiseOnly) {
-        filtered = filtered.filter((g) => !!g.custom_subject);
-      }
-      if (params?.regularOnly) {
-        filtered = filtered.filter((g) => !g.custom_subject);
       }
       return ensureIncluded({ ...midData, data: filtered });
     } catch {
@@ -521,16 +538,10 @@ export async function getStudentGroups(params?: {
         order_by: "student_group_name asc",
         ...(baseFilters.length ? { filters: JSON.stringify(baseFilters) } : {}),
       });
-      const { data } = await apiClient.get<FrappeListResponse<StudentGroupOption>>(
+      const { data: fallbackData } = await apiClient.get<FrappeListResponse<StudentGroupOption>>(
         `/resource/Student Group?${fallbackQuery}`,
       );
-      if (params?.subjectWiseOnly) {
-        return ensureIncluded({ ...data, data: (data.data ?? []).filter((g) => !!g.custom_subject) });
-      }
-      if (params?.regularOnly) {
-        return ensureIncluded({ ...data, data: (data.data ?? []).filter((g) => !g.custom_subject) });
-      }
-      return ensureIncluded(data);
+      return ensureIncluded({ ...fallbackData, data: filterClientSide(fallbackData.data ?? []) });
     }
   }
 }

@@ -44,6 +44,62 @@ function addMonthsClamped(dateIso: string, monthsToAdd: number): string {
   return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
+
+/**
+ * Calculate available instalment count for mid-year admissions:
+ * Countdown to February 15 based on admission date.
+ * - October or earlier: 5 instalments
+ * - November: 4 instalments (Nov, Dec, Jan, Feb 15)
+ * - December: 3 instalments (Dec, Jan, Feb 15)
+ * - January: 2 instalments (Jan, Feb 15)
+ * - February: 1 instalment (Feb 15 / Full Payment)
+ */
+export function getAvailableMidYearInstalments(
+  enrollmentDate: string,
+  academicYear: string,
+): number {
+  const startYear = parseStartYear(academicYear);
+  const [y, m] = enrollmentDate.split("-").map(Number);
+  if (!y || !m) return 5;
+
+  if (y === startYear) {
+    if (m <= 10) return 5;
+    if (m === 11) return 4;
+    if (m === 12) return 3;
+  } else if (y === startYear + 1) {
+    if (m === 1) return 2;
+    if (m >= 2) return 1;
+  }
+  return 5;
+}
+
+/**
+ * Calculates non-equal front-loaded split in clean multiples of ₹100
+ * so the sum equals 100% of the total course fee.
+ */
+export function calculateReducedMidYearSchedule(totalFee: number, instalments: number): number[] {
+  if (instalments <= 1) return [totalFee];
+  if (instalments === 2) {
+    const inst1 = Math.round((totalFee * 0.55) / 100) * 100;
+    const inst2 = totalFee - inst1;
+    return [inst1, inst2];
+  }
+  if (instalments === 3) {
+    const base = Math.round((totalFee * 0.31) / 100) * 100;
+    const inst1 = totalFee - (base * 2);
+    return [inst1, base, base];
+  }
+  if (instalments === 4) {
+    const base = Math.round((totalFee * 0.235) / 100) * 100;
+    const inst1 = totalFee - (base * 3);
+    return [inst1, base, base, base];
+  }
+  // Fallback for 5
+  const base = Math.round((totalFee * 0.19) / 100) * 100;
+  const inst1 = totalFee - (base * (instalments - 1));
+  return [inst1, ...Array(instalments - 1).fill(base)];
+}
+
 function getInstalmentOffsets(instalments: number): number[] {
   switch (instalments) {
     case 1: return [0];
@@ -65,11 +121,27 @@ export function generateInstalmentDueDates(
   academicYear: string,
   enrollmentDate?: string,
 ): string[] {
-  if (enrollmentDate) {
-    return getInstalmentOffsets(instalments).map((offset) => addMonthsClamped(enrollmentDate, offset));
-  }
-
   const startYear = parseStartYear(academicYear);
+  const maxAcademicDueDate = String(startYear + 1) + "-02-15";
+
+  if (enrollmentDate) {
+    if (instalments === 1) {
+      return [enrollmentDate];
+    }
+    const dates: string[] = [];
+    for (let i = 0; i < instalments; i++) {
+      if (i === 0) {
+        dates.push(enrollmentDate);
+      } else if (i === instalments - 1) {
+        const nextMonthDate = addMonthsClamped(enrollmentDate, i);
+        dates.push(nextMonthDate < maxAcademicDueDate ? nextMonthDate : maxAcademicDueDate);
+      } else {
+        const calculated = addMonthsClamped(enrollmentDate, i);
+        dates.push(calculated > maxAcademicDueDate ? maxAcademicDueDate : calculated);
+      }
+    }
+    return dates;
+  }
   if (instalments === 1) {
     return [buildDueDate(INSTALMENT_DUE_DATES.quarterly[0], startYear)];
   }
@@ -119,14 +191,24 @@ export function generateInstalmentSchedule(
     }));
   }
 
-  if (instalments === 5) {
-    const amounts = config.inst5_schedule || [
-      config.inst1 || 0,
-      config.inst2 || 0,
-      config.inst3 || 0,
-      config.inst4 || 0,
-      config.inst5 || 0,
-    ];
+  // Mid-year plan (5 instalments baseline or dynamically reduced to 4, 3, 2)
+  const isMidYear = Boolean(config.inst5_schedule || config.inst1 || config.instalments_count === 5);
+  if (isMidYear && instalments > 1) {
+    const totalFee = config.inst5_total || config.annual_fee;
+    let amounts: number[];
+    if (instalments === 5 && config.inst5_schedule) {
+      amounts = config.inst5_schedule;
+    } else if (instalments === 5 && config.inst1) {
+      amounts = [
+        config.inst1 || 0,
+        config.inst2 || 0,
+        config.inst3 || 0,
+        config.inst4 || 0,
+        config.inst5 || 0,
+      ];
+    } else {
+      amounts = calculateReducedMidYearSchedule(totalFee, instalments);
+    }
     return amounts.map((amt, i) => ({
       index: i + 1,
       label: `Instalment ${i + 1}`,
@@ -160,20 +242,19 @@ export function generateInstalmentSchedule(
  * Get the total amount for a payment option.
  */
 export function getOptionTotal(config: FeeConfigEntry, instalments: number): number {
+  if (instalments === 1) return config.otp;
+  const isMidYear = Boolean(config.inst5_schedule || config.inst1 || config.instalments_count === 5);
+  if (isMidYear) {
+    return config.inst5_total || config.annual_fee;
+  }
   switch (instalments) {
-    case 1: return config.otp;
     case 4:
-      // Derive from quarter splits so UI totals always match displayed instalments.
       return (config.q1 ?? 0) + (config.q2 ?? 0) + (config.q3 ?? 0) + (config.q4 ?? 0);
-    case 5:
-      if (config.inst5_total) return config.inst5_total;
-      return (config.inst1 ?? 0) + (config.inst2 ?? 0) + (config.inst3 ?? 0) + (config.inst4 ?? 0) + (config.inst5 ?? 0);
     case 6:
-      // Derive from per-instalment values to avoid stale total field mismatches.
       return ((config.inst6_per ?? 0) * 5) + (config.inst6_last ?? 0);
     case 8:
       return ((config.inst8_per ?? 0) * 7) + (config.inst8_last ?? 0);
-    default: return 0;
+    default: return config.annual_fee;
   }
 }
 
@@ -186,17 +267,25 @@ export function getAllPaymentOptions(
   academicYear: string,
   enrollmentDate?: string,
 ): PaymentOptionSummary[] {
-  // If entry has 5-instalment schedule (7-month plan), output [1, 5]
-  const optionsToGenerate = (config.inst5_schedule || config.inst1 || config.instalments_count === 5)
-    ? [1, 5]
-    : [1, 4, 6, 8];
+  const isMidYear = Boolean(config.inst5_schedule || config.inst1 || config.instalments_count === 5);
+
+  let optionsToGenerate: number[];
+  if (isMidYear) {
+    const k = enrollmentDate ? getAvailableMidYearInstalments(enrollmentDate, academicYear) : 5;
+    optionsToGenerate = k > 1 ? [1, k] : [1];
+  } else {
+    optionsToGenerate = [1, 4, 6, 8];
+  }
 
   return optionsToGenerate.map((n) => {
     const total = getOptionTotal(config, n);
     const schedule = generateInstalmentSchedule(config, n, academicYear, enrollmentDate);
+    const label = isMidYear && n > 1
+      ? `${n} Monthly Instalments`
+      : PAYMENT_OPTION_LABELS[String(n)] || `${n} Instalments`;
     return {
       instalments: n,
-      label: PAYMENT_OPTION_LABELS[String(n)] || `${n} Instalments`,
+      label,
       total,
       schedule,
       savings: config.annual_fee - total,

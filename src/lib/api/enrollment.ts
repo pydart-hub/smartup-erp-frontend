@@ -1408,7 +1408,7 @@ function extractFrappeError(err: unknown, fallback: string): string {
  */
 function sanitizeInstalmentsForFrappe(value?: string): string | undefined {
   if (!value) return undefined;
-  const validFrappeOptions = ["1", "4", "5", "6", "8"];
+  const validFrappeOptions = ["1", "2", "3", "4", "5", "6", "8"];
   return validFrappeOptions.includes(value) ? value : undefined;
 }
 

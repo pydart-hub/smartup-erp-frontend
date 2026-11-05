@@ -463,11 +463,19 @@ function AdmitPageContent() {
 
   const matchedFeeStructure = useMemo(() => {
     if (!selectedPlan || !selectedInstalments) return null;
-    return feeStructures.find(
-      (fs) =>
-        fs.custom_plan === selectedPlan &&
-        fs.custom_no_of_instalments === selectedInstalments
-    ) ?? null;
+    return (
+      feeStructures.find(
+        (fs) =>
+          fs.custom_plan === selectedPlan &&
+          fs.custom_no_of_instalments === selectedInstalments
+      ) ??
+      (selectedInstalments !== "1"
+        ? feeStructures.find(
+            (fs) => fs.custom_plan === selectedPlan && fs.custom_no_of_instalments === "5"
+          )
+        : null) ??
+      null
+    );
   }, [feeStructures, selectedPlan, selectedInstalments]);
 
   useEffect(() => {

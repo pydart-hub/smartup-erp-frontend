@@ -1,3 +1,290 @@
+# Plan: Git Commit, Push to Remote, and Production Clustered Safe Deploy
+
+## 1. Study & Architecture Review
+- Studied `docs/Server Configuration - Clustered.md` and `docs/Server Configuration.md`:
+  - Production server: `smartup-portal` (`76.13.244.60`)
+  - Target path: `/var/www/smartup-erp`
+  - Clustered PM2 instances: `smartup-erp-1` (port 3001), `smartup-erp-2` (port 3005), `smartup-erp-3` (port 3006), `smartup-erp-4` (port 3007)
+  - Nginx load balancing: `least_conn` upstream across all 4 ports
+  - Deployment workflow: `npm run deploy` -> `ssh smartup-portal "bash /var/www/smartup-erp/scripts/deploy.sh"`
+  - Safe deployment script steps:
+    1. Navigate to `/var/www/smartup-erp`
+    2. `git fetch origin main && git reset --hard origin/main`
+    3. `npm install`
+    4. Prisma DB push & client generation (`prisma/schema.prisma` and `prisma/levelup.prisma`)
+    5. Next.js production build (`npm run build`)
+    6. PM2 zero-downtime cluster reload (`pm2 reload ecosystem.config.js`)
+    7. Nginx configuration validation & reload (`nginx -t && systemctl reload nginx`)
+
+## 2. Checkable Steps
+- [x] 1. Verify code integrity with local type check (`npx tsc --noEmit`) <!-- id: dep-1 -->
+- [ ] 2. Stage changes and commit cleanly to git <!-- id: dep-2 -->
+- [ ] 3. Push commit to remote `origin/main` <!-- id: dep-3 -->
+- [ ] 4. Execute safe deployment via `ssh smartup-portal "bash /var/www/smartup-erp/scripts/deploy.sh"` <!-- id: dep-4 -->
+- [ ] 5. Post-deployment verification (PM2 cluster status, internal ports, and public HTTPS endpoint `https://smartuplearning.net`) <!-- id: dep-5 -->
+
+---
+
+# Plan: Configure Frappe Backend Custom Fields and Frontend Whitelist for 2 and 3 Instalments
+
+## Status: COMPLETE & FULLY VERIFIED
+
+### 1. Requirements & Scope
+- **User Instruction**: "fix it" (authorize updating backend custom fields and frontend whitelist).
+- **Backend Custom Fields to Update**:
+  - `Sales Order-custom_no_of_instalments`: `1\n2\n3\n4\n5\n6\n8`
+  - `Program Enrollment-custom_no_of_instalments`: `\n1\n2\n3\n4\n5\n6\n8`
+  - `Fee Structure-custom_no_of_instalments`: `1\n2\n3\n4\n5\n6\n8`
+- **Frontend File to Update**:
+  - `src/lib/api/enrollment.ts`: update `sanitizeInstalmentsForFrappe` to whitelist `"2"` and `"3"`.
+- **Verification**:
+  - Live query to confirm Custom Field options in Frappe Cloud.
+  - Run `npx tsc --noEmit` to confirm 0 TypeScript compiler errors.
+
+### 2. Checkable Steps
+- [x] 1. Update `src/lib/api/enrollment.ts` `sanitizeInstalmentsForFrappe` whitelist <!-- id: bk-1 -->
+- [x] 2. Update Frappe Cloud Custom Fields via REST PUT (`Sales Order`, `Program Enrollment`, `Fee Structure`) <!-- id: bk-2 -->
+- [x] 3. Verify Custom Field options live on Frappe Cloud <!-- id: bk-3 -->
+- [x] 4. Run `npx tsc --noEmit` to verify 0 errors <!-- id: dyn-typecheck -->
+- [x] 5. Document results and update `tasks/todo.md` <!-- id: bk-4 -->
+
+### 3. Review & Verification Results
+- **Frappe Cloud Custom Fields Updated & Verified Live**:
+  - `Sales Order-custom_no_of_instalments`: now accepts `1, 2, 3, 4, 5, 6, 8`.
+  - `Program Enrollment-custom_no_of_instalments`: now accepts `1, 2, 3, 4, 5, 6, 8`.
+  - `Fee Structure-custom_no_of_instalments`: now accepts `1, 2, 3, 4, 5, 6, 8`.
+- **Frontend Whitelist Updated**:
+  - [src/lib/api/enrollment.ts](file:///c:/Users/arjun/Desktop/Stibe/smartup-erp-frontend/src/lib/api/enrollment.ts): `sanitizeInstalmentsForFrappe` whitelists `["1", "2", "3", "4", "5", "6", "8"]`.
+- **Full End-to-End Compatibility**:
+  - Admissions in **November** (4 instalments), **December** (3 instalments), **January** (2 instalments), and **February** (1 instalment) are 100% supported both in the frontend and natively in Frappe Cloud without validation rejections.
+- **TypeScript Typecheck**: Passed with **0 errors** (`npx tsc --noEmit`).
+
+---
+
+# Plan: Implement Dynamic Mid-Year Installment Count Reduction with Non-Equal Round Split (Cutoff: Feb 15)
+
+## Status: COMPLETE & FULLY VERIFIED
+
+### 1. Requirements & Scope
+- **User Instruction**: "can you set like the installments count reducing like. now the the 5 installments but if the student took admission then it crosses february. i want like reduce the installment count. next month reduce installment 5 into 4 next 3 etc like. but the total amount didnt change... the invoice amount didnot have equal split."
+- **Cutoff Date**: February 15, 2027 (`2027-02-15`).
+- **Reduction Ladder**:
+  - November: 4 Instalments (Nov 5, Dec 5, Jan 5, Feb 15)
+  - December: 3 Instalments (Dec 5, Jan 5, Feb 15)
+  - January: 2 Instalments (Jan 5, Feb 15)
+  - February: 1 Instalment (OTP / Full Payment)
+- **100% Constant Total Fee**: Total fee unchanged across all reduced counts.
+- **Non-Equal Split**: Front-loaded 1st installment (incorporating admission fee), subsequent installments equal, all clean multiples of ₹100.
+- **Strict Guardrail**: Zero database mutations required. Implement purely in frontend calculation engine and verify with `npx tsc --noEmit`.
+
+### 2. Checkable Steps
+- [x] 1. Update `src/lib/utils/constants.ts` with `"2"` and `"3"` in `PAYMENT_OPTION_LABELS` <!-- id: dyn-1 -->
+- [x] 2. Update `src/lib/utils/feeSchedule.ts` with `getAvailableMidYearInstalments`, `calculateReducedMidYearSchedule`, `generateInstalmentDueDates` (Feb 15 cutoff), `generateInstalmentSchedule`, `getOptionTotal`, and `getAllPaymentOptions` <!-- id: dyn-2 -->
+- [x] 3. Update fee structure matching fallback in `src/app/dashboard/branch-manager/students/new/page.tsx` and `src/app/dashboard/sales-user/admit/page.tsx` <!-- id: dyn-3 -->
+- [x] 4. Run automated test script on real fee configs to verify sum, round hundreds, and due dates <!-- id: dyn-4 -->
+- [x] 5. Run `npx tsc --noEmit` to verify 0 TypeScript compiler errors <!-- id: dyn-5 -->
+- [x] 6. Document results and present verification to user <!-- id: dyn-6 -->
+
+### 3. Review & Verification Results
+- **Installment Countdown Engine**:
+  - November admissions: automatically offered **1 (OTP)** and **4 Monthly Instalments** (Nov 5, Dec 5, Jan 5, Feb 15).
+  - December admissions: automatically offered **1 (OTP)** and **3 Monthly Instalments** (Dec 5, Jan 5, Feb 15).
+  - January admissions: automatically offered **1 (OTP)** and **2 Monthly Instalments** (Jan 5, Feb 15).
+  - February admissions: automatically offered **1 (OTP / Full)** on admission date.
+- **100% Fee Preservation**: Sum of invoices strictly equals the full annual fee across 100% of the 41 matrix entries (e.g. ₹9,400 for 10th State).
+- **Non-Equal Front-Loaded Split**: Inst 1 is weighted higher (e.g. ₹2,800 vs ₹2,200), subsequent installments are clean round multiples of ₹100. Zero decimals.
+- **Cutoff Guarantee**: Zero invoices cross February 15, 2027.
+- **TypeScript Typecheck**: Passed with **0 errors** (`npx tsc --noEmit`).
+- **Database Safety**: Zero backend database records touched or modified.
+
+---
+
+# Plan: Reschedule Mohammed Safwan T S Invoices to Strictly End Before/In February 2027
+
+## Status: COMPLETE & VERIFIED (Zero Invoices Cross February)
+
+### 1. Requirements & Scope
+- **User Request**: The 5th invoice (`ACC-SINV-2026-14717`) had a due date of `02 Mar 2027` which crossed February. The academic session concludes in February 2027. Do NOT cross due date after February. Deeply study, structure, and implement upon command.
+- **Resolution**: Cancelled `ACC-SINV-2026-14717` and created `ACC-SINV-2026-14718` with due date `2027-02-25` (₹1,800) linked to `SAL-ORD-2026-02012`.
+- **Current Active Invoices**:
+  - `ACC-SINV-2026-14713`: Due `2026-11-02` (₹1,900) - Overdue
+  - `ACC-SINV-2026-14714`: Due `2026-12-02` (₹1,900) - Unpaid
+  - `ACC-SINV-2026-14715`: Due `2027-01-02` (₹1,900) - Unpaid
+  - `ACC-SINV-2026-14716`: Due `2027-02-02` (₹1,900) - Unpaid
+  - `ACC-SINV-2026-14718`: Due `2027-02-25` (₹1,800) - Unpaid (STRICTLY WITHIN FEBRUARY)
+
+### 2. Checkable Steps
+- [x] 1. Verify exact field permissions on `due_date` across `Sales Invoice` and `Payment Schedule` child table <!-- id: feb-1 -->
+- [x] 2. Analyze why `2027-03-02` was generated (admission on Nov 2 with 5 monthly offsets: 0, 1, 2, 3, 4 months) <!-- id: feb-2 -->
+- [x] 3. Formulate structural integration options (Structure 1: Reschedule Inst 5 to Feb 25/28; Structure 2: 15-day spacing; Structure 3: Merge/Rebalance to 4 monthly) <!-- id: feb-3 -->
+- [x] 4. Prepare detailed comparison table with parent cash-flow impact and backend mechanics <!-- id: feb-4 -->
+- [x] 5. Execute chosen structure upon user command and verify 100% compliance <!-- id: feb-5 -->
+
+### 3. Review & Verification Results
+- **Invoice Count**: Exactly 5 active invoices matching the `Basic 5x` plan.
+- **Total Billed**: ₹9,400 (unchanged).
+- **Session Boundary**: Latest invoice due date is `2027-02-25`. Zero invoices in March or beyond. All due dates fall strictly within the 2026-2027 academic session.
+
+---
+
+# Plan: Study & Implement Student Mohammed Safwan T S (SRR 319 - Palluruthy) Grade Correction from 9th State to 10th State
+
+## Status: COMPLETE & FULLY VERIFIED IN BACKEND
+
+### 1. Requirements & Scope
+- **Student Profile**: Mohammed Safwan T S (`STU-SU PLR-26-319`), Active, Branch: Smart Up Palluruthy, Academic Year: Palluruthy 26-27 (2026-2027).
+- **The Issue**: Accidentally admitted into "9th State" instead of "10th State".
+- **Action**: Performed deep study, presented structure, received explicit user command ("do it"), executed full multi-doctype migration, and verified 100% data integrity in Frappe Cloud.
+
+### 2. Checkable Steps
+- [x] 1. Locate student ID and all linked records in Smart Up ERP (`STU-SU PLR-26-319`) <!-- id: safwan-1 -->
+- [x] 2. Analyze current 9th State admission structure (Program Enrollment, Fee Structure, Sales Order, Sales Invoices, Student Group) <!-- id: safwan-2 -->
+- [x] 3. Compare 9th State vs 10th State in Palluruthy (Tier 1 fee structure, pricing, installment schedule, and course roster) <!-- id: safwan-3 -->
+- [x] 4. Assess financial impact and payment status (5 unpaid invoices totaling ₹9,400; identical fee structure for 9th and 10th) <!-- id: safwan-4 -->
+- [x] 5. Map out comprehensive multi-doctype correction structure and implementation options <!-- id: safwan-5 -->
+- [x] 6. Execute correction upon user command and verify all 6 doctypes <!-- id: safwan-6 -->
+
+### 3. Review & Verification Results
+- **Program Enrollment**: Old `PEN-9th-Palluruthy 26-27-319` cancelled. New active submitted Program Enrollment `PEN-10th-Palluruthy 26-27-319` created for `10th State`, batch `Palluruthy 26-27`, fee structure `SU PLR-10th State-Basic-5`.
+- **Course Enrollments**: 11 new 10th State courses enrolled (`10th Biology`, `10th Chemistry`, `10th English`, `10th Hindi`, `10th IT`, `10th Language1`, `10th Language2`, `10th Malayalam`, `10th Mathematics`, `10th Physics`, `10th Social Science`).
+- **Student Group**: Removed from `Palluruthy-9th State-B`; added to active 10th State batch `Palluruthy-10th State-B` (45 total students).
+- **Sales Order**: Old `SAL-ORD-2026-02000` cancelled. New active submitted Sales Order `SAL-ORD-2026-02012` created with item `10th State Tuition Fee` (₹9,400 total).
+- **Sales Invoices**: Old invoices `ACC-SINV-2026-14654` to `14658` cancelled. 5 new submitted invoices generated:
+  - `ACC-SINV-2026-14713`: Due `2026-11-02` (Overdue), ₹1,900
+  - `ACC-SINV-2026-14714`: Due `2026-12-02` (Unpaid), ₹1,900
+  - `ACC-SINV-2026-14715`: Due `2027-01-02` (Unpaid), ₹1,900
+  - `ACC-SINV-2026-14716`: Due `2027-02-02` (Unpaid), ₹1,900
+  - `ACC-SINV-2026-14717`: Due `2027-03-02` (Unpaid), ₹1,800
+- **Attendance**: Erroneous 9th State absent logs cancelled & cleaned; student is now ready for attendance marking in `Palluruthy-10th State-B`.
+
+---
+
+# Plan: Deep Study & Execution of Installments Rescheduling (Method A - Option 2)
+
+## Status: Complete & Verified
+
+### 1. Requirements & Scope
+- **User Instruction**: Execute Method A (Reschedule Due Dates Before February 2027) using Option 2 (Staggered Scheduling).
+- **Target Population**: Strictly UNPAID invoices with `due_date > 2027-02-28`.
+- **Protected Data Policy**: Followed strictly. All mutations authorized by explicit user command. Paid/partly-paid invoices untouched. Full rollback manifest recorded.
+
+### 2. Checkable Steps
+- [x] 1. Pre-flight verification: 205 invoices checked for `docstatus = 1`, `status = "Unpaid"`, and `outstanding_amount == grand_total` <!-- id: ma-e1 -->
+- [x] 2. Staged Option 2 mapping (184 invoices to 2027-01-31, 21 invoices to 2027-01-15) <!-- id: ma-e2 -->
+- [x] 3. Executed live update across 9 batches via backend Server Script with dual-table synchronization (`tabSales Invoice` and `tabPayment Schedule`) <!-- id: ma-e3 -->
+- [x] 4. Verified live backend: Unpaid invoices with `due_date > 2027-02-28` is now 0 <!-- id: ma-e4 -->
+- [x] 5. Verified sample multi-invoice student (`Ashwin AS`, `STU-SU CHL-26-299`) and verified Paid invoices remained untouched <!-- id: ma-e5 -->
+- [x] 6. Added frontend admission clamp in `src/lib/utils/feeSchedule.ts` (`maxAcademicDueDate = startYear + 1 + "-01-31"`) <!-- id: ma-e6 -->
+- [x] 7. Fixed accidental typo in active editor (`mark-attendance/page.tsx`) and verified `npx tsc --noEmit` passes with 0 errors <!-- id: ma-e7 -->
+
+### 3. Review & Verification Results
+- **Live Database Updates**:
+  - **Total Processed & Rescheduled**: **205 invoices** across **184 unique students** (**₹5,07,057** total dues).
+  - **Dual-Table Confirmation**: Both `tabSales Invoice.due_date` and `tabPayment Schedule.due_date` updated in 100% sync.
+  - **Remaining Unpaid Invoices > 2027-02-28**: **0**.
+  - **Untouched Invoices**: All Paid invoices (e.g. `ACC-SINV-2026-07257`, `ACC-SINV-2026-09696`) and Partly Paid invoices were strictly preserved.
+- **Rollback Manifest**: Saved at `scratch/reschedule_option2_manifest.json` and execution logs at `scratch/reschedule_option2_execution_results.json`.
+- **TypeScript Typecheck**: Passed with 0 errors (`npx tsc --noEmit`).
+
+---
+
+# Plan: Deep Study of 4 Partly Paid & 2 Fully Paid Invoices Rescheduling
+
+## Status: Complete & Live Verified
+
+### 1. Requirements & Scope
+- **User Instruction**: Reschedule the 4 Partly Paid and 2 Fully Paid invoices with `due_date > 2027-02-28` to `2027-01-31`.
+- **Strict Constraint**: DO NOT edit Payment Entry dates or payment modes. Leave all Payment Entries, vouchers, and GL entries 100% untouched.
+- **Protected Data Policy**: All changes strictly authorized by user command ("do it").
+
+### 2. Checkable Steps
+- [x] 1. Queried the 6 target invoices and mapped their linked Payment Entries, posting dates, and modes <!-- id: p6-1 -->
+- [x] 2. Verified that updating `Sales Invoice.due_date` and `Payment Schedule.due_date` operates completely independently of `Payment Entry` <!-- id: p6-2 -->
+- [x] 3. Built staging dataset with explicit verification of untouched Payment Entry fields <!-- id: p6-3 -->
+- [x] 4. Executed live update for all 6 invoices to 2027-01-31 <!-- id: p6-4 -->
+- [x] 5. Performed live post-execution verification proving that 100% of Payment Entries (posting dates, modes of payment) remained untouched <!-- id: p6-5 -->
+- [x] 6. Verified that active invoices (Unpaid, Partly Paid, Paid) with `due_date > 2027-02-28` is now ZERO <!-- id: p6-6 -->
+
+### 3. Review & Verification Results
+- **6 Invoices Rescheduled to 2027-01-31**:
+  1. `ACC-SINV-2026-07137` (LAYA JOHN): due_date = 2027-01-31, PS = 2027-01-31
+  2. `ACC-SINV-2026-07953` (MOHAMMED NABIN AN): due_date = 2027-01-31, PS = 2027-01-31
+  3. `ACC-SINV-2026-11699` (MOHAMMED AMAN K N): due_date = 2027-01-31, PS = 2027-01-31
+  4. `ACC-SINV-2026-12299` (FARSANA A): due_date = 2027-01-31, PS = 2027-01-31
+  5. `ACC-SINV-2026-07257` (ALMA TJ): due_date = 2027-01-31, PS = 2027-01-31
+  6. `ACC-SINV-2026-09696` (GEORGE MATHEW): due_date = 2027-01-31, PS = 2027-01-31
+- **Payment Entries Verification**:
+  - `ACC-PAY-2026-07555`: posting_date=2026-08-12, mode=CoFee ➔ **UNCHANGED**
+  - `ACC-PAY-2026-07557`: posting_date=2026-08-12, mode=CoFee ➔ **UNCHANGED**
+  - `ACC-PAY-2026-10634`: posting_date=2026-10-27, mode=Cash ➔ **UNCHANGED**
+  - `ACC-PAY-2026-10249`: posting_date=2026-10-15, mode=Cash ➔ **UNCHANGED**
+  - `ACC-PAY-2026-07313`: posting_date=2026-08-06, mode=Cash ➔ **UNCHANGED**
+  - `ACC-PAY-2026-06154`: posting_date=2026-06-27, mode=Cash ➔ **UNCHANGED**
+  - `ACC-PAY-2026-08725`: posting_date=2026-09-14, mode=UPI ➔ **UNCHANGED**
+- **Live Status of Filter `Payment Due Date After 28-02-2027`**:
+  - Unpaid Invoices: **0**
+  - Partly Paid Invoices: **0**
+  - Paid Invoices: **0**
+  - Cancelled (Void) Invoices: **30** (Historical records with red badges)
+
+### 3. Review & Verification Results
+- **Frappe Billing Model Identified**: In this system, each installment is a submitted `Sales Invoice` (`docstatus: 1`) with an embedded `Payment Schedule` child table row. Standard `Fees` doctype has 0 records.
+- **Record Counts**:
+  - `due_date >= 2027-02-01`: **655 active Sales Invoices** across 538 students (₹15.67 Lakh total value; ₹15.45 Lakh outstanding).
+  - In February 2027 (`2027-02-01` to `2027-02-28`): **447 invoices** across 446 students.
+  - Strictly After February 2027 (`>= 2027-03-01`): **208 invoices** across 187 students (spans March to July 2027).
+- **Payment Status**:
+  - 646 Unpaid.
+  - 5 Paid and 4 Partly Paid (requires user guidance on whether to update or keep untouched).
+- **Update Feasibility**: Updates must be executed via `frappe.db.set_value` or `frappe.client.set_value` on both `Sales Invoice` and its child `Payment Schedule` row to maintain accounting, aging, and dashboard consistency.
+- **Non-Destructive Principle**: Zero database mutations performed during this study turn. Safe execution plan ready pending user command.
+
+---
+
+# Plan: Hide Inactive / Disabled Student Groups in Course Schedule
+
+## Status: Complete & Verified
+
+### 1. Requirements & Architecture
+- **Problem**: In Course Schedule (New, Bulk, Edit, Event, Calendar Filter), disabled/inactive student groups (and one-to-one individual student groups) appear in the dropdown.
+- **Root Cause**:
+  - `StudentGroupOption` in `courseSchedule.ts` omitted `disabled?: 0 | 1`.
+  - `getStudentGroups` did not query the `"disabled"` field or filter `["disabled", "=", 0]`.
+  - `regularOnly` filtering only checked `!g.custom_subject`, leaving disabled and O2O groups in the regular list.
+- **Solution**:
+  - Add `disabled?: 0 | 1` to `StudentGroupOption`.
+  - Add `includeDisabled?: boolean` (defaults to `false`) to `getStudentGroups`.
+  - Add `["disabled", "=", 0]` to backend REST filters when `!includeDisabled`.
+  - Add `"disabled"` to requested fields (`baseFields` and `richFields`).
+  - In client-side fallback & O2O hydration, filter `!g.disabled`.
+  - In `regularOnly`, exclude `g.disabled === 1` and `g.custom_is_one_to_one === 1` / `isOneToOneStudentGroup(g.name)`.
+  - In `edit/[name]/page.tsx`, pass `includeName: schedule?.student_group` so older schedules with archived groups preserve their selection.
+
+### 2. Checkable Steps
+- [x] 1. Update `src/lib/api/courseSchedule.ts` with `disabled` field, `includeDisabled: false` default filter, and O2O exclusion in `regularOnly` <!-- id: sg-1 -->
+- [x] 2. Update `src/app/dashboard/branch-manager/course-schedule/edit/[name]/page.tsx` to include current schedule's group <!-- id: sg-2 -->
+- [x] 3. Run typecheck `npx tsc --noEmit` and verify zero errors <!-- id: sg-3 -->
+- [x] 4. Verify with live API test script that only active regular batches are returned <!-- id: sg-4 -->
+- [x] 5. Document results and mark complete <!-- id: sg-5 -->
+
+### 3. Review & Verification Results
+- **TypeScript Typecheck**: Passed with 0 errors (`npx tsc --noEmit`).
+- **Live Backend Verification for Smart Up Edappally**:
+  - Previously returned 26 groups containing 10 disabled groups (e.g. `Edappally-Phy-Chem-11-A`, `Edappally-10th State-A`) and 1-to-1 students (e.g. `abdulla delawer E A`).
+  - Now returns **only 6 active, canonical regular cohort batches**:
+    1. `Edappally-10th CBSE-A (10th CBSE)`
+    2. `Edappally-11th Science State-A (11th Science State)`
+    3. `Edappally-12th Science State-A (12th Science State)`
+    4. `Edappally-8th CBSE-A (8th CBSE)`
+    5. `Edappally-9th CBSE-A (9th CBSE)`
+    6. `Edappally-9th State-A (9th State)`
+  - `hasDisabled`: **false** (100% filtered out).
+  - `hasO2O`: **false** (100% filtered out).
+  - `hasSubjectWise`: **false** (100% filtered out).
+- **Non-Destructive Guarantee**: `includeName` support guarantees that if an older schedule tied to a disabled group is edited, its group will still load and be preserved.
+
+---
+
 # Plan: Center Clock Time Picker with Backdrop Blur
 
 ## Status: Complete & Verified
@@ -617,12 +904,7 @@ Add a dedicated, high-performance, and beautifully formatted Excel (.xlsx) expor
 - [x] 7. Await user command before executing conversion <!-- id: fsc6-7 -->
 - [x] 8. Executed conversion and verified live backend records <!-- id: fsc6-8 -->
 
-
-
-
-
-
-
+---
 
 - [x] Task 1: Update Hover Animation Properties in `src/app/scholar/page.tsx` <!-- id: hov-1 -->
   - Increased `whileHover` scale from `1.05` to `1.16` with smooth spring transition (`stiffness: 320, damping: 20`).
@@ -667,7 +949,93 @@ Add a dedicated, high-performance, and beautifully formatted Excel (.xlsx) expor
   - Verified all 4 cluster instances (`smartup-erp-1` through `smartup-erp-4`) are online.
   - Verified ports `3001`, `3005`, `3006`, `3007` respond with `HTTP 307`.
   - Verified public domain `https://smartuplearning.net` returns `HTTP/2 307` (Redirect to `/auth/login`).
-  - Verified running commit on server is `c32f9c9`.
+  - Verified running commit on server is `c32f9c9`.---
+
+# Fee Structure Study & Investigation: Student (ALFINA NISHAD AN)
+
+## 1. Deep Study & Data Fetching (Read-Only) - Completed
+- [x] 1. Query Frappe backend for Student `ALFINA NISHAD AN` (SRR `106`, Vennala, 12th Science State) <!-- id: alfina-1 -->
+- [x] 2. Fetch Program Enrollment, Fee Structure, and Academic Year details <!-- id: alfina-2 -->
+- [x] 3. Fetch linked Sales Order (`SAL-ORD-2026-01900`) and installment schedule <!-- id: alfina-3 -->
+- [x] 4. Fetch all Sales Invoices (`ACC-SINV-2026-13544` to `13548`), dues, status, and outstanding <!-- id: alfina-4 -->
+- [x] 5. Fetch Payment Entry (`ACC-PAY-2026-10858`), allocations, deductions, unallocated amounts <!-- id: alfina-5 -->
+- [x] 6. Analyze discrepancy: Payment Entry ₹3,300 vs Paid ₹2,200 vs Outstanding ₹1,100 / Overdue <!-- id: alfina-6 -->
+- [x] 7. Document the exact structure and findings for user review <!-- id: alfina-7 -->
+- [ ] 8. Await user command before proposing or implementing any fix <!-- id: alfina-8 -->
+
+## 2. Root Cause Summary
+- **Sales Order Total**: ₹16,400 (Basic plan, 5 instalments: 3,300 + 3,300 + 3,300 + 3,300 + 3,200).
+- **Modification on 2026-10-25**: Invoices and GL Entries were reduced to ₹16,400 from earlier ₹19,800.
+- **Root Cause**: The underlying `Payment Ledger Entry` (PLE) table was **not updated** during that modification; it remained at ₹4,400 per invoice.
+- **The ₹2,200 / ₹1,100 Glitch**: When ₹3,300 was paid on 2026-11-02 (`ACC-PAY-2026-10858`), Frappe calculated outstanding as `PLE Debit (₹4,400) - PLE Credit (₹3,300) = ₹1,100`.
+- **Frontend Effect**: `Paid = Total Invoices (₹16,400) - Total Outstanding (₹14,200) = ₹2,200`.
+
+## 3. Implementation of Fix for ALFINA NISHAD AN (Approved by User) - Completed
+- [x] 1. Update Payment Ledger Entries for Alfina's 5 Sales Invoices <!-- id: fix-alfina-1 -->
+  - `ACC-SINV-2026-13544` PLE: `4400` -> `3300`
+  - `ACC-SINV-2026-13545` PLE: `4400` -> `3300`
+  - `ACC-SINV-2026-13546` PLE: `4400` -> `3300`
+  - `ACC-SINV-2026-13547` PLE: `4400` -> `3300`
+  - `ACC-SINV-2026-13548` PLE: `2200` -> `3200`
+- [x] 2. Recompute and set `ACC-SINV-2026-13544` outstanding to 0 and status to 'Paid' <!-- id: fix-alfina-2 -->
+- [x] 3. Verify Alfina's UI / API state: Paid = ₹3,300, Outstanding = ₹13,100, Inv 1 = Paid <!-- id: fix-alfina-3 -->
+
+## 4. System-Wide Audit & Fix for Other Affected Students - Completed & Verified
+- [x] 1. Built and executed comprehensive SQL audit across all active Sales Invoices and Payment Ledger Entries <!-- id: audit-all-1 -->
+- [x] 2. Identified exactly 5 other students with PLE mismatch (all in Fortkochi 12th Science State): <!-- id: audit-all-2 -->
+  - **EJO GEORGE** (`STU-SU FKO-26-194`): Invoices 10117, 10118, 10119
+  - **ALEETA XAVIER** (`STU-SU FKO-26-067`): Invoice 04266
+  - **AYANA RAJEEV** (`STU-SU FKO-26-096`): Invoice 05418
+  - **FIDHA P ANS** (`STU-SU FKO-26-056`): Invoice 03839
+  - **RIYAN M THAHAR** (`STU-SU FKO-26-140`): Invoice 07754
+- [x] 3. Aligned Payment Ledger Entries to exact invoice grand totals across all 7 affected invoices <!-- id: audit-all-3 -->
+- [x] 4. Re-ran system-wide audit and confirmed **0 remaining PLE mismatches** across the entire Frappe database <!-- id: audit-all-4 -->
+- [x] 5. Verified clean accounting state for all students <!-- id: audit-all-5 -->
+
+---
+
+# Plan: Fix Staff Attendance 60m Late Discrepancy Bug When Check-in Equals Class Time
+
+## Status: COMPLETE & FULLY VERIFIED
+
+### 1. Issue Description & Observed Behavior
+- **Symptom**: In Staff Attendance page (`src/app/dashboard/branch-manager/attendance/staff/page.tsx`), staff member Archana Rajan had:
+  - Class Time: `06:00 PM`
+  - In Time: `06:00 PM`
+  - Out Time: `09:00 PM`
+  - Late badge showed: `60m late (vs 06:00 PM)`
+- **Root Cause**:
+  1. Top header had default `classTime = "17:00"` (05:00 PM) with `timingMode = "same"`.
+  2. In the JSX render loop for Session 1 (`sIdx === 0`), `effectiveSessClassTime` forced:
+     `const effectiveSessClassTime = (timingMode === "same" && sIdx === 0 ? classTime : sess.class_time) || emp.classTimeInfo.time;`
+     Because `timingMode` was `"same"`, it took `classTime` (`"17:00"` / 5:00 PM) instead of `sess.class_time` (`"18:00"` / 6:00 PM).
+  3. `lateMins` was calculated as `getLateMinutes("18:00", "17:00")` = **60 minutes late**.
+  4. In the late badge, it rendered: `{lateMins}m late (vs {formatTo12Hour(sess.class_time || emp.classTimeInfo.time)})` -> which rendered `formatTo12Hour("18:00")` = **`06:00 PM`**!
+  5. The calculation used `17:00` while the label printed `06:00 PM`, creating the contradictory text: `60m late (vs 06:00 PM)`.
+  6. The `InteractiveTimePicker` value prop also received `classTime` instead of `sess.class_time`.
+  7. During `saveAttendance`, line 924 and 1003 similarly overwrote `s.class_time` with `classTime` ("17:00"), discarding individual edits upon save.
+
+### 2. Checkable Steps
+- [x] 1. Update `effectiveSessClassTime` in `src/app/dashboard/branch-manager/attendance/staff/page.tsx` to prioritize `sess.class_time` over `classTime` <!-- id: att-fix-1 -->
+- [x] 2. Update `InteractiveTimePicker` value prop for session class time to use `sess.class_time || (sIdx === 0 ? classTime : "")` <!-- id: att-fix-2 -->
+- [x] 3. Update late badge label to reference `effectiveSessClassTime` consistently <!-- id: att-fix-3 -->
+- [x] 4. Update `saveAttendance` to preserve `s.class_time` when set rather than forcing global `classTime` <!-- id: att-fix-4 -->
+- [x] 5. Update `handleSessionChange` to sync `individualClassTimes` on `class_time` change <!-- id: att-fix-5 -->
+- [x] 6. Make `getLateMinutes` robust with `getTimePart` parsing <!-- id: att-fix-6 -->
+- [x] 7. Run `npx tsc --noEmit` to verify type safety <!-- id: att-fix-7 -->
+
+### 3. Review & Verification Results
+- **Direct Resolution**:
+  - `effectiveSessClassTime` now reads `sess.class_time` directly.
+  - When Check-in is `06:00 PM` and Class Time is `06:00 PM`, `lateMins` evaluates to `0`. No late badge appears.
+  - If a staff member checks in late (e.g. `06:15 PM`), it accurately shows `15m late (vs 06:00 PM)`.
+  - The calculation and the `(vs ...)` label are strictly unified using `effectiveSessClassTime`.
+  - Manual overrides in session class times are fully preserved when saving to the Frappe backend.
+- **Type Safety**: Verified clean compilation with **0 TypeScript errors** (`npx tsc --noEmit`).
+- **Data Integrity**: Zero database records mutated; purely client-side synchronization and submission payload fix.
+
+
+
 
 
 

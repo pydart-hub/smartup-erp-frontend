@@ -57,6 +57,8 @@ export const INSTALMENT_DUE_DATES = {
 
 export const PAYMENT_OPTION_LABELS: Record<string, string> = {
   "1": "One-Time Payment",
+  "2": "2 Monthly Instalments",
+  "3": "3 Monthly Instalments",
   "4": "Quarterly",
   "5": "5 Monthly Instalments",
   "6": "Bi-Monthly (6 Instalments)",

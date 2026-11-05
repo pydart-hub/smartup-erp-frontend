@@ -25,3 +25,13 @@ This forces Framer Motion to animate the element independently when it is mounte
 ### Solution
 1. Always query `filters: [["docstatus", "!=", 2]]` so drafts are visible and can be displayed or auto-healed.
 2. Maintain a `dirtyRef = useRef<Set<string>>(new Set())` to track modified rows, and only sync server query data for untouched rows during background refetches. Never delete existing documents prior to verifying new document creation and submission.
+
+## UI Calculation vs Display Variable Synchronization in Timing Systems
+
+### Problem
+When calculating metrics (such as late minutes against scheduled class time) while simultaneously displaying the comparison time in the UI (e.g. `Xm late (vs Y)`), using different source variables for the calculation and the display creates glaring inconsistencies (e.g. calculating against global 5:00 PM while displaying session 6:00 PM -> "60m late vs 06:00 PM"). Furthermore, global mode defaults must never discard or overwrite explicit per-item/per-session overrides entered by the user.
+
+### Solution
+1. Unify the computation and label under a single source of truth variable (e.g. `effectiveSessClassTime`), guaranteeing that whatever appears in `(vs {formatTo12Hour(...)})` is mathematically identical to the value used in the difference algorithm.
+2. In session lists, prioritize `session.class_time` first before falling back to global or branch-level defaults.
+3. Ensure save payloads persist the item's explicit session time rather than falling back to global variables when saving.
