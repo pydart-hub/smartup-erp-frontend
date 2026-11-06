@@ -40,8 +40,43 @@ async function frappeGetList(
     `${FRAPPE_URL}/api/resource/${encodeURIComponent(doctype)}?${params.toString()}`,
     { headers: ADMIN_HEADERS, cache: "no-store" },
   );
-  if (!res.ok) return [];
+  if (!res.ok) {
+    const errorText = await res.text().catch(() => "");
+    console.error(`[frappeGetList] ${doctype} failed: ${res.status} ${res.statusText}`, errorText.slice(0, 200));
+    return [];
+  }
   return (await res.json()).data ?? [];
+}
+
+async function frappeGetListChunked(
+  doctype: string,
+  baseFilters: (string | number | string[] | null)[][],
+  inField: string,
+  inValues: string[],
+  fields: string[],
+  limitPerChunk = 1000,
+  orderBy?: string,
+  chunkSize = 30,
+): Promise<Record<string, unknown>[]> {
+  if (inValues.length === 0) return [];
+  const chunks: string[][] = [];
+  for (let i = 0; i < inValues.length; i += chunkSize) {
+    chunks.push(inValues.slice(i, i + chunkSize));
+  }
+
+  const results = await Promise.all(
+    chunks.map((chunk) =>
+      frappeGetList(
+        doctype,
+        [...baseFilters, [inField, "in", chunk]],
+        fields,
+        limitPerChunk,
+        orderBy,
+      ),
+    ),
+  );
+
+  return results.flat();
 }
 
 export interface ForfeitedStudent {
@@ -111,6 +146,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const company = searchParams.get("company");
+    const isSummary = searchParams.get("summary") === "true";
 
     const studentFilters: (string | number | string[])[][] = [
       ["enabled", "=", 0],
@@ -130,7 +166,7 @@ export async function GET(request: NextRequest) {
         "modified",
         "creation",
       ],
-      500,
+      1000,
       "modified desc",
     );
 
@@ -150,16 +186,65 @@ export async function GET(request: NextRequest) {
     const studentIds = students.map((student) => student.name as string);
     const today = todayStr();
 
-    const invoices = await frappeGetList(
+    const invoiceBaseFilters: (string | number | string[])[][] = [
+      ["docstatus", "=", 1],
+      ["is_return", "=", 0],
+    ];
+    if (company) {
+      invoiceBaseFilters.push(["company", "=", company]);
+    }
+
+    const invoices = await frappeGetListChunked(
       "Sales Invoice",
-      [
-        ["student", "in", studentIds],
-        ["docstatus", "=", 1],
-        ["is_return", "=", 0],
-      ],
+      invoiceBaseFilters,
+      "student",
+      studentIds,
       ["name", "student", "grand_total", "outstanding_amount", "due_date"],
       1000,
+      undefined,
+      30,
     );
+
+    if (isSummary) {
+      let grandInvoiced = 0;
+      let grandPaid = 0;
+      let grandOutstanding = 0;
+      let grandBadDebt = 0;
+      let grandFutureForfeited = 0;
+      const badDebtStudents = new Set<string>();
+
+      for (const invoice of invoices) {
+        const studentId = invoice.student as string;
+        const grandTotal = Number(invoice.grand_total ?? 0);
+        const outstanding = Math.max(0, Number(invoice.outstanding_amount ?? 0));
+        const paid = Math.max(0, grandTotal - outstanding);
+        const dueDate = String(invoice.due_date ?? "");
+        const isOverdue = outstanding > 0 && (!dueDate || dueDate <= today);
+        const isFutureDue = outstanding > 0 && Boolean(dueDate && dueDate > today);
+
+        grandInvoiced += grandTotal;
+        grandPaid += paid;
+        grandOutstanding += outstanding;
+        if (isOverdue) {
+          grandBadDebt += outstanding;
+          if (studentId) badDebtStudents.add(studentId);
+        }
+        if (isFutureDue) {
+          grandFutureForfeited += outstanding;
+        }
+      }
+
+      return NextResponse.json({
+        batches: [],
+        total_invoiced: grandInvoiced,
+        total_paid: grandPaid,
+        total_outstanding: grandOutstanding,
+        total_bad_debt: grandBadDebt,
+        total_future_forfeited: grandFutureForfeited,
+        student_count: students.length,
+        bad_debt_student_count: badDebtStudents.size,
+      });
+    }
 
     const invoiceTotals = new Map<
       string,
@@ -183,8 +268,8 @@ export async function GET(request: NextRequest) {
       const outstanding = Math.max(0, Number(invoice.outstanding_amount ?? 0));
       const paid = Math.max(0, grandTotal - outstanding);
       const dueDate = String(invoice.due_date ?? "");
-      const isOverdue = outstanding > 0 && !!dueDate && dueDate <= today;
-      const isFutureDue = outstanding > 0 && !!dueDate && dueDate > today;
+      const isOverdue = outstanding > 0 && (!dueDate || dueDate <= today);
+      const isFutureDue = outstanding > 0 && Boolean(dueDate && dueDate > today);
 
       const current = invoiceTotals.get(studentId) ?? {
         invoiced: 0,
@@ -204,7 +289,7 @@ export async function GET(request: NextRequest) {
       if (isOverdue) {
         current.overdueOutstanding += outstanding;
         current.overdueInvoiceCount += 1;
-        if (!current.oldestOverdueDate || dueDate < current.oldestOverdueDate) {
+        if (!current.oldestOverdueDate || (dueDate && dueDate < current.oldestOverdueDate)) {
           current.oldestOverdueDate = dueDate;
         }
       } else if (isFutureDue) {
@@ -213,12 +298,15 @@ export async function GET(request: NextRequest) {
       invoiceTotals.set(studentId, current);
     }
 
-    const enrollments = await frappeGetList(
+    const enrollments = await frappeGetListChunked(
       "Program Enrollment",
-      [["student", "in", studentIds]],
+      [],
+      "student",
+      studentIds,
       ["student", "program", "student_batch_name"],
       500,
       "modified desc",
+      30,
     );
 
     const studentBatch = new Map<string, string>();
@@ -232,9 +320,11 @@ export async function GET(request: NextRequest) {
     }
 
     const batchMap = new Map<string, ForfeitedBatch>();
-    const followups = await frappeGetList(
+    const followups = await frappeGetListChunked(
       "Discontinued Follow Up",
-      [["student", "in", studentIds]],
+      [],
+      "student",
+      studentIds,
       [
         "name", "student", "call_date", "called_by", "call_status",
         "feedback_category", "feedback_notes", "interested_to_rejoin",
@@ -242,6 +332,7 @@ export async function GET(request: NextRequest) {
       ],
       1000,
       "call_date desc",
+      30,
     );
     const latestFollowupMap = new Map<string, Record<string, unknown>>();
     for (const row of followups) {

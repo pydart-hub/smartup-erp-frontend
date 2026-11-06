@@ -155,15 +155,18 @@ export default function SubjectSchedulePage() {
     [fromDate, toDate, selectedDays],
   );
 
-  // Filter instructors to those with courses at this branch/program
+  // Filter instructors to those with courses at this branch/program (active only)
   const filteredInstructors = useMemo(() => {
     if (!allInstructors) return [];
-    if (!selectedGroup?.program) return allInstructors;
-    return allInstructors.filter((i) =>
+    const active = allInstructors.filter((i) => !i.status || i.status === "Active");
+    if (!selectedGroup?.program) return active;
+    const cleanBranch = (branch || "").trim().toLowerCase();
+    const cleanProg = (selectedGroup.program || "").trim().toLowerCase();
+    return active.filter((i) =>
       i.instructor_log.some(
         (log) =>
-          log.custom_branch === branch &&
-          log.program === selectedGroup.program,
+          (log.custom_branch || "").trim().toLowerCase() === cleanBranch &&
+          (log.program || "").trim().toLowerCase() === cleanProg,
       ),
     );
   }, [allInstructors, branch, selectedGroup]);

@@ -169,10 +169,15 @@ function NewCourseSchedulePage() {
   }, [form.instructor, selectedGroupProgram, allProgramCourses, branchInstructors]);
 
   const filteredInstructors = useMemo(() => {
-    if (!selectedGroupProgram) return branchInstructors;
+    // Defensively enforce active status
+    const activeInstructors = branchInstructors.filter(
+      (i) => !i.status || i.status === "Active"
+    );
+
+    if (!selectedGroupProgram) return activeInstructors;
 
     // First filter by program — only show instructors assigned to this program
-    const programInstructors = branchInstructors.filter((i) =>
+    const programInstructors = activeInstructors.filter((i) =>
       i.instructor_log.some(
         (log) =>
           normalize(log.custom_branch) === normalize(branch) &&
@@ -194,7 +199,7 @@ function NewCourseSchedulePage() {
 
     // If no instructors have explicit course assignments, show all program instructors
     return courseInstructors.length > 0 ? courseInstructors : programInstructors;
-  }, [form.course, selectedGroupProgram, branchInstructors]);
+  }, [form.course, selectedGroupProgram, branchInstructors, branch]);
 
   const { data: roomRes } = useQuery({
     queryKey: ["rooms"],

@@ -171,7 +171,12 @@ export default function BranchManagerCourseSchedulePage() {
     queryFn: () => getInstructors({ limit_page_length: 500 }),
     staleTime: 5 * 60_000,
   });
-  const instructors = instrRes?.data ?? [];
+  const instructors = useMemo(() => {
+    return (instrRes?.data ?? []).map((i) => ({
+      ...i,
+      displayName: !i.status || i.status === "Active" ? i.instructor_name : `${i.instructor_name} (Inactive)`,
+    }));
+  }, [instrRes?.data]);
 
   // ── Schedules query ────────────────────────────────────────────────────────
   const fromDate = viewMode === "week" ? weekFrom : calFrom;
@@ -425,7 +430,7 @@ export default function BranchManagerCourseSchedulePage() {
               <option value="">All instructors</option>
               {instructors.map((i) => (
                 <option key={i.name} value={i.name}>
-                  {i.instructor_name}
+                  {i.displayName}
                 </option>
               ))}
             </select>

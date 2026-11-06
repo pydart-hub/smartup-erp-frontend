@@ -676,59 +676,25 @@ export async function getBranchCollectedByMode(branch: string): Promise<Collecte
 
 /**
  * Total outstanding fees for all discontinued students.
- * Step 1: fetch discontinued student IDs, Step 2: sum their invoice outstanding amounts.
+ * Calls /api/fees/forfeited-detail?summary=true to avoid GET URL length limits with large student lists.
  */
 export async function getDiscontinuedStudentForfeitedFees(): Promise<number> {
-  // Step 1 – get all discontinued student names
-  const studentParams = new URLSearchParams({
-    fields: JSON.stringify(["name"]),
-    filters: JSON.stringify({ enabled: "0" }),
-    limit_page_length: "500",
-  });
-  const { data: studentData } = await apiClient.get(`/resource/Student?${studentParams}`);
-  const students: { name: string }[] = studentData?.data ?? [];
-  if (!students.length) return 0;
-
-  const studentNames = students.map((s) => s.name);
-
-  // Step 2 – sum outstanding_amount for submitted invoices linked to those students
-  const invoiceParams = new URLSearchParams({
-    fields: JSON.stringify(["sum(outstanding_amount) as total_outstanding"]),
-    filters: JSON.stringify([
-      ["docstatus", "=", "1"],
-      ["outstanding_amount", ">", "0"],
-      ["student", "in", studentNames],
-    ]),
-    limit_page_length: "1",
-  });
-  const { data: invoiceData } = await apiClient.get(`/resource/Sales Invoice?${invoiceParams}`);
-  return invoiceData?.data?.[0]?.total_outstanding ?? 0;
+  const res = await fetch("/api/fees/forfeited-detail?summary=true", { credentials: "include" });
+  if (!res.ok) throw new Error("Failed to fetch forfeited fees");
+  const json = await res.json();
+  return json.total_outstanding ?? 0;
 }
 
-/** Outstanding invoices from discontinued students in a specific branch. */
+/**
+ * Outstanding invoices from discontinued students in a specific branch.
+ * Calls /api/fees/forfeited-detail?company=...&summary=true to avoid GET URL length limits with large student lists.
+ */
 export async function getBranchForfeitedFees(branch: string): Promise<number> {
-  const studentParams = new URLSearchParams({
-    fields: JSON.stringify(["name"]),
-    filters: JSON.stringify([["custom_branch", "=", branch], ["enabled", "=", "0"]]),
-    limit_page_length: "500",
-  });
-  const { data: studentData } = await apiClient.get(`/resource/Student?${studentParams}`);
-  const students: { name: string }[] = studentData?.data ?? [];
-  if (!students.length) return 0;
-
-  const studentNames = students.map((s) => s.name);
-  const invoiceParams = new URLSearchParams({
-    fields: JSON.stringify(["sum(outstanding_amount) as total_outstanding"]),
-    filters: JSON.stringify([
-      ["docstatus", "=", "1"],
-      ["outstanding_amount", ">", "0"],
-      ["student", "in", studentNames],
-      ["company", "=", branch],
-    ]),
-    limit_page_length: "1",
-  });
-  const { data: invoiceData } = await apiClient.get(`/resource/Sales Invoice?${invoiceParams}`);
-  return invoiceData?.data?.[0]?.total_outstanding ?? 0;
+  const params = new URLSearchParams({ company: branch, summary: "true" });
+  const res = await fetch(`/api/fees/forfeited-detail?${params.toString()}`, { credentials: "include" });
+  if (!res.ok) throw new Error("Failed to fetch branch forfeited fees");
+  const json = await res.json();
+  return json.total_outstanding ?? 0;
 }
 
 export interface ProgramFeeStats {

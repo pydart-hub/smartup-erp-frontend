@@ -71,10 +71,10 @@ export default function HRBranchAttendanceDashboard() {
     staleTime: 5 * 60_000,
   });
 
-  // Fetch all active employees
+  // Fetch all employees (including Left / Inactive)
   const { data: employeesRes, isLoading: loadingEmployees } = useQuery({
     queryKey: ["hr-all-employees"],
-    queryFn: () => getEmployees({ status: "Active", limit_page_length: 1000 }),
+    queryFn: () => getEmployees({ limit_page_length: 1000 }),
     staleTime: 5 * 60_000,
   });
 
@@ -110,6 +110,7 @@ export default function HRBranchAttendanceDashboard() {
       const employeeDetails = branchEmployees.map((emp) => {
         const att = attMap.get(emp.name);
         const status = att?.status ?? "Not Marked";
+        const isLeft = emp.status === "Left" || emp.status === "Inactive";
 
         if (status === "Present") present++;
         else if (status === "Absent") absent++;
@@ -122,20 +123,32 @@ export default function HRBranchAttendanceDashboard() {
 
         return {
           ...emp,
+          isLeft,
           attendanceStatus: status,
           inTime: formatDisplayTime(att?.in_time || att?.custom_check_in),
           outTime: formatDisplayTime(att?.out_time || att?.custom_check_out),
         };
       });
 
+      // Sort Active first, then Left
+      employeeDetails.sort((a, b) => {
+        if (a.isLeft !== b.isLeft) return a.isLeft ? 1 : -1;
+        return a.employee_name.localeCompare(b.employee_name);
+      });
+
+      // Calculate attendance rate based on active staff
+      const activeStaffCount = branchEmployees.filter((e) => e.status !== "Left" && e.status !== "Inactive").length;
       const total = branchEmployees.length;
-      const rate = total > 0 ? Math.round(((present + wfh + atHeadOffice + halfDay * 0.5) / total) * 100) : 0;
+      const rate = activeStaffCount > 0
+        ? Math.round(((present + wfh + atHeadOffice + halfDay * 0.5) / activeStaffCount) * 100)
+        : 0;
 
       return {
         branchName: branch.name,
         shortName: branch.name.replace("Smart Up ", "").replace("Smart Up", "HQ"),
         employees: employeeDetails,
         total,
+        activeStaffCount,
         rate,
         stats: { present, absent, halfDay, onLeave, wfh, atHeadOffice, holiday, notMarked },
       };
@@ -505,9 +518,16 @@ export default function HRBranchAttendanceDashboard() {
                         className="p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/10 flex flex-col md:flex-row md:items-center justify-between gap-4"
                       >
                         <div className="space-y-1">
-                          <h4 className="font-semibold text-slate-950 dark:text-slate-50 text-sm">
-                            {emp.employee_name}
-                          </h4>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-semibold text-slate-950 dark:text-slate-50 text-sm">
+                              {emp.employee_name}
+                            </h4>
+                            {emp.isLeft && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-300 dark:bg-rose-950/60 dark:text-rose-400 dark:border-rose-800 uppercase tracking-wide">
+                                Left
+                              </span>
+                            )}
+                          </div>
                           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-400">
                             <span>ID: {emp.name}</span>
                             <span>&bull;</span>

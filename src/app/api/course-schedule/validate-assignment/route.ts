@@ -100,15 +100,41 @@ export async function POST(req: NextRequest) {
         fields: JSON.stringify(["name", "program", "custom_branch"]),
       }),
       frappeGet(`resource/Instructor/${encodeURIComponent(instructor)}`, {
-        fields: JSON.stringify(["name", "employee", "instructor_log"]),
+        fields: JSON.stringify(["name", "employee", "status", "instructor_log"]),
       }),
     ]);
 
     const groupDoc = groupDocRes?.data as { program?: string; custom_branch?: string } | undefined;
     const instructorDoc = instructorDocRes?.data as {
       employee?: string;
+      status?: string;
       instructor_log?: InstructorLogRow[];
     } | undefined;
+
+    // Check 1: Instructor status must be Active
+    if (instructorDoc?.status && instructorDoc.status !== "Active") {
+      return NextResponse.json(
+        { error: `Instructor "${instructor}" is inactive or has left and cannot be scheduled.` },
+        { status: 422 },
+      );
+    }
+
+    // Check 2: Linked employee status must also be Active
+    const employee = String(instructorDoc?.employee || "").trim();
+    let employeeCompany = "";
+    if (employee) {
+      const employeeDocRes = await frappeGet(`resource/Employee/${encodeURIComponent(employee)}`, {
+        fields: JSON.stringify(["company", "status"]),
+      });
+      const empStatus = employeeDocRes?.data?.status;
+      if (empStatus && empStatus !== "Active") {
+        return NextResponse.json(
+          { error: `Instructor "${instructor}" employee record is ${empStatus.toLowerCase()} and cannot be scheduled.` },
+          { status: 422 },
+        );
+      }
+      employeeCompany = String(employeeDocRes?.data?.company || "").trim();
+    }
 
     if (!groupDoc?.program) {
       return NextResponse.json(
@@ -157,18 +183,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Legacy fallback for instructors with empty instructor_log.
-    const employee = String(instructorDoc?.employee || "").trim();
     if (!employee) {
       return NextResponse.json(
         { error: "Instructor has no linked employee and no instructor_log assignments." },
         { status: 422 },
       );
     }
-
-    const employeeDocRes = await frappeGet(`resource/Employee/${encodeURIComponent(employee)}`, {
-      fields: JSON.stringify(["company"]),
-    });
-    const employeeCompany = String(employeeDocRes?.data?.company || "").trim();
 
     if (employeeCompany && normalize(employeeCompany) === normalize(effectiveBranch)) {
       return NextResponse.json({ ok: true, mode: "legacy-employee-company" });

@@ -23,6 +23,7 @@ type InstructorDoc = {
   employee: string;
   department?: string;
   image?: string;
+  status?: string;
   instructor_log?: InstructorLogEntry[];
 };
 
@@ -98,29 +99,40 @@ export async function GET(req: NextRequest) {
 
     const targetBranch = normalize(branch);
 
-    const [allInstructorsRes, activeEmployeesRes] = await Promise.all([
+    const [activeInstructorsRes, activeEmployeesRes] = await Promise.all([
       frappeGet("resource/Instructor", {
-        fields: JSON.stringify(["name", "instructor_name", "employee", "department", "image"]),
+        filters: JSON.stringify([["status", "=", "Active"]]),
+        fields: JSON.stringify(["name", "instructor_name", "employee", "department", "image", "status"]),
         limit_page_length: "500",
       }),
       frappeGet("resource/Employee", {
         filters: JSON.stringify([
-          ["company", "=", branch],
           ["status", "=", "Active"],
         ]),
-        fields: JSON.stringify(["name"]),
+        fields: JSON.stringify(["name", "company"]),
         limit_page_length: "500",
       }),
     ]);
 
-    const instructors = (allInstructorsRes?.data ?? []) as InstructorDoc[];
-    const branchEmployeeSet = new Set<string>((activeEmployeesRes?.data ?? []).map((e: { name: string }) => e.name));
+    const instructors = (activeInstructorsRes?.data ?? []) as InstructorDoc[];
+    const allActiveEmployees = (activeEmployeesRes?.data ?? []) as { name: string; company?: string }[];
+    const allActiveEmployeeSet = new Set<string>(allActiveEmployees.map((e) => e.name));
+    const branchActiveEmployeeSet = new Set<string>(
+      allActiveEmployees
+        .filter((e) => normalize(e.company) === targetBranch)
+        .map((e) => e.name)
+    );
 
     const docs = await Promise.all(
       instructors.map(async (instr) => {
+        // If instructor is linked to an employee that is inactive/left, skip
+        if (instr.employee && !allActiveEmployeeSet.has(instr.employee)) {
+          return null;
+        }
+
         try {
           const full = await frappeGet(`resource/Instructor/${encodeURIComponent(instr.name)}`, {
-            fields: JSON.stringify(["name", "instructor_name", "employee", "department", "image", "instructor_log"]),
+            fields: JSON.stringify(["name", "instructor_name", "employee", "department", "image", "status", "instructor_log"]),
           });
           return full?.data as InstructorDoc;
         } catch {
@@ -129,12 +141,24 @@ export async function GET(req: NextRequest) {
       })
     );
 
-    const filtered = docs.filter((instr) => {
+    const validDocs = docs.filter((d): d is InstructorDoc => d !== null);
+
+    const filtered = validDocs.filter((instr) => {
+      // Must be Active
+      if (instr.status && instr.status !== "Active") {
+        return false;
+      }
+
+      // If linked to an employee, that employee must be Active
+      if (instr.employee && !allActiveEmployeeSet.has(instr.employee)) {
+        return false;
+      }
+
       const logs = instr.instructor_log ?? [];
       if (logs.length > 0) {
         return logs.some((log) => normalize(log.custom_branch) === targetBranch);
       }
-      return branchEmployeeSet.has(instr.employee);
+      return branchActiveEmployeeSet.has(instr.employee);
     });
 
     return NextResponse.json({ data: filtered });

@@ -35,3 +35,15 @@ When calculating metrics (such as late minutes against scheduled class time) whi
 1. Unify the computation and label under a single source of truth variable (e.g. `effectiveSessClassTime`), guaranteeing that whatever appears in `(vs {formatTo12Hour(...)})` is mathematically identical to the value used in the difference algorithm.
 2. In session lists, prioritize `session.class_time` first before falling back to global or branch-level defaults.
 3. Ensure save payloads persist the item's explicit session time rather than falling back to global variables when saving.
+
+## Frappe GET API URL Length Limits with Large `in` Filters
+
+### Problem
+When querying Frappe DocTypes via GET with an `in` filter over a large array of IDs (e.g. 100+ student IDs in `[["student", "in", studentIds]]`), the serialized and URL-encoded query string exceeds HTTP server / Nginx URI length limits (4KB–8KB). Frappe returns an HTTP 414 / 400 HTML error page.
+- In client-side Axios/apiClient calls, this throws `Unexpected token '<'` when attempting to parse the HTML error as JSON, crashing the UI component with an "Error" badge.
+- In server-side routes with silent `if (!res.ok) return []` guards, it silently returns an empty dataset, causing all computed totals to show as ₹0 and child relations to fall back to unassigned defaults.
+
+### Solution
+1. Always chunk large `in` filter arrays into safe batches (e.g. 30 items per chunk) and fetch in parallel via `Promise.all()`. A chunk of 30 items produces a URL length under 2KB, safely below all server limits.
+2. Provide a lightweight `?summary=true` parameter on detail API routes so overview cards needing only aggregate financial metrics can compute them without fetching unrelated child doc types (e.g. enrollments, feedback logs).
+3. Connect high-level dashboard cards and detail pages to the same backend API route to maintain a single source of truth.

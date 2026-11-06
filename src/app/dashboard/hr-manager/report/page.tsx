@@ -172,6 +172,7 @@ export default function HRMonthlyReportDashboard() {
   const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
   const [branchSearch, setBranchSearch] = useState("");
   const [selectedMonth, setSelectedMonth] = useState(() => format(new Date(), "yyyy-MM"));
+  const [statusFilter, setStatusFilter] = useState<"All" | "Active" | "Left">("All");
 
   // Calculate Dates for Report
   const startDate = startOfMonth(new Date(`${selectedMonth}-01`));
@@ -194,20 +195,28 @@ export default function HRMonthlyReportDashboard() {
     return branches.filter((b) => b.name !== "Smart Up");
   }, [branches]);
 
-  // Fetch all active employees
+  // Fetch all employees (including Left / Inactive)
   const { data: employeesRes, isLoading: loadingEmployees } = useQuery({
     queryKey: ["hr-report-all-employees"],
-    queryFn: () => getEmployees({ status: "Active", limit_page_length: 1000 }),
+    queryFn: () => getEmployees({ limit_page_length: 1000 }),
     staleTime: 5 * 60_000,
   });
 
   const allEmployees = employeesRes?.data ?? [];
 
-  // Group active employees count by branch
+  // Group employee counts by branch (Active vs Left)
   const branchCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
+    const counts: Record<string, { active: number; left: number; total: number }> = {};
     allEmployees.forEach((emp) => {
-      counts[emp.company] = (counts[emp.company] || 0) + 1;
+      if (!counts[emp.company]) {
+        counts[emp.company] = { active: 0, left: 0, total: 0 };
+      }
+      counts[emp.company].total += 1;
+      if (emp.status === "Left" || emp.status === "Inactive") {
+        counts[emp.company].left += 1;
+      } else {
+        counts[emp.company].active += 1;
+      }
     });
     return counts;
   }, [allEmployees]);
@@ -228,8 +237,22 @@ export default function HRMonthlyReportDashboard() {
 
   const branchEmployees = useMemo(() => {
     if (!selectedBranch) return [];
-    return allEmployees.filter((e) => e.company === selectedBranch);
-  }, [allEmployees, selectedBranch]);
+    let list = allEmployees.filter((e) => e.company === selectedBranch);
+
+    if (statusFilter === "Active") {
+      list = list.filter((e) => e.status !== "Left" && e.status !== "Inactive");
+    } else if (statusFilter === "Left") {
+      list = list.filter((e) => e.status === "Left" || e.status === "Inactive");
+    }
+
+    // Sort Active employees first (alphabetical), then Left/Inactive employees (alphabetical)
+    return [...list].sort((a, b) => {
+      const aLeft = a.status === "Left" || a.status === "Inactive";
+      const bLeft = b.status === "Left" || b.status === "Inactive";
+      if (aLeft !== bLeft) return aLeft ? 1 : -1;
+      return a.employee_name.localeCompare(b.employee_name);
+    });
+  }, [allEmployees, selectedBranch, statusFilter]);
 
   const attendances = attRes?.data ?? [];
 
@@ -273,9 +296,22 @@ export default function HRMonthlyReportDashboard() {
     });
 
     return branchEmployees.map((emp) => {
-      const row: { employeeName: string; designation: string; dates: Record<string, DayAttendanceRecord> } = {
+      const isLeft = emp.status === "Left" || emp.status === "Inactive";
+      const row: {
+        employeeId: string;
+        employeeName: string;
+        designation: string;
+        status: string;
+        isLeft: boolean;
+        relievingDate?: string;
+        dates: Record<string, DayAttendanceRecord>;
+      } = {
+        employeeId: emp.name,
         employeeName: emp.employee_name,
         designation: emp.designation || emp.department || "-",
+        status: emp.status,
+        isLeft,
+        relievingDate: emp.relieving_date,
         dates: {},
       };
 
@@ -330,7 +366,7 @@ export default function HRMonthlyReportDashboard() {
 
     const buildTableBody = (daysGroup: Date[]) =>
       matrix.map((row) => [
-        `${row.employeeName}\n${row.designation}`,
+        `${row.employeeName}${row.isLeft ? " [LEFT]" : ""}\n${row.designation}`,
         ...daysGroup.map((d) => {
           const dateStr = format(d, "yyyy-MM-dd");
           const rec = row.dates[dateStr];
@@ -443,7 +479,10 @@ export default function HRMonthlyReportDashboard() {
     sheet.columns = columns;
 
     matrix.forEach((row) => {
-      const rowData: Record<string, string> = { emp: row.employeeName, desig: row.designation };
+      const rowData: Record<string, string> = {
+        emp: `${row.employeeName}${row.isLeft ? " (Left)" : ""}`,
+        desig: row.designation,
+      };
       daysArray.forEach((d) => {
         const dateStr = format(d, "yyyy-MM-dd");
         const rec = row.dates[dateStr];
@@ -545,7 +584,7 @@ export default function HRMonthlyReportDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredBranches.map((branch, index) => {
                 const accent = ACCENTS[index % ACCENTS.length];
-                const empCount = branchCounts[branch.name] || 0;
+                const stats = branchCounts[branch.name] || { active: 0, left: 0, total: 0 };
                 const shortBranchName = branch.name.replace("Smart Up ", "").replace("Smart Up", "HQ");
 
                 return (
@@ -575,7 +614,12 @@ export default function HRMonthlyReportDashboard() {
                       <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
                         <span className="flex items-center gap-1.5 font-medium">
                           <Users className="w-3.5 h-3.5 text-slate-400" />
-                          {empCount} Active Staff
+                          {stats.active} Active
+                          {stats.left > 0 && (
+                            <span className="text-rose-600 dark:text-rose-400 font-semibold">
+                              &bull; {stats.left} Left
+                            </span>
+                          )}
                         </span>
                         <Badge variant="outline" className="text-[10px] font-semibold">
                           View Report &rarr;
@@ -618,8 +662,18 @@ export default function HRMonthlyReportDashboard() {
                 type="month"
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(e.target.value)}
-                className="w-40 h-9.5 text-xs rounded-xl border-slate-200 bg-white dark:bg-slate-900"
+                className="w-38 h-9.5 text-xs rounded-xl border-slate-200 bg-white dark:bg-slate-900"
               />
+
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as "All" | "Active" | "Left")}
+                className="h-9.5 text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 px-2.5 font-medium focus:outline-none focus:ring-2 focus:ring-violet-500 shadow-xs cursor-pointer"
+              >
+                <option value="All">All Staff (Active & Left)</option>
+                <option value="Active">Active Staff Only</option>
+                <option value="Left">Left Staff Only</option>
+              </select>
 
               <Button
                 variant="outline"
@@ -717,12 +771,35 @@ export default function HRMonthlyReportDashboard() {
                       </tr>
                     ) : (
                       matrix.map((row, i) => (
-                        <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition-colors group">
+                        <tr
+                          key={row.employeeId || i}
+                          className={`transition-colors group ${
+                            row.isLeft
+                              ? "bg-rose-50/20 dark:bg-rose-950/10 hover:bg-rose-50/40 dark:hover:bg-rose-950/20"
+                              : "hover:bg-slate-50/50 dark:hover:bg-slate-900/30"
+                          }`}
+                        >
                           {/* Fixed Employee Column */}
-                          <td className="px-4 py-3 font-medium text-slate-900 dark:text-white sticky left-0 bg-white dark:bg-slate-950 z-10 border-r border-slate-200 dark:border-slate-800 group-hover:bg-slate-50/50 dark:group-hover:bg-slate-900/30 shadow-sm">
-                            <div className="font-semibold text-slate-900 dark:text-white">{row.employeeName}</div>
+                          <td
+                            className={`px-4 py-3 font-medium text-slate-900 dark:text-white sticky left-0 z-10 border-r border-slate-200 dark:border-slate-800 shadow-sm ${
+                              row.isLeft
+                                ? "bg-rose-50/40 dark:bg-slate-950 group-hover:bg-rose-50/60 dark:group-hover:bg-slate-900/50"
+                                : "bg-white dark:bg-slate-950 group-hover:bg-slate-50/50 dark:group-hover:bg-slate-900/30"
+                            }`}
+                          >
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-semibold text-slate-900 dark:text-white">{row.employeeName}</span>
+                              {row.isLeft && (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-300 dark:bg-rose-950/60 dark:text-rose-400 dark:border-rose-800 tracking-wide uppercase">
+                                  Left
+                                </span>
+                              )}
+                            </div>
                             <div className="text-[11px] font-normal text-slate-400 truncate max-w-[190px]">
                               {row.designation}
+                              {row.isLeft && row.relievingDate && (
+                                <span className="ml-1 text-[10px] text-rose-500/90 font-medium">({row.relievingDate})</span>
+                              )}
                             </div>
                           </td>
 

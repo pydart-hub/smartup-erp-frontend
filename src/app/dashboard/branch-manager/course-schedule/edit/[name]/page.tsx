@@ -176,7 +176,25 @@ export default function EditSchedulePage() {
     queryFn: () => getInstructors({ limit_page_length: 500 }),
     staleTime: 5 * 60_000,
   });
-  const instructors = instrRes?.data ?? [];
+  const allRawInstructors = instrRes?.data ?? [];
+
+  const instructors = useMemo(() => {
+    const currentInstructor = schedule?.instructor;
+
+    return allRawInstructors
+      .filter((i) => {
+        const isActive = !i.status || i.status === "Active";
+        const isCurrent = !!currentInstructor && i.name === currentInstructor;
+        return isActive || isCurrent;
+      })
+      .map((i) => {
+        const isActive = !i.status || i.status === "Active";
+        return {
+          ...i,
+          displayName: isActive ? i.instructor_name : `${i.instructor_name} (Inactive)`,
+        };
+      });
+  }, [allRawInstructors, schedule?.instructor]);
 
   const { data: roomRes } = useQuery({
     queryKey: ["rooms"],
@@ -482,7 +500,7 @@ export default function EditSchedulePage() {
                     </option>
                     {instructors.map((i) => (
                       <option key={i.name} value={i.name}>
-                        {i.instructor_name}
+                        {i.displayName}
                       </option>
                     ))}
                   </select>

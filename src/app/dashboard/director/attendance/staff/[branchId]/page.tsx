@@ -67,11 +67,11 @@ export default function DirectorStaffBranchAttendancePage() {
     () => new Date().toISOString().split("T")[0]
   );
 
-  // Fetch employees for the branch
+  // Fetch employees for the branch (including Left / Inactive)
   const { data: empRes } = useQuery({
     queryKey: ["employees", branchName],
     queryFn: () =>
-      getEmployees({ company: branchName, status: "Active" }),
+      getEmployees({ company: branchName, limit_page_length: 500 }),
     staleTime: 5 * 60_000,
   });
 
@@ -108,22 +108,29 @@ export default function DirectorStaffBranchAttendancePage() {
   };
 
   // Merge employees with their attendance status & timings
-  const merged = employees.map((emp) => {
-    const att = attMap.get(emp.name);
-    const sessions = parseSessions(att?.custom_sessions_json);
-    const allBranchSessions = sessions.filter((s) => s.branch === branchName);
-    const otherBranchSessions = sessions.filter((s) => s.branch !== branchName);
+  const merged = employees
+    .map((emp) => {
+      const att = attMap.get(emp.name);
+      const sessions = parseSessions(att?.custom_sessions_json);
+      const allBranchSessions = sessions.filter((s) => s.branch === branchName);
+      const otherBranchSessions = sessions.filter((s) => s.branch !== branchName);
 
-    const attendance_status = ((allBranchSessions[0]?.status || att?.status) ?? "Not Marked") as string;
-    return {
-      ...emp,
-      attendance_status,
-      in_time: formatDisplayTime(allBranchSessions[0]?.in_time || att?.in_time || att?.custom_check_in),
-      out_time: formatDisplayTime(allBranchSessions[allBranchSessions.length - 1]?.out_time || att?.out_time || att?.custom_check_out),
-      branchSessions: allBranchSessions,
-      otherBranchSessions,
-    };
-  });
+      const attendance_status = ((allBranchSessions[0]?.status || att?.status) ?? "Not Marked") as string;
+      const isLeft = emp.status === "Left" || emp.status === "Inactive";
+      return {
+        ...emp,
+        isLeft,
+        attendance_status,
+        in_time: formatDisplayTime(allBranchSessions[0]?.in_time || att?.in_time || att?.custom_check_in),
+        out_time: formatDisplayTime(allBranchSessions[allBranchSessions.length - 1]?.out_time || att?.out_time || att?.custom_check_out),
+        branchSessions: allBranchSessions,
+        otherBranchSessions,
+      };
+    })
+    .sort((a, b) => {
+      if (a.isLeft !== b.isLeft) return a.isLeft ? 1 : -1;
+      return a.employee_name.localeCompare(b.employee_name);
+    });
 
   const presentCount = merged.filter((e) => e.attendance_status === "Present").length;
   const absentCount = merged.filter((e) => e.attendance_status === "Absent").length;
@@ -268,9 +275,16 @@ export default function DirectorStaffBranchAttendancePage() {
 
                       {/* Info */}
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-text-primary truncate">
-                          {emp.employee_name}
-                        </p>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className="text-sm font-medium text-text-primary truncate">
+                            {emp.employee_name}
+                          </p>
+                          {emp.isLeft && (
+                            <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-100 text-rose-700 border border-rose-300 dark:bg-rose-950/60 dark:text-rose-400 dark:border-rose-800 uppercase tracking-wide">
+                              Left
+                            </span>
+                          )}
+                        </div>
                         <p className="text-xs text-text-tertiary truncate">
                           {emp.designation || emp.department || emp.name}
                         </p>

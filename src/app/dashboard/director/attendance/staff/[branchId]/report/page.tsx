@@ -165,10 +165,10 @@ export default function StaffMonthlyReportPage() {
 
   const daysArray = Array.from({ length: daysInMonth }).map((_, i) => addDays(startDate, i));
 
-  // Fetch employees
+  // Fetch employees (including Left / Inactive)
   const { data: empRes, isLoading: empLoading } = useQuery({
     queryKey: ["employees", branchName],
-    queryFn: () => getEmployees({ company: branchName, status: "Active" }),
+    queryFn: () => getEmployees({ company: branchName, limit_page_length: 500 }),
     staleTime: 5 * 60_000,
   });
 
@@ -185,7 +185,15 @@ export default function StaffMonthlyReportPage() {
     staleTime: 60_000,
   });
 
-  const employees = empRes?.data ?? [];
+  const rawEmployees = empRes?.data ?? [];
+  const employees = useMemo(() => {
+    return [...rawEmployees].sort((a, b) => {
+      const aLeft = a.status === "Left" || a.status === "Inactive";
+      const bLeft = b.status === "Left" || b.status === "Inactive";
+      if (aLeft !== bLeft) return aLeft ? 1 : -1;
+      return a.employee_name.localeCompare(b.employee_name);
+    });
+  }, [rawEmployees]);
   const attendances = attRes?.data ?? [];
 
   // Build matrix
@@ -228,9 +236,20 @@ export default function StaffMonthlyReportPage() {
     });
 
     return employees.map((emp) => {
-      const row: { employeeName: string; designation: string; dates: Record<string, DayAttendanceRecord> } = {
+      const isLeft = emp.status === "Left" || emp.status === "Inactive";
+      const row: {
+        employeeId: string;
+        employeeName: string;
+        designation: string;
+        isLeft: boolean;
+        relievingDate?: string;
+        dates: Record<string, DayAttendanceRecord>;
+      } = {
+        employeeId: emp.name,
         employeeName: emp.employee_name,
         designation: emp.designation || emp.department || "-",
+        isLeft,
+        relievingDate: emp.relieving_date,
         dates: {},
       };
 
@@ -284,7 +303,7 @@ export default function StaffMonthlyReportPage() {
 
     const buildTableBody = (daysGroup: Date[]) =>
       matrix.map((row) => [
-        `${row.employeeName}\n${row.designation}`,
+        `${row.employeeName}${row.isLeft ? " [LEFT]" : ""}\n${row.designation}`,
         ...daysGroup.map((d) => {
           const dateStr = format(d, "yyyy-MM-dd");
           const rec = row.dates[dateStr];
@@ -409,7 +428,10 @@ export default function StaffMonthlyReportPage() {
 
     // Data
     matrix.forEach((row) => {
-      const rowData: Record<string, string> = { emp: row.employeeName, desig: row.designation };
+      const rowData: Record<string, string> = {
+        emp: `${row.employeeName}${row.isLeft ? " (Left)" : ""}`,
+        desig: row.designation,
+      };
       daysArray.forEach((d) => {
         const dateStr = format(d, "yyyy-MM-dd");
         const rec = row.dates[dateStr];
@@ -576,12 +598,35 @@ export default function StaffMonthlyReportPage() {
                   </tr>
                 ) : (
                   matrix.map((row, i) => (
-                    <tr key={i} className="hover:bg-brand-wash/30 transition-colors group">
+                    <tr
+                      key={row.employeeId || i}
+                      className={`transition-colors group ${
+                        row.isLeft
+                          ? "bg-rose-50/20 dark:bg-rose-950/10 hover:bg-rose-50/40 dark:hover:bg-rose-950/20"
+                          : "hover:bg-brand-wash/30"
+                      }`}
+                    >
                       {/* Fixed Employee Column */}
-                      <td className="px-4 py-3 font-medium text-text-primary sticky left-0 bg-surface z-10 border-r border-border-light group-hover:bg-brand-wash/30 shadow-xs">
-                        <div className="font-semibold text-text-primary">{row.employeeName}</div>
+                      <td
+                        className={`px-4 py-3 font-medium text-text-primary sticky left-0 z-10 border-r border-border-light shadow-xs ${
+                          row.isLeft
+                            ? "bg-rose-50/40 dark:bg-slate-950 group-hover:bg-rose-50/60"
+                            : "bg-surface group-hover:bg-brand-wash/30"
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-semibold text-text-primary">{row.employeeName}</span>
+                          {row.isLeft && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-300 dark:bg-rose-950/60 dark:text-rose-400 dark:border-rose-800 uppercase tracking-wide">
+                              Left
+                            </span>
+                          )}
+                        </div>
                         <div className="text-[11px] font-normal text-text-tertiary truncate max-w-[190px]">
                           {row.designation}
+                          {row.isLeft && row.relievingDate && (
+                            <span className="ml-1 text-[10px] text-rose-500/90 font-medium">({row.relievingDate})</span>
+                          )}
                         </div>
                       </td>
 

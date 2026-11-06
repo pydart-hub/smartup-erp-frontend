@@ -38,7 +38,7 @@ import {
   getCourseSchedules,
   type BulkScheduleResult,
 } from "@/lib/api/courseSchedule";
-import { getInstructors } from "@/lib/api/employees";
+import { getInstructorsWithCourses } from "@/lib/api/employees";
 
 // ── Day toggles ──────────────────────────────────────────────────────────────
 
@@ -186,11 +186,14 @@ function BulkScheduleContent() {
   }, [rawCourses]);
 
   const { data: instrRes } = useQuery({
-    queryKey: ["instructors-all"],
-    queryFn: () => getInstructors({ limit_page_length: 500 }),
+    queryKey: ["instructors-with-courses", branch],
+    queryFn: () => getInstructorsWithCourses(branch),
+    enabled: !!branch,
     staleTime: 5 * 60_000,
   });
-  const instructors = instrRes?.data ?? [];
+  const instructors = useMemo(() => {
+    return (instrRes ?? []).filter((i) => !i.status || i.status === "Active");
+  }, [instrRes]);
 
   const { data: roomRes } = useQuery({
     queryKey: ["rooms"],

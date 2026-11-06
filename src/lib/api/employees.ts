@@ -27,6 +27,7 @@ export interface Employee {
   image?: string;
   date_of_birth?: string;
   date_of_joining?: string;
+  relieving_date?: string;
   gender?: string;
   cell_number?: string;
   personal_email?: string;
@@ -90,7 +91,7 @@ export interface Instructor {
 // ── Employee List Fields ──
 const EMPLOYEE_FIELDS = JSON.stringify([
   "name", "first_name", "last_name", "employee_name", "company", "department",
-  "designation", "user_id", "status", "image", "date_of_birth", "date_of_joining",
+  "designation", "user_id", "status", "image", "date_of_birth", "date_of_joining", "relieving_date",
   "gender", "cell_number", "personal_email", "employment_type", "branch",
   "custom_basic_salary", "custom_payable_account",
   "bank_name", "bank_ac_no", "ifsc_code", "bank_branch_location",
@@ -318,14 +319,19 @@ export async function getEmployeeAttendance(params?: {
 // Instructors (Teachers)
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** List all instructors — need to cross-ref with Employee for company filter */
+/** List all instructors — optionally filtered by status */
 export async function getInstructors(params?: {
+  status?: string;
   limit_page_length?: number;
 }): Promise<FrappeListResponse<Instructor>> {
+  const filters: string[][] = [];
+  if (params?.status) filters.push(["status", "=", params.status]);
+
   const query = new URLSearchParams({
     fields: INSTRUCTOR_FIELDS,
     limit_page_length: String(params?.limit_page_length ?? 0),
     order_by: "instructor_name asc",
+    ...(filters.length ? { filters: JSON.stringify(filters) } : {}),
   });
   const { data } = await apiClient.get(`/resource/Instructor?${query}`);
   return data;
@@ -344,9 +350,12 @@ export async function getInstructorsByCompany(company: string): Promise<Instruct
     // Fall back to legacy direct-doctype strategies below.
   }
 
-  // Strategy 1: filter directly by custom_company field on the Instructor doctype
+  // Strategy 1: filter directly by custom_company and status=Active on the Instructor doctype
   try {
-    const filters = encodeURIComponent(JSON.stringify([["custom_company", "=", company]]));
+    const filters = encodeURIComponent(JSON.stringify([
+      ["custom_company", "=", company],
+      ["status", "=", "Active"],
+    ]));
     const { data } = await apiClient.get(
       `/resource/Instructor?fields=${encodeURIComponent(INSTRUCTOR_FIELDS)}&filters=${filters}&limit_page_length=500&order_by=instructor_name asc`
     );
@@ -359,7 +368,7 @@ export async function getInstructorsByCompany(company: string): Promise<Instruct
   // Strategy 2: cross-reference via Employee doctype (legacy fallback)
   const empRes = await getEmployees({ company, status: "Active", limit_page_length: 500 });
   const employeeNames = new Set(empRes.data.map((e) => e.name));
-  const instrRes = await getInstructors({ limit_page_length: 500 });
+  const instrRes = await getInstructors({ status: "Active", limit_page_length: 500 });
   return instrRes.data.filter((i) => employeeNames.has(i.employee));
 }
 
@@ -412,7 +421,7 @@ export async function getInstructorsWithCourses(branch: string): Promise<Instruc
   const targetBranch = normalize(branch);
 
   const [allInstructorsRes, branchEmployeesRes] = await Promise.all([
-    getInstructors({ limit_page_length: 500 }),
+    getInstructors({ status: "Active", limit_page_length: 500 }),
     getEmployees({ company: branch, status: "Active", limit_page_length: 500 }),
   ]);
 
@@ -430,6 +439,9 @@ export async function getInstructorsWithCourses(branch: string): Promise<Instruc
   );
 
   return (docs as InstructorWithLog[]).filter((instr) => {
+    // Must be Active
+    if (instr.status && instr.status !== "Active") return false;
+
     const logs = instr.instructor_log ?? [];
     if (logs.length > 0) {
       // Primary source of truth for multi-branch teaching eligibility.
