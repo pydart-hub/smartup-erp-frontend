@@ -1021,8 +1021,8 @@ export default function StaffAttendancePage() {
         return { key, employee: empId, status: change.status, kind: isVisiting ? "visiting" : "employee", sessions: change.sessions } as SaveResult;
       };
 
-      // Process in small batches of 4
-      const BATCH_SIZE = 4;
+      // Process in small batches of 3 with gentle inter-batch breathing to prevent server congestion
+      const BATCH_SIZE = 3;
       const failed: Array<{ key: string; reason: unknown }> = [];
       const succeeded: SaveResult[] = [];
       const nextPending: Record<string, StaffAttendanceChange> = {};
@@ -1039,6 +1039,9 @@ export default function StaffAttendancePage() {
           } else if (result.value) {
             succeeded.push(result.value);
           }
+        }
+        if (i + BATCH_SIZE < entries.length) {
+          await new Promise((r) => setTimeout(r, 60));
         }
       }
 

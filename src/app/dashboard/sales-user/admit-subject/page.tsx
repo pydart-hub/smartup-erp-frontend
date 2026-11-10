@@ -522,11 +522,19 @@ function SubjectAdmitPageContent() {
 
   const matchedFeeStructure = useMemo(() => {
     if (!selectedPlan || !selectedInstalments) return null;
-    return feeStructures.find(
-      (fs) =>
-        fs.custom_plan === selectedPlan &&
-        fs.custom_no_of_instalments === selectedInstalments
-    ) ?? null;
+    return (
+      feeStructures.find(
+        (fs) =>
+          fs.custom_plan === selectedPlan &&
+          fs.custom_no_of_instalments === selectedInstalments
+      ) ??
+      (selectedInstalments !== "1"
+        ? feeStructures.find(
+            (fs) => fs.custom_plan === selectedPlan && fs.custom_no_of_instalments === "5"
+          )
+        : null) ??
+      null
+    );
   }, [feeStructures, selectedPlan, selectedInstalments]);
 
   useEffect(() => {
@@ -541,6 +549,15 @@ function SubjectAdmitPageContent() {
       setValue("custom_no_of_instalments", "");
     }
   }, [selectedPlan, setValue]);
+
+  useEffect(() => {
+    if (selectedInstalments && paymentOptions.length > 0) {
+      const isValid = paymentOptions.some((o) => String(o.instalments) === selectedInstalments);
+      if (!isValid) {
+        setValue("custom_no_of_instalments", "");
+      }
+    }
+  }, [paymentOptions, selectedInstalments, setValue]);
 
   // ── Submit ────────────────────────────────────────────────────
   async function onSubmit(data: SubjectStudentFormValues) {

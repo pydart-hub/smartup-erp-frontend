@@ -26,6 +26,7 @@ const statusMap: Record<string, string> = {
   "Work From Home": "Work From Home",
   "At Head Office": "At Head Office",
   Holiday: "Holiday",
+  Left: "Left",
   "Not Marked": "-",
 };
 
@@ -37,6 +38,7 @@ const statusColors: Record<string, string> = {
   "Work From Home": "text-indigo-700 bg-indigo-50 border-indigo-200",
   "At Head Office": "text-indigo-700 bg-indigo-50 border-indigo-200",
   Holiday: "text-purple-700 bg-purple-50 border-purple-200",
+  Left: "text-rose-600 bg-rose-50/80 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-900/40",
   "Not Marked": "text-gray-400 bg-gray-50/50 border-gray-100",
 };
 
@@ -146,6 +148,8 @@ interface DayAttendanceRecord {
   custom_class_time?: string;
   custom_visiting_branch?: string;
   sessions?: DaySessionDetail[];
+  isPostRelieving?: boolean;
+  isPreJoining?: boolean;
 }
 
 export default function StaffMonthlyReportPage() {
@@ -186,15 +190,41 @@ export default function StaffMonthlyReportPage() {
   });
 
   const rawEmployees = empRes?.data ?? [];
+  const attendances = attRes?.data ?? [];
+
+  // Set of employee IDs with recorded attendance in this branch during this month
+  const monthAttendeeSet = useMemo(() => {
+    return new Set(attendances.map((a) => a.employee));
+  }, [attendances]);
+
   const employees = useMemo(() => {
-    return [...rawEmployees].sort((a, b) => {
+    const list = rawEmployees.filter((e) => {
+      const isLeftOrInactive = e.status === "Left" || e.status === "Inactive";
+
+      // If joined after the current month, they were not with the company yet
+      if (e.date_of_joining && e.date_of_joining > toDateStr) {
+        return false;
+      }
+
+      if (isLeftOrInactive) {
+        // Has relieving_date: only include if relieving_date >= fromDateStr (i.e. was active during or after this month)
+        if (e.relieving_date) {
+          return e.relieving_date >= fromDateStr;
+        }
+        // No relieving_date in Frappe: only include if they actually have attendance in this month
+        return monthAttendeeSet.has(e.name);
+      }
+
+      return true;
+    });
+
+    return [...list].sort((a, b) => {
       const aLeft = a.status === "Left" || a.status === "Inactive";
       const bLeft = b.status === "Left" || b.status === "Inactive";
       if (aLeft !== bLeft) return aLeft ? 1 : -1;
       return a.employee_name.localeCompare(b.employee_name);
     });
-  }, [rawEmployees]);
-  const attendances = attRes?.data ?? [];
+  }, [rawEmployees, fromDateStr, toDateStr, monthAttendeeSet]);
 
   // Build matrix
   const matrix = useMemo(() => {
@@ -241,21 +271,41 @@ export default function StaffMonthlyReportPage() {
         employeeId: string;
         employeeName: string;
         designation: string;
+        status: string;
         isLeft: boolean;
         relievingDate?: string;
+        joiningDate?: string;
         dates: Record<string, DayAttendanceRecord>;
       } = {
         employeeId: emp.name,
         employeeName: emp.employee_name,
         designation: emp.designation || emp.department || "-",
+        status: emp.status,
         isLeft,
         relievingDate: emp.relieving_date,
+        joiningDate: emp.date_of_joining,
         dates: {},
       };
 
       daysArray.forEach((day) => {
         const dateStr = format(day, "yyyy-MM-dd");
-        row.dates[dateStr] = attMap[emp.name]?.[dateStr] || { status: "Not Marked" };
+        const att = attMap[emp.name]?.[dateStr];
+
+        if (att) {
+          row.dates[dateStr] = att;
+        } else {
+          // Check if this date is after employee's relieving date
+          const isPostRelieving = !!(emp.relieving_date && dateStr > emp.relieving_date);
+          const isPreJoining = !!(emp.date_of_joining && dateStr < emp.date_of_joining);
+
+          if (isPostRelieving) {
+            row.dates[dateStr] = { status: "Left", isPostRelieving: true };
+          } else if (isPreJoining) {
+            row.dates[dateStr] = { status: "Not Marked", isPreJoining: true };
+          } else {
+            row.dates[dateStr] = { status: "Not Marked" };
+          }
+        }
       });
 
       return row;
@@ -402,6 +452,10 @@ export default function StaffMonthlyReportPage() {
             } else if (raw.startsWith("Holiday")) {
               data.cell.styles.fillColor = [243, 232, 255];
               data.cell.styles.textColor = [126, 34, 206];
+              data.cell.styles.fontStyle = "bold";
+            } else if (raw.startsWith("Left")) {
+              data.cell.styles.fillColor = [255, 241, 242];
+              data.cell.styles.textColor = [190, 18, 60];
               data.cell.styles.fontStyle = "bold";
             } else if (raw === "-") {
               data.cell.styles.textColor = [156, 163, 175];
@@ -553,6 +607,9 @@ export default function StaffMonthlyReportPage() {
         <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200 font-medium">
           Holiday
         </span>
+        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 border border-rose-200 font-medium">
+          Left
+        </span>
         <span className="text-text-tertiary ml-auto">
           Timestamps: <strong className="text-text-secondary">In - Out</strong> · <strong className="text-primary font-bold">Hrs</strong>
         </span>
@@ -643,7 +700,13 @@ export default function StaffMonthlyReportPage() {
                         const lateMins = getSessionLateMinutes(rec.in_time, classTimeVal);
 
                         return (
-                          <td key={dateStr} className="px-1.5 py-2.5 text-center border-r border-border-light/30 vertical-top">
+                          <td
+                            key={dateStr}
+                            className={`px-1.5 py-2.5 text-center border-r border-border-light/30 vertical-top ${
+                              rec.isPostRelieving ? "bg-rose-50/20 dark:bg-rose-950/10" : ""
+                            }`}
+                            title={rec.isPostRelieving && row.relievingDate ? `Relieved on ${row.relievingDate}` : undefined}
+                          >
                             <div className="flex flex-col items-center gap-1 justify-center min-h-[46px]">
                               <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[11px] font-semibold border ${colorClass}`}>
                                 {fullWord}

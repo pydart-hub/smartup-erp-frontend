@@ -340,6 +340,15 @@ function NewStudentPage() {
     }
   }, [selectedPlan, setValue]);
 
+  useEffect(() => {
+    if (selectedInstalments && paymentOptions.length > 0) {
+      const isValid = paymentOptions.some((o) => String(o.instalments) === selectedInstalments);
+      if (!isValid) {
+        setValue("custom_no_of_instalments", "");
+      }
+    }
+  }, [paymentOptions, selectedInstalments, setValue]);
+
   // ── Submit ────────────────────────────────────────────────────
   async function onSubmit(data: StudentFormValues) {
     try {

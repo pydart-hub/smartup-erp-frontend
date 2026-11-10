@@ -180,18 +180,8 @@ export function generateInstalmentSchedule(
     }];
   }
 
-  if (instalments === 4) {
-    const labels = ["Q1", "Q2", "Q3", "Q4"];
-    const amounts = [config.q1 ?? 0, config.q2 ?? 0, config.q3 ?? 0, config.q4 ?? 0];
-    return INSTALMENT_DUE_DATES.quarterly.map((_, i) => ({
-      index: i + 1,
-      label: labels[i],
-      amount: amounts[i],
-      dueDate: dueDates[i],
-    }));
-  }
-
   // Mid-year plan (5 instalments baseline or dynamically reduced to 4, 3, 2)
+  // Must be evaluated BEFORE standard quarterly (4) check!
   const isMidYear = Boolean(config.inst5_schedule || config.inst1 || config.instalments_count === 5);
   if (isMidYear && instalments > 1) {
     const totalFee = config.inst5_total || config.annual_fee;
@@ -213,6 +203,17 @@ export function generateInstalmentSchedule(
       index: i + 1,
       label: `Instalment ${i + 1}`,
       amount: amt,
+      dueDate: dueDates[i],
+    }));
+  }
+
+  if (instalments === 4) {
+    const labels = ["Q1", "Q2", "Q3", "Q4"];
+    const amounts = [config.q1 ?? 0, config.q2 ?? 0, config.q3 ?? 0, config.q4 ?? 0];
+    return INSTALMENT_DUE_DATES.quarterly.map((_, i) => ({
+      index: i + 1,
+      label: labels[i],
+      amount: amounts[i],
       dueDate: dueDates[i],
     }));
   }

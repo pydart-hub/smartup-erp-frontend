@@ -47,3 +47,19 @@ When querying Frappe DocTypes via GET with an `in` filter over a large array of 
 1. Always chunk large `in` filter arrays into safe batches (e.g. 30 items per chunk) and fetch in parallel via `Promise.all()`. A chunk of 30 items produces a URL length under 2KB, safely below all server limits.
 2. Provide a lightweight `?summary=true` parameter on detail API routes so overview cards needing only aggregate financial metrics can compute them without fetching unrelated child doc types (e.g. enrollments, feedback logs).
 3. Connect high-level dashboard cards and detail pages to the same backend API route to maintain a single source of truth.
+
+## Frappe Naming Series Concurrency & MariaDB InnoDB Gap-Lock Deadlocks (1213)
+
+### Problem
+When creating Frappe documents in parallel batches (such as multiple `Employee Checkin` records created during staff attendance saving), multiple HTTP requests invoke `make_autoname()` concurrently.
+In Frappe's `naming.py` (`getseries`):
+1. An `UPDATE tabSeries SET current = current + 1 WHERE name = %s` is executed.
+2. If rowcount is 0 (first document of a new month series, e.g. `EMP-CKIN-11-2026-`), both concurrent transactions acquire an InnoDB Gap Lock on the index gap.
+3. Both subsequently attempt `INSERT INTO tabSeries (name, current) VALUES (%s, 1)`.
+4. InnoDB requires an exclusive insert-intention lock to insert into that gap, which blocks on the other transaction's gap lock, resulting in a circular wait and `OperationalError: (1213, 'Deadlock found when trying to get lock; try restarting transaction')`.
+5. Even if client-side retries succeed, every failed first attempt registers a permanent exception in Frappe's `tabError Log`.
+
+### Solution
+1. Implement a **Global FIFO Promise Serialization Queue** (`enqueueCheckinTask`) for document creations that rely on shared series prefixes. This guarantees that `POST /resource/Employee Checkin` requests are executed strictly one at a time.
+2. Introduce a brief breathing interval (e.g. 100ms) between consecutive requests in the queue, giving MariaDB time to commit transaction logs and release all row and gap locks cleanly.
+3. Reduce batch size and introduce inter-batch delays in bulk saving UI components to prevent database connection contention.

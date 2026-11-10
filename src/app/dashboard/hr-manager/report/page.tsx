@@ -46,6 +46,7 @@ const statusMap: Record<string, string> = {
   "Work From Home": "Work From Home",
   "At Head Office": "At Head Office",
   Holiday: "Holiday",
+  Left: "Left",
   "Not Marked": "-",
 };
 
@@ -57,6 +58,7 @@ const statusColors: Record<string, string> = {
   "Work From Home": "text-indigo-700 bg-indigo-50 border-indigo-200",
   "At Head Office": "text-indigo-700 bg-indigo-50 border-indigo-200",
   Holiday: "text-purple-700 bg-purple-50 border-purple-200",
+  Left: "text-rose-600 bg-rose-50/80 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-900/40",
   "Not Marked": "text-gray-400 bg-gray-50/50 border-gray-100",
 };
 
@@ -156,6 +158,8 @@ interface DayAttendanceRecord {
   custom_class_time?: string;
   custom_visiting_branch?: string;
   sessions?: DaySessionDetail[];
+  isPostRelieving?: boolean;
+  isPreJoining?: boolean;
 }
 
 function parseSessionsJson(jsonStr?: string): DaySessionDetail[] {
@@ -172,7 +176,7 @@ export default function HRMonthlyReportDashboard() {
   const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
   const [branchSearch, setBranchSearch] = useState("");
   const [selectedMonth, setSelectedMonth] = useState(() => format(new Date(), "yyyy-MM"));
-  const [statusFilter, setStatusFilter] = useState<"All" | "Active" | "Left">("All");
+  const [statusFilter, setStatusFilter] = useState<"All" | "Active" | "Left" | "AllLeft">("All");
 
   // Calculate Dates for Report
   const startDate = startOfMonth(new Date(`${selectedMonth}-01`));
@@ -235,15 +239,49 @@ export default function HRMonthlyReportDashboard() {
     staleTime: 60_000,
   });
 
+  const attendances = attRes?.data ?? [];
+
+  // Set of employee IDs with recorded attendance in this branch during this month
+  const monthAttendeeSet = useMemo(() => {
+    return new Set(attendances.map((a) => a.employee));
+  }, [attendances]);
+
   const branchEmployees = useMemo(() => {
     if (!selectedBranch) return [];
-    let list = allEmployees.filter((e) => e.company === selectedBranch);
+    const list = allEmployees.filter((e) => {
+      if (e.company !== selectedBranch) return false;
 
-    if (statusFilter === "Active") {
-      list = list.filter((e) => e.status !== "Left" && e.status !== "Inactive");
-    } else if (statusFilter === "Left") {
-      list = list.filter((e) => e.status === "Left" || e.status === "Inactive");
-    }
+      const isLeftOrInactive = e.status === "Left" || e.status === "Inactive";
+
+      // If joined after the current month, they were not with the company yet
+      if (e.date_of_joining && e.date_of_joining > toDateStr) {
+        return false;
+      }
+
+      if (statusFilter === "Active") {
+        return !isLeftOrInactive;
+      }
+
+      if (statusFilter === "AllLeft") {
+        return isLeftOrInactive;
+      }
+
+      if (isLeftOrInactive) {
+        // Has relieving_date: only include if relieving_date >= fromDateStr (i.e. was active during or after this month)
+        if (e.relieving_date) {
+          return e.relieving_date >= fromDateStr;
+        }
+        // No relieving_date in Frappe: only include if they actually have attendance in this month
+        return monthAttendeeSet.has(e.name);
+      }
+
+      // If statusFilter is "Left", don't show active staff
+      if (statusFilter === "Left") {
+        return false;
+      }
+
+      return true;
+    });
 
     // Sort Active employees first (alphabetical), then Left/Inactive employees (alphabetical)
     return [...list].sort((a, b) => {
@@ -252,9 +290,7 @@ export default function HRMonthlyReportDashboard() {
       if (aLeft !== bLeft) return aLeft ? 1 : -1;
       return a.employee_name.localeCompare(b.employee_name);
     });
-  }, [allEmployees, selectedBranch, statusFilter]);
-
-  const attendances = attRes?.data ?? [];
+  }, [allEmployees, selectedBranch, statusFilter, fromDateStr, toDateStr, monthAttendeeSet]);
 
   // Build matrix for selected branch
   const matrix = useMemo(() => {
@@ -304,6 +340,7 @@ export default function HRMonthlyReportDashboard() {
         status: string;
         isLeft: boolean;
         relievingDate?: string;
+        joiningDate?: string;
         dates: Record<string, DayAttendanceRecord>;
       } = {
         employeeId: emp.name,
@@ -312,12 +349,29 @@ export default function HRMonthlyReportDashboard() {
         status: emp.status,
         isLeft,
         relievingDate: emp.relieving_date,
+        joiningDate: emp.date_of_joining,
         dates: {},
       };
 
       daysArray.forEach((day) => {
         const dateStr = format(day, "yyyy-MM-dd");
-        row.dates[dateStr] = attMap[emp.name]?.[dateStr] || { status: "Not Marked" };
+        const att = attMap[emp.name]?.[dateStr];
+
+        if (att) {
+          row.dates[dateStr] = att;
+        } else {
+          // Check if this date is after employee's relieving date
+          const isPostRelieving = !!(emp.relieving_date && dateStr > emp.relieving_date);
+          const isPreJoining = !!(emp.date_of_joining && dateStr < emp.date_of_joining);
+
+          if (isPostRelieving) {
+            row.dates[dateStr] = { status: "Left", isPostRelieving: true };
+          } else if (isPreJoining) {
+            row.dates[dateStr] = { status: "Not Marked", isPreJoining: true };
+          } else {
+            row.dates[dateStr] = { status: "Not Marked" };
+          }
+        }
       });
 
       return row;
@@ -453,6 +507,8 @@ export default function HRMonthlyReportDashboard() {
               data.cell.styles.textColor = [14, 116, 144];
             } else if (raw.startsWith("Holiday")) {
               data.cell.styles.textColor = [126, 34, 206];
+            } else if (raw.startsWith("Left")) {
+              data.cell.styles.textColor = [225, 29, 72];
             } else if (raw === "-") {
               data.cell.styles.textColor = [160, 174, 192];
             }
@@ -667,12 +723,13 @@ export default function HRMonthlyReportDashboard() {
 
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as "All" | "Active" | "Left")}
+                onChange={(e) => setStatusFilter(e.target.value as "All" | "Active" | "Left" | "AllLeft")}
                 className="h-9.5 text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 px-2.5 font-medium focus:outline-none focus:ring-2 focus:ring-violet-500 shadow-xs cursor-pointer"
               >
-                <option value="All">All Staff (Active & Left)</option>
+                <option value="All">All Staff (Including Left & Active)</option>
                 <option value="Active">Active Staff Only</option>
                 <option value="Left">Left Staff Only</option>
+                <option value="AllLeft">All Past Left Staff (Historical)</option>
               </select>
 
               <Button
@@ -722,6 +779,9 @@ export default function HRMonthlyReportDashboard() {
             </span>
             <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/20 font-medium">
               Holiday
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20 font-medium">
+              Left
             </span>
             <span className="text-slate-400 dark:text-slate-500 ml-auto">
               Timestamps: <strong className="text-slate-700 dark:text-slate-300">In - Out</strong> &bull; <strong className="text-violet-600 dark:text-violet-400 font-bold">Hrs</strong>
@@ -826,7 +886,13 @@ export default function HRMonthlyReportDashboard() {
                             }
 
                             return (
-                              <td key={dateStr} className="px-1.5 py-2 text-center border-r border-slate-200/30 dark:border-slate-850/30 vertical-top">
+                              <td
+                                key={dateStr}
+                                className={`px-1.5 py-2 text-center border-r border-slate-200/30 dark:border-slate-850/30 vertical-top ${
+                                  rec.isPostRelieving ? "bg-rose-50/20 dark:bg-rose-950/10" : ""
+                                }`}
+                                title={rec.isPostRelieving && row.relievingDate ? `Relieved on ${row.relievingDate}` : undefined}
+                              >
                                 <div className="flex flex-col items-center gap-1 justify-center min-h-[46px]">
                                   <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[11px] font-semibold border ${colorClass}`}>
                                     {fullWord}

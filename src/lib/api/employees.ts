@@ -456,47 +456,77 @@ export async function getInstructorsWithCourses(branch: string): Promise<Instruc
 // Create / Update Employee Attendance
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Helper to post Employee Checkin doc into Frappe with retry logic for deadlocks */
+/**
+ * Global serialization queue for Employee Checkin creation.
+ * Serializing checkin requests strictly eliminates MariaDB InnoDB gap-lock deadlocks
+ * (OperationalError 1213 in tabSeries during make_autoname / getseries) on Frappe Cloud.
+ */
+let checkinQueue: Promise<void> = Promise.resolve();
+
+function enqueueCheckinTask<T>(task: () => Promise<T>): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    checkinQueue = checkinQueue
+      .then(async () => {
+        try {
+          const res = await task();
+          resolve(res);
+        } catch (err) {
+          reject(err);
+        } finally {
+          // 100ms breathing window between consecutive checkin requests allows
+          // MariaDB to commit transaction logs and release all row & gap locks.
+          await new Promise((r) => setTimeout(r, 100));
+        }
+      })
+      .catch(() => {
+        // Prevent unhandled rejection from poisoning the queue
+      });
+  });
+}
+
+/** Helper to post Employee Checkin doc into Frappe with queue serialization and retry logic for deadlocks */
 async function postEmployeeCheckin(
   employee: string,
   time: string,
   logType: "IN" | "OUT",
-  maxRetries = 3
-) {
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      await apiClient.post("/resource/Employee Checkin", {
-        employee,
-        time,
-        log_type: logType,
-      });
-      return; // Success
-    } catch (err: unknown) {
-      const isLastAttempt = attempt === maxRetries;
-      const errorObj = err as {
-        response?: { data?: { exception?: string; message?: string; _server_messages?: string } };
-      };
-      const errorStr = JSON.stringify(errorObj?.response?.data || "").toLowerCase();
-      const isDeadlockOrTransient =
-        errorStr.includes("deadlock") ||
-        errorStr.includes("1213") ||
-        errorStr.includes("querydeadlockerror") ||
-        errorStr.includes("lock wait timeout");
+  maxRetries = 4
+): Promise<void> {
+  return enqueueCheckinTask(async () => {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        await apiClient.post("/resource/Employee Checkin", {
+          employee,
+          time,
+          log_type: logType,
+        });
+        return; // Success
+      } catch (err: unknown) {
+        const isLastAttempt = attempt === maxRetries;
+        const errorObj = err as {
+          response?: { data?: { exception?: string; message?: string; _server_messages?: string } };
+        };
+        const errorStr = JSON.stringify(errorObj?.response?.data || "").toLowerCase();
+        const isDeadlockOrTransient =
+          errorStr.includes("deadlock") ||
+          errorStr.includes("1213") ||
+          errorStr.includes("querydeadlockerror") ||
+          errorStr.includes("lock wait timeout");
 
-      if (isDeadlockOrTransient && !isLastAttempt) {
-        // Exponential backoff with jitter: 200ms, 400ms, 800ms + random jitter
-        const delay = Math.pow(2, attempt) * 100 + Math.floor(Math.random() * 150);
-        console.warn(
-          `[Deadlock detected] Retrying Employee Checkin (${logType}) for ${employee} in ${delay}ms (attempt ${attempt}/${maxRetries})...`
-        );
-        await new Promise((resolve) => setTimeout(resolve, delay));
-        continue;
+        if (isDeadlockOrTransient && !isLastAttempt) {
+          // Exponential backoff with jitter: 250ms, 500ms, 1000ms + random jitter
+          const delay = Math.pow(2, attempt) * 125 + Math.floor(Math.random() * 200);
+          console.warn(
+            `[Deadlock detected] Retrying Employee Checkin (${logType}) for ${employee} in ${delay}ms (attempt ${attempt}/${maxRetries})...`
+          );
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          continue;
+        }
+
+        console.warn(`Failed to create Employee Checkin (${logType}) for ${employee} (attempt ${attempt}/${maxRetries}):`, err);
+        if (isLastAttempt) break;
       }
-
-      console.warn(`Failed to create Employee Checkin (${logType}) for ${employee} (attempt ${attempt}/${maxRetries}):`, err);
-      if (isLastAttempt) break;
     }
-  }
+  });
 }
 
 function formatToFrappeTime(val?: string | null): string | undefined {
