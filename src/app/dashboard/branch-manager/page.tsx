@@ -221,7 +221,7 @@ export default function BranchManagerDashboard() {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="space-y-6"
+      className="space-y-4 sm:space-y-6"
     >
       {/* Breadcrumb */}
       <BreadcrumbNav />
@@ -230,19 +230,19 @@ export default function BranchManagerDashboard() {
       <motion.div variants={itemVariants}>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div>
-            <h1 className="text-2xl font-bold text-text-primary flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-bold text-text-primary flex items-center gap-2 flex-wrap">
               <motion.span initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }}>
                 Welcome back,{" "}
               </motion.span>
               <AnimatedName name={user?.full_name?.split(" ")[0] || "Manager"} />
               <CroppedSmileLogo />
             </h1>
-            <motion.p className="text-text-secondary text-sm mt-0.5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8, duration: 0.5 }}>
+            <motion.p className="text-text-secondary text-xs sm:text-sm mt-0.5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8, duration: 0.5 }}>
               Here&apos;s what&apos;s happening at your branch today.
             </motion.p>
           </div>
-          <div className="flex flex-col items-start sm:items-end gap-1">
-            <Badge variant="default" className="px-3 py-1 text-sm">
+          <div className="flex flex-row items-center gap-2 sm:flex-col sm:items-end sm:gap-1">
+            <Badge variant="default" className="px-2.5 py-0.5 sm:px-3 sm:py-1 text-xs sm:text-sm">
               Branch Manager
             </Badge>
             {defaultCompany && (
@@ -255,8 +255,9 @@ export default function BranchManagerDashboard() {
       </motion.div>
 
       {/* Stats Grid */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         <StatsCard
+          compactMobile
           title="Total Students"
           value={loadingStudents ? "…" : <AnimatedNumber value={studentCount ?? 0} />}
           icon={<GraduationCap className="h-5 w-5" />}
@@ -265,14 +266,14 @@ export default function BranchManagerDashboard() {
           href="/dashboard/branch-manager/students"
           subtitle={
             !loadingStudents ? (
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[11px] text-success font-medium">
+              <div className="flex items-center gap-x-1.5 gap-y-0.5 flex-wrap">
+                <span className="text-[10px] sm:text-[11px] text-success font-medium">
                   {studentCount ?? 0} active
                 </span>
                 {(discontinuedCount ?? 0) > 0 && (
                   <>
-                    <span className="text-[11px] text-text-tertiary">·</span>
-                    <span className="text-[11px] text-error font-medium">
+                    <span className="text-[10px] sm:text-[11px] text-text-tertiary">·</span>
+                    <span className="text-[10px] sm:text-[11px] text-error font-medium">
                       {discontinuedCount} discontinued
                     </span>
                   </>
@@ -282,6 +283,7 @@ export default function BranchManagerDashboard() {
           }
         />
         <StatsCard
+          compactMobile
           title="Student Attendance"
           value={loadingAttendance ? "…" : studentAttendanceLabel}
           icon={<ClipboardCheck className="h-5 w-5" />}
@@ -291,6 +293,7 @@ export default function BranchManagerDashboard() {
           href="/dashboard/branch-manager/attendance"
         />
         <StatsCard
+          compactMobile
           title="Staff Attendance"
           value={loadingStaffAttendance ? "…" : staffAttendanceLabel}
           icon={<Users className="h-5 w-5" />}
@@ -300,6 +303,7 @@ export default function BranchManagerDashboard() {
           href="/dashboard/branch-manager/employee-attendance"
         />
         <StatsCard
+          compactMobile
           title="Outstanding Fees"
           value={loadingSales ? "…" : <AnimatedCurrency value={outstandingFees} />}
           icon={<IndianRupee className="h-5 w-5" />}
@@ -311,17 +315,17 @@ export default function BranchManagerDashboard() {
       </motion.div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Quick Actions + Batch Overview (2 cols) */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
           {/* Quick Actions */}
           <motion.div variants={itemVariants}>
             <Card>
-              <CardHeader>
+              <CardHeader className="p-3.5 pb-2.5 sm:p-5 sm:pb-3">
                 <CardTitle>Quick Actions</CardTitle>
               </CardHeader>
-              <CardContent>
-                <QuickActions actions={quickActions} />
+              <CardContent className="p-3.5 pt-0 sm:p-5 sm:pt-0">
+                <QuickActions actions={quickActions} compactMobile />
               </CardContent>
             </Card>
           </motion.div>
@@ -329,19 +333,19 @@ export default function BranchManagerDashboard() {
           {/* Batch Overview */}
           <motion.div variants={itemVariants}>
             <Card>
-              <CardHeader>
+              <CardHeader className="p-3.5 pb-2.5 sm:p-5 sm:pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle>Batch Overview</CardTitle>
                   <Badge variant="outline" className="text-xs">{activeBatches} batches</Badge>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-3.5 pt-0 sm:p-5 sm:pt-0">
                 {loadingGroups ? (
                   <div className="space-y-4 animate-pulse">
                     {[1, 2, 3].map((i) => (
                       <div key={i}>
                         <div className="h-4 w-32 bg-border-light rounded mb-3" />
-                        <div className="grid grid-cols-3 gap-2 ml-6">
+                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-2 ml-0 sm:ml-6">
                           {[1, 2, 3].map((j) => <div key={j} className="h-20 bg-border-light rounded-[10px]" />)}
                         </div>
                       </div>
@@ -350,32 +354,32 @@ export default function BranchManagerDashboard() {
                 ) : batchOverview.length === 0 ? (
                   <p className="text-sm text-text-tertiary text-center py-8">No batches found</p>
                 ) : (
-                  <div className="space-y-5">
+                  <div className="space-y-4 sm:space-y-5">
                     {batchOverview.map(({ program, groups }) => (
                       <div key={program}>
                         <div className="flex items-center gap-2 mb-2">
-                          <School className="h-4 w-4 text-text-tertiary" />
+                          <School className="h-4 w-4 text-text-tertiary shrink-0" />
                           <span className="text-sm font-semibold text-text-primary">{program}</span>
                           <span className="text-xs text-text-tertiary">({groups.length} batch{groups.length !== 1 ? "es" : ""})</span>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 ml-6">
+                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3 ml-0 sm:ml-6">
                           {groups.map((group) => {
                             const enrolled = batchEnrollmentCounts?.get(group.name) ?? 0; // from SG students child table
                             const maxStr = group.max_strength ?? 60;
                             const pct = maxStr > 0 ? Math.min((enrolled / maxStr) * 100, 100) : 0;
                             const isFull = enrolled >= maxStr;
                             return (
-                              <div key={group.name} className="bg-app-bg rounded-[12px] p-4 border border-border-light">
-                                <div className="flex items-center justify-between mb-2">
-                                  <span className="text-sm font-semibold text-text-primary truncate max-w-[160px]" title={group.name}>
+                              <div key={group.name} className="bg-app-bg rounded-[12px] p-2.5 sm:p-4 border border-border-light min-w-0">
+                                <div className="flex items-center justify-between gap-1.5 mb-1.5 sm:mb-2">
+                                  <span className="text-xs sm:text-sm font-semibold text-text-primary truncate min-w-0 flex-1" title={group.name}>
                                     {group.name}
                                   </span>
                                   {isFull
-                                    ? <Badge variant="error" className="text-xs px-2 py-0.5 shrink-0">Full</Badge>
-                                    : <Badge variant="success" className="text-xs px-2 py-0.5 shrink-0">Open</Badge>}
+                                    ? <Badge variant="error" className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 shrink-0">Full</Badge>
+                                    : <Badge variant="success" className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 shrink-0">Open</Badge>}
                                 </div>
-                                <div className="text-sm font-medium text-text-primary mb-2">{enrolled}/{maxStr} students</div>
-                                <div className="w-full h-2 bg-border-light rounded-full overflow-hidden">
+                                <div className="text-xs sm:text-sm font-medium text-text-primary mb-1.5 sm:mb-2 tabular-nums">{enrolled}/{maxStr} students</div>
+                                <div className="w-full h-1.5 sm:h-2 bg-border-light rounded-full overflow-hidden">
                                   <motion.div
                                     initial={{ width: 0 }}
                                     animate={{ width: `${pct}%` }}
@@ -400,35 +404,35 @@ export default function BranchManagerDashboard() {
           {/* Fee Collection Summary */}
           <motion.div variants={itemVariants}>
             <Card>
-              <CardHeader>
+              <CardHeader className="p-3.5 pb-2.5 sm:p-5 sm:pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle>Fee Collection Summary</CardTitle>
                   <TrendingUp className="h-4 w-4 text-text-tertiary" />
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-3.5 pt-0 sm:p-5 sm:pt-0">
                 {loadingSales ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 animate-pulse">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 animate-pulse">
                     {[1, 2, 3, 4].map((i) => <div key={i} className="h-14 bg-border-light rounded-[10px]" />)}
                   </div>
                 ) : (
                   <>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                       <div className="text-center">
-                        <p className="text-xs text-text-tertiary mb-1">Total Billed</p>
-                        <p className="text-xl font-bold text-text-primary"><AnimatedCurrency value={salesStats?.total_fees ?? 0} /></p>
+                        <p className="text-[11px] sm:text-xs text-text-tertiary mb-1">Total Billed</p>
+                        <p className="text-base sm:text-xl font-bold text-text-primary tabular-nums"><AnimatedCurrency value={salesStats?.total_fees ?? 0} /></p>
                       </div>
                       <div className="text-center">
-                        <p className="text-xs text-text-tertiary mb-1">Collected</p>
-                        <p className="text-xl font-bold text-success"><AnimatedCurrency value={salesStats?.total_collected ?? 0} /></p>
+                        <p className="text-[11px] sm:text-xs text-text-tertiary mb-1">Collected</p>
+                        <p className="text-base sm:text-xl font-bold text-success tabular-nums"><AnimatedCurrency value={salesStats?.total_collected ?? 0} /></p>
                       </div>
                       <div className="text-center">
-                        <p className="text-xs text-text-tertiary mb-1">Outstanding</p>
-                        <p className="text-xl font-bold text-warning"><AnimatedCurrency value={outstandingFees} /></p>
+                        <p className="text-[11px] sm:text-xs text-text-tertiary mb-1">Outstanding</p>
+                        <p className="text-base sm:text-xl font-bold text-warning tabular-nums"><AnimatedCurrency value={outstandingFees} /></p>
                       </div>
                       <div className="text-center">
-                        <p className="text-xs text-text-tertiary mb-1">Collection Rate</p>
-                        <p className="text-xl font-bold text-success"><AnimatedNumber value={Math.round(collectionRate)} />%</p>
+                        <p className="text-[11px] sm:text-xs text-text-tertiary mb-1">Collection Rate</p>
+                        <p className="text-base sm:text-xl font-bold text-success tabular-nums"><AnimatedNumber value={Math.round(collectionRate)} />%</p>
                       </div>
                     </div>
                     <div className="mt-4">
@@ -455,10 +459,10 @@ export default function BranchManagerDashboard() {
         {/* Recent Activity (1 col) */}
         <motion.div variants={itemVariants}>
           <Card className="h-fit">
-            <CardHeader>
+            <CardHeader className="p-3.5 pb-2.5 sm:p-5 sm:pb-3">
               <CardTitle>Recently Admitted</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3.5 pt-0 sm:p-5 sm:pt-0">
               <RecentActivity activities={recentActivities} loading={loadingRecent} />
             </CardContent>
           </Card>

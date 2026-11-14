@@ -29,6 +29,7 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
         <motion.div
           whileHover={{ y: -2 }}
           transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          className={className?.includes("h-full") ? "h-full" : undefined}
         >
           {cardContent}
         </motion.div>

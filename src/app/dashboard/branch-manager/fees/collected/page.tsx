@@ -116,33 +116,33 @@ export default function CollectedFeesPage() {
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+            className="grid grid-cols-2 gap-2.5 sm:gap-4"
           >
             <Card className="border-l-4 border-l-success">
-              <CardContent className="py-4 flex items-center gap-4">
-                <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center">
-                  <IndianRupee className="h-5 w-5 text-success" />
+              <CardContent className="p-3 sm:py-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-success/10 flex items-center justify-center shrink-0">
+                  <IndianRupee className="h-4 w-4 sm:h-5 sm:w-5 text-success" />
                 </div>
-                <div>
-                  <p className="text-xs text-text-tertiary font-medium uppercase tracking-wide">
+                <div className="min-w-0">
+                  <p className="text-[10px] sm:text-xs text-text-tertiary font-medium uppercase tracking-wide">
                     Total Collected
                   </p>
-                  <p className="text-xl font-bold text-text-primary">
+                  <p className="text-base sm:text-xl font-bold text-text-primary tabular-nums truncate">
                     {formatCurrency(total)}
                   </p>
                 </div>
               </CardContent>
             </Card>
             <Card className="border-l-4 border-l-info">
-              <CardContent className="py-4 flex items-center gap-4">
-                <div className="h-10 w-10 rounded-full bg-info/10 flex items-center justify-center">
-                  <Users className="h-5 w-5 text-info" />
+              <CardContent className="p-3 sm:py-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-info/10 flex items-center justify-center shrink-0">
+                  <Users className="h-4 w-4 sm:h-5 sm:w-5 text-info" />
                 </div>
-                <div>
-                  <p className="text-xs text-text-tertiary font-medium uppercase tracking-wide">
+                <div className="min-w-0">
+                  <p className="text-[10px] sm:text-xs text-text-tertiary font-medium uppercase tracking-wide">
                     Students Paid
                   </p>
-                  <p className="text-xl font-bold text-text-primary">
+                  <p className="text-base sm:text-xl font-bold text-text-primary tabular-nums">
                     {studentsPaid}
                   </p>
                 </div>
@@ -159,46 +159,46 @@ export default function CollectedFeesPage() {
             <h2 className="text-sm font-semibold text-text-secondary mb-3 uppercase tracking-wide">
               By Payment Method
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Link href="/dashboard/branch-manager/fees/collected/offline">
-                <Card className="border-l-4 border-l-green-500 cursor-pointer hover:shadow-md transition-all group">
-                  <CardContent className="py-5">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="h-10 w-10 rounded-xl bg-green-50 flex items-center justify-center">
-                        <Banknote className="h-5 w-5 text-green-600" />
+            <div className="grid grid-cols-2 gap-2.5 sm:gap-4">
+              <Link href="/dashboard/branch-manager/fees/collected/offline" className="block h-full">
+                <Card className="border-l-4 border-l-green-500 cursor-pointer hover:shadow-md transition-all group h-full">
+                  <CardContent className="p-3 sm:py-5 flex flex-col justify-between h-full">
+                    <div className="flex items-start sm:items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                      <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl bg-green-50 flex items-center justify-center shrink-0">
+                        <Banknote className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
                       </div>
-                      <div>
-                        <p className="text-base font-semibold text-text-primary group-hover:text-green-700 transition-colors">
+                      <div className="min-w-0">
+                        <p className="text-sm sm:text-base font-semibold text-text-primary group-hover:text-green-700 transition-colors">
                           Offline
                         </p>
-                        <p className="text-xs text-text-tertiary">
+                        <p className="text-[11px] sm:text-xs text-text-tertiary line-clamp-1 sm:line-clamp-none">
                           Cash, UPI, Cheque, Bank Transfer &amp; more
                         </p>
                       </div>
                     </div>
-                    <p className="text-2xl font-bold text-text-primary">
+                    <p className="text-base sm:text-2xl font-bold text-text-primary tabular-nums">
                       {formatCurrency(offlineTotal)}
                     </p>
                   </CardContent>
                 </Card>
               </Link>
-              <Link href="/dashboard/branch-manager/fees/collected/mode/Online">
-                <Card className="border-l-4 border-l-indigo-500 cursor-pointer hover:shadow-md transition-all group">
-                  <CardContent className="py-5">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="h-10 w-10 rounded-xl bg-indigo-50 flex items-center justify-center">
-                        <Wifi className="h-5 w-5 text-indigo-600" />
+              <Link href="/dashboard/branch-manager/fees/collected/mode/Online" className="block h-full">
+                <Card className="border-l-4 border-l-indigo-500 cursor-pointer hover:shadow-md transition-all group h-full">
+                  <CardContent className="p-3 sm:py-5 flex flex-col justify-between h-full">
+                    <div className="flex items-start sm:items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                      <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">
+                        <Wifi className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600" />
                       </div>
-                      <div>
-                        <p className="text-base font-semibold text-text-primary group-hover:text-indigo-700 transition-colors">
+                      <div className="min-w-0">
+                        <p className="text-sm sm:text-base font-semibold text-text-primary group-hover:text-indigo-700 transition-colors">
                           Razorpay
                         </p>
-                        <p className="text-xs text-text-tertiary">
+                        <p className="text-[11px] sm:text-xs text-text-tertiary line-clamp-1 sm:line-clamp-none">
                           Online payments via Razorpay gateway
                         </p>
                       </div>
                     </div>
-                    <p className="text-2xl font-bold text-text-primary">
+                    <p className="text-base sm:text-2xl font-bold text-text-primary tabular-nums">
                       {formatCurrency(razorpayTotal)}
                     </p>
                   </CardContent>
@@ -229,40 +229,41 @@ export default function CollectedFeesPage() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-4">
               {filtered.map((cls, idx) => (
                 <motion.div
                   key={cls.item_code}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.04 }}
+                  className="h-full"
                 >
-                  <Link href={`/dashboard/branch-manager/fees/collected/class/${encodeURIComponent(cls.item_code)}?name=${encodeURIComponent(cls.item_code)}`}>
-                  <Card className="hover:shadow-md hover:border-success/30 transition-all cursor-pointer">
-                    <CardContent className="py-5">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-xl bg-success/10 flex items-center justify-center">
-                            <GraduationCap className="h-5 w-5 text-success" />
+                  <Link href={`/dashboard/branch-manager/fees/collected/class/${encodeURIComponent(cls.item_code)}?name=${encodeURIComponent(cls.item_code)}`} className="block h-full">
+                  <Card className="hover:shadow-md hover:border-success/30 transition-all cursor-pointer h-full">
+                    <CardContent className="p-3 sm:py-5 sm:px-5 flex flex-col justify-between h-full">
+                      <div className="flex items-start justify-between mb-3 sm:mb-4">
+                        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                          <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl bg-success/10 flex items-center justify-center shrink-0">
+                            <GraduationCap className="h-4 w-4 sm:h-5 sm:w-5 text-success" />
                           </div>
-                          <div>
-                            <p className="text-sm font-semibold text-text-primary">
+                          <div className="min-w-0">
+                            <p className="text-xs sm:text-sm font-semibold text-text-primary truncate">
                               {cls.item_code}
                             </p>
                             <div className="flex items-center gap-1 mt-0.5">
-                              <Users className="h-3 w-3 text-text-tertiary" />
-                              <span className="text-xs text-text-tertiary">
+                              <Users className="h-3 w-3 text-text-tertiary shrink-0" />
+                              <span className="text-[11px] sm:text-xs text-text-tertiary">
                                 {cls.student_count} student{cls.student_count !== 1 ? "s" : ""}
                               </span>
                             </div>
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center justify-between pt-3 border-t border-border-light">
-                        <span className="text-xs font-medium text-text-tertiary uppercase">
+                      <div className="flex items-center justify-between gap-1 pt-2.5 sm:pt-3 border-t border-border-light">
+                        <span className="text-[10px] sm:text-xs font-medium text-text-tertiary uppercase">
                           Collected
                         </span>
-                        <span className="text-lg font-bold text-success">
+                        <span className="text-sm sm:text-lg font-bold text-success tabular-nums">
                           {formatCurrency(cls.total_collected)}
                         </span>
                       </div>

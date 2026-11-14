@@ -118,17 +118,17 @@ export function BatchesContent() {
       {/* Batch Grid by Program */}
       {!loading && !error && Object.entries(groupedBatches).map(([programName, programBatches]) => (
         <Card key={programName}>
-          <CardHeader>
+          <CardHeader className="p-3.5 pb-2.5 sm:p-5 sm:pb-3">
             <div className="flex items-center gap-2">
-              <School className="h-5 w-5 text-primary" />
+              <School className="h-5 w-5 text-primary shrink-0" />
               <CardTitle>{programName}</CardTitle>
               <Badge variant="outline" className="ml-2">
                 {programBatches.length} batch{programBatches.length > 1 ? "es" : ""}
               </Badge>
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <CardContent className="p-3.5 pt-0 sm:p-5 sm:pt-0">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-4">
               {programBatches.map((batch, index) => {
                 const max = batch.max_strength ?? 60;
                 const enrolled = studentCounts[batch.name] ?? 0;
@@ -142,39 +142,42 @@ export function BatchesContent() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
                     whileHover={{ y: -2 }}
+                    className="h-full"
                   >
-                    <Link href={`/dashboard/branch-manager/batches/${encodeURIComponent(batch.name)}`}>
-                    <div className="bg-app-bg rounded-[12px] p-4 border border-border-light hover:border-primary/20 transition-all cursor-pointer">
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-semibold text-text-primary">{batch.student_group_name}</h4>
-                        {batch.disabled ? (
-                          <Badge variant="error">Disabled</Badge>
-                        ) : isFull ? (
-                          <Badge variant="error">Full</Badge>
-                        ) : percentage > 80 ? (
-                          <Badge variant="warning">Almost Full</Badge>
-                        ) : (
-                          <Badge variant="success">Active</Badge>
-                        )}
-                      </div>
-
-                      <div className="space-y-2 text-sm">
-                        <div className="flex items-center gap-2 text-text-secondary">
-                          <Users className="h-3.5 w-3.5 text-text-tertiary" />
-                          <span>{enrolled} / {max} students</span>
+                    <Link href={`/dashboard/branch-manager/batches/${encodeURIComponent(batch.name)}`} className="block h-full">
+                    <div className="bg-app-bg rounded-[12px] p-2.5 sm:p-4 border border-border-light hover:border-primary/20 transition-all cursor-pointer h-full flex flex-col justify-between min-w-0">
+                      <div>
+                        <div className="flex items-center justify-between gap-1.5 mb-2 sm:mb-3">
+                          <h4 className="font-semibold text-xs sm:text-base text-text-primary truncate min-w-0 flex-1">{batch.student_group_name}</h4>
+                          {batch.disabled ? (
+                            <Badge variant="error" className="text-[10px] sm:text-xs px-1.5 sm:px-2.5 shrink-0">Disabled</Badge>
+                          ) : isFull ? (
+                            <Badge variant="error" className="text-[10px] sm:text-xs px-1.5 sm:px-2.5 shrink-0">Full</Badge>
+                          ) : percentage > 80 ? (
+                            <Badge variant="warning" className="text-[10px] sm:text-xs px-1.5 sm:px-2.5 shrink-0">Almost Full</Badge>
+                          ) : (
+                            <Badge variant="success" className="text-[10px] sm:text-xs px-1.5 sm:px-2.5 shrink-0">Active</Badge>
+                          )}
                         </div>
-                        {batch.batch && (
-                          <div className="flex items-center gap-2 text-text-secondary">
-                            <User className="h-3.5 w-3.5 text-text-tertiary" />
-                            <span>{batch.batch}</span>
+
+                        <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
+                          <div className="flex items-center gap-1.5 sm:gap-2 text-text-secondary">
+                            <Users className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-text-tertiary shrink-0" />
+                            <span className="tabular-nums">{enrolled} / {max} students</span>
                           </div>
-                        )}
+                          {batch.batch && (
+                            <div className="flex items-center gap-1.5 sm:gap-2 text-text-secondary">
+                              <User className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-text-tertiary shrink-0" />
+                              <span className="truncate">{batch.batch}</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
 
-                      <div className="mt-3 pt-3 border-t border-border-light flex items-center justify-between">
-                        <p className="text-xs text-text-tertiary">{batch.academic_year}</p>
+                      <div className="mt-2.5 sm:mt-3 pt-2.5 sm:pt-3 border-t border-border-light flex items-center justify-between gap-1">
+                        <p className="text-[10px] sm:text-xs text-text-tertiary">{batch.academic_year}</p>
                         {batch.custom_branch && (
-                          <p className="text-xs text-text-tertiary truncate max-w-[120px]">{batch.custom_branch}</p>
+                          <p className="text-[10px] sm:text-xs text-text-tertiary truncate max-w-[75px] sm:max-w-[120px]">{batch.custom_branch}</p>
                         )}
                       </div>
                     </div>

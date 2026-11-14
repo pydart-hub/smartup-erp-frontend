@@ -81,7 +81,7 @@ export default function ClassesPage() {
 
       {/* Classes Grid */}
       {!loading && !error && classes.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-4">
           {classes.map((cls, index) => {
             const count = batchCounts[cls.name] ?? 0;
             return (
@@ -90,30 +90,30 @@ export default function ClassesPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.06 }}
-                whileHover={{ y: -3 }}
+                whileHover={{ y: -3 }} className="h-full"
               >
-                <Link href={`/dashboard/branch-manager/batches?program=${encodeURIComponent(cls.name)}`}>
-                  <Card hover className="h-full cursor-pointer">
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-primary-light rounded-[10px] flex items-center justify-center">
-                            <School className="h-5 w-5 text-primary" />
+                <Link href={`/dashboard/branch-manager/batches?program=${encodeURIComponent(cls.name)}`} className="block h-full">
+                  <Card hover className="h-full cursor-pointer flex flex-col justify-between">
+                    <CardHeader className="p-3 pb-2 sm:p-5 sm:pb-3">
+                      <div className="flex items-start sm:items-center justify-between gap-1.5 flex-wrap">
+                        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary-light rounded-[8px] sm:rounded-[10px] flex items-center justify-center shrink-0">
+                            <School className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                           </div>
-                          <div>
-                            <CardTitle>{cls.program_name || cls.name}</CardTitle>
+                          <div className="min-w-0">
+                            <CardTitle className="text-sm sm:text-lg truncate">{cls.program_name || cls.name}</CardTitle>
                             {cls.program_abbreviation && (
-                              <p className="text-xs text-text-tertiary mt-0.5">{cls.program_abbreviation}</p>
+                              <p className="text-[11px] sm:text-xs text-text-tertiary mt-0.5 truncate">{cls.program_abbreviation}</p>
                             )}
                           </div>
                         </div>
-                        <Badge variant="outline">{count} {count === 1 ? "batch" : "batches"}</Badge>
+                        <Badge variant="outline" className="text-[10px] sm:text-xs px-1.5 sm:px-2.5 shrink-0">{count} {count === 1 ? "batch" : "batches"}</Badge>
                       </div>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="p-3 pt-0 sm:p-5 sm:pt-0">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-text-secondary">View batches</span>
-                        <ArrowRight className="h-4 w-4 text-text-tertiary" />
+                        <span className="text-xs sm:text-sm text-text-secondary">View batches</span>
+                        <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-text-tertiary" />
                       </div>
                     </CardContent>
                   </Card>

@@ -15,7 +15,9 @@ import {
   FileSpreadsheet,
   ArrowLeft,
   XCircle,
+  Trash2,
 } from "lucide-react";
+import { LevelUpDeleteModal, LevelUpDeleteTarget } from "@/components/levelup/LevelUpDeleteModal";
 
 interface AttemptRecord {
   id: string;
@@ -55,6 +57,26 @@ interface RegistrationRecord {
   createdAt: string;
 }
 
+function formatDateTime(isoString: string | null | undefined) {
+  if (!isoString) return { date: "—", time: "—", full: "—" };
+  const d = new Date(isoString);
+  if (isNaN(d.getTime())) return { date: "—", time: "—", full: "—" };
+
+  const date = d.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+
+  const time = d.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+
+  return { date, time, full: `${date}, ${time}` };
+}
+
 export default function LevelUpAdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState("");
@@ -67,6 +89,38 @@ export default function LevelUpAdminPage() {
   const [registrations, setRegistrations] = useState<RegistrationRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<LevelUpDeleteTarget | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [actionNotification, setActionNotification] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+  const openDeleteModal = (target: LevelUpDeleteTarget) => {
+    setDeleteTarget(target);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async (target: LevelUpDeleteTarget) => {
+    const res = await fetch("/api/levelup/admin/attempts", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: target.id, type: target.type }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || "Failed to delete entry.");
+    }
+
+    setActionNotification({
+      type: "success",
+      message: data.message || `Entry for ${target.studentName} deleted successfully.`,
+    });
+
+    setTimeout(() => {
+      setActionNotification(null);
+    }, 4000);
+
+    await fetchData();
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,37 +175,44 @@ export default function LevelUpAdminPage() {
   const exportToCSV = () => {
     const rows =
       activeTab === "attempts"
-        ? attempts.map((a) => [
-            a.id,
-            a.studentName,
-            a.email || "",
-            a.studentPhone || "",
-            a.schoolName || "",
-            a.country,
-            a.emirateCity,
-            a.classLevel,
-            a.curriculum,
-            a.status,
-            a.scoreObtained,
-            a.totalMarks,
-            `${a.percentage}%`,
-            a.startedAt,
-            a.submittedAt || "",
-          ])
-        : registrations.map((r) => [
-            r.id,
-            r.studentName,
-            r.email || "",
-            r.phone,
-            r.schoolName || "",
-            r.country,
-            r.emirateCity,
-            r.classLevel,
-            r.curriculum,
-            r.status,
-            r.attemptId || "Not started",
-            r.createdAt,
-          ]);
+        ? attempts.map((a) => {
+            const start = formatDateTime(a.startedAt);
+            const sub = formatDateTime(a.submittedAt);
+            return [
+              a.id,
+              a.studentName,
+              a.email || "",
+              a.studentPhone || "",
+              a.schoolName || "",
+              a.country,
+              a.emirateCity,
+              a.classLevel,
+              a.curriculum,
+              a.status,
+              a.scoreObtained,
+              a.totalMarks,
+              `${a.percentage}%`,
+              start.full,
+              sub.full !== "—" ? sub.full : "",
+            ];
+          })
+        : registrations.map((r) => {
+            const regDt = formatDateTime(r.createdAt);
+            return [
+              r.id,
+              r.studentName,
+              r.email || "",
+              r.phone,
+              r.schoolName || "",
+              r.country,
+              r.emirateCity,
+              r.classLevel,
+              r.curriculum,
+              r.status,
+              r.attemptId || "Not started",
+              regDt.full,
+            ];
+          });
 
     const headers =
       activeTab === "attempts"
@@ -322,6 +383,14 @@ export default function LevelUpAdminPage() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto w-full px-4 py-8 flex-1">
+        {/* Toast / Notification Banner */}
+        {actionNotification && (
+          <div className="mb-4 p-3.5 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center gap-2 text-xs font-semibold text-emerald-400 animate-in fade-in">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <span>{actionNotification.message}</span>
+          </div>
+        )}
+
         {/* KPI Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
           <div className="bg-[#121722] border border-slate-800 rounded-2xl p-5">
@@ -389,6 +458,7 @@ export default function LevelUpAdminPage() {
                     <th className="py-3 px-4">Student</th>
                     <th className="py-3 px-4">Country & City</th>
                     <th className="py-3 px-4">Class</th>
+                    <th className="py-3 px-4">Attempted At</th>
                     <th className="py-3 px-4">Status</th>
                     <th className="py-3 px-4">Score</th>
                     <th className="py-3 px-4">Percentage</th>
@@ -412,6 +482,37 @@ export default function LevelUpAdminPage() {
                         <div className="text-[11px] text-slate-500">{att.curriculum}</div>
                       </td>
                       <td className="py-3 px-4">
+                        {(() => {
+                          const started = formatDateTime(att.startedAt);
+                          const submitted = formatDateTime(att.submittedAt);
+                          const isSubmitted = att.status === "submitted" || att.status === "auto_submitted";
+
+                          return (
+                            <div>
+                              <div className="font-medium text-white">
+                                {isSubmitted && submitted.date !== "—" ? submitted.date : started.date}
+                              </div>
+                              {isSubmitted ? (
+                                <div className="text-[11px] text-slate-400 font-mono flex items-center gap-1 mt-0.5">
+                                  <Clock className="w-3 h-3 text-slate-500 shrink-0" />
+                                  <span>{submitted.time !== "—" ? submitted.time : started.time}</span>
+                                  {started.time !== "—" && submitted.time !== "—" && started.time !== submitted.time && (
+                                    <span className="text-slate-500 text-[10px]" title={`Started: ${started.time}`}>
+                                      ({started.time} start)
+                                    </span>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="text-[11px] text-amber-400 font-mono flex items-center gap-1 mt-0.5">
+                                  <Clock className="w-3 h-3 text-amber-400 shrink-0" />
+                                  <span>Started {started.time}</span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </td>
+                      <td className="py-3 px-4">
                         <span
                           className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                             att.status === "submitted" || att.status === "auto_submitted"
@@ -427,19 +528,39 @@ export default function LevelUpAdminPage() {
                       </td>
                       <td className="py-3 px-4 font-bold text-emerald-400">{att.percentage}%</td>
                       <td className="py-3 px-4">
-                        <a
-                          href={`/levelup/result/${att.id}`}
-                          target="_blank"
-                          className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-semibold transition-all inline-block"
-                        >
-                          Scorecard
-                        </a>
+                        <div className="flex items-center gap-1.5">
+                          <a
+                            href={`/levelup/result/${att.id}`}
+                            target="_blank"
+                            className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-semibold transition-all inline-block"
+                          >
+                            Scorecard
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              openDeleteModal({
+                                id: att.id,
+                                type: "attempt",
+                                studentName: att.studentName,
+                                phone: att.studentPhone,
+                                classLevel: `Class ${att.classLevel} (${att.curriculum})`,
+                                countryCity: `${att.emirateCity ? att.emirateCity + ", " : ""}${att.country}`,
+                                details: `Score: ${att.scoreObtained}/${att.totalMarks} (${att.percentage}%)`,
+                              })
+                            }
+                            title="Delete this student's exam attempt"
+                            className="p-1 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
                   {filteredAttempts.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="py-8 text-center text-slate-500">
+                      <td colSpan={8} className="py-8 text-center text-slate-500">
                         No exam attempts recorded yet in smartup_online database.
                       </td>
                     </tr>
@@ -457,6 +578,7 @@ export default function LevelUpAdminPage() {
                     <th className="py-3 px-4">Class / Syllabus</th>
                     <th className="py-3 px-4">Status</th>
                     <th className="py-3 px-4">Registered On</th>
+                    <th className="py-3 px-4 text-center">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60">
@@ -481,14 +603,45 @@ export default function LevelUpAdminPage() {
                           {reg.status}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-slate-500 text-[11px]">
-                        {new Date(reg.createdAt).toLocaleDateString()}
+                      <td className="py-3 px-4">
+                        {(() => {
+                          const regDt = formatDateTime(reg.createdAt);
+                          return (
+                            <div>
+                              <div className="font-medium text-white">{regDt.date}</div>
+                              <div className="text-[11px] text-slate-400 font-mono flex items-center gap-1 mt-0.5">
+                                <Clock className="w-3 h-3 text-slate-500 shrink-0" />
+                                <span>{regDt.time}</span>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            openDeleteModal({
+                              id: reg.id,
+                              type: "registration",
+                              studentName: reg.studentName,
+                              phone: reg.phone,
+                              classLevel: `${reg.classLevel} (${reg.curriculum})`,
+                              countryCity: `${reg.emirateCity ? reg.emirateCity + ", " : ""}${reg.country}`,
+                              details: reg.schoolName ? `School: ${reg.schoolName}` : undefined,
+                            })
+                          }
+                          title="Delete this registration record"
+                          className="p-1 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </td>
                     </tr>
                   ))}
                   {filteredRegistrations.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="py-8 text-center text-slate-500">
+                      <td colSpan={8} className="py-8 text-center text-slate-500">
                         No registrations recorded yet in smartup_online database.
                       </td>
                     </tr>
@@ -499,6 +652,17 @@ export default function LevelUpAdminPage() {
           </div>
         </div>
       </main>
+
+      {/* Delete Confirmation Modal */}
+      <LevelUpDeleteModal
+        isOpen={isDeleteModalOpen}
+        target={deleteTarget}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setDeleteTarget(null);
+        }}
+        onConfirmDelete={handleConfirmDelete}
+      />
     </div>
   );
 }

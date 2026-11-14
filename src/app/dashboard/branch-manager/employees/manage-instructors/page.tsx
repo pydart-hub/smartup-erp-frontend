@@ -263,44 +263,44 @@ export default function ManageInstructorsPage() {
       {status && !statusLoading && (
         <>
           {/* Overview Stats */}
-          <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <motion.div variants={itemVariants} className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-4">
             <Card>
-              <CardContent className="py-5">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-[10px] bg-brand-wash flex items-center justify-center">
-                    <Users className="h-5 w-5 text-primary" />
+              <CardContent className="p-3 sm:py-5 sm:px-5">
+                <div className="flex items-center gap-2.5 sm:gap-3">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-[8px] sm:rounded-[10px] bg-brand-wash flex items-center justify-center shrink-0">
+                    <Users className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                   </div>
-                  <div>
-                    <p className="text-2xl font-bold text-text-primary">{status.total_employees}</p>
-                    <p className="text-xs text-text-secondary">Active Employees</p>
+                  <div className="min-w-0">
+                    <p className="text-xl sm:text-2xl font-bold text-text-primary tabular-nums">{status.total_employees}</p>
+                    <p className="text-[11px] sm:text-xs text-text-secondary leading-tight">Active Employees</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             <Card>
-              <CardContent className="py-5">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-[10px] bg-success-light flex items-center justify-center">
-                    <UserCheck className="h-5 w-5 text-success" />
+              <CardContent className="p-3 sm:py-5 sm:px-5">
+                <div className="flex items-center gap-2.5 sm:gap-3">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-[8px] sm:rounded-[10px] bg-success-light flex items-center justify-center shrink-0">
+                    <UserCheck className="h-4 w-4 sm:h-5 sm:w-5 text-success" />
                   </div>
-                  <div>
-                    <p className="text-2xl font-bold text-text-primary">{status.total_instructors}</p>
-                    <p className="text-xs text-text-secondary">Existing Instructors</p>
+                  <div className="min-w-0">
+                    <p className="text-xl sm:text-2xl font-bold text-text-primary tabular-nums">{status.total_instructors}</p>
+                    <p className="text-[11px] sm:text-xs text-text-secondary leading-tight">Existing Instructors</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardContent className="py-5">
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-[10px] flex items-center justify-center ${hasMissing ? "bg-warning-light" : "bg-success-light"}`}>
-                    <UserPlus className={`h-5 w-5 ${hasMissing ? "text-warning" : "text-success"}`} />
+            <Card className="col-span-2 sm:col-span-1">
+              <CardContent className="p-3 sm:py-5 sm:px-5">
+                <div className="flex items-center gap-2.5 sm:gap-3">
+                  <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-[8px] sm:rounded-[10px] flex items-center justify-center shrink-0 ${hasMissing ? "bg-warning-light" : "bg-success-light"}`}>
+                    <UserPlus className={`h-4 w-4 sm:h-5 sm:w-5 ${hasMissing ? "text-warning" : "text-success"}`} />
                   </div>
-                  <div>
-                    <p className="text-2xl font-bold text-text-primary">{status.employees_without_instructor}</p>
-                    <p className="text-xs text-text-secondary">Missing Instructor Doc</p>
+                  <div className="min-w-0">
+                    <p className="text-xl sm:text-2xl font-bold text-text-primary tabular-nums">{status.employees_without_instructor}</p>
+                    <p className="text-[11px] sm:text-xs text-text-secondary leading-tight">Missing Instructor Doc</p>
                   </div>
                 </div>
               </CardContent>

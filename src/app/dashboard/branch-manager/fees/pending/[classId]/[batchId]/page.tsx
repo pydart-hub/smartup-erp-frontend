@@ -259,33 +259,33 @@ export default function StudentPendingFeesPage() {
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+          className="grid grid-cols-2 gap-2.5 sm:gap-4"
         >
           <Card className="border-l-4 border-l-warning">
-            <CardContent className="py-4 flex items-center gap-4">
-              <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center">
-                <IndianRupee className="h-5 w-5 text-warning" />
+            <CardContent className="p-3 sm:py-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+              <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-warning/10 flex items-center justify-center shrink-0">
+                <IndianRupee className="h-4 w-4 sm:h-5 sm:w-5 text-warning" />
               </div>
-              <div>
-                <p className="text-xs text-text-tertiary font-medium uppercase tracking-wide">
+              <div className="min-w-0">
+                <p className="text-[10px] sm:text-xs text-text-tertiary font-medium uppercase tracking-wide">
                   {overdueOnly ? "Total Overdue" : "Total Pending"}
                 </p>
-                <p className="text-xl font-bold text-text-primary">
+                <p className="text-base sm:text-xl font-bold text-text-primary tabular-nums truncate">
                   {formatCurrency(totalOutstanding)}
                 </p>
               </div>
             </CardContent>
           </Card>
           <Card className="border-l-4 border-l-info">
-            <CardContent className="py-4 flex items-center gap-4">
-              <div className="h-10 w-10 rounded-full bg-info/10 flex items-center justify-center">
-                <Users className="h-5 w-5 text-info" />
+            <CardContent className="p-3 sm:py-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+              <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-info/10 flex items-center justify-center shrink-0">
+                <Users className="h-4 w-4 sm:h-5 sm:w-5 text-info" />
               </div>
-              <div>
-                <p className="text-xs text-text-tertiary font-medium uppercase tracking-wide">
+              <div className="min-w-0">
+                <p className="text-[10px] sm:text-xs text-text-tertiary font-medium uppercase tracking-wide">
                   Students with Dues
                 </p>
-                <p className="text-xl font-bold text-text-primary">
+                <p className="text-base sm:text-xl font-bold text-text-primary tabular-nums">
                   {studentGroups.length}
                 </p>
               </div>

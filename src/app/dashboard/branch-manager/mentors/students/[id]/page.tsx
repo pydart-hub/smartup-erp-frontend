@@ -99,7 +99,7 @@ export default function BranchManagerMentorStudentDetailPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="grid grid-cols-2 xl:grid-cols-4 gap-2.5 sm:gap-3">
                 <HeroMetric label="Program" value={data.academic.program || "N/A"} icon={<GraduationCap className="h-4 w-4" />} />
                 <HeroMetric label="Attendance Rate" value={`${attendanceStats.pct}%`} icon={<TrendingUp className="h-4 w-4" />} tone="mint" />
                 <HeroMetric label="Outstanding Fees" value={currency(data.fees.outstanding)} icon={<CreditCard className="h-4 w-4" />} tone="amber" />
@@ -456,12 +456,12 @@ function HeroMetric({
   };
 
   return (
-    <div className={`rounded-[24px] border border-white/80 bg-gradient-to-br ${tones[tone]} p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.92),0_16px_30px_-24px_rgba(15,23,42,0.42)]`}>
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">{label}</p>
-        <span className="text-primary">{icon}</span>
+    <div className={`rounded-[20px] sm:rounded-[24px] border border-white/80 bg-gradient-to-br ${tones[tone]} p-3 sm:p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.92),0_16px_30px_-24px_rgba(15,23,42,0.42)]`}>
+      <div className="flex items-center justify-between gap-2 sm:gap-3">
+        <p className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.12em] sm:tracking-[0.16em] text-slate-400 leading-tight">{label}</p>
+        <span className="text-primary shrink-0">{icon}</span>
       </div>
-      <p className="mt-3 text-lg font-bold text-slate-900 break-words">{value}</p>
+      <p className="mt-2 sm:mt-3 text-base sm:text-lg font-bold text-slate-900 break-words">{value}</p>
     </div>
   );
 }

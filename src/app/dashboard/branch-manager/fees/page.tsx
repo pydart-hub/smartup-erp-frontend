@@ -206,7 +206,7 @@ export default function FeesPage() {
       </motion.div>
 
       {/* Stats */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+      <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-6 gap-2.5 sm:gap-4">
         {loading ? (
           Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="h-24 rounded-[14px] bg-surface animate-pulse border border-border-light" />
@@ -214,12 +214,14 @@ export default function FeesPage() {
         ) : (
           <>
             <StatsCard
+              compactMobile
               title="Total Fees"
               value={formatCurrency(summary?.total_fees ?? 0)}
               icon={<IndianRupee className="h-5 w-5" />}
               color="info"
             />
             <StatsCard
+              compactMobile
               title="Collected"
               value={formatCurrency(summary?.total_collected ?? 0)}
               icon={<TrendingUp className="h-5 w-5" />}
@@ -227,16 +229,16 @@ export default function FeesPage() {
               href="/dashboard/branch-manager/fees/collected"
               subtitle={
                 collectedByMode ? (
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 sm:gap-3">
                     <div className="flex items-center gap-0.5">
-                      <Wifi className="h-3 w-3 text-blue-500" />
-                      <span className="text-xs font-semibold text-blue-600">
+                      <Wifi className="h-3 w-3 text-blue-500 shrink-0" />
+                      <span className="text-[10px] sm:text-xs font-semibold text-blue-600 tabular-nums">
                         {formatCurrency(collectedByMode.razorpay)}
                       </span>
                     </div>
                     <div className="flex items-center gap-0.5">
-                      <Banknote className="h-3 w-3 text-green-500" />
-                      <span className="text-xs font-semibold text-green-600">
+                      <Banknote className="h-3 w-3 text-green-500 shrink-0" />
+                      <span className="text-[10px] sm:text-xs font-semibold text-green-600 tabular-nums">
                         {formatCurrency(collectedByMode.total - collectedByMode.razorpay)}
                       </span>
                     </div>
@@ -245,6 +247,7 @@ export default function FeesPage() {
               }
             />
             <StatsCard
+              compactMobile
               title="Pending"
               value={formatCurrency(summary?.total_pending ?? 0)}
               icon={<AlertTriangle className="h-5 w-5" />}
@@ -252,6 +255,7 @@ export default function FeesPage() {
               href="/dashboard/branch-manager/fees/pending"
             />
             <StatsCard
+              compactMobile
               title="Overdue"
               value={overdueInvoices.length > 0 ? `${overdueInvoices.length} (${formatCurrency(overdueTotal)})` : "None"}
               icon={<Clock className="h-5 w-5" />}
@@ -259,12 +263,14 @@ export default function FeesPage() {
               href="/dashboard/branch-manager/fees/overdue"
             />
             <StatsCard
+              compactMobile
               title="Collection Rate"
               value={`${(summary?.collection_rate ?? 0).toFixed(1)}%`}
               icon={<BarChart3 className="h-5 w-5" />}
               color="primary"
             />
             <StatsCard
+              compactMobile
               title="Forfeited Fees"
               value={forfeitedTotal > 0 ? formatCurrency(forfeitedTotal) : "None"}
               icon={<UserX className="h-5 w-5" />}
@@ -299,42 +305,42 @@ export default function FeesPage() {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-4">
           {/* 1. Cash In Hand / Cash Leaf */}
           <Card className="border-l-4 border-l-emerald-500 bg-surface hover:shadow-sm transition-shadow">
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-xs font-semibold text-text-tertiary uppercase tracking-wider">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-start justify-between gap-1.5">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1 flex-wrap">
+                    <p className="text-[11px] sm:text-xs font-semibold text-text-tertiary uppercase tracking-wider">
                       Cash in Hand
                     </p>
                     <Badge variant="outline" className="text-[10px] px-1 py-0 bg-emerald-50 text-emerald-700 border-emerald-200">
                       GL
                     </Badge>
                   </div>
-                  <p className="text-xs font-medium text-text-secondary mt-0.5 truncate max-w-[200px]" title={ledgerBalances?.cash_parent?.name || "Cash In Hand"}>
+                  <p className="text-[11px] sm:text-xs font-medium text-text-secondary mt-0.5 truncate" title={ledgerBalances?.cash_parent?.name || "Cash In Hand"}>
                     {ledgerBalances?.cash_parent?.name || "Cash In Hand"}
                   </p>
                 </div>
-                <div className="h-9 w-9 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
-                  <Banknote className="h-4 w-4 text-emerald-600" />
+                <div className="h-7 w-7 sm:h-9 sm:w-9 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
+                  <Banknote className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-600" />
                 </div>
               </div>
 
-              <div className="mt-3">
+              <div className="mt-2.5 sm:mt-3">
                 {loadingLedger ? (
-                  <div className="h-7 w-28 bg-border-light rounded animate-pulse" />
+                  <div className="h-6 sm:h-7 w-24 sm:w-28 bg-border-light rounded animate-pulse" />
                 ) : (
                   <div className="flex items-baseline gap-1.5">
-                    <span className="text-xl font-bold text-text-primary">
+                    <span className="text-[15px] sm:text-xl font-bold text-text-primary leading-tight break-words tabular-nums">
                       {ledgerBalances?.cash_leaf?.formatted || "₹ 0.00 Dr"}
                     </span>
                   </div>
                 )}
-                <div className="flex items-center gap-1.5 mt-1 text-xs text-text-tertiary">
-                  <span>Account:</span>
-                  <span className="font-mono text-text-secondary font-medium truncate max-w-[200px]" title={ledgerBalances?.cash_leaf?.name || "Cash"}>
+                <div className="flex items-center gap-1 mt-1 text-[11px] sm:text-xs text-text-tertiary min-w-0">
+                  <span className="shrink-0">Acc:</span>
+                  <span className="font-mono text-text-secondary font-medium truncate" title={ledgerBalances?.cash_leaf?.name || "Cash"}>
                     {ledgerBalances?.cash_leaf?.name || "Cash"}
                   </span>
                 </div>
@@ -344,39 +350,39 @@ export default function FeesPage() {
 
           {/* 2. UPI Account */}
           <Card className="border-l-4 border-l-violet-500 bg-surface hover:shadow-sm transition-shadow">
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-xs font-semibold text-text-tertiary uppercase tracking-wider">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-start justify-between gap-1.5">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1 flex-wrap">
+                    <p className="text-[11px] sm:text-xs font-semibold text-text-tertiary uppercase tracking-wider">
                       UPI Account
                     </p>
                     <Badge variant="outline" className="text-[10px] px-1 py-0 bg-violet-50 text-violet-700 border-violet-200">
                       Bank
                     </Badge>
                   </div>
-                  <p className="text-xs font-medium text-text-secondary mt-0.5 truncate max-w-[200px]" title={ledgerBalances?.upi?.account_name || "UPI Account"}>
+                  <p className="text-[11px] sm:text-xs font-medium text-text-secondary mt-0.5 truncate" title={ledgerBalances?.upi?.account_name || "UPI Account"}>
                     {ledgerBalances?.upi?.account_name || "UPI Account"}
                   </p>
                 </div>
-                <div className="h-9 w-9 rounded-lg bg-violet-500/10 flex items-center justify-center shrink-0">
-                  <Smartphone className="h-4 w-4 text-violet-600" />
+                <div className="h-7 w-7 sm:h-9 sm:w-9 rounded-lg bg-violet-500/10 flex items-center justify-center shrink-0">
+                  <Smartphone className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-violet-600" />
                 </div>
               </div>
 
-              <div className="mt-3">
+              <div className="mt-2.5 sm:mt-3">
                 {loadingLedger ? (
-                  <div className="h-7 w-28 bg-border-light rounded animate-pulse" />
+                  <div className="h-6 sm:h-7 w-24 sm:w-28 bg-border-light rounded animate-pulse" />
                 ) : (
                   <div className="flex items-baseline gap-1.5">
-                    <span className="text-xl font-bold text-text-primary">
+                    <span className="text-[15px] sm:text-xl font-bold text-text-primary leading-tight break-words tabular-nums">
                       {ledgerBalances?.upi?.formatted || "₹ 0.00 Dr"}
                     </span>
                   </div>
                 )}
-                <div className="flex items-center gap-1.5 mt-1 text-xs text-text-tertiary">
-                  <span>Account:</span>
-                  <span className="font-mono text-text-secondary font-medium truncate max-w-[200px]" title={ledgerBalances?.upi?.name || "None"}>
+                <div className="flex items-center gap-1 mt-1 text-[11px] sm:text-xs text-text-tertiary min-w-0">
+                  <span className="shrink-0">Acc:</span>
+                  <span className="font-mono text-text-secondary font-medium truncate" title={ledgerBalances?.upi?.name || "None"}>
                     {ledgerBalances?.upi?.name || "None"}
                   </span>
                 </div>

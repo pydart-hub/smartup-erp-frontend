@@ -157,7 +157,7 @@ export default function FeeStructurePage() {
           animate={{ opacity: 1, y: 0 }}
         >
           <Card>
-            <CardHeader>
+            <CardHeader className="p-3.5 pb-2.5 sm:p-5 sm:pb-3">
               <div className="flex items-center gap-2">
                 <FileText className="h-5 w-5 text-primary" />
                 <CardTitle>{program}</CardTitle>
@@ -166,35 +166,37 @@ export default function FeeStructurePage() {
                 </Badge>
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <CardContent className="p-3.5 pt-0 sm:p-5 sm:pt-0">
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3">
                 {items.map((s) => (
                   <Link
                     key={s.name}
-                    href={`/dashboard/branch-manager/fees/structure/${encodeURIComponent(s.name)}`}
+                    href={`/dashboard/branch-manager/fees/structure/${encodeURIComponent(s.name)}`} className="block h-full"
                   >
                     <motion.div
                       whileHover={{ y: -2 }}
-                      className="rounded-[12px] border border-border-light bg-app-bg p-4 hover:border-primary/30 hover:shadow-sm transition-all cursor-pointer"
+                      className="rounded-[12px] border border-border-light bg-app-bg p-3 sm:p-4 hover:border-primary/30 hover:shadow-sm transition-all cursor-pointer h-full flex flex-col justify-between"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <p className="font-semibold text-text-primary text-sm truncate">
+                          <p className="font-semibold text-text-primary text-xs sm:text-sm truncate">
                             {s.name}
                           </p>
-                          <p className="text-xs text-text-secondary mt-0.5">
+                          <p className="text-[11px] sm:text-xs text-text-secondary mt-0.5">
                             {s.academic_year}
                             {s.academic_term ? ` · ${s.academic_term}` : ""}
                           </p>
                         </div>
                         <IndianRupee className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                       </div>
-                      <p className="mt-3 text-lg font-bold text-text-primary">
-                        {formatCurrency(s.total_amount)}
-                      </p>
-                      {s.company && s.company.trim() && (
-                        <p className="text-xs text-text-tertiary mt-1 truncate">{s.company}</p>
-                      )}
+                      <div>
+                        <p className="mt-2.5 sm:mt-3 text-base sm:text-lg font-bold text-text-primary tabular-nums">
+                          {formatCurrency(s.total_amount)}
+                        </p>
+                        {s.company && s.company.trim() && (
+                          <p className="text-xs text-text-tertiary mt-1 truncate">{s.company}</p>
+                        )}
+                      </div>
                     </motion.div>
                   </Link>
                 ))}

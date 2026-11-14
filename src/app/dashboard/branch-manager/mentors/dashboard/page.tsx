@@ -296,7 +296,7 @@ export default function BranchManagerMentorsDashboardPage() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    <div className="grid grid-cols-2 xl:grid-cols-4 gap-2.5 sm:gap-3">
                       <MetricHeroCard label="Active Mentors" value={activeMentorsCount} icon={<Users className="h-4 w-4" />} isLoading={isLoading} />
                       <MetricHeroCard label="Assigned Students" value={assignedStudentsCount} icon={<GraduationCap className="h-4 w-4" />} tone="cyan" isLoading={isLoading} />
                       <MetricHeroCard label="Average Load" value={avgLoad} icon={<Building2 className="h-4 w-4" />} tone="lime" isLoading={isLoading} />
@@ -942,12 +942,12 @@ function MetricHeroCard({
   };
 
   return (
-    <div className={`rounded-[24px] border border-white/80 bg-gradient-to-br ${tones[tone]} p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.92),0_16px_30px_-24px_rgba(15,23,42,0.42)]`}>
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">{label}</p>
-        <span className="text-primary">{icon}</span>
+    <div className={`rounded-[20px] sm:rounded-[24px] border border-white/80 bg-gradient-to-br ${tones[tone]} p-3 sm:p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.92),0_16px_30px_-24px_rgba(15,23,42,0.42)]`}>
+      <div className="flex items-center justify-between gap-2 sm:gap-3">
+        <p className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.12em] sm:tracking-[0.16em] text-slate-400 leading-tight">{label}</p>
+        <span className="text-primary shrink-0">{icon}</span>
       </div>
-      <p className="mt-3 text-2xl font-bold text-slate-900">
+      <p className="mt-2 sm:mt-3 text-xl sm:text-2xl font-bold text-slate-900 tabular-nums">
         {isLoading ? "..." : <AnimatedNumber value={value} />}
       </p>
     </div>

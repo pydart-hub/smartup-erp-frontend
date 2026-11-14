@@ -156,39 +156,39 @@ export default function BranchManagerRegularExamsPage() {
       </div>
 
       {/* Summary KPI Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-4">
         <Card className="border-l-4 border-l-primary shadow-sm hover:shadow-md transition-all">
-          <CardContent className="p-4 flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold text-text-tertiary uppercase tracking-wider">Total Scheduled</p>
-              <p className="text-2xl font-bold text-text-primary mt-1">{stats.total}</p>
+          <CardContent className="p-3 sm:p-4 flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-[10px] sm:text-xs font-semibold text-text-tertiary uppercase tracking-wider leading-tight">Total Scheduled</p>
+              <p className="text-xl sm:text-2xl font-bold text-text-primary mt-1 tabular-nums">{stats.total}</p>
             </div>
-            <div className="p-3 bg-primary/10 rounded-2xl text-primary">
-              <FileText className="h-5 w-5" />
+            <div className="p-2 sm:p-3 bg-primary/10 rounded-xl sm:rounded-2xl text-primary shrink-0">
+              <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-l-4 border-l-success shadow-sm hover:shadow-md transition-all">
-          <CardContent className="p-4 flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold text-text-tertiary uppercase tracking-wider">Marks Entered</p>
-              <p className="text-2xl font-bold text-success mt-1">{stats.marksEntered}</p>
+          <CardContent className="p-3 sm:p-4 flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-[10px] sm:text-xs font-semibold text-text-tertiary uppercase tracking-wider leading-tight">Marks Entered</p>
+              <p className="text-xl sm:text-2xl font-bold text-success mt-1 tabular-nums">{stats.marksEntered}</p>
             </div>
-            <div className="p-3 bg-success/10 rounded-2xl text-success">
-              <CheckCircle2 className="h-5 w-5" />
+            <div className="p-2 sm:p-3 bg-success/10 rounded-xl sm:rounded-2xl text-success shrink-0">
+              <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-warning shadow-sm hover:shadow-md transition-all">
-          <CardContent className="p-4 flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold text-text-tertiary uppercase tracking-wider">Pending Entry</p>
-              <p className="text-2xl font-bold text-warning mt-1">{stats.marksPending}</p>
+        <Card className="border-l-4 border-l-warning shadow-sm hover:shadow-md transition-all col-span-2 sm:col-span-1">
+          <CardContent className="p-3 sm:p-4 flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-[10px] sm:text-xs font-semibold text-text-tertiary uppercase tracking-wider leading-tight">Pending Entry</p>
+              <p className="text-xl sm:text-2xl font-bold text-warning mt-1 tabular-nums">{stats.marksPending}</p>
             </div>
-            <div className="p-3 bg-warning/10 rounded-2xl text-warning">
-              <AlertCircle className="h-5 w-5" />
+            <div className="p-2 sm:p-3 bg-warning/10 rounded-xl sm:rounded-2xl text-warning shrink-0">
+              <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
           </CardContent>
         </Card>
