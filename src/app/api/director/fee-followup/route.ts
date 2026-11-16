@@ -98,6 +98,26 @@ async function frappeGet(path: string, params: Record<string, string>) {
   return res.json();
 }
 
+async function frappePost(path: string, body: unknown) {
+  const res = await fetch(`${FRAPPE_URL}/api/${path}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: ADMIN_AUTH,
+      Accept: "application/json",
+    },
+    body: JSON.stringify(body),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Frappe POST ${path} ${res.status}: ${text.slice(0, 300)}`);
+  }
+
+  return res.json();
+}
+
 function summarizeLogs(logs: FollowUpLog[]) {
   const now = new Date();
   const istOffset = 5.5 * 60 * 60 * 1000;
@@ -367,22 +387,21 @@ async function getPendingOverdueByBranch(todayDate: string): Promise<Record<stri
       ["due_date", "<=", todayDate],
     ];
     if (discCustomers.length > 0) {
-      // Guard: Capped to 150 items to prevent 414 Request-URI Too Large errors
-      const cappedDisc = discCustomers.slice(0, 150);
-      filters.push(["customer", "not in", cappedDisc]);
+      filters.push(["customer", "not in", discCustomers]);
     }
-    const res = await frappeGet("resource/Sales Invoice", {
-      filters: JSON.stringify(filters),
-      fields: JSON.stringify([
+    const json = await frappePost("method/frappe.client.get_list", {
+      doctype: "Sales Invoice",
+      fields: [
         "company",
         "sum(outstanding_amount) as total_dues",
-      ]),
+      ],
+      filters,
       group_by: "company",
-      limit_page_length: "100",
+      limit_page_length: 100,
     });
 
     const duesMap: Record<string, number> = {};
-    for (const row of (res.data ?? [])) {
+    for (const row of (json.message ?? [])) {
       if (row.company) {
         duesMap[row.company] = row.total_dues ?? 0;
       }

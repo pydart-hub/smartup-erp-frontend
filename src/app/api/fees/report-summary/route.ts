@@ -60,22 +60,28 @@ export async function GET(request: NextRequest) {
       invFilters.push(["customer", "not in", discCustomers]);
 
     const invRes = await fetch(
-      `${FRAPPE_URL}/api/resource/Sales%20Invoice?${new URLSearchParams({
-        filters: JSON.stringify(invFilters),
-        fields: JSON.stringify([
-          "sum(grand_total) as invoiced",
-          "sum(outstanding_amount) as outstanding",
-        ]),
-        limit_page_length: "1",
-      })}`,
-      { headers: ADMIN_HEADERS, cache: "no-store" },
+      `${FRAPPE_URL}/api/method/frappe.client.get_list`,
+      {
+        method: "POST",
+        headers: ADMIN_HEADERS,
+        body: JSON.stringify({
+          doctype: "Sales Invoice",
+          fields: [
+            "sum(grand_total) as invoiced",
+            "sum(outstanding_amount) as outstanding",
+          ],
+          filters: invFilters,
+          limit_page_length: 1,
+        }),
+        cache: "no-store",
+      },
     );
 
     if (!invRes.ok) {
       return NextResponse.json({ error: "Frappe query failed" }, { status: invRes.status });
     }
 
-    const row = ((await invRes.json()).data ?? [])[0] ?? {};
+    const row = ((await invRes.json()).message ?? [])[0] ?? {};
     const totalFees: number = row.invoiced ?? 0;
     const totalPending: number = row.outstanding ?? 0;
     const totalCollected = totalFees - totalPending;

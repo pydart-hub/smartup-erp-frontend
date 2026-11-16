@@ -96,10 +96,11 @@ export async function getBranchStudentsOverdueData(branch: string, todayDate: st
     invFilters.push(["customer", "not in", discCustomers]);
   }
 
-  const invRes = await frappeGet("resource/Sales Invoice", {
-    filters: JSON.stringify(invFilters),
-    fields: JSON.stringify(["name", "student", "outstanding_amount", "due_date", "grand_total"]),
-    limit_page_length: "3000",
+  const invJson = await frappePost("method/frappe.client.get_list", {
+    doctype: "Sales Invoice",
+    filters: invFilters,
+    fields: ["name", "student", "outstanding_amount", "due_date", "grand_total"],
+    limit_page_length: 3000,
   });
 
   const invoices: {
@@ -108,7 +109,7 @@ export async function getBranchStudentsOverdueData(branch: string, todayDate: st
     outstanding_amount: number;
     due_date: string;
     grand_total: number;
-  }[] = invRes.data ?? [];
+  }[] = invJson.message ?? [];
 
   if (!invoices.length) {
     return [];
@@ -465,17 +466,18 @@ async function handleGet(request: NextRequest) {
         filters.push(["company", "in", allowedCompanies as any]);
       }
 
-      const res = await frappeGet("resource/Sales Invoice", {
-        filters: JSON.stringify(filters),
-        fields: JSON.stringify([
+      const json = await frappePost("method/frappe.client.get_list", {
+        doctype: "Sales Invoice",
+        fields: [
           "sum(outstanding_amount) as total_dues",
           "count(name) as invoice_count",
           "count(distinct customer) as student_count",
-        ]),
-        limit_page_length: "1",
+        ],
+        filters,
+        limit_page_length: 1,
       });
 
-      const row = res.data?.[0] ?? {};
+      const row = json.message?.[0] ?? {};
       return NextResponse.json({
         total_dues: row.total_dues ?? 0,
         invoice_count: row.invoice_count ?? 0,
@@ -499,20 +501,21 @@ async function handleGet(request: NextRequest) {
         filters.push(["company", "in", allowedCompanies as any]);
       }
 
-      const res = await frappeGet("resource/Sales Invoice", {
-        filters: JSON.stringify(filters),
-        fields: JSON.stringify([
+      const json = await frappePost("method/frappe.client.get_list", {
+        doctype: "Sales Invoice",
+        fields: [
           "company",
           "sum(outstanding_amount) as total_dues",
           "count(name) as invoice_count",
           "count(distinct customer) as student_count",
-        ]),
+        ],
+        filters,
         group_by: "company",
         order_by: "total_dues desc",
-        limit_page_length: "100",
+        limit_page_length: 100,
       });
 
-      const rows = (res.data ?? []).map((r: { company: string; total_dues: number; invoice_count: number; student_count: number }) => ({
+      const rows = (json.message ?? []).map((r: { company: string; total_dues: number; invoice_count: number; student_count: number }) => ({
         branch: r.company,
         total_dues: r.total_dues ?? 0,
         invoice_count: r.invoice_count ?? 0,
@@ -774,22 +777,23 @@ async function handleGet(request: NextRequest) {
       }[] = invJson.message ?? [];
 
       // Step 2b: Fetch Sales Orders for these students to get plan + instalment info
-      const soRes = await frappeGet("resource/Sales Order", {
-        filters: JSON.stringify([
+      const soJson = await frappePost("method/frappe.client.get_list", {
+        doctype: "Sales Order",
+        filters: [
           ["student", "in", studentIds],
           ["company", "=", branch],
           ["docstatus", "=", 1],
-        ]),
-        fields: JSON.stringify([
+        ],
+        fields: [
           "name", "student", "custom_plan", "custom_no_of_instalments",
-        ]),
+        ],
         order_by: "creation desc",
-        limit_page_length: "500",
+        limit_page_length: 500,
       });
 
       // Map student → most recent SO plan info
       const studentPlanMap = new Map<string, { plan: string; no_of_instalments: string }>();
-      for (const so of (soRes.data ?? []) as { student: string; custom_plan?: string; custom_no_of_instalments?: string }[]) {
+      for (const so of (soJson.message ?? []) as { student: string; custom_plan?: string; custom_no_of_instalments?: string }[]) {
         if (!so.student || studentPlanMap.has(so.student)) continue;
         studentPlanMap.set(so.student, {
           plan: so.custom_plan || "",
@@ -798,17 +802,18 @@ async function handleGet(request: NextRequest) {
       }
 
       // Fetch discontinued student IDs directly to exclude them
-      const discStudentRes = await frappeGet("resource/Student", {
-        filters: JSON.stringify([
+      const discStudentJson = await frappePost("method/frappe.client.get_list", {
+        doctype: "Student",
+        filters: [
           ["enabled", "=", 0],
           ["custom_discontinuation_date", "is", "set"],
           ["name", "in", studentIds],
-        ]),
-        fields: JSON.stringify(["name"]),
-        limit_page_length: "500",
+        ],
+        fields: ["name"],
+        limit_page_length: 500,
       });
       const discStudentIds = new Set(
-        ((discStudentRes.data ?? []) as { name: string }[]).map((s) => s.name)
+        ((discStudentJson.message ?? []) as { name: string }[]).map((s) => s.name)
       );
 
       // Helper: derive instalment label from due_date + no_of_instalments
@@ -928,12 +933,13 @@ async function handleGet(request: NextRequest) {
       const guardianIds = Array.from(new Set(studentGuardianMap.values()));
       if (guardianIds.length > 0) {
         try {
-          const guardianRes = await frappeGet("resource/Guardian", {
-            filters: JSON.stringify([["name", "in", guardianIds]]),
-            fields: JSON.stringify(["name", "guardian_name", "mobile_number"]),
-            limit_page_length: "500",
+          const guardianJson = await frappePost("method/frappe.client.get_list", {
+            doctype: "Guardian",
+            filters: [["name", "in", guardianIds]],
+            fields: ["name", "guardian_name", "mobile_number"],
+            limit_page_length: 500,
           });
-          for (const g of (guardianRes.data ?? []) as { name: string; guardian_name?: string; mobile_number?: string }[]) {
+          for (const g of (guardianJson.message ?? []) as { name: string; guardian_name?: string; mobile_number?: string }[]) {
             if (g.guardian_name) guardianNameMap.set(g.name, g.guardian_name);
             if (g.mobile_number) guardianPhoneMap.set(g.name, g.mobile_number);
           }

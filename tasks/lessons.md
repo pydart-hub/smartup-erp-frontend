@@ -44,9 +44,10 @@ When querying Frappe DocTypes via GET with an `in` filter over a large array of 
 - In server-side routes with silent `if (!res.ok) return []` guards, it silently returns an empty dataset, causing all computed totals to show as ₹0 and child relations to fall back to unassigned defaults.
 
 ### Solution
-1. Always chunk large `in` filter arrays into safe batches (e.g. 30 items per chunk) and fetch in parallel via `Promise.all()`. A chunk of 30 items produces a URL length under 2KB, safely below all server limits.
-2. Provide a lightweight `?summary=true` parameter on detail API routes so overview cards needing only aggregate financial metrics can compute them without fetching unrelated child doc types (e.g. enrollments, feedback logs).
-3. Connect high-level dashboard cards and detail pages to the same backend API route to maintain a single source of truth.
+1. **Primary / Future-Proof Approach**: Always prefer HTTP POST to Frappe's whitelisted method `POST /api/method/frappe.client.get_list` whenever queries involve exclusion lists or dynamic filters (e.g. `["customer", "not in", discCustomers]`). Because the payload (`doctype`, `fields`, `filters`, `group_by`, `order_by`, `limit_page_length`) is transmitted in the JSON request body rather than the URL query string, it is completely immune to the 4,094-byte Request-Line limit, even with thousands of student IDs. Note: the response returns `{ "message": [...] }` instead of `{ "data": [...] }`.
+2. For read queries that must use GET: Always chunk large `in` filter arrays into safe batches (e.g. 30–50 items per chunk) and fetch in parallel via `Promise.all()`. A chunk of 30 items produces a URL length under 2KB, safely below all server limits.
+3. Provide a lightweight `?summary=true` parameter on detail API routes so overview cards needing only aggregate financial metrics can compute them without fetching unrelated child doc types (e.g. enrollments, feedback logs).
+4. Connect high-level dashboard cards and detail pages to the same backend API route to maintain a single source of truth.
 
 ## Frappe Naming Series Concurrency & MariaDB InnoDB Gap-Lock Deadlocks (1213)
 
