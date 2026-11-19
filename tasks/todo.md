@@ -1,44 +1,23 @@
-# Task: Push to Git and Deploy Clustered SmartUp ERP on Production Server
+# Task: Push to Git and Deploy Clustered SmartUp ERP to Server
 
-## Status: COMPLETED
+## Status: IN PROGRESS
 
 ### 1. Plan & Objectives
-Study the clustered server configuration documentation and execute a safe, zero-downtime deployment:
-- Study `docs/Server Configuration - Clustered.md` and `docs/Server Configuration.md`.
-- Verify TypeScript integrity (`npx tsc --noEmit`).
-- Stage and commit the Frappe API POST filter fix and fee follow-up improvements.
-- Push commit to remote `origin/main` on GitHub.
-- Trigger remote safe deployment script `bash /var/www/smartup-erp/scripts/deploy.sh` on `smartup-portal` (`76.13.244.60`).
-- Verify PM2 cluster status (instances `smartup-erp-1` through `smartup-erp-4` on ports 3001, 3005, 3006, 3007).
-- Verify end-to-end health check on localhost ports and `https://smartuplearning.net`.
+- [x] 1. Study deployment documentation (`Server Configuration - Clustered.md` and `Server Configuration.md`).
+- [x] 2. Verify local build / TypeScript compilation (`npx tsc --noEmit`) to ensure clean production build.
+- [/] 3. Review unstaged and untracked changes, stage appropriate files, and commit to `main` with conventional commit message.
+- [ ] 4. Push commit(s) to remote Git repository (`origin/main`).
+- [ ] 5. Connect to production server `smartup-portal` (`76.13.244.60`) via SSH and trigger `/var/www/smartup-erp/scripts/deploy.sh`.
+- [ ] 6. Verify PM2 cluster status across all 4 instances (`smartup-erp-1`, `smartup-erp-2`, `smartup-erp-3`, `smartup-erp-4`).
+- [ ] 7. Verify HTTP responses and public availability on `https://smartuplearning.net`.
+- [ ] 8. Document results and finalize review.
 
-### 2. Checkable Items
-- [x] 1. Study `Server Configuration - Clustered.md` and `Server Configuration.md`.
-- [x] 2. Verify TypeScript integrity (`npx tsc --noEmit` - passed with 0 errors).
-- [x] 3. Review git status and stage all modified files (`git add .`).
-- [x] 4. Commit changes with semantic commit message (`fix: use frappe client get_list POST in fees dues and followup to prevent URL buffer overflow`).
-- [x] 5. Push commit to remote `origin/main` (commit `fc4005d`).
-- [x] 6. Execute `bash /var/www/smartup-erp/scripts/deploy.sh` on `smartup-portal` via SSH.
-- [x] 7. Verify PM2 cluster status (`pm2 list`) and node ports (3001, 3005, 3006, 3007).
-- [x] 8. Verify HTTP responses on all 4 cluster nodes and public domain `https://smartuplearning.net`.
-- [x] 9. Document results and mark review complete.
+### 2. Deployment Architecture Reference
+- **Server:** `76.13.244.60` (alias `smartup-portal`, user `root`)
+- **Directory:** `/var/www/smartup-erp`
+- **Cluster Instances:** 4 nodes (`smartup-erp-1` :3001, `smartup-erp-2` :3005, `smartup-erp-3` :3006, `smartup-erp-4` :3007)
+- **Upstream:** Nginx `smartup_erp_upstream` (`least_conn`)
+- **Domain:** `smartuplearning.net` (Cloudflare Proxy -> Origin SSL)
 
-### 3. Review & Verification
-- **Git Commit & Push**:
-  - Commit `fc4005d` pushed to GitHub repository (`origin/main`).
-  - Contains Frappe client `get_list` POST payload optimizations for `dues-till-today`, `fee-followup`, and `report-summary`.
-- **Production Server Deployment**:
-  - Remote host: `smartup-portal` (`76.13.244.60`).
-  - Execution: `/var/www/smartup-erp/scripts/deploy.sh`.
-  - Next.js 16.1.6 production bundle built successfully.
-  - Prisma offline & online databases schema verified.
-  - Zero-downtime reload of all 4 PM2 cluster nodes: `smartup-erp-1`, `smartup-erp-2`, `smartup-erp-3`, `smartup-erp-4`.
-  - Nginx configuration syntax tested (`ok`) and reloaded.
-- **Port Health & Cluster Status**:
-  - `tcp6 :::3001` - `smartup-erp-1` (id: 9) -> HTTP 307
-  - `tcp6 :::3005` - `smartup-erp-2` (id: 10) -> HTTP 307
-  - `tcp6 :::3006` - `smartup-erp-3` (id: 11) -> HTTP 307
-  - `tcp6 :::3007` - `smartup-erp-4` (id: 12) -> HTTP 307
-- **End-to-End Domain Health**:
-  - `https://smartuplearning.net` -> HTTP 307 (Redirect to `/auth/login`)
-  - `https://smartuplearning.net/auth/login` -> HTTP 200 OK via Cloudflare CDN proxy.
+### 3. Review & Results
+*(Pending execution)*

@@ -7858,6 +7858,7 @@ export namespace Prisma {
     curriculum: string | null
     status: string | null
     attemptId: string | null
+    remark: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -7874,6 +7875,7 @@ export namespace Prisma {
     curriculum: string | null
     status: string | null
     attemptId: string | null
+    remark: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -7890,6 +7892,7 @@ export namespace Prisma {
     curriculum: number
     status: number
     attemptId: number
+    remark: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -7908,6 +7911,7 @@ export namespace Prisma {
     curriculum?: true
     status?: true
     attemptId?: true
+    remark?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -7924,6 +7928,7 @@ export namespace Prisma {
     curriculum?: true
     status?: true
     attemptId?: true
+    remark?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -7940,6 +7945,7 @@ export namespace Prisma {
     curriculum?: true
     status?: true
     attemptId?: true
+    remark?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -8029,6 +8035,7 @@ export namespace Prisma {
     curriculum: string | null
     status: string
     attemptId: string | null
+    remark: string | null
     createdAt: Date
     updatedAt: Date
     _count: LevelUpRegistrationCountAggregateOutputType | null
@@ -8062,6 +8069,7 @@ export namespace Prisma {
     curriculum?: boolean
     status?: boolean
     attemptId?: boolean
+    remark?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["levelUpRegistration"]>
@@ -8078,6 +8086,7 @@ export namespace Prisma {
     curriculum?: boolean
     status?: boolean
     attemptId?: boolean
+    remark?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["levelUpRegistration"]>
@@ -8094,6 +8103,7 @@ export namespace Prisma {
     curriculum?: boolean
     status?: boolean
     attemptId?: boolean
+    remark?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
@@ -8114,6 +8124,7 @@ export namespace Prisma {
       curriculum: string | null
       status: string
       attemptId: string | null
+      remark: string | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["levelUpRegistration"]>
@@ -8520,6 +8531,7 @@ export namespace Prisma {
     readonly curriculum: FieldRef<"LevelUpRegistration", 'String'>
     readonly status: FieldRef<"LevelUpRegistration", 'String'>
     readonly attemptId: FieldRef<"LevelUpRegistration", 'String'>
+    readonly remark: FieldRef<"LevelUpRegistration", 'String'>
     readonly createdAt: FieldRef<"LevelUpRegistration", 'DateTime'>
     readonly updatedAt: FieldRef<"LevelUpRegistration", 'DateTime'>
   }
@@ -11082,6 +11094,7 @@ export namespace Prisma {
     curriculum: 'curriculum',
     status: 'status',
     attemptId: 'attemptId',
+    remark: 'remark',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -11706,6 +11719,7 @@ export namespace Prisma {
     curriculum?: StringNullableFilter<"LevelUpRegistration"> | string | null
     status?: StringFilter<"LevelUpRegistration"> | string
     attemptId?: StringNullableFilter<"LevelUpRegistration"> | string | null
+    remark?: StringNullableFilter<"LevelUpRegistration"> | string | null
     createdAt?: DateTimeFilter<"LevelUpRegistration"> | Date | string
     updatedAt?: DateTimeFilter<"LevelUpRegistration"> | Date | string
   }
@@ -11722,6 +11736,7 @@ export namespace Prisma {
     curriculum?: SortOrderInput | SortOrder
     status?: SortOrder
     attemptId?: SortOrderInput | SortOrder
+    remark?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -11741,6 +11756,7 @@ export namespace Prisma {
     curriculum?: StringNullableFilter<"LevelUpRegistration"> | string | null
     status?: StringFilter<"LevelUpRegistration"> | string
     attemptId?: StringNullableFilter<"LevelUpRegistration"> | string | null
+    remark?: StringNullableFilter<"LevelUpRegistration"> | string | null
     createdAt?: DateTimeFilter<"LevelUpRegistration"> | Date | string
     updatedAt?: DateTimeFilter<"LevelUpRegistration"> | Date | string
   }, "id">
@@ -11757,6 +11773,7 @@ export namespace Prisma {
     curriculum?: SortOrderInput | SortOrder
     status?: SortOrder
     attemptId?: SortOrderInput | SortOrder
+    remark?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: LevelUpRegistrationCountOrderByAggregateInput
@@ -11779,6 +11796,7 @@ export namespace Prisma {
     curriculum?: StringNullableWithAggregatesFilter<"LevelUpRegistration"> | string | null
     status?: StringWithAggregatesFilter<"LevelUpRegistration"> | string
     attemptId?: StringNullableWithAggregatesFilter<"LevelUpRegistration"> | string | null
+    remark?: StringNullableWithAggregatesFilter<"LevelUpRegistration"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"LevelUpRegistration"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"LevelUpRegistration"> | Date | string
   }
@@ -12465,6 +12483,7 @@ export namespace Prisma {
     curriculum?: string | null
     status?: string
     attemptId?: string | null
+    remark?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -12481,6 +12500,7 @@ export namespace Prisma {
     curriculum?: string | null
     status?: string
     attemptId?: string | null
+    remark?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -12497,6 +12517,7 @@ export namespace Prisma {
     curriculum?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
     attemptId?: NullableStringFieldUpdateOperationsInput | string | null
+    remark?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -12513,6 +12534,7 @@ export namespace Prisma {
     curriculum?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
     attemptId?: NullableStringFieldUpdateOperationsInput | string | null
+    remark?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -12529,6 +12551,7 @@ export namespace Prisma {
     curriculum?: string | null
     status?: string
     attemptId?: string | null
+    remark?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -12545,6 +12568,7 @@ export namespace Prisma {
     curriculum?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
     attemptId?: NullableStringFieldUpdateOperationsInput | string | null
+    remark?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -12561,6 +12585,7 @@ export namespace Prisma {
     curriculum?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
     attemptId?: NullableStringFieldUpdateOperationsInput | string | null
+    remark?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -13259,6 +13284,7 @@ export namespace Prisma {
     curriculum?: SortOrder
     status?: SortOrder
     attemptId?: SortOrder
+    remark?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -13275,6 +13301,7 @@ export namespace Prisma {
     curriculum?: SortOrder
     status?: SortOrder
     attemptId?: SortOrder
+    remark?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -13291,6 +13318,7 @@ export namespace Prisma {
     curriculum?: SortOrder
     status?: SortOrder
     attemptId?: SortOrder
+    remark?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }

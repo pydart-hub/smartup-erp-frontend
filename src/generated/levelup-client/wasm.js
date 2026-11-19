@@ -196,6 +196,7 @@ exports.Prisma.LevelUpRegistrationScalarFieldEnum = {
   curriculum: 'curriculum',
   status: 'status',
   attemptId: 'attemptId',
+  remark: 'remark',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };

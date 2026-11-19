@@ -16,8 +16,12 @@ import {
   ArrowLeft,
   XCircle,
   Trash2,
+  Pencil,
+  Plus,
+  MessageSquare,
 } from "lucide-react";
 import { LevelUpDeleteModal, LevelUpDeleteTarget } from "@/components/levelup/LevelUpDeleteModal";
+import { LevelUpRemarkModal, LevelUpRemarkTarget } from "@/components/levelup/LevelUpRemarkModal";
 
 interface AttemptRecord {
   id: string;
@@ -54,6 +58,7 @@ interface RegistrationRecord {
   curriculum: string;
   status: string;
   attemptId?: string | null;
+  remark?: string | null;
   createdAt: string;
 }
 
@@ -91,11 +96,46 @@ export default function LevelUpAdminPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<LevelUpDeleteTarget | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [remarkTarget, setRemarkTarget] = useState<LevelUpRemarkTarget | null>(null);
+  const [isRemarkModalOpen, setIsRemarkModalOpen] = useState(false);
   const [actionNotification, setActionNotification] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   const openDeleteModal = (target: LevelUpDeleteTarget) => {
     setDeleteTarget(target);
     setIsDeleteModalOpen(true);
+  };
+
+  const openRemarkModal = (target: LevelUpRemarkTarget) => {
+    setRemarkTarget(target);
+    setIsRemarkModalOpen(true);
+  };
+
+  const handleSaveRemark = async (id: string, remark: string) => {
+    const res = await fetch("/api/levelup/admin/registrations", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, remark }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || "Failed to save remark.");
+    }
+
+    setRegistrations((prev) =>
+      prev.map((r) =>
+        r.id === id ? { ...r, remark: remark.trim() ? remark.trim() : null } : r
+      )
+    );
+
+    setActionNotification({
+      type: "success",
+      message: data.message || "Remark updated successfully.",
+    });
+
+    setTimeout(() => {
+      setActionNotification(null);
+    }, 4000);
   };
 
   const handleConfirmDelete = async (target: LevelUpDeleteTarget) => {
@@ -211,6 +251,7 @@ export default function LevelUpAdminPage() {
               r.status,
               r.attemptId || "Not started",
               regDt.full,
+              r.remark || "",
             ];
           });
 
@@ -246,6 +287,7 @@ export default function LevelUpAdminPage() {
             "Status",
             "Attempt ID",
             "Registered At",
+            "Remark",
           ];
 
     const csvContent =
@@ -271,7 +313,7 @@ export default function LevelUpAdminPage() {
   );
 
   const filteredRegistrations = registrations.filter((r) =>
-    `${r.studentName} ${r.email || ""} ${r.phone} ${r.schoolName} ${r.country} ${r.emirateCity} ${r.classLevel}`
+    `${r.studentName} ${r.email || ""} ${r.phone} ${r.schoolName} ${r.country} ${r.emirateCity} ${r.classLevel} ${r.remark || ""}`
       .toLowerCase()
       .includes(searchQuery.toLowerCase())
   );
@@ -578,6 +620,7 @@ export default function LevelUpAdminPage() {
                     <th className="py-3 px-4">Class / Syllabus</th>
                     <th className="py-3 px-4">Status</th>
                     <th className="py-3 px-4">Registered On</th>
+                    <th className="py-3 px-4">Remark</th>
                     <th className="py-3 px-4 text-center">Action</th>
                   </tr>
                 </thead>
@@ -617,6 +660,66 @@ export default function LevelUpAdminPage() {
                           );
                         })()}
                       </td>
+                      <td className="py-3 px-4 max-w-[220px]">
+                        {reg.remark ? (
+                          <div className="flex items-start justify-between gap-1.5 group">
+                            <span
+                              className="text-slate-200 line-clamp-2 leading-relaxed cursor-pointer hover:text-white"
+                              title={reg.remark}
+                              onClick={() =>
+                                openRemarkModal({
+                                  id: reg.id,
+                                  studentName: reg.studentName,
+                                  phone: reg.phone,
+                                  classLevel: `${reg.classLevel} (${reg.curriculum})`,
+                                  countryCity: `${reg.emirateCity ? reg.emirateCity + ", " : ""}${reg.country}`,
+                                  schoolName: reg.schoolName,
+                                  currentRemark: reg.remark,
+                                })
+                              }
+                            >
+                              {reg.remark}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                openRemarkModal({
+                                  id: reg.id,
+                                  studentName: reg.studentName,
+                                  phone: reg.phone,
+                                  classLevel: `${reg.classLevel} (${reg.curriculum})`,
+                                  countryCity: `${reg.emirateCity ? reg.emirateCity + ", " : ""}${reg.country}`,
+                                  schoolName: reg.schoolName,
+                                  currentRemark: reg.remark,
+                                })
+                              }
+                              title="Edit remark"
+                              className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-emerald-400 rounded transition-all cursor-pointer shrink-0"
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              openRemarkModal({
+                                id: reg.id,
+                                studentName: reg.studentName,
+                                phone: reg.phone,
+                                classLevel: `${reg.classLevel} (${reg.curriculum})`,
+                                countryCity: `${reg.emirateCity ? reg.emirateCity + ", " : ""}${reg.country}`,
+                                schoolName: reg.schoolName,
+                                currentRemark: null,
+                              })
+                            }
+                            className="flex items-center gap-1 text-[11px] text-slate-500 hover:text-emerald-400 transition-colors cursor-pointer group"
+                          >
+                            <Plus className="w-3 h-3 text-slate-500 group-hover:text-emerald-400" />
+                            <span>Add remark</span>
+                          </button>
+                        )}
+                      </td>
                       <td className="py-3 px-4 text-center">
                         <button
                           type="button"
@@ -641,7 +744,7 @@ export default function LevelUpAdminPage() {
                   ))}
                   {filteredRegistrations.length === 0 && (
                     <tr>
-                      <td colSpan={8} className="py-8 text-center text-slate-500">
+                      <td colSpan={9} className="py-8 text-center text-slate-500">
                         No registrations recorded yet in smartup_online database.
                       </td>
                     </tr>
@@ -662,6 +765,17 @@ export default function LevelUpAdminPage() {
           setDeleteTarget(null);
         }}
         onConfirmDelete={handleConfirmDelete}
+      />
+
+      {/* Admin Remark Modal */}
+      <LevelUpRemarkModal
+        isOpen={isRemarkModalOpen}
+        target={remarkTarget}
+        onClose={() => {
+          setIsRemarkModalOpen(false);
+          setRemarkTarget(null);
+        }}
+        onSaveRemark={handleSaveRemark}
       />
     </div>
   );

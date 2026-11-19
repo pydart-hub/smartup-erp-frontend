@@ -104,6 +104,7 @@ model LevelUpRegistration {
   curriculum  String?  @default("CBSE") // "CBSE", "ICSE", "State", "British"
   status      String   @default("registered") // "registered", "attempting", "completed"
   attemptId   String?
+  remark      String?  @db.Text
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
