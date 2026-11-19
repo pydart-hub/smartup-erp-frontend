@@ -1,37 +1,26 @@
-# Task: Push to Git and Deploy Clustered SmartUp ERP to Server
+# Task: Add Dark and Light Theme Switcher & Full Theme Support to LevelUp Admin Center
 
-## Status: COMPLETED
+## Status: IN PROGRESS
 
 ### 1. Plan & Objectives
-- [x] 1. Study deployment documentation (`Server Configuration - Clustered.md` and `Server Configuration.md`).
-- [x] 2. Verify local build / TypeScript compilation (`npx tsc --noEmit`) to ensure clean production build.
-- [x] 3. Review unstaged and untracked changes, stage appropriate files, and commit to `main` with conventional commit message.
-- [x] 4. Push commit(s) to remote Git repository (`origin/main`).
-- [x] 5. Connect to production server `smartup-portal` (`76.13.244.60`) via SSH and trigger `/var/www/smartup-erp/scripts/deploy.sh`.
-- [x] 6. Verify PM2 cluster status across all 4 instances (`smartup-erp-1`, `smartup-erp-2`, `smartup-erp-3`, `smartup-erp-4`).
-- [x] 7. Verify HTTP responses and public availability on `https://smartuplearning.net`.
-- [x] 8. Document results and finalize review.
+- [x] 1. Inspect existing theme infrastructure (`next-themes`, `globals.css`, `ThemeToggle.tsx`, `ThemeProvider.tsx`).
+- [x] 2. Update `src/app/levelup/admin/page.tsx` with:
+  - Theme switcher button in the navbar using `ThemeToggle` component.
+  - Complete light & dark theme styling for the page container, navbar, breadcrumb, badge, action buttons.
+  - KPI metric cards (light: crisp white with slate border; dark: deep slate with subtle border).
+  - Tab pills & search input field.
+  - Table view (header, rows, borders, text, timestamps, status badges, scorecard links, delete buttons).
+  - Unauthenticated / login view with light/dark adaptive styling and theme toggle.
+- [x] 3. Update `src/components/levelup/LevelUpRemarkModal.tsx` to support both light and dark themes (modal box, candidate summary, presets, textarea, action buttons).
+- [x] 4. Update `src/components/levelup/LevelUpDeleteModal.tsx` to support both light and dark themes (danger banner, confirmation box, input, buttons).
+- [x] 5. Verify local TypeScript compilation (`npx tsc --noEmit`) with 0 errors.
+- [/] 6. Stage, commit, push to Git (`origin/main`), and trigger server deployment (`deploy.sh`).
+- [ ] 7. Verify live site `https://smartuplearning.net/levelup/admin` in production.
 
-### 2. Deployment Architecture Reference
-- **Server:** `76.13.244.60` (alias `smartup-portal`, user `root`)
-- **Directory:** `/var/www/smartup-erp`
-- **Cluster Instances:** 4 nodes (`smartup-erp-1` :3001, `smartup-erp-2` :3005, `smartup-erp-3` :3006, `smartup-erp-4` :3007)
-- **Upstream:** Nginx `smartup_erp_upstream` (`least_conn`)
-- **Domain:** `smartuplearning.net` (Cloudflare Proxy -> Origin SSL)
-
-### 3. Review & Results
-- **TypeScript Verification**: `npx tsc --noEmit` passed with 0 errors.
-- **Git Commit & Push**:
-  - Commit `ec1f53d` (`feat(levelup): add remark capability for admin registrations and update offline verification scripts`).
-  - Successfully pushed to `https://github.com/pydart-hub/smartup-erp-frontend.git` on branch `main`.
-- **Remote Clustered Deployment**:
-  - Ran `/var/www/smartup-erp/scripts/deploy.sh` on `76.13.244.60`.
-  - Pulled `origin/main` commit `ec1f53d`.
-  - Installed NPM dependencies and synced Prisma databases (`smartup_offline` and `smartup_online`).
-  - Next.js 16.1.6 built production bundle with all 379 routes compiled.
-  - Zero-downtime reload executed across all 4 PM2 cluster nodes: `smartup-erp-1`, `smartup-erp-2`, `smartup-erp-3`, `smartup-erp-4`.
-  - Nginx configuration syntax validated and reloaded.
-- **Verification**:
-  - All 4 internal ports (`3001`, `3005`, `3006`, `3007`) returned `HTTP/1.1 307 Temporary Redirect` (redirecting unauthenticated requests to `/auth/login`).
-  - Public domain `https://smartuplearning.net` returned `HTTP/2 307` and `https://smartuplearning.net/auth/login` returned `HTTP/2 200 OK`.
-
+### 2. Architecture & Design Specifications
+- **Theme Engine**: `next-themes` via `ThemeProvider` (`attribute="class"` toggling `.dark` on `<html>`).
+- **Navbar Switcher**: Interactive `ThemeToggle` with sun/moon animated icons, ambient glow, and particle burst.
+- **Color Palette**:
+  - Light mode: `bg-slate-50`, surface `bg-white`, header `bg-white/90`, borders `border-slate-200`, text `text-slate-900` / `text-slate-600`.
+  - Dark mode: `bg-[#0A0D14]`, surface `bg-[#121722]`, header `bg-[#10141E]/90`, borders `border-slate-800`, text `text-white` / `text-slate-400`.
+  - Accent / Brand: Emerald/Purple theme tokens preserved across both modes.
