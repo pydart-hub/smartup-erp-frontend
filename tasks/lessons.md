@@ -64,3 +64,69 @@ In Frappe's `naming.py` (`getseries`):
 1. Implement a **Global FIFO Promise Serialization Queue** (`enqueueCheckinTask`) for document creations that rely on shared series prefixes. This guarantees that `POST /resource/Employee Checkin` requests are executed strictly one at a time.
 2. Introduce a brief breathing interval (e.g. 100ms) between consecutive requests in the queue, giving MariaDB time to commit transaction logs and release all row and gap locks cleanly.
 3. Reduce batch size and introduce inter-batch delays in bulk saving UI components to prevent database connection contention.
+
+
+## Frappe Link Field Validation on Master Records & Auto-Healing
+
+### Problem
+When assigning values to Link fields on DocTypes (e.g. `student_category: "Crash Course"` on `Program Enrollment`, or `custom_branch` on `Student`), Frappe executes server-side relational validation (`LinkValidationError`). If the foreign master document does not already exist in the database (e.g. `Student Category` was never seeded with `"Crash Course"`), Frappe rejects the request with an HTTP 417 `frappe.exceptions.LinkValidationError: Could not find Student Category: Crash Course`.
+
+### Solution
+1. Never assume foreign Link records (like categories, house names, or activity types) are pre-seeded in Frappe.
+2. Implement auto-healing idempotent pre-flight creation before inserting dependent records:
+```typescript
+try {
+  await frappeAdminPost("resource/Student Category", {
+    name: "Crash Course",
+    category: "Crash Course",
+  });
+} catch {
+  // Master record already exists or ignore collision
+}
+```
+3. Always verify native vs custom field names against live DocType inspection (`group_based_on` rather than `group_type` on `Student Group`).
+
+
+## Frappe Program Enrollment `student_batch_name` vs `Student Group`
+
+### Problem
+In Frappe's Education module:
+- `Program Enrollment.student_batch_name` is a Link field to DocType `Student Batch Name`, which stores annual branch cohort names (e.g. `"Palluruthy 26-27"`, `"Thopumpadi 26-27"`).
+- Actual classroom batches / sections (e.g. `"CC-2026-10-PAL-B1"`) are stored in DocType `Student Group`.
+If a classroom batch identifier (like `"CC-2026-10-PAL-B1"`) is assigned to `Program Enrollment.student_batch_name`, Frappe rejects the document with:
+`frappe.exceptions.LinkValidationError: Could not find Student Batch: CC-2026-10-PAL-B1`.
+
+### Solution
+1. Map branch to its valid `Student Batch Name` (e.g. `"Smart Up Palluruthy"` → `"Palluruthy 26-27"`).
+2. If unknown or not applicable, omit `student_batch_name` (since it is an optional field `reqd: 0` on `Program Enrollment`).
+3. Always assign the classroom batch container (e.g. `"CC-2026-10-PAL-B1"`) via `Student Group` membership rather than `student_batch_name`.
+
+## Frappe Sales Order `custom_plan` Select Field Validation & Asynchronous Customer Linking
+
+### Problem
+1. On DocType `Sales Order`, `custom_plan` is a strict Frappe `Select` field with options: `["", "Basic", "Intermediate", "Advanced"]`. Attempting to assign custom strings like `"Crash Course 2026-27"` causes Frappe to throw:
+   `ValidationError: Plan cannot be "Crash Course 2026-27". It should be one of "", "Basic", "Intermediate", "Advanced"`.
+   When caught by general `try/catch` blocks without loud re-throwing, the billing generation silently fails while the admission reports success, leaving the student without an invoice and the dashboard showing ₹0.
+2. When a `Student` is inserted via `/api/resource/Student`, Frappe's background hooks link the `Customer` record with a brief delay (or if hooks fail, `student.customer` remains null).
+
+### Solution
+1. Do not pass unauthorized options to `Sales Order.custom_plan`. Leave it empty `""` or omit it; identify Crash Course in item descriptions, order remarks, and line items.
+2. Implement a polling read-back retry loop (up to 3 attempts with 400ms delay) to retrieve the linked `customer`. If still null, explicitly look up or create `resource/Customer` and update `Student.customer` via PUT before proceeding to Sales Order and Invoice generation.
+3. Never swallow billing errors silently during admissions. Always log the exact error and surface failed statuses to the UI.
+
+## Reference Documents: Separate Content from Visual Layout
+### Problem
+When the user provides a PDF/wireframe as reference content and wants a premium UI, reproducing the reference document's plain wireframe/mock layout verbatim (including dashed `[placeholder]` boxes or flat colors) falls short of a production-grade, brand-authentic UI.
+### Solution
+Extract and preserve 100% of the domain copy, structure, and value propositions from the reference document, then design an original, cohesive, premium visual UI aligned with the product's brand palette (`#5C34A4` / deep obsidian-indigo), modern typography, subtle motion, glassmorphism/elevated depth, and interactive conversion flows.
+
+## Minimalism & Layout Transformation Over Reference Wireframes
+### Problem
+Reusing the reference wireframe's exact section sequence (e.g. dark hero + right glance card + 8-9 long marketing sections + `[XXX]` placeholders + bottom form) still feels like the same UI even when colors change, and overwhelms users looking for a focused registration page.
+### Solution
+When the user asks for an entirely new UI with minimal, essential-only content:
+1. Break away from the reference layout completely (e.g., bright minimal editorial canvas with the core registration form placed directly above the fold).
+2. Eliminate redundant sections (pain points, repetitive before/after lists, placeholder-only testimonial blocks, floating clutter).
+3. Keep only concise, high-signal facts, a clean 4-card highlight strip, concise plan cards, and a minimal FAQ.
+
+

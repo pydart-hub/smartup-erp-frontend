@@ -1,0 +1,60 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("ENQUIRY_DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/enquiry-client"
+}
+
+// Isolated CBSE Crash Course Student Enquiries & Registrations (smartup_enquiry DB)
+model CourseEnquiry {
+  id                   String            @id @default(uuid())
+  referenceCode        String            @unique // e.g. "SU-CC-2026-0001"
+  studentName          String
+  parentName           String
+  phone                String            // E.164 format (+971..., +966..., +91..., etc.)
+  email                String?
+  country              String            // UAE, Saudi Arabia, Qatar, Oman, Kuwait, Bahrain, India, etc.
+  city                 String?           // Dubai, Abu Dhabi, Riyadh, Doha, etc.
+  classLevel           String            // "Class 8", "Class 9", "Class 10", "Class 11", "Class 12"
+  stream               String            @default("Science") // "Science" | "Commerce"
+  board                String            @default("CBSE") // "CBSE" | "ICSE" | "Kerala State" | "Other"
+  preferredPlan        String            @default("Not sure") // "1:1 Personal" | "1:3 Small Group" | "Micro Batch" | "Not sure"
+  schoolName           String?
+  preferredCallTime    String?           // "Morning" | "Afternoon" | "Evening (GCC)" | "Weekend"
+  status               String            @default("new") // "new" | "contacted" | "demo_scheduled" | "diagnostic_done" | "enrolled" | "not_interested"
+  assignedCounsellor   String?
+  notes                String?           @db.Text
+  utmSource            String?
+  utmMedium            String?
+  utmCampaign          String?
+  referrer             String?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  followUps            EnquiryFollowUp[]
+
+  @@index([phone])
+  @@index([status])
+  @@index([classLevel])
+  @@index([preferredPlan])
+  @@index([country])
+  @@index([createdAt])
+}
+
+model EnquiryFollowUp {
+  id             String        @id @default(uuid())
+  enquiryId      String
+  enquiry        CourseEnquiry @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+  counsellorName String
+  channel        String        @default("WhatsApp") // "WhatsApp" | "Call" | "Email"
+  outcome        String
+  remarks        String?       @db.Text
+  nextFollowUpAt DateTime?
+  createdAt      DateTime      @default(now())
+
+  @@index([enquiryId])
+  @@index([createdAt])
+}
+

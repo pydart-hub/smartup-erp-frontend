@@ -31,6 +31,7 @@ const PUBLIC_PATHS = [
   "/scholar",
   "/diagnosis",
   "/levelup",
+  "/enquiry",
 ];
 const APP_ROLES = Object.keys(ROLE_DASHBOARD_MAP);
 
@@ -56,6 +57,22 @@ export function proxy(request: NextRequest) {
     const normalizedPath = decodedPath.replace("/dashboard/sales user", "/dashboard/sales-user");
     url.pathname = normalizedPath;
     return NextResponse.redirect(url);
+  }
+
+  // Handle Enquiry CBSE Crash Course subdomain rewrites
+  if (host.toLowerCase().startsWith("enquiry.")) {
+    const isInternal =
+      pathname.startsWith("/api") ||
+      pathname.startsWith("/_next") ||
+      pathname.includes("."); // e.g. favicon.ico, images, webm
+
+    console.log(`[MIDDLEWARE DEBUG] Enquiry subdomain detected. isInternal: ${isInternal}, pathname: "${pathname}"`);
+
+    if (!isInternal && !pathname.startsWith("/enquiry")) {
+      url.pathname = `/enquiry${pathname === "/" ? "" : pathname}`;
+      console.log(`[MIDDLEWARE DEBUG] Rewriting enquiry subdomain request to: "${url.pathname}"`);
+      return NextResponse.rewrite(url);
+    }
   }
 
   // Handle LevelUp GCC subdomain rewrites
@@ -217,6 +234,6 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|logo.svg|.*\\.png$|.*\\.jpg$|.*\\.svg$|.*\\.ico$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|logo.svg|.*\\.png$|.*\\.jpg$|.*\\.svg$|.*\\.ico$|.*\\.webm$).*)",
   ],
 };

@@ -29,6 +29,8 @@ npx prisma db push
 npx prisma generate
 npx prisma db push --schema=prisma/levelup.prisma
 npx prisma generate --schema=prisma/levelup.prisma
+npx prisma db push --schema=prisma/enquiry.prisma
+npx prisma generate --schema=prisma/enquiry.prisma
 
 # Step 5: Build Next.js project
 echo "🛠️ [5/6] Building Next.js production bundle..."
