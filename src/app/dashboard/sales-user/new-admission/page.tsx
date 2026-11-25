@@ -1,9 +1,26 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { GraduationCap, BookOpen, UserCheck, ArrowRight, Star, Unlock, BookUser } from "lucide-react";
+import {
+  GraduationCap,
+  BookOpen,
+  UserCheck,
+  ArrowRight,
+  Star,
+  Unlock,
+  BookUser,
+  Zap,
+} from "lucide-react";
 
 const admissionTypes = [
+  {
+    title: "Crash Course 2026–27",
+    description: "Board & annual exam revision — morning batches (6:15–8:00 AM) in PCM with 3 exams and 20–50 batch size.",
+    icon: Zap,
+    href: "/dashboard/sales-user/admit-crash-course",
+    color: "bg-rose-50 text-rose-600 border-rose-200",
+    hoverColor: "hover:border-rose-400 hover:shadow-rose-100",
+  },
   {
     title: "Regular Admission",
     description: "Full program enrollment — enroll a student into a complete academic program with all subjects included.",

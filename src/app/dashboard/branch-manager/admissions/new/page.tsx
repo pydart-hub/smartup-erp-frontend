@@ -1,10 +1,27 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { GraduationCap, BookOpen, UserCheck, ArrowRight, Star, Unlock, BookUser, PlusCircle } from "lucide-react";
+import {
+  GraduationCap,
+  BookOpen,
+  UserCheck,
+  ArrowRight,
+  Star,
+  Unlock,
+  BookUser,
+  Zap,
+} from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 
 const admissionTypes = [
+  {
+    title: "Crash Course 2026–27",
+    description: "Board & annual exam revision — morning batches (6:15–8:00 AM) in PCM with 3 exams and 20–50 batch size.",
+    icon: Zap,
+    href: "/dashboard/branch-manager/admit-crash-course",
+    color: "bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-800",
+    hoverColor: "hover:border-rose-400 hover:shadow-rose-100 dark:hover:shadow-none",
+  },
   {
     title: "Regular Admission",
     description: "Full program enrollment — enroll a student into a complete academic program with all subjects included.",
@@ -59,38 +76,39 @@ export default function DirectNewAdmissionPage() {
   const router = useRouter();
 
   return (
-    <div className="min-h-screen bg-slate-50/70 dark:bg-slate-950 text-slate-900 dark:text-slate-100 pb-16">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-5">
-        <BreadcrumbNav />
+    <div className="space-y-6">
+      <BreadcrumbNav />
 
-        <div className="text-center my-6">
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center justify-center gap-2.5">
-            <PlusCircle className="h-7 w-7 text-[#673AB7]" />
-            New Student Admission
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">
-            Select the type of enrollment to proceed with student registration.
-          </p>
-        </div>
+      <div className="text-center mb-8">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+          New Student Admission
+        </h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          Select the admission category to proceed
+        </p>
+      </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 w-full">
-          {admissionTypes.map((type) => (
-            <button
-              key={type.title}
-              onClick={() => router.push(type.href)}
-              className={`group relative flex flex-col items-start gap-3 rounded-2xl border-2 p-5 text-left transition-all duration-200 cursor-pointer ${type.color} ${type.hoverColor} shadow-xs hover:shadow-md`}
-            >
-              <div className="flex items-center justify-between w-full">
-                <type.icon className="h-7 w-7" />
-                <ArrowRight className="h-4 w-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200" />
-              </div>
-              <div>
-                <h2 className="text-base font-bold text-slate-900 dark:text-white">{type.title}</h2>
-                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">{type.description}</p>
-              </div>
-            </button>
-          ))}
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-4xl mx-auto">
+        {admissionTypes.map((type) => (
+          <button
+            key={type.title}
+            onClick={() => router.push(type.href)}
+            className={`group relative flex flex-col items-start gap-3 rounded-2xl border-2 p-5 text-left transition-all duration-200 cursor-pointer ${type.color} ${type.hoverColor} hover:shadow-md`}
+          >
+            <div className="flex items-center justify-between w-full">
+              <type.icon className="h-7 w-7" />
+              <ArrowRight className="h-4 w-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200" />
+            </div>
+            <div>
+              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                {type.title}
+              </h2>
+              <p className="text-xs text-gray-600 dark:text-gray-300 mt-1 leading-relaxed">
+                {type.description}
+              </p>
+            </div>
+          </button>
+        ))}
       </div>
     </div>
   );

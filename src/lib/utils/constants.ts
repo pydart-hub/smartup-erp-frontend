@@ -149,6 +149,16 @@ export const CURRICULUM_DEPT_NAV: NavItem[] = [
 
 export const BRANCH_MANAGER_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard/branch-manager", icon: "LayoutDashboard", emoji: "📊" },
+  {
+    label: "Crash Course",
+    href: "/dashboard/branch-manager/crash-course",
+    icon: "Zap",
+    emoji: "⚡",
+    children: [
+      { label: "Overview & Batches", href: "/dashboard/branch-manager/crash-course", icon: "Zap", emoji: "⚡" },
+      { label: "New Admission", href: "/dashboard/branch-manager/admit-crash-course", icon: "UserPlus", emoji: "🎓" },
+    ],
+  },
   { label: "Daily Checklists", href: "/dashboard/branch-manager/checklists", icon: "ClipboardCheck", emoji: "📋" },
   { label: "My Assignments", href: "/dashboard/branch-manager/my-assignments", icon: "ClipboardList", emoji: "🗂️" },
   {
@@ -237,6 +247,7 @@ export const BRANCH_MANAGER_NAV: NavItem[] = [
 
 export const DIRECTOR_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard/director", icon: "LayoutDashboard", emoji: "📊" },
+  { label: "Crash Course", href: "/dashboard/director/crash-course", icon: "Zap", emoji: "⚡" },
   { label: "Branch Monitoring", href: "/dashboard/director/branch-monitoring", icon: "Target", emoji: "🎯" },
   { label: "Branch Checklists", href: "/dashboard/director/branch-checklists", icon: "ClipboardCheck", emoji: "📋" },
   {
@@ -358,6 +369,16 @@ export const HR_MANAGER_NAV: NavItem[] = [
 export const SALES_USER_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard/sales-user", icon: "LayoutDashboard", emoji: "📊" },
   {
+    label: "Crash Course",
+    href: "/dashboard/sales-user/crash-course",
+    icon: "Zap",
+    emoji: "⚡",
+    children: [
+      { label: "Overview & Batches", href: "/dashboard/sales-user/crash-course", icon: "Zap", emoji: "⚡" },
+      { label: "New Admission", href: "/dashboard/sales-user/admit-crash-course", icon: "UserPlus", emoji: "🎓" },
+    ],
+  },
+  {
     label: "Admissions",
     href: "/dashboard/sales-user/admissions-entry",
     icon: "UserPlus",
@@ -376,6 +397,7 @@ export const SALES_USER_NAV: NavItem[] = [
 
 export const GENERAL_MANAGER_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard/general-manager", icon: "LayoutDashboard", emoji: "📊" },
+  { label: "Crash Course", href: "/dashboard/director/crash-course", icon: "Zap", emoji: "⚡" },
   { label: "Branch Checklists", href: "/dashboard/general-manager/branch-checklists", icon: "ClipboardCheck", emoji: "📋" },
   { label: "Leaderboard", href: "/dashboard/general-manager/leaderboard", icon: "Trophy", emoji: "🏆" },
   { label: "Work Assignments", href: "/dashboard/general-manager/work-assignments", icon: "ClipboardList", emoji: "🗂️" },

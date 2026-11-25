@@ -1,14 +1,12 @@
-# Task: SmartUp CBSE Crash Course Enquiry Landing Page — Minimal Editorial UI
+# Task: SmartUp CBSE Crash Course Enquiry System (`enquiry.smartuplearning.net` & `smartup_enquiry` VPS DB)
 
-## Status: COMPLETED (Ready for Local Preview — Hosting Pending User Command)
+## Status: COMPLETED & VERIFIED LIVE ON VPS
 
 ### Plan & Objectives
-- [x] 1. Update `tasks/lessons.md` with minimalism & layout transformation rule and trim bloated content.
-- [x] 2. Build clean light-editorial split-hero placing the Student Registration Form directly above the fold (`HeroRegistrationSection.tsx`).
-- [x] 3. Create minimal `HighlightsSection.tsx`, `PlansSection.tsx`, `FaqSection.tsx`, and `EnquiryFooter.tsx` with essential-only content.
-- [x] 4. Verify with `npx eslint`, `npx tsc --noEmit`, and `npx next build`.
+- [x] 1. Inspect admin auth pattern and VPS PostgreSQL / Nginx environment (`smartup-portal`).
+- [x] 2. Harden `POST /api/enquiry/register` (`P2002` retry + `crypto` ref codes) and build protected Counsellor Portal (`/enquiry/admin` + `/api/enquiry/admin/auth` + `/api/enquiry/admin/leads`).
+- [x] 3. Provision isolated `smartup_enquiry` PostgreSQL DB + `smartup_enquiry_admin` role on VPS, configure `ENQUIRY_DATABASE_URL` (`connection_limit=20`), and update `scripts/deploy.sh`.
+- [x] 4. Configure `/etc/nginx/sites-available/enquiry` on VPS, deploy `8af11dd`, and verify HTTP 200 routing, HTTP 201 registration saving to `smartup_enquiry`, and admin portal retrieval.
 
-## Review & Verification
-- `npx eslint src/app/enquiry src/components/enquiry src/data/enquiry-content.ts src/lib/enquiry src/app/api/enquiry src/proxy.ts`: Passed with 0 errors/warnings.
-- `npx tsc --noEmit`: Passed with exit code 0.
-- `npx next build`: Passed with exit code 0 (`/enquiry` prerendered as static content, `/api/enquiry/register` compiled as dynamic route).
+## Remaining External Step (DNS Only)
+- Add `A` record in Cloudflare DNS for `smartuplearning.net`: `enquiry` → `76.13.244.60` (Proxied). Everything on the VPS (Nginx, PM2, Next.js, PostgreSQL) is already live and tested.
