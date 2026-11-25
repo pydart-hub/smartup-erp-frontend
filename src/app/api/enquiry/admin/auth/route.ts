@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateAdminToken, verifyAdminToken } from "@/lib/scholar-admin-auth";
 
-const ENQUIRY_ADMIN_USER = process.env.ENQUIRY_ADMIN_USER || "admin@Enquiry";
+const ENQUIRY_ADMIN_USER =
+  process.env.ENQUIRY_ADMIN_USER || "enquiry@SmartUp";
 const ENQUIRY_ADMIN_PASS =
-  process.env.ENQUIRY_ADMIN_PASS || "enquiry@SmartUp2026!";
+  process.env.ENQUIRY_ADMIN_PASS || "enquiry@SmartUp!";
 
 export async function GET(request: NextRequest) {
   const cookieToken = request.cookies.get("enquiry_admin_token")?.value;

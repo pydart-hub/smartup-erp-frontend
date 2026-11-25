@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    const [leads, totalCount, statusGroups] = await Promise.all([
+    const [leads, totalCount, statusGroups, planGroups] = await Promise.all([
       enquiryDb.courseEnquiry.findMany({
         where,
         orderBy: { createdAt: "desc" },
@@ -67,6 +67,10 @@ export async function GET(request: NextRequest) {
         by: ["status"],
         _count: { status: true },
       }),
+      enquiryDb.courseEnquiry.groupBy({
+        by: ["preferredPlan"],
+        _count: { preferredPlan: true },
+      }),
     ]);
 
     const countsByStatus: Record<string, number> = {};
@@ -74,11 +78,17 @@ export async function GET(request: NextRequest) {
       countsByStatus[row.status] = row._count.status;
     }
 
+    const countsByPlan: Record<string, number> = {};
+    for (const row of planGroups) {
+      countsByPlan[row.preferredPlan] = row._count.preferredPlan;
+    }
+
     return NextResponse.json({
       leads,
       summary: {
         total: totalCount,
         byStatus: countsByStatus,
+        byPlan: countsByPlan,
       },
     });
   } catch (error) {

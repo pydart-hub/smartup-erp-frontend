@@ -9,21 +9,11 @@ import {
   Loader2,
   Lock,
   LogOut,
-  MessageCircle,
   Pencil,
   RefreshCw,
   Search,
   X,
 } from "lucide-react";
-
-interface FollowUpItem {
-  id: string;
-  counsellorName: string;
-  channel: string;
-  outcome: string;
-  remarks: string | null;
-  createdAt: string;
-}
 
 interface LeadRecord {
   id: string;
@@ -40,37 +30,30 @@ interface LeadRecord {
   preferredPlan: string;
   schoolName: string | null;
   preferredCallTime: string | null;
-  status: string;
   assignedCounsellor: string | null;
   notes: string | null;
   utmSource: string | null;
   createdAt: string;
-  followUps: FollowUpItem[];
 }
 
-const STATUS_LABELS: Record<string, { label: string; badge: string }> = {
-  new: { label: "New", badge: "bg-purple-50 text-[#5C34A4] border-purple-200" },
-  contacted: {
-    label: "Contacted",
-    badge: "bg-blue-50 text-blue-700 border-blue-200",
-  },
-  demo_scheduled: {
-    label: "Demo Scheduled",
-    badge: "bg-amber-50 text-amber-700 border-amber-200",
-  },
-  diagnostic_done: {
-    label: "Diagnostic Done",
-    badge: "bg-indigo-50 text-indigo-700 border-indigo-200",
-  },
-  enrolled: {
-    label: "Enrolled",
-    badge: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  },
-  not_interested: {
-    label: "Not Interested",
-    badge: "bg-slate-100 text-slate-600 border-slate-200",
-  },
-};
+function formatEnquiredDateTime(isoString: string) {
+  const d = new Date(isoString);
+  if (isNaN(d.getTime())) return { date: "—", time: "—" };
+
+  const date = d.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+
+  const time = d.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+
+  return { date, time };
+}
 
 export default function EnquiryAdminPage() {
   const [checkingAuth, setCheckingAuth] = useState(true);
@@ -83,18 +66,16 @@ export default function EnquiryAdminPage() {
   const [leads, setLeads] = useState<LeadRecord[]>([]);
   const [summary, setSummary] = useState<{
     total: number;
-    byStatus: Record<string, number>;
-  }>({ total: 0, byStatus: {} });
+    byPlan: Record<string, number>;
+  }>({ total: 0, byPlan: {} });
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
   const [classFilter, setClassFilter] = useState("all");
   const [planFilter, setPlanFilter] = useState("all");
 
   const [editingLead, setEditingLead] = useState<LeadRecord | null>(null);
-  const [editStatus, setEditStatus] = useState("new");
   const [editCounsellor, setEditCounsellor] = useState("");
   const [editNotes, setEditNotes] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
@@ -104,7 +85,6 @@ export default function EnquiryAdminPage() {
     setLoadError(null);
     try {
       const params = new URLSearchParams();
-      if (statusFilter !== "all") params.set("status", statusFilter);
       if (classFilter !== "all") params.set("classLevel", classFilter);
       if (planFilter !== "all") params.set("plan", planFilter);
       if (search.trim()) params.set("q", search.trim());
@@ -120,13 +100,13 @@ export default function EnquiryAdminPage() {
         return;
       }
       setLeads(data.leads || []);
-      setSummary(data.summary || { total: 0, byStatus: {} });
+      setSummary(data.summary || { total: 0, byPlan: {} });
     } catch {
       setLoadError("Network error while fetching leads.");
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, classFilter, planFilter, search]);
+  }, [classFilter, planFilter, search]);
 
   useEffect(() => {
     fetch("/api/enquiry/admin/auth")
@@ -174,7 +154,6 @@ export default function EnquiryAdminPage() {
 
   const openEditor = (lead: LeadRecord) => {
     setEditingLead(lead);
-    setEditStatus(lead.status);
     setEditCounsellor(lead.assignedCounsellor || "");
     setEditNotes(lead.notes || "");
   };
@@ -189,7 +168,6 @@ export default function EnquiryAdminPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: editingLead.id,
-          status: editStatus,
           assignedCounsellor: editCounsellor,
           notes: editNotes,
         }),
@@ -206,6 +184,7 @@ export default function EnquiryAdminPage() {
   const exportCsv = () => {
     const headers = [
       "Reference",
+      "Enquired Date & Time",
       "Student",
       "Parent",
       "Phone",
@@ -215,17 +194,17 @@ export default function EnquiryAdminPage() {
       "Stream",
       "Board",
       "Plan",
-      "Status",
       "Counsellor",
       "Notes",
-      "Created At",
     ];
     const escape = (val: string | null | undefined) =>
       `"${String(val ?? "").replace(/"/g, '""')}"`;
 
-    const rows = leads.map((l) =>
-      [
+    const rows = leads.map((l) => {
+      const { date, time } = formatEnquiredDateTime(l.createdAt);
+      return [
         l.referenceCode,
+        `${date}, ${time}`,
         l.studentName,
         l.parentName,
         l.phone,
@@ -235,14 +214,12 @@ export default function EnquiryAdminPage() {
         l.stream,
         l.board,
         l.preferredPlan,
-        l.status,
         l.assignedCounsellor,
         l.notes,
-        new Date(l.createdAt).toISOString(),
       ]
         .map(escape)
-        .join(",")
-    );
+        .join(",");
+    });
 
     const csv = [headers.join(","), ...rows].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -300,7 +277,7 @@ export default function EnquiryAdminPage() {
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="admin@Enquiry"
+                placeholder="enquiry@SmartUp"
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#5C34A4]"
               />
             </div>
@@ -402,7 +379,7 @@ export default function EnquiryAdminPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="rounded-2xl bg-white border border-slate-200/80 p-4">
             <span className="text-[11px] font-bold uppercase text-slate-400">
-              Total Leads
+              Total Enquiries
             </span>
             <p className="text-2xl font-black text-slate-900 mt-1">
               {summary.total}
@@ -410,26 +387,26 @@ export default function EnquiryAdminPage() {
           </div>
           <div className="rounded-2xl bg-white border border-slate-200/80 p-4">
             <span className="text-[11px] font-bold uppercase text-[#5C34A4]">
-              New
+              1:1 Personal
             </span>
             <p className="text-2xl font-black text-[#5C34A4] mt-1">
-              {summary.byStatus?.new || 0}
+              {summary.byPlan?.["1:1 Personal"] || 0}
             </p>
           </div>
           <div className="rounded-2xl bg-white border border-slate-200/80 p-4">
-            <span className="text-[11px] font-bold uppercase text-amber-600">
-              Demo Scheduled
+            <span className="text-[11px] font-bold uppercase text-indigo-600">
+              1:3 Small Group
             </span>
-            <p className="text-2xl font-black text-amber-600 mt-1">
-              {summary.byStatus?.demo_scheduled || 0}
+            <p className="text-2xl font-black text-indigo-600 mt-1">
+              {summary.byPlan?.["1:3 Small Group"] || 0}
             </p>
           </div>
           <div className="rounded-2xl bg-white border border-slate-200/80 p-4">
             <span className="text-[11px] font-bold uppercase text-emerald-600">
-              Enrolled
+              Micro Batch
             </span>
             <p className="text-2xl font-black text-emerald-600 mt-1">
-              {summary.byStatus?.enrolled || 0}
+              {summary.byPlan?.["Micro Batch"] || 0}
             </p>
           </div>
         </div>
@@ -446,19 +423,6 @@ export default function EnquiryAdminPage() {
               className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-[#5C34A4]"
             />
           </div>
-
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white"
-          >
-            <option value="all">All Statuses</option>
-            {Object.entries(STATUS_LABELS).map(([k, v]) => (
-              <option key={k} value={k}>
-                {v.label}
-              </option>
-            ))}
-          </select>
 
           <select
             value={classFilter}
@@ -503,11 +467,10 @@ export default function EnquiryAdminPage() {
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200/80 text-slate-500 uppercase text-[10px] tracking-wider">
-                  <th className="py-3 px-4">Ref / Date</th>
+                  <th className="py-3 px-4">Ref / Enquired At</th>
                   <th className="py-3 px-4">Student &amp; Parent</th>
                   <th className="py-3 px-4">WhatsApp &amp; Location</th>
                   <th className="py-3 px-4">Academic &amp; Plan</th>
-                  <th className="py-3 px-4">Status</th>
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
@@ -515,7 +478,7 @@ export default function EnquiryAdminPage() {
                 {leads.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={6}
+                      colSpan={5}
                       className="py-10 text-center text-slate-400"
                     >
                       {loading ? "Loading enquiries..." : "No enquiries found."}
@@ -523,19 +486,20 @@ export default function EnquiryAdminPage() {
                   </tr>
                 ) : (
                   leads.map((lead) => {
-                    const st = STATUS_LABELS[lead.status] || STATUS_LABELS.new;
-                    const waDigits = lead.phone.replace(/\D/g, "");
+                    const { date, time } = formatEnquiredDateTime(
+                      lead.createdAt
+                    );
                     return (
                       <tr key={lead.id} className="hover:bg-slate-50/70">
-                        <td className="py-3.5 px-4 align-top">
+                        <td className="py-3.5 px-4 align-top whitespace-nowrap">
                           <span className="font-mono font-bold text-[#5C34A4] block">
                             {lead.referenceCode}
                           </span>
-                          <span className="text-[11px] text-slate-400">
-                            {new Date(lead.createdAt).toLocaleDateString("en-GB", {
-                              day: "2-digit",
-                              month: "short",
-                            })}
+                          <span className="text-[11px] font-medium text-slate-600 block">
+                            {date}
+                          </span>
+                          <span className="text-[11px] text-slate-400 block">
+                            {time}
                           </span>
                         </td>
                         <td className="py-3.5 px-4 align-top">
@@ -564,36 +528,20 @@ export default function EnquiryAdminPage() {
                           <span className="font-bold text-slate-800 block">
                             {lead.classLevel} · {lead.stream} ({lead.board})
                           </span>
-                          <span className="text-[#5C34A4] font-semibold">
+                          <span className="text-[#5C34A4] font-semibold block">
                             {lead.preferredPlan}
                           </span>
-                        </td>
-                        <td className="py-3.5 px-4 align-top">
-                          <span
-                            className={`inline-block px-2.5 py-0.5 rounded-full border text-[11px] font-bold ${st.badge}`}
-                          >
-                            {st.label}
-                          </span>
                           {lead.assignedCounsellor && (
-                            <span className="block text-[11px] text-slate-500 mt-1">
-                              {lead.assignedCounsellor}
+                            <span className="block text-[11px] text-slate-500 mt-0.5">
+                              Counsellor: {lead.assignedCounsellor}
                             </span>
                           )}
                         </td>
-                        <td className="py-3.5 px-4 align-top text-right space-x-1.5 whitespace-nowrap">
-                          <a
-                            href={`https://wa.me/${waDigits}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-semibold"
-                          >
-                            <MessageCircle className="w-3.5 h-3.5" />
-                            <span>Chat</span>
-                          </a>
+                        <td className="py-3.5 px-4 align-top text-right whitespace-nowrap">
                           <button
                             type="button"
                             onClick={() => openEditor(lead)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 font-semibold cursor-pointer"
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 font-semibold cursor-pointer"
                           >
                             <Pencil className="w-3.5 h-3.5" />
                             <span>Update</span>
@@ -632,23 +580,6 @@ export default function EnquiryAdminPage() {
             </div>
 
             <form onSubmit={handleSaveEdit} className="space-y-3.5">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Pipeline Status
-                </label>
-                <select
-                  value={editStatus}
-                  onChange={(e) => setEditStatus(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white"
-                >
-                  {Object.entries(STATUS_LABELS).map(([k, v]) => (
-                    <option key={k} value={k}>
-                      {v.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Assigned Counsellor
