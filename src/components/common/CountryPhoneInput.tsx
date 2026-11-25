@@ -18,6 +18,7 @@ interface CountryPhoneInputProps {
   className?: string;
   error?: string;
   showLiveValidation?: boolean;
+  compactSelect?: boolean;
 }
 
 export default function CountryPhoneInput({
@@ -30,6 +31,7 @@ export default function CountryPhoneInput({
   className = "",
   error: customError,
   showLiveValidation = true,
+  compactSelect = false,
 }: CountryPhoneInputProps) {
   const handleCountrySelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const code = e.target.value;
@@ -62,19 +64,41 @@ export default function CountryPhoneInput({
       >
         {/* Country Picker Dropdown */}
         <div className="relative flex items-center bg-slate-50 border-r border-slate-200/80 shrink-0">
-          <select
-            value={selectedCountry.code}
-            onChange={handleCountrySelect}
-            disabled={disabled}
-            aria-label="Select Country Code"
-            className="appearance-none bg-transparent pl-3 pr-6 py-2.5 text-xs font-bold text-slate-800 cursor-pointer focus:outline-none disabled:cursor-not-allowed"
-          >
-            {COUNTRIES.map((c) => (
-              <option key={c.code} value={c.code}>
-                {c.flag} {c.dialCode} ({c.name})
-              </option>
-            ))}
-          </select>
+          {compactSelect ? (
+            <>
+              <div className="flex items-center gap-1.5 pl-3 pr-6 py-2.5 text-xs font-bold text-slate-800 whitespace-nowrap pointer-events-none select-none">
+                <span>{selectedCountry.flag}</span>
+                <span>{selectedCountry.dialCode}</span>
+              </div>
+              <select
+                value={selectedCountry.code}
+                onChange={handleCountrySelect}
+                disabled={disabled}
+                aria-label="Select Country Code"
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+              >
+                {COUNTRIES.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.flag} {c.dialCode} ({c.name})
+                  </option>
+                ))}
+              </select>
+            </>
+          ) : (
+            <select
+              value={selectedCountry.code}
+              onChange={handleCountrySelect}
+              disabled={disabled}
+              aria-label="Select Country Code"
+              className="appearance-none bg-transparent pl-3 pr-6 py-2.5 text-xs font-bold text-slate-800 cursor-pointer focus:outline-none disabled:cursor-not-allowed"
+            >
+              {COUNTRIES.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.flag} {c.dialCode} ({c.name})
+                </option>
+              ))}
+            </select>
+          )}
           <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-1.5 pointer-events-none" />
         </div>
 

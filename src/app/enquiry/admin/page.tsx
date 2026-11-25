@@ -347,7 +347,7 @@ export default function EnquiryAdminPage() {
     <div className="min-h-screen bg-[#FAFAFC] text-slate-900">
       {/* Top Bar */}
       <header className="bg-white border-b border-slate-200/80 sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 min-h-16 py-2.5 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <Image
               src="/smartup-logo-v2.png"

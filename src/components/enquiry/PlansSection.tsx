@@ -29,7 +29,7 @@ export default function PlansSection({
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {PLANS.map((plan) => {
             const isSelected = selectedPlan === plan.id;
             const isFeatured = Boolean(plan.featured);

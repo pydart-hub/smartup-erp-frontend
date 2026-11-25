@@ -30,8 +30,8 @@ export default function EnquiryHeader({ onBookDemo }: EnquiryHeaderProps) {
           </div>
         </a>
 
-        <div className="flex items-center gap-6">
-          <nav className="hidden sm:flex items-center gap-6 text-xs font-semibold text-slate-600">
+        <div className="flex items-center gap-3 sm:gap-6">
+          <nav className="flex items-center gap-3.5 sm:gap-6 text-xs font-semibold text-slate-600">
             <a href="#plans" className="hover:text-[#5C34A4] transition-colors">
               Plans
             </a>
@@ -43,9 +43,9 @@ export default function EnquiryHeader({ onBookDemo }: EnquiryHeaderProps) {
           <button
             type="button"
             onClick={onBookDemo}
-            className="px-4 py-2 rounded-full bg-[#5C34A4] hover:bg-[#4B288A] text-white text-xs font-bold shadow-xs transition-all cursor-pointer active:scale-[0.98]"
+            className="px-3.5 sm:px-4 py-2 rounded-full bg-[#5C34A4] hover:bg-[#4B288A] text-white text-xs font-bold shadow-xs transition-all cursor-pointer active:scale-[0.98] whitespace-nowrap"
           >
-            Book Free Demo
+            Book Demo
           </button>
         </div>
       </div>

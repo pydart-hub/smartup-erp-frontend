@@ -2,6 +2,7 @@
 
 import React, { useState, useSyncExternalStore } from "react";
 import Image from "next/image";
+import { motion } from "framer-motion";
 
 interface SmartUpAnimatedLogoProps {
   size?: number;
@@ -23,7 +24,7 @@ function getClientStaticPreference(): boolean {
 
 /**
  * Renders the animated SmartUp WebM logo with automatic fallback to
- * smartup-logo-v2.png for browsers without alpha-WebM support or reduced motion.
+ * gently animated smartup-logo-v2.png for Safari or reduced-motion browsers.
  */
 export default function SmartUpAnimatedLogo({
   size = 64,
@@ -39,24 +40,31 @@ export default function SmartUpAnimatedLogo({
 
   if (videoFailed || preferStatic) {
     return (
-      <Image
-        src="/smartup-logo-v2.png"
-        alt={alt}
-        width={size}
-        height={size}
-        className={`object-contain ${className}`}
-      />
+      <motion.div
+        animate={{ scale: [1, 1.05, 1] }}
+        transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
+        className="inline-flex items-center justify-center"
+      >
+        <Image
+          src="/smartup-logo-v2.png"
+          alt={alt}
+          width={size}
+          height={size}
+          className={`object-contain ${className}`}
+        />
+      </motion.div>
     );
   }
 
   return (
     <video
-      src="/Logo Icon LOOK ALPHA.webm"
+      src="/Logo%20Icon%20LOOK%20ALPHA.webm"
       poster="/smartup-logo-v2.png"
       autoPlay
       loop
       muted
       playsInline
+      preload="auto"
       width={size}
       height={size}
       aria-label={alt}

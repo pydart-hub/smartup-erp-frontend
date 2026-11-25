@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
   AlertCircle,
@@ -95,6 +95,7 @@ export default function HeroRegistrationSection({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [receipt, setReceipt] = useState<SubmissionReceipt | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   const isHigherSecondary =
     classLevel === "Class 11" || classLevel === "Class 12";
@@ -184,6 +185,13 @@ export default function HeroRegistrationSection({
         preferredPlan: data.preferredPlan,
         updated: data.updated,
       });
+
+      setTimeout(() => {
+        cardRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }, 100);
     } catch {
       setErrorMessage(
         "Network error while submitting your enquiry. Please try again."
@@ -253,51 +261,84 @@ export default function HeroRegistrationSection({
           </div>
         </motion.div>
 
-        {/* Right Primary Card: Student Registration Form */}
+        {/* Right Primary Card: Student Registration Form / Thank You Card */}
         <motion.div
+          ref={cardRef}
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, delay: 0.08 }}
-          className="lg:col-span-6"
+          className="lg:col-span-6 w-full"
         >
-          <div className="rounded-[28px] bg-white border border-slate-200/90 p-6 sm:p-7 shadow-[0_24px_64px_-16px_rgba(92,52,164,0.16)]">
+          <div className="rounded-[24px] sm:rounded-[28px] bg-white border border-slate-200/90 p-5 sm:p-7 shadow-[0_24px_64px_-16px_rgba(92,52,164,0.16)]">
             {receipt ? (
-              <div className="py-6 text-center space-y-5">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.35, ease: "easeOut" }}
+                className="py-5 sm:py-8 text-center space-y-5"
+              >
                 <div className="flex justify-center">
-                  <div className="w-20 h-20 rounded-3xl bg-[#FAF8FF] border border-[#EDE7F6] flex items-center justify-center p-2">
-                    <SmartUpAnimatedLogo size={64} />
+                  <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-gradient-to-br from-[#F5F3FF] to-[#EDE7F6] border border-[#5C34A4]/20 flex items-center justify-center p-3 shadow-inner">
+                    <SmartUpAnimatedLogo size={96} />
                   </div>
                 </div>
 
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200">
+                <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200">
                   <CheckCircle2 className="w-4 h-4" />
                   <span>
                     {receipt.updated
-                      ? "Enquiry Updated"
-                      : "Registration Received"}
+                      ? "Details Updated Successfully"
+                      : "Details Saved Successfully"}
                   </span>
                 </div>
 
-                <div>
-                  <h2 className="text-xl font-black text-slate-900">
-                    Thank you! We’ll reach out shortly.
+                <div className="space-y-2 px-1">
+                  <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                    Thank You,{" "}
+                    <span className="text-[#5C34A4]">
+                      {receipt.studentName}!
+                    </span>
                   </h2>
-                  <p className="mt-1.5 text-xs sm:text-sm text-slate-600">
-                    Ref:{" "}
-                    <strong className="font-mono text-[#5C34A4]">
-                      {receipt.referenceCode}
+                  <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto leading-relaxed">
+                    Your registration for the{" "}
+                    <strong className="text-slate-900">
+                      CBSE Crash Course
                     </strong>{" "}
-                    · {receipt.studentName} ({receipt.classLevel} ·{" "}
-                    {receipt.preferredPlan})
+                    is saved. Our counsellor will reach out shortly with your{" "}
+                    <strong className="text-[#5C34A4]">
+                      {receipt.preferredPlan}
+                    </strong>{" "}
+                    fee &amp; demo schedule.
                   </p>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-2.5 pt-1">
+                <div className="mx-auto max-w-sm rounded-2xl bg-[#FAF8FF] border border-slate-200/80 px-4 py-3 text-xs space-y-1.5 text-left">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-slate-500">Reference ID</span>
+                    <span className="font-mono font-bold text-[#5C34A4]">
+                      {receipt.referenceCode}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-slate-500">Class</span>
+                    <span className="font-bold text-slate-900">
+                      {receipt.classLevel}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-slate-500">Batch Plan</span>
+                    <span className="font-bold text-slate-900">
+                      {receipt.preferredPlan}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-2.5 pt-1 max-w-sm mx-auto">
                   <a
                     href={`https://wa.me/${CONTACT_INFO.whatsappDigits}?text=${whatsappMessage}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 px-4 py-3 rounded-xl bg-[#16A34A] hover:bg-[#15803D] text-white text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-2 transition"
+                    className="flex-1 px-4 py-3 rounded-xl bg-[#16A34A] hover:bg-[#15803D] text-white text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-2 transition shadow-sm"
                   >
                     <MessageCircle className="w-4 h-4" />
                     <span>Message on WhatsApp</span>
@@ -313,7 +354,7 @@ export default function HeroRegistrationSection({
                     New enquiry
                   </button>
                 </div>
-              </div>
+              </motion.div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-3.5">
                 <div className="pb-1">
@@ -380,6 +421,7 @@ export default function HeroRegistrationSection({
                     onCountryChange={handleCountryChange}
                     phone={phone}
                     onPhoneChange={setPhone}
+                    compactSelect
                     required
                   />
                 </div>
@@ -456,7 +498,7 @@ export default function HeroRegistrationSection({
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Batch Plan
                   </label>
-                  <div className="grid grid-cols-4 gap-1.5">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-1.5">
                     {PLAN_CHOICES.map((plan) => {
                       const active = selectedPlan === plan.value;
                       return (
