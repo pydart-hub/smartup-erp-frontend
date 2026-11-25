@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateAdminToken, verifyAdminToken } from "@/lib/scholar-admin-auth";
-
-const ENQUIRY_ADMIN_USER =
-  process.env.ENQUIRY_ADMIN_USER || "enquiry@SmartUp";
-const ENQUIRY_ADMIN_PASS =
-  process.env.ENQUIRY_ADMIN_PASS || "enquiry@SmartUp!";
+import { verifyEnquiryAdminCredentials } from "@/lib/enquiry/admin-auth";
 
 export async function GET(request: NextRequest) {
   const cookieToken = request.cookies.get("enquiry_admin_token")?.value;
@@ -16,14 +12,10 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const { username, password } = await request.json();
-    const cleanUser = typeof username === "string" ? username.trim() : "";
+    const cleanUser = typeof username === "string" ? username : "";
+    const cleanPass = typeof password === "string" ? password : "";
 
-    const isEnquiryAdmin =
-      cleanUser === ENQUIRY_ADMIN_USER && password === ENQUIRY_ADMIN_PASS;
-    const isMasterAdmin =
-      cleanUser === "admin@SmartUp" && password === "admin@SmartUp!";
-
-    if (!isEnquiryAdmin && !isMasterAdmin) {
+    if (!verifyEnquiryAdminCredentials(cleanUser, cleanPass)) {
       return NextResponse.json(
         { error: "Invalid username or password" },
         { status: 401 }

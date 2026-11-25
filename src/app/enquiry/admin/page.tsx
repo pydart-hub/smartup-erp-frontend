@@ -4,14 +4,15 @@ import React, { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
+  AlertTriangle,
   ArrowLeft,
   Download,
   Loader2,
   Lock,
   LogOut,
-  Pencil,
   RefreshCw,
   Search,
+  Trash2,
   X,
 } from "lucide-react";
 
@@ -75,10 +76,10 @@ export default function EnquiryAdminPage() {
   const [classFilter, setClassFilter] = useState("all");
   const [planFilter, setPlanFilter] = useState("all");
 
-  const [editingLead, setEditingLead] = useState<LeadRecord | null>(null);
-  const [editCounsellor, setEditCounsellor] = useState("");
-  const [editNotes, setEditNotes] = useState("");
-  const [savingEdit, setSavingEdit] = useState(false);
+  const [deletingLead, setDeletingLead] = useState<LeadRecord | null>(null);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchLeads = useCallback(async () => {
     setLoading(true);
@@ -152,32 +153,50 @@ export default function EnquiryAdminPage() {
     setLeads([]);
   };
 
-  const openEditor = (lead: LeadRecord) => {
-    setEditingLead(lead);
-    setEditCounsellor(lead.assignedCounsellor || "");
-    setEditNotes(lead.notes || "");
+  const openDeleteModal = (lead: LeadRecord) => {
+    setDeletingLead(lead);
+    setDeletePassword("");
+    setDeleteError(null);
   };
 
-  const handleSaveEdit = async (e: React.FormEvent) => {
+  const closeDeleteModal = () => {
+    if (isDeleting) return;
+    setDeletingLead(null);
+    setDeletePassword("");
+    setDeleteError(null);
+  };
+
+  const handleConfirmDelete = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingLead) return;
-    setSavingEdit(true);
+    if (!deletingLead) return;
+    if (!deletePassword) {
+      setDeleteError("Please enter the admin password to delete.");
+      return;
+    }
+
+    setIsDeleting(true);
+    setDeleteError(null);
     try {
       const res = await fetch("/api/enquiry/admin/leads", {
-        method: "PATCH",
+        method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          id: editingLead.id,
-          assignedCounsellor: editCounsellor,
-          notes: editNotes,
+          id: deletingLead.id,
+          password: deletePassword,
         }),
       });
-      if (res.ok) {
-        setEditingLead(null);
-        fetchLeads();
+      const data = await res.json();
+      if (!res.ok) {
+        setDeleteError(data.error || "Failed to delete enquiry.");
+        return;
       }
+      setDeletingLead(null);
+      setDeletePassword("");
+      fetchLeads();
+    } catch {
+      setDeleteError("Network error while deleting enquiry.");
     } finally {
-      setSavingEdit(false);
+      setIsDeleting(false);
     }
   };
 
@@ -194,8 +213,6 @@ export default function EnquiryAdminPage() {
       "Stream",
       "Board",
       "Plan",
-      "Counsellor",
-      "Notes",
     ];
     const escape = (val: string | null | undefined) =>
       `"${String(val ?? "").replace(/"/g, '""')}"`;
@@ -214,8 +231,6 @@ export default function EnquiryAdminPage() {
         l.stream,
         l.board,
         l.preferredPlan,
-        l.assignedCounsellor,
-        l.notes,
       ]
         .map(escape)
         .join(",");
@@ -531,20 +546,15 @@ export default function EnquiryAdminPage() {
                           <span className="text-[#5C34A4] font-semibold block">
                             {lead.preferredPlan}
                           </span>
-                          {lead.assignedCounsellor && (
-                            <span className="block text-[11px] text-slate-500 mt-0.5">
-                              Counsellor: {lead.assignedCounsellor}
-                            </span>
-                          )}
                         </td>
                         <td className="py-3.5 px-4 align-top text-right whitespace-nowrap">
                           <button
                             type="button"
-                            onClick={() => openEditor(lead)}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 font-semibold cursor-pointer"
+                            onClick={() => openDeleteModal(lead)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-50 text-rose-700 border border-rose-200/80 hover:bg-rose-100 font-semibold cursor-pointer transition"
                           >
-                            <Pencil className="w-3.5 h-3.5" />
-                            <span>Update</span>
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Delete</span>
                           </button>
                         </td>
                       </tr>
@@ -557,69 +567,96 @@ export default function EnquiryAdminPage() {
         </div>
       </main>
 
-      {/* Edit Modal */}
-      {editingLead && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-black text-slate-900">
-                  Update Enquiry
+      {/* Password-Protected Delete Modal */}
+      {deletingLead && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-3xl bg-white shadow-2xl overflow-hidden border border-slate-200">
+            <div className="bg-rose-50 border-b border-rose-100 px-6 py-4 flex items-start gap-3 relative">
+              <div className="w-9 h-9 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-4 h-4" />
+              </div>
+              <div className="pr-6">
+                <h2 className="text-sm font-black text-rose-900">
+                  Confirm Enquiry Deletion
                 </h2>
-                <p className="text-xs text-slate-500">
-                  {editingLead.studentName} · {editingLead.referenceCode}
+                <p className="text-xs text-rose-700 mt-0.5">
+                  Enter the admin password to permanently delete this record
+                  from smartup_enquiry.
                 </p>
               </div>
               <button
                 type="button"
-                onClick={() => setEditingLead(null)}
-                className="p-1.5 rounded-lg hover:bg-slate-100 cursor-pointer"
+                onClick={closeDeleteModal}
+                disabled={isDeleting}
+                className="absolute top-3.5 right-3.5 p-1.5 rounded-lg text-rose-400 hover:text-rose-700 hover:bg-rose-100 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveEdit} className="space-y-3.5">
+            <form onSubmit={handleConfirmDelete} className="p-6 space-y-4">
+              <div className="rounded-2xl bg-slate-50 border border-slate-200/80 p-3.5 text-xs space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Reference</span>
+                  <span className="font-mono font-bold text-[#5C34A4]">
+                    {deletingLead.referenceCode}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Student</span>
+                  <span className="font-bold text-slate-900">
+                    {deletingLead.studentName}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Phone</span>
+                  <span className="font-mono text-slate-800">
+                    {deletingLead.phone}
+                  </span>
+                </div>
+              </div>
+
+              {deleteError && (
+                <div className="rounded-xl bg-rose-50 border border-rose-200 px-3.5 py-2.5 text-xs text-rose-700 font-semibold">
+                  {deleteError}
+                </div>
+              )}
+
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Assigned Counsellor
+                <label
+                  htmlFor="deletePasswordInput"
+                  className="block text-xs font-semibold text-slate-700 mb-1"
+                >
+                  Admin Password <span className="text-rose-500">*</span>
                 </label>
                 <input
-                  type="text"
-                  value={editCounsellor}
-                  onChange={(e) => setEditCounsellor(e.target.value)}
-                  placeholder="Counsellor name"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm"
+                  id="deletePasswordInput"
+                  type="password"
+                  required
+                  autoFocus
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  placeholder="Enter admin password"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Notes
-                </label>
-                <textarea
-                  rows={3}
-                  value={editNotes}
-                  onChange={(e) => setEditNotes(e.target.value)}
-                  placeholder="Demo timing, fee discussed, parent feedback..."
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex justify-end gap-2 pt-1">
                 <button
                   type="button"
-                  onClick={() => setEditingLead(null)}
-                  className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold cursor-pointer"
+                  onClick={closeDeleteModal}
+                  disabled={isDeleting}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={savingEdit}
-                  className="px-5 py-2 rounded-xl bg-[#5C34A4] text-white text-xs font-bold cursor-pointer"
+                  disabled={isDeleting || !deletePassword}
+                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer transition"
                 >
-                  {savingEdit ? "Saving..." : "Save Changes"}
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>{isDeleting ? "Deleting..." : "Delete Enquiry"}</span>
                 </button>
               </div>
             </form>

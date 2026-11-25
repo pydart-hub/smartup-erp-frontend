@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { enquiryDb } from "@/lib/enquiry/db";
 import { verifyAdminToken } from "@/lib/scholar-admin-auth";
+import { verifyEnquiryAdminPassword } from "@/lib/enquiry/admin-auth";
 import { ENQUIRY_STATUSES } from "@/lib/enquiry/validation";
 
 export const dynamic = "force-dynamic";
@@ -189,6 +190,65 @@ export async function PATCH(request: NextRequest) {
     console.error("[api/enquiry/admin/leads PATCH] Error:", error);
     return NextResponse.json(
       { error: "Failed to update enquiry." },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  if (!isAuthorized(request)) {
+    return NextResponse.json(
+      { error: "Unauthorized. Please log in." },
+      { status: 401 }
+    );
+  }
+
+  try {
+    const body = await request.json().catch(() => ({}));
+    const { id, password } = body as { id?: string; password?: string };
+
+    if (!id || typeof id !== "string") {
+      return NextResponse.json(
+        { error: "Enquiry ID is required." },
+        { status: 400 }
+      );
+    }
+
+    if (
+      typeof password !== "string" ||
+      !verifyEnquiryAdminPassword(password)
+    ) {
+      return NextResponse.json(
+        { error: "Incorrect password. Deletion denied." },
+        { status: 403 }
+      );
+    }
+
+    const existing = await enquiryDb.courseEnquiry.findUnique({
+      where: { id },
+      select: { id: true, referenceCode: true },
+    });
+
+    if (!existing) {
+      return NextResponse.json(
+        { error: "Enquiry record not found." },
+        { status: 404 }
+      );
+    }
+
+    await enquiryDb.courseEnquiry.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({
+      success: true,
+      deletedId: id,
+      referenceCode: existing.referenceCode,
+    });
+  } catch (error) {
+    console.error("[api/enquiry/admin/leads DELETE] Error:", error);
+    return NextResponse.json(
+      { error: "Failed to delete enquiry." },
       { status: 500 }
     );
   }
