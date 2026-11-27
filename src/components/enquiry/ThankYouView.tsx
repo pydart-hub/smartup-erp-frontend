@@ -24,6 +24,7 @@ import {
   loadEnquiryReceipt,
   saveEnquiryReceipt,
 } from "@/lib/enquiry/receipt";
+import MetaLeadEvent from "@/components/analytics/MetaLeadEvent";
 import type { SubmissionReceipt } from "@/components/enquiry/types";
 
 export default function ThankYouView() {
@@ -97,6 +98,10 @@ export default function ThankYouView() {
 
   return (
     <div className="relative min-h-screen flex flex-col bg-gradient-to-b from-[#F5F1FF] via-[#FAF9FF] to-white overflow-x-hidden">
+      <MetaLeadEvent
+        contentName="enquiry_lead"
+        eventId={receipt?.referenceCode}
+      />
       <ThankYou3DStage />
 
       <div className="relative z-20">

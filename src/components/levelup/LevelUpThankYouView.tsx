@@ -23,6 +23,7 @@ import {
   saveLevelUpReceipt,
   type LevelUpSubmissionReceipt,
 } from "@/lib/levelup-exam/receipt";
+import MetaLeadEvent from "@/components/analytics/MetaLeadEvent";
 
 interface StoredLevelUpStudent {
   name?: string;
@@ -165,6 +166,10 @@ export default function LevelUpThankYouView() {
 
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-[#F5F1FF] via-[#FAF9FF] to-white text-slate-800 flex flex-col justify-between selection:bg-[#5C34A4] selection:text-white font-sans overflow-x-hidden">
+      <MetaLeadEvent
+        contentName="levelup_lead"
+        eventId={receipt?.registrationId}
+      />
       <ThankYou3DStage />
 
       {/* Top Navigation Bar */}

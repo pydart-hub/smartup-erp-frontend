@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import MetaPixelProvider from "@/components/analytics/MetaPixelProvider";
 
 export const metadata: Metadata = {
   title: "LevelUp GCC Scholarship Exam 2026 — SmartUp Learning",
@@ -13,6 +14,7 @@ export default function LevelUpLayout({
 }) {
   return (
     <div className="min-h-screen bg-[#FBFBFE] text-slate-800 selection:bg-[#5C34A4] selection:text-white antialiased font-sans">
+      <MetaPixelProvider />
       {children}
     </div>
   );

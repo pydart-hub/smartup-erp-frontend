@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import MetaPixelProvider from "@/components/analytics/MetaPixelProvider";
 
 export const metadata: Metadata = {
   title: "Smart Up CBSE Crash Course (Classes 8–12) | Book Free Demo",
@@ -23,6 +24,7 @@ export default function EnquiryLayout({
 }) {
   return (
     <div className="min-h-screen bg-white text-slate-900 selection:bg-[#F5C542] selection:text-[#0B1B3F] antialiased font-sans">
+      <MetaPixelProvider />
       {children}
     </div>
   );
