@@ -24,10 +24,14 @@ import {
   Building2,
   FileText,
   HelpCircle,
+  FileSpreadsheet,
+  Download,
 } from "lucide-react";
+import { toast } from "sonner";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { getBranchInvoiceStats, getBranchProgramFeeStats, getBranchForfeitedFees, getBranchCollectedByMode, getDuesTodayByClass } from "@/lib/api/director";
 import type { CollectedByMode } from "@/lib/api/director";
 import { formatCurrency } from "@/lib/utils/formatters";
@@ -57,6 +61,39 @@ export default function BranchFeesPage() {
   const encodedBranch = encodeURIComponent(branchName);
   const [showCollectedModal, setShowCollectedModal] = useState(false);
   const [offlineExpanded, setOfflineExpanded] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  const handleDownloadExcel = async () => {
+    setExporting(true);
+    try {
+      const params = new URLSearchParams({ branch: branchName });
+      const res = await fetch(`/api/director/fees-overview-export?${params.toString()}`, {
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error((err as { error?: string }).error || "Failed to export Excel report");
+      }
+      const disposition = res.headers.get("Content-Disposition") ?? "";
+      const filename =
+        disposition.match(/filename="?([^"]+)"?/)?.[1] ??
+        `SmartUp_${shortName.replace(/[^a-zA-Z0-9]+/g, "_")}_Fees_Report_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(`Excel report downloaded (${filename})`);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Export failed");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const { data: invoiceStats, isLoading: loadInvoices } = useQuery({
     queryKey: ["director-branch-invoice-stats", branchName],
@@ -104,7 +141,7 @@ export default function BranchFeesPage() {
   const totalFees = invoiceStats?.totalInvoiced ?? 0;
   const totalCollected = collectedByMode?.total ?? (invoiceStats?.totalCollected ?? 0);
   const forfeited = forfeitedTotal ?? 0;
-  const totalPending = Math.max(0, totalFees - totalCollected - forfeited);
+  const totalPending = Math.max(0, (invoiceStats?.totalOutstanding ?? 0) - forfeited);
   const invoiceCount = invoiceStats?.count ?? 0;
 
   return (
@@ -136,7 +173,23 @@ export default function BranchFeesPage() {
               Submitted invoices only · {invoiceCount} invoice{invoiceCount !== 1 ? "s" : ""}
             </p>
           </div>
-          <Badge variant="outline" className="self-start text-xs">{branchName}</Badge>
+          <div className="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
+            <Badge variant="outline" className="text-xs">{branchName}</Badge>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleDownloadExcel}
+              disabled={exporting || loadPrograms}
+            >
+              {exporting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <FileSpreadsheet className="h-4 w-4" />
+              )}
+              {exporting ? "Generating Excel..." : "Download Excel Report"}
+              {!exporting && <Download className="h-3.5 w-3.5 ml-0.5" />}
+            </Button>
+          </div>
         </div>
       </motion.div>
 
@@ -189,7 +242,7 @@ export default function BranchFeesPage() {
           <CardContent className="p-4 text-center">
             <Clock className="h-5 w-5 text-error mx-auto mb-2" />
             <p className="text-2xl font-bold text-error">
-              {loadInvoices ? "..." : formatCurrency(totalPending)}
+              {loadInvoices || loadForfeited ? "..." : formatCurrency(totalPending)}
             </p>
             <p className="text-xs text-text-tertiary">Pending</p>
           </CardContent>

@@ -17,8 +17,13 @@ import {
   IndianRupee,
   TrendingUp,
   CalendarClock,
+  FileSpreadsheet,
+  Download,
+  Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
+import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import {
   getAllBranches,
@@ -73,7 +78,7 @@ function BranchFeeCard({
   const totalFees = invoiceStats?.totalInvoiced ?? 0;
   const collected = collectedByMode?.total ?? (invoiceStats?.totalCollected ?? 0);
   const forfeited = forfeitedFees ?? 0;
-  const pending = Math.max(0, totalFees - collected - forfeited);
+  const pending = Math.max(0, (invoiceStats?.totalOutstanding ?? 0) - forfeited);
   const collectedPct = pct(collected, totalFees);
   const duesAmount = dues?.total_dues ?? 0;
 
@@ -132,7 +137,7 @@ function BranchFeeCard({
             <p className="text-[10px] text-success/80 flex items-center gap-0.5 mb-0.5">
               <CircleCheck className="h-2.5 w-2.5" /> Collected
             </p>
-            {isLoading ? <Pulse /> : (
+            {isLoading || loadCollected ? <Pulse /> : (
               <p className="text-sm font-bold text-success">{formatCurrency(collected)}</p>
             )}
           </div>
@@ -140,7 +145,7 @@ function BranchFeeCard({
             <p className="text-[10px] text-error/80 flex items-center gap-0.5 mb-0.5">
               <Clock className="h-2.5 w-2.5" /> Pending
             </p>
-            {isLoading ? <Pulse /> : (
+            {isLoading || loadForfeited ? <Pulse /> : (
               <p className="text-sm font-bold text-error">{formatCurrency(pending)}</p>
             )}
           </div>
@@ -208,7 +213,10 @@ function SummaryCards({
     })
   );
 
-  const anyLoading = statQueries.some((q) => q.isLoading) || loadingCollectedByMode;
+  const anyLoading =
+    statQueries.some((q) => q.isLoading) ||
+    loadingCollectedByMode ||
+    forfeitQueries.some((q) => q.isLoading);
   const total = statQueries.reduce((s, q) => s + (q.data?.totalInvoiced ?? 0), 0);
   const collected = collectedByMode?.total ?? 0;
   const outstanding = statQueries.reduce((s, q) => s + (q.data?.totalOutstanding ?? 0), 0);
@@ -266,6 +274,39 @@ export default function DirectorFeesPage() {
   });
 
   const [search, setSearch] = useState("");
+  const [exporting, setExporting] = useState(false);
+
+  const handleDownloadExcel = async () => {
+    setExporting(true);
+    try {
+      const res = await fetch("/api/director/fees-overview-export", {
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error((err as { error?: string }).error || "Failed to export Excel report");
+      }
+      const disposition = res.headers.get("Content-Disposition") ?? "";
+      const filename =
+        disposition.match(/filename="?([^"]+)"?/)?.[1] ??
+        `SmartUp_Branch_Fees_Report_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(`Excel report downloaded (${filename})`);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Export failed");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const activeBranches = useMemo(
     () => (branches ?? []).filter((b) => b.name !== "Smart Up"),
     [branches]
@@ -283,11 +324,28 @@ export default function DirectorFeesPage() {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
       <BreadcrumbNav />
-      <div>
-        <h1 className="text-2xl font-bold text-text-primary">Fees Overview</h1>
-        <p className="text-sm text-text-secondary mt-0.5">
-          Collection summary across all branches
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-text-primary">Fees Overview</h1>
+          <p className="text-sm text-text-secondary mt-0.5">
+            Collection summary across all branches
+          </p>
+        </div>
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={handleDownloadExcel}
+          disabled={exporting || isLoading || isError}
+          className="self-start sm:self-auto"
+        >
+          {exporting ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <FileSpreadsheet className="h-4 w-4" />
+          )}
+          {exporting ? "Generating Excel..." : "Download Excel Report"}
+          {!exporting && <Download className="h-3.5 w-3.5 ml-0.5" />}
+        </Button>
       </div>
 
       {/* Aggregate summaries */}

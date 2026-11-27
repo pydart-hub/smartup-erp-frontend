@@ -1,12 +1,19 @@
-# Task: SmartUp CBSE Crash Course Enquiry System (`enquiry.smartuplearning.net` & `smartup_enquiry` VPS DB)
+# Task: Director Fees Overview — Accuracy Audit & Excel Report Export
 
-## Status: COMPLETED & VERIFIED LIVE ON VPS
+## Status: COMPLETED & VERIFIED
 
-### Plan & Objectives
-- [x] 1. Inspect admin auth pattern and VPS PostgreSQL / Nginx environment (`smartup-portal`).
-- [x] 2. Harden `POST /api/enquiry/register` (`P2002` retry + `crypto` ref codes) and build protected Counsellor Portal (`/enquiry/admin` + `/api/enquiry/admin/auth` + `/api/enquiry/admin/leads`).
-- [x] 3. Provision isolated `smartup_enquiry` PostgreSQL DB + `smartup_enquiry_admin` role on VPS, configure `ENQUIRY_DATABASE_URL` (`connection_limit=20`), and update `scripts/deploy.sh`.
-- [x] 4. Configure `/etc/nginx/sites-available/enquiry` on VPS, deploy `8af11dd`, and verify HTTP 200 routing, HTTP 201 registration saving to `smartup_enquiry`, and admin portal retrieval.
+## Deep Audit Findings (Verified Against Live Frappe Data)
+1. **Branch Card Pending vs Top Summary Pending Mismatch (`₹1,32,610` gap)**:
+   - `SummaryCards` (`src/app/dashboard/director/fees/page.tsx`): `Pending = Total Outstanding - Forfeited = ₹96,69,698` (true unpaid active invoice balance).
+   - `BranchFeeCard` & `BranchFeesPage`: previously used `Total Invoiced - PE Collected - Forfeited = ₹95,37,088` because `PE Collected` (`₹1,88,06,827`) exceeded `Invoice Settled` (`₹1,86,74,217`) by `₹1,32,610` (`₹1,28,410` unallocated / cross-branch PEs + `₹4,200` duplicate invoice allocation in Chullickal).
+2. **Dues Till Today (`₹45,98,422`) Leaked `₹19,800` From Discontinued Student**:
+   - `STU-SU PLR-26-160` (`Reyone C F`, Palluruthy) had `enabled = 0` with `custom_discontinuation_date = null`, so `dues-till-today` failed to exclude her `₹19,800` overdue balance.
 
-## Remaining External Step (DNS Only)
-- Add `A` record in Cloudflare DNS for `smartuplearning.net`: `enquiry` → `76.13.244.60` (Proxied). Everything on the VPS (Nginx, PM2, Next.js, PostgreSQL) is already live and tested.
+## Completed Implementation
+- [x] 1. Fixed calculation consistency across UI and APIs:
+  - [x] Updated `BranchFeeCard` Pending (`src/app/dashboard/director/fees/page.tsx`) and `BranchFeesPage` Pending (`src/app/dashboard/director/branches/[id]/fees/page.tsx`) to `(invoiceStats?.totalOutstanding ?? 0) - forfeited`.
+  - [x] Updated `getDiscontinuedCustomers` in `src/app/api/fees/dues-till-today/route.ts` to filter `enabled = 0` with pagination (removes the `₹19,800` leak; true total `₹45,78,622`).
+  - [x] Paginated `getBranchCollectedByMode` in `src/lib/api/director.ts`.
+- [x] 2. Built `GET /api/director/fees-overview-export` (`src/app/api/director/fees-overview-export/route.ts`) using `exceljs` with a single `Branch Fees` sheet matching the Fees Overview page columns (`Branch`, `Students`, `Total Fees`, `Collected`, `Pending`, `Forfeited`, `Dues Today`, `Collection %`) + `TOTAL` row, and fixed Row 1 title banner overwrite by setting `sheet.columns` without `header`.
+- [x] 3. Added `Download Excel Report` button to `/dashboard/director/fees` (`src/app/dashboard/director/fees/page.tsx`).
+- [x] 4. Verified with `npx tsc --noEmit`, ESLint on changed files, and live ExcelJS generation & read-back verification.

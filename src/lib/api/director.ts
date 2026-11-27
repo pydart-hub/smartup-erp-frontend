@@ -647,14 +647,27 @@ export interface CollectedByMode {
 }
 
 export async function getBranchCollectedByMode(branch: string): Promise<CollectedByMode> {
-  const params = new URLSearchParams({
-    fields: JSON.stringify(["mode_of_payment", "reference_no", "paid_amount"]),
-    filters: JSON.stringify([["docstatus", "=", "1"], ["payment_type", "=", "Receive"], ["company", "=", branch]]),
-    limit_page_length: "5000",
-  });
-  const { data } = await apiClient.get(`/resource/Payment Entry?${params}`);
-  const entries: { mode_of_payment: string | null; reference_no: string | null; paid_amount: number }[] =
-    data?.data ?? [];
+  const fields = JSON.stringify(["mode_of_payment", "reference_no", "paid_amount"]);
+  const filters = JSON.stringify([["docstatus", "=", "1"], ["payment_type", "=", "Receive"], ["company", "=", branch]]);
+  const entries: { mode_of_payment: string | null; reference_no: string | null; paid_amount: number }[] = [];
+  const pageSize = 5000;
+  let start = 0;
+
+  while (true) {
+    const params = new URLSearchParams({
+      fields,
+      filters,
+      limit_page_length: String(pageSize),
+      limit_start: String(start),
+    });
+    const { data } = await apiClient.get(`/resource/Payment Entry?${params}`);
+    const batch: { mode_of_payment: string | null; reference_no: string | null; paid_amount: number }[] =
+      data?.data ?? [];
+    entries.push(...batch);
+    if (batch.length < pageSize) break;
+    start += pageSize;
+  }
+
   const result: CollectedByMode = { razorpay: 0, cash: 0, upi: 0, bank_transfer: 0, cheque: 0, other: 0, total: 0 };
   for (const pe of entries) {
     const amt = pe.paid_amount ?? 0;

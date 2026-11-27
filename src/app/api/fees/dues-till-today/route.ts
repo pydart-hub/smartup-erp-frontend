@@ -62,7 +62,6 @@ async function frappePost(path: string, body: unknown) {
 async function getDiscontinuedCustomers(company?: string | string[]): Promise<string[]> {
   const filters: (string | number | string[])[][] = [
     ["enabled", "=", 0],
-    ["custom_discontinuation_date", "is", "set"],
   ];
   if (company) {
     if (Array.isArray(company)) {
@@ -72,14 +71,24 @@ async function getDiscontinuedCustomers(company?: string | string[]): Promise<st
     }
   }
 
-  const res = await frappeGet("resource/Student", {
-    filters: JSON.stringify(filters),
-    fields: JSON.stringify(["customer"]),
-    limit_page_length: "500",
-  });
-  return (res.data ?? [])
-    .map((s: { customer?: string }) => s.customer)
-    .filter(Boolean) as string[];
+  const pageSize = 500;
+  let offset = 0;
+  const customers: string[] = [];
+  while (true) {
+    const res = await frappeGet("resource/Student", {
+      filters: JSON.stringify(filters),
+      fields: JSON.stringify(["customer"]),
+      limit_page_length: String(pageSize),
+      limit_start: String(offset),
+    });
+    const rows = (res.data ?? []) as { customer?: string }[];
+    for (const s of rows) {
+      if (s.customer) customers.push(s.customer);
+    }
+    if (rows.length < pageSize) break;
+    offset += pageSize;
+  }
+  return customers;
 }
 
 export async function getBranchStudentsOverdueData(branch: string, todayDate: string) {
