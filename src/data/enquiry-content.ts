@@ -5,9 +5,6 @@ export const CONTACT_INFO = {
   location: "Kochi, Kerala",
   websiteUrl: "https://smartupedu.in",
   websiteLabel: "smartupedu.in",
-  whatsappDigits: "919847000000",
-  whatsappDisplay: "+91 98470 00000",
-  email: "admissions@smartupedu.in",
 };
 
 export const KEY_FACTS = [

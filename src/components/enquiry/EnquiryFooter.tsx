@@ -30,16 +30,10 @@ export default function EnquiryFooter() {
           </span>
         </div>
 
-        <div className="flex flex-wrap items-center justify-center gap-3 text-slate-500">
-          <span>WhatsApp: {CONTACT_INFO.whatsappDisplay}</span>
-          <span>·</span>
-          <a
-            href={`mailto:${CONTACT_INFO.email}`}
-            className="hover:text-[#5C34A4] transition-colors"
-          >
-            {CONTACT_INFO.email}
-          </a>
-        </div>
+        <p className="text-slate-500">
+          © {new Date().getFullYear()} {CONTACT_INFO.organization}. All rights
+          reserved.
+        </p>
       </div>
     </footer>
   );

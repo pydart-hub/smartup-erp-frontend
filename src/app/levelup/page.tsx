@@ -5,15 +5,11 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
-  GraduationCap,
-  Trophy,
   User,
   School,
   Mail,
   ArrowRight,
-  Lock,
   CheckCircle2,
-  Sparkles,
 } from "lucide-react";
 import CountryPhoneInput from "@/components/common/CountryPhoneInput";
 import {
@@ -22,6 +18,10 @@ import {
   validatePhoneNumberStrict,
   formatE164,
 } from "@/lib/constants/countries";
+import {
+  getLevelUpThankYouPath,
+  saveLevelUpReceipt,
+} from "@/lib/levelup-exam/receipt";
 
 // GCC default is United Arab Emirates (+971)
 const GCC_DEFAULT_COUNTRY: CountryConfig =
@@ -46,7 +46,6 @@ export default function LevelUpRegistrationPage() {
   const [syllabus, setSyllabus] = useState<"CBSE" | "State">("CBSE");
   const [district, setDistrict] = useState(GCC_DEFAULT_COUNTRY.regions[0] || "Dubai");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
   const [isStartingExam, setIsStartingExam] = useState(false);
   const [registrationId, setRegistrationId] = useState<string | null>(null);
 
@@ -69,6 +68,10 @@ export default function LevelUpRegistrationPage() {
   // Check LocalStorage on initial load for returning student on same device
   useEffect(() => {
     try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("new") === "1") {
+        return;
+      }
       const saved = localStorage.getItem("levelup_student");
       if (saved) {
         const parsed = JSON.parse(saved);
@@ -189,8 +192,8 @@ export default function LevelUpRegistrationPage() {
       }
 
       window.location.href = `/levelup/exam/${data.attemptId}`;
-    } catch (err: any) {
-      alert(err.message || "Failed to start exam. Please try again.");
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Failed to start exam. Please try again.");
       setIsStartingExam(false);
     }
   };
@@ -210,6 +213,7 @@ export default function LevelUpRegistrationPage() {
 
     const fullPhone = formatE164(selectedCountry.dialCode, phone);
 
+    let didRedirect = false;
     try {
       setIsSubmitting(true);
       const res = await fetch("/api/levelup/register", {
@@ -247,11 +251,27 @@ export default function LevelUpRegistrationPage() {
         })
       );
 
-      setIsSubmitted(true);
-    } catch (err: any) {
-      alert(err.message || "Failed to register. Please try again.");
+      saveLevelUpReceipt({
+        registrationId: data.registrationId,
+        studentName: name.trim(),
+        classLevel: selectedClass,
+        curriculum: syllabus,
+        country: selectedCountry.name,
+        emirateCity: district,
+        schoolName: schoolName.trim(),
+        hasActiveExam: Boolean(data.hasActiveExam),
+        examTitle: data.examTitle || null,
+        durationMinutes: data.durationMinutes,
+      });
+
+      didRedirect = true;
+      router.push(getLevelUpThankYouPath(data.registrationId));
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Failed to register. Please try again.");
     } finally {
-      setIsSubmitting(false);
+      if (!didRedirect) {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -415,7 +435,7 @@ export default function LevelUpRegistrationPage() {
               </div>
 
               {/* Returning Student Auto-Detect Banner */}
-              {returningStudent && !isSubmitted && (
+              {returningStudent && (
                 <div className="mb-5 p-4 rounded-2xl bg-white/70 backdrop-blur-md border border-purple-200/80 text-xs text-slate-800 space-y-2.5 shadow-sm">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5 text-[#5C34A4] font-extrabold text-sm">
@@ -431,7 +451,7 @@ export default function LevelUpRegistrationPage() {
                     </button>
                   </div>
                   <p className="text-[11px] text-slate-600 leading-relaxed">
-                    You registered previously for <strong>{returningStudent.classLevel}</strong>. You don't need to register again!
+                    You registered previously for <strong>{returningStudent.classLevel}</strong>. You don&apos;t need to register again!
                   </p>
                   <button
                     type="button"
@@ -445,70 +465,6 @@ export default function LevelUpRegistrationPage() {
                 </div>
               )}
 
-              {isSubmitted ? (
-                <div className="py-6 text-center space-y-4">
-                  <div className="w-16 h-16 rounded-full bg-purple-100 text-[#5C34A4] flex items-center justify-center mx-auto shadow-sm">
-                    <Trophy className="w-8 h-8" />
-                  </div>
-
-                  <div className="space-y-1">
-                    <h3 className="text-xl font-black text-slate-900">Registration Complete!</h3>
-                    <p className="text-xs text-slate-600">
-                      Welcome, <strong className="text-[#5C34A4]">{name}</strong>. Your slot for{" "}
-                      <strong className="text-slate-800">{selectedClass}</strong> has been logged.
-                    </p>
-                  </div>
-
-                  <div className="p-4 rounded-2xl bg-white/70 backdrop-blur-md border border-white/80 text-xs text-slate-700 space-y-2 text-left shadow-sm">
-                    <div className="flex justify-between pb-1.5 border-b border-slate-200/50">
-                      <span className="text-slate-500">Number:</span>
-                      <span className="font-mono font-bold">{selectedCountry.dialCode} {phone}</span>
-                    </div>
-                    {email && (
-                      <div className="flex justify-between pb-1.5 border-b border-slate-200/50">
-                        <span className="text-slate-500">Email:</span>
-                        <span className="font-medium text-slate-800 truncate max-w-[200px]">{email}</span>
-                      </div>
-                    )}
-                    {schoolName && (
-                      <div className="flex justify-between pb-1.5 border-b border-slate-200/50">
-                        <span className="text-slate-500">School:</span>
-                        <span className="font-bold text-slate-800 truncate max-w-[200px]">{schoolName}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between pb-1.5 border-b border-slate-200/50">
-                      <span className="text-slate-500">Syllabus:</span>
-                      <span className="font-bold text-[#5C34A4]">{syllabus === "State" ? "State Syllabus" : "CBSE Board"}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Country & City:</span>
-                      <span>{district}, {selectedCountry.name}</span>
-                    </div>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-[11px] text-[#5C34A4] text-left flex items-start gap-2">
-                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                    <span>Your registration is saved in the LevelUp portal database.</span>
-                  </div>
-
-                  <button
-                    type="button"
-                    disabled={isStartingExam}
-                    onClick={() => handleStartExam()}
-                    className="w-full py-3.5 px-6 font-bold text-sm text-white bg-[#5C34A4] hover:bg-[#4E2B8E] active:bg-[#43237E] disabled:opacity-70 rounded-xl transition-all shadow-lg shadow-purple-900/25 flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
-                  >
-                    <span>{isStartingExam ? "Starting Scholarship Exam..." : "Take Scholarship Exam Now"}</span>
-                    {!isStartingExam && <ArrowRight className="w-4 h-4" />}
-                  </button>
-
-                  <button
-                    onClick={() => setIsSubmitted(false)}
-                    className="text-xs font-bold text-slate-500 hover:text-[#5C34A4] hover:underline cursor-pointer pt-1 block mx-auto"
-                  >
-                    ← Register another student
-                  </button>
-                </div>
-              ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">
                   {/* Student Name */}
                   <div className="space-y-1.5">
@@ -663,7 +619,6 @@ export default function LevelUpRegistrationPage() {
                     </button>
                   </div>
                 </form>
-              )}
             </motion.div>
           </div>
 

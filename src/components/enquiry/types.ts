@@ -19,3 +19,11 @@ export type CallTimeOption =
   | "Afternoon"
   | "Weekend";
 
+export interface SubmissionReceipt {
+  referenceCode: string;
+  studentName: string;
+  classLevel: string;
+  preferredPlan: string;
+  updated?: boolean;
+}
+
