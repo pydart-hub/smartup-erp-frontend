@@ -4,16 +4,19 @@ import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { motion } from "framer-motion";
 import {
   AlertCircle,
   ArrowLeft,
   ArrowRight,
-  CheckCircle2,
   Loader2,
+  ShieldCheck,
   Trophy,
 } from "lucide-react";
-import SmartUpAnimatedLogo from "@/components/enquiry/SmartUpAnimatedLogo";
+import {
+  ThankYou3DCard,
+  ThankYou3DStage,
+  ThankYouHeroEmblem,
+} from "@/components/common/ThankYou3DStage";
 import {
   getLevelUpHomePath,
   loadLevelUpReceipt,
@@ -161,9 +164,11 @@ export default function LevelUpThankYouView() {
   const registerAnotherHref = `${homeHref}?new=1`;
 
   return (
-    <div className="min-h-screen bg-[#FBFBFE] text-slate-800 flex flex-col justify-between selection:bg-[#5C34A4] selection:text-white font-sans relative overflow-x-hidden">
+    <div className="relative min-h-screen bg-gradient-to-b from-[#F5F1FF] via-[#FAF9FF] to-white text-slate-800 flex flex-col justify-between selection:bg-[#5C34A4] selection:text-white font-sans overflow-x-hidden">
+      <ThankYou3DStage />
+
       {/* Top Navigation Bar */}
-      <header className="w-full bg-transparent py-5 px-6 sm:px-12 lg:px-20 z-20">
+      <header className="relative w-full bg-white/75 backdrop-blur-md border-b border-slate-200/60 py-4 px-6 sm:px-12 lg:px-20 z-20">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link
             href={homeHref}
@@ -192,44 +197,30 @@ export default function LevelUpThankYouView() {
       </header>
 
       {/* Main Confirmation Card */}
-      <main className="relative flex-1 flex items-center justify-center px-4 sm:px-6 py-8 sm:py-14">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[30rem] h-[30rem] rounded-full bg-[#EFEBFA]/80 blur-[120px] -z-10"
-        />
-
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
-          className="w-full max-w-xl"
-        >
-          <div className="rounded-[28px] bg-white border border-slate-100 p-6 sm:p-9 shadow-2xl shadow-purple-950/10 text-center space-y-6">
+      <main className="relative z-10 flex-1 flex items-center justify-center px-4 sm:px-6 py-8 sm:py-14">
+        <ThankYou3DCard>
+          <div className="text-center space-y-6">
             {isLoading ? (
-              <div className="py-12 flex flex-col items-center justify-center gap-3 text-slate-500">
-                <Loader2 className="w-7 h-7 animate-spin text-[#5C34A4]" />
+              <div className="py-14 flex flex-col items-center justify-center gap-3 text-slate-500">
+                <Loader2 className="w-8 h-8 animate-spin text-[#5C34A4]" />
                 <p className="text-sm font-medium">
-                  Loading your exam registration...
+                  Loading your exam pass...
                 </p>
               </div>
             ) : (
               <>
-                <div className="flex justify-center">
-                  <SmartUpAnimatedLogo size={152} />
-                </div>
+                <ThankYouHeroEmblem badgeText="Registration Complete" />
 
-                <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Registration Complete</span>
-                </div>
-
-                <div className="space-y-2.5 px-1">
-                  <h1 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight">
+                <div
+                  className="space-y-2.5 px-1"
+                  style={{ transform: "translateZ(26px)" }}
+                >
+                  <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight leading-tight">
                     Thank You
                     {receipt?.studentName ? (
                       <>
                         ,{" "}
-                        <span className="text-[#5C34A4]">
+                        <span className="bg-gradient-to-r from-[#5C34A4] via-[#7C3AED] to-[#4B288A] bg-clip-text text-transparent">
                           {receipt.studentName}!
                         </span>
                       </>
@@ -255,64 +246,91 @@ export default function LevelUpThankYouView() {
                 </div>
 
                 {receipt && (
-                  <div className="mx-auto max-w-sm rounded-2xl bg-[#FAF8FF] border border-slate-200/80 px-4 py-3.5 text-xs space-y-2 text-left">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-slate-500">Class / Grade</span>
-                      <span className="font-bold text-slate-900">
-                        {receipt.classLevel}
+                  <div
+                    style={{ transform: "translateZ(32px)" }}
+                    className="mx-auto max-w-md rounded-2xl bg-gradient-to-br from-[#FAF8FF] via-white to-[#F2ECFF] border border-[#5C34A4]/15 shadow-[0_14px_32px_-12px_rgba(92,52,164,0.25),inset_0_1px_0_rgba(255,255,255,0.95)] overflow-hidden text-left"
+                  >
+                    <div className="px-4 py-2 bg-gradient-to-r from-[#5C34A4]/8 via-[#7C3AED]/8 to-transparent border-b border-[#5C34A4]/10 flex items-center justify-between">
+                      <span className="inline-flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[0.14em] text-[#5C34A4]">
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        Scholarship Exam Pass
+                      </span>
+                      <span className="text-[10px] font-semibold text-emerald-600">
+                        ● Verified
                       </span>
                     </div>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-slate-500">Syllabus</span>
-                      <span className="font-bold text-[#5C34A4]">
-                        {receipt.curriculum === "State"
-                          ? "State Syllabus"
-                          : "CBSE Board"}
-                      </span>
-                    </div>
-                    {receipt.schoolName && (
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-slate-500">School</span>
-                        <span className="font-bold text-slate-900 truncate max-w-[200px]">
-                          {receipt.schoolName}
+
+                    <div className="p-4 space-y-2.5 text-xs">
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <div className="rounded-xl bg-white/90 border border-slate-200/70 px-3.5 py-2.5 shadow-xs">
+                          <p className="text-[11px] text-slate-400 font-medium">
+                            Class / Grade
+                          </p>
+                          <p className="font-bold text-slate-900 mt-0.5">
+                            {receipt.classLevel}
+                          </p>
+                        </div>
+                        <div className="rounded-xl bg-white/90 border border-slate-200/70 px-3.5 py-2.5 shadow-xs">
+                          <p className="text-[11px] text-slate-400 font-medium">
+                            Syllabus
+                          </p>
+                          <p className="font-bold text-[#5C34A4] mt-0.5">
+                            {receipt.curriculum === "State"
+                              ? "State Syllabus"
+                              : "CBSE Board"}
+                          </p>
+                        </div>
+                      </div>
+
+                      {receipt.schoolName && (
+                        <div className="flex items-center justify-between gap-2 rounded-xl bg-white/90 border border-slate-200/70 px-3.5 py-2.5 shadow-xs">
+                          <span className="text-slate-500">School</span>
+                          <span className="font-bold text-slate-900 truncate max-w-[220px]">
+                            {receipt.schoolName}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between gap-2 rounded-xl bg-white/90 border border-slate-200/70 px-3.5 py-2.5 shadow-xs">
+                        <span className="text-slate-500">Location</span>
+                        <span className="font-semibold text-slate-800">
+                          {receipt.emirateCity
+                            ? `${receipt.emirateCity}, ${receipt.country}`
+                            : receipt.country}
                         </span>
                       </div>
-                    )}
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-slate-500">Location</span>
-                      <span className="font-medium text-slate-800">
-                        {receipt.emirateCity
-                          ? `${receipt.emirateCity}, ${receipt.country}`
-                          : receipt.country}
-                      </span>
+
+                      {receipt.examTitle && (
+                        <div className="flex items-center justify-between gap-2 rounded-xl bg-[#5C34A4]/6 border border-[#5C34A4]/15 px-3.5 py-2.5">
+                          <span className="text-[#5C34A4] font-semibold flex items-center gap-1.5">
+                            <Trophy className="w-3.5 h-3.5" />
+                            Exam
+                          </span>
+                          <span className="font-bold text-slate-900 truncate max-w-[220px]">
+                            {receipt.examTitle}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                    {receipt.examTitle && (
-                      <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-200/70">
-                        <span className="text-slate-500 flex items-center gap-1">
-                          <Trophy className="w-3.5 h-3.5 text-[#5C34A4]" />
-                          Exam
-                        </span>
-                        <span className="font-bold text-slate-900 truncate max-w-[200px]">
-                          {receipt.examTitle}
-                        </span>
-                      </div>
-                    )}
                   </div>
                 )}
 
                 {startError && (
-                  <div className="mx-auto max-w-sm rounded-xl bg-rose-50 border border-rose-200 px-3.5 py-2.5 text-xs text-rose-700 font-medium flex items-start gap-2 text-left">
+                  <div className="mx-auto max-w-md rounded-xl bg-rose-50 border border-rose-200 px-3.5 py-2.5 text-xs text-rose-700 font-medium flex items-start gap-2 text-left">
                     <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                     <span>{startError}</span>
                   </div>
                 )}
 
-                <div className="space-y-3 max-w-sm mx-auto pt-1">
+                <div
+                  style={{ transform: "translateZ(36px)" }}
+                  className="space-y-3 max-w-sm mx-auto pt-1"
+                >
                   <button
                     type="button"
                     disabled={isStartingExam}
                     onClick={handleStartExam}
-                    className="w-full py-3.5 px-6 font-bold text-sm text-white bg-[#5C34A4] hover:bg-[#4E2B8E] active:bg-[#43237E] disabled:opacity-70 rounded-xl transition-all shadow-lg shadow-purple-900/25 flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
+                    className="w-full py-3.5 px-6 font-bold text-sm text-white bg-gradient-to-b from-[#6E42BE] to-[#5C34A4] hover:from-[#7A4CCF] hover:to-[#4E2B8E] active:translate-y-0.5 disabled:opacity-70 rounded-xl transition-all shadow-[0_14px_28px_-8px_rgba(92,52,164,0.55),0_3px_0_#3F1F79] hover:-translate-y-0.5 flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
                   >
                     {isStartingExam ? (
                       <>
@@ -342,11 +360,11 @@ export default function LevelUpThankYouView() {
               </>
             )}
           </div>
-        </motion.div>
+        </ThankYou3DCard>
       </main>
 
       {/* Footer */}
-      <footer className="py-3 text-center text-xs text-slate-400">
+      <footer className="relative z-20 py-3 text-center text-xs text-slate-400">
         © 2026 SmartUp Learning Ventures • levelup.smartuplearning.net
       </footer>
     </div>
