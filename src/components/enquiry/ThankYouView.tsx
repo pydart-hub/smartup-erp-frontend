@@ -105,9 +105,7 @@ export default function ThankYouView() {
             ) : (
               <>
                 <div className="flex justify-center">
-                  <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-gradient-to-br from-[#F5F3FF] to-[#EDE7F6] border border-[#5C34A4]/20 flex items-center justify-center p-3 shadow-inner">
-                    <SmartUpAnimatedLogo size={96} />
-                  </div>
+                  <SmartUpAnimatedLogo size={152} />
                 </div>
 
                 <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200">
