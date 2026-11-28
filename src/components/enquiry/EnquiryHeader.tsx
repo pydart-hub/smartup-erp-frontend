@@ -3,6 +3,7 @@
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { pushGtmEvent } from "@/lib/analytics/gtm";
 
 interface EnquiryHeaderProps {
   onBookDemo?: () => void;
@@ -57,7 +58,13 @@ export default function EnquiryHeader({
           {onBookDemo ? (
             <button
               type="button"
-              onClick={onBookDemo}
+              onClick={() => {
+                pushGtmEvent("enquiry_cta_click", {
+                  cta_location: "header",
+                  cta_label: "Book Demo",
+                });
+                onBookDemo();
+              }}
               className="px-3.5 sm:px-4 py-2 rounded-full bg-[#5C34A4] hover:bg-[#4B288A] text-white text-xs font-bold shadow-xs transition-all cursor-pointer active:scale-[0.98] whitespace-nowrap"
             >
               Book Demo
@@ -65,6 +72,12 @@ export default function EnquiryHeader({
           ) : (
             <Link
               href={`${anchorPrefix}#register`}
+              onClick={() =>
+                pushGtmEvent("enquiry_cta_click", {
+                  cta_location: "header",
+                  cta_label: "Book Demo",
+                })
+              }
               className="px-3.5 sm:px-4 py-2 rounded-full bg-[#5C34A4] hover:bg-[#4B288A] text-white text-xs font-bold shadow-xs transition-all active:scale-[0.98] whitespace-nowrap"
             >
               Book Demo

@@ -22,6 +22,7 @@ import {
   getEnquiryThankYouPath,
   saveEnquiryReceipt,
 } from "@/lib/enquiry/receipt";
+import { pushGtmEvent } from "@/lib/analytics/gtm";
 import type {
   BoardOption,
   CallTimeOption,
@@ -125,11 +126,23 @@ export default function HeroRegistrationSection({
 
     if (!studentName.trim() || studentName.trim().length < 2) {
       setErrorMessage("Please enter the student's full name.");
+      pushGtmEvent("enquiry_form_error", {
+        error_type: "validation",
+        error_field: "studentName",
+        class_level: classLevel,
+        preferred_plan: selectedPlan,
+      });
       return;
     }
 
     if (!parentName.trim() || parentName.trim().length < 2) {
       setErrorMessage("Please enter the parent/guardian's name.");
+      pushGtmEvent("enquiry_form_error", {
+        error_type: "validation",
+        error_field: "parentName",
+        class_level: classLevel,
+        preferred_plan: selectedPlan,
+      });
       return;
     }
 
@@ -138,6 +151,12 @@ export default function HeroRegistrationSection({
       setErrorMessage(
         phoneCheck.error || "Please enter a valid mobile/WhatsApp number."
       );
+      pushGtmEvent("enquiry_form_error", {
+        error_type: "validation",
+        error_field: "phone",
+        class_level: classLevel,
+        preferred_plan: selectedPlan,
+      });
       return;
     }
 
@@ -171,23 +190,47 @@ export default function HeroRegistrationSection({
         setErrorMessage(
           data.error || "Could not submit registration. Please try again."
         );
+        pushGtmEvent("enquiry_form_error", {
+          error_type: "api",
+          error_field: data.field || "server",
+          class_level: classLevel,
+          preferred_plan: selectedPlan,
+        });
         return;
       }
 
+      const effectiveStream = isHigherSecondary ? stream : "Science";
       const receiptPayload: SubmissionReceipt = {
         referenceCode: data.referenceCode,
         studentName: data.studentName,
         classLevel: data.classLevel,
         preferredPlan: data.preferredPlan,
         updated: data.updated,
+        country: selectedCountry.name,
+        city,
+        stream: effectiveStream,
       };
       saveEnquiryReceipt(receiptPayload);
+      pushGtmEvent("enquiry_form_submit_success", {
+        reference_code: data.referenceCode,
+        class_level: data.classLevel,
+        preferred_plan: data.preferredPlan,
+        is_updated_lead: Boolean(data.updated),
+        country: selectedCountry.name,
+        city,
+        stream: effectiveStream,
+      });
       didRedirect = true;
       router.push(getEnquiryThankYouPath(data.referenceCode));
     } catch {
       setErrorMessage(
         "Network error while submitting your enquiry. Please try again."
       );
+      pushGtmEvent("enquiry_form_error", {
+        error_type: "network",
+        class_level: classLevel,
+        preferred_plan: selectedPlan,
+      });
     } finally {
       if (!didRedirect) {
         setIsSubmitting(false);

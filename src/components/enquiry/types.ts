@@ -25,5 +25,8 @@ export interface SubmissionReceipt {
   classLevel: string;
   preferredPlan: string;
   updated?: boolean;
+  country?: string;
+  city?: string;
+  stream?: string;
 }
 

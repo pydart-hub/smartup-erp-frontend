@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Plus } from "lucide-react";
 import { FAQS } from "@/data/enquiry-content";
+import { pushGtmEvent } from "@/lib/analytics/gtm";
 
 export default function FaqSection() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
@@ -21,7 +22,15 @@ export default function FaqSection() {
               <div key={item.question}>
                 <button
                   type="button"
-                  onClick={() => setOpenIndex(isOpen ? null : idx)}
+                  onClick={() => {
+                    if (!isOpen) {
+                      pushGtmEvent("enquiry_faq_toggle", {
+                        faq_question: item.question,
+                        faq_index: idx,
+                      });
+                    }
+                    setOpenIndex(isOpen ? null : idx);
+                  }}
                   aria-expanded={isOpen}
                   className="w-full py-4 flex items-center justify-between gap-4 text-left cursor-pointer group"
                 >

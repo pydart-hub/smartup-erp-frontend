@@ -3,6 +3,7 @@
 import React from "react";
 import { ArrowUpRight, Check } from "lucide-react";
 import { PLANS } from "@/data/enquiry-content";
+import { pushGtmEvent } from "@/lib/analytics/gtm";
 import type { PlanOption } from "@/components/enquiry/types";
 
 interface PlansSectionProps {
@@ -74,7 +75,13 @@ export default function PlansSection({
 
                 <button
                   type="button"
-                  onClick={() => onSelectPlan(plan.id)}
+                  onClick={() => {
+                    pushGtmEvent("enquiry_plan_selected", {
+                      preferred_plan: plan.id,
+                      source: "plans_section",
+                    });
+                    onSelectPlan(plan.id);
+                  }}
                   className={`mt-6 w-full py-2.5 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer inline-flex items-center justify-center gap-1.5 ${
                     isFeatured
                       ? "bg-[#5C34A4] hover:bg-[#4B288A] text-white"

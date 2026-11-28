@@ -64,6 +64,9 @@ export function loadEnquiryReceipt(
         classLevel: parsed.classLevel,
         preferredPlan: parsed.preferredPlan,
         updated: Boolean(parsed.updated),
+        ...(typeof parsed.country === "string" ? { country: parsed.country } : {}),
+        ...(typeof parsed.city === "string" ? { city: parsed.city } : {}),
+        ...(typeof parsed.stream === "string" ? { stream: parsed.stream } : {}),
       };
     }
     return null;
