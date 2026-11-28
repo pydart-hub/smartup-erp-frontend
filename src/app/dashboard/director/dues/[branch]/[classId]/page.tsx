@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
-import { getDuesTodayByBatch } from "@/lib/api/director";
+import { formatDuesRangeLabel, getDuesTodayByBatch, parseDuesDateParams } from "@/lib/api/director";
 import { formatCurrency } from "@/lib/utils/formatters";
 
 const containerVariants = {
@@ -35,12 +35,12 @@ export default function DuesBatchPage() {
   const classId = decodeURIComponent(params.classId as string);
   const shortBranch = branch.replace("Smart Up ", "").replace("Smart Up", "HQ");
   const displayClass = classId.replace(" Tuition Fee", "");
-  const asOf = searchParams.get("as_of") || undefined;
-  const childQs = asOf ? `?as_of=${asOf}` : "";
+  const { fromDate, toDate, childQs, dateFilter } = parseDuesDateParams(searchParams);
+  const rangeLabel = fromDate || toDate ? formatDuesRangeLabel(fromDate, toDate) : undefined;
 
   const { data: batches, isLoading, isError } = useQuery({
-    queryKey: ["director-dues-batches", branch, classId, asOf],
-    queryFn: () => getDuesTodayByBatch(branch, classId, asOf),
+    queryKey: ["director-dues-batches", branch, classId, fromDate, toDate],
+    queryFn: () => getDuesTodayByBatch(branch, classId, dateFilter),
     staleTime: 30_000,
     refetchInterval: 30_000,
   });
@@ -67,7 +67,7 @@ export default function DuesBatchPage() {
         <div>
           <h1 className="text-2xl font-bold text-text-primary">{displayClass} — Dues</h1>
           <p className="text-sm text-text-secondary mt-0.5">
-            Batch-wise overdue at {shortBranch}
+            Batch-wise overdue at {shortBranch}{rangeLabel ? ` · ${rangeLabel}` : ""}
           </p>
         </div>
       </motion.div>

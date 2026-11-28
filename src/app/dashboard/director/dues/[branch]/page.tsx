@@ -16,7 +16,7 @@ import {
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { getDuesTodayByClass } from "@/lib/api/director";
+import { formatDuesRangeLabel, getDuesTodayByClass, parseDuesDateParams } from "@/lib/api/director";
 import { formatCurrency } from "@/lib/utils/formatters";
 
 const containerVariants = {
@@ -34,12 +34,12 @@ export default function DuesClassPage() {
   const searchParams = useSearchParams();
   const branch = decodeURIComponent(params.branch as string);
   const shortName = branch.replace("Smart Up ", "").replace("Smart Up", "HQ");
-  const asOf = searchParams.get("as_of") || undefined;
-  const childQs = asOf ? `?as_of=${asOf}` : "";
+  const { fromDate, toDate, childQs, dateFilter } = parseDuesDateParams(searchParams);
+  const rangeLabel = fromDate || toDate ? formatDuesRangeLabel(fromDate, toDate) : undefined;
 
   const { data: classes, isLoading, isError } = useQuery({
-    queryKey: ["director-dues-classes", branch, asOf],
-    queryFn: () => getDuesTodayByClass(branch, asOf),
+    queryKey: ["director-dues-classes", branch, fromDate, toDate],
+    queryFn: () => getDuesTodayByClass(branch, dateFilter),
     staleTime: 30_000,
     refetchInterval: 30_000,
   });
@@ -63,7 +63,7 @@ export default function DuesClassPage() {
         <div>
           <h1 className="text-2xl font-bold text-text-primary">{shortName} — Dues</h1>
           <p className="text-sm text-text-secondary mt-0.5">
-            Class-wise overdue breakdown
+            Class-wise overdue breakdown{rangeLabel ? ` · ${rangeLabel}` : ""}
           </p>
         </div>
       </motion.div>

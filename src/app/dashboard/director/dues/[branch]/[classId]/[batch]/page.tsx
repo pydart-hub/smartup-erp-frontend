@@ -25,7 +25,12 @@ import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { getDuesTodayByStudent, type DuesTodayStudentRow } from "@/lib/api/director";
+import {
+  formatDuesRangeLabel,
+  getDuesTodayByStudent,
+  parseDuesDateParams,
+  type DuesTodayStudentRow,
+} from "@/lib/api/director";
 import { formatCurrency } from "@/lib/utils/formatters";
 
 const PAYMENT_OPTION_LABELS: Record<string, string> = {
@@ -395,8 +400,8 @@ export default function DuesStudentPage() {
   const classId = decodeURIComponent(params.classId as string);
   const batch = decodeURIComponent(params.batch as string);
   const shortBranch = branch.replace("Smart Up ", "").replace("Smart Up", "HQ");
-  const asOf = searchParams.get("as_of") || undefined;
-  const childQs = asOf ? `?as_of=${asOf}` : "";
+  const { fromDate, toDate, childQs, dateFilter } = parseDuesDateParams(searchParams);
+  const rangeLabel = fromDate || toDate ? formatDuesRangeLabel(fromDate, toDate) : undefined;
 
   // View Mode: "overdue" vs "all"
   const [viewMode, setViewMode] = useState<"overdue" | "all">("overdue");
@@ -405,8 +410,8 @@ export default function DuesStudentPage() {
   const [frequencyFilter, setFrequencyFilter] = useState<string>("all");
 
   const { data: students, isLoading, isError } = useQuery({
-    queryKey: ["director-dues-students", branch, batch, asOf, classId],
-    queryFn: () => getDuesTodayByStudent(branch, batch, asOf, classId),
+    queryKey: ["director-dues-students", branch, batch, fromDate, toDate, classId],
+    queryFn: () => getDuesTodayByStudent(branch, batch, dateFilter, classId),
     staleTime: 30_000,
     refetchInterval: 30_000,
   });
@@ -508,7 +513,7 @@ export default function DuesStudentPage() {
               {batch} — {viewMode === "all" ? "All Students" : "Dues"}
             </h1>
             <p className="text-sm text-text-secondary mt-0.5">
-              {viewMode === "all" ? "Complete batch roster and fee status" : "Student-wise overdue breakdown"} at {shortBranch}
+              {viewMode === "all" ? "Complete batch roster and fee status" : "Student-wise overdue breakdown"} at {shortBranch}{rangeLabel ? ` · ${rangeLabel}` : ""}
             </p>
           </div>
         </div>

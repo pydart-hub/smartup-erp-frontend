@@ -25,7 +25,12 @@ import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { getDuesTodayByBranchStudents, type DuesTodayStudentRow } from "@/lib/api/director";
+import {
+  formatDuesRangeLabel,
+  getDuesTodayByBranchStudents,
+  parseDuesDateParams,
+  type DuesTodayStudentRow,
+} from "@/lib/api/director";
 import { formatCurrency } from "@/lib/utils/formatters";
 
 const PAYMENT_OPTION_LABELS: Record<string, string> = {
@@ -420,8 +425,8 @@ export default function DirectorBranchAllStudentsPage() {
   const searchParams = useSearchParams();
   const branch = decodeURIComponent(params.branch as string);
   const shortBranch = branch.replace("Smart Up ", "").replace("Smart Up", "HQ");
-  const asOf = searchParams.get("as_of") || undefined;
-  const childQs = asOf ? `?as_of=${asOf}` : "";
+  const { fromDate, toDate, childQs, dateFilter } = parseDuesDateParams(searchParams);
+  const rangeLabel = fromDate || toDate ? formatDuesRangeLabel(fromDate, toDate) : undefined;
 
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [classFilter, setClassFilter] = useState<string>("all");
@@ -430,8 +435,8 @@ export default function DirectorBranchAllStudentsPage() {
   const [frequencyFilter, setFrequencyFilter] = useState<string>("all");
 
   const { data: students, isLoading, isError } = useQuery({
-    queryKey: ["director-branch-all-students", branch, asOf],
-    queryFn: () => getDuesTodayByBranchStudents(branch, asOf),
+    queryKey: ["director-branch-all-students", branch, fromDate, toDate],
+    queryFn: () => getDuesTodayByBranchStudents(branch, dateFilter),
     staleTime: 30_000,
     refetchInterval: 60_000,
   });
@@ -517,7 +522,7 @@ export default function DirectorBranchAllStudentsPage() {
               {shortBranch} — All Overdue Students
             </h1>
             <p className="text-sm text-text-secondary mt-0.5">
-              Complete student-wise overdue list across all classes at {shortBranch}
+              Complete student-wise overdue list across all classes at {shortBranch}{rangeLabel ? ` · ${rangeLabel}` : ""}
             </p>
           </div>
         </div>

@@ -1,14 +1,17 @@
 /**
  * GET /api/fees/dues-till-today
  *
- * Returns overdue fee data — invoices where due_date <= today AND outstanding > 0.
+ * Returns overdue fee data — invoices where due_date is within [from_date, to_date] (defaulting to <= today) AND outstanding > 0.
  * Excludes discontinued students.
  *
  * Query params:
- *   level      — "total" | "branch" | "class" | "batch" | "student"
- *   branch     — company name (required for class/batch/student)
+ *   level      — "total" | "branch" | "class" | "batch" | "student" | "branch_students"
+ *   branch     — company name (required for class/batch/student/branch_students)
  *   item_code  — class identifier (required for batch)
  *   batch      — Student Group name (required for student)
+ *   from_date  — optional YYYY-MM-DD lower bound on due_date (inclusive)
+ *   to_date    — optional YYYY-MM-DD upper bound on due_date (inclusive, defaults to today)
+ *   as_of      — legacy alias for to_date
  *
  * Uses admin token server-side for aggregate queries.
  */
@@ -29,6 +32,25 @@ const ADMIN_HEADERS = {
 
 function today(): string {
   return new Date().toISOString().split("T")[0];
+}
+
+function isValidIsoDate(val: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(val);
+}
+
+/** Build Frappe due_date filters for an inclusive [fromDate, toDate] range. */
+function buildDueDateFilters(
+  toDate: string,
+  fromDate?: string,
+  doctype?: string
+): (string | number | string[])[][] {
+  const mk = (op: string, val: string): (string | number | string[])[] =>
+    doctype ? [doctype, "due_date", op, val] : ["due_date", op, val];
+  const filters: (string | number | string[])[][] = [mk("<=", toDate)];
+  if (fromDate) {
+    filters.unshift(mk(">=", fromDate));
+  }
+  return filters;
 }
 
 async function frappeGet(path: string, params: Record<string, string>) {
@@ -91,14 +113,18 @@ async function getDiscontinuedCustomers(company?: string | string[]): Promise<st
   return customers;
 }
 
-export async function getBranchStudentsOverdueData(branch: string, todayDate: string) {
+export async function getBranchStudentsOverdueData(
+  branch: string,
+  toDate: string,
+  fromDate?: string
+) {
   const discCustomers = await getDiscontinuedCustomers(branch);
 
   // Step 1: Fetch all overdue invoices for this branch
   const invFilters: (string | number | string[])[][] = [
     ["docstatus", "=", 1],
     ["outstanding_amount", ">", 0],
-    ["due_date", "<=", todayDate],
+    ...buildDueDateFilters(toDate, fromDate),
     ["company", "=", branch],
   ];
   if (discCustomers.length > 0) {
@@ -448,8 +474,14 @@ async function handleGet(request: NextRequest) {
     const branch = sp.get("branch") || "";
     const itemCode = sp.get("item_code") || "";
     const batch = sp.get("batch") || "";
-    const asOf = sp.get("as_of") || "";
-    const todayDate = asOf && /^\d{4}-\d{2}-\d{2}$/.test(asOf) ? asOf : today();
+    const rawFrom = sp.get("from_date") || "";
+    const rawTo = sp.get("to_date") || sp.get("as_of") || "";
+    const fromDate = rawFrom && isValidIsoDate(rawFrom) ? rawFrom : undefined;
+    const toDate = rawTo && isValidIsoDate(rawTo) ? rawTo : today();
+
+    if (fromDate && fromDate > toDate) {
+      return NextResponse.json({ error: "from_date cannot be after to_date" }, { status: 400 });
+    }
 
     if (roles.includes("Sales User") && branch) {
       if (!allowedCompanies.includes(branch)) {
@@ -466,7 +498,7 @@ async function handleGet(request: NextRequest) {
       const filters: (string | number | string[])[][] = [
         ["docstatus", "=", 1],
         ["outstanding_amount", ">", 0],
-        ["due_date", "<=", todayDate],
+        ...buildDueDateFilters(toDate, fromDate),
       ];
       if (discCustomers.length > 0) {
         filters.push(["customer", "not in", discCustomers]);
@@ -501,7 +533,7 @@ async function handleGet(request: NextRequest) {
       const filters: (string | number | string[])[][] = [
         ["docstatus", "=", 1],
         ["outstanding_amount", ">", 0],
-        ["due_date", "<=", todayDate],
+        ...buildDueDateFilters(toDate, fromDate),
       ];
       if (discCustomers.length > 0) {
         filters.push(["customer", "not in", discCustomers]);
@@ -545,7 +577,7 @@ async function handleGet(request: NextRequest) {
       const filters: (string | number | string[])[][] = [
         ["Sales Invoice", "docstatus", "=", 1],
         ["Sales Invoice", "outstanding_amount", ">", 0],
-        ["Sales Invoice", "due_date", "<=", todayDate],
+        ...buildDueDateFilters(toDate, fromDate, "Sales Invoice"),
         ["Sales Invoice", "company", "=", branch],
       ];
       if (discCustomers.length > 0) {
@@ -589,7 +621,7 @@ async function handleGet(request: NextRequest) {
       const invFilters: (string | number | string[])[][] = [
         ["Sales Invoice", "docstatus", "=", 1],
         ["Sales Invoice", "outstanding_amount", ">", 0],
-        ["Sales Invoice", "due_date", "<=", todayDate],
+        ...buildDueDateFilters(toDate, fromDate, "Sales Invoice"),
         ["Sales Invoice", "company", "=", branch],
         ["Sales Invoice Item", "item_code", "=", itemCode],
       ];
@@ -706,7 +738,7 @@ async function handleGet(request: NextRequest) {
         const invFilters: (string | number | string[])[][] = [
           ["Sales Invoice", "docstatus", "=", 1],
           ["Sales Invoice", "outstanding_amount", ">", 0],
-          ["Sales Invoice", "due_date", "<=", todayDate],
+          ...buildDueDateFilters(toDate, fromDate, "Sales Invoice"),
           ["Sales Invoice", "company", "=", branch],
           ["Sales Invoice Item", "item_code", "=", itemCode],
         ];
@@ -885,7 +917,8 @@ async function handleGet(request: NextRequest) {
         existing.paid_fee += paid;
         existing.balance_fee += outstanding;
 
-        const isOverdue = outstanding > 0 && inv.due_date <= todayDate;
+        const inDateRange = inv.due_date <= toDate && (!fromDate || inv.due_date >= fromDate);
+        const isOverdue = outstanding > 0 && inDateRange;
         if (isOverdue) {
           existing.total_dues += outstanding;
           const planInfo = studentPlanMap.get(inv.student);
@@ -998,7 +1031,8 @@ async function handleGet(request: NextRequest) {
       }
       const data = await getBranchStudentsOverdueData(
         branch,
-        todayDate
+        toDate,
+        fromDate
       );
       return NextResponse.json({ data });
     }

@@ -1609,63 +1609,112 @@ export interface RecentlyPaidClaimRow {
   };
 }
 
-/** Get total overdue dues across all branches */
-export async function getDuesTodayTotal(asOf?: string): Promise<DuesTodayTotal> {
-  const params = new URLSearchParams({ level: "total" });
-  if (asOf) params.set("as_of", asOf);
+export type DuesDateFilter = string | { fromDate?: string; toDate?: string };
+
+export function buildDuesChildQs(fromDate?: string, toDate?: string): string {
+  const params = new URLSearchParams();
+  if (fromDate) params.set("from_date", fromDate);
+  if (toDate) params.set("to_date", toDate);
+  const qs = params.toString();
+  return qs ? `?${qs}` : "";
+}
+
+export function parseDuesDateParams(searchParams: { get(key: string): string | null }) {
+  const fromDate = searchParams.get("from_date") || undefined;
+  const toDate = searchParams.get("to_date") || searchParams.get("as_of") || undefined;
+  const childQs = buildDuesChildQs(fromDate, toDate);
+  const dateFilter: DuesDateFilter = { fromDate, toDate };
+  return { fromDate, toDate, childQs, dateFilter };
+}
+
+function formatDuesDisplayDate(iso: string): string {
+  return new Date(iso + "T00:00:00").toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+export function formatDuesRangeLabel(fromDate?: string, toDate?: string, todayISO?: string): string {
+  const isDefaultTo = !toDate || (todayISO !== undefined && toDate === todayISO);
+  if (!fromDate && isDefaultTo) return "Till Today";
+  if (!fromDate && toDate) return `Till ${formatDuesDisplayDate(toDate)}`;
+  if (fromDate && toDate) return `${formatDuesDisplayDate(fromDate)} – ${formatDuesDisplayDate(toDate)}`;
+  return `From ${formatDuesDisplayDate(fromDate!)}`;
+}
+
+async function fetchDuesTillToday<T>(
+  baseParams: Record<string, string | undefined>,
+  dateFilter?: DuesDateFilter
+): Promise<T> {
+  const params = new URLSearchParams();
+  for (const [k, v] of Object.entries(baseParams)) {
+    if (v) params.set(k, v);
+  }
+  if (typeof dateFilter === "string") {
+    if (dateFilter) params.set("to_date", dateFilter);
+  } else if (dateFilter) {
+    if (dateFilter.fromDate) params.set("from_date", dateFilter.fromDate);
+    if (dateFilter.toDate) params.set("to_date", dateFilter.toDate);
+  }
   const res = await fetch(`/api/fees/dues-till-today?${params}`, { credentials: "include" });
   if (!res.ok) throw new Error(`dues-till-today failed: ${res.status}`);
   return res.json();
 }
 
+/** Get total overdue dues across all branches */
+export async function getDuesTodayTotal(dateFilter?: DuesDateFilter): Promise<DuesTodayTotal> {
+  return fetchDuesTillToday<DuesTodayTotal>({ level: "total" }, dateFilter);
+}
+
 /** Get branch-wise dues breakdown */
-export async function getDuesTodayByBranch(asOf?: string): Promise<DuesTodayBranchRow[]> {
-  const params = new URLSearchParams({ level: "branch" });
-  if (asOf) params.set("as_of", asOf);
-  const res = await fetch(`/api/fees/dues-till-today?${params}`, { credentials: "include" });
-  if (!res.ok) throw new Error(`dues-till-today failed: ${res.status}`);
-  const json = await res.json();
+export async function getDuesTodayByBranch(dateFilter?: DuesDateFilter): Promise<DuesTodayBranchRow[]> {
+  const json = await fetchDuesTillToday<{ data?: DuesTodayBranchRow[] }>({ level: "branch" }, dateFilter);
   return json.data ?? [];
 }
 
 /** Get class-wise dues for a specific branch */
-export async function getDuesTodayByClass(branch: string, asOf?: string): Promise<DuesTodayClassRow[]> {
-  const params = new URLSearchParams({ level: "class", branch });
-  if (asOf) params.set("as_of", asOf);
-  const res = await fetch(`/api/fees/dues-till-today?${params}`, { credentials: "include" });
-  if (!res.ok) throw new Error(`dues-till-today failed: ${res.status}`);
-  const json = await res.json();
+export async function getDuesTodayByClass(branch: string, dateFilter?: DuesDateFilter): Promise<DuesTodayClassRow[]> {
+  const json = await fetchDuesTillToday<{ data?: DuesTodayClassRow[] }>({ level: "class", branch }, dateFilter);
   return json.data ?? [];
 }
 
 /** Get batch-wise dues for a specific branch + class */
-export async function getDuesTodayByBatch(branch: string, itemCode: string, asOf?: string): Promise<DuesTodayBatchRow[]> {
-  const params = new URLSearchParams({ level: "batch", branch, item_code: itemCode });
-  if (asOf) params.set("as_of", asOf);
-  const res = await fetch(`/api/fees/dues-till-today?${params}`, { credentials: "include" });
-  if (!res.ok) throw new Error(`dues-till-today failed: ${res.status}`);
-  const json = await res.json();
+export async function getDuesTodayByBatch(
+  branch: string,
+  itemCode: string,
+  dateFilter?: DuesDateFilter
+): Promise<DuesTodayBatchRow[]> {
+  const json = await fetchDuesTillToday<{ data?: DuesTodayBatchRow[] }>(
+    { level: "batch", branch, item_code: itemCode },
+    dateFilter
+  );
   return json.data ?? [];
 }
 
 /** Get student-wise dues for a specific batch */
-export async function getDuesTodayByStudent(branch: string, batch: string, asOf?: string, itemCode?: string): Promise<DuesTodayStudentRow[]> {
-  const params = new URLSearchParams({ level: "student", branch, batch });
-  if (asOf) params.set("as_of", asOf);
-  if (itemCode) params.set("item_code", itemCode);
-  const res = await fetch(`/api/fees/dues-till-today?${params}`, { credentials: "include" });
-  if (!res.ok) throw new Error(`dues-till-today failed: ${res.status}`);
-  const json = await res.json();
+export async function getDuesTodayByStudent(
+  branch: string,
+  batch: string,
+  dateFilter?: DuesDateFilter,
+  itemCode?: string
+): Promise<DuesTodayStudentRow[]> {
+  const json = await fetchDuesTillToday<{ data?: DuesTodayStudentRow[] }>(
+    { level: "student", branch, batch, item_code: itemCode },
+    dateFilter
+  );
   return json.data ?? [];
 }
 
 /** Get ALL overdue students in a branch (flat list, no batch filter) */
-export async function getDuesTodayByBranchStudents(branch: string, asOf?: string): Promise<DuesTodayStudentRow[]> {
-  const params = new URLSearchParams({ level: "branch_students", branch });
-  if (asOf) params.set("as_of", asOf);
-  const res = await fetch(`/api/fees/dues-till-today?${params}`, { credentials: "include" });
-  if (!res.ok) throw new Error(`dues-till-today failed: ${res.status}`);
-  const json = await res.json();
+export async function getDuesTodayByBranchStudents(
+  branch: string,
+  dateFilter?: DuesDateFilter
+): Promise<DuesTodayStudentRow[]> {
+  const json = await fetchDuesTillToday<{ data?: DuesTodayStudentRow[] }>(
+    { level: "branch_students", branch },
+    dateFilter
+  );
   return json.data ?? [];
 }
 

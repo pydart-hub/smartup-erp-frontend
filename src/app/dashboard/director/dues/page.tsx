@@ -1,8 +1,9 @@
 "use client";
 
 import { GifLoader } from "@/components/ui/GifLoader";
-import React, { useState } from "react";
+import React, { Suspense, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -15,7 +16,11 @@ import {
 import { BreadcrumbNav } from "@/components/layout/BreadcrumbNav";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { getDuesTodayByBranch } from "@/lib/api/director";
+import {
+  buildDuesChildQs,
+  formatDuesRangeLabel,
+  getDuesTodayByBranch,
+} from "@/lib/api/director";
 import { formatCurrency } from "@/lib/utils/formatters";
 
 const containerVariants = {
@@ -35,25 +40,45 @@ function getLocalToday(): string {
 
 const todayISO = getLocalToday();
 
-function formatDisplayDate(iso: string): string {
-  return new Date(iso + "T00:00:00").toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
+function DuesBranchContent() {
+  const searchParams = useSearchParams();
+  const [fromDate, setFromDate] = useState(() => searchParams.get("from_date") || "");
+  const [toDate, setToDate] = useState(
+    () => searchParams.get("to_date") || searchParams.get("as_of") || todayISO
+  );
 
-export default function DuesBranchPage() {
-  const [asOf, setAsOf] = useState(todayISO);
-  const isToday = asOf === todayISO;
+  const isDefaultRange = !fromDate && toDate === todayISO;
 
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setAsOf(e.target.value || todayISO);
+  const handleFromChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setFromDate(val);
+    if (val && toDate && val > toDate) {
+      setToDate(val);
+    }
   };
 
+  const handleToChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value || todayISO;
+    setToDate(val);
+    if (fromDate && val < fromDate) {
+      setFromDate(val);
+    }
+  };
+
+  const handleReset = () => {
+    setFromDate("");
+    setToDate(todayISO);
+  };
+
+  const effectiveToDate = isDefaultRange ? undefined : toDate;
+  const effectiveFromDate = fromDate || undefined;
+
   const { data: branches, isLoading, isError } = useQuery({
-    queryKey: ["director-dues-branches", asOf],
-    queryFn: () => getDuesTodayByBranch(isToday ? undefined : asOf),
+    queryKey: ["director-dues-branches", fromDate, toDate],
+    queryFn: () =>
+      getDuesTodayByBranch(
+        isDefaultRange ? undefined : { fromDate: effectiveFromDate, toDate: effectiveToDate }
+      ),
     staleTime: 30_000,
     refetchInterval: 30_000,
   });
@@ -62,7 +87,8 @@ export default function DuesBranchPage() {
   const totalStudents = (branches ?? []).reduce((s, b) => s + b.student_count, 0);
 
   // Build query string for child links
-  const childQs = isToday ? "" : `?as_of=${asOf}`;
+  const childQs = isDefaultRange ? "" : buildDuesChildQs(effectiveFromDate, toDate);
+  const rangeLabel = formatDuesRangeLabel(effectiveFromDate, toDate, todayISO);
 
   return (
     <motion.div
@@ -76,26 +102,42 @@ export default function DuesBranchPage() {
       <motion.div variants={itemVariants} className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-text-primary">
-            {isToday ? "Dues Till Today" : `Dues Till ${formatDisplayDate(asOf)}`}
+            {isDefaultRange ? "Dues Till Today" : `Dues (${rangeLabel})`}
           </h1>
           <p className="text-sm text-text-secondary mt-0.5">
-            Overdue instalments where due date has passed — branch-wise breakdown
+            Overdue instalments where due date falls in selected range — branch-wise breakdown
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <label htmlFor="as-of-date" className="text-sm text-text-secondary whitespace-nowrap">
-            As of
-          </label>
-          <input
-            id="as-of-date"
-            type="date"
-            value={asOf}
-            onChange={handleDateChange}
-            className="text-sm rounded-lg border border-border-input bg-surface px-3 py-1.5 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-          />
-          {!isToday && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5">
+            <label htmlFor="dues-from-date" className="text-sm text-text-secondary whitespace-nowrap">
+              From
+            </label>
+            <input
+              id="dues-from-date"
+              type="date"
+              value={fromDate}
+              max={toDate || undefined}
+              onChange={handleFromChange}
+              className="text-sm rounded-lg border border-border-input bg-surface px-3 py-1.5 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+            />
+          </div>
+          <div className="flex items-center gap-1.5">
+            <label htmlFor="dues-to-date" className="text-sm text-text-secondary whitespace-nowrap">
+              To
+            </label>
+            <input
+              id="dues-to-date"
+              type="date"
+              value={toDate}
+              min={fromDate || undefined}
+              onChange={handleToChange}
+              className="text-sm rounded-lg border border-border-input bg-surface px-3 py-1.5 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+            />
+          </div>
+          {!isDefaultRange && (
             <button
-              onClick={() => setAsOf(todayISO)}
+              onClick={handleReset}
               className="text-xs text-primary hover:text-primary/80 underline underline-offset-2"
             >
               Reset
@@ -141,7 +183,7 @@ export default function DuesBranchPage() {
           <p className="text-sm text-success font-medium">No overdue dues — all caught up!</p>
         </div>
       ) : (
-        <motion.div key={asOf} initial="hidden" animate="visible" variants={containerVariants} className="space-y-3">
+        <motion.div key={`${fromDate}_${toDate}`} initial="hidden" animate="visible" variants={containerVariants} className="space-y-3">
           {branches.map((branch) => {
             const shortName = branch.branch.replace("Smart Up ", "").replace("Smart Up", "HQ");
             return (
@@ -196,5 +238,13 @@ export default function DuesBranchPage() {
         </motion.div>
       )}
     </motion.div>
+  );
+}
+
+export default function DuesBranchPage() {
+  return (
+    <Suspense fallback={<GifLoader />}>
+      <DuesBranchContent />
+    </Suspense>
   );
 }
